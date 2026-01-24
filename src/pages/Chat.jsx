@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, Fragment } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { AnimatePresence, motion } from 'motion/react';
-import { Send, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2 } from 'lucide-react';
+import { Send, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Volume2 } from 'lucide-react';
 import { renderAsync } from 'docx-preview';
 import * as XLSX from 'xlsx';
 import { Menu, Transition, Dialog } from '@headlessui/react';
@@ -131,6 +131,10 @@ const Chat = () => {
   const [isDeepSearch, setIsDeepSearch] = useState(false);
   const [isImageGeneration, setIsImageGeneration] = useState(false);
   const abortControllerRef = useRef(null);
+  const voiceUsedRef = useRef(false); // Track if voice input was used
+  const inputRef = useRef(null); // Ref for textarea input
+  const transcriptRef = useRef(''); // Ref for speech transcript
+  const isManualStopRef = useRef(false); // Track manual stop to avoid recursive loops
 
   const toolsBtnRef = useRef(null);
   const toolsMenuRef = useRef(null);
@@ -458,6 +462,156 @@ const Chat = () => {
     }
   };
 
+  // Voice Input Handler
+  const handleVoiceInput = () => {
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      toast.error('Voice input not supported in this browser');
+      return;
+    }
+
+    if (isListening) {
+      isManualStopRef.current = true;
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsListening(false);
+      return;
+    }
+
+    // Start New Listening session
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+    isManualStopRef.current = false;
+    transcriptRef.current = '';
+
+    const langMap = {
+      'Hindi': 'hi-IN',
+      'English': 'en-US',
+      'Spanish': 'es-ES',
+      'French': 'fr-FR',
+      'German': 'de-DE',
+      'Japanese': 'ja-JP'
+    };
+    recognition.lang = langMap[currentLang] || 'en-US';
+    recognition.continuous = false;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map(result => result[0].transcript)
+        .join('');
+      setInputValue(transcript);
+      transcriptRef.current = transcript;
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+
+      const text = transcriptRef.current.trim();
+      if (!isManualStopRef.current && text) {
+        voiceUsedRef.current = true;
+        handleSendMessage(null, text);
+      }
+      isManualStopRef.current = false;
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech error:', event.error);
+      setIsListening(false);
+      isManualStopRef.current = true;
+      if (event.error === 'not-allowed') toast.error('Microphone access denied');
+    };
+
+    try {
+      recognition.start();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // Voice Output - Speak AI Response
+  const speakResponse = async (text, language) => {
+    if (!text) return;
+    console.log(`[VOICE] Attempting to speak: "${text.substring(0, 30)}..." in ${language}`);
+
+    const langMap = {
+      'Hindi': 'hi-IN',
+      'English': 'en-US',
+      'Spanish': 'es-ES',
+      'French': 'fr-FR',
+      'German': 'de-DE',
+      'Japanese': 'ja-JP',
+      'Hinglish': 'hi-IN'
+    };
+
+    const targetLang = langMap[language] || langMap[currentLang] || 'en-US';
+    console.log(`[VOICE] Target Language Code: ${targetLang}`);
+
+    try {
+      console.log(`[VOICE] Requesting synthesis from backend...`);
+      const response = await axios.post(apis.synthesizeVoice, {
+        text,
+        languageCode: targetLang,
+        gender: 'FEMALE'
+      }, {
+        responseType: 'arraybuffer'
+      });
+
+      console.log(`[VOICE] Synthesis received, playing audio...`);
+      const blob = new Blob([response.data], { type: 'audio/mpeg' });
+      const url = window.URL.createObjectURL(blob);
+      const audio = new Audio(url);
+
+      audio.onended = () => {
+        console.log(`[VOICE] Audio playback ended.`);
+        window.URL.revokeObjectURL(url);
+      };
+
+      audio.onerror = (e) => {
+        console.error(`[VOICE] Audio playback error:`, e);
+        fallbackSpeak(text, targetLang);
+      };
+
+      await audio.play();
+    } catch (err) {
+      console.error('[VOICE] Backend synthesis failed:', err.response?.status, err.message);
+      fallbackSpeak(text, targetLang);
+    }
+  };
+
+  const fallbackSpeak = (text, lang) => {
+    console.log(`[VOICE] Using browser fallback for: ${lang}`);
+    if (!window.speechSynthesis) {
+      console.error('[VOICE] SpeechSynthesis not supported in this browser.');
+      return;
+    }
+
+    // Cancel any existing speech
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = lang;
+
+    // Find a better voice if possible
+    const voices = window.speechSynthesis.getVoices();
+    const matchedVoice = voices.find(v => v.lang.startsWith(lang.split('-')[0]));
+    if (matchedVoice) {
+      utterance.voice = matchedVoice;
+      console.log(`[VOICE] Browser fallback using voice: ${matchedVoice.name}`);
+    }
+
+    utterance.onstart = () => console.log('[VOICE] Browser speech started.');
+    utterance.onend = () => console.log('[VOICE] Browser speech ended.');
+    utterance.onerror = (e) => console.error('[VOICE] Browser speech error:', e);
+
+    window.speechSynthesis.speak(utterance);
+  };
+
 
   useEffect(() => {
     const loadSessions = async () => {
@@ -579,12 +733,15 @@ const Chat = () => {
     if ((!contentToSend && filePreviews.length === 0) || isLoading) return;
 
     isSendingRef.current = true;
+    setInputValue(''); // Clear immediately to prevent stale reads
+    transcriptRef.current = '';
 
     let activeSessionId = currentSessionId;
     let isFirstMessage = false;
 
     // Stop listening if send is clicked (or auto-sent)
     if (isListening && recognitionRef.current) {
+      isManualStopRef.current = true; // Guard against recursive onend
       recognitionRef.current.stop();
       setIsListening(false);
     }
@@ -883,6 +1040,13 @@ ${deepSearchActive ? `### DEEP SEARCH MODE ENABLED (CRITICAL):
             prev.map(m => m.id === msgId ? finalModelMsg : m)
           );
           scrollToBottom();
+
+          // Speak the AI response if user used voice input
+          if (i === 0 && voiceUsedRef.current) {
+            const detectedLang = aiResponseData?.language || currentLang;
+            speakResponse(partContent, detectedLang);
+            voiceUsedRef.current = false; // Reset flag
+          }
         }
       } catch (innerError) {
         console.error("Storage/API Error:", innerError);
@@ -1018,190 +1182,6 @@ ${deepSearchActive ? `### DEEP SEARCH MODE ENABLED (CRITICAL):
       toast.success(`${action.replace('-', ' ')} processing...`);
       setTimeout(() => handleSendMessage(), 100);
     }
-  };
-  const inputRef = useRef(null);
-  const manualStopRef = useRef(false);
-  const isListeningRef = useRef(false);
-
-  // Timer for voice recording (Max 5 minutes)
-  useEffect(() => {
-    if (isListening) {
-      setListeningTime(0);
-      isListeningRef.current = true;
-      manualStopRef.current = false;
-      timerRef.current = setInterval(() => {
-        setListeningTime(prev => {
-          // Unlimited recording time
-          return prev + 1;
-        });
-      }, 1000);
-    } else {
-      if (timerRef.current) clearInterval(timerRef.current);
-      setListeningTime(0);
-      isListeningRef.current = false;
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isListening]);
-
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const textRef = useRef(inputValue);
-
-  useEffect(() => {
-    textRef.current = inputValue;
-  }, [inputValue]);
-
-  const handleVoiceInput = () => {
-    if (isListening) {
-      manualStopRef.current = true;
-      isListeningRef.current = false;
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      setIsListening(false);
-      return;
-    }
-
-    startSpeechRecognition();
-  };
-
-  const startSpeechRecognition = () => {
-    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      toast.error("Voice input not supported in this browser.");
-      return;
-    }
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognitionRef.current = recognition;
-
-    const langMap = {
-      'English': 'en-IN',
-      'Hindi': 'hi-IN',
-      'Urdu': 'ur-PK',
-      'Tamil': 'ta-IN',
-      'Telugu': 'te-IN',
-      'Kannada': 'kn-IN',
-      'Malayalam': 'ml-IN',
-      'Bengali': 'bn-IN',
-      'Marathi': 'mr-IN',
-      'Mandarin Chinese': 'zh-CN',
-      'Spanish': 'es-ES',
-      'French': 'fr-FR',
-      'German': 'de-DE',
-      'Japanese': 'ja-JP',
-      'Portuguese': 'pt-BR',
-      'Arabic': 'ar-SA',
-      'Korean': 'ko-KR',
-      'Italian': 'it-IT',
-      'Russian': 'ru-RU',
-      'Turkish': 'tr-TR',
-      'Dutch': 'nl-NL',
-      'Swedish': 'sv-SE',
-      'Norwegian': 'no-NO',
-      'Danish': 'da-DK',
-      'Finnish': 'fi-FI',
-      'Afrikaans': 'af-ZA',
-      'Zulu': 'zu-ZA',
-      'Xhosa': 'xh-ZA'
-    };
-
-    recognition.lang = langMap[currentLang] || 'en-IN';
-    recognition.interimResults = true;
-    recognition.continuous = false; // Better for cross-device stability and prevents duplication
-    recognition.maxAlternatives = 1;
-
-    // Capture current input to append to using Ref to avoid stale closures
-    let sessionBaseText = textRef.current;
-
-    recognition.onstart = () => {
-      setIsListening(true);
-      isListeningRef.current = true;
-      manualStopRef.current = false;
-      inputRef.current?.focus();
-      if (listeningTime === 0) {
-        toast.success(`Microphone On: Speaking in ${currentLang}`);
-      }
-    };
-
-    recognition.onend = () => {
-      // Auto-restart logic for silence/timeout
-      if (!manualStopRef.current && isListeningRef.current) {
-        setTimeout(() => {
-          if (isListeningRef.current) startSpeechRecognition();
-        }, 50);
-      } else {
-        setIsListening(false);
-        isListeningRef.current = false;
-      }
-    };
-
-    recognition.onresult = (event) => {
-      let speechToText = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        speechToText += event.results[i][0].transcript;
-      }
-
-      if (!speechToText) return;
-
-      const lowerTranscript = speechToText.toLowerCase().trim();
-
-      // Extensive triggers for auto-send
-      const triggers = [
-        'send it', 'send message', 'bhej do', 'yes send it', 'message bhej do',
-        'isey bhej do', 'ok send it', 'ok send', 'send bhej do', 'theek hai bhej do',
-        'send now', 'please send', 'ji bhejo', 'kar do', 'ok bhej do', 'okay send it'
-      ];
-
-      const matchedTrigger = triggers.find(t => lowerTranscript.endsWith(t) || lowerTranscript === t);
-
-      if (matchedTrigger) {
-        // Stop listening immediately
-        manualStopRef.current = true;
-        isListeningRef.current = false;
-        recognition.stop();
-        setIsListening(false);
-
-        // Remove the trigger phrase (and any trailing punctuation)
-        const cleanupRegex = new RegExp(`${matchedTrigger}[\\s.!?]*$`, 'gi');
-        let transcriptWithoutTrigger = speechToText.replace(cleanupRegex, '').trim();
-
-        let finalText = (sessionBaseText + (sessionBaseText ? ' ' : '') + transcriptWithoutTrigger).trim();
-
-        toast.success('Voice Command: Sending...');
-
-        // Send IMMEDIATELY then clear everything
-        handleSendMessage(null, finalText);
-
-        // Clear input after send
-        setInputValue('');
-        textRef.current = '';
-      } else {
-        // Just update the input box as the user speaks
-        setInputValue(sessionBaseText + (sessionBaseText ? ' ' : '') + speechToText);
-      }
-    };
-
-    recognition.onerror = (event) => {
-      if (event.error === 'not-allowed') {
-        toast.error("Microphone access denied.");
-        setIsListening(false);
-        isListeningRef.current = false;
-        manualStopRef.current = true;
-      } else if (event.error === 'no-speech') {
-        // Ignore no-speech errors, just letting it restart via onend
-        return;
-      }
-      console.error("Speech Error:", event.error);
-    };
-
-    recognition.start();
   };
 
   const handleDragOver = (e) => {
@@ -2275,7 +2255,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                       {/* Image Display */}
                       {msg.imageUrl && (
                         <div className="flex flex-col gap-3 mb-3 mt-1">
-                          <div className="relative group/generated overflow-hidden rounded-xl border border-white/20 shadow-lg transition-all hover:scale-[1.01] cursor-pointer max-w-[400px] bg-black/5">
+                          <div className="relative group/generated overflow-hidden rounded-xl border border-white/20 shadow-lg transition-all hover:scale-[1.01] cursor-pointer max-w-full w-fit bg-black/5">
                             <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-0 group-hover/generated:opacity-100 transition-opacity">
                               <div className="flex items-center gap-2">
                                 <Sparkles className="w-4 h-4 text-primary animate-pulse" />
@@ -2517,6 +2497,16 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                               );
                             })()}
                             <div className="flex items-center gap-3 self-end sm:self-auto">
+                              <button
+                                onClick={() => {
+                                  const isHindi = /[\u0900-\u097F]/.test(msg.content);
+                                  speakResponse(msg.content, isHindi ? 'Hindi' : 'English');
+                                }}
+                                className="text-subtext hover:text-primary transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
+                                title="Speak"
+                              >
+                                <Volume2 className="w-3.5 h-3.5" />
+                              </button>
                               <button
                                 onClick={() => handleCopyMessage(msg.content)}
                                 className="text-subtext hover:text-maintext transition-colors p-1.5 hover:bg-surface-hover rounded-lg"

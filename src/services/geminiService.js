@@ -51,6 +51,7 @@ export const generateChatResponse = async (history, currentMessage, systemInstru
         });
 
         // Return full response data (includes reply and potentially conversion data)
+        // Return full response data (includes reply, conversion data, and imageUrl)
         return result.data;
 
     } catch (error) {
