@@ -1143,19 +1143,19 @@ const Chat = () => {
             });
             const agents = res.data?.agents || [];
             // Add default AISA agent if not present
-            const processedAgents = [{ agentName: 'AISA', category: 'General', avatar: '/AGENTS_IMG/AISA.png' }, ...agents];
+            const processedAgents = [{ agentName: 'AISA', category: 'General', avatar: '/AGENTS_IMG/AISA_BRAIN_LOGO.png' }, ...agents];
             setUserAgents(processedAgents);
           } catch (agentErr) {
             // Silently use defaults if fetch fails (no console warning)
-            setUserAgents([{ agentName: 'AISA', category: 'General', avatar: '/AGENTS_IMG/AISA.png' }]);
+            setUserAgents([{ agentName: 'AISA', category: 'General', avatar: '/AGENTS_IMG/AISA_BRAIN_LOGO.png' }]);
           }
         } else {
           // No user logged in, use default
-          setUserAgents([{ agentName: 'AISA', category: 'General', avatar: '/AGENTS_IMG/AISA.png' }]);
+          setUserAgents([{ agentName: 'AISA', category: 'General', avatar: '/AGENTS_IMG/AISA_BRAIN_LOGO.png' }]);
         }
       } catch (err) {
         // Silently handle errors
-        setUserAgents([{ agentName: 'AISA', category: 'General', avatar: '/AGENTS_IMG/AISA.png' }]);
+        setUserAgents([{ agentName: 'AISA', category: 'General', avatar: '/AGENTS_IMG/AISA_BRAIN_LOGO.png' }]);
       }
     };
     loadSessions();
@@ -2525,67 +2525,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
 
             <div className="flex items-center gap-2 min-w-0">
 
-              <div className="flex items-center gap-2 text-subtext min-w-0">
-                <span className="text-sm hidden sm:inline shrink-0">Chatting with:</span>
-                <Menu as="div" className="relative inline-block text-left min-w-0">
-                  <Menu.Button className="flex items-center gap-2 text-maintext bg-surface px-3 py-1.5 rounded-lg border border-border cursor-pointer hover:bg-secondary transition-colors min-w-0 w-full">
-                    <div className="w-5 h-5 rounded bg-primary/20 flex items-center justify-center shrink-0">
-                      <img
-                        src={activeAgent.avatar || (activeAgent.agentName === 'AISA' ? '/AGENTS_IMG/AISA.png' : '/AGENTS_IMG/AIBOT.png')}
-                        alt=""
-                        className="w-4 h-4 rounded-sm object-cover"
-                        onError={(e) => { e.target.src = '/AGENTS_IMG/AISA.png' }}
-                      />
-                    </div>
-                    <span className="text-sm font-medium truncate">
-                      {activeAgent.agentName || activeAgent.name} <sup>TM</sup>
-                    </span>
-                    <ChevronDown className="w-3 h-3 text-subtext shrink-0" />
-                  </Menu.Button>
 
-                  <Transition
-                    as={Fragment}
-                    enter="transition ease-out duration-100"
-                    enterFrom="transform opacity-0 scale-95"
-                    enterTo="transform opacity-100 scale-100"
-                    leave="transition ease-in duration-75"
-                    leaveFrom="transform opacity-100 scale-100"
-                    leaveTo="transform opacity-0 scale-95"
-                  >
-                    <Menu.Items className="absolute left-0 mt-2 w-56 origin-top-left divide-y divide-border rounded-xl bg-card shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50 overflow-hidden border border-border">
-                      <div className="px-1 py-1 max-h-60 overflow-y-auto custom-scrollbar">
-                        {userAgents.map((agent, idx) => (
-                          <Menu.Item key={idx}>
-                            {({ active }) => (
-                              <button
-                                onClick={() => {
-                                  setActiveAgent(agent);
-                                  toast.success(`${t('switchedTo')} ${agent.agentName || agent.name}`);
-                                }}
-                                className={`${active ? 'bg-primary text-white' : 'text-maintext'
-                                  } group flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium gap-3 transition-colors`}
-                              >
-                                <div className={`w-6 h-6 rounded flex items-center justify-center shrink-0 ${active ? 'bg-white/20' : 'bg-primary/10'}`}>
-                                  <img
-                                    src={agent.avatar || (agent.agentName === 'AISA' ? '/AGENTS_IMG/AISA.png' : '/AGENTS_IMG/AIBOT.png')}
-                                    alt=""
-                                    className="w-4 h-4 rounded-sm object-cover"
-                                    onError={(e) => { e.target.src = '/AGENTS_IMG/AISA.png' }}
-                                  />
-                                </div>
-                                <span className="truncate">{agent.agentName || agent.name}</span>
-                                {activeAgent.agentName === agent.agentName && (
-                                  <Check className={`w-3 h-3 ml-auto ${active ? 'text-white' : 'text-primary'}`} />
-                                )}
-                              </button>
-                            )}
-                          </Menu.Item>
-                        ))}
-                      </div>
-                    </Menu.Items>
-                  </Transition>
-                </Menu>
-              </div>
             </div>
           </div>
 
@@ -2622,8 +2562,19 @@ For "Remix" requests with an attachment, analyze the attached image, then create
         >
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center px-4 animate-in fade-in duration-700">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-primary/5 rounded-full flex items-center justify-center mb-6">
-                <Bot className="w-10 h-10 sm:w-12 sm:h-12 text-primary animate-pulse" />
+              <div className="relative w-24 h-24 sm:w-28 sm:h-28 mb-8 group cursor-default">
+                {/* Ambient Glow */}
+                <div className="absolute inset-0 bg-primary/30 rounded-full blur-2xl opacity-50 group-hover:opacity-70 transition-opacity duration-700" />
+
+                {/* Main Container */}
+                <div className="relative w-full h-full bg-surface/80 backdrop-blur-xl rounded-full flex items-center justify-center overflow-hidden border border-white/20 shadow-2xl ring-1 ring-black/5">
+                  <img
+                    src={activeAgent?.avatar || '/AGENTS_IMG/AISA_BRAIN_LOGO.png'}
+                    alt="AI"
+                    className="w-full h-full object-cover transition-transform duration-700 scale-125 group-hover:scale-135"
+                    onError={(e) => { e.target.src = '/AGENTS_IMG/AISA_BRAIN_LOGO.png' }}
+                  />
+                </div>
               </div>
               <h2 className="text-xl sm:text-2xl font-semibold text-maintext max-w-2xl leading-relaxed">
                 {t('welcomeMessage')}

@@ -356,9 +356,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                   <p className="text-[11px] text-subtext truncate">{user.email}</p>
                 </div>
 
-                <div className="text-subtext group-hover:text-primary transition-colors">
-                  <User className="w-4 h-4" />
-                </div>
+
               </button>
 
               {/* Dropdown Menu - Replaced with Personalization System */}

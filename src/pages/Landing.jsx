@@ -21,6 +21,8 @@ import CookiePolicyModal from '../Components/PolicyModals/CookiePolicyModal';
 import AboutAISA from '../Components/AboutAISA';
 import { useLanguage } from '../context/LanguageContext';
 
+import ProfileSettingsDropdown from '../Components/ProfileSettingsDropdown/ProfileSettingsDropdown';
+
 const Landing = () => {
     const { t } = useLanguage();
     const navigate = useNavigate();
@@ -37,6 +39,12 @@ const Landing = () => {
     const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
     const [isCookieModalOpen, setIsCookieModalOpen] = useState(false);
     const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+    const [isProfileSettingsOpen, setIsProfileSettingsOpen] = useState(false);
+
+    const handleLogout = () => {
+        localStorage.clear();
+        window.location.reload(); // Simple reload to clear user state which comes from LS
+    };
 
     const issueOptions = [
         "General Inquiry",
@@ -80,50 +88,15 @@ const Landing = () => {
 
             {/* Header */}
             <header className="relative z-10 px-4 py-4 md:px-6 md:py-6 flex justify-between items-center max-w-7xl mx-auto w-full">
-                <motion.div
-                    className="relative flex items-center gap-2 md:gap-3 cursor-pointer group"
-                    onHoverStart={() => setIsBrandHovered(true)}
-                    onHoverEnd={() => setIsBrandHovered(false)}
-                >
+                <div className="relative flex items-center gap-2 md:gap-3 cursor-pointer group">
                     <img src="/logo/Logo.svg" alt="Logo" className="w-14 h-14 md:w-20 md:h-20 object-contain group-hover:rotate-12 transition-transform duration-300" />
                     {/* Brand text removed as per user request */}
-
-                    {/* Popup Animation */}
-                    <AnimatePresence>
-                        {isBrandHovered && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                transition={{ duration: 0.2 }}
-                                className="absolute top-full left-0 mt-2 w-64 p-4 rounded-2xl bg-white/80 dark:bg-black/80 backdrop-blur-xl border border-white/20 shadow-2xl z-50 overflow-hidden"
-                            >
-                                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10" />
-                                <div className="relative z-10">
-                                    <h3 className="text-sm font-bold text-maintext mb-1 flex items-center gap-2">
-                                        <Bot className="w-4 h-4 text-primary" />
-                                        {name} <sup className="text-xs">TM</sup>
-                                    </h3>
-                                    <p className="text-xs text-subtext mb-3">
-                                        Meet AISA <sup className="text-xs">TM</sup> – Your Intelligent Super Assistant.
-                                    </p>
-
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </motion.div>
+                </div>
 
 
 
-                <div className="flex items-center gap-2 md:gap-4">
-                    <button
-                        onClick={() => setIsAboutModalOpen(true)}
-                        className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-subtext hover:bg-secondary hover:text-primary transition-all"
-                    >
-                        <Bot className="w-4 h-4" />
-                        {/* About AISA */}
-                    </button>
+                <div className="flex items-center gap-2 md:gap-4 relative">
+
 
                     {/* Theme Toggle */}
                     <button
@@ -133,25 +106,45 @@ const Landing = () => {
                         {theme === 'dark' ? <Sun className="w-4 h-4 md:w-5 md:h-5 text-orange-400" /> : <Moon className="w-4 h-4 md:w-5 md:h-5" />}
                     </button>
 
-                    {user ? <Link to={AppRoute.PROFILE}><CircleUser className='h-6 w-6 md:h-7 md:w-7 text-maintext' /></Link> : <div className="flex gap-2 md:gap-4 items-center">
-                        <motion.button
-                            whileHover={{ scale: 1.05, color: "#2563eb" }} // blue-600
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => navigate("/login")}
-                            className="text-sm md:text-base text-subtext font-medium transition-colors whitespace-nowrap px-3 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                        >
-                            Sign In
-                        </motion.button>
+                    {user ? (
+                        <div className="relative">
+                            <button onClick={() => setIsProfileSettingsOpen(!isProfileSettingsOpen)}>
+                                <CircleUser className='h-6 w-6 md:h-7 md:w-7 text-maintext' />
+                            </button>
+                            <AnimatePresence>
+                                {isProfileSettingsOpen && (
+                                    <ProfileSettingsDropdown
+                                        onClose={() => setIsProfileSettingsOpen(false)}
+                                        onLogout={() => {
+                                            handleLogout();
+                                            setIsProfileSettingsOpen(false);
+                                        }}
+                                    />
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    ) : (
+                        <div className="flex gap-2 md:gap-4 items-center">
+                            <motion.button
+                                whileHover={{ scale: 1.05, color: "#2563eb" }} // blue-600
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => navigate("/login")}
+                                className="text-sm md:text-base text-subtext font-medium transition-colors whitespace-nowrap px-3 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                            >
+                                Sign In
+                            </motion.button>
 
-                        <motion.button
-                            whileHover={{ scale: 1.05, boxShadow: "0 10px 25px -5px rgba(37, 99, 235, 0.4)" }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => navigate("/signup")}
-                            className="bg-primary text-white px-4 py-2 md:px-5 md:py-2 text-sm md:text-base rounded-full font-semibold transition-all shadow-lg shadow-primary/20 whitespace-nowrap"
-                        >
-                            Get Started
-                        </motion.button>
-                    </div>}
+
+                            <motion.button
+                                whileHover={{ scale: 1.05, boxShadow: "0 10px 25px -5px rgba(37, 99, 235, 0.4)" }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => navigate("/signup")}
+                                className="bg-primary text-white px-4 py-2 md:px-5 md:py-2 text-sm md:text-base rounded-full font-semibold transition-all shadow-lg shadow-primary/20 whitespace-nowrap"
+                            >
+                                Get Started
+                            </motion.button>
+                        </div>
+                    )}
                 </div>
             </header>
 
@@ -198,7 +191,7 @@ const Landing = () => {
                         onClick={() => navigate("/dashboard/chat/new")}
                         className="px-8 py-4 bg-primary rounded-2xl font-bold text-lg text-white shadow-xl shadow-primary/30 hover:translate-y-[-2px] transition-all duration-300 flex items-center justify-center gap-2"
                     >
-                        {t('startNow')} <ArrowRight className="w-5 h-5" />
+                        Explore AISA
                     </motion.button>
 
                     {!user && (

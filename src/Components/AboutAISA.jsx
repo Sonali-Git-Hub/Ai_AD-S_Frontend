@@ -1,8 +1,10 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bot, X, Sparkles, MessageSquare, FileText, Image, Cloud, Camera, Mic, Share2, Scan, FileDiff, FileType, Search } from 'lucide-react';
 
 const AboutAISA = ({ isOpen, onClose }) => {
+    const navigate = useNavigate();
     if (!isOpen) return null;
 
     const sections = [
@@ -142,7 +144,10 @@ const AboutAISA = ({ isOpen, onClose }) => {
                         One Assistant. Unlimited Possibilities.
                     </p>
                     <button
-                        onClick={onClose}
+                        onClick={() => {
+                            onClose();
+                            navigate('/dashboard/chat/new');
+                        }}
                         className="w-full md:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-95"
                     >
                         Explore AISA
