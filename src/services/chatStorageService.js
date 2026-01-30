@@ -111,25 +111,25 @@ export const chatStorageService = {
       const response = await fetch(`${API_BASE_URL}/chat/${sessionId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (response.status === 404) return [];
+      if (response.status === 404) {
+        // Fallback to local if backend says 404 (maybe backend lost data but we have it?)
+        const local = await idbGet(`chat_history_${sessionId}`);
+        if (local && local.length > 0) return local;
+        return [];
+      }
       if (!response.ok) throw new Error("Backend error");
       const data = await response.json();
       return data.messages || [];
     } catch (error) {
+      console.warn("Backend history fetch failed, using local:", error);
       const local = await idbGet(`chat_history_${sessionId}`);
       return local || [];
     }
   },
 
   async saveMessage(sessionId, message, title) {
+    // 1. Always save to Local (IndexedDB) for instant UI updates & offline backup
     try {
-      const token = getUserData()?.token;
-      if (!token) throw new Error("No token");
-      await axios.post(`${API_BASE_URL}/chat/${sessionId}/message`, { message, title }, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-    } catch (error) {
-      // Local Fallback (IndexedDB)
       const historyKey = `chat_history_${sessionId}`;
       const metaKey = `chat_meta_${sessionId}`;
 
@@ -150,6 +150,19 @@ export const chatStorageService = {
         lastModified: Date.now(),
       };
       await idbSet(metaKey, meta);
+    } catch (localErr) {
+      console.error("Local save failed:", localErr);
+    }
+
+    // 2. Try to sync with Backend
+    try {
+      const token = getUserData()?.token;
+      if (!token) throw new Error("No token");
+      await axios.post(`${API_BASE_URL}/chat/${sessionId}/message`, { message, title }, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+    } catch (error) {
+      console.warn("Backend save failed (will retry next load via local sync logic maybe?):", error);
     }
   },
 

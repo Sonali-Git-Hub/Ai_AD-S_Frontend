@@ -182,16 +182,19 @@ export const PersonalizationProvider = ({ children }) => {
                     { personalizations: { [section]: fullSectionData } },
                     { headers: { 'Authorization': `Bearer ${user.token}` } }
                 );
-                // Only show success for things like theme/language if it's explicitly helpful
             }
         } catch (error) {
-            console.warn('Failed to sync personalization to cloud', error);
-            // Non-intrusive notification: only show error if it's NOT a 500 (demo/offline)
-            if (error.response?.status !== 500 && error.response?.status !== 401) {
-                toast.error('Could not sync with cloud');
-            } else {
-                // Silently fallback or show a mini "Saved Locally" if it's a known backend issue
-                // toast.success('Saved locally', { id: 'local-sync' }); 
+            console.warn('Failed to sync personalization to cloud:', section, error.message);
+
+            // Only show toast if it's a real connection error (not auth/404/500 which we handle gracefully)
+            const status = error.response?.status;
+            if (status && status !== 401 && status !== 404 && status !== 500) {
+                toast.error('Settings sync delayed', { id: 'sync-error' });
+            }
+
+            // If it's a 404, it might mean the backend is restarting. We'll just rely on LocalStorage for now.
+            if (status === 404) {
+                console.info('Backend route not found. Settings saved locally.');
             }
         }
     };

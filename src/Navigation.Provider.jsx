@@ -24,7 +24,7 @@ import TermsOfService from './pages/TermsOfService.jsx';
 import CookiePolicy from './pages/CookiePolicy.jsx';
 import PlatformSubscriptionModal from './Components/SubscriptionForm/PlatformSubscriptionModal.jsx';
 
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { lazy, Suspense } from 'react';
 import ProtectedRoute from './Components/ProtectedRoute/ProtectedRoute.jsx';
 
@@ -61,11 +61,33 @@ const DashboardLayout = () => {
 
   return (
     <div className="fixed inset-0 flex bg-transparent text-maintext overflow-hidden font-sans">
-      {/* Background Dreamy Orbs */}
-      <div className="fixed inset-0 -z-10 bg-gradient-to-br from-[#f8fafc] via-[#eef2ff] to-[#fce7f3] dark:from-[#020617] dark:via-[#0f172a] dark:to-[#1e1b4b]">
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-purple-200/30 dark:bg-purple-900/20 blur-[120px]"></div>
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-200/30 dark:bg-blue-900/20 blur-[120px]"></div>
-        <div className="absolute top-[40%] left-[30%] w-[40%] h-[40%] rounded-full bg-pink-200/20 dark:bg-pink-900/10 blur-[100px]"></div>
+      {/* Animated Atmospheric Background */}
+      <div className="fixed inset-0 -z-10 bg-gradient-to-br from-[#f8fafc] via-[#eef2ff] to-[#fce7f3] dark:from-[#020617] dark:via-[#0f172a] dark:to-[#1e1b4b] overflow-hidden">
+        <motion.div
+          animate={{
+            y: [0, 30, 0],
+            x: [0, 20, 0],
+            scale: [1, 1.1, 1]
+          }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-purple-300/30 dark:bg-purple-900/10 blur-[120px]"
+        />
+        <motion.div
+          animate={{
+            y: [0, -40, 0],
+            x: [0, -30, 0],
+            scale: [1, 1.2, 1]
+          }}
+          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-300/30 dark:bg-blue-900/10 blur-[120px]"
+        />
+        <motion.div
+          animate={{
+            opacity: [0.1, 0.3, 0.1]
+          }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-[30%] left-[20%] w-[40%] h-[40%] rounded-full bg-pink-300/20 dark:bg-pink-900/5 blur-[100px]"
+        />
       </div>
 
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />

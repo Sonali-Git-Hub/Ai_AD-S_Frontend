@@ -221,14 +221,14 @@ const Sidebar = ({ isOpen, onClose }) => {
       {/* Sidebar */}
       <div
         className={`
-          fixed inset-y-0 left-0 z-[100] w-[280px] sm:w-72 lg:w-64 bg-secondary border-r border-border 
+          fixed inset-y-0 left-0 z-[100] w-[280px] sm:w-72 lg:w-64 bg-white/60 dark:bg-black/60 backdrop-blur-xl border-r border-border/50
           flex flex-col transition-transform duration-300 ease-in-out 
           lg:relative lg:translate-x-0 shadow-2xl lg:shadow-none
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
         {/* Brand */}
-        <div className="p-4 flex items-center justify-between">
+        <div className="p-4 flex items-center justify-between border-b border-white/10">
           <Link to="/">
             <h1 className="text-xl font-bold text-primary">AISA <sup className="text-xs">TM</sup></h1>
           </Link>
@@ -253,7 +253,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 placeholder="Search history..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-secondary/50 border border-border focus:border-primary/50 focus:bg-card focus:ring-4 focus:ring-primary/5 rounded-xl py-2 pl-9 pr-4 text-sm outline-none transition-all placeholder:text-subtext/50"
+                className="w-full bg-black/5 dark:bg-black/40 backdrop-blur-md border border-black/5 dark:border-white/5 focus:border-primary/50 focus:bg-white/10 dark:focus:bg-black/60 focus:ring-4 focus:ring-primary/5 rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none transition-all placeholder:text-subtext/40 font-medium"
               />
             </div>
           </div>
@@ -262,7 +262,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           <div className="p-3">
             <button
               onClick={handleNewChat}
-              className="w-full bg-primary hover:opacity-90 text-white font-semibold py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-primary/20 text-sm"
+              className="w-full bg-gradient-to-r from-[#5555ff] to-[#7777ff] hover:opacity-90 hover:scale-[1.02] text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/25 text-sm border border-white/20"
             >
               <Plus className="w-4 h-4" /> {t('newChat')}
             </button>
@@ -285,8 +285,8 @@ const Sidebar = ({ isOpen, onClose }) => {
                     }}
                     className={`w-full text-left px-4 py-3 rounded-lg text-sm transition-colors truncate
                     ${currentSessionId === session.sessionId
-                        ? 'bg-card text-primary shadow-sm border border-border'
-                        : 'text-subtext hover:bg-card hover:text-maintext'
+                        ? 'bg-white/40 dark:bg-white/10 text-primary shadow-sm border border-white/20 dark:border-white/10'
+                        : 'text-subtext hover:bg-white/20 dark:hover:bg-white/5 hover:text-maintext'
                       }
                   `}
                   >
@@ -313,7 +313,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
 
         {/* User Profile Footer */}
-        <div className="p-3 border-t border-border bg-secondary/30 relative">
+        <div className="p-3 border-t border-white/10 bg-transparent relative">
           {token ? (
             <div className="relative profile-menu-container">
               {/* Profile Card - Clickable */}
@@ -410,13 +410,13 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <div className="flex gap-4">
                   <button
                     onClick={() => setActiveTab('faq')}
-                    className={`text-lg font-bold px-4 py-2 rounded-lg transition-colors ${activeTab === 'faq' ? 'bg-primary/10 text-primary' : 'text-subtext hover:text-maintext'}`}
+                    className={`text-lg font-bold px-4 py-2 rounded-lg transition-colors uppercase ${activeTab === 'faq' ? 'bg-primary/10 text-primary' : 'text-subtext hover:text-maintext'}`}
                   >
                     {t('faq') || 'FAQ'}
                   </button>
                   <button
                     onClick={() => setActiveTab('help')}
-                    className={`text-lg font-bold px-4 py-2 rounded-lg transition-colors ${activeTab === 'help' ? 'bg-primary/10 text-primary' : 'text-subtext hover:text-maintext'}`}
+                    className={`text-lg font-bold px-4 py-2 rounded-lg transition-colors uppercase ${activeTab === 'help' ? 'bg-primary/10 text-primary' : 'text-subtext hover:text-maintext'}`}
                   >
                     {t('help') || 'Help'}
                   </button>
