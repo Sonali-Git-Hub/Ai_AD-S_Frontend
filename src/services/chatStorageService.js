@@ -119,7 +119,10 @@ export const chatStorageService = {
       }
       if (!response.ok) throw new Error("Backend error");
       const data = await response.json();
-      return data.messages || [];
+      console.log(`[STORAGE] Fetched data for ${sessionId}:`, data);
+      const msgs = data.messages || [];
+      console.log(`[STORAGE] Messages array length: ${msgs.length}`);
+      return msgs;
     } catch (error) {
       console.warn("Backend history fetch failed, using local:", error);
       const local = await idbGet(`chat_history_${sessionId}`);

@@ -35,7 +35,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         chatSessions
     } = usePersonalization();
     const { theme, setTheme, accentColor, setAccentColor, ACCENT_COLORS } = useTheme();
-    const { language, setLanguage, languages, region, setRegion, regions, t } = useLanguage();
+    const { language, setLanguage, languages, t } = useLanguage();
     const [activeTab, setActiveTab] = useState('general');
     const [view, setView] = useState('sidebar'); // 'sidebar' or 'detail' for mobile
     const [isPlayingVoice, setIsPlayingVoice] = useState(false);
@@ -276,15 +276,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                             Monitor
                         ))}
 
-                        {renderSettingRow(t('fontSize'), t('fontSizeDesc'), renderDropdown(
-                            t(personalizations.personalization?.fontSize?.toLowerCase() || 'medium'),
-                            [t('small'), t('medium'), t('large'), t('extraLarge')],
-                            (e) => {
-                                const sizeMap = { [t('small')]: 'Small', [t('medium')]: 'Medium', [t('large')]: 'Large', [t('extraLarge')]: 'Extra Large' };
-                                updatePersonalization('personalization', { fontSize: sizeMap[e.target.value] });
-                            },
-                            Type
-                        ))}
+
 
                         {renderSettingRow(t('accentColor'), t('accentColorDesc'), (
                             <div className="flex items-center gap-3">
@@ -301,16 +293,9 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                             </div>
                         ))}
 
-                        {renderSettingRow(t('region'), t('regionDesc'), renderDropdown(
-                            region,
-                            Object.keys(regions || {}),
-                            (e) => setRegion(e.target.value),
-                            Globe
-                        ))}
-
                         {renderSettingRow(t('language'), t('languageDesc'), renderDropdown(
                             language,
-                            regions[region] || ['English'],
+                            languages || ['English'],
                             (e) => setLanguage(e.target.value),
                             Languages
                         ))}

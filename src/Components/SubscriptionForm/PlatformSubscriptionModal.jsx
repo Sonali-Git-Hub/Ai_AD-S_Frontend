@@ -102,7 +102,7 @@ const PlatformSubscriptionModal = () => {
                         const verifyRes = await axios.post(`${apis.payment}/verify-payment`, {
                             ...response,
                             plan: plan.name,
-                            amount: plan.price
+                            amount: plan.price * 100  // Send amount in paise
                         }, {
                             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                         });
@@ -117,8 +117,11 @@ const PlatformSubscriptionModal = () => {
 
                         setTglState(prev => ({ ...prev, platformSubTgl: false }));
                     } catch (err) {
+                        console.error('Payment verification error:', err);
+                        console.error('Error response:', err.response?.data);
+                        console.error('Error status:', err.response?.status);
                         toast.dismiss(loadingToast);
-                        toast.error("Payment verification failed");
+                        toast.error(err.response?.data?.error || "Payment verification failed");
                     }
                 },
                 prefill: {

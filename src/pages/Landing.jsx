@@ -137,7 +137,7 @@ const Landing = () => {
                                 onClick={() => navigate("/login")}
                                 className="text-sm md:text-base text-subtext font-medium transition-colors whitespace-nowrap px-3 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20"
                             >
-                                Sign In
+                                {t('logIn')}
                             </motion.button>
 
 
@@ -147,7 +147,7 @@ const Landing = () => {
                                 onClick={() => navigate("/signup")}
                                 className="bg-primary text-white px-4 py-2 md:px-5 md:py-2 text-sm md:text-base rounded-full font-semibold transition-all shadow-lg shadow-primary/20 whitespace-nowrap"
                             >
-                                Get Started
+                                {t('getStarted')}
                             </motion.button>
                         </div>
                     )}
@@ -163,7 +163,7 @@ const Landing = () => {
                     className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/60 dark:bg-black/40 border border-blue-200 dark:border-blue-900 text-sm text-black dark:text-white mb-8 backdrop-blur-sm"
                 >
                     <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                    Powered by UWO
+                    {t('poweredByUWO')}
                 </motion.div>
 
                 <motion.h1
@@ -197,7 +197,7 @@ const Landing = () => {
                         onClick={() => navigate("/dashboard/chat/new")}
                         className="px-8 py-4 bg-primary rounded-2xl font-bold text-lg text-white shadow-xl shadow-primary/30 hover:translate-y-[-2px] transition-all duration-300 flex items-center justify-center gap-2"
                     >
-                        Explore AISA
+                        {t('exploreAisa')}
                     </motion.button>
 
                     {!user && (
@@ -207,7 +207,7 @@ const Landing = () => {
                             onClick={() => navigate("/login")}
                             className="px-8 py-4 bg-white/60 dark:bg-slate-900/40 border border-border rounded-2xl font-bold text-lg text-maintext hover:bg-white/80 dark:hover:bg-slate-900/60 transition-all duration-300 backdrop-blur-sm"
                         >
-                            Existing User
+                            {t('existingUser')}
                         </motion.button>
                     )}
                 </motion.div>
@@ -387,13 +387,13 @@ const Landing = () => {
                                         onClick={() => setActiveTab('faq')}
                                         className={`text-lg font-bold px-4 py-2 rounded-lg transition-colors ${activeTab === 'faq' ? 'bg-blue-600 text-white' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
                                     >
-                                        FAQ
+                                        {t('faq')}
                                     </button>
                                     <button
                                         onClick={() => setActiveTab('help')}
                                         className={`text-lg font-bold px-4 py-2 rounded-lg transition-colors ${activeTab === 'help' ? 'bg-blue-600 text-white' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
                                     >
-                                        Help
+                                        {t('help')}
                                     </button>
                                 </div>
                                 <button
@@ -407,7 +407,7 @@ const Landing = () => {
                             <div className="flex-1 overflow-y-auto p-6 space-y-4">
                                 {activeTab === 'faq' ? (
                                     <>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Get quick answers to common questions about our platform</p>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">{t('faqSubtitle')}</p>
                                         {faqs.map((faq, index) => (
                                             <div key={index} className="border border-gray-200 dark:border-white/5 rounded-xl bg-white dark:bg-[#121624] overflow-hidden hover:border-blue-300 dark:hover:border-primary/30 transition-all">
                                                 <button
@@ -434,7 +434,7 @@ const Landing = () => {
                                 ) : (
                                     <div className="flex flex-col gap-6">
                                         <div>
-                                            <label className="block text-sm font-bold text-gray-900 dark:text-white mb-2">Select Issue Category</label>
+                                            <label className="block text-sm font-bold text-gray-900 dark:text-white mb-2">{t('selectIssueCategory')}</label>
                                             <div className="relative">
                                                 <select
                                                     value={issueType}
@@ -449,10 +449,10 @@ const Landing = () => {
                                             </div>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-bold text-gray-900 dark:text-white mb-2">Describe your issue</label>
+                                            <label className="block text-sm font-bold text-gray-900 dark:text-white mb-2">{t('describeYourIssue')}</label>
                                             <textarea
                                                 className="w-full p-4 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 focus:border-blue-600 dark:focus:border-blue-400 outline-none resize-none text-gray-900 dark:text-white min-h-[150px]"
-                                                placeholder="Please provide details about the problem you are facing..."
+                                                placeholder={t('issuePlaceholder')}
                                                 value={issueText}
                                                 onChange={(e) => setIssueText(e.target.value)}
                                             />
@@ -467,22 +467,22 @@ const Landing = () => {
                                             ) : (
                                                 <>
                                                     <HelpCircle className="w-5 h-5" />
-                                                    Send to Support
+                                                    {t('submitSupport')}
                                                 </>
                                             )}
                                         </button>
                                         {sendStatus === 'success' && (
                                             <div className="p-3 bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg text-sm text-center font-medium border border-green-500/20 animate-in fade-in slide-in-from-top-2">
-                                                Ticket Submitted Successfully! Our team will contact you soon.
+                                                {t('ticketSuccess')}
                                             </div>
                                         )}
                                         {sendStatus === 'error' && (
                                             <div className="p-3 bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg text-sm text-center font-medium border border-red-500/20 animate-in fade-in slide-in-from-top-2">
-                                                Failed to submit ticket. Please try again or email us directly.
+                                                {t('ticketError')}
                                             </div>
                                         )}
                                         <p className="text-xs text-center text-gray-600 dark:text-gray-400">
-                                            Or email us directly at <a href="mailto:admin@uwo24.com" className="text-blue-600 dark:text-blue-400 font-medium hover:underline">admin@uwo24.com</a>
+                                            {t('orEmailUsAt')} <a href="mailto:admin@uwo24.com" className="text-blue-600 dark:text-blue-400 font-medium hover:underline">admin@uwo24.com</a>
                                         </p>
                                     </div>
                                 )}
@@ -492,7 +492,7 @@ const Landing = () => {
                                     onClick={() => setIsFaqOpen(false)}
                                     className="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold hover:opacity-90 transition-all shadow-lg shadow-blue-600/20"
                                 >
-                                    Close
+                                    {t('close')}
                                 </button>
                             </div>
                         </div>

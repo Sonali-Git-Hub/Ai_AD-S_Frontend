@@ -63,13 +63,14 @@ const Sidebar = ({ isOpen, onClose }) => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const issueCategories = t('issueCategories') || {};
   const issueOptions = [
-    "General Inquiry",
-    "Payment Issue",
-    "Refund Request",
-    "Technical Support",
-    "Account Access",
-    "Other"
+    issueCategories.generalInquiry || "General Inquiry",
+    issueCategories.paymentIssue || "Payment Issue",
+    issueCategories.refundRequest || "Refund Request",
+    issueCategories.technicalSupport || "Technical Support",
+    issueCategories.accountAccess || "Account Access",
+    issueCategories.other || "Other"
   ];
 
   const handleSupportSubmit = async () => {
@@ -432,8 +433,8 @@ const Sidebar = ({ isOpen, onClose }) => {
               <div className="flex-1 overflow-y-auto p-6 space-y-4">
                 {activeTab === 'faq' ? (
                   <>
-                    <p className="text-sm text-subtext font-medium">Get quick answers to common questions about our platform</p>
-                    {faqs.map((faq, index) => (
+                    <p className="text-sm text-subtext font-medium">{t('faqSubtitle')}</p>
+                    {((Array.isArray(t('faqList')) ? t('faqList') : faqs) || faqs).map((faq, index) => (
                       <div key={index} className="border border-border rounded-xl bg-card overflow-hidden hover:border-primary/30 transition-all">
                         <button
                           onClick={() => setOpenFaqIndex(openFaqIndex === index ? null : index)}
@@ -505,18 +506,18 @@ const Sidebar = ({ isOpen, onClose }) => {
 
                     {sendStatus === 'success' && (
                       <div className="p-3 bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg text-sm text-center font-medium border border-green-500/20 animate-in fade-in slide-in-from-top-2">
-                        Tciket Submitted Successfully! Our team will contact you soon.
+                        {t('ticketSuccess') || "Ticket Submitted Successfully! Our team will contact you soon."}
                       </div>
                     )}
 
                     {sendStatus === 'error' && (
                       <div className="p-3 bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg text-sm text-center font-medium border border-red-500/20 animate-in fade-in slide-in-from-top-2">
-                        Failed to submit ticket. Please try again or email us directly.
+                        {t('ticketError') || "Failed to submit ticket. Please try again or email us directly."}
                       </div>
                     )}
 
                     <p className="text-xs text-center text-subtext">
-                      Or email us directly at <a href="mailto:admin@uwo24.com" className="text-primary font-medium hover:underline">admin@uwo24.com</a>
+                      {t('orEmailUsAt') || "Or email us directly at"} <a href="mailto:admin@uwo24.com" className="text-primary font-medium hover:underline">admin@uwo24.com</a>
                     </p>
                   </div>
                 )}
@@ -527,7 +528,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                   onClick={() => setIsFaqOpen(false)}
                   className="px-6 py-2 bg-primary text-white rounded-xl font-bold hover:opacity-90 transition-all shadow-lg shadow-primary/20"
                 >
-                  Close
+                  {t('close') || 'Close'}
                 </button>
               </div>
 

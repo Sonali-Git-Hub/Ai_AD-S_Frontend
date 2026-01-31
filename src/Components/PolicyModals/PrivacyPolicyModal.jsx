@@ -2,67 +2,70 @@ import React from 'react';
 import { X, Shield, Lock, Eye, Database, UserCheck, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { name } from '../../constants';
+import { useLanguage } from '../../context/LanguageContext';
 
 const PrivacyPolicyModal = ({ isOpen, onClose }) => {
+    const { t } = useLanguage();
+
     const sections = [
         {
             icon: Database,
-            title: "Information We Collect",
+            title: t('pp_collect_title'),
             items: [
-                "Account Information: Name, email, and authentication credentials",
-                "Usage Data: Chat sessions, queries, and AI interaction patterns",
-                "Multimodal Content: Text, voice, and vision inputs processed securely",
-                "Technical Information: Device info, browser type, IP address"
+                t('pp_collect_item1'),
+                t('pp_collect_item2'),
+                t('pp_collect_item3'),
+                t('pp_collect_item4')
             ]
         },
         {
             icon: Lock,
-            title: "How We Use Your Information",
+            title: t('pp_use_title'),
             items: [
-                "Service Delivery: Contextual AI responses and personalized experience",
-                "Product Improvement: Enhance AI models and develop new features",
-                "Communication: Updates, security alerts, and support responses",
-                "Security & Compliance: Fraud detection and legal obligations"
+                t('pp_use_item1'),
+                t('pp_use_item2'),
+                t('pp_use_item3'),
+                t('pp_use_item4')
             ]
         },
         {
             icon: Shield,
-            title: "Data Security & Protection",
+            title: t('pp_security_title'),
             items: [
-                "End-to-End Encryption: Enterprise-grade protection for all communications",
-                "Isolated Environments: Each session runs separately for privacy",
-                "Secure Storage: Enterprise servers with strict access controls",
-                "Data Retention: User-controlled chat history deletion anytime"
+                t('pp_security_item1'),
+                t('pp_security_item2'),
+                t('pp_security_item3'),
+                t('pp_security_item4')
             ]
         },
         {
             icon: Eye,
-            title: "Data Sharing & Third Parties",
+            title: t('pp_sharing_title'),
             items: [
-                "No Sale of Personal Data: Your privacy is our top priority",
-                "AI Model Providers: Secure processing with encryption",
-                "Service Providers: Trusted partners with confidentiality agreements",
-                "Legal Requirements: Disclosure only when required by law"
+                t('pp_sharing_item1'),
+                t('pp_sharing_item2'),
+                t('pp_sharing_item3'),
+                t('pp_sharing_item4')
             ]
         },
         {
             icon: UserCheck,
-            title: "Your Rights & Control",
+            title: t('pp_rights_title'),
             items: [
-                "Access & Download: View and export your data anytime",
-                "Correction & Updates: Modify your information from settings",
-                "Deletion Rights: Remove chat sessions or delete entire account",
-                "Opt-Out Options: Control communications and analytics tracking"
+                t('pp_rights_item1'),
+                t('pp_rights_item2'),
+                t('pp_rights_item3'),
+                t('pp_rights_item4')
             ]
         },
         {
             icon: FileText,
-            title: "Cookies & Tracking",
+            title: t('pp_cookies_title'),
             items: [
-                "Essential Cookies: Maintain session and platform functionality",
-                "Analytics Cookies: Understand usage with your consent",
-                "Local Storage: Chat sessions stored in browser for quick access",
-                "Cookie Management: Control preferences through settings"
+                t('pp_cookies_item1'),
+                t('pp_cookies_item2'),
+                t('pp_cookies_item3'),
+                t('pp_cookies_item4')
             ]
         }
     ];
@@ -85,8 +88,8 @@ const PrivacyPolicyModal = ({ isOpen, onClose }) => {
                                 <Shield className="w-6 h-6 text-primary" />
                             </div>
                             <div>
-                                <h2 className="text-2xl font-bold text-maintext">Privacy Policy</h2>
-                                <p className="text-xs text-subtext mt-0.5">Last Updated: January 22, 2026</p>
+                                <h2 className="text-2xl font-bold text-maintext">{t('privacyPolicy')}</h2>
+                                <p className="text-xs text-subtext mt-0.5">{t('lastUpdated')}: January 22, 2026</p>
                             </div>
                         </div>
                         <button
@@ -102,8 +105,7 @@ const PrivacyPolicyModal = ({ isOpen, onClose }) => {
                         {/* Introduction */}
                         <div className="bg-surface rounded-xl p-4 border border-border">
                             <p className="text-sm text-maintext leading-relaxed">
-                                This Privacy Policy explains how {name}™ collects, uses, and protects your information.
-                                We are committed to maintaining the highest standards of privacy and security for all our users.
+                                {t('pp_intro')}
                             </p>
                         </div>
 
@@ -129,7 +131,7 @@ const PrivacyPolicyModal = ({ isOpen, onClose }) => {
 
                         {/* Contact */}
                         <div className="bg-gradient-to-r from-primary/5 to-indigo-500/5 rounded-xl p-5 border border-primary/20">
-                            <h3 className="text-lg font-bold text-maintext mb-3">Questions About Privacy?</h3>
+                            <h3 className="text-lg font-bold text-maintext mb-3">{t('pp_questions_title_privacy')}</h3>
                             <div className="space-y-1.5 text-sm text-subtext">
                                 <p><strong className="text-maintext">Email:</strong> <a href="mailto:admin@uwo24.com" className="text-primary hover:underline">admin@uwo24.com</a></p>
                                 <p><strong className="text-maintext">Phone:</strong> <a href="tel:+918359890909" className="text-primary hover:underline">+91 83589 90909</a></p>
@@ -143,7 +145,7 @@ const PrivacyPolicyModal = ({ isOpen, onClose }) => {
                             onClick={onClose}
                             className="px-6 py-2 bg-primary text-white rounded-xl font-semibold hover:opacity-90 transition-all shadow-lg shadow-primary/20"
                         >
-                            Close
+                            {t('close')}
                         </button>
                     </div>
                 </motion.div>

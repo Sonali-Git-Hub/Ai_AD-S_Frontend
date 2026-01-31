@@ -617,7 +617,7 @@ const Chat = () => {
 
       try {
         // Call the video generation endpoint
-        const response = await axios.post(`http://localhost:8080/api/video/generate`, {
+        const response = await axios.post(`${API}/video/generate`, {
           prompt: prompt,
           duration: 5, // default 5 seconds
           quality: 'medium'
@@ -681,7 +681,7 @@ const Chat = () => {
 
       try {
         // Call the image generation endpoint
-        const response = await axios.post(`http://localhost:8080/api/image/generate`, {
+        const response = await axios.post(`${API}/image/generate`, {
           prompt: prompt
         });
 
@@ -1172,8 +1172,13 @@ const Chat = () => {
 
       if (sessionId && sessionId !== 'new') {
         setCurrentSessionId(sessionId);
+        console.log(`[DEBUG] Initializing chat for session: ${sessionId}`);
         const history = await chatStorageService.getHistory(sessionId);
-        setMessages(history);
+        console.log(`[DEBUG] Received history:`, history);
+        if (history && history.length > 0) {
+          console.log(`[DEBUG] First message role: ${history[0].role}, content preview: ${history[0].content?.substring(0, 20)}`);
+        }
+        setMessages(history || []);
       } else {
         setCurrentSessionId('new');
         setMessages([]);
@@ -1211,7 +1216,7 @@ const Chat = () => {
     setShowHistory(false);
   };
 
-  const { language: currentLang } = useLanguage();
+  const { language: currentLang, t } = useLanguage();
 
   const handleDriveClick = () => {
     setIsAttachMenuOpen(false);
@@ -1553,6 +1558,10 @@ ${deepSearchActive ? `### DEEP SEARCH MODE ENABLED (CRITICAL):
           aiImageUrl = aiResponseData.imageUrl || null;
         } else {
           aiResponseText = "No response generated.";
+        }
+
+        if (aiResponseText === "dbDemoModeMessage") {
+          aiResponseText = t('dbDemoModeMessage');
         }
 
         // Check for multiple file analysis headers to split into separate cards
@@ -2586,7 +2595,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                 </div>
               </div>
               <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-maintext tracking-tight max-w-2xl leading-relaxed drop-shadow-sm px-4">
-                {WELCOME_MESSAGE}
+                {t('welcomeMessage')}
               </h2>
             </div>
           ) : (
@@ -2858,7 +2867,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                                 },
                               }}
                             >
-                              {msg.content}
+                              {msg.content || msg.text || ""}
                             </ReactMarkdown>
 
                             {/* Dynamic Video Rendering */}

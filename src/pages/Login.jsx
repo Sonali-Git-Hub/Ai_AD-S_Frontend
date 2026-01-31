@@ -8,6 +8,7 @@ import { setUserData, userData as userDataAtom } from '../userStore/userData';
 import { logo } from '../constants';
 import { useSetRecoilState } from 'recoil';
 import toast from 'react-hot-toast';
+import { useLanguage } from '../context/LanguageContext';
 
 
 const Login = () => {
@@ -21,6 +22,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
   const setUserRecoil = useSetRecoilState(userDataAtom);
+  const { t } = useLanguage();
 
   const payload = { email, password }
   const handleSubmit = (e) => {
@@ -30,7 +32,7 @@ const Login = () => {
     axios.post(apis.logIn, payload).then((res) => {
       setError(false)
       setMessage(res.data.message)
-      toast.success('Successfully Logged in AISA');
+      toast.success(t('successLogin'));
       const from = location.state?.from || AppRoute.DASHBOARD;
       navigate(from, { replace: true });
       setUserData(res.data)
@@ -41,7 +43,7 @@ const Login = () => {
     }).catch((err) => {
       console.error("Login error:", err);
       setError(true);
-      const errorMessage = err.response?.data?.error || err.message || "Unable to connect to the server. Please check your internet connection and try again.";
+      const errorMessage = err.response?.data?.error || err.message || t('serverError');
       setMessage(errorMessage);
     }).finally(() => {
       setLoading(false)
@@ -60,8 +62,8 @@ const Login = () => {
           <div className="inline-block rounded-full w-25">
             <img src="/logo/Logo.svg" alt="AISA Logo" className="w-36 h-36 mx-auto" />
           </div>
-          <h2 className="text-3xl font-bold text-maintext mb-2 -mt-8">Welcome Back</h2>
-          <p className="text-subtext">Sign in to continue to AISA<sup>TM</sup></p>
+          <h2 className="text-3xl font-bold text-maintext mb-2 -mt-8">{t('welcomeBack')}</h2>
+          <p className="text-subtext">{t('signInToContinue')} AISA<sup>TM</sup></p>
         </div>
 
         {/* Card */}
@@ -81,7 +83,7 @@ const Login = () => {
             {/* Email */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-maintext ml-1">
-                Email Address
+                {t('emailAddress')}
               </label>
               <div className="relative">
                 <Mail className="absolute left-4 top-3.5 w-5 h-5 text-subtext" />
@@ -99,7 +101,7 @@ const Login = () => {
             {/* Password */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-maintext ml-1">
-                Password
+                {t('password')}
               </label>
               <div className="relative">
                 <Lock className="absolute left-4 top-3.5 w-5 h-5 text-subtext" />
@@ -127,7 +129,7 @@ const Login = () => {
 
             <div className="flex justify-end">
               <Link to="/forgot-password" className="text-sm text-primary hover:underline font-medium">
-                Forgot Password?
+                {t('forgotPasswordQue')}
               </Link>
             </div>
 
@@ -137,16 +139,16 @@ const Login = () => {
               disabled={loading}
               className="w-full py-3.5 bg-primary rounded-xl font-bold text-white shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Signing In...' : 'Sign In'}
+              {loading ? t('signingIn') : t('logIn')}
             </button>
           </form>
 
           {/* Signup Redirect */}
           <div className="mt-8 text-center text-sm text-subtext space-y-3">
             <div>
-              Don't have an account?{' '}
+              {t('dontHaveAccount')}{' '}
               <Link to="/signup" className="text-primary hover:underline font-medium">
-                Create Account
+                {t('createAccount')}
               </Link>
             </div>
 
@@ -160,7 +162,7 @@ const Login = () => {
           to="/"
           className="mt-8 flex items-center justify-center gap-2 text-subtext hover:text-maintext transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to Home
+          <ArrowLeft className="w-4 h-4" /> {t('backToHome')}
         </Link>
 
       </div>

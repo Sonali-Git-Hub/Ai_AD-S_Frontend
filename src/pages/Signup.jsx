@@ -6,11 +6,13 @@ import { AppRoute, apis } from '../types';
 import axios from 'axios';
 import { setUserData } from '../userStore/userData.js';
 import { logo } from '../constants';
+import { useLanguage } from '../context/LanguageContext';
 
 
 const Signup = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -29,7 +31,7 @@ const Signup = () => {
     // Password Validation
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!passwordRegex.test(password)) {
-      setPasswordError("Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character.");
+      setPasswordError(t('passwordValidation'));
       setIsLoading(false);
       return;
     }
@@ -58,8 +60,8 @@ const Signup = () => {
             {/* <Cpu className="w-8 h-8 text-primary" /> */}
             <img src={logo} alt="" />
           </div>
-          <h2 className="text-3xl font-bold text-maintext mb-2">Create Account</h2>
-          <p className="text-subtext">Join AI Super Assitant to unlock full access</p>
+          <h2 className="text-3xl font-bold text-maintext mb-2">{t('createAccount')}</h2>
+          <p className="text-subtext">{t('joinAISA')}</p>
         </div>
 
         {/* Card */}
@@ -76,7 +78,7 @@ const Signup = () => {
 
             {/* Name */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-maintext ml-1">Full Name</label>
+              <label className="text-sm font-medium text-maintext ml-1">{t('fullName')}</label>
               <div className="relative">
                 <User className="absolute left-4 top-3.5 w-5 h-5 text-subtext" />
                 <input
@@ -92,7 +94,7 @@ const Signup = () => {
 
             {/* Email */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-maintext ml-1">Email Address</label>
+              <label className="text-sm font-medium text-maintext ml-1">{t('emailAddress')}</label>
               <div className="relative">
                 <Mail className="absolute left-4 top-3.5 w-5 h-5 text-subtext" />
                 <input
@@ -108,7 +110,7 @@ const Signup = () => {
 
             {/* Password */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-maintext ml-1">Password</label>
+              <label className="text-sm font-medium text-maintext ml-1">{t('password')}</label>
               <div className="relative">
                 <Lock className="absolute left-4 top-3.5 w-5 h-5 text-subtext" />
                 {passwordError && (
@@ -149,15 +151,15 @@ const Signup = () => {
               disabled={isLoading}
               className="w-full py-3.5 bg-primary rounded-xl font-bold text-white shadow-lg shadow-primary/25 hover:shadow-primary/40 transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Creating Account...' : 'Sign Up'}
+              {isLoading ? t('signingUp') : t('createAccount')}
             </button>
           </form>
 
           {/* Footer Login Link */}
           <div className="mt-8 text-center text-sm text-subtext">
-            Already have an account?{' '}
+            {t('alreadyHaveAccount')}{' '}
             <Link to="/login" className="text-primary hover:underline font-medium">
-              Sign In
+              {t('logIn')}
             </Link>
           </div>
         </div>
@@ -167,7 +169,7 @@ const Signup = () => {
           to="/"
           className="mt-8 flex items-center justify-center gap-2 text-subtext hover:text-maintext transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to Home
+          <ArrowLeft className="w-4 h-4" /> {t('backToHome')}
         </Link>
       </div>
     </div>

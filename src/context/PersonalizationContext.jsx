@@ -8,7 +8,7 @@ const PersonalizationContext = createContext();
 
 const DEFAULT_PREFERENCES = {
     general: {
-        language: 'English',
+        language: import.meta.env.VITE_DEFAULT_LANGUAGE || 'English',
         region: 'India',
         theme: 'System',
         responseSpeed: 'Balanced',

@@ -2,56 +2,59 @@ import React from 'react';
 import { X, Cookie, Settings2, BarChart3, Shield, Smartphone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { name } from '../../constants';
+import { useLanguage } from '../../context/LanguageContext';
 
 const CookiePolicyModal = ({ isOpen, onClose }) => {
+    const { t } = useLanguage();
+
     const sections = [
         {
             icon: Cookie,
-            title: "What Are Cookies?",
+            title: t('cp_what_title'),
             items: [
-                "Definition: Small text files placed on your device when you visit AISA™",
-                "Purpose: Recognize you and remember your preferences",
-                "Duration: Some expire when you close browser, others persist longer"
+                t('cp_what_item1'),
+                t('cp_what_item2'),
+                t('cp_what_item3')
             ]
         },
         {
             icon: Settings2,
-            title: "Types of Cookies We Use",
+            title: t('cp_types_title'),
             items: [
-                "Essential (Required): Authentication, session management, security",
-                "Preference: Language, theme (light/dark), notification settings",
-                "Analytics (Optional): Usage tracking with your consent to improve services",
-                "Functional: Chat history sync, AI agent selection, feature preferences"
+                t('cp_types_item1'),
+                t('cp_types_item2'),
+                t('cp_types_item3'),
+                t('cp_types_item4')
             ]
         },
         {
             icon: Smartphone,
-            title: "Local Storage & Session Storage",
+            title: t('cp_storage_title'),
             items: [
-                "Chat Sessions: Stored locally for quick access and offline capability",
-                "User Preferences: Settings like AI agent and interface customizations",
-                "Session Management: Active chat state, expires when browser closes",
-                "Data Control: Delete individual chats or clear all data anytime"
+                t('cp_storage_item1'),
+                t('cp_storage_item2'),
+                t('cp_storage_item3'),
+                t('cp_storage_item4')
             ]
         },
         {
             icon: BarChart3,
-            title: "Third-Party Cookies",
+            title: t('cp_third_title'),
             items: [
-                "Analytics: Anonymized usage data to understand engagement",
-                "AI Providers: Secure query processing with encryption",
-                "Payment: Fraud prevention during transactions",
-                "Control: Review partner privacy policies for their practices"
+                t('cp_third_item1'),
+                t('cp_third_item2'),
+                t('cp_third_item3'),
+                t('cp_third_item4')
             ]
         },
         {
             icon: Shield,
-            title: "Your Cookie Choices",
+            title: t('cp_choices_title'),
             items: [
-                "Browser Controls: Block, delete, or get warnings about cookies",
-                "Opt-Out: Disable analytics from profile settings under Privacy & Data",
-                "Do Not Track: We respect DNT signals from your browser",
-                "Impact: Blocking may limit features like auto-login and preferences"
+                t('cp_choices_item1'),
+                t('cp_choices_item2'),
+                t('cp_choices_item3'),
+                t('cp_choices_item4')
             ]
         }
     ];
@@ -76,8 +79,8 @@ const CookiePolicyModal = ({ isOpen, onClose }) => {
                                 <Cookie className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                             </div>
                             <div>
-                                <h2 className="text-2xl font-bold text-maintext">Cookie Policy</h2>
-                                <p className="text-xs text-subtext mt-0.5">Last Updated: January 22, 2026</p>
+                                <h2 className="text-2xl font-bold text-maintext">{t('cookiePolicy')}</h2>
+                                <p className="text-xs text-subtext mt-0.5">{t('lastUpdated')}: January 22, 2026</p>
                             </div>
                         </div>
                         <button
@@ -93,8 +96,7 @@ const CookiePolicyModal = ({ isOpen, onClose }) => {
                         {/* Introduction */}
                         <div className="bg-surface rounded-xl p-4 border border-border">
                             <p className="text-sm text-maintext leading-relaxed">
-                                This Cookie Policy explains how {name}™ uses cookies and similar technologies
-                                to enhance your experience. You can control cookie preferences anytime.
+                                {t('cp_intro')}
                             </p>
                         </div>
 
@@ -122,7 +124,7 @@ const CookiePolicyModal = ({ isOpen, onClose }) => {
 
                         {/* Contact */}
                         <div className="bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-xl p-5 border border-purple-500/20">
-                            <h3 className="text-lg font-bold text-maintext mb-3">Questions About Cookies?</h3>
+                            <h3 className="text-lg font-bold text-maintext mb-3">{t('cp_questions_title_cookies')}</h3>
                             <div className="space-y-1.5 text-sm text-subtext">
                                 <p><strong className="text-maintext">Email:</strong> <a href="mailto:admin@uwo24.com" className="text-primary hover:underline">admin@uwo24.com</a></p>
                                 <p><strong className="text-maintext">Phone:</strong> <a href="tel:+918359890909" className="text-primary hover:underline">+91 83589 90909</a></p>
@@ -136,7 +138,7 @@ const CookiePolicyModal = ({ isOpen, onClose }) => {
                             onClick={onClose}
                             className="px-6 py-2 bg-purple-600 dark:bg-purple-500 text-white rounded-xl font-semibold hover:opacity-90 transition-all shadow-lg shadow-purple-600/20"
                         >
-                            Close
+                            {t('close')}
                         </button>
                     </div>
                 </motion.div>
