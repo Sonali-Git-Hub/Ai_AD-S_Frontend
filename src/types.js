@@ -57,7 +57,8 @@ export const AppRoute = {
 };
 
 // API Base URL
-const API = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8080/api';
+// const API =  'http://localhost:8080/api';
+const API = 'https://aisa-backend-743928421487.asia-south1.run.app/api';
 
 const apis = {
   resetPassword: `${API}/auth/reset-password`,
