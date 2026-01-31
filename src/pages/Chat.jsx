@@ -870,6 +870,16 @@ const Chat = () => {
     }
   };
 
+  // Ensure Chat Mic stops when Live Mode starts
+  useEffect(() => {
+    if (isLiveMode && isListening && recognitionRef.current) {
+      console.log("[Chat] Stopping Mic for Live Mode");
+      isManualStopRef.current = true;
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+  }, [isLiveMode, isListening]);
+
   // Helper to clean markdown for TTS
   const [speakingMessageId, setSpeakingMessageId] = useState(null);
   const [isPaused, setIsPaused] = useState(false);
@@ -3343,7 +3353,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
               </div>
             )}
 
-            <form onSubmit={handleSendMessage} className="relative w-full max-w-2xl mx-auto flex items-end gap-1.5 bg-white dark:bg-[#0a0a0a] border border-black/5 dark:border-white/10 rounded-2xl p-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.15)] transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.1)] hover:border-primary/20 backdrop-blur-3xl">
+            <form onSubmit={handleSendMessage} className="relative w-full max-w-2xl mx-auto flex items-end gap-2 bg-white dark:bg-[#0a0a0a] border border-black/5 dark:border-white/10 rounded-2xl p-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.15)] transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.1)] hover:border-primary/20 backdrop-blur-3xl px-2">
               <input
                 id="file-upload"
                 type="file"
@@ -3386,7 +3396,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
               />
 
               {/* Left Actions Group */}
-              <div className="flex items-center gap-1 pb-1 pl-1">
+              <div className="flex items-center gap-1 pb-2 pl-1">
                 <AnimatePresence>
                   {isAttachMenuOpen && (
                     <motion.div
@@ -3541,26 +3551,26 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                   {(isDeepSearch || isImageGeneration || isVoiceMode || isAudioConvertMode) && (
                     <div className="absolute bottom-full left-0 mb-3 flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto w-full">
                       {isDeepSearch && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-2 px-3 py-1 bg-sky-500/10 text-sky-600 rounded-full text-xs font-bold border border-sky-500/20 backdrop-blur-md">
-                          <Search size={12} strokeWidth={3} /> Deep Search Active
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-sky-500/10 text-sky-600 rounded-full text-xs font-bold border border-sky-500/20 backdrop-blur-md whitespace-nowrap shrink-0">
+                          <Search size={12} strokeWidth={3} /> <span className="hidden sm:inline">Deep Search</span>
                           <button onClick={() => setIsDeepSearch(false)} className="ml-1 hover:text-sky-800"><X size={12} /></button>
                         </motion.div>
                       )}
                       {isImageGeneration && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-2 px-3 py-1 bg-pink-500/10 text-pink-600 rounded-full text-xs font-bold border border-pink-500/20 backdrop-blur-md">
-                          <ImageIcon size={12} strokeWidth={3} /> Image Gen Active
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-pink-500/10 text-pink-600 rounded-full text-xs font-bold border border-pink-500/20 backdrop-blur-md whitespace-nowrap shrink-0">
+                          <ImageIcon size={12} strokeWidth={3} /> <span className="hidden sm:inline">Image Gen</span>
                           <button onClick={() => setIsImageGeneration(false)} className="ml-1 hover:text-pink-800"><X size={12} /></button>
                         </motion.div>
                       )}
                       {isVoiceMode && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-2 px-3 py-1 bg-blue-500/10 text-blue-600 rounded-full text-xs font-bold border border-blue-500/20 backdrop-blur-md">
-                          <Volume2 size={12} strokeWidth={3} /> Voice Reader Active
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-blue-500/10 text-blue-600 rounded-full text-xs font-bold border border-blue-500/20 backdrop-blur-md whitespace-nowrap shrink-0">
+                          <Volume2 size={12} strokeWidth={3} /> <span className="hidden sm:inline">Voice Mode</span>
                           <button onClick={() => setIsVoiceMode(false)} className="ml-1 hover:text-blue-800"><X size={12} /></button>
                         </motion.div>
                       )}
                       {isAudioConvertMode && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-2 px-3 py-1 bg-indigo-500/10 text-indigo-600 rounded-full text-xs font-bold border border-indigo-500/20 backdrop-blur-md">
-                          <Headphones size={12} strokeWidth={3} /> Audio Convert Active
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-indigo-500/10 text-indigo-600 rounded-full text-xs font-bold border border-indigo-500/20 backdrop-blur-md whitespace-nowrap shrink-0">
+                          <Headphones size={12} strokeWidth={3} /> <span className="hidden sm:inline">Audio Convert</span>
                           <button onClick={() => setIsAudioConvertMode(false)} className="ml-1 hover:text-indigo-800"><X size={12} /></button>
                         </motion.div>
                       )}
@@ -3585,7 +3595,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                     }
                   }}
                   onPaste={handlePaste}
-                  placeholder={isAudioConvertMode ? "Enter text to convert..." : "Ask AISA anything..."}
+                  placeholder={isAudioConvertMode ? "Enter text..." : "Ask AISA..."}
                   rows={1}
                   className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none p-0 text-maintext placeholder-subtext/50 resize-none overflow-y-auto custom-scrollbar leading-relaxed ${personalizations?.personalization?.fontStyle === 'Serif' ? 'font-serif' :
                     personalizations?.personalization?.fontStyle === 'Mono' ? 'font-mono' :
@@ -3596,7 +3606,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
               </div>
 
               {/* Right Actions Group */}
-              <div className="flex items-center gap-1.5 pb-1 pr-1">
+              <div className="flex items-center gap-1.5 pb-2 pr-1">
                 {isListening && (
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 rounded-full border border-red-500/20 mr-2">
                     <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
@@ -3758,8 +3768,8 @@ For "Remix" requests with an attachment, analyze the attached image, then create
             </div>
           </Dialog>
         </Transition>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 };
 

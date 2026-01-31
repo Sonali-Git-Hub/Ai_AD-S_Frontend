@@ -424,13 +424,19 @@ const LiveAI = ({ onClose, language }) => {
         };
 
         recognition.onerror = (e) => {
+            if (e.error === 'aborted') return; // Ignore aborted errors (expected on stop)
             console.error("Mic Error", e);
             if (e.error === 'not-allowed') toast.error("Mic Blocked");
         };
 
         recognition.onend = () => {
             if (shouldListenRef.current && !synthRef.current.speaking && !window.currentAudio && !isThinkingRef.current) {
-                try { recognition.start(); } catch (e) { }
+                // Add delay to prevent tight loops/race conditions
+                setTimeout(() => {
+                    if (shouldListenRef.current) {
+                        try { recognition.start(); } catch (e) { }
+                    }
+                }, 200);
             } else {
                 if (!shouldListenRef.current) setIsListening(false);
             }
