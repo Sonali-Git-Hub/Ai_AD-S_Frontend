@@ -176,12 +176,12 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
     };
 
     const tabs = [
-        { id: 'general', label: 'General', icon: Settings },
-        { id: 'notifications', label: 'Notifications', icon: Bell },
-        { id: 'personalization', label: 'Personalization', icon: Sparkles },
-        { id: 'data', label: 'Data controls', icon: Database },
-        { id: 'security', label: 'Security', icon: Shield },
-        { id: 'account', label: 'Account', icon: User },
+        { id: 'general', label: t('general'), icon: Settings },
+        { id: 'notifications', label: t('notifications'), icon: Bell },
+        { id: 'personalization', label: t('personalization'), icon: Sparkles },
+        { id: 'data', label: t('dataControls'), icon: Database },
+        { id: 'security', label: t('security'), icon: Shield },
+        { id: 'account', label: t('account'), icon: User },
     ];
 
     // Load voices on mount
@@ -269,21 +269,24 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
             case 'general':
                 return (
                     <div className="space-y-2 animate-in fade-in duration-300">
-                        {renderSettingRow("Appearance", "Choose your preferred layout theme.", renderDropdown(
-                            theme.charAt(0).toUpperCase() + theme.slice(1),
-                            ['System', 'Dark', 'Light'],
-                            (e) => setTheme(e.target.value.toLowerCase()),
+                        {renderSettingRow(t('appearance'), t('appearanceDesc'), renderDropdown(
+                            t(theme),
+                            [t('system'), t('dark'), t('light')],
+                            (e) => setTheme(e.target.value === t('system') ? 'system' : e.target.value === t('dark') ? 'dark' : 'light'),
                             Monitor
                         ))}
 
-                        {renderSettingRow("Font Size", "Adjust text size for better readability.", renderDropdown(
-                            personalizations.personalization?.fontSize || 'Medium',
-                            ['Small', 'Medium', 'Large', 'Extra Large'],
-                            (e) => updatePersonalization('personalization', { fontSize: e.target.value }),
+                        {renderSettingRow(t('fontSize'), t('fontSizeDesc'), renderDropdown(
+                            t(personalizations.personalization?.fontSize?.toLowerCase() || 'medium'),
+                            [t('small'), t('medium'), t('large'), t('extraLarge')],
+                            (e) => {
+                                const sizeMap = { [t('small')]: 'Small', [t('medium')]: 'Medium', [t('large')]: 'Large', [t('extraLarge')]: 'Extra Large' };
+                                updatePersonalization('personalization', { fontSize: sizeMap[e.target.value] });
+                            },
                             Type
                         ))}
 
-                        {renderSettingRow("Accent color", "Personalize your AI's identity color.", (
+                        {renderSettingRow(t('accentColor'), t('accentColorDesc'), (
                             <div className="flex items-center gap-3">
                                 <div
                                     className="w-4 h-4 rounded-full shadow-sm transition-all duration-300 ring-2 ring-offset-2 ring-primary/20"
@@ -298,14 +301,14 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                             </div>
                         ))}
 
-                        {renderSettingRow("Region", "Filter languages by region.", renderDropdown(
+                        {renderSettingRow(t('region'), t('regionDesc'), renderDropdown(
                             region,
                             Object.keys(regions || {}),
                             (e) => setRegion(e.target.value),
                             Globe
                         ))}
 
-                        {renderSettingRow("Language", "Select your preferred dashboard language.", renderDropdown(
+                        {renderSettingRow(t('language'), t('languageDesc'), renderDropdown(
                             language,
                             regions[region] || ['English'],
                             (e) => setLanguage(e.target.value),
@@ -319,13 +322,13 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                 return (
                     <div className="space-y-4 animate-in fade-in duration-300">
                         <div className="flex items-center justify-between pb-2">
-                            <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Inbox ({notifications.length})</h3>
+                            <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{t('inbox')} ({notifications.length})</h3>
                             {notifications.length > 0 && (
                                 <button
                                     onClick={clearAllNotifications}
                                     className="text-xs font-semibold text-primary hover:underline transition-all"
                                 >
-                                    Clear all
+                                    {t('clearAllNotifications')}
                                 </button>
                             )}
                         </div>
@@ -365,8 +368,8 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                     <div className="w-16 h-16 bg-gray-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-4 text-gray-400">
                                         <Bell className="w-8 h-8" />
                                     </div>
-                                    <h4 className="text-gray-900 dark:text-white font-bold">You're all caught up!</h4>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-[200px]">Check back later for new updates and alerts.</p>
+                                    <h4 className="text-gray-900 dark:text-white font-bold">{t('youreAllCaughtUp')}</h4>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-[200px]">{t('checkBackLater')}</p>
                                 </div>
                             )}
                         </div>
@@ -376,22 +379,31 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                 return (
                     <div className="space-y-6 animate-in fade-in duration-300">
                         <div className="space-y-2">
-                            {renderSettingRow("Font Size", "Adjust text size for better readability.", renderDropdown(
-                                personalizations.personalization?.fontSize || 'Medium',
-                                ['Small', 'Medium', 'Large', 'Extra Large'],
-                                (e) => updatePersonalization('personalization', { fontSize: e.target.value }),
+                            {renderSettingRow(t('fontSize'), t('fontSizeDesc'), renderDropdown(
+                                t(personalizations.personalization?.fontSize?.toLowerCase() || 'medium'),
+                                [t('small'), t('medium'), t('large'), t('extraLarge')],
+                                (e) => {
+                                    const sizeMap = { [t('small')]: 'Small', [t('medium')]: 'Medium', [t('large')]: 'Large', [t('extraLarge')]: 'Extra Large' };
+                                    updatePersonalization('personalization', { fontSize: sizeMap[e.target.value] });
+                                },
                                 Type
                             ))}
-                            {renderSettingRow("Font Style", "Select your preferred font for the AI chat.", renderDropdown(
-                                personalizations.personalization?.fontStyle || 'Default',
-                                ['Default', 'Serif', 'Mono', 'Sans', 'Rounded'],
-                                (e) => updatePersonalization('personalization', { fontStyle: e.target.value }),
+                            {renderSettingRow(t('fontStyle'), t('fontStyleDesc'), renderDropdown(
+                                t(personalizations.personalization?.fontStyle?.toLowerCase() || 'default'),
+                                [t('default'), t('serif'), t('mono'), t('sans'), t('rounded')],
+                                (e) => {
+                                    const styleMap = { [t('default')]: 'Default', [t('serif')]: 'Serif', [t('mono')]: 'Mono', [t('sans')]: 'Sans', [t('rounded')]: 'Rounded' };
+                                    updatePersonalization('personalization', { fontStyle: styleMap[e.target.value] });
+                                },
                                 RefreshCcw
                             ))}
-                            {renderSettingRow("Emoji Usage", "Frequency of icons in chat.", renderDropdown(
-                                personalizations.personalization?.emojiUsage || 'Moderate',
-                                ['None', 'Minimal', 'Moderate', 'Expressive'],
-                                (e) => updatePersonalization('personalization', { emojiUsage: e.target.value }),
+                            {renderSettingRow(t('emojiUsage'), t('emojiUsageDesc'), renderDropdown(
+                                t(personalizations.personalization?.emojiUsage?.toLowerCase() || 'moderate'),
+                                [t('none'), t('minimal'), t('moderate'), t('expressive')],
+                                (e) => {
+                                    const usageMap = { [t('none')]: 'None', [t('minimal')]: 'Minimal', [t('moderate')]: 'Moderate', [t('expressive')]: 'Expressive' };
+                                    updatePersonalization('personalization', { emojiUsage: usageMap[e.target.value] });
+                                },
                                 Sparkles
                             ))}
                         </div>
@@ -402,11 +414,11 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                 return (
                     <div className="space-y-6 animate-in fade-in duration-300">
                         <div className="space-y-2">
-                            {renderSettingRow("Chat History & Training", "Save your chats and allow them to be used to improve the models.", renderToggle('dataControls', 'chatHistory', personalizations.dataControls?.chatHistory === 'On'))}
+                            {renderSettingRow(t('chatHistory'), t('chatHistoryDesc'), renderToggle('dataControls', 'chatHistory', personalizations.dataControls?.chatHistory === 'On'))}
                         </div>
 
                         <div className="pt-4">
-                            <h4 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">Recent Chat History</h4>
+                            <h4 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">{t('recentChatHistory')}</h4>
                             <div className="max-h-[220px] overflow-y-auto space-y-2 pr-2 custom-scrollbar-light">
                                 {chatSessions && chatSessions.length > 0 ? (
                                     chatSessions.map((session) => (
@@ -429,13 +441,13 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                                 }}
                                                 className="px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary text-[10px] font-bold rounded-lg transition-all hover:text-white"
                                             >
-                                                View
+                                                {t('view')}
                                             </button>
                                         </div>
                                     ))
                                 ) : (
                                     <div className="py-10 text-center bg-gray-50 dark:bg-zinc-800/30 rounded-2xl border border-dashed border-gray-200 dark:border-white/10">
-                                        <p className="text-sm text-gray-500 dark:text-gray-400 italic">No recent chats found.</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 italic">{t('noRecentChats')}</p>
                                     </div>
                                 )}
                             </div>
@@ -444,11 +456,11 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                         <div className="py-6 mt-4 p-4 bg-red-50 dark:bg-red-500/5 rounded-xl border border-red-100 dark:border-red-500/10">
                             <div className="flex items-center justify-between gap-4">
                                 <div>
-                                    <p className="text-sm font-semibold text-red-900 dark:text-red-400">Delete all chats</p>
-                                    <p className="text-xs text-red-700 dark:text-red-500/70">This action cannot be undone.</p>
+                                    <p className="text-sm font-semibold text-red-900 dark:text-red-400">{t('deleteAllChats')}</p>
+                                    <p className="text-xs text-red-700 dark:text-red-500/70">{t('thisActionCannotBeUndone')}</p>
                                 </div>
                                 <button className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-2 shrink-0">
-                                    <Trash2 className="w-4 h-4" /> Clear All
+                                    <Trash2 className="w-4 h-4" /> {t('clearAll')}
                                 </button>
                             </div>
                         </div>
@@ -459,7 +471,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                     <div className="space-y-4 animate-in fade-in duration-300">
 
                         <div className="flex flex-col gap-4 mt-6">
-                            <h4 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest px-1">Active Sessions ({accounts.length})</h4>
+                            <h4 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest px-1">{t('activeSessions')} ({accounts.length})</h4>
 
                             <div className="space-y-3">
                                 {accounts.map((acc) => (
@@ -474,7 +486,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                             <div>
                                                 <p className="text-[14px] font-bold text-gray-900 dark:text-white leading-tight">{acc.name || 'User'}</p>
                                                 <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{acc.email}</p>
-                                                {acc.email === user?.email && <p className="text-[10px] text-green-600 dark:text-green-400 font-bold uppercase tracking-tighter mt-0.5">Current Session</p>}
+                                                {acc.email === user?.email && <p className="text-[10px] text-green-600 dark:text-green-400 font-bold uppercase tracking-tighter mt-0.5">{t('currentSession')}</p>}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -483,7 +495,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                                     onClick={() => handleSwitchAccount(acc)}
                                                     className="px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary hover:text-white text-[10px] font-bold rounded-lg transition-all"
                                                 >
-                                                    Switch
+                                                    {t('switch')}
                                                 </button>
                                             )}
                                             <button
@@ -506,32 +518,32 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                     <div className="space-y-6 animate-in fade-in duration-300">
                         <div className="space-y-4">
                             <div className="flex flex-col gap-2 relative group">
-                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Display Name</label>
+                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{t('displayName')}</label>
                                 <div className="relative">
                                     <input
                                         type="text"
                                         value={nicknameInput}
                                         onChange={(e) => setNicknameInput(e.target.value)}
                                         className="w-full bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-white/10 rounded-xl p-3 pr-16 text-sm text-gray-900 dark:text-white focus:border-primary outline-none transition-colors"
-                                        placeholder="Your nickname..."
+                                        placeholder={t('yourNickname')}
                                     />
                                     <button
                                         onClick={handleSaveNickname}
                                         className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-primary text-white text-[10px] font-bold rounded-lg hover:opacity-90 transition-all shadow-sm"
                                     >
-                                        Save
+                                        {t('save')}
                                     </button>
                                 </div>
                             </div>
                             <div className="flex flex-col gap-1 py-1">
-                                <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Login ID (Email)</span>
+                                <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{t('loginId')}</span>
                                 <span className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
                                     <Mail className="w-4 h-4 text-gray-400 dark:text-gray-500" /> {user?.email || 'user@example.com'}
                                 </span>
                             </div>
 
                             <div className="flex flex-col gap-2 pt-2">
-                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Current Plan</label>
+                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{t('currentPlan')}</label>
                                 <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border border-primary/20">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
@@ -539,10 +551,10 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                         </div>
                                         <div>
                                             <p className="text-base font-bold text-gray-900 dark:text-white capitalize">
-                                                {user?.plan || 'Basic'} Plan
+                                                {t((user?.plan || 'basic').toLowerCase() + 'Plan')} {t('currentPlan')}
                                             </p>
                                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                {user?.plan === 'King' ? 'Unlimited Access' : user?.plan === 'Pro' ? 'Advanced Features' : 'Standard Access'}
+                                                {user?.plan === 'King' ? t('unlimitedAccess') : user?.plan === 'Pro' ? t('advancedFeatures') : t('standardAccess')}
                                             </p>
                                         </div>
                                     </div>
@@ -550,7 +562,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                         onClick={() => setShowPricingModal(true)}
                                         className="px-4 py-2 bg-primary hover:bg-primary/90 text-white text-xs font-bold rounded-lg transition-all shadow-sm shadow-primary/20"
                                     >
-                                        Upgrade
+                                        {t('upgrade')}
                                     </button>
                                 </div>
                             </div>
@@ -560,13 +572,13 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                         <div className="pt-6 border-t border-gray-100 dark:border-white/5">
                             <div className="flex items-center justify-between mb-4">
                                 <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                                    <History className="w-4 h-4" /> Transaction History
+                                    <History className="w-4 h-4" /> {t('transactionHistory')}
                                 </h4>
                                 <button
                                     onClick={() => setShowHistory(!showHistory)}
                                     className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
                                 >
-                                    {showHistory ? 'Hide History' : 'View History'}
+                                    {showHistory ? t('hideHistory') : t('viewHistory')}
                                 </button>
                             </div>
 
@@ -574,7 +586,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                 <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                                     {
                                         loadingHistory ? (
-                                            <div className="text-center py-8 text-sm text-gray-400">Loading history...</div>
+                                            <div className="text-center py-8 text-sm text-gray-400">{t('loadingHistory')}</div>
                                         ) : transactions.length > 0 ? (
                                             <div className="space-y-3">
                                                 {transactions.map((tx) => (
@@ -584,7 +596,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                                                 <CreditCard className="w-4 h-4" />
                                                             </div>
                                                             <div>
-                                                                <p className="text-sm font-bold text-gray-900 dark:text-white capitalize">{tx.plan || 'Subscription'}</p>
+                                                                <p className="text-sm font-bold text-gray-900 dark:text-white capitalize">{tx.plan || t('subscription')}</p>
                                                                 <p className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1">
                                                                     <Calendar className="w-3 h-3" />
                                                                     {new Date(tx.createdAt).toLocaleDateString()}
@@ -601,7 +613,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                                                 className="mt-1 flex items-center gap-1 text-[10px] font-medium text-gray-500 hover:text-primary transition-colors"
                                                                 title="Download Invoice"
                                                             >
-                                                                <Download className="w-3 h-3" /> Invoice
+                                                                <Download className="w-3 h-3" /> {t('invoice')}
                                                             </button>
                                                         </div>
                                                     </div>
@@ -609,7 +621,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                             </div>
                                         ) : (
                                             <div className="text-center py-8 bg-gray-50 dark:bg-zinc-800/30 rounded-xl border border-dashed border-gray-200 dark:border-white/10">
-                                                <p className="text-sm text-gray-500 dark:text-gray-400">No transaction history found.</p>
+                                                <p className="text-sm text-gray-500 dark:text-gray-400">{t('noTransactionHistory')}</p>
                                             </div>
                                         )
                                     }
@@ -619,13 +631,13 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
 
                         <div className="pt-6 border-t border-gray-100 dark:border-white/5 flex flex-col gap-3">
                             <button onClick={() => { onLogout(); onClose(); }} className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors text-left flex items-center gap-2">
-                                <Plus className="w-4 h-4" /> Add or switch account
+                                <Plus className="w-4 h-4" /> {t('addOrSwitchAccount')}
                             </button>
                             <button onClick={resetPersonalizations} className="text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-primary transition-colors text-left flex items-center gap-2">
-                                <Database className="w-4 h-4" /> Reset all settings to defaults
+                                <Database className="w-4 h-4" /> {t('resetAllSettings')}
                             </button>
                             <button className="text-sm font-semibold text-red-600 dark:text-red-500 hover:text-red-700 transition-colors text-left flex items-center gap-2">
-                                <Trash2 className="w-4 h-4" /> Permanent Delete Account
+                                <Trash2 className="w-4 h-4" /> {t('permanentDeleteAccount')}
                             </button>
                         </div>
                     </div>
@@ -644,19 +656,19 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.98 }}
                         transition={{ duration: 0.2, ease: "easeOut" }}
-                        className="w-full sm:max-w-[850px] h-full sm:h-[600px] bg-white dark:bg-[#1f1f1f] sm:rounded-2xl flex flex-col sm:flex-row shadow-2xl font-sans"
+                        className="w-full sm:max-w-[850px] h-full sm:h-[600px] bg-white dark:bg-[#161B2E] sm:rounded-[2rem] flex flex-col sm:flex-row shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] font-sans ring-1 ring-black/5 dark:ring-white/5"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Sidebar / List View */}
                         <div className={`
-                        w-full sm:w-[240px] bg-[#F9F9F9] dark:bg-[#171717] flex flex-col shrink-0 border-r border-gray-100 dark:border-white/5
+                        w-full sm:w-[240px] bg-[#F9F9F9] dark:bg-[#0E1220] flex flex-col shrink-0 border-r border-gray-100 dark:border-white/5
                         ${view === 'detail' ? 'hidden sm:flex' : 'flex'}
                     `}>
                             <div className="p-4 sm:p-5 flex items-center justify-between sm:justify-start">
                                 <button onClick={onClose} className="p-1 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors sm:hidden">
                                     <X className="w-6 h-6" />
                                 </button>
-                                <h2 className="text-lg font-bold text-gray-900 dark:text-white sm:ml-2">Settings</h2>
+                                <h2 className="text-lg font-bold text-gray-900 dark:text-white sm:ml-2">{t('settings')}</h2>
                                 <button onClick={onClose} className="hidden sm:block ml-auto p-1 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
                                     <X className="w-5 h-5" />
                                 </button>
@@ -668,7 +680,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                         key={tab.id}
                                         onClick={() => handleTabClick(tab.id)}
                                         className={`w-full flex items-center justify-between sm:justify-start gap-3 px-4 py-3 sm:py-2.5 rounded-xl text-[15px] sm:text-sm text-left transition-colors font-medium ${activeTab === tab.id
-                                            ? 'bg-white dark:bg-[#2F2F2F] text-gray-900 dark:text-white shadow-sm'
+                                            ? 'bg-white dark:bg-[#1E2438] text-gray-900 dark:text-white shadow-sm'
                                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-gray-900 dark:hover:text-gray-200'
                                             }`}
                                     >
@@ -681,20 +693,20 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                 ))}
                             </nav>
 
-                            <div className="p-4 border-t border-gray-100 dark:border-white/5 bg-[#F9F9F9] dark:bg-[#171717]">
+                            <div className="p-4 border-t border-gray-100 dark:border-white/5 bg-[#F9F9F9] dark:bg-[#0E1220]">
                                 <button
                                     onClick={onLogout}
                                     className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-left text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                                 >
                                     <LogOut className="w-5 h-5 sm:w-4 sm:h-4" />
-                                    Log out
+                                    {t('logOut')}
                                 </button>
                             </div>
                         </div>
 
                         {/* Content Area / Detail View */}
                         <div className={`
-                        flex-1 flex flex-col min-w-0 bg-white dark:bg-[#1f1f1f]
+                        flex-1 flex flex-col min-w-0 bg-white dark:bg-[#161B2E]
                         ${view === 'sidebar' ? 'hidden sm:flex' : 'flex'}
                     `}>
                             {/* Mobile Header */}

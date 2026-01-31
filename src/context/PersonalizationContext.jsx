@@ -139,6 +139,7 @@ export const PersonalizationProvider = ({ children }) => {
     };
 
     const applyDynamicStyles = (prefs = personalizations) => {
+        // Font Size
         const fontSize = prefs?.personalization?.fontSize || 'Medium';
         const fontSizeMap = {
             'Small': '14px',
@@ -149,6 +150,17 @@ export const PersonalizationProvider = ({ children }) => {
         document.documentElement.style.setProperty('--aisa-font-size', fontSizeMap[fontSize]);
         const scaleMap = { 'Small': '0.9', 'Medium': '1', 'Large': '1.2', 'Extra Large': '1.4' };
         document.documentElement.style.setProperty('--aisa-scale', scaleMap[fontSize]);
+
+        // Font Style
+        const fontStyle = prefs?.personalization?.fontStyle || 'Default';
+        const fontMap = {
+            'Default': '"Outfit", sans-serif',
+            'Serif': '"Playfair Display", serif',
+            'Mono': '"JetBrains Mono", monospace',
+            'Sans': '"Outfit", sans-serif',
+            'Rounded': '"Quicksand", sans-serif'
+        };
+        document.documentElement.style.setProperty('--active-font-family', fontMap[fontStyle]);
     };
 
     useEffect(() => {
@@ -216,6 +228,34 @@ export const PersonalizationProvider = ({ children }) => {
         }
     };
 
+    const getSystemPromptExtensions = () => {
+        const p = personalizations?.personalization || {};
+        let prompt = "";
+
+        // Emoji Usage
+        if (p.emojiUsage) {
+            const map = {
+                'None': "Do NOT use emojis.",
+                'Minimal': "Use emojis very sparingly.",
+                'Moderate': "Use emojis moderately to be friendly.",
+                'Expressive': "Use emojis frequently and expressively."
+            };
+            prompt += `\nEmoji Usage Guideline: ${map[p.emojiUsage] || map['Moderate']}`;
+        }
+
+        // Formality/Tone (Future proofing)
+        if (p.formality) {
+            const map = { 'Casual': 'Use a casual, conversational tone.', 'Formal': 'Use a formal, professional tone.', 'Medium': 'Use a balanced, professional yet friendly tone.' };
+            prompt += `\nTone: ${map[p.formality] || map['Medium']}`;
+        }
+
+        if (p.customInstructions) {
+            prompt += `\nCustom Instructions: ${p.customInstructions}`;
+        }
+
+        return prompt;
+    };
+
     return (
         <PersonalizationContext.Provider value={{
             personalizations,
@@ -226,7 +266,8 @@ export const PersonalizationProvider = ({ children }) => {
             deleteNotification,
             clearAllNotifications,
             chatSessions,
-            refreshChatSessions: fetchChatSessions
+            refreshChatSessions: fetchChatSessions,
+            getSystemPromptExtensions
         }}>
             {children}
         </PersonalizationContext.Provider>

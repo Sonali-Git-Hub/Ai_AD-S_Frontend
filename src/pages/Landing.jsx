@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     ArrowRight, Bot, Zap, Shield, CircleUser,
-    Github,
+    Github, Twitter,
     Linkedin, Mail, MapPin, Phone, Facebook, Instagram, Youtube, MessageSquare, MessageCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -90,12 +90,12 @@ const Landing = () => {
             }}
         >
             {/* Background Overlay - Balanced Gradient (Top & Bottom) */}
-            <div className="absolute inset-0 bg-gradient-to-b from-blue-600/20 via-white/20 to-blue-600/20 dark:from-blue-950/40 dark:via-slate-950/60 dark:to-blue-950/40 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-b from-blue-600/20 via-white/20 to-blue-600/20 dark:from-slate-950/40 dark:via-slate-950/60 dark:to-slate-950/40 pointer-events-none" />
 
             {/* Header */}
             <header className="relative z-10 px-4 py-4 md:px-6 md:py-6 flex justify-between items-center max-w-7xl mx-auto w-full">
                 <div className="relative flex items-center gap-2 md:gap-3 cursor-pointer group">
-                    <img src="/logo/Logo.svg" alt="Logo" className="w-14 h-14 md:w-20 md:h-20 object-contain group-hover:rotate-12 transition-transform duration-300" />
+                    <img src="/logo/Logo.svg" alt="Logo" className="w-12 h-12 md:w-20 md:h-20 object-contain" />
                     {/* Brand text removed as per user request */}
                 </div>
 
@@ -170,7 +170,7 @@ const Landing = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-tight text-black dark:text-white drop-shadow-[0_2px_10px_rgba(255,255,255,0.3)]"
+                    className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-tight text-black dark:text-gray-100"
                 >
                     {t('heroTitle')}
                 </motion.h1>
@@ -179,7 +179,7 @@ const Landing = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="text-lg text-black dark:text-white max-w-2xl mb-10 leading-relaxed font-medium"
+                    className="text-lg text-black dark:text-gray-400 max-w-2xl mb-10 leading-relaxed font-medium"
                 >
                     {t('heroSubtitle')}
                 </motion.p>
@@ -205,7 +205,7 @@ const Landing = () => {
                             whileHover={{ y: -2 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => navigate("/login")}
-                            className="px-8 py-4 bg-white/60 dark:bg-black/40 border border-border rounded-2xl font-bold text-lg text-maintext hover:bg-white/80 dark:hover:bg-black/60 transition-all duration-300 backdrop-blur-sm"
+                            className="px-8 py-4 bg-white/60 dark:bg-slate-900/40 border border-border rounded-2xl font-bold text-lg text-maintext hover:bg-white/80 dark:hover:bg-slate-900/60 transition-all duration-300 backdrop-blur-sm"
                         >
                             Existing User
                         </motion.button>
@@ -213,7 +213,7 @@ const Landing = () => {
                 </motion.div>
 
                 {/* Features Preview */}
-                <div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl w-full text-left">
+                <div className="mt-16 md:mt-24 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl w-full text-left">
                     {[
                         {
                             title: t('intelligenceTitle'),
@@ -241,7 +241,7 @@ const Landing = () => {
                             viewport={{ once: true }}
                             transition={{ delay: feature.delay, duration: 0.5 }}
                             whileHover={{ y: -10, scale: 1.02 }}
-                            className="p-6 rounded-3xl bg-white/50 dark:bg-black/30 border border-white/50 dark:border-white/10 shadow-sm hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/20 transition-all group backdrop-blur-sm cursor-default"
+                            className="p-6 rounded-3xl bg-white/50 dark:bg-[#161B2E] border border-white/50 dark:border-white/5 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all group backdrop-blur-sm cursor-default"
                         >
                             <motion.div
                                 animate={{ y: [0, -5, 0] }}
@@ -260,57 +260,35 @@ const Landing = () => {
             </main>
 
             {/* Footer Section */}
-            <footer className="w-full bg-white/40 dark:bg-black/40 border-t border-white/20 dark:border-white/10 mt-20 relative z-10 backdrop-blur-xl rounded-t-[3rem] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-t from-blue-50/50 to-transparent dark:from-blue-900/10 pointer-events-none" />
+            <footer className="w-full bg-white/40 dark:bg-[#0B0F19] border-t border-white/20 dark:border-white/5 mt-20 relative z-10 backdrop-blur-xl rounded-t-[3rem] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-t from-blue-50/50 to-transparent dark:from-slate-900/40 pointer-events-none" />
                 <div className="max-w-6xl mx-auto px-6 pt-20 pb-10 relative z-10">
-                    <div className="flex flex-col lg:flex-row justify-start gap-20 mb-16">
+                    <div className="flex flex-col lg:flex-row justify-center gap-10 lg:gap-20 mb-12">
                         {/* Brand Column */}
                         <div className="space-y-6 max-w-sm">
-                            <div className="flex items-center gap-3">
-                                <img src="/logo/Logo.svg" alt="Logo" className="w-12 h-12 object-contain" />
-                                <span className="text-2xl font-black tracking-tighter text-black dark:text-white">{name} <sup className="text-xs">TM</sup></span>
-                            </div>
+
                             <div className="flex items-center gap-3 flex-wrap">
                                 {[
-                                    {
-                                        img: "/icons-new/linkedin.avif",
-                                        href: "https://www.linkedin.com/in/aimall-global/",
-                                        alt: "LinkedIn"
-                                    },
-                                    {
-                                        img: "/icons-new/instagram.jpg",
-                                        href: "https://www.instagram.com/aimall.global/",
-                                        alt: "Instagram"
-                                    },
-                                    {
-                                        img: "/icons-new/facebook.png",
-                                        href: "https://www.facebook.com/aimallglobal/",
-                                        alt: "Facebook"
-                                    },
-                                    {
-                                        img: "/icons-new/twitter.jpg",
-                                        href: "https://x.com/aimallglobal",
-                                        alt: "X"
-                                    },
-                                    {
-                                        img: "/icons-new/youtube.png",
-                                        href: "https://www.youtube.com/@aimallglobal",
-                                        alt: "YouTube"
-                                    },
-                                    {
-                                        img: "/icons-new/whatsapp.avif",
-                                        href: "https://api.whatsapp.com/send?phone=918359890909",
-                                        alt: "WhatsApp"
-                                    }
+                                    { img: "/icons-new/linkedin.avif", href: "https://www.linkedin.com/in/aimall-global/", label: "LinkedIn" },
+                                    { img: "/icons-new/twitter.jpg", href: "https://x.com/aimallglobal", label: "Twiter" },
+                                    { img: "/icons-new/facebook.png", href: "https://www.facebook.com/aimallglobal/", label: "Facebook" },
+                                    { img: "/icons-new/instagram.jpg", href: "https://www.instagram.com/aimall.global/", label: "Instagram" },
+                                    { img: "/icons-new/youtube.png", href: "https://www.youtube.com/@aimallglobal", label: "YouTube" },
+                                    { img: "/icons-new/whatsapp.avif", href: "https://api.whatsapp.com/send?phone=918359890909", label: "WhatsApp" }
                                 ].map((social, i) => (
                                     <a
                                         key={i}
                                         href={social.href}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="w-10 h-10 transition-transform duration-300 flex items-center justify-center shrink-0 hover:scale-110"
+                                        className="w-8 h-8 rounded-md overflow-hidden hover:scale-110 transition-all duration-300"
+                                        aria-label={social.label}
                                     >
-                                        <img src={social.img} alt={social.alt} className="w-full h-full object-cover rounded-xl" />
+                                        <img
+                                            src={social.img}
+                                            alt={social.label}
+                                            className="w-full h-full object-cover"
+                                        />
                                     </a>
                                 ))}
                             </div>
@@ -320,7 +298,7 @@ const Landing = () => {
 
                         {/* Support Column */}
                         <div>
-                            <h4 className="text-sm font-bold text-black dark:text-white uppercase tracking-widest mb-6">{t('support')}</h4>
+                            <h4 className="text-sm font-bold text-black dark:text-gray-200 uppercase tracking-widest mb-6">{t('support')}</h4>
                             <ul className="space-y-4">
                                 {[
                                     { label: t('helpCenter'), onClick: () => setIsFaqOpen(true) },
@@ -330,14 +308,14 @@ const Landing = () => {
                                         {link.onClick ? (
                                             <button
                                                 onClick={link.onClick}
-                                                className="text-sm text-black dark:text-white hover:text-primary transition-colors font-medium"
+                                                className="text-sm text-black dark:text-white hover:text-primary hover:underline decoration-primary underline-offset-4 transition-all font-medium"
                                             >
                                                 {link.label}
                                             </button>
                                         ) : (
                                             <a
                                                 href={link.path}
-                                                className="text-sm text-subtext hover:text-primary transition-colors font-medium"
+                                                className="text-sm text-subtext hover:text-primary hover:underline decoration-primary underline-offset-4 transition-all font-medium"
                                             >
                                                 {link.label}
                                             </a>
@@ -349,7 +327,7 @@ const Landing = () => {
 
                         {/* Contact Column */}
                         <div className="space-y-6">
-                            <h4 className="text-sm font-bold text-black dark:text-white uppercase tracking-widest mb-6">{t('contact')}</h4>
+                            <h4 className="text-sm font-bold text-black dark:text-gray-200 uppercase tracking-widest mb-6">{t('contact')}</h4>
                             <div className="space-y-4">
                                 <a
                                     href="https://www.google.com/maps/search/?api=1&query=Jabalpur+Madhya+Pradesh"
@@ -367,7 +345,7 @@ const Landing = () => {
                                     className="flex items-center gap-3 group"
                                 >
                                     <Mail className="w-5 h-5 text-primary shrink-0 group-hover:scale-110 transition-transform" />
-                                    <span className="text-sm text-black dark:text-white group-hover:text-primary transition-colors font-medium">
+                                    <span className="text-sm text-black dark:text-white group-hover:text-primary group-hover:underline decoration-primary underline-offset-4 transition-all font-medium">
                                         admin@uwo24.com
                                     </span>
                                 </a>
@@ -390,9 +368,9 @@ const Landing = () => {
                             © {new Date().getFullYear()} {name} <sup className="text-xs">TM</sup>. {t('allRightsReserved')}
                         </p>
                         <div className="flex items-center gap-8">
-                            <button onClick={() => setIsPrivacyModalOpen(true)} className="text-xs text-black dark:text-white hover:text-maintext transition-colors font-medium">{t('privacyPolicy')}</button>
-                            <button onClick={() => setIsTermsModalOpen(true)} className="text-xs text-black dark:text-white hover:text-maintext transition-colors font-medium">{t('termsOfService')}</button>
-                            <button onClick={() => setIsCookieModalOpen(true)} className="text-xs text-black dark:text-white hover:text-maintext transition-colors font-medium">{t('cookiePolicy')}</button>
+                            <button onClick={() => setIsPrivacyModalOpen(true)} className="text-xs text-black dark:text-white hover:text-primary hover:underline decoration-primary underline-offset-4 transition-all font-medium">{t('privacyPolicy')}</button>
+                            <button onClick={() => setIsTermsModalOpen(true)} className="text-xs text-black dark:text-white hover:text-primary hover:underline decoration-primary underline-offset-4 transition-all font-medium">{t('termsOfService')}</button>
+                            <button onClick={() => setIsCookieModalOpen(true)} className="text-xs text-black dark:text-white hover:text-primary hover:underline decoration-primary underline-offset-4 transition-all font-medium">{t('cookiePolicy')}</button>
                         </div>
                     </div>
                 </div>
@@ -401,9 +379,9 @@ const Landing = () => {
             {/* FAQ Modal */}
             {
                 isFaqOpen && (
-                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                        <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in duration-200">
-                            <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center bg-blue-50 dark:bg-gray-800">
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <div className="bg-white dark:bg-[#161B2E] rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in duration-200 border border-gray-200 dark:border-white/5">
+                            <div className="p-6 border-b border-gray-200 dark:border-white/5 flex justify-between items-center bg-blue-50 dark:bg-[#0E1220]">
                                 <div className="flex gap-4">
                                     <button
                                         onClick={() => setActiveTab('faq')}
@@ -431,7 +409,7 @@ const Landing = () => {
                                     <>
                                         <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Get quick answers to common questions about our platform</p>
                                         {faqs.map((faq, index) => (
-                                            <div key={index} className="border border-gray-200 dark:border-gray-800 rounded-xl bg-white dark:bg-gray-900 overflow-hidden hover:border-blue-300 dark:hover:border-blue-700 transition-all">
+                                            <div key={index} className="border border-gray-200 dark:border-white/5 rounded-xl bg-white dark:bg-[#121624] overflow-hidden hover:border-blue-300 dark:hover:border-primary/30 transition-all">
                                                 <button
                                                     onClick={() => setOpenFaqIndex(openFaqIndex === index ? null : index)}
                                                     className="w-full flex justify-between items-center p-4 text-left hover:bg-blue-50 dark:hover:bg-gray-800 transition-colors focus:outline-none"

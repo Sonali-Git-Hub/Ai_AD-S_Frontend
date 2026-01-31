@@ -41,29 +41,36 @@
     --input: 210 29% 95%;
     --ring: 240 100% 67%;
 
-    --radius: 0.5rem;
+    --radius: 1rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 217.2 32.6% 12%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --background: 227 39% 9%;
+    /* #0E1220 - Deep Calm Charcoal/Navy */
+    --foreground: 210 20% 90%;
+    /* Soft Off-White for Headings */
+    --card: 228 35% 13%;
+    /* #161B2E - Matte Dark Card */
+    --card-foreground: 210 15% 80%;
+    --popover: 227 39% 9%;
+    --popover-foreground: 210 15% 80%;
+    --primary: 225 60% 55%;
+    /* Professional Soft Blue (Not Neon) */
+    --primary-foreground: 210 40% 98%;
+    --secondary: 228 30% 18%;
+    /* Subtle darker surface */
+    --secondary-foreground: 210 20% 90%;
+    --muted: 228 30% 18%;
+    --muted-foreground: 215 15% 65%;
+    /* Muted Gray for body text */
+    --accent: 228 30% 18%;
+    --accent-foreground: 210 20% 90%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --border: 228 30% 18%;
+    /* Subtle border, blending in */
+    --input: 228 30% 18%;
+    --ring: 225 60% 55%;
   }
 }
 
@@ -112,6 +119,7 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--active-font-family, 'Outfit', sans-serif);
   }
 }
 

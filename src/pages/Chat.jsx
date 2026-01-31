@@ -22,7 +22,7 @@ import { apis } from '../types';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { detectMode, getModeName, getModeIcon, getModeColor, MODES } from '../utils/modeDetection';
-import { getUserData, sessionsData } from '../userStore/userData';
+import { getUserData, sessionsData, toggleState } from '../userStore/userData';
 import { usePersonalization } from '../context/PersonalizationContext';
 
 
@@ -85,7 +85,7 @@ const TOOL_PRICING = {
 const Chat = () => {
   const { sessionId } = useParams();
   const navigate = useNavigate();
-  const { personalizations } = usePersonalization();
+  const { personalizations, getSystemPromptExtensions } = usePersonalization();
 
   const [messages, setMessages] = useState([]);
   const [excelHTML, setExcelHTML] = useState(null);
@@ -96,6 +96,7 @@ const Chat = () => {
   const [showHistory, setShowHistory] = useState(false);
   const messagesEndRef = useRef(null);
   const [currentSessionId, setCurrentSessionId] = useState(sessionId || 'new');
+  const [tglState, setTglState] = useRecoilState(toggleState);
   const [typingMessageId, setTypingMessageId] = useState(null);
 
   // File Upload State
@@ -1367,6 +1368,19 @@ const Chat = () => {
       // Update user message with the detected mode
       userMsg.mode = detectedMode;
 
+      // Determine loading intent for UI feedback
+      const lowerContent = (userMsg.content || "").toLowerCase();
+      if (
+        (lowerContent.includes('image') || lowerContent.includes('photo') || lowerContent.includes('pic') || lowerContent.includes('draw')) &&
+        (lowerContent.includes('generate') || lowerContent.includes('create') || lowerContent.includes('make') || lowerContent.includes('show'))
+      ) {
+        setLoadingText("Generating Image... 🎨");
+      } else if (lowerContent.includes('video')) {
+        setLoadingText("Generating Video... 🎥");
+      } else {
+        setLoadingText("Thinking...");
+      }
+
       handleRemoveFile(); // Clear file after sending
       setIsLoading(true);
 
@@ -1517,7 +1531,7 @@ ${deepSearchActive ? `### DEEP SEARCH MODE ENABLED (CRITICAL):
         const aiResponseData = await generateChatResponse(
           messages,
           userMsg.content,
-          SYSTEM_INSTRUCTION,
+          SYSTEM_INSTRUCTION + getSystemPromptExtensions(),
           userMsg.attachments,
           currentLang,
           abortControllerRef.current.signal
@@ -1754,6 +1768,7 @@ ${deepSearchActive ? `### DEEP SEARCH MODE ENABLED (CRITICAL):
       toast.success("Describe your changes and hit send!");
     } else {
       toast.success(`${action.replace('-', ' ')} processing...`);
+      setLoadingText(`Processing ${action.replace('-', ' ')}... 🖼️`);
       setTimeout(() => handleSendMessage(), 100);
     }
   };
@@ -1787,6 +1802,7 @@ ${deepSearchActive ? `### DEEP SEARCH MODE ENABLED (CRITICAL):
   const [activeMessageId, setActiveMessageId] = useState(null);
   const [feedbackDetails, setFeedbackDetails] = useState("");
   const [pdfLoadingId, setPdfLoadingId] = useState(null);
+  const [loadingText, setLoadingText] = useState("Thinking..."); // New state for loading status text
 
   const handlePdfAction = async (action, msg) => {
     // If this message has a converted file, use it directly instead of rendering the chat bubble
@@ -2166,7 +2182,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
       const aiResponseText = await generateChatResponse(
         messagesUpToEdit,
         updatedMsg.content,
-        SYSTEM_INSTRUCTION,
+        SYSTEM_INSTRUCTION + getSystemPromptExtensions(),
         updatedMsg.attachment,
         currentLang
       );
@@ -2494,79 +2510,11 @@ For "Remix" requests with an attachment, analyze the attached image, then create
         pricing={TOOL_PRICING}
       />
 
-      <div
-        className={`
-          flex flex-col flex-shrink-0 bg-surface border-r border-border
-          transition-all duration-300 ease-in-out
-          
-          /* Mobile: Absolute overlay */
-          absolute inset-y-0 left-0 z-50 w-full sm:w-72
-          ${showHistory ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
 
-          /* Desktop: Relative flow, animate width instead of transform */
-          lg:relative lg:inset-auto lg:shadow-none lg:translate-x-0
-          ${showHistory ? 'lg:w-72' : 'lg:w-0 lg:border-none lg:overflow-hidden'}
-        `}
-      >
-        <div className="p-3">
-          <div className="flex justify-between items-center mb-3 lg:hidden">
-            <span className="font-bold text-lg text-maintext">History</span>
-            <button
-              onClick={() => setShowHistory(false)}
-              className="p-2 hover:bg-secondary rounded-full text-subtext transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          <button
-            onClick={handleNewChat}
-            className="w-full bg-primary hover:opacity-90 text-white font-semibold py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-primary/20 text-sm"
-          >
-            <Plus className="w-4 h-4" /> New Chat
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-2 space-y-1">
-          <h3 className="px-4 py-2 text-xs font-semibold text-subtext uppercase tracking-wider">
-            Recent
-          </h3>
-
-          {sessions.map((session) => (
-            <div key={session.sessionId} className="group relative px-2">
-              <button
-                onClick={() => navigate(`/dashboard/chat/${session.sessionId}`)}
-                className={`w-full text-left px-4 py-3 rounded-lg text-sm transition-colors truncate
-                  ${currentSessionId === session.sessionId
-                    ? 'bg-card text-primary shadow-sm border border-border'
-                    : 'text-subtext hover:bg-card hover:text-maintext'
-                  }
-                `}
-              >
-                <div className="font-medium truncate pr-6">{session.title}</div>
-                <div className="text-[10px] text-subtext/70">
-                  {new Date(session.lastModified).toLocaleDateString()}
-                </div>
-              </button>
-              <button
-                onClick={(e) => handleDeleteSession(e, session.sessionId)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 text-subtext hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                title="Delete Chat"
-              >
-                <Plus className="w-4 h-4 rotate-45" />
-              </button>
-            </div>
-          ))}
-
-          {sessions.length === 0 && (
-            <div className="px-4 text-xs text-subtext italic">No recent chats</div>
-          )}
-        </div>
-      </div>
 
       {/* Main Area */}
       <div
-        className="flex-1 flex flex-col relative bg-secondary w-full min-w-0"
+        className="flex-1 flex flex-col relative bg-gradient-to-br from-secondary via-background to-secondary/50 w-full min-w-0"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -2581,12 +2529,14 @@ For "Remix" requests with an attachment, analyze the attached image, then create
         {/* Header */}
         <div className="h-12 md:h-14 border-b border-border flex items-center justify-between px-3 md:px-4 bg-secondary z-10 shrink-0 gap-2">
           <div className="flex items-center gap-2 min-w-0">
-
-
+            <button
+              onClick={() => setTglState(prev => ({ ...prev, sidebarOpen: true }))}
+              className="lg:hidden p-2 -ml-2 text-subtext hover:text-maintext rounded-lg hover:bg-surface/50 transition-colors"
+            >
+              <MenuIcon className="w-6 h-6" />
+            </button>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           {/* Mode Indicator */}
           <div
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-300"
@@ -2598,587 +2548,515 @@ For "Remix" requests with an attachment, analyze the attached image, then create
             <span>{getModeIcon(isDeepSearch ? 'DEEP_SEARCH' : currentMode)}</span>
             <span className="hidden sm:inline">{getModeName(isDeepSearch ? 'DEEP_SEARCH' : currentMode)}</span>
           </div>
+        </div>
 
-          {/* <button className="flex items-center gap-2 text-subtext hover:text-maintext text-sm">
+
+
+        {/* <button className="flex items-center gap-2 text-subtext hover:text-maintext text-sm">
               <Monitor className="w-4 h-4" />
               <span className="hidden sm:inline">Device</span>
             </button> */}
 
-        </div>
-      </div>
 
-      {/* Messages */}
-      <div
-        ref={chatContainerRef}
-        onScroll={handleScroll}
-        className={`flex-1 overflow-y-auto p-2 sm:p-4 md:p-5 space-y-2.5 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent ${personalizations?.personalization?.fontStyle === 'Serif' ? 'font-serif' :
-          personalizations?.personalization?.fontStyle === 'Mono' ? 'font-mono' :
-            personalizations?.personalization?.fontStyle === 'Rounded' ? 'font-rounded' :
-              personalizations?.personalization?.fontStyle === 'Sans' ? 'font-sans' : ''
-          } aisa-scalable-text`}
-      >
-        {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center px-4 animate-in fade-in duration-700">
-            <div className="relative w-24 h-24 sm:w-28 sm:h-28 mb-8 group cursor-default">
-              {/* Ambient Glow */}
-              <div className="absolute inset-0 bg-primary/30 rounded-full blur-2xl opacity-50 group-hover:opacity-70 transition-opacity duration-700" />
 
-              {/* Main Container */}
-              <div className="relative w-full h-full bg-surface/80 backdrop-blur-xl rounded-full flex items-center justify-center overflow-hidden border border-white/20 shadow-2xl ring-1 ring-black/5">
-                <img
-                  src={activeAgent?.avatar || '/AGENTS_IMG/AISA_BRAIN_LOGO.png'}
-                  alt="AI"
-                  className="w-full h-full object-cover transition-transform duration-700 scale-125 group-hover:scale-135"
-                  onError={(e) => { e.target.src = '/AGENTS_IMG/AISA_BRAIN_LOGO.png' }}
-                />
-              </div>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-semibold text-maintext max-w-2xl leading-relaxed">
-              {WELCOME_MESSAGE}
-            </h2>
-          </div>
-        ) : (
-          <>
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`group relative flex items-start gap-2 md:gap-3 max-w-4xl mx-auto cursor-pointer ${msg.role === 'user' ? 'flex-row-reverse' : ''
-                  }`}
-                onClick={() => setActiveMessageId(activeMessageId === msg.id ? null : msg.id)}
-              >
-                {/* Actions Menu (Always visible for discoverability) */}
+        {/* Messages */}
+        <div
+          ref={chatContainerRef}
+          onScroll={handleScroll}
+          className={`relative flex-1 overflow-y-auto p-2 sm:p-4 md:p-5 pb-32 md:pb-40 space-y-2.5 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent ${personalizations?.personalization?.fontStyle === 'Serif' ? 'font-serif' :
+            personalizations?.personalization?.fontStyle === 'Mono' ? 'font-mono' :
+              personalizations?.personalization?.fontStyle === 'Rounded' ? 'font-rounded' :
+                personalizations?.personalization?.fontStyle === 'Sans' ? 'font-sans' : ''
+            } aisa-scalable-text`}
+        >
+          {messages.length === 0 ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 pb-32 md:pb-40 animate-in fade-in duration-700">
+              <div className="relative w-24 h-24 sm:w-28 sm:h-28 mb-8 group cursor-default">
+                {/* Ambient Glow */}
+                <div className="absolute inset-0 bg-primary/30 rounded-full blur-2xl opacity-50 group-hover:opacity-70 transition-opacity duration-700" />
 
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user'
-                    ? 'bg-primary'
-                    : 'bg-surface border border-border'
-                    }`}
-                >
-                  {msg.role === 'user' ? (
-                    <User className="w-4 h-4 text-white" />
-                  ) : (
-                    <Bot className="w-4 h-4 text-primary" />
-                  )}
+                {/* Main Container */}
+                <div className="relative w-full h-full bg-surface/80 backdrop-blur-xl rounded-full flex items-center justify-center overflow-hidden border border-white/20 shadow-2xl ring-1 ring-black/5">
+                  <img
+                    src={activeAgent?.avatar || '/AGENTS_IMG/AISA_BRAIN_LOGO.png'}
+                    alt="AI"
+                    className="w-full h-full object-cover"
+                    onError={(e) => { e.target.src = '/AGENTS_IMG/AISA_BRAIN_LOGO.png' }}
+                  />
                 </div>
-
+              </div>
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-maintext tracking-tight max-w-2xl leading-relaxed drop-shadow-sm px-4">
+                {WELCOME_MESSAGE}
+              </h2>
+            </div>
+          ) : (
+            <>
+              {messages.map((msg) => (
                 <div
-                  className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'
-                    } max-w-[85%] sm:max-w-[80%]`}
+                  key={msg.id}
+                  className={`group relative flex items-start gap-2 md:gap-3 w-full max-w-3xl mx-auto cursor-pointer ${msg.role === 'user' ? 'flex-row-reverse' : ''
+                    }`}
+                  onClick={() => setActiveMessageId(activeMessageId === msg.id ? null : msg.id)}
                 >
+                  {/* Actions Menu (Always visible for discoverability) */}
+
                   <div
-                    className={`group/bubble relative px-4 py-2 rounded-2xl leading-normal whitespace-pre-wrap break-words shadow-sm w-fit max-w-full transition-all duration-300 min-h-[40px] ${msg.role === 'user'
-                      ? 'bg-primary text-white rounded-tr-none block px-5 py-3 rounded-3xl'
-                      : `bg-surface border border-border text-maintext rounded-tl-none block ${msg.id === typingMessageId ? 'ai-typing-glow ai-typing-shimmer outline outline-offset-1 outline-primary/20' : ''}`
+                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user'
+                      ? 'bg-primary'
+                      : 'bg-surface border border-border'
                       }`}
                   >
-
-                    {msg.isProcessing && (
-                      <div className="flex items-center gap-3 mb-3 p-3 bg-primary/5 rounded-xl border border-primary/10 animate-pulse">
-                        <Loader size="sm" />
-                        <span className="text-xs font-semibold text-primary uppercase tracking-tighter">Preparing Audio...</span>
-                      </div>
+                    {msg.role === 'user' ? (
+                      <User className="w-4 h-4 text-white" />
+                    ) : (
+                      <Bot className="w-4 h-4 text-primary" />
                     )}
+                  </div>
 
-                    {/* Attachment Display */}
-                    {((msg.attachments && msg.attachments.length > 0) || msg.attachment) && (
-                      <div className="flex flex-col gap-3 mb-3 mt-1">
-                        {(msg.attachments || (msg.attachment ? [msg.attachment] : [])).map((att, idx) => (
-                          <div key={idx} className="w-full">
-                            {att.type === 'image' ? (
-                              <div
-                                className="relative group/image overflow-hidden rounded-xl border border-white/20 shadow-lg transition-all hover:scale-[1.01] cursor-pointer max-w-[320px]"
-                                onClick={() => setViewingDoc(att)}
-                              >
-                                <img
-                                  src={att.url}
-                                  alt="Attachment"
-                                  className="w-full h-auto max-h-[400px] object-contain bg-black/5"
-                                />
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDownload(att.url, att.name);
-                                  }}
-                                  className="absolute top-2 right-2 p-2 bg-black/40 text-white rounded-full opacity-0 group-hover/image:opacity-100 transition-all hover:bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center"
-                                  title="Download"
-                                >
-                                  <Download className="w-4 h-4" />
-                                </button>
-                              </div>
-                            ) : (
-                              <div className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${msg.role === 'user' ? 'bg-white/10 border-white/20 hover:bg-white/20' : 'bg-secondary/30 border-border hover:bg-secondary/50'}`}>
+                  <div
+                    className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'
+                      } max-w-[90%] sm:max-w-[85%] md:max-w-[80%]`}
+                  >
+                    <div
+                      className={`group/bubble relative px-4 sm:px-6 py-3 sm:py-4 rounded-[1.5rem] sm:rounded-[2rem] leading-relaxed whitespace-pre-wrap break-words shadow-sm w-fit max-w-full transition-all duration-300 min-h-[40px] hover:scale-[1.005] ${msg.role === 'user'
+                        ? 'bg-gradient-to-br from-primary to-[#6366f1] text-white rounded-tr-sm shadow-md shadow-primary/20'
+                        : `bg-surface border border-border/40 text-maintext rounded-tl-sm shadow-sm hover:shadow-md ${msg.id === typingMessageId ? 'ai-typing-glow ai-typing-shimmer outline outline-offset-1 outline-primary/20' : ''}`
+                        }`}
+                    >
+
+                      {msg.isProcessing && (
+                        <div className="flex items-center gap-3 mb-3 p-3 bg-primary/5 rounded-xl border border-primary/10 animate-pulse">
+                          <Loader size="sm" />
+                          <span className="text-xs font-semibold text-primary uppercase tracking-tighter">Preparing Audio...</span>
+                        </div>
+                      )}
+
+                      {/* Attachment Display */}
+                      {((msg.attachments && msg.attachments.length > 0) || msg.attachment) && (
+                        <div className="flex flex-col gap-3 mb-3 mt-1">
+                          {(msg.attachments || (msg.attachment ? [msg.attachment] : [])).map((att, idx) => (
+                            <div key={idx} className="w-full">
+                              {att.type === 'image' ? (
                                 <div
-                                  className="flex-1 flex items-center gap-3 min-w-0 cursor-pointer p-0.5 rounded-lg"
+                                  className="relative group/image overflow-hidden rounded-xl border border-white/20 shadow-lg transition-all hover:scale-[1.01] cursor-pointer max-w-[320px]"
                                   onClick={() => setViewingDoc(att)}
                                 >
-                                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${(() => {
-                                    const name = (att.name || '').toLowerCase();
-                                    if (msg.role === 'user') return 'bg-white shadow-sm';
-                                    if (name.endsWith('.pdf')) return 'bg-red-50 dark:bg-red-900/20';
-                                    if (name.match(/\.(doc|docx)$/)) return 'bg-blue-50 dark:bg-blue-900/20';
-                                    if (name.match(/\.(xls|xlsx|csv)$/)) return 'bg-emerald-50 dark:bg-emerald-900/20';
-                                    if (name.match(/\.(ppt|pptx)$/)) return 'bg-orange-50 dark:bg-orange-900/20';
-                                    return 'bg-secondary';
-                                  })()}`}>
-                                    {(() => {
+                                  <img
+                                    src={att.url}
+                                    alt="Attachment"
+                                    className="w-full h-auto max-h-[400px] object-contain bg-black/5"
+                                  />
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDownload(att.url, att.name);
+                                    }}
+                                    className="absolute top-2 right-2 p-2 bg-black/40 text-white rounded-full opacity-0 group-hover/image:opacity-100 transition-all hover:bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center"
+                                    title="Download"
+                                  >
+                                    <Download className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${msg.role === 'user' ? 'bg-white/10 border-white/20 hover:bg-white/20' : 'bg-secondary/30 border-border hover:bg-secondary/50'}`}>
+                                  <div
+                                    className="flex-1 flex items-center gap-3 min-w-0 cursor-pointer p-0.5 rounded-lg"
+                                    onClick={() => setViewingDoc(att)}
+                                  >
+                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${(() => {
                                       const name = (att.name || '').toLowerCase();
-                                      const baseClass = "w-6 h-6";
-                                      if (name.match(/\.(xls|xlsx|csv)$/)) return <FileSpreadsheet className={`${baseClass} text-emerald-600`} />;
-                                      if (name.match(/\.(ppt|pptx)$/)) return <Presentation className={`${baseClass} text-orange-600`} />;
-                                      if (name.endsWith('.pdf')) return <FileText className={`${baseClass} text-red-600`} />;
-                                      if (name.match(/\.(doc|docx)$/)) return <File className={`${baseClass} text-blue-600`} />;
-                                      return <File className={`${baseClass} text-primary`} />;
-                                    })()}
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <p className="font-semibold truncate text-xs mb-0.5">{att.name || 'File'}</p>
-                                    <p className="text-[10px] opacity-70 uppercase tracking-tight font-medium">
+                                      if (msg.role === 'user') return 'bg-white shadow-sm';
+                                      if (name.endsWith('.pdf')) return 'bg-red-50 dark:bg-red-900/20';
+                                      if (name.match(/\.(doc|docx)$/)) return 'bg-blue-50 dark:bg-blue-900/20';
+                                      if (name.match(/\.(xls|xlsx|csv)$/)) return 'bg-emerald-50 dark:bg-emerald-900/20';
+                                      if (name.match(/\.(ppt|pptx)$/)) return 'bg-orange-50 dark:bg-orange-900/20';
+                                      return 'bg-secondary';
+                                    })()}`}>
                                       {(() => {
                                         const name = (att.name || '').toLowerCase();
-                                        if (name.endsWith('.pdf')) return 'PDF • Preview';
-                                        if (name.match(/\.(doc|docx)$/)) return 'WORD • Preview';
-                                        if (name.match(/\.(xls|xlsx|csv)$/)) return 'EXCEL';
-                                        if (name.match(/\.(ppt|pptx)$/)) return 'SLIDES';
-                                        return 'DOCUMENT';
+                                        const baseClass = "w-6 h-6";
+                                        if (name.match(/\.(xls|xlsx|csv)$/)) return <FileSpreadsheet className={`${baseClass} text-emerald-600`} />;
+                                        if (name.match(/\.(ppt|pptx)$/)) return <Presentation className={`${baseClass} text-orange-600`} />;
+                                        if (name.endsWith('.pdf')) return <FileText className={`${baseClass} text-red-600`} />;
+                                        if (name.match(/\.(doc|docx)$/)) return <File className={`${baseClass} text-blue-600`} />;
+                                        return <File className={`${baseClass} text-primary`} />;
                                       })()}
-                                    </p>
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="font-semibold truncate text-xs mb-0.5">{att.name || 'File'}</p>
+                                      <p className="text-[10px] opacity-70 uppercase tracking-tight font-medium">
+                                        {(() => {
+                                          const name = (att.name || '').toLowerCase();
+                                          if (name.endsWith('.pdf')) return 'PDF • Preview';
+                                          if (name.match(/\.(doc|docx)$/)) return 'WORD • Preview';
+                                          if (name.match(/\.(xls|xlsx|csv)$/)) return 'EXCEL';
+                                          if (name.match(/\.(ppt|pptx)$/)) return 'SLIDES';
+                                          return 'DOCUMENT';
+                                        })()}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDownload(att.url, att.name);
+                                    }}
+                                    className={`p-2 rounded-lg transition-colors shrink-0 ${msg.role === 'user' ? 'hover:bg-white/20 text-white' : 'hover:bg-primary/10 text-primary'}`}
+                                    title="Download"
+                                  >
+                                    <Download className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Video Display */}
+                      {msg.videoUrl && (
+                        <div className="flex flex-col gap-3 mb-3 mt-1">
+                          <div className="relative group/video overflow-hidden rounded-xl border border-white/20 shadow-lg transition-all hover:scale-[1.01] cursor-pointer max-w-[400px] bg-black">
+                            <video
+                              src={msg.videoUrl}
+                              controls
+                              className="w-full h-auto max-h-[500px] object-contain"
+                              autoPlay={false}
+                            />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDownload(msg.videoUrl, `video-${msg.id}.mp4`);
+                              }}
+                              className="absolute top-2 right-2 p-2 bg-black/40 text-white rounded-full opacity-0 group-hover/video:opacity-100 transition-all hover:bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center"
+                              title="Download"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Image Display */}
+                      {msg.imageUrl && (
+                        <div className="flex flex-col gap-3 mb-3 mt-1">
+                          <div className="relative group/generated overflow-hidden rounded-xl border border-white/20 shadow-lg transition-all hover:scale-[1.01] cursor-pointer max-w-full w-fit bg-black/5">
+                            <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-0 group-hover/generated:opacity-100 transition-opacity">
+                              <div className="flex items-center gap-2">
+                                <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                                <span className="text-[10px] font-bold text-white uppercase tracking-widest">AI Generated Image</span>
+                              </div>
+                            </div>
+                            <img
+                              src={msg.imageUrl}
+                              alt="Generated Image"
+                              className="w-full h-auto max-h-[500px] object-contain"
+                              loading="lazy"
+                              onError={(e) => {
+                                e.target.src = 'https://placehold.co/600x400?text=Image+Failed+to+Load';
+                              }}
+                            />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDownload(msg.imageUrl, `image-${msg.id}.png`);
+                              }}
+                              className="absolute bottom-3 right-3 p-2.5 bg-primary text-white rounded-xl opacity-0 group-hover/generated:opacity-100 transition-all hover:bg-primary/90 shadow-lg border border-white/20 scale-90 group-hover/generated:scale-100"
+                              title="Download"
+                            >
+                              <div className="flex items-center gap-2 px-1">
+                                <Download className="w-4 h-4" />
+                                <span className="text-[10px] font-bold uppercase">Download</span>
+                              </div>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+
+                      {editingMessageId === msg.id ? (
+                        <div className="flex flex-col gap-3 min-w-[200px] w-full">
+                          <textarea
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                            className="w-full bg-white/10 text-white rounded-xl p-3 text-sm focus:outline-none resize-none border border-white/20 placeholder-white/50"
+                            rows={2}
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                saveEdit(msg);
+                              }
+                              if (e.key === 'Escape') cancelEdit();
+                            }}
+                          />
+                          <div className="flex gap-3 justify-end items-center">
+                            <button
+                              onClick={cancelEdit}
+                              className="text-white/80 hover:text-white text-sm font-medium transition-colors"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => saveEdit(msg)}
+                              className="bg-white text-primary px-6 py-2 rounded-full text-sm font-bold hover:bg-white/90 transition-colors shadow-sm"
+                            >
+                              Update
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        msg.content && (
+                          <div id={`msg-text-${msg.id}`} className={`max-w-full break-words leading-relaxed whitespace-normal ${msg.role === 'user' ? 'text-white' : 'text-maintext'}`}>
+                            {msg.role === 'user' && msg.mode === MODES.DEEP_SEARCH && (
+                              <div className="flex items-center gap-1.5 mb-2 px-2 py-1 bg-white/20 rounded-lg w-fit">
+                                <Search size={10} className="text-white" />
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-white">Deep Search</span>
+                              </div>
+                            )}
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              components={{
+                                a: ({ href, children }) => {
+                                  const isInternal = href && href.startsWith('/');
+                                  return (
+                                    <a
+                                      href={href}
+                                      onClick={(e) => {
+                                        if (isInternal) {
+                                          e.preventDefault();
+                                          navigate(href);
+                                        }
+                                      }}
+                                      className="text-primary hover:underline font-bold cursor-pointer"
+                                      target={isInternal ? "_self" : "_blank"}
+                                      rel={isInternal ? "" : "noopener noreferrer"}
+                                    >
+                                      {children}
+                                    </a>
+                                  );
+                                },
+                                p: ({ children }) => <p className={`mb-1.5 last:mb-0 ${msg.role === 'user' ? 'm-0 leading-normal' : 'leading-relaxed'}`}>{children}</p>,
+                                ul: ({ children }) => <ul className="list-disc pl-5 mb-3 last:mb-0 space-y-1.5 marker:text-subtext">{children}</ul>,
+                                ol: ({ children }) => <ol className="list-decimal pl-5 mb-3 last:mb-0 space-y-1.5 marker:text-subtext">{children}</ol>,
+                                li: ({ children }) => <li className="mb-1 last:mb-0">{children}</li>,
+                                h1: ({ children }) => <h1 className="font-bold mb-2 mt-3 block text-[1.25em]">{children}</h1>,
+                                h2: ({ children }) => <h2 className="font-bold mb-1.5 mt-2 block text-[1.15em]">{children}</h2>,
+                                h3: ({ children }) => <h3 className="font-bold mb-1 mt-1.5 block text-[1.05em]">{children}</h3>,
+                                strong: ({ children }) => <strong className="font-bold text-primary">{children}</strong>,
+                                code: ({ node, inline, className, children, ...props }) => {
+                                  const match = /language-(\w+)/.exec(className || '');
+                                  const lang = match ? match[1] : '';
+
+                                  if (!inline && match) {
+                                    return (
+                                      <div className="rounded-xl overflow-hidden my-2 border border-border bg-[#1e1e1e] shadow-md w-full max-w-full">
+                                        <div className="flex items-center justify-between px-4 py-2 bg-[#2d2d2d] border-b border-[#404040]">
+                                          <span className="text-xs font-mono text-gray-300 lowercase">{lang}</span>
+                                          <button
+                                            onClick={() => {
+                                              navigator.clipboard.writeText(String(children).replace(/\n$/, ''));
+                                              toast.success("Code copied!");
+                                            }}
+                                            className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
+                                          >
+                                            <Copy className="w-3.5 h-3.5" />
+                                            Copy code
+                                          </button>
+                                        </div>
+                                        <div className="p-4 overflow-x-auto custom-scrollbar bg-[#1e1e1e]">
+                                          <code className={`${className} font-mono text-[0.9em] leading-relaxed text-[#d4d4d4] block min-w-full`} {...props}>
+                                            {children}
+                                          </code>
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+                                  return (
+                                    <code className="bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded font-mono text-primary font-bold mx-0.5" {...props}>
+                                      {children}
+                                    </code>
+                                  );
+                                },
+                                img: ({ node, ...props }) => {
+                                  // Check if this image is actually a video thumbnail or if we have a video URL in the message
+                                  // For now, we assume this renderer handles static images from markdown.
+                                  // Actual Dynamic Video/Image rendering is handled by the msg properties check below.
+                                  return (
+                                    <div className="relative group/generated mt-4 mb-2 overflow-hidden rounded-2xl border border-white/10 shadow-2xl transition-all hover:scale-[1.01] bg-surface/50 backdrop-blur-sm">
+                                      <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-0 group-hover/generated:opacity-100 transition-opacity">
+                                        <div className="flex items-center gap-2">
+                                          <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                                          <span className="text-[10px] font-bold text-white uppercase tracking-widest">AI Generated Asset</span>
+                                        </div>
+                                      </div>
+                                      <img
+                                        {...props}
+                                        className="w-full max-w-full h-auto rounded-xl bg-black/5"
+                                        loading="lazy"
+                                        onError={(e) => {
+                                          e.target.src = 'https://placehold.co/600x400?text=Image+Generating...';
+                                        }}
+                                      />
+                                      <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/generated:opacity-100 transition-opacity pointer-events-none" />
+                                      <button
+                                        onClick={() => handleDownload(props.src, 'aisa-generated.png')}
+                                        className="absolute bottom-3 right-3 p-2.5 bg-primary text-white rounded-xl opacity-0 group-hover/generated:opacity-100 transition-all hover:bg-primary/90 shadow-lg border border-white/20 scale-90 group-hover/generated:scale-100"
+                                        title="Download High-Res"
+                                      >
+                                        <div className="flex items-center gap-2 px-1">
+                                          <Download className="w-4 h-4" />
+                                          <span className="text-[10px] font-bold uppercase">Download</span>
+                                        </div>
+                                      </button>
+                                    </div>
+                                  )
+                                },
+                              }}
+                            >
+                              {msg.content}
+                            </ReactMarkdown>
+
+                            {/* Dynamic Video Rendering */}
+                            {msg.videoUrl && (
+                              <div className="relative group/generated mt-4 mb-2 overflow-hidden rounded-2xl border border-white/10 shadow-2xl transition-all hover:scale-[1.01] bg-surface/50 backdrop-blur-sm">
+                                <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-0 group-hover/generated:opacity-100 transition-opacity pointer-events-none">
+                                  <div className="flex items-center gap-2">
+                                    <Video className="w-4 h-4 text-primary animate-pulse" />
+                                    <span className="text-[10px] font-bold text-white uppercase tracking-widest">AI Generated Video</span>
                                   </div>
                                 </div>
+
+                                <video
+                                  src={msg.videoUrl}
+                                  controls
+                                  autoPlay
+                                  loop
+                                  className="w-full max-w-full h-auto rounded-xl bg-black/5"
+                                />
+
+                                <div className="absolute bottom-3 right-14 pointer-events-auto">
+                                  {/* Additional controls if needed */}
+                                </div>
+
                                 <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDownload(att.url, att.name);
-                                  }}
-                                  className={`p-2 rounded-lg transition-colors shrink-0 ${msg.role === 'user' ? 'hover:bg-white/20 text-white' : 'hover:bg-primary/10 text-primary'}`}
-                                  title="Download"
+                                  onClick={() => handleDownload(msg.videoUrl, 'aisa-generated-video.mp4')}
+                                  className="absolute bottom-3 right-3 p-2.5 bg-primary text-white rounded-xl opacity-0 group-hover/generated:opacity-100 transition-all hover:bg-primary/90 shadow-lg border border-white/20 scale-90 group-hover/generated:scale-100 z-20"
+                                  title="Download Video"
                                 >
-                                  <Download className="w-4 h-4" />
+                                  <div className="flex items-center gap-2 px-1">
+                                    <Download className="w-4 h-4" />
+                                    <span className="text-[10px] font-bold uppercase">Download</span>
+                                  </div>
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Dynamic Image Rendering (if not in markdown) */}
+                            {msg.imageUrl && !msg.content.includes(msg.imageUrl) && (
+                              <div className="relative group/generated mt-4 mb-2 overflow-hidden rounded-2xl border border-white/10 shadow-2xl transition-all hover:scale-[1.01] bg-surface/50 backdrop-blur-sm">
+                                <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-0 group-hover/generated:opacity-100 transition-opacity">
+                                  <div className="flex items-center gap-2">
+                                    <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                                    <span className="text-[10px] font-bold text-white uppercase tracking-widest">AI Generated Asset</span>
+                                  </div>
+                                </div>
+                                <img
+                                  src={msg.imageUrl}
+                                  className="w-full max-w-full h-auto rounded-xl bg-black/5"
+                                  loading="lazy"
+                                />
+                                <button
+                                  onClick={() => handleDownload(msg.imageUrl, 'aisa-generated.png')}
+                                  className="absolute bottom-3 right-3 p-2.5 bg-primary text-white rounded-xl opacity-0 group-hover/generated:opacity-100 transition-all hover:bg-primary/90 shadow-lg border border-white/20 scale-90 group-hover/generated:scale-100"
+                                  title="Download High-Res"
+                                >
+                                  <div className="flex items-center gap-2 px-1">
+                                    <Download className="w-4 h-4" />
+                                    <span className="text-[10px] font-bold uppercase">Download</span>
+                                  </div>
                                 </button>
                               </div>
                             )}
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        )
+                      )}
 
-                    {/* Video Display */}
-                    {msg.videoUrl && (
-                      <div className="flex flex-col gap-3 mb-3 mt-1">
-                        <div className="relative group/video overflow-hidden rounded-xl border border-white/20 shadow-lg transition-all hover:scale-[1.01] cursor-pointer max-w-[400px] bg-black">
-                          <video
-                            src={msg.videoUrl}
-                            controls
-                            className="w-full h-auto max-h-[500px] object-contain"
-                            autoPlay={false}
-                          />
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDownload(msg.videoUrl, `video-${msg.id}.mp4`);
-                            }}
-                            className="absolute top-2 right-2 p-2 bg-black/40 text-white rounded-full opacity-0 group-hover/video:opacity-100 transition-all hover:bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center"
-                            title="Download"
-                          >
-                            <Download className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Image Display */}
-                    {msg.imageUrl && (
-                      <div className="flex flex-col gap-3 mb-3 mt-1">
-                        <div className="relative group/generated overflow-hidden rounded-xl border border-white/20 shadow-lg transition-all hover:scale-[1.01] cursor-pointer max-w-full w-fit bg-black/5">
-                          <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-0 group-hover/generated:opacity-100 transition-opacity">
-                            <div className="flex items-center gap-2">
-                              <Sparkles className="w-4 h-4 text-primary animate-pulse" />
-                              <span className="text-[10px] font-bold text-white uppercase tracking-widest">AI Generated Image</span>
-                            </div>
-                          </div>
-                          <img
-                            src={msg.imageUrl}
-                            alt="Generated Image"
-                            className="w-full h-auto max-h-[500px] object-contain"
-                            loading="lazy"
-                            onError={(e) => {
-                              e.target.src = 'https://placehold.co/600x400?text=Image+Failed+to+Load';
-                            }}
-                          />
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDownload(msg.imageUrl, `image-${msg.id}.png`);
-                            }}
-                            className="absolute bottom-3 right-3 p-2.5 bg-primary text-white rounded-xl opacity-0 group-hover/generated:opacity-100 transition-all hover:bg-primary/90 shadow-lg border border-white/20 scale-90 group-hover/generated:scale-100"
-                            title="Download"
-                          >
-                            <div className="flex items-center gap-2 px-1">
-                              <Download className="w-4 h-4" />
-                              <span className="text-[10px] font-bold uppercase">Download</span>
-                            </div>
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-
-                    {editingMessageId === msg.id ? (
-                      <div className="flex flex-col gap-3 min-w-[200px] w-full">
-                        <textarea
-                          value={editContent}
-                          onChange={(e) => setEditContent(e.target.value)}
-                          className="w-full bg-white/10 text-white rounded-xl p-3 text-sm focus:outline-none resize-none border border-white/20 placeholder-white/50"
-                          rows={2}
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault();
-                              saveEdit(msg);
-                            }
-                            if (e.key === 'Escape') cancelEdit();
-                          }}
-                        />
-                        <div className="flex gap-3 justify-end items-center">
-                          <button
-                            onClick={cancelEdit}
-                            className="text-white/80 hover:text-white text-sm font-medium transition-colors"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={() => saveEdit(msg)}
-                            className="bg-white text-primary px-6 py-2 rounded-full text-sm font-bold hover:bg-white/90 transition-colors shadow-sm"
-                          >
-                            Update
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      msg.content && (
-                        <div id={`msg-text-${msg.id}`} className={`max-w-full break-words leading-relaxed whitespace-normal ${msg.role === 'user' ? 'text-white' : 'text-maintext'}`}>
-                          {msg.role === 'user' && msg.mode === MODES.DEEP_SEARCH && (
-                            <div className="flex items-center gap-1.5 mb-2 px-2 py-1 bg-white/20 rounded-lg w-fit">
-                              <Search size={10} className="text-white" />
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-white">Deep Search</span>
+                      {/* File Conversion Download Button */}
+                      {msg.conversion && msg.conversion.file && (
+                        <div className="mt-4 pt-3 border-t border-border/40 space-y-3">
+                          {/* Integrated Audio Player for Voice Conversations */}
+                          {msg.conversion.mimeType.startsWith('audio/') && (
+                            <div className="bg-primary/5 rounded-xl p-2 border border-primary/10 mb-2">
+                              <audio
+                                controls
+                                className="w-full h-10 accent-primary rounded-lg"
+                                src={msg.conversion.blobUrl || `data:${msg.conversion.mimeType};base64,${msg.conversion.file}`}
+                              >
+                                Your browser does not support the audio element.
+                              </audio>
                             </div>
                           )}
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            components={{
-                              a: ({ href, children }) => {
-                                const isInternal = href && href.startsWith('/');
-                                return (
-                                  <a
-                                    href={href}
-                                    onClick={(e) => {
-                                      if (isInternal) {
-                                        e.preventDefault();
-                                        navigate(href);
-                                      }
-                                    }}
-                                    className="text-primary hover:underline font-bold cursor-pointer"
-                                    target={isInternal ? "_self" : "_blank"}
-                                    rel={isInternal ? "" : "noopener noreferrer"}
-                                  >
-                                    {children}
-                                  </a>
-                                );
-                              },
-                              p: ({ children }) => <p className={`mb-1.5 last:mb-0 ${msg.role === 'user' ? 'm-0 leading-normal' : 'leading-relaxed'}`}>{children}</p>,
-                              ul: ({ children }) => <ul className="list-disc pl-5 mb-3 last:mb-0 space-y-1.5 marker:text-subtext">{children}</ul>,
-                              ol: ({ children }) => <ol className="list-decimal pl-5 mb-3 last:mb-0 space-y-1.5 marker:text-subtext">{children}</ol>,
-                              li: ({ children }) => <li className="mb-1 last:mb-0">{children}</li>,
-                              h1: ({ children }) => <h1 className="font-bold mb-2 mt-3 block text-[1.25em]">{children}</h1>,
-                              h2: ({ children }) => <h2 className="font-bold mb-1.5 mt-2 block text-[1.15em]">{children}</h2>,
-                              h3: ({ children }) => <h3 className="font-bold mb-1 mt-1.5 block text-[1.05em]">{children}</h3>,
-                              strong: ({ children }) => <strong className="font-bold text-primary">{children}</strong>,
-                              code: ({ node, inline, className, children, ...props }) => {
-                                const match = /language-(\w+)/.exec(className || '');
-                                const lang = match ? match[1] : '';
 
-                                if (!inline && match) {
-                                  return (
-                                    <div className="rounded-xl overflow-hidden my-2 border border-border bg-[#1e1e1e] shadow-md w-full max-w-full">
-                                      <div className="flex items-center justify-between px-4 py-2 bg-[#2d2d2d] border-b border-[#404040]">
-                                        <span className="text-xs font-mono text-gray-300 lowercase">{lang}</span>
-                                        <button
-                                          onClick={() => {
-                                            navigator.clipboard.writeText(String(children).replace(/\n$/, ''));
-                                            toast.success("Code copied!");
-                                          }}
-                                          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
-                                        >
-                                          <Copy className="w-3.5 h-3.5" />
-                                          Copy code
-                                        </button>
-                                      </div>
-                                      <div className="p-4 overflow-x-auto custom-scrollbar bg-[#1e1e1e]">
-                                        <code className={`${className} font-mono text-[0.9em] leading-relaxed text-[#d4d4d4] block min-w-full`} {...props}>
-                                          {children}
-                                        </code>
-                                      </div>
-                                    </div>
-                                  );
-                                }
-                                return (
-                                  <code className="bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded font-mono text-primary font-bold mx-0.5" {...props}>
-                                    {children}
-                                  </code>
-                                );
-                              },
-                              img: ({ node, ...props }) => (
-                                <div className="relative group/generated mt-4 mb-2 overflow-hidden rounded-2xl border border-white/10 shadow-2xl transition-all hover:scale-[1.01] bg-surface/50 backdrop-blur-sm">
-                                  <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-0 group-hover/generated:opacity-100 transition-opacity">
-                                    <div className="flex items-center gap-2">
-                                      <Sparkles className="w-4 h-4 text-primary animate-pulse" />
-                                      <span className="text-[10px] font-bold text-white uppercase tracking-widest">AI Generated Asset</span>
-                                    </div>
-                                  </div>
-                                  <img
-                                    {...props}
-                                    className="w-full max-w-full h-auto rounded-xl bg-black/5"
-                                    loading="lazy"
-                                    onError={(e) => {
-                                      e.target.src = 'https://placehold.co/600x400?text=Image+Generating...';
-                                    }}
-                                  />
-                                  <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/generated:opacity-100 transition-opacity pointer-events-none" />
-                                  <button
-                                    onClick={() => handleDownload(props.src, 'aisa-generated.png')}
-                                    className="absolute bottom-3 right-3 p-2.5 bg-primary text-white rounded-xl opacity-0 group-hover/generated:opacity-100 transition-all hover:bg-primary/90 shadow-lg border border-white/20 scale-90 group-hover/generated:scale-100"
-                                    title="Download High-Res"
-                                  >
-                                    <div className="flex items-center gap-2 px-1">
-                                      <Download className="w-4 h-4" />
-                                      <span className="text-[10px] font-bold uppercase">Download</span>
-                                    </div>
-                                  </button>
-                                </div>
-                              )
-                            }}
-                          >
-                            {msg.content}
-                          </ReactMarkdown>
-                        </div>
-                      )
-                    )}
-
-                    {/* File Conversion Download Button */}
-                    {msg.conversion && msg.conversion.file && (
-                      <div className="mt-4 pt-3 border-t border-border/40 space-y-3">
-                        {/* Integrated Audio Player for Voice Conversations */}
-                        {msg.conversion.mimeType.startsWith('audio/') && (
-                          <div className="bg-primary/5 rounded-xl p-2 border border-primary/10 mb-2">
-                            <audio
-                              controls
-                              className="w-full h-10 accent-primary rounded-lg"
-                              src={msg.conversion.blobUrl || `data:${msg.conversion.mimeType};base64,${msg.conversion.file}`}
-                            >
-                              Your browser does not support the audio element.
-                            </audio>
-                          </div>
-                        )}
-
-                        <div className="flex items-center justify-between px-1 py-1">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-maintext truncate">{msg.conversion.fileName}</p>
-                            <p className="text-[10px] text-subtext font-bold uppercase tracking-widest flex items-center gap-2">
-                              <span className="px-1.5 py-0.5 bg-primary/10 text-primary rounded-md border border-primary/20">
-                                {msg.conversion.fileSize || "Ready"}
-                              </span>
-                              {msg.conversion.charCount && (
-                                <span className="px-1.5 py-0.5 bg-secondary/30 text-subtext rounded-md border border-border/50">
-                                  {msg.conversion.charCount} CHARS
+                          <div className="flex items-center justify-between px-1 py-1">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-maintext truncate">{msg.conversion.fileName}</p>
+                              <p className="text-[10px] text-subtext font-bold uppercase tracking-widest flex items-center gap-2">
+                                <span className="px-1.5 py-0.5 bg-primary/10 text-primary rounded-md border border-primary/20">
+                                  {msg.conversion.fileSize || "Ready"}
                                 </span>
-                              )}
-                              AUDIO • MP3
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row gap-2">
-                          <button
-                            onClick={() => {
-                              const downloadToast = toast.loading("Starting download...");
-                              try {
-                                // Create download link
-                                const byteCharacters = atob(msg.conversion.file);
-                                const byteNumbers = new Array(byteCharacters.length);
-                                for (let i = 0; i < byteCharacters.length; i++) {
-                                  byteNumbers[i] = byteCharacters.charCodeAt(i);
-                                }
-                                const byteArray = new Uint8Array(byteNumbers);
-                                const blob = new Blob([byteArray], { type: msg.conversion.mimeType });
-                                const url = URL.createObjectURL(blob);
-                                const a = document.createElement('a');
-                                a.href = url;
-                                a.download = msg.conversion.fileName;
-                                document.body.appendChild(a);
-                                a.click();
-                                setTimeout(() => {
-                                  document.body.removeChild(a);
-                                  URL.revokeObjectURL(url);
-                                  toast.dismiss(downloadToast);
-                                  toast.success("Download complete!");
-                                }, 500);
-                              } catch (err) {
-                                toast.dismiss(downloadToast);
-                                toast.error("Download failed");
-                              }
-                            }}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl transition-all hover:bg-primary/90 shadow-sm font-bold text-sm active:scale-95"
-                          >
-                            <Download className="w-4 h-4" />
-                            Download Audio
-                          </button>
-
-                          <Menu as="div" className="relative">
-                            <Menu.Button className="flex items-center justify-center gap-2 px-4 py-2.5 bg-surface border border-border text-maintext rounded-xl transition-all hover:bg-hover font-bold text-sm shadow-sm active:scale-95 whitespace-nowrap">
-                              <Share className="w-4 h-4" />
-                              Share
-                            </Menu.Button>
-
-                            <Transition
-                              as={Fragment}
-                              enter="transition ease-out duration-100"
-                              enterFrom="transform opacity-0 scale-95"
-                              enterTo="transform opacity-100 scale-100"
-                              leave="transition ease-in duration-75"
-                              leaveFrom="transform opacity-100 scale-100"
-                              leaveTo="transform opacity-0 scale-95"
-                            >
-                              <Menu.Items className="absolute bottom-full right-0 mb-2 w-56 origin-bottom-right divide-y divide-border rounded-xl bg-surface shadow-2xl border border-border focus:outline-none z-[100] overflow-hidden">
-                                <div className="px-1 py-1">
-
-                                  <Menu.Item>
-                                    {({ active }) => (
-                                      <button
-                                        onClick={() => {
-                                          const text = `I've converted "${msg.conversion.fileName}" into voice audio using AISA! ${window.location.href}`;
-                                          const url = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-                                            ? `whatsapp://send?text=${encodeURIComponent(text)}`
-                                            : `https://web.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-                                          window.open(url, '_blank');
-                                        }}
-                                        className={`${active ? 'bg-green-500 text-white' : 'text-maintext'} group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors`}
-                                      >
-                                        <MessageCircle className="h-4 w-4" />
-                                        WhatsApp
-                                      </button>
-                                    )}
-                                  </Menu.Item>
-                                  <Menu.Item>
-                                    {({ active }) => (
-                                      <button
-                                        onClick={() => {
-                                          const text = `AISA Audio Conversion: ${msg.conversion.fileName}`;
-                                          const url = `https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(text)}`;
-                                          window.open(url, '_blank');
-                                        }}
-                                        className={`${active ? 'bg-sky-500 text-white' : 'text-maintext'} group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors`}
-                                      >
-                                        <Send className="h-4 w-4" />
-                                        Telegram
-                                      </button>
-                                    )}
-                                  </Menu.Item>
-                                </div>
-                                <div className="px-1 py-1">
-                                  <Menu.Item>
-                                    {({ active }) => (
-                                      <button
-                                        onClick={() => {
-                                          navigator.clipboard.writeText(window.location.href);
-                                          toast.success("Link copied!");
-                                        }}
-                                        className={`${active ? 'bg-primary text-white' : 'text-maintext'} group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors`}
-                                      >
-                                        <Copy className="h-4 w-4" />
-                                        Copy Link
-                                      </button>
-                                    )}
-                                  </Menu.Item>
-                                </div>
-                              </Menu.Items>
-                            </Transition>
-                          </Menu>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* AI Feedback Actions */}
-                    {msg.role !== 'user' && !msg.conversion && (
-                      <div className="mt-4 pt-3 border-t border-border/40 w-full block">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
-                          {(() => {
-                            // Detect if the AI response contains Hindi (Devanagari script)
-                            const isHindiContent = /[\u0900-\u097F]/.test(msg.content);
-                            const prompts = isHindiContent ? FEEDBACK_PROMPTS.hi : FEEDBACK_PROMPTS.en;
-                            const promptIndex = (msg.id.toString().charCodeAt(msg.id.toString().length - 1) || 0) % prompts.length;
-                            return (
-                              <p className="text-xs text-subtext font-medium flex items-center gap-1.5 shrink-0 m-0">
-                                {prompts[promptIndex]}
-                                <span className="text-sm">😊</span>
+                                {msg.conversion.charCount && (
+                                  <span className="px-1.5 py-0.5 bg-secondary/30 text-subtext rounded-md border border-border/50">
+                                    {msg.conversion.charCount} CHARS
+                                  </span>
+                                )}
+                                AUDIO • MP3
                               </p>
-                            );
-                          })()}
-                          <div className="flex items-center gap-3 self-end sm:self-auto">
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col sm:flex-row gap-2">
                             <button
                               onClick={() => {
-                                // Pass message ID to speakResponse for tracking
-                                const isHindi = /[\u0900-\u097F]/.test(msg.content);
-                                speakResponse(msg.content, isHindi ? 'Hindi' : 'English', msg.id);
+                                const downloadToast = toast.loading("Starting download...");
+                                try {
+                                  // Create download link
+                                  const byteCharacters = atob(msg.conversion.file);
+                                  const byteNumbers = new Array(byteCharacters.length);
+                                  for (let i = 0; i < byteCharacters.length; i++) {
+                                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                                  }
+                                  const byteArray = new Uint8Array(byteNumbers);
+                                  const blob = new Blob([byteArray], { type: msg.conversion.mimeType });
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = msg.conversion.fileName;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  setTimeout(() => {
+                                    document.body.removeChild(a);
+                                    URL.revokeObjectURL(url);
+                                    toast.dismiss(downloadToast);
+                                    toast.success("Download complete!");
+                                  }, 500);
+                                } catch (err) {
+                                  toast.dismiss(downloadToast);
+                                  toast.error("Download failed");
+                                }
                               }}
-                              className={`transition-colors p-1.5 rounded-lg ${speakingMessageId === msg.id
-                                ? 'text-primary bg-primary/10'
-                                : 'text-subtext hover:text-primary hover:bg-surface-hover'
-                                }`}
-                              title={speakingMessageId === msg.id && !isPaused ? "Pause" : "Speak"}
+                              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl transition-all hover:bg-primary/90 shadow-sm font-bold text-sm active:scale-95"
                             >
-                              {speakingMessageId === msg.id && !isPaused ? (
-                                <Pause className="w-3.5 h-3.5" />
-                              ) : (
-                                <Volume2 className="w-3.5 h-3.5" />
-                              )}
-                            </button>
-                            <button
-                              onClick={() => handleCopyMessage(msg.content)}
-                              className="text-subtext hover:text-maintext transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
-                              title="Copy"
-                            >
-                              <Copy className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleThumbsUp(msg.id)}
-                              className="text-subtext hover:text-primary transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
-                              title="Helpful"
-                            >
-                              <ThumbsUp className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleThumbsDown(msg.id)}
-                              className="text-subtext hover:text-red-500 transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
-                              title="Not Helpful"
-                            >
-                              <ThumbsDown className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleShare(msg.content)}
-                              className="text-subtext hover:text-primary transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
-                              title="Share Text"
-                            >
-                              <Share className="w-3.5 h-3.5" />
+                              <Download className="w-4 h-4" />
+                              Download Audio
                             </button>
 
-                            {/* PDF Menu */}
-                            <Menu as="div" className="relative inline-block text-left">
-                              <Menu.Button className="text-subtext hover:text-red-500 transition-colors flex items-center" disabled={pdfLoadingId === msg.id}>
-                                {pdfLoadingId === msg.id ? (
-                                  <div className="w-4 h-4 border-2 border-red-500/30 border-t-red-500 rounded-full animate-spin" />
-                                ) : (
-                                  <FileText className="w-4 h-4" />
-                                )}
+                            <Menu as="div" className="relative">
+                              <Menu.Button className="flex items-center justify-center gap-2 px-4 py-2.5 bg-surface border border-border text-maintext rounded-xl transition-all hover:bg-hover font-bold text-sm shadow-sm active:scale-95 whitespace-nowrap">
+                                <Share className="w-4 h-4" />
+                                Share
                               </Menu.Button>
+
                               <Transition
                                 as={Fragment}
                                 enter="transition ease-out duration-100"
@@ -3188,38 +3066,54 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                                 leaveFrom="transform opacity-100 scale-100"
                                 leaveTo="transform opacity-0 scale-95"
                               >
-                                <Menu.Items className="absolute bottom-full left-0 mb-2 w-36 origin-bottom-left divide-y divide-border rounded-xl bg-card shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50 overflow-hidden">
+                                <Menu.Items className="absolute bottom-full right-0 mb-2 w-56 origin-bottom-right divide-y divide-border rounded-xl bg-surface shadow-2xl border border-border focus:outline-none z-[100] overflow-hidden">
+                                  <div className="px-1 py-1">
+
+                                    <Menu.Item>
+                                      {({ active }) => (
+                                        <button
+                                          onClick={() => {
+                                            const text = `I've converted "${msg.conversion.fileName}" into voice audio using AISA! ${window.location.href}`;
+                                            const url = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+                                              ? `whatsapp://send?text=${encodeURIComponent(text)}`
+                                              : `https://web.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+                                            window.open(url, '_blank');
+                                          }}
+                                          className={`${active ? 'bg-green-500 text-white' : 'text-maintext'} group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors`}
+                                        >
+                                          <MessageCircle className="h-4 w-4" />
+                                          WhatsApp
+                                        </button>
+                                      )}
+                                    </Menu.Item>
+                                    <Menu.Item>
+                                      {({ active }) => (
+                                        <button
+                                          onClick={() => {
+                                            const text = `AISA Audio Conversion: ${msg.conversion.fileName}`;
+                                            const url = `https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(text)}`;
+                                            window.open(url, '_blank');
+                                          }}
+                                          className={`${active ? 'bg-sky-500 text-white' : 'text-maintext'} group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors`}
+                                        >
+                                          <Send className="h-4 w-4" />
+                                          Telegram
+                                        </button>
+                                      )}
+                                    </Menu.Item>
+                                  </div>
                                   <div className="px-1 py-1">
                                     <Menu.Item>
                                       {({ active }) => (
                                         <button
-                                          onClick={() => handlePdfAction('open', msg)}
-                                          className={`${active ? 'bg-primary text-white' : 'text-maintext'
-                                            } group flex w-full items-center rounded-md px-2 py-2 text-xs font-medium`}
+                                          onClick={() => {
+                                            navigator.clipboard.writeText(window.location.href);
+                                            toast.success("Link copied!");
+                                          }}
+                                          className={`${active ? 'bg-primary text-white' : 'text-maintext'} group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors`}
                                         >
-                                          Open PDF
-                                        </button>
-                                      )}
-                                    </Menu.Item>
-                                    <Menu.Item>
-                                      {({ active }) => (
-                                        <button
-                                          onClick={() => handlePdfAction('download', msg)}
-                                          className={`${active ? 'bg-primary text-white' : 'text-maintext'
-                                            } group flex w-full items-center rounded-md px-2 py-2 text-xs font-medium`}
-                                        >
-                                          Download
-                                        </button>
-                                      )}
-                                    </Menu.Item>
-                                    <Menu.Item>
-                                      {({ active }) => (
-                                        <button
-                                          onClick={() => handlePdfAction('share', msg)}
-                                          className={`${active ? 'bg-primary text-white' : 'text-maintext'
-                                            } group flex w-full items-center rounded-md px-2 py-2 text-xs font-medium`}
-                                        >
-                                          Share PDF
+                                          <Copy className="h-4 w-4" />
+                                          Copy Link
                                         </button>
                                       )}
                                     </Menu.Item>
@@ -3229,491 +3123,546 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                             </Menu>
                           </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+
+                      {/* AI Feedback Actions */}
+                      {msg.role !== 'user' && !msg.conversion && (
+                        <div className="mt-4 pt-3 border-t border-border/40 w-full block">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
+                            {(() => {
+                              // Detect if the AI response contains Hindi (Devanagari script)
+                              const isHindiContent = /[\u0900-\u097F]/.test(msg.content);
+                              const prompts = isHindiContent ? FEEDBACK_PROMPTS.hi : FEEDBACK_PROMPTS.en;
+                              const promptIndex = (msg.id.toString().charCodeAt(msg.id.toString().length - 1) || 0) % prompts.length;
+                              return (
+                                <p className="text-xs text-subtext font-medium flex items-center gap-1.5 shrink-0 m-0">
+                                  {prompts[promptIndex]}
+                                  <span className="text-sm">😊</span>
+                                </p>
+                              );
+                            })()}
+                            <div className="flex items-center gap-3 self-end sm:self-auto">
+                              <button
+                                onClick={() => {
+                                  // Pass message ID to speakResponse for tracking
+                                  const isHindi = /[\u0900-\u097F]/.test(msg.content);
+                                  speakResponse(msg.content, isHindi ? 'Hindi' : 'English', msg.id);
+                                }}
+                                className={`transition-colors p-1.5 rounded-lg ${speakingMessageId === msg.id
+                                  ? 'text-primary bg-primary/10'
+                                  : 'text-subtext hover:text-primary hover:bg-surface-hover'
+                                  }`}
+                                title={speakingMessageId === msg.id && !isPaused ? "Pause" : "Speak"}
+                              >
+                                {speakingMessageId === msg.id && !isPaused ? (
+                                  <Pause className="w-3.5 h-3.5" />
+                                ) : (
+                                  <Volume2 className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                              <button
+                                onClick={() => handleCopyMessage(msg.content)}
+                                className="text-subtext hover:text-maintext transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
+                                title="Copy"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleThumbsUp(msg.id)}
+                                className="text-subtext hover:text-primary transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
+                                title="Helpful"
+                              >
+                                <ThumbsUp className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleThumbsDown(msg.id)}
+                                className="text-subtext hover:text-red-500 transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
+                                title="Not Helpful"
+                              >
+                                <ThumbsDown className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleShare(msg.content)}
+                                className="text-subtext hover:text-primary transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
+                                title="Share Text"
+                              >
+                                <Share className="w-3.5 h-3.5" />
+                              </button>
+
+                              {/* PDF Menu */}
+                              <Menu as="div" className="relative inline-block text-left">
+                                <Menu.Button className="text-subtext hover:text-red-500 transition-colors flex items-center" disabled={pdfLoadingId === msg.id}>
+                                  {pdfLoadingId === msg.id ? (
+                                    <div className="w-4 h-4 border-2 border-red-500/30 border-t-red-500 rounded-full animate-spin" />
+                                  ) : (
+                                    <FileText className="w-4 h-4" />
+                                  )}
+                                </Menu.Button>
+                                <Transition
+                                  as={Fragment}
+                                  enter="transition ease-out duration-100"
+                                  enterFrom="transform opacity-0 scale-95"
+                                  enterTo="transform opacity-100 scale-100"
+                                  leave="transition ease-in duration-75"
+                                  leaveFrom="transform opacity-100 scale-100"
+                                  leaveTo="transform opacity-0 scale-95"
+                                >
+                                  <Menu.Items className="absolute bottom-full left-0 mb-2 w-36 origin-bottom-left divide-y divide-border rounded-xl bg-card shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50 overflow-hidden">
+                                    <div className="px-1 py-1">
+                                      <Menu.Item>
+                                        {({ active }) => (
+                                          <button
+                                            onClick={() => handlePdfAction('open', msg)}
+                                            className={`${active ? 'bg-primary text-white' : 'text-maintext'
+                                              } group flex w-full items-center rounded-md px-2 py-2 text-xs font-medium`}
+                                          >
+                                            Open PDF
+                                          </button>
+                                        )}
+                                      </Menu.Item>
+                                      <Menu.Item>
+                                        {({ active }) => (
+                                          <button
+                                            onClick={() => handlePdfAction('download', msg)}
+                                            className={`${active ? 'bg-primary text-white' : 'text-maintext'
+                                              } group flex w-full items-center rounded-md px-2 py-2 text-xs font-medium`}
+                                          >
+                                            Download
+                                          </button>
+                                        )}
+                                      </Menu.Item>
+                                      <Menu.Item>
+                                        {({ active }) => (
+                                          <button
+                                            onClick={() => handlePdfAction('share', msg)}
+                                            className={`${active ? 'bg-primary text-white' : 'text-maintext'
+                                              } group flex w-full items-center rounded-md px-2 py-2 text-xs font-medium`}
+                                          >
+                                            Share PDF
+                                          </button>
+                                        )}
+                                      </Menu.Item>
+                                    </div>
+                                  </Menu.Items>
+                                </Transition>
+                              </Menu>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-subtext mt-0 px-1">
+                      {new Date(msg.timestamp).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
                   </div>
-                  <span className="text-[10px] text-subtext mt-0 px-1">
-                    {new Date(msg.timestamp).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </span>
-                </div>
 
-                {/* Hover Actions - User Only (AI has footer) */}
-                {msg.role === 'user' && (
-                  <div className={`flex items-center gap-1 transition-opacity duration-200 self-start mt-2 mr-0 flex-row-reverse ${activeMessageId === msg.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                  {/* Hover Actions - User Only (AI has footer) */}
+                  {msg.role === 'user' && (
+                    <div className={`flex items-center gap-1 transition-opacity duration-200 self-start mt-2 mr-0 flex-row-reverse ${activeMessageId === msg.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
 
-                    <button
-                      onClick={() => handleCopyMessage(msg.content || msg.text)}
-                      className="p-1.5 text-subtext hover:text-primary hover:bg-surface rounded-full transition-colors"
-                      title="Copy"
-                    >
-                      <Copy className="w-4 h-4" />
-                    </button>
-                    {!msg.attachment && (
                       <button
-                        onClick={() => startEditing(msg)}
+                        onClick={() => handleCopyMessage(msg.content || msg.text)}
                         className="p-1.5 text-subtext hover:text-primary hover:bg-surface rounded-full transition-colors"
-                        title="Edit"
+                        title="Copy"
                       >
-                        <Edit2 className="w-4 h-4" />
+                        <Copy className="w-4 h-4" />
                       </button>
-                    )}
-                    {msg.attachment && (
+                      {!msg.attachment && (
+                        <button
+                          onClick={() => startEditing(msg)}
+                          className="p-1.5 text-subtext hover:text-primary hover:bg-surface rounded-full transition-colors"
+                          title="Edit"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                      )}
+                      {msg.attachment && (
+                        <button
+                          onClick={() => handleRenameFile(msg)}
+                          className="p-1.5 text-subtext hover:text-primary hover:bg-surface rounded-full transition-colors"
+                          title="Rename"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                      )}
+                      {/* Only show Undo for the most recent user message if it's the last or second to last message in the whole chat */}
+                      {msg.id === messages.findLast(m => m.role === 'user')?.id && (
+                        <button
+                          onClick={handleUndo}
+                          className="p-1.5 text-subtext hover:text-primary hover:bg-surface rounded-full transition-colors"
+                          title="Undo"
+                        >
+                          <Undo2 className="w-4 h-4" />
+                        </button>
+                      )}
                       <button
-                        onClick={() => handleRenameFile(msg)}
-                        className="p-1.5 text-subtext hover:text-primary hover:bg-surface rounded-full transition-colors"
-                        title="Rename"
+                        onClick={() => handleMessageDelete(msg.id)}
+                        className="p-1.5 text-subtext hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                        title="Delete"
                       >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                    )}
-                    {/* Only show Undo for the most recent user message if it's the last or second to last message in the whole chat */}
-                    {msg.id === messages.findLast(m => m.role === 'user')?.id && (
-                      <button
-                        onClick={handleUndo}
-                        className="p-1.5 text-subtext hover:text-primary hover:bg-surface rounded-full transition-colors"
-                        title="Undo"
-                      >
-                        <Undo2 className="w-4 h-4" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleMessageDelete(msg.id)}
-                      className="p-1.5 text-subtext hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {isLoading && (
-              <div className="flex items-start gap-4 max-w-4xl mx-auto">
-                <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center shrink-0">
-                  <Sparkles className="w-4 h-4 text-primary animate-pulse" />
-                  <Loader />
-
-                </div>
-                <div className="px-5 py-3 rounded-2xl rounded-tl-none bg-surface border border-border flex items-center gap-2">
-                  <span
-                    className="w-2 h-2 bg-subtext/50 rounded-full animate-bounce"
-                    style={{ animationDelay: '0ms' }}
-                  ></span>
-                  <span
-                    className="w-2 h-2 bg-subtext/50 rounded-full animate-bounce"
-                    style={{ animationDelay: '150ms' }}
-                  ></span>
-                  <span
-                    className="w-2 h-2 bg-subtext/50 rounded-full animate-bounce"
-                    style={{ animationDelay: '300ms' }}
-                  ></span>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input */}
-      <div className="p-2 md:p-4 shrink-0 bg-secondary border-t border-border sm:border-t-0">
-        <div className="max-w-4xl mx-auto relative">
-
-          {/* File Preview Area */}
-          {filePreviews.length > 0 && (
-            <div className="absolute bottom-full left-0 right-0 mb-4 px-2 overflow-x-auto custom-scrollbar no-scrollbar flex gap-3 pb-2 z-20 pointer-events-auto">
-              {filePreviews.map((preview) => (
-                <div
-                  key={preview.id}
-                  className="relative shrink-0 w-64 md:w-72 bg-surface/95 dark:bg-zinc-900/95 border border-border/50 rounded-2xl p-2.5 flex items-center gap-3 shadow-xl backdrop-blur-xl animate-in slide-in-from-bottom-2 duration-300 ring-1 ring-black/5"
-                >
-                  <div className="relative group shrink-0">
-                    {preview.type.startsWith('image/') ? (
-                      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border border-border/50 bg-black/5">
-                        <img src={preview.url} alt="Preview" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
-                      </div>
-                    ) : (
-                      <div className="w-14 h-14 sm:w-16 sm:h-16 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20 shadow-sm">
-                        <FileText className="w-7 h-7 text-primary" />
-                      </div>
-                    )}
-
-                    <div className="absolute -top-2 -right-2">
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveFile(preview.id)}
-                        className="p-1 w-6 h-6 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg hover:scale-110 active:scale-95 flex items-center justify-center border-2 border-surface"
-                        title="Remove file"
-                      >
-                        <X className="w-3 h-3" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
-                  </div>
-
-                  <div className="min-w-0 flex-1 py-1">
-                    <p className="text-sm font-semibold text-maintext truncate pr-1">{preview.name}</p>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <span className="text-[10px] text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-lg uppercase tracking-wider font-bold">
-                        {preview.type.split('/')[1]?.split('-')[0] || 'FILE'}
-                      </span>
-                      <span className="text-[10px] text-subtext font-medium">
-                        {(preview.size / 1024 / 1024).toFixed(2)} MB
-                      </span>
-                    </div>
-                  </div>
+                  )}
                 </div>
               ))}
-            </div>
+
+              {isLoading && (
+                <div className="flex items-start gap-4 max-w-4xl mx-auto">
+                  <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center shrink-0">
+                    <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                    <Loader />
+
+                  </div>
+                  <div className="px-5 py-3 rounded-2xl rounded-tl-none bg-surface border border-border flex items-center gap-3">
+                    <span className="text-sm font-medium text-subtext animate-pulse">
+                      {loadingText}
+                    </span>
+                    <div className="flex gap-1">
+                      <span
+                        className="w-1.5 h-1.5 bg-subtext/50 rounded-full animate-bounce"
+                        style={{ animationDelay: '0ms' }}
+                      ></span>
+                      <span
+                        className="w-1.5 h-1.5 bg-subtext/50 rounded-full animate-bounce"
+                        style={{ animationDelay: '150ms' }}
+                      ></span>
+                      <span
+                        className="w-1.5 h-1.5 bg-subtext/50 rounded-full animate-bounce"
+                        style={{ animationDelay: '300ms' }}
+                      ></span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
-          <form onSubmit={handleSendMessage} className="relative flex items-center gap-2">
-            <input
-              id="file-upload"
-              type="file"
-              ref={uploadInputRef}
-              onChange={handleFileSelect}
-              multiple
-              className="hidden"
-            />
-            <input
-              id="drive-upload"
-              type="file"
-              ref={driveInputRef}
-              onChange={handleFileSelect}
-              multiple
-              className="hidden"
-            />
-            <input
-              id="doc-voice-upload"
-              type="file"
-              onChange={handleDocToVoiceSelect}
-              className="hidden"
-              accept=".pdf,.doc,.docx,.txt"
-            />
-            <input
-              id="photos-upload"
-              type="file"
-              ref={photosInputRef}
-              onChange={handleFileSelect}
-              multiple
-              className="hidden"
-              accept="image/*"
-            />
-            <input
-              id="camera-upload"
-              type="file"
-              onChange={handleFileSelect}
-              className="hidden"
-              accept="image/*"
-              capture="environment"
-            />
+          <div ref={messagesEndRef} />
+        </div>
 
-            <AnimatePresence>
-              {isAttachMenuOpen && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
-                  ref={menuRef}
-                  className="absolute bottom-full left-0 mb-3 w-60 bg-surface border border-border/50 rounded-2xl shadow-xl overflow-hidden z-30 backdrop-blur-md ring-1 ring-black/5"
-                >
-                  <div className="p-1.5 space-y-0.5">
+        {/* Input */}
+        <div className="absolute bottom-0 left-0 right-0 p-1.5 sm:p-2 md:p-4 bg-transparent z-20">
+          <div className="max-w-3xl mx-auto relative">
 
-
-                    {getAgentCapabilities(activeAgent.agentName, activeAgent.category).canCamera && (
-                      <label
-                        htmlFor="camera-upload"
-                        onClick={() => setTimeout(() => setIsAttachMenuOpen(false), 500)}
-                        className="w-full text-left px-3 py-2.5 flex items-center gap-3 hover:bg-primary/5 rounded-xl transition-all group cursor-pointer"
-                      >
-                        <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center group-hover:border-primary/30 group-hover:bg-primary/10 transition-colors shrink-0">
-                          <Camera className="w-4 h-4 text-subtext group-hover:text-primary transition-colors" />
+            {/* File Preview Area */}
+            {filePreviews.length > 0 && (
+              <div className="absolute bottom-full left-0 right-0 mb-4 px-2 overflow-x-auto custom-scrollbar no-scrollbar flex gap-3 pb-2 z-20 pointer-events-auto">
+                {filePreviews.map((preview) => (
+                  <div
+                    key={preview.id}
+                    className="relative shrink-0 w-64 md:w-72 bg-surface/95 dark:bg-zinc-900/95 border border-border/50 rounded-2xl p-2.5 flex items-center gap-3 shadow-xl backdrop-blur-xl animate-in slide-in-from-bottom-2 duration-300 ring-1 ring-black/5"
+                  >
+                    <div className="relative group shrink-0">
+                      {preview.type.startsWith('image/') ? (
+                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border border-border/50 bg-black/5">
+                          <img src={preview.url} alt="Preview" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
                         </div>
-                        <div className="flex-1">
-                          <span className="text-sm font-medium text-maintext group-hover:text-primary transition-colors">Camera & Scan</span>
+                      ) : (
+                        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20 shadow-sm">
+                          <FileText className="w-7 h-7 text-primary" />
                         </div>
-                      </label>
-                    )}
+                      )}
 
-                    {(getAgentCapabilities(activeAgent.agentName, activeAgent.category).canUploadFiles || true) && (
-                      <label
-                        htmlFor="file-upload"
-                        onClick={() => setIsAttachMenuOpen(false)}
-                        className="w-full text-left px-3 py-2.5 flex items-center gap-3 hover:bg-primary/5 rounded-xl transition-all group cursor-pointer"
-                      >
-                        <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center group-hover:border-primary/30 group-hover:bg-primary/10 transition-colors shrink-0">
-                          <Paperclip className="w-4 h-4 text-subtext group-hover:text-primary transition-colors" />
-                        </div>
-                        <span className="text-sm font-medium text-maintext group-hover:text-primary transition-colors">Upload files</span>
-                      </label>
-                    )}
-
-                    {getAgentCapabilities(activeAgent.agentName, activeAgent.category).canUploadDocs && (
-                      <label
-                        htmlFor="drive-upload"
-                        onClick={() => setIsAttachMenuOpen(false)}
-                        className="w-full text-left px-3 py-2.5 flex items-center gap-3 hover:bg-primary/5 rounded-xl transition-all group cursor-pointer"
-                      >
-                        <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center group-hover:border-primary/30 group-hover:bg-primary/10 transition-colors shrink-0">
-                          <Cloud className="w-4 h-4 text-subtext group-hover:text-primary transition-colors" />
-                        </div>
-                        <div className="flex-1">
-                          <span className="text-sm font-medium text-maintext group-hover:text-primary transition-colors">Add from Drive</span>
-                        </div>
-                      </label>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsAudioConvertMode(!isAudioConvertMode);
-                        setIsAttachMenuOpen(false);
-                        if (!isAudioConvertMode) {
-                          toast.success("Convert to Audio Mode Active");
-                          setIsDeepSearch(false);
-                          setIsImageGeneration(false);
-                        }
-                      }}
-                      className={`w-full text-left px-3 py-2.5 flex items-center gap-3 rounded-xl transition-all group cursor-pointer ${isAudioConvertMode ? 'bg-primary/10 border border-primary/20' : 'hover:bg-primary/5'}`}
-                    >
-                      <div className={`w-8 h-8 rounded-full border flex items-center justify-center transition-colors shrink-0 ${isAudioConvertMode ? 'bg-primary border-primary text-white' : 'bg-surface border border-border group-hover:border-primary/30 group-hover:bg-primary/10'}`}>
-                        <Headphones className={`w-4 h-4 transition-colors ${isAudioConvertMode ? 'text-white' : 'text-subtext group-hover:text-primary'}`} />
+                      <div className="absolute -top-2 -right-2">
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveFile(preview.id)}
+                          className="p-1 w-6 h-6 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg hover:scale-110 active:scale-95 flex items-center justify-center border-2 border-surface"
+                          title="Remove file"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
                       </div>
-                      <div className="flex-1">
-                        <span className={`text-sm font-medium transition-colors ${isAudioConvertMode ? 'text-primary' : 'text-maintext group-hover:text-primary'}`}>
-                          Convert to Audio {isAudioConvertMode && '(Active)'}
+                    </div>
+
+                    <div className="min-w-0 flex-1 py-1">
+                      <p className="text-sm font-semibold text-maintext truncate pr-1">{preview.name}</p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-[10px] text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-lg uppercase tracking-wider font-bold">
+                          {preview.type.split('/')[1]?.split('-')[0] || 'FILE'}
+                        </span>
+                        <span className="text-[10px] text-subtext font-medium">
+                          {(preview.size / 1024 / 1024).toFixed(2)} MB
                         </span>
                       </div>
-                    </button>
+                    </div>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                ))}
+              </div>
+            )}
 
-            <button
-              type="button"
-              ref={attachBtnRef}
-              onClick={() => setIsAttachMenuOpen(!isAttachMenuOpen)}
-              className={`p-3 sm:p-4 rounded-full border border-primary bg-primary text-white transition-all duration-300 shadow-lg shadow-primary/20 shrink-0 flex items-center justify-center hover:opacity-90
-                  ${isAttachMenuOpen ? 'rotate-45' : ''}`}
-              title="Add to chat"
-            >
-              <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
+            <form onSubmit={handleSendMessage} className="relative w-full max-w-5xl mx-auto flex items-end gap-2 bg-white dark:bg-[#0a0a0a] border border-black/5 dark:border-white/10 rounded-[32px] p-2 shadow-[0_8px_40px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.2)] transition-all duration-300 hover:shadow-[0_12px_50px_rgba(0,0,0,0.12)] hover:border-primary/20 backdrop-blur-3xl">
+              <input
+                id="file-upload"
+                type="file"
+                ref={uploadInputRef}
+                onChange={handleFileSelect}
+                multiple
+                className="hidden"
+              />
+              <input
+                id="drive-upload"
+                type="file"
+                ref={driveInputRef}
+                onChange={handleFileSelect}
+                multiple
+                className="hidden"
+              />
+              <input
+                id="doc-voice-upload"
+                type="file"
+                onChange={handleDocToVoiceSelect}
+                className="hidden"
+                accept=".pdf,.doc,.docx,.txt"
+              />
+              <input
+                id="photos-upload"
+                type="file"
+                ref={photosInputRef}
+                onChange={handleFileSelect}
+                multiple
+                className="hidden"
+                accept="image/*"
+              />
+              <input
+                id="camera-upload"
+                type="file"
+                onChange={handleFileSelect}
+                className="hidden"
+                accept="image/*"
+                capture="environment"
+              />
 
-            {/* Tools Button */}
-            <div className="relative">
-              <button
-                type="button"
-                ref={toolsBtnRef}
-                onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
-                className={`p-3 sm:p-4 rounded-full border transition-all duration-300 shrink-0 flex items-center justify-center hover:bg-surface-hover ${isToolsMenuOpen ? 'bg-surface-hover border-primary text-primary' : 'bg-surface border-border text-subtext'}`}
-                title="AI Tools"
-              >
-                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
-              </button>
-              <AnimatePresence>
-                {isToolsMenuOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
-                    ref={toolsMenuRef}
-                    className="absolute bottom-full left-0 mb-3 w-64 bg-surface border border-border/50 rounded-2xl shadow-xl overflow-hidden z-30 backdrop-blur-md ring-1 ring-black/5"
+              {/* Left Actions Group */}
+              <div className="flex items-center gap-1 pb-1 pl-1">
+                <AnimatePresence>
+                  {isAttachMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      ref={menuRef}
+                      className="absolute bottom-full left-0 mb-4 w-60 bg-surface/95 dark:bg-[#1a1a1a]/95 border border-border/50 rounded-2xl shadow-2xl overflow-hidden z-30 backdrop-blur-xl ring-1 ring-black/5"
+                    >
+                      <div className="p-1.5 space-y-0.5">
+                        {getAgentCapabilities(activeAgent.agentName, activeAgent.category).canCamera && (
+                          <label
+                            htmlFor="camera-upload"
+                            onClick={() => setTimeout(() => setIsAttachMenuOpen(false), 500)}
+                            className="w-full text-left px-3 py-2.5 flex items-center gap-3 hover:bg-primary/10 rounded-xl transition-all group cursor-pointer"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center group-hover:border-primary/30 group-hover:bg-primary/20 transition-colors shrink-0">
+                              <Camera className="w-4 h-4 text-subtext group-hover:text-primary transition-colors" />
+                            </div>
+                            <span className="text-sm font-medium text-maintext group-hover:text-primary transition-colors">Camera & Scan</span>
+                          </label>
+                        )}
+                        <label
+                          htmlFor="file-upload"
+                          onClick={() => setIsAttachMenuOpen(false)}
+                          className="w-full text-left px-3 py-2.5 flex items-center gap-3 hover:bg-primary/10 rounded-xl transition-all group cursor-pointer"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center group-hover:border-primary/30 group-hover:bg-primary/20 transition-colors shrink-0">
+                            <Paperclip className="w-4 h-4 text-subtext group-hover:text-primary transition-colors" />
+                          </div>
+                          <span className="text-sm font-medium text-maintext group-hover:text-primary transition-colors">Upload files</span>
+                        </label>
+                        <label
+                          htmlFor="drive-upload"
+                          onClick={() => setIsAttachMenuOpen(false)}
+                          className="w-full text-left px-3 py-2.5 flex items-center gap-3 hover:bg-primary/10 rounded-xl transition-all group cursor-pointer"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center group-hover:border-primary/30 group-hover:bg-primary/20 transition-colors shrink-0">
+                            <Cloud className="w-4 h-4 text-subtext group-hover:text-primary transition-colors" />
+                          </div>
+                          <span className="text-sm font-medium text-maintext group-hover:text-primary transition-colors">Add from Drive</span>
+                        </label>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <button
+                  type="button"
+                  ref={attachBtnRef}
+                  onClick={() => setIsAttachMenuOpen(!isAttachMenuOpen)}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${isAttachMenuOpen ? 'bg-primary text-white rotate-45' : 'bg-secondary hover:bg-primary/10 text-subtext hover:text-primary'}`}
+                  title="Add to chat"
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
+
+                {/* Tools Button */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    ref={toolsBtnRef}
+                    onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${isToolsMenuOpen || isImageGeneration || isDeepSearch || isAudioConvertMode ? 'bg-primary/10 text-primary scale-110' : 'bg-transparent text-subtext hover:text-primary hover:bg-secondary'}`}
+                    title="AI Capabilities"
                   >
-                    <div className="p-3 bg-secondary/30 border-b border-border mb-1">
-                      <h3 className="text-xs font-bold text-subtext uppercase tracking-wider">AI Capabilities</h3>
-                    </div>
-                    <div className="p-1.5 space-y-0.5">
-                      <button
-                        onClick={() => {
-                          setIsToolsMenuOpen(false);
-                          setIsImageGeneration(!isImageGeneration);
-                          setIsDeepSearch(false);
-                          setIsAudioConvertMode(false);
-                          if (!isImageGeneration) toast.success("Image Generation Mode Enabled");
-                        }}
-                        className={`w-full text-left px-3 py-2.5 flex items-center gap-3 rounded-xl transition-all group cursor-pointer ${isImageGeneration ? 'bg-primary/10 border border-primary/20' : 'hover:bg-primary/5'}`}
+                    <Sparkles className="w-5 h-5" />
+                  </button>
+                  <AnimatePresence>
+                    {isToolsMenuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        ref={toolsMenuRef}
+                        className="absolute bottom-full left-0 mb-4 w-72 bg-surface/95 dark:bg-[#1a1a1a]/95 border border-border/50 rounded-2xl shadow-2xl overflow-hidden z-30 backdrop-blur-xl ring-1 ring-black/5"
                       >
-                        <div className={`w-8 h-8 rounded-full border flex items-center justify-center transition-colors shrink-0 ${isImageGeneration ? 'bg-primary border-primary text-white' : 'bg-surface border-border group-hover:border-primary/30 group-hover:bg-primary/10'}`}>
-                          <ImageIcon className={`w-4 h-4 transition-colors ${isImageGeneration ? 'text-white' : 'text-subtext group-hover:text-primary'}`} />
+                        <div className="p-3 bg-secondary/30 border-b border-border/50 mb-1">
+                          <h3 className="text-xs font-bold text-subtext uppercase tracking-wider flex items-center gap-2">
+                            <Sparkles className="w-3 h-3 text-primary" /> AI Magic Tools
+                          </h3>
                         </div>
-                        <div className="flex-1">
-                          <span className={`text-sm font-medium transition-colors ${isImageGeneration ? 'text-primary' : 'text-maintext group-hover:text-primary'}`}>
-                            Generate Image {isImageGeneration && '(Active)'}
-                          </span>
-                          <p className="text-[10px] text-subtext leading-none mt-0.5">Create visuals from text</p>
-                        </div>
-                      </button>
+                        <div className="p-1.5 space-y-0.5">
+                          <button
+                            onClick={() => {
+                              setIsToolsMenuOpen(false);
+                              setIsImageGeneration(!isImageGeneration);
+                              setIsDeepSearch(false);
+                              setIsAudioConvertMode(false);
+                              if (!isImageGeneration) toast.success("Image Generation Mode Enabled");
+                            }}
+                            className={`w-full text-left px-3 py-3 flex items-center gap-3 rounded-xl transition-all group cursor-pointer ${isImageGeneration ? 'bg-primary/10' : 'hover:bg-primary/5'}`}
+                          >
+                            <div className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors shrink-0 ${isImageGeneration ? 'bg-primary border-primary text-white' : 'bg-surface border-border group-hover:border-primary/30 group-hover:bg-primary/10'}`}>
+                              <ImageIcon className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1">
+                              <span className="text-sm font-bold text-maintext block">Generate Image</span>
+                              <span className="text-[10px] text-subtext">Create beautiful visuals from text</span>
+                            </div>
+                          </button>
 
-                      <button
-                        onClick={() => {
-                          setIsToolsMenuOpen(false);
-                          setIsDeepSearch(!isDeepSearch);
-                          setIsImageGeneration(false);
-                          setIsAudioConvertMode(false);
-                          if (!isDeepSearch) toast.success("Deep Search Mode Enabled");
-                        }}
-                        className={`w-full text-left px-3 py-2.5 flex items-center gap-3 rounded-xl transition-all group cursor-pointer ${isDeepSearch ? 'bg-primary/10 border border-primary/20' : 'hover:bg-primary/5'}`}
-                      >
-                        <div className={`w-8 h-8 rounded-full border flex items-center justify-center transition-colors shrink-0 ${isDeepSearch ? 'bg-primary border-primary text-white' : 'bg-surface border-border group-hover:border-primary/30 group-hover:bg-primary/10'}`}>
-                          <Search className={`w-4 h-4 transition-colors ${isDeepSearch ? 'text-white' : 'text-subtext group-hover:text-primary'}`} />
-                        </div>
-                        <div className="flex-1">
-                          <span className={`text-sm font-medium transition-colors ${isDeepSearch ? 'text-primary' : 'text-maintext group-hover:text-primary'}`}>
-                            Deep Search {isDeepSearch && '(Active)'}
-                          </span>
-                          <p className="text-[10px] text-subtext leading-none mt-0.5">Complex research & analysis</p>
-                        </div>
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                          <button
+                            onClick={() => {
+                              setIsToolsMenuOpen(false);
+                              setIsDeepSearch(!isDeepSearch);
+                              setIsImageGeneration(false);
+                              setIsAudioConvertMode(false);
+                              if (!isDeepSearch) toast.success("Deep Search Mode Enabled");
+                            }}
+                            className={`w-full text-left px-3 py-3 flex items-center gap-3 rounded-xl transition-all group cursor-pointer ${isDeepSearch ? 'bg-primary/10' : 'hover:bg-primary/5'}`}
+                          >
+                            <div className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors shrink-0 ${isDeepSearch ? 'bg-primary border-primary text-white' : 'bg-surface border-border group-hover:border-primary/30 group-hover:bg-primary/10'}`}>
+                              <Search className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1">
+                              <span className="text-sm font-bold text-maintext block">Deep Search</span>
+                              <span className="text-[10px] text-subtext">Advanced web research & analysis</span>
+                            </div>
+                          </button>
 
-            <div className="relative flex-1">
+                          <button
+                            onClick={() => {
+                              setIsToolsMenuOpen(false);
+                              setIsAudioConvertMode(!isAudioConvertMode);
+                              setIsDeepSearch(false);
+                              setIsImageGeneration(false);
+                              if (!isAudioConvertMode) toast.success("Convert to Audio Mode Active");
+                            }}
+                            className={`w-full text-left px-3 py-3 flex items-center gap-3 rounded-xl transition-all group cursor-pointer ${isAudioConvertMode ? 'bg-primary/10' : 'hover:bg-primary/5'}`}
+                          >
+                            <div className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors shrink-0 ${isAudioConvertMode ? 'bg-primary border-primary text-white' : 'bg-surface border-border group-hover:border-primary/30 group-hover:bg-primary/10'}`}>
+                              <Headphones className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1">
+                              <span className="text-sm font-bold text-maintext block">Convert to Audio</span>
+                              <span className="text-[10px] text-subtext">Turn documents into speech</span>
+                            </div>
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
 
-              <AnimatePresence>
-                {isDeepSearch && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9, y: 5 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: 5 }}
-                    className="absolute bottom-full left-0 mb-3 flex items-center gap-2.5 px-3 py-1.5 bg-sky-500/10 dark:bg-sky-500/20 border border-sky-500/30 rounded-xl backdrop-blur-md shadow-lg shadow-sky-500/5 z-20 pointer-events-auto"
-                  >
-                    <div className="flex items-center justify-center w-5 h-5 rounded-full bg-sky-500 text-white">
-                      <Search size={10} strokeWidth={3} />
+              {/* Input Area */}
+              <div className="relative flex-1 min-w-0 py-2">
+                <AnimatePresence>
+                  {(isDeepSearch || isImageGeneration || isVoiceMode || isAudioConvertMode) && (
+                    <div className="absolute bottom-full left-0 mb-3 flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto w-full">
+                      {isDeepSearch && (
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-2 px-3 py-1 bg-sky-500/10 text-sky-600 rounded-full text-xs font-bold border border-sky-500/20 backdrop-blur-md">
+                          <Search size={12} strokeWidth={3} /> Deep Search Active
+                          <button onClick={() => setIsDeepSearch(false)} className="ml-1 hover:text-sky-800"><X size={12} /></button>
+                        </motion.div>
+                      )}
+                      {isImageGeneration && (
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-2 px-3 py-1 bg-pink-500/10 text-pink-600 rounded-full text-xs font-bold border border-pink-500/20 backdrop-blur-md">
+                          <ImageIcon size={12} strokeWidth={3} /> Image Gen Active
+                          <button onClick={() => setIsImageGeneration(false)} className="ml-1 hover:text-pink-800"><X size={12} /></button>
+                        </motion.div>
+                      )}
+                      {isVoiceMode && (
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-2 px-3 py-1 bg-blue-500/10 text-blue-600 rounded-full text-xs font-bold border border-blue-500/20 backdrop-blur-md">
+                          <Volume2 size={12} strokeWidth={3} /> Voice Reader Active
+                          <button onClick={() => setIsVoiceMode(false)} className="ml-1 hover:text-blue-800"><X size={12} /></button>
+                        </motion.div>
+                      )}
+                      {isAudioConvertMode && (
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-2 px-3 py-1 bg-indigo-500/10 text-indigo-600 rounded-full text-xs font-bold border border-indigo-500/20 backdrop-blur-md">
+                          <Headphones size={12} strokeWidth={3} /> Audio Convert Active
+                          <button onClick={() => setIsAudioConvertMode(false)} className="ml-1 hover:text-indigo-800"><X size={12} /></button>
+                        </motion.div>
+                      )}
                     </div>
-                    <span className="text-[10px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest">Deep Search Mode Active</span>
-                    <button
-                      type="button"
-                      onClick={() => setIsDeepSearch(false)}
-                      className="ml-1 p-0.5 hover:bg-sky-500/20 rounded-md transition-colors text-sky-600 dark:text-sky-400"
-                    >
-                      <X size={12} />
-                    </button>
-                  </motion.div>
-                )}
-                {isImageGeneration && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9, y: 5 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: 5 }}
-                    className="absolute bottom-full left-0 mb-3 flex items-center gap-2.5 px-3 py-1.5 bg-pink-500/10 dark:bg-pink-500/20 border border-pink-500/30 rounded-xl backdrop-blur-md shadow-lg shadow-pink-500/5 z-20 pointer-events-auto"
-                  >
-                    <div className="flex items-center justify-center w-5 h-5 rounded-full bg-pink-500 text-white">
-                      <ImageIcon size={10} strokeWidth={3} />
-                    </div>
-                    <span className="text-[10px] font-bold text-pink-600 dark:text-pink-400 uppercase tracking-widest">Image Generation Active</span>
-                    <button
-                      type="button"
-                      onClick={() => setIsImageGeneration(false)}
-                      className="ml-1 p-0.5 hover:bg-pink-500/20 rounded-md transition-colors text-pink-600 dark:text-pink-400"
-                    >
-                      <X size={12} />
-                    </button>
-                  </motion.div>
-                )}
-                {isVoiceMode && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9, y: 5 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: 5 }}
-                    className="absolute bottom-full left-0 mb-3 flex items-center gap-2.5 px-3 py-1.5 bg-blue-500/10 dark:bg-blue-500/20 border border-blue-500/30 rounded-xl backdrop-blur-md shadow-lg shadow-blue-500/5 z-20 pointer-events-auto"
-                  >
-                    <div className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-500 text-white">
-                      <Volume2 size={10} strokeWidth={3} />
-                    </div>
-                    <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">Voice Reader Active</span>
-                    <button
-                      type="button"
-                      onClick={() => setIsVoiceMode(false)}
-                      className="ml-1 p-0.5 hover:bg-blue-500/20 rounded-md transition-colors text-blue-600 dark:text-blue-400"
-                    >
-                      <X size={12} />
-                    </button>
-                  </motion.div>
-                )}
-                {isAudioConvertMode && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9, y: 5 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: 5 }}
-                    className="absolute bottom-full left-0 mb-3 flex items-center gap-2.5 px-3 py-1.5 bg-indigo-500/10 dark:bg-indigo-500/20 border border-indigo-500/30 rounded-xl backdrop-blur-md shadow-lg shadow-indigo-500/5 z-20 pointer-events-auto"
-                  >
-                    <div className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-500 text-white">
-                      <Headphones size={10} strokeWidth={3} />
-                    </div>
-                    <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Convert to Audio Active</span>
-                    <button
-                      type="button"
-                      onClick={() => setIsAudioConvertMode(false)}
-                      className="ml-1 p-0.5 hover:bg-indigo-500/20 rounded-md transition-colors text-indigo-600 dark:text-indigo-400"
-                    >
-                      <X size={12} />
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              <textarea
-                ref={inputRef}
-                value={inputValue}
-                onChange={(e) => {
-                  setInputValue(e.target.value);
-                  e.target.style.height = 'auto';
-                  e.target.style.height = `${e.target.scrollHeight}px`;
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    // Allow send if text exists OR files exist
-                    if (inputValue.trim() || selectedFiles.length > 0) {
-                      handleSendMessage(e);
+                  )}
+                </AnimatePresence>
+
+                <textarea
+                  ref={inputRef}
+                  value={inputValue}
+                  onChange={(e) => {
+                    setInputValue(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = `${e.target.scrollHeight}px`;
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      if (inputValue.trim() || selectedFiles.length > 0) {
+                        handleSendMessage(e);
+                      }
                     }
-                  }
-                }}
-                onPaste={handlePaste}
-                placeholder={isAudioConvertMode ? "Enter text or paste a document to convert to audio..." : "Ask AISA..."}
-                rows={1}
-                className={`w-full bg-white/70 dark:bg-black/40 backdrop-blur-2xl border rounded-[2rem] py-4 md:py-5 pl-14 sm:pl-16 text-maintext placeholder-subtext/50 focus:outline-none shadow-2xl transition-all resize-none overflow-y-auto custom-scrollbar border-black/5 dark:border-white/10
-                    ${isDeepSearch ? 'border-sky-500/50 ring-4 ring-sky-500/10' :
-                    isAudioConvertMode ? 'border-indigo-500/50 ring-4 ring-indigo-500/10' :
-                      'group-focus-within:border-primary/30 group-focus-within:ring-4 group-focus-within:ring-primary/5'} 
-                    ${personalizations?.personalization?.fontStyle === 'Serif' ? 'font-serif' :
+                  }}
+                  onPaste={handlePaste}
+                  placeholder={isAudioConvertMode ? "Enter text to convert..." : "Ask AISA anything..."}
+                  rows={1}
+                  className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none p-0 text-maintext placeholder-subtext/50 resize-none overflow-y-auto custom-scrollbar leading-relaxed ${personalizations?.personalization?.fontStyle === 'Serif' ? 'font-serif' :
                     personalizations?.personalization?.fontStyle === 'Mono' ? 'font-mono' :
                       personalizations?.personalization?.fontStyle === 'Rounded' ? 'font-rounded' :
-                        personalizations?.personalization?.fontStyle === 'Sans' ? 'font-sans' : ''}
-                    aisa-scalable-text
-                    ${inputValue.trim() ? 'pr-20 md:pr-24' : 'pr-32 md:pr-40'}`}
-                style={{ minHeight: '40px', maxHeight: '150px' }}
-              />
-              <div className="absolute right-2 inset-y-0 flex items-center gap-0 sm:gap-1 z-10">
+                        personalizations?.personalization?.fontStyle === 'Sans' ? 'font-sans' : ''} aisa-scalable-text`}
+                  style={{ minHeight: '24px', maxHeight: '150px' }}
+                />
+              </div>
+
+              {/* Right Actions Group */}
+              <div className="flex items-center gap-1.5 pb-1 pr-1">
                 {isListening && (
-                  <motion.div
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 rounded-full border border-red-500/20 cursor-pointer hover:bg-red-500/20 transition-colors group"
-                    onClick={handleVoiceInput}
-                  >
-                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse group-hover:scale-110 transition-transform" />
-                    <span className="text-[10px] font-bold text-red-500 uppercase tracking-tight">Recording...</span>
-                  </motion.div>
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 rounded-full border border-red-500/20 mr-2">
+                    <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
+                    <span className="text-[10px] font-bold text-red-600 uppercase">REC</span>
+                  </div>
                 )}
+
                 {!isListening && (
                   <>
                     {getAgentCapabilities(activeAgent.agentName, activeAgent.category).canVideo && !inputValue.trim() && (
                       <button
                         type="button"
                         onClick={() => setIsLiveMode(true)}
-                        className="p-2 sm:p-2.5 rounded-full text-primary hover:bg-primary/10 hover:border-primary/20 transition-all flex items-center justify-center border border-transparent"
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-subtext hover:text-primary hover:bg-secondary transition-colors"
                         title="Live Video Call"
                       >
                         <Video className="w-5 h-5" />
@@ -3724,7 +3673,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                       <button
                         type="button"
                         onClick={handleVoiceInput}
-                        className={`p-2 sm:p-2.5 rounded-full transition-all flex items-center justify-center border border-transparent ${isListening ? 'bg-primary text-white animate-pulse shadow-md shadow-primary/30' : 'text-primary hover:bg-primary/10 hover:border-primary/20'}`}
+                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isListening ? 'bg-red-500 text-white' : 'text-subtext hover:text-primary hover:bg-secondary'}`}
                         title="Voice Input"
                       >
                         <Mic className="w-5 h-5" />
@@ -3733,34 +3682,26 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                   </>
                 )}
 
-                {/* Send / Stop Button */}
                 {isLoading ? (
                   <button
                     type="button"
                     onClick={() => {
-                      console.log('Stop button clicked');
-                      if (abortControllerRef.current) {
-                        abortControllerRef.current.abort();
-                      }
-                      // Immediately stop loading state for instant UI feedback
+                      if (abortControllerRef.current) abortControllerRef.current.abort();
                       setIsLoading(false);
                       isSendingRef.current = false;
                     }}
-                    className="p-2 sm:p-2.5 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors shadow-md flex items-center justify-center"
-                    title="Stop generation"
+                    className="w-11 h-11 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg hover:bg-red-600 hover:scale-105 transition-all"
                   >
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <rect x="6" y="6" width="8" height="8" />
-                    </svg>
+                    <div className="w-3 h-3 bg-white rounded-sm" />
                   </button>
                 ) : (
                   <>
-                    {messages.length > 1 && (
+                    {messages.length > 1 && !inputValue.trim() && (
                       <button
                         type="button"
                         onClick={handleUndo}
-                        className="p-2 sm:p-2.5 rounded-full text-subtext hover:bg-card hover:text-primary transition-all flex items-center justify-center border border-transparent"
-                        title="Undo last message"
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-subtext hover:text-primary hover:bg-secondary transition-colors"
+                        title="Undo"
                       >
                         <Undo2 className="w-5 h-5" />
                       </button>
@@ -3768,109 +3709,109 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                     <button
                       type="submit"
                       disabled={(!inputValue.trim() && filePreviews.length === 0) || isLoading}
-                      className="p-3 sm:p-3.5 rounded-full bg-gradient-to-r from-[#5555ff] to-[#7777ff] text-white hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-primary/30 flex items-center justify-center border border-white/20"
+                      className={`w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-lg ${(!inputValue.trim() && filePreviews.length === 0) ? 'bg-secondary text-subtext/50 shadow-none' : 'bg-gradient-to-tr from-primary to-indigo-600 text-white shadow-primary/30 hover:scale-105 hover:shadow-primary/40'}`}
                     >
-                      <Send className="w-5 h-5" />
+                      <Send className="w-5 h-5 ml-0.5" />
                     </button>
                   </>
                 )}
               </div>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
+
+        {/* Live AI Modal */}
+        <AnimatePresence>
+          {isLiveMode && (
+            <LiveAI
+              onClose={() => setIsLiveMode(false)}
+              language={currentLang}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Feedback Modal */}
+        <Transition appear show={feedbackOpen} as={Fragment}>
+          <Dialog as="div" className="relative z-50" onClose={() => setFeedbackOpen(false)}>
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0"
+              enterTo="opacity-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100"
+              leaveTo="opacity-0"
+            >
+              <div className="fixed inset-0 bg-black/25 backdrop-blur-sm" />
+            </Transition.Child>
+
+            <div className="fixed inset-0 overflow-y-auto">
+              <div className="flex min-h-full items-center justify-center p-4 text-center">
+                <Transition.Child
+                  as={Fragment}
+                  enter="ease-out duration-300"
+                  enterFrom="opacity-0 scale-95"
+                  enterTo="opacity-100 scale-100"
+                  leave="ease-in duration-200"
+                  leaveFrom="opacity-100 scale-100"
+                  leaveTo="opacity-0 scale-95"
+                >
+                  <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-surface p-6 text-left align-middle shadow-xl transition-all border border-border">
+                    <Dialog.Title
+                      as="h3"
+                      className="text-lg font-medium leading-6 text-maintext flex justify-between items-center"
+                    >
+                      Share feedback
+                      <button onClick={() => setFeedbackOpen(false)} className="text-subtext hover:text-maintext">
+                        <X className="w-5 h-5" />
+                      </button>
+                    </Dialog.Title>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {["Incorrect or incomplete", "Not what I asked for", "Slow or buggy", "Style or tone", "Safety or legal concern", "Other"].map(cat => (
+                        <button
+                          key={cat}
+                          onClick={() => toggleFeedbackCategory(cat)}
+                          className={`text-xs px-3 py-2 rounded-full border transition-colors ${feedbackCategory.includes(cat)
+                            ? 'bg-primary text-white border-primary'
+                            : 'bg-transparent text-subtext border-border hover:border-maintext'
+                            }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="mt-4">
+                      <textarea
+                        className="w-full bg-black/5 dark:bg-white/5 rounded-xl p-3 text-sm focus:outline-none border border-transparent focus:border-border text-maintext placeholder-subtext resize-none"
+                        rows={3}
+                        placeholder="Share details (optional)"
+                        value={feedbackDetails}
+                        onChange={(e) => setFeedbackDetails(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="mt-4 text-[10px] text-subtext leading-tight">
+                      Your conversation will be included with your feedback to help improve the AI.
+                    </div>
+
+                    <div className="mt-6 flex justify-end">
+                      <button
+                        type="button"
+                        className="inline-flex justify-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/75"
+                        onClick={submitFeedback}
+                      >
+                        Submit
+                      </button>
+                    </div>
+                  </Dialog.Panel>
+                </Transition.Child>
+              </div>
+            </div>
+          </Dialog>
+        </Transition>
       </div>
     </div>
-      {/* Live AI Modal */ }
-  <AnimatePresence>
-    {isLiveMode && (
-      <LiveAI
-        onClose={() => setIsLiveMode(false)}
-        language={currentLang}
-      />
-    )}
-  </AnimatePresence>
-
-  {/* Feedback Modal */ }
-  <Transition appear show={feedbackOpen} as={Fragment}>
-    <Dialog as="div" className="relative z-50" onClose={() => setFeedbackOpen(false)}>
-      <Transition.Child
-        as={Fragment}
-        enter="ease-out duration-300"
-        enterFrom="opacity-0"
-        enterTo="opacity-100"
-        leave="ease-in duration-200"
-        leaveFrom="opacity-100"
-        leaveTo="opacity-0"
-      >
-        <div className="fixed inset-0 bg-black/25 backdrop-blur-sm" />
-      </Transition.Child>
-
-      <div className="fixed inset-0 overflow-y-auto">
-        <div className="flex min-h-full items-center justify-center p-4 text-center">
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0 scale-95"
-            enterTo="opacity-100 scale-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100 scale-100"
-            leaveTo="opacity-0 scale-95"
-          >
-            <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-surface p-6 text-left align-middle shadow-xl transition-all border border-border">
-              <Dialog.Title
-                as="h3"
-                className="text-lg font-medium leading-6 text-maintext flex justify-between items-center"
-              >
-                Share feedback
-                <button onClick={() => setFeedbackOpen(false)} className="text-subtext hover:text-maintext">
-                  <X className="w-5 h-5" />
-                </button>
-              </Dialog.Title>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {["Incorrect or incomplete", "Not what I asked for", "Slow or buggy", "Style or tone", "Safety or legal concern", "Other"].map(cat => (
-                  <button
-                    key={cat}
-                    onClick={() => toggleFeedbackCategory(cat)}
-                    className={`text-xs px-3 py-2 rounded-full border transition-colors ${feedbackCategory.includes(cat)
-                      ? 'bg-primary text-white border-primary'
-                      : 'bg-transparent text-subtext border-border hover:border-maintext'
-                      }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-
-              <div className="mt-4">
-                <textarea
-                  className="w-full bg-black/5 dark:bg-white/5 rounded-xl p-3 text-sm focus:outline-none border border-transparent focus:border-border text-maintext placeholder-subtext resize-none"
-                  rows={3}
-                  placeholder="Share details (optional)"
-                  value={feedbackDetails}
-                  onChange={(e) => setFeedbackDetails(e.target.value)}
-                />
-              </div>
-
-              <div className="mt-4 text-[10px] text-subtext leading-tight">
-                Your conversation will be included with your feedback to help improve the AI.
-              </div>
-
-              <div className="mt-6 flex justify-end">
-                <button
-                  type="button"
-                  className="inline-flex justify-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/75"
-                  onClick={submitFeedback}
-                >
-                  Submit
-                </button>
-              </div>
-            </Dialog.Panel>
-          </Transition.Child>
-        </div>
-      </div>
-    </Dialog>
-  </Transition>
-    </div >
   );
 };
 
