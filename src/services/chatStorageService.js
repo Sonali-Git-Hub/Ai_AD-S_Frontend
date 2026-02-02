@@ -78,6 +78,11 @@ export const chatStorageService = {
   async getSessions() {
     try {
       const token = getUserData()?.token || localStorage.getItem("token");
+
+      if (!token || token === 'undefined' || token === 'null') {
+        throw new Error("No token");
+      }
+
       // Try Backend First
       const response = await fetch(`${API_BASE_URL}/chat`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -85,7 +90,9 @@ export const chatStorageService = {
       if (!response.ok) throw new Error("Backend failed");
       return await response.json();
     } catch (error) {
-      console.warn("Using IndexedDB storage fallback.");
+      if (error.message !== "No token") {
+        console.warn("Using IndexedDB storage fallback.");
+      }
       const sessions = [];
       const keys = await idbGetAllKeys();
 
@@ -108,6 +115,11 @@ export const chatStorageService = {
     if (sessionId === "new") return [];
     try {
       const token = getUserData()?.token || localStorage.getItem("token");
+
+      if (!token || token === 'undefined' || token === 'null') {
+        throw new Error("No token");
+      }
+
       const response = await fetch(`${API_BASE_URL}/chat/${sessionId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -124,7 +136,9 @@ export const chatStorageService = {
       console.log(`[STORAGE] Messages array length: ${msgs.length}`);
       return msgs;
     } catch (error) {
-      console.warn("Backend history fetch failed, using local:", error);
+      if (error.message !== "No token") {
+        console.warn("Backend history fetch failed, using local:", error);
+      }
       const local = await idbGet(`chat_history_${sessionId}`);
       return local || [];
     }
@@ -160,12 +174,13 @@ export const chatStorageService = {
     // 2. Try to sync with Backend
     try {
       const token = getUserData()?.token;
-      if (!token) throw new Error("No token");
+      if (!token) return; // Silent return for guests
+
       await axios.post(`${API_BASE_URL}/chat/${sessionId}/message`, { message, title }, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
     } catch (error) {
-      console.warn("Backend save failed (will retry next load via local sync logic maybe?):", error);
+      console.warn("Backend save failed:", error);
     }
   },
 

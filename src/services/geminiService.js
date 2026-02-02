@@ -5,6 +5,10 @@ import { getUserData } from "../userStore/userData";
 export const generateChatResponse = async (history, currentMessage, systemInstruction, attachments, language, abortSignal = null, mode = null) => {
     try {
         const token = getUserData()?.token;
+        const headers = {};
+        if (token && token !== 'undefined' && token !== 'null') {
+            headers.Authorization = `Bearer ${token}`;
+        }
 
         // Enhanced system instruction based on user language
         const langInstruction = language ? `You are a helpful AI assistant. Please respond to the user in ${language}. ` : '';
@@ -45,9 +49,7 @@ export const generateChatResponse = async (history, currentMessage, systemInstru
         };
 
         const result = await axios.post(apis.chatAgent, payload, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            },
+            headers: headers,
             signal: abortSignal
         });
 
