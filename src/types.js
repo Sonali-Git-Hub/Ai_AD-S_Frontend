@@ -58,7 +58,7 @@ export const AppRoute = {
 
 // API Base URL
 // const API = 'http://localhost:8080/api';
-const API = 'https://aisa-backendg-743928421487.europe-west1.run.app/api';
+const API = 'https://aisa-backendg-743928421487.asia-south1.run.app/api';
 
 const apis = {
   resetPassword: `${API}/auth/reset-password-otp`,
