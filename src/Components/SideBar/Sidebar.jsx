@@ -206,18 +206,36 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const handleRename = async (e, sessionId) => {
     e.stopPropagation();
-    if (newTitle.trim()) {
-      // Optimistic update
-      setSessions(prev => prev.map(s =>
-        s.sessionId === sessionId
-          ? { ...s, title: newTitle, lastModified: Date.now() }
-          : s
-      ).sort((a, b) => b.lastModified - a.lastModified)); // Re-sort immediately
-
-      await chatStorageService.updateSessionTitle(sessionId, newTitle);
-      toast.success("Chat renamed");
+    if (!newTitle.trim()) {
+      setEditingSessionId(null);
+      return;
     }
-    setEditingSessionId(null);
+
+    const oldSessions = [...sessions];
+    const renamedTitle = newTitle.trim();
+
+    // Optimistic update
+    setSessions(prev => prev.map(s =>
+      s.sessionId === sessionId
+        ? { ...s, title: renamedTitle, lastModified: Date.now() }
+        : s
+    ).sort((a, b) => b.lastModified - a.lastModified));
+
+    try {
+      const success = await chatStorageService.updateSessionTitle(sessionId, renamedTitle);
+      if (success) {
+        toast.success("Chat renamed");
+      } else {
+        throw new Error("Failed to sync rename to server");
+      }
+    } catch (err) {
+      console.error("Rename failed:", err);
+      toast.error("Could not rename chat on server");
+      // Revert optimistic update
+      setSessions(oldSessions);
+    } finally {
+      setEditingSessionId(null);
+    }
   };
 
   if (notifiyTgl.notify) {

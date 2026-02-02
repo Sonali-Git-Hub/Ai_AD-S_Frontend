@@ -3353,7 +3353,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
               </div>
             )}
 
-            <form onSubmit={handleSendMessage} className="relative w-full max-w-2xl mx-auto flex items-end gap-2 bg-white dark:bg-[#0a0a0a] border border-black/5 dark:border-white/10 rounded-2xl p-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.15)] transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.1)] hover:border-primary/20 backdrop-blur-3xl px-2">
+            <form onSubmit={handleSendMessage} className="relative w-full max-w-2xl mx-auto flex items-end gap-1.5 sm:gap-2 bg-white dark:bg-[#0a0a0a] border border-black/5 dark:border-white/10 rounded-2xl p-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.15)] transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.1)] hover:border-primary/20 backdrop-blur-3xl px-2">
               <input
                 id="file-upload"
                 type="file"
@@ -3396,7 +3396,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
               />
 
               {/* Left Actions Group */}
-              <div className="flex items-center gap-1 pb-2 pl-1">
+              <div className="flex items-center gap-1 pl-1 pb-1.5">
                 <AnimatePresence>
                   {isAttachMenuOpen && (
                     <motion.div
@@ -3455,7 +3455,6 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                   <Plus className="w-5 h-5" />
                 </button>
 
-                {/* Tools Button */}
                 <div className="relative">
                   <button
                     type="button"
@@ -3606,7 +3605,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
               </div>
 
               {/* Right Actions Group */}
-              <div className="flex items-center gap-1.5 pb-2 pr-1">
+              <div className="flex items-center gap-1.5 sm:gap-2 pr-1 pb-1.5">
                 {isListening && (
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 rounded-full border border-red-500/20 mr-2">
                     <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
@@ -3653,7 +3652,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                     <div className="w-3 h-3 bg-white rounded-sm" />
                   </button>
                 ) : (
-                  <>
+                  <div className="flex items-center gap-1.5">
                     {messages.length > 1 && !inputValue.trim() && (
                       <button
                         type="button"
@@ -3671,7 +3670,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                     >
                       <Send className="w-5 h-5 ml-0.5" />
                     </button>
-                  </>
+                  </div>
                 )}
               </div>
             </form>

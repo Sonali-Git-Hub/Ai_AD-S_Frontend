@@ -61,7 +61,7 @@ const API = 'http://localhost:8080/api';
 // const API = 'https://aisa-backend-743928421487.asia-south1.run.app/api';
 
 const apis = {
-  resetPassword: `${API}/auth/reset-password`,
+  resetPassword: `${API}/auth/reset-password-otp`,
   user: `${API}/user`,
   profile: `${API}/user/profile`,
   getPayments: `${API}/user/payments`,

@@ -22,6 +22,7 @@ import AboutAISA from '../Components/AboutAISA';
 import { useLanguage } from '../context/LanguageContext';
 
 import ProfileSettingsDropdown from '../Components/ProfileSettingsDropdown/ProfileSettingsDropdown';
+import ThemeToggle from '../Components/ThemeToggle';
 
 const Landing = () => {
     const { t } = useLanguage();
@@ -79,47 +80,73 @@ const Landing = () => {
     const { theme, setTheme } = useTheme();
     const btnClass = "px-8 py-4 bg-surface border border-border rounded-2xl font-bold text-lg text-maintext hover:bg-secondary transition-all duration-300 flex items-center justify-center gap-2";
 
+    // Animation Variants
+    const container = {
+        hidden: { opacity: 0 },
+        show: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.2
+            }
+        }
+    };
+
+    const item = {
+        hidden: { opacity: 0, y: 20 },
+        show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
+    };
+
     return (
         <div className="min-h-screen flex flex-col relative overflow-hidden bg-white dark:bg-slate-950">
             {/* Background Image Layer with reduced opacity */}
-            <div
-                className="absolute inset-0 pointer-events-none opacity-40 dark:opacity-20"
+            <motion.div
+                initial={{ scale: 1 }}
+                animate={{ scale: 1.1 }}
+                transition={{
+                    duration: 20,
+                    repeat: Infinity,
+                    repeatType: "reverse",
+                    ease: "linear"
+                }}
+                className="absolute inset-0 pointer-events-none opacity-40 dark:opacity-20 z-0"
                 style={{
                     backgroundImage: "url('/hero-bg.png')",
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
-                    backgroundAttachment: 'fixed'
                 }}
             />
 
             {/* Background Overlay - Balanced Gradient (Top & Bottom) */}
-            <div className="absolute inset-0 bg-gradient-to-b from-blue-100/40 via-transparent to-blue-100/40 dark:from-slate-950/80 dark:via-transparent dark:to-slate-950/80 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-b from-blue-100/40 via-transparent to-blue-100/40 dark:from-slate-950/80 dark:via-transparent dark:to-slate-950/80 pointer-events-none z-0" />
 
             {/* Header */}
             <header className="relative z-10 px-4 py-4 md:px-6 md:py-6 flex justify-between items-center max-w-7xl mx-auto w-full">
-                <div className="relative flex items-center gap-2 md:gap-3 cursor-pointer group">
-                    <img src="/logo/Logo.svg" alt="Logo" className="w-12 h-12 md:w-20 md:h-20 object-contain" />
-                    {/* Brand text removed as per user request */}
-                </div>
+                <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="relative flex items-center gap-2 md:gap-3 cursor-pointer group"
+                >
+                    <img src="/logo/Logo.svg" alt="Logo" className="w-12 h-12 md:w-20 md:h-20 object-contain hover:rotate-12 transition-transform duration-300" />
+                </motion.div>
 
-
-
-                <div className="flex items-center gap-2 md:gap-4 relative">
-
-
+                <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex items-center gap-2 md:gap-4 relative"
+                >
                     {/* Theme Toggle */}
-                    <button
-                        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                        className="p-1.5 md:p-2 rounded-full bg-white/50 dark:bg-black/50 border border-border text-subtext hover:text-primary hover:border-primary/50 transition-all shadow-sm backdrop-blur-sm"
-                    >
-                        {theme === 'dark' ? <Sun className="w-4 h-4 md:w-5 md:h-5 text-orange-400" /> : <Moon className="w-4 h-4 md:w-5 md:h-5" />}
-                    </button>
+                    <ThemeToggle />
 
                     {user ? (
                         <div className="relative">
-                            <button onClick={() => setIsProfileSettingsOpen(!isProfileSettingsOpen)}>
-                                <CircleUser className='h-6 w-6 md:h-7 md:w-7 text-maintext' />
-                            </button>
+                            <motion.button
+                                whileHover={{ scale: 1.2 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => setIsProfileSettingsOpen(!isProfileSettingsOpen)}
+                                className="relative flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full transition-all group"
+                            >
+                                <CircleUser className='h-6 w-6 md:h-7 md:w-7 text-primary/80 group-hover:text-primary transition-colors' />
+                            </motion.button>
                             <AnimatePresence>
                                 {isProfileSettingsOpen && (
                                     <ProfileSettingsDropdown
@@ -133,36 +160,32 @@ const Landing = () => {
                             </AnimatePresence>
                         </div>
                     ) : (
-                        <div className="flex gap-2 md:gap-4 items-center">
+                        <div className="flex gap-4 items-center">
                             <motion.button
-                                whileHover={{ scale: 1.05, color: "#2563eb" }} // blue-600
+                                whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => navigate("/login")}
-                                className="text-sm md:text-base text-subtext font-medium transition-colors whitespace-nowrap px-3 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                className="flex items-center gap-2 text-sm md:text-base text-slate-700 dark:text-slate-200 font-bold px-3 py-1.5 rounded-xl hover:bg-primary/5 transition-all"
                             >
-                                {t('logIn')}
-                            </motion.button>
-
-
-                            <motion.button
-                                whileHover={{ scale: 1.05, boxShadow: "0 10px 25px -5px rgba(37, 99, 235, 0.4)" }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => navigate("/signup")}
-                                className="bg-primary text-white px-4 py-2 md:px-5 md:py-2 text-sm md:text-base rounded-full font-semibold transition-all shadow-lg shadow-primary/20 whitespace-nowrap"
-                            >
-                                {t('getStarted')}
+                                <span>{t('logIn')}</span>
+                                <div className="flex items-center justify-center">
+                                    <CircleUser className="w-5 h-5 md:w-6 md:h-6 text-primary/70 group-hover:text-primary" />
+                                </div>
                             </motion.button>
                         </div>
                     )}
-                </div>
+                </motion.div>
             </header>
 
             {/* Hero Section */}
-            <main className="flex-1 flex flex-col items-center justify-center text-center px-4 relative z-10 py-20">
-
+            <motion.main
+                variants={container}
+                initial="hidden"
+                animate="show"
+                className="flex-1 flex flex-col items-center justify-center text-center px-4 relative z-10 py-20"
+            >
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    variants={item}
                     className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/60 dark:bg-black/40 border border-blue-200 dark:border-blue-900 text-sm text-black dark:text-white mb-8 backdrop-blur-sm"
                 >
                     <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
@@ -170,45 +193,39 @@ const Landing = () => {
                 </motion.div>
 
                 <motion.h1
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
+                    variants={item}
                     className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-tight text-black dark:text-gray-100"
                 >
                     {t('heroTitle')}
                 </motion.h1>
 
                 <motion.p
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
+                    variants={item}
                     className="text-lg text-black dark:text-gray-400 max-w-2xl mb-10 leading-relaxed font-medium"
                 >
                     {t('heroSubtitle')}
                 </motion.p>
 
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
+                    variants={item}
                     className="flex flex-col sm:flex-row gap-4 w-full justify-center max-w-2xl"
                 >
-
                     <motion.button
-                        whileHover={{ y: -2 }}
+                        whileHover={{ y: -5, scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => navigate("/dashboard/chat/new")}
-                        className="px-8 py-4 bg-primary rounded-2xl font-bold text-lg text-white shadow-xl shadow-primary/30 hover:translate-y-[-2px] transition-all duration-300 flex items-center justify-center gap-2"
+                        className="px-8 py-4 bg-primary rounded-2xl font-bold text-lg text-white shadow-xl shadow-primary/30 transition-all duration-300 flex items-center justify-center gap-2 group"
                     >
                         {t('exploreAisa')}
+                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                     </motion.button >
 
                     {!user && (
                         <motion.button
-                            whileHover={{ y: -2 }}
+                            whileHover={{ y: -5, scale: 1.02, backgroundColor: "rgba(255,255,255,0.8)" }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => navigate("/login")}
-                            className="px-8 py-4 bg-white/60 dark:bg-slate-900/40 border border-border rounded-2xl font-bold text-lg text-maintext hover:bg-white/80 dark:hover:bg-slate-900/60 transition-all duration-300 backdrop-blur-sm"
+                            className="px-8 py-4 bg-white/60 dark:bg-slate-900/40 border border-border rounded-2xl font-bold text-lg text-maintext transition-all duration-300 backdrop-blur-sm"
                         >
                             {t('existingUser')}
                         </motion.button>
@@ -216,7 +233,10 @@ const Landing = () => {
                 </motion.div >
 
                 {/* Features Preview */}
-                < div className="mt-16 md:mt-24 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl w-full text-left" >
+                <motion.div
+                    variants={container}
+                    className="mt-16 md:mt-24 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl w-full text-left"
+                >
                     {
                         [
                             {
@@ -240,12 +260,9 @@ const Landing = () => {
                         ].map((feature, i) => (
                             <motion.div
                                 key={i}
-                                initial={{ opacity: 0, y: 30 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: feature.delay, duration: 0.5 }}
-                                whileHover={{ y: -10, scale: 1.02 }}
-                                className="p-6 rounded-3xl bg-white/50 dark:bg-[#161B2E] border border-white/50 dark:border-white/5 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all group backdrop-blur-sm cursor-default"
+                                variants={item}
+                                whileHover={{ y: -10, scale: 1.02, borderColor: "rgba(59, 130, 246, 0.4)" }}
+                                className="p-6 rounded-3xl bg-white/50 dark:bg-[#161B2E] border border-white/50 dark:border-white/5 shadow-sm hover:shadow-xl transition-all group backdrop-blur-sm cursor-default"
                             >
                                 <motion.div
                                     animate={{ y: [0, -5, 0] }}
@@ -254,18 +271,24 @@ const Landing = () => {
                                 >
                                     <img src={feature.img} alt={feature.title} className="w-full h-full object-contain drop-shadow-md" />
                                 </motion.div>
-                                <h3 className="text-xl font-bold mb-2 text-black dark:text-white">{feature.title}</h3>
+                                <h3 className="text-xl font-bold mb-2 text-black dark:text-white group-hover:text-primary transition-colors">{feature.title}</h3>
                                 <p className="text-black dark:text-white leading-relaxed">
                                     {feature.desc}
                                 </p>
                             </motion.div>
                         ))
                     }
-                </div >
-            </main >
+                </motion.div >
+            </motion.main >
 
             {/* Footer Section */}
-            < footer className="w-full bg-white/40 dark:bg-[#0B0F19] border-t border-white/20 dark:border-white/5 mt-20 relative z-10 backdrop-blur-xl rounded-t-[3rem] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] overflow-hidden" >
+            < motion.footer
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 1, ease: "easeOut" }}
+                className="w-full bg-white/40 dark:bg-[#0B0F19] border-t border-white/20 dark:border-white/5 mt-20 relative z-10 backdrop-blur-xl rounded-t-[3rem] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] overflow-hidden"
+            >
                 <div className="absolute inset-0 bg-gradient-to-t from-blue-50/50 to-transparent dark:from-slate-900/40 pointer-events-none" />
                 <div className="max-w-6xl mx-auto px-6 pt-20 pb-10 relative z-10">
                     <div className="flex flex-col lg:flex-row justify-center gap-10 lg:gap-20 mb-12">
@@ -380,7 +403,7 @@ const Landing = () => {
                         </div>
                     </div>
                 </div>
-            </footer >
+            </motion.footer >
 
             {/* FAQ Modal */}
             {

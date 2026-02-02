@@ -1,145 +1,196 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Mail, CheckCircle, ArrowLeft, AlertCircle, Pencil } from 'lucide-react';
+import { Mail, CheckCircle, ArrowLeft, AlertCircle, Pencil, ArrowRight } from 'lucide-react';
 import { AppRoute, apis } from '../types';
-import { apiService } from '../services/apiService';
 import axios from 'axios';
-import { getUserData, setUserData } from '../userStore/userData';
-
+import { getUserData, setUserData, userData as userDataAtom } from '../userStore/userData';
+import { useSetRecoilState } from 'recoil';
+import toast from 'react-hot-toast';
+import { useLanguage } from '../context/LanguageContext';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function VerificationForm() {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const { t } = useLanguage();
+    const setUserRecoil = useSetRecoilState(userDataAtom);
+
     const [verificationCode, setVerificationCode] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [resendLoading, setResendLoading] = useState(false);
-    const [resendMessage, setResendMessage] = useState('');
 
-    // const [formData, setFormData] = useState({ email: Cookies.get("email"), })
-    const email = getUserData("user").email
-    const navigator = useNavigate()
+    // Safety check for user data
+    const user = getUserData();
+    const email = user?.email || "";
+
+    useEffect(() => {
+        if (!email) {
+            toast.error("User session not found. Please sign up again.");
+            navigate(AppRoute.SIGNUP);
+        }
+    }, [email, navigate]);
+
     const handleVerify = async (e) => {
         e.preventDefault();
-        axios.post(apis.emailVerificationApi, { code: verificationCode, email }).then((res) => {
-            console.log(res);
-            setUserData(res.data)
-            navigator(AppRoute.DASHBOARD, { state: location.state })
+        if (verificationCode.length !== 6) {
+            setError("Please enter a 6-digit code.");
+            return;
+        }
 
-        }).catch((err) => {
-            console.log(err);
-            setError(err.message || 'Verification failed');
+        setLoading(true);
+        setError('');
 
-        }).finally(() => {
+        try {
+            const res = await axios.post(apis.emailVerificationApi, { code: verificationCode, email });
+            const finalData = setUserData(res.data);
+            setUserRecoil({ user: finalData });
 
-        })
-
+            toast.success("Email verified successfully!");
+            navigate(AppRoute.DASHBOARD, { state: location.state });
+        } catch (err) {
+            console.error("Verification Error:", err);
+            setError(err.response?.data?.error || "Verification failed. Please check the code.");
+            toast.error("Invalid verification code.");
+        } finally {
+            setLoading(false);
+        }
     };
-
-
 
     const handleResend = async () => {
         setResendLoading(true);
-        setResendMessage("");
         setError("");
 
         try {
             await axios.post(apis.resendCode, { email });
-            setResendMessage("Verification code resent successfully");
+            toast.success("Verification code resent successfully!");
         } catch (err) {
-            console.log(err);
-            setError(err.response?.data?.message || err.message || 'Failed to resend code');
+            console.error("Resend Error:", err);
+            setError(err.response?.data?.error || "Failed to resend code.");
+            toast.error("Failed to resend code.");
         } finally {
             setResendLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center px-4 bg-surface relative overflow-hidden">
-            <div className="relative z-10 w-full max-w-md">
+        <div className="min-h-screen flex items-center justify-center relative overflow-hidden font-sans selection:bg-cyan-100 bg-[#f8fafc] dark:bg-[#020617]">
+            {/* Background Blobs */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden">
+                <motion.div
+                    animate={{ x: [0, 80, 0], y: [0, 40, 0], scale: [1, 1.2, 1] }}
+                    transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute top-[-5%] right-[-5%] w-[50%] h-[50%] bg-blue-400/20 dark:bg-blue-500/10 blur-[140px] rounded-full"
+                />
+                <motion.div
+                    animate={{ x: [0, -80, 0], y: [0, -40, 0], scale: [1, 1.1, 1] }}
+                    transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute bottom-[-5%] left-[-5%] w-[50%] h-[50%] bg-purple-400/20 dark:bg-purple-500/10 blur-[140px] rounded-full"
+                />
+            </div>
 
-                {/* Header */}
-                <div className="mb-8 text-center">
-                    <div className="inline-block p-3 rounded-full bg-primary/10 mb-4">
-                        <Mail className="w-8 h-8 text-primary" />
+            <div className="relative w-full max-w-[440px] px-4">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    className="relative overflow-hidden bg-white/20 dark:bg-white/[0.02] backdrop-blur-3xl border border-white/40 dark:border-white/10 p-10 rounded-[3.5rem] shadow-2xl text-center ring-1 ring-white/20"
+                >
+                    {/* Header */}
+                    <div className="mb-10">
+                        <div className="inline-flex items-center justify-center p-5 bg-blue-600 rounded-[2rem] mb-6 shadow-xl shadow-blue-600/20">
+                            <Mail className="w-8 h-8 text-white" />
+                        </div>
+                        <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-2 tracking-tighter uppercase italic">Verify Your Email</h2>
+                        <div className="flex flex-col items-center gap-1">
+                            <p className="text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
+                                We've sent a 6-digit code to
+                            </p>
+                            <div className="flex items-center gap-2 px-3 py-1 bg-white/40 dark:bg-white/5 rounded-full border border-white/40 dark:border-white/10 mt-1">
+                                <span className="text-xs font-bold text-slate-700 dark:text-white">{email}</span>
+                                <Link to="/signup" className="p-1 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors text-blue-600">
+                                    <Pencil className="w-3 h-3" />
+                                </Link>
+                            </div>
+                        </div>
                     </div>
-                    <h2 className="text-3xl font-bold text-maintext mb-2">Verify Email</h2>
-                    <p className="text-subtext ">
-                        We've sent a code to <span className="font-medium text-maintext  ">{email}
-                            <div className="inline-block p-1 rounded-full bg-primary/10 mb-2 cursor-pointer " onClick={() => { navigator(AppRoute.SIGNUP) }}>
-                                <Pencil className="w-5 h-5 text-primary inline-block" />
-                            </div></span>
-                    </p>
-                </div>
 
-                {/* Card */}
-                <div className="bg-white border border-border p-8 rounded-3xl shadow-xl">
-
-                    {/* Error */}
-                    {error && (
-                        <div className="mb-6 p-3 rounded-xl bg-red-50 border border-red-100 flex items-center gap-2 text-red-500 text-sm">
-                            <AlertCircle className="w-4 h-4" />
-                            {error}
-                        </div>
-                    )}
-
-                    {resendMessage && (
-                        <div className="mb-6 p-3 rounded-xl bg-green-50 border border-green-100 flex items-center gap-2 text-green-600 text-sm">
-                            <CheckCircle className="w-4 h-4" />
-                            {resendMessage}
-                        </div>
-                    )}
+                    {/* Error Display */}
+                    <AnimatePresence mode="wait">
+                        {error && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="mb-6 p-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 justify-center backdrop-blur-md"
+                            >
+                                <AlertCircle className="w-3.5 h-3.5" />
+                                {error}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     {/* Form */}
-                    <form onSubmit={handleVerify} className="space-y-6">
-                        <div>
-                            <label className="block text-sm font-medium text-maintext mb-2 text-center">
-                                Enter Verification Code
-                            </label>
-
+                    <form onSubmit={handleVerify} className="space-y-8">
+                        <div className="relative">
                             <input
                                 type="text"
                                 maxLength={6}
                                 required
                                 value={verificationCode}
-                                onChange={(e) => setVerificationCode(e.target.value)}
-                                placeholder="000000"
-                                className="w-full text-center text-3xl tracking-[0.5em] py-4 bg-surface border border-border rounded-xl 
-                           focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent 
-                           transition-all text-maintext font-mono placeholder:text-gray-300 placeholder:tracking-normal"
+                                onChange={(e) => {
+                                    const val = e.target.value.replace(/\D/g, '');
+                                    if (val.length <= 6) setVerificationCode(val);
+                                }}
+                                placeholder="······"
+                                className="w-full text-center text-4xl tracking-[0.4em] py-6 bg-white/30 dark:bg-slate-900/40 border border-white/50 dark:border-white/10 rounded-3xl 
+                                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent 
+                                     transition-all text-slate-800 dark:text-white font-black placeholder:text-slate-400/30 placeholder:tracking-normal backdrop-blur-md shadow-inner"
+                                autoFocus
                             />
                         </div>
 
-                        <button
+                        <motion.button
+                            whileHover={{ y: -5, scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
                             type="submit"
-                            disabled={loading}
-                            className="w-full py-3.5 bg-primary rounded-xl font-bold text-white shadow-lg shadow-primary/25 
-                         hover:shadow-primary/40 transform hover:scale-[1.02] transition-all duration-200 
-                         disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            disabled={loading || verificationCode.length !== 6}
+                            className="w-full py-4.5 bg-blue-600 rounded-3xl font-black text-sm uppercase tracking-widest text-white shadow-xl shadow-blue-600/30 
+                                 hover:shadow-blue-600/50 transition-all duration-300 
+                                 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 active:scale-95"
                         >
-                            {loading ? 'Verifying...' : 'Verify Email'}
-                            {!loading && <CheckCircle className="w-5 h-5" />}
-                        </button>
+                            {loading ? (
+                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            ) : (
+                                <>
+                                    <span>Verify Email</span>
+                                    <ArrowRight className="w-4 h-4" />
+                                </>
+                            )}
+                        </motion.button>
                     </form>
 
-                    <div className="mt-8 text-center text-sm text-subtext">
-                        Didn't receive code?{' '}
-                        Didn't receive code?{' '}
+                    <div className="mt-10 pt-8 border-t border-white/10 dark:border-slate-800/50 text-center">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                            Didn't receive the code?
+                        </p>
                         <button
                             type="button"
                             onClick={handleResend}
                             disabled={resendLoading}
-                            className="text-primary hover:underline font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="text-blue-600 hover:underline text-xs font-black uppercase tracking-widest transition-all disabled:opacity-50"
                         >
-                            {resendLoading ? 'Sending...' : 'Resend'}
+                            {resendLoading ? 'Sending...' : 'Request New Code'}
                         </button>
                     </div>
-                </div>
+                </motion.div>
 
-                {/* Back link */}
+                {/* Back Link */}
                 <Link
                     to={AppRoute.SIGNUP}
-                    className="mt-8 flex items-center justify-center gap-2 text-subtext hover:text-maintext transition-colors"
+                    className="mt-10 flex items-center justify-center gap-2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 font-black text-[10px] uppercase tracking-widest transition-all group"
                 >
-                    <ArrowLeft className="w-4 h-4" /> Back to Signup
+                    <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
+                    Back to Signup
                 </Link>
             </div>
         </div>

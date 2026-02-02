@@ -235,9 +235,12 @@ export const chatStorageService = {
         await axios.patch(`${API_BASE_URL}/chat/${sessionId}/title`, { title }, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
+        return true;
       }
+      return false;
     } catch (error) {
-      console.warn("Backend title update failed:", error);
+      console.error("Backend title update failed:", error.response?.data || error.message);
+      return false;
     }
   },
 };
