@@ -70,7 +70,8 @@ export const generateChatResponse = async (history, currentMessage, systemInstru
         }
         // Return backend error message if available
         if (error.response?.data?.error) {
-            return `System Message: ${error.response.data.error}`;
+            const details = error.response.data.details ? ` - ${error.response.data.details}` : '';
+            return `System Message: ${error.response.data.error}${details}`;
         }
         if (error.response?.data?.details) {
             return `System Error: ${error.response.data.details}`;
