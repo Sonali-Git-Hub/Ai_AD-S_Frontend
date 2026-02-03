@@ -23,7 +23,7 @@ const PricingModal = ({ onClose, currentPlan, onUpgrade }) => {
         {
             id: 'pro',
             name: 'Pro',
-            price: 2,
+            price: 299,
             description: 'Advanced capabilities for professionals',
             features: [
                 'Access to advanced models',
@@ -40,7 +40,7 @@ const PricingModal = ({ onClose, currentPlan, onUpgrade }) => {
         {
             id: 'king',
             name: 'King',
-            price: 5,
+            price: 1499,
             description: 'Ultimate power for power users',
             features: [
                 'Access to all models (including Beta)',

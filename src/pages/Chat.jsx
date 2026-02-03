@@ -2801,13 +2801,13 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                                   );
                                 },
                                 p: ({ children }) => <p className={`mb-1.5 last:mb-0 ${msg.role === 'user' ? 'm-0 leading-normal' : 'leading-relaxed'}`}>{children}</p>,
-                                ul: ({ children }) => <ul className="list-disc pl-5 mb-3 last:mb-0 space-y-1.5 marker:text-subtext">{children}</ul>,
-                                ol: ({ children }) => <ol className="list-decimal pl-5 mb-3 last:mb-0 space-y-1.5 marker:text-subtext">{children}</ol>,
-                                li: ({ children }) => <li className="mb-1 last:mb-0">{children}</li>,
-                                h1: ({ children }) => <h1 className="font-bold mb-2 mt-3 block text-[1.25em]">{children}</h1>,
-                                h2: ({ children }) => <h2 className="font-bold mb-1.5 mt-2 block text-[1.15em]">{children}</h2>,
-                                h3: ({ children }) => <h3 className="font-bold mb-1 mt-1.5 block text-[1.05em]">{children}</h3>,
-                                strong: ({ children }) => <strong className="font-bold text-primary">{children}</strong>,
+                                ul: ({ children }) => <ul className="list-disc pl-5 mb-3 last:mb-0 space-y-1.5 marker:text-primary transition-all">{children}</ul>,
+                                ol: ({ children }) => <ol className="list-decimal pl-5 mb-3 last:mb-0 space-y-1.5 marker:text-primary transition-all">{children}</ol>,
+                                li: ({ children }) => <li className="mb-1 last:mb-0 transition-colors">{children}</li>,
+                                h1: ({ children }) => <h1 className="font-bold mb-2 mt-3 block text-[1.4em] text-primary tracking-tight">{children}</h1>,
+                                h2: ({ children }) => <h2 className="font-bold mb-1.5 mt-2 block text-[1.2em] text-primary tracking-tight">{children}</h2>,
+                                h3: ({ children }) => <h3 className="font-bold mb-1 mt-1.5 block text-[1.1em] text-primary tracking-tight">{children}</h3>,
+                                strong: ({ children }) => <strong className="font-bold text-primary/90">{children}</strong>,
                                 code: ({ node, inline, className, children, ...props }) => {
                                   const match = /language-(\w+)/.exec(className || '');
                                   const lang = match ? match[1] : '';
@@ -3171,15 +3171,16 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                                   leaveFrom="transform opacity-100 scale-100"
                                   leaveTo="transform opacity-0 scale-95"
                                 >
-                                  <Menu.Items className="absolute bottom-full left-0 mb-2 w-36 origin-bottom-left divide-y divide-border rounded-xl bg-card shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50 overflow-hidden">
-                                    <div className="px-1 py-1">
+                                  <Menu.Items className="absolute bottom-full right-0 sm:left-0 mb-2 w-44 origin-bottom-right sm:origin-bottom-left divide-y divide-border rounded-xl bg-card shadow-2xl ring-1 ring-black ring-opacity-10 focus:outline-none z-50 overflow-hidden backdrop-blur-xl border border-border/50">
+                                    <div className="px-1.5 py-1.5">
                                       <Menu.Item>
                                         {({ active }) => (
                                           <button
                                             onClick={() => handlePdfAction('open', msg)}
-                                            className={`${active ? 'bg-primary text-white' : 'text-maintext'
-                                              } group flex w-full items-center rounded-md px-2 py-2 text-xs font-medium`}
+                                            className={`${active ? 'bg-primary text-white shadow-md' : 'text-maintext hover:bg-primary/5'
+                                              } group flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-bold transition-all duration-200`}
                                           >
+                                            <Eye className={`w-3.5 h-3.5 ${active ? 'text-white' : 'text-primary'}`} />
                                             Open PDF
                                           </button>
                                         )}
@@ -3188,9 +3189,10 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                                         {({ active }) => (
                                           <button
                                             onClick={() => handlePdfAction('download', msg)}
-                                            className={`${active ? 'bg-primary text-white' : 'text-maintext'
-                                              } group flex w-full items-center rounded-md px-2 py-2 text-xs font-medium`}
+                                            className={`${active ? 'bg-primary text-white shadow-md' : 'text-maintext hover:bg-primary/5'
+                                              } group flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-bold transition-all duration-200`}
                                           >
+                                            <Download className={`w-3.5 h-3.5 ${active ? 'text-white' : 'text-primary'}`} />
                                             Download
                                           </button>
                                         )}
@@ -3199,9 +3201,10 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                                         {({ active }) => (
                                           <button
                                             onClick={() => handlePdfAction('share', msg)}
-                                            className={`${active ? 'bg-primary text-white' : 'text-maintext'
-                                              } group flex w-full items-center rounded-md px-2 py-2 text-xs font-medium`}
+                                            className={`${active ? 'bg-primary text-white shadow-md' : 'text-maintext hover:bg-primary/5'
+                                              } group flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-bold transition-all duration-200`}
                                           >
+                                            <Share className={`w-3.5 h-3.5 ${active ? 'text-white' : 'text-primary'}`} />
                                             Share PDF
                                           </button>
                                         )}

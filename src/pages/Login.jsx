@@ -9,6 +9,8 @@ import toast from 'react-hot-toast';
 import { useLanguage } from '../context/LanguageContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import loginBg from './login_bg.gif';
+
 
 const Login = () => {
   const navigate = useNavigate();
@@ -53,7 +55,17 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden selection:bg-primary/20 bg-[#f8fafc] dark:bg-[#020617] aisa-scalable-text">
+    <div className="min-h-screen flex flex-col items-center justify-start relative overflow-hidden selection:bg-primary/20 bg-[#f8fafc] dark:bg-[#020617] aisa-scalable-text">
+      {/* Top Background GIF */}
+      <div className="absolute top-0 left-0 w-full h-[70vh] pointer-events-none overflow-hidden z-0 flex justify-center items-start">
+        <img
+          src={loginBg}
+          alt=""
+          className="w-full h-full object-contain opacity-[1] brightness-110"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#f8fafc]/5 dark:via-[#020617]/5 to-[#f8fafc] dark:to-[#020617]" />
+      </div>
+
       {/* Background Blobs for Glassmorphism Effect */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <motion.div
@@ -73,15 +85,15 @@ const Login = () => {
         />
       </div>
       {/* Content Container - Card Static, Robot Animates */}
-      <div className="relative w-full max-w-5xl flex flex-col items-center p-4">
+      <div className="relative w-full max-w-5xl flex flex-col items-center p-4 pt-[50vh] pb-20">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 30 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="relative z-50 w-full max-w-[460px] transition-all"
+          className="relative z-50 w-full max-w-[400px] transition-all"
         >
           {/* Main Glass Card */}
-          <div className="relative overflow-hidden bg-white/10 dark:bg-white/[0.04] backdrop-blur-[64px] border border-white/60 dark:border-white/10 p-10 rounded-[3.5rem] shadow-[0_32px_120px_-20px_rgba(0,0,0,0.12)] text-center ring-1 ring-white/30 transition-all hover:bg-white/15 dark:hover:bg-white/[0.06] group/card">
+          <div className="relative overflow-hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-[64px] border border-white/60 dark:border-white/10 p-8 rounded-[3rem] shadow-[0_32px_120px_-20px_rgba(0,0,0,0.12)] text-center ring-1 ring-white/30 transition-all hover:bg-white/90 dark:hover:bg-slate-900/90 group/card">
             {/* Glossy Reflection Effect */}
             <div className="absolute -top-[100%] -left-[100%] w-[300%] h-[300%] bg-gradient-to-br from-white/10 via-transparent to-transparent rotate-45 pointer-events-none transition-transform duration-1000 group-hover/card:translate-x-1/2 group-hover/card:translate-y-1/2" />
 
