@@ -382,14 +382,14 @@ const Sidebar = ({ isOpen, onClose }) => {
                           <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1">
                             <button
                               onClick={(e) => startRename(e, session)}
-                              className="p-1.5 text-subtext/60 hover:text-primary transition-all hover:bg-primary/10 rounded-lg"
+                              className="p-1.5 text-blue-500 hover:text-primary transition-all hover:bg-primary/10 rounded-lg"
                               title="Rename Chat"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={(e) => handleDeleteSession(e, session.sessionId)}
-                              className="p-1.5 text-subtext/60 hover:text-red-500 transition-all hover:bg-red-500/10 rounded-lg"
+                              className="p-1.5 text-red-500 hover:text-red-600 transition-all hover:bg-red-500/10 rounded-lg"
                               title="Delete Chat"
                             >
                               <Trash2 className="w-3.5 h-3.5" />

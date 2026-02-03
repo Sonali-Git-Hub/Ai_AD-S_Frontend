@@ -3237,7 +3237,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                       {!msg.attachment && (
                         <button
                           onClick={() => startEditing(msg)}
-                          className="p-1.5 text-subtext hover:text-primary hover:bg-surface rounded-full transition-colors"
+                          className="p-1.5 text-blue-500 hover:text-primary hover:bg-surface rounded-full transition-colors"
                           title="Edit"
                         >
                           <Edit2 className="w-4 h-4" />
@@ -3246,7 +3246,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                       {msg.attachment && (
                         <button
                           onClick={() => handleRenameFile(msg)}
-                          className="p-1.5 text-subtext hover:text-primary hover:bg-surface rounded-full transition-colors"
+                          className="p-1.5 text-blue-500 hover:text-primary hover:bg-surface rounded-full transition-colors"
                           title="Rename"
                         >
                           <Edit2 className="w-4 h-4" />
@@ -3264,7 +3264,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                       )}
                       <button
                         onClick={() => handleMessageDelete(msg.id)}
-                        className="p-1.5 text-subtext hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                        className="p-1.5 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
                         title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />

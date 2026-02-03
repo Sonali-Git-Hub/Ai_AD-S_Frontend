@@ -248,8 +248,11 @@ const LiveAI = ({ onClose, language }) => {
 
             console.log(`🎤 [LiveAI] Requesting Backend TTS: Lang=${targetLang}, Gender=${voiceGenderRef.current}`);
 
+            // Clean text for speech (remove markdown symbols that might be read aloud)
+            const cleanText = text.replace(/[*#_~`]/g, '').replace(/^\s*-\s+/gm, '').trim();
+
             const response = await axios.post(apis.synthesizeVoice, {
-                text: text,
+                text: cleanText,
                 languageCode: targetLang,
                 gender: voiceGenderRef.current,
                 tone: 'conversational'
@@ -364,11 +367,28 @@ const LiveAI = ({ onClose, language }) => {
                  - Use ${voiceGenderRef.current === 'FEMALE' ? 'feminine' : 'masculine'} grammar in Hindi (e.g. ${voiceGenderRef.current === 'FEMALE' ? '"Main karti hoon"' : '"Main karta hoon"'}).
                  - NEVER mix genders. Stick to your persona strictly.
 
+                 ADDRESSING THE USER:
+                 - Look at the user in the video feed.
+                 - If the user is Male, use MASCULINE grammar for them (e.g. "Aap kaise hain", "Aapne poocha").
+                 - If the user is Female, use FEMININE grammar for them (e.g. "Aap kaisi hain", "Aapne pucchi").
+                 - If unsure, default to MASCULINE/NEUTRAL.
+                 - Do NOT address a male user as "rahi thi" or "karti ho".
+
                  Current Setting: ${language}.
                  
-                 If asked, explain A-Series as a platform to discover and create AI agents.`,
+                 If asked, explain A-Series as a platform to discover and create AI agents.
+                 
+                 GREETING HANDLING:
+                 - If the user says "Hello", "Hi", or greets you, introduce yourself briefly as AISA (an advanced AI assistant) and mention you can see them via the camera. Then ask how you can help.
+                 
+                 NO MARKDOWN OR LISTS:
+                 - Do NOT use bullet points (*, -), bold text (**), or numbered lists.
+                 - Speak in full, natural paragraphs. 
+                 - Describe things conversationally, like "I see a person in the foreground and some people behind them," instead of listing items.`,
                 attachment ? [attachment] : [],
-                language
+                language,
+                null,
+                'NORMAL_CHAT'
             );
 
             console.log("✅ [LiveAI] Got response:", response);

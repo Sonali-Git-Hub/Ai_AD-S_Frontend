@@ -588,7 +588,7 @@ const Profile = () => {
                             <div className="group relative inline-flex items-center gap-3 justify-center md:justify-start">
                                 <div className="flex items-center gap-3">
                                     <h1 className="text-2xl md:text-3xl font-black text-maintext truncate max-w-[200px] md:max-w-none">{user.name}</h1>
-                                    <button onClick={() => setIsEditing(true)} className="p-1.5 text-subtext hover:text-primary hover:bg-primary/10 rounded-lg transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100">
+                                    <button onClick={() => setIsEditing(true)} className="p-1.5 text-blue-500 hover:text-primary hover:bg-primary/10 rounded-lg transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100">
                                         <Pencil className="w-4 h-4" />
                                     </button>
                                 </div>
@@ -650,28 +650,28 @@ const Profile = () => {
                     <div id="preferences-section" className="bg-card border border-border rounded-[32px] p-8 space-y-8">
                         {PreferencesContent}
                         <div className="pt-6 border-t border-border">
-                             {NotificationsContent}
+                            {NotificationsContent}
                         </div>
                     </div>
 
                     <div id="security-section" className="bg-card border border-border rounded-[32px] p-8 flex flex-col justify-between">
-                         {SecurityContent}
+                        {SecurityContent}
                     </div>
                 </div>
 
                 {/* Mobile Section Modals */}
                 <AnimatePresence>
                     {mobileSection && (
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm md:hidden flex items-end sm:items-center justify-center"
                             onClick={(e) => {
-                                if(e.target === e.currentTarget) setMobileSection(null);
+                                if (e.target === e.currentTarget) setMobileSection(null);
                             }}
                         >
-                            <motion.div 
+                            <motion.div
                                 initial={{ y: "100%" }}
                                 animate={{ y: 0 }}
                                 exit={{ y: "100%" }}
@@ -688,7 +688,7 @@ const Profile = () => {
                                         <X className="w-5 h-5 text-maintext" />
                                     </button>
                                 </div>
-                                
+
                                 <div className="flex-1 overflow-y-auto p-5 custom-scrollbar pb-10">
                                     {mobileSection === 'preferences' && PreferencesContent}
                                     {mobileSection === 'notifications' && NotificationsContent}
