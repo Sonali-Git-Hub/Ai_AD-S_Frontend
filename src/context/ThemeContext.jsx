@@ -10,7 +10,8 @@ const ACCENT_COLORS = {
     'Purple': '262 83% 58%',
     'Orange': '24 95% 53%',
     'Pink': '330 81% 60%',
-    'Red': '0 84% 60%'
+    'Red': '0 84% 60%',
+    'Black': '0 0% 0%'
 };
 
 const ACCENT_RINGS = {
@@ -20,7 +21,8 @@ const ACCENT_RINGS = {
     'Purple': '262 83% 58%',
     'Orange': '24 95% 53%',
     'Pink': '330 81% 60%',
-    'Red': '0 84% 60%'
+    'Red': '0 84% 60%',
+    'Black': '0 0% 20%'
 };
 
 export const ThemeProvider = ({ children }) => {
