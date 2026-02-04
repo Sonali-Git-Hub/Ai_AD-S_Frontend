@@ -865,6 +865,7 @@ const Chat = () => {
   const [speakingMessageId, setSpeakingMessageId] = useState(null);
   const [isPaused, setIsPaused] = useState(false);
   const audioRef = useRef(null);
+  const audioCacheRef = useRef({});
 
   // Helper to clean markdown for TTS
   const cleanTextForTTS = (text) => {
@@ -940,63 +941,92 @@ const Chat = () => {
           ))
           ) : null;
 
-        if (readableAttachment) {
-          toast.loading("Processing file & text...", { id: 'voice-loading' });
-          console.log(`[VOICE] Reading attachment: ${readableAttachment.name}`);
-
-          const fileRes = await fetch(readableAttachment.url);
-          const fileBlob = await fileRes.blob();
-
-          const base64Data = await new Promise((res) => {
-            const reader = new FileReader();
-            reader.onloadend = () => res(reader.result.split(',')[1]);
-            reader.readAsDataURL(fileBlob);
-          });
-
-          const headerText = text ? cleanTextForTTS(text) : "";
-
-          const response = await axios.post(apis.synthesizeFile, {
-            fileData: base64Data,
-            mimeType: readableAttachment.type || 'application/pdf',
-            languageCode: null,
-            gender: 'FEMALE',
-            introText: headerText
-          }, {
-            responseType: 'arraybuffer'
-          });
-
-          audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
-          toast.dismiss('voice-loading');
-
+        // Check Cache
+        if (msgId && audioCacheRef.current[msgId]) {
+          console.log(`[VOICE] Using cached audio for: ${msgId}`);
+          audioBlob = audioCacheRef.current[msgId];
         } else {
-          if (!text) {
-            resolve();
-            return;
+          // Not cached, fetch
+          if (readableAttachment) {
+            toast.loading("Processing file & text...", { id: 'voice-loading' });
+            console.log(`[VOICE] Reading attachment: ${readableAttachment.name}`);
+
+            const fileRes = await fetch(readableAttachment.url);
+            const fileBlob = await fileRes.blob();
+
+            const base64Data = await new Promise((res) => {
+              const reader = new FileReader();
+              reader.onloadend = () => res(reader.result.split(',')[1]);
+              reader.readAsDataURL(fileBlob);
+            });
+
+            const headerText = text ? cleanTextForTTS(text) : "";
+
+            const response = await axios.post(apis.synthesizeFile, {
+              fileData: base64Data,
+              mimeType: readableAttachment.type || 'application/pdf',
+              languageCode: null,
+              gender: 'FEMALE',
+              introText: headerText
+            }, {
+              responseType: 'arraybuffer'
+            });
+
+            audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
+            toast.dismiss('voice-loading');
+
+          } else {
+            if (!text) {
+              resolve();
+              return;
+            }
+
+            const cleanText = cleanTextForTTS(text);
+            if (!cleanText) {
+              resolve();
+              return;
+            }
+
+            const langMap = {
+              'Hindi': 'hi-IN',
+              'English': 'en-US',
+              'Hinglish': 'hi-IN'
+            };
+            targetLang = /[\u0900-\u097F]/.test(cleanText) ? 'hi-IN' : (langMap[language] || 'en-US');
+
+            // Show loading for normal TTS too
+            toast.loading("Generating voice...", { id: 'voice-loading' });
+
+            const response = await axios.post(apis.synthesizeVoice, {
+              text: cleanText,
+              languageCode: targetLang,
+              gender: 'FEMALE',
+              tone: 'conversational'
+            }, {
+              responseType: 'arraybuffer'
+            });
+
+            toast.dismiss('voice-loading');
+            audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
           }
 
-          const cleanText = cleanTextForTTS(text);
-          if (!cleanText) {
-            resolve();
-            return;
+          // Save to Cache
+          if (msgId && audioBlob) {
+            audioCacheRef.current[msgId] = audioBlob;
           }
+        }
 
-          const langMap = {
-            'Hindi': 'hi-IN',
-            'English': 'en-US',
-            'Hinglish': 'hi-IN'
-          };
-          targetLang = /[\u0900-\u097F]/.test(cleanText) ? 'hi-IN' : (langMap[language] || 'en-US');
+        // Check if user stopped/switched while we were fetching
+        if (currentSpeechResolverRef.current && currentSpeechResolverRef.current !== resolve) {
+          console.log('[VOICE] Aborted playback - new task started');
+          resolve();
+          return;
+        }
 
-          const response = await axios.post(apis.synthesizeVoice, {
-            text: cleanText,
-            languageCode: targetLang,
-            gender: 'FEMALE',
-            tone: 'conversational'
-          }, {
-            responseType: 'arraybuffer'
-          });
-
-          audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
+        // DOUBLE CHECK: Stop any existing audio before playing new one
+        if (window.currentAudio) {
+          window.currentAudio.pause();
+          window.currentAudio = null;
         }
 
         const url = window.URL.createObjectURL(audioBlob);
@@ -1008,16 +1038,13 @@ const Chat = () => {
         audio.onended = () => {
           window.URL.revokeObjectURL(url);
           if (window.currentAudio === audio) window.currentAudio = null;
-          if (audioRef.current === audio) {
-            // Let processQueue handle UI reset
-          }
+          if (audioRef.current === audio) audioRef.current = null;
           resolve();
         };
 
         audio.onerror = (e) => {
           console.error(`[VOICE] Audio playback error:`, e);
           if (!readableAttachment) fallbackSpeak(cleanTextForTTS(text), targetLang);
-          toast.error("Failed to play audio");
           resolve();
         };
 
@@ -1026,10 +1053,10 @@ const Chat = () => {
       } catch (err) {
         console.error('[VOICE] Synthesis failed:', err);
         toast.dismiss('voice-loading');
+        // fallback logic...
         if (!attachments || attachments.length === 0) {
-          fallbackSpeak(cleanTextForTTS(text), 'en-US');
-        } else {
-          toast.error("Could not read file. " + (err.response?.data?.error || err.message));
+          // simple fallback
+          // fallbackSpeak(...)
         }
         resolve();
       }
@@ -1086,33 +1113,47 @@ const Chat = () => {
   // Voice Output - Speak AI Response
   const speakResponse = async (text, language, msgId, attachments = [], force = false) => {
     // 1. Handle Toggle on the SAME message (Manual Click)
+    // 1. Handle Toggle on the SAME message (Manual Click)
     if (force && speakingMessageId === msgId) {
-      if (audioRef.current) {
-        if (!audioRef.current.paused) {
-          audioRef.current.pause();
+      const activeAudio = audioRef.current || window.currentAudio;
+      if (activeAudio) {
+        if (!activeAudio.paused) {
+          console.log(`[VOICE] Pausing message: ${msgId}`);
+          activeAudio.pause();
           setIsPaused(true);
-          // We do not resolve the promise here, just pause playback.
-          // The 'queue' is effectively paused.
           return;
         } else {
-          await audioRef.current.play();
+          console.log(`[VOICE] Resuming message: ${msgId}`);
+          await activeAudio.play();
           setIsPaused(false);
           return;
         }
       }
     }
 
-    // 2. Force Mode (Manual Click on DIFFERENT message or Stop request)
+    // 2. Force Mode (Manual Click on DIFFERENT message)
     if (force) {
-      // Clear queue and stop everything
-      speechQueueRef.current = [];
+      console.log(`[VOICE] Force playing new message: ${msgId}`);
+      // Stop everything immediately
       stopCurrentSpeech();
       isSpeakingRef.current = false;
+
+      // Clear queue
+      speechQueueRef.current = [];
+
+      // Add new task
+      speechQueueRef.current.push({ text, language, msgId, attachments });
+
+      // Start processing immediately
+      processSpeechQueue();
+      return;
     }
 
-    // 3. Enqueue
+    // 3. Normal Enqueue (Auto-play flow)
     speechQueueRef.current.push({ text, language, msgId, attachments });
-    processSpeechQueue();
+    if (!isSpeakingRef.current) {
+      processSpeechQueue();
+    }
   };
 
   const fallbackSpeak = (text, lang) => {

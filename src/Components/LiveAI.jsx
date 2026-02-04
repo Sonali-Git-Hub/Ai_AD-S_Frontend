@@ -611,7 +611,10 @@ const LiveAI = ({ onClose, language }) => {
                     </button>
 
                     {/* End Call */}
-                    <button onClick={onClose} className="p-1.5 xs:p-2 sm:p-3 rounded-full bg-zinc-800 text-red-500 hover:bg-zinc-700 transition-all shrink-0" title="End Call">
+                    <button onClick={() => {
+                        handleStop();
+                        onClose();
+                    }} className="p-1.5 xs:p-2 sm:p-3 rounded-full bg-zinc-800 text-red-500 hover:bg-zinc-700 transition-all shrink-0" title="End Call">
                         <X className="w-4.5 h-4.5 xs:w-5 xs:h-5 sm:w-6 sm:h-6" />
                     </button>
 
