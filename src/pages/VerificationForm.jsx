@@ -108,7 +108,7 @@ export default function VerificationForm() {
                             <div className="flex items-center gap-2 px-3 py-1 bg-white/40 dark:bg-white/5 rounded-full border border-white/40 dark:border-white/10 mt-1">
                                 <span className="text-xs font-bold text-slate-700 dark:text-white">{email}</span>
                                 <Link to="/signup" className="p-1 hover:bg-white/40 dark:hover:bg-white/10 rounded-full transition-colors text-primary">
-                                    <Pencil className="w-3 h-3" />
+                                    <Pencil className="w-4 h-4" />
                                 </Link>
                             </div>
                         </div>
@@ -144,7 +144,7 @@ export default function VerificationForm() {
                                     if (val.length <= 6) setVerificationCode(val);
                                 }}
                                 placeholder="······"
-                                className="w-full text-center text-4xl tracking-[0.4em] py-6 bg-white/30 dark:bg-slate-900/40 border border-white/50 dark:border-white/10 rounded-3xl 
+                                className="w-full text-center text-5xl tracking-[0.4em] py-8 bg-white/30 dark:bg-slate-900/40 border border-white/50 dark:border-white/10 rounded-3xl 
                                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent 
                                      transition-all text-slate-800 dark:text-white font-black placeholder:text-slate-400/30 placeholder:tracking-normal backdrop-blur-md shadow-inner"
                                 autoFocus

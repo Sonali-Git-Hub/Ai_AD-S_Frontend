@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, X, Crown, Zap, Shield } from 'lucide-react';
+import { Check, X, Crown, Zap, Shield, Sparkles } from 'lucide-react';
 
 const PricingModal = ({ onClose, currentPlan, onUpgrade }) => {
     const plans = [
@@ -23,7 +23,9 @@ const PricingModal = ({ onClose, currentPlan, onUpgrade }) => {
         {
             id: 'pro',
             name: 'Pro',
-            price: 299,
+            price: 149,
+            originalPrice: 499,
+            offer: 'LAUNCHING OFFER',
             description: 'Advanced capabilities for professionals',
             features: [
                 'Access to advanced models',
@@ -40,7 +42,9 @@ const PricingModal = ({ onClose, currentPlan, onUpgrade }) => {
         {
             id: 'king',
             name: 'King',
-            price: 1499,
+            price: 449,
+            originalPrice: 1499,
+            offer: 'LAUNCHING OFFER',
             description: 'Ultimate power for power users',
             features: [
                 'Access to all models (including Beta)',
@@ -88,6 +92,12 @@ const PricingModal = ({ onClose, currentPlan, onUpgrade }) => {
                                         key={plan.id}
                                         className={`relative bg-white dark:bg-[#1f1f1f] rounded-2xl p-6 border-2 transition-all duration-300 hover:shadow-xl flex flex-col ${isCurrent ? 'border-primary ring-2 ring-primary/20' : 'border-transparent hover:border-gray-200 dark:hover:border-zinc-700'}`}
                                     >
+                                        {plan.offer && (
+                                            <div className="absolute top-4 right-4 bg-green-500/10 text-green-600 dark:text-green-400 text-[10px] font-bold px-2 py-1 rounded-lg uppercase tracking-wider">
+                                                {plan.offer}
+                                            </div>
+                                        )}
+
                                         {isCurrent && (
                                             <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
                                                 Current Plan
@@ -101,9 +111,23 @@ const PricingModal = ({ onClose, currentPlan, onUpgrade }) => {
                                         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{plan.name}</h3>
                                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 min-h-[40px]">{plan.description}</p>
 
-                                        <div className="mb-6">
-                                            <span className="text-3xl font-bold text-gray-900 dark:text-white">₹{plan.price}</span>
-                                            <span className="text-gray-500 dark:text-gray-400">/month</span>
+                                        {plan.offer && (
+                                            <div className="text-[11px] font-bold text-blue-500 dark:text-blue-400 mb-1 flex items-center gap-1.5 uppercase tracking-wide">
+                                                <Sparkles className="w-3 h-3" />
+                                                Launching Offer
+                                            </div>
+                                        )}
+
+                                        <div className="mb-6 flex items-baseline gap-2">
+                                            <div className="flex flex-col">
+                                                {plan.originalPrice && (
+                                                    <span className="text-sm text-gray-400 line-through font-medium">₹{plan.originalPrice}</span>
+                                                )}
+                                                <div className="flex items-baseline">
+                                                    <span className="text-3xl font-bold text-gray-900 dark:text-white">₹{plan.price}</span>
+                                                    <span className="text-gray-500 dark:text-gray-400 ml-1">/month</span>
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <ul className="space-y-3 mb-8 flex-1">

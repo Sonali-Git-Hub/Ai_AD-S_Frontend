@@ -502,13 +502,13 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
             )
         });
 
-        // 6. Log Out (Global)
+        // 6. Log Out (Global - Search Only)
         settings.push({
             id: 'logout_global',
-            tab: 'account',
+            tab: 'none', // Set to none so it doesn't show in any tab normally, but keyword search still works
             label: t('logOut'),
             description: 'Sign out of your account',
-            keywords: 'sign out exit leave',
+            keywords: 'sign out exit leave logout toggle',
             component: (
                 <div className="py-4 border-t border-gray-100 dark:border-white/5 mt-2">
                     <button onClick={onLogout} className="flex items-center gap-3 text-red-500 text-sm px-4 py-3 w-full bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-xl transition-colors font-bold">
@@ -666,20 +666,6 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                     <div className="space-y-6 animate-in fade-in duration-300">
                         <div className="space-y-4">
                             {allSettings.filter(s => s.tab === 'account').map(s => <div key={s.id}>{s.component}</div>)}
-                        </div>
-                        <div className="pt-4 border-t border-gray-100 dark:border-white/5">
-                            <button onClick={() => setShowHistory(!showHistory)} className="text-sm text-primary font-semibold flex items-center gap-2"><History className="w-4 h-4" /> Transaction History</button>
-                            {showHistory && (
-                                <div className="mt-4 space-y-2">
-                                    {transactions.length > 0 ? transactions.map(tx => (
-                                        <div key={tx._id} className="flex justify-between p-3 bg-gray-50 rounded-lg text-sm">
-                                            <span>{new Date(tx.createdAt).toLocaleDateString()}</span>
-                                            <span className="font-bold">₹{tx.amount}</span>
-                                            <button onClick={() => generateInvoice(tx)} className="text-primary"><Download className="w-4 h-4" /></button>
-                                        </div>
-                                    )) : <p className="text-center text-xs text-gray-400 py-4">No transactions found</p>}
-                                </div>
-                            )}
                         </div>
                     </div>
                 );

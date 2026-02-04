@@ -1899,6 +1899,22 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
   const [feedbackDetails, setFeedbackDetails] = useState("");
   const [pdfLoadingId, setPdfLoadingId] = useState(null);
   const [loadingText, setLoadingText] = useState("Thinking..."); // New state for loading status text
+  const [messageFeedback, setMessageFeedback] = useState({}); // { [msgId]: { type: 'up' | 'down', categories: [], details: '' } }
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+
+  const toggleFeedback = (msgId, feedbackData) => {
+    setMessageFeedback(prev => {
+      // If it's the same type and no extra data (categories), toggle it off
+      if (prev[msgId]?.type === feedbackData.type && (!feedbackData.categories || feedbackData.categories.length === 0)) {
+        const { [msgId]: _, ...rest } = prev;
+        return rest;
+      }
+      return {
+        ...prev,
+        [msgId]: feedbackData
+      };
+    });
+  };
 
   const handlePdfAction = async (action, msg) => {
     // If this message has a converted file, use it directly instead of rendering the chat bubble
@@ -2097,6 +2113,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
 
   const handleThumbsUp = async (msgId) => {
     try {
+      toggleFeedback(msgId, { type: 'up' });
       await axios.post(apis.feedback, {
         sessionId: sessionId || 'unknown',
         messageId: msgId,
@@ -2108,6 +2125,8 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
     } catch (error) {
       console.error("Feedback error:", error);
       toast.error("Failed to submit feedback");
+      // Revert local state on error
+      toggleFeedback(msgId, { type: 'up' });
     }
   };
 
@@ -2128,19 +2147,32 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
   };
 
   const submitFeedback = async () => {
+    if (isSubmittingFeedback) return;
     try {
+      setIsSubmittingFeedback(true);
+      const msgId = feedbackMsgId;
+      const feedbackData = {
+        type: 'down',
+        categories: [...feedbackCategory],
+        details: feedbackDetails
+      };
+
       await axios.post(apis.feedback, {
         sessionId: sessionId || 'unknown',
-        messageId: feedbackMsgId,
+        messageId: msgId,
         type: 'thumbs_down',
-        categories: feedbackCategory,
-        details: feedbackDetails
+        categories: feedbackData.categories,
+        details: feedbackData.details
       });
+
+      toggleFeedback(msgId, feedbackData);
       toast.success("Feedback submitted. Thank you!");
       setFeedbackOpen(false);
     } catch (error) {
       console.error("Feedback error:", error);
       toast.error("Failed to submit feedback");
+    } finally {
+      setIsSubmittingFeedback(false);
     }
   };
 
@@ -3122,114 +3154,124 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                                 </p>
                               );
                             })()}
-                            <div className="flex items-center gap-3 self-end sm:self-auto">
-                              <button
-                                onClick={() => {
-                                  // Pass message ID to speakResponse for tracking
-                                  const isHindi = /[\u0900-\u097F]/.test(msg.content);
-                                  speakResponse(msg.content, isHindi ? 'Hindi' : 'English', msg.id, msg.attachments || [], true);
-                                }}
-                                className={`transition-colors p-1.5 rounded-lg ${speakingMessageId === msg.id
-                                  ? 'text-primary bg-primary/10'
-                                  : 'text-subtext hover:text-primary hover:bg-surface-hover'
-                                  }`}
-                                title={speakingMessageId === msg.id && !isPaused ? "Pause" : "Speak"}
-                              >
-                                {speakingMessageId === msg.id && !isPaused ? (
-                                  <Pause className="w-3.5 h-3.5" />
-                                ) : (
-                                  <Volume2 className="w-3.5 h-3.5" />
-                                )}
-                              </button>
-                              <button
-                                onClick={() => handleCopyMessage(msg.content)}
-                                className="text-subtext hover:text-maintext transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
-                                title="Copy"
-                              >
-                                <Copy className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => handleThumbsUp(msg.id)}
-                                className="text-subtext hover:text-primary transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
-                                title="Helpful"
-                              >
-                                <ThumbsUp className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => handleThumbsDown(msg.id)}
-                                className="text-subtext hover:text-red-500 transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
-                                title="Not Helpful"
-                              >
-                                <ThumbsDown className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => handleShare(msg.content)}
-                                className="text-subtext hover:text-primary transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
-                                title="Share Text"
-                              >
-                                <Share className="w-3.5 h-3.5" />
-                              </button>
-
-                              {/* PDF Menu */}
-                              <Menu as="div" className="relative inline-block text-left">
-                                <Menu.Button className="text-subtext hover:text-red-500 transition-colors flex items-center" disabled={pdfLoadingId === msg.id}>
-                                  {pdfLoadingId === msg.id ? (
-                                    <div className="w-4 h-4 border-2 border-red-500/30 border-t-red-500 rounded-full animate-spin" />
-                                  ) : (
-                                    <FileText className="w-4 h-4" />
-                                  )}
-                                </Menu.Button>
-                                <Transition
-                                  as={Fragment}
-                                  enter="transition ease-out duration-100"
-                                  enterFrom="transform opacity-0 scale-95"
-                                  enterTo="transform opacity-100 scale-100"
-                                  leave="transition ease-in duration-75"
-                                  leaveFrom="transform opacity-100 scale-100"
-                                  leaveTo="transform opacity-0 scale-95"
+                            <div className="flex flex-col items-end gap-2 self-end sm:self-auto">
+                              <div className="flex items-center gap-3">
+                                <button
+                                  onClick={() => {
+                                    // Pass message ID to speakResponse for tracking
+                                    const isHindi = /[\u0900-\u097F]/.test(msg.content);
+                                    speakResponse(msg.content, isHindi ? 'Hindi' : 'English', msg.id, msg.attachments || [], true);
+                                  }}
+                                  className={`transition-colors p-1.5 rounded-lg ${speakingMessageId === msg.id
+                                    ? 'text-primary bg-primary/10'
+                                    : 'text-subtext hover:text-primary hover:bg-surface-hover'
+                                    }`}
+                                  title={speakingMessageId === msg.id && !isPaused ? "Pause" : "Speak"}
                                 >
-                                  <Menu.Items className="absolute bottom-full right-0 sm:left-0 mb-2 w-44 origin-bottom-right sm:origin-bottom-left divide-y divide-border rounded-xl bg-card shadow-2xl ring-1 ring-black ring-opacity-10 focus:outline-none z-50 overflow-hidden backdrop-blur-xl border border-border/50">
-                                    <div className="px-1.5 py-1.5">
-                                      <Menu.Item>
-                                        {({ active }) => (
-                                          <button
-                                            onClick={() => handlePdfAction('open', msg)}
-                                            className={`${active ? 'bg-primary text-white shadow-md' : 'text-maintext hover:bg-primary/5'
-                                              } group flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-bold transition-all duration-200`}
-                                          >
-                                            <Eye className={`w-3.5 h-3.5 ${active ? 'text-white' : 'text-primary'}`} />
-                                            Open PDF
-                                          </button>
-                                        )}
-                                      </Menu.Item>
-                                      <Menu.Item>
-                                        {({ active }) => (
-                                          <button
-                                            onClick={() => handlePdfAction('download', msg)}
-                                            className={`${active ? 'bg-primary text-white shadow-md' : 'text-maintext hover:bg-primary/5'
-                                              } group flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-bold transition-all duration-200`}
-                                          >
-                                            <Download className={`w-3.5 h-3.5 ${active ? 'text-white' : 'text-primary'}`} />
-                                            Download
-                                          </button>
-                                        )}
-                                      </Menu.Item>
-                                      <Menu.Item>
-                                        {({ active }) => (
-                                          <button
-                                            onClick={() => handlePdfAction('share', msg)}
-                                            className={`${active ? 'bg-primary text-white shadow-md' : 'text-maintext hover:bg-primary/5'
-                                              } group flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-bold transition-all duration-200`}
-                                          >
-                                            <Share className={`w-3.5 h-3.5 ${active ? 'text-white' : 'text-primary'}`} />
-                                            Share PDF
-                                          </button>
-                                        )}
-                                      </Menu.Item>
-                                    </div>
-                                  </Menu.Items>
-                                </Transition>
-                              </Menu>
+                                  {speakingMessageId === msg.id && !isPaused ? (
+                                    <Pause className="w-3.5 h-3.5" />
+                                  ) : (
+                                    <Volume2 className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                                <button
+                                  onClick={() => handleCopyMessage(msg.content)}
+                                  className="text-subtext hover:text-maintext transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
+                                  title="Copy"
+                                >
+                                  <Copy className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleThumbsUp(msg.id)}
+                                  className={`transition-colors p-1.5 rounded-lg ${messageFeedback[msg.id]?.type === 'up'
+                                    ? 'text-blue-500 bg-blue-500/10'
+                                    : 'text-subtext hover:text-primary hover:bg-surface-hover'
+                                    }`}
+                                  title="Helpful"
+                                >
+                                  <ThumbsUp className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleThumbsDown(msg.id)}
+                                  className={`transition-colors p-1.5 rounded-lg ${messageFeedback[msg.id]?.type === 'down'
+                                    ? 'text-red-500 bg-red-500/10'
+                                    : 'text-subtext hover:text-red-500 hover:bg-surface-hover'
+                                    }`}
+                                  title="Not Helpful"
+                                >
+                                  <ThumbsDown className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleShare(msg.content)}
+                                  className="text-subtext hover:text-primary transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
+                                  title="Share Text"
+                                >
+                                  <Share className="w-3.5 h-3.5" />
+                                </button>
+
+                                {/* PDF Menu */}
+                                <Menu as="div" className="relative inline-block text-left">
+                                  <Menu.Button className="text-subtext hover:text-red-500 transition-colors flex items-center" disabled={pdfLoadingId === msg.id}>
+                                    {pdfLoadingId === msg.id ? (
+                                      <div className="w-4 h-4 border-2 border-red-500/30 border-t-red-500 rounded-full animate-spin" />
+                                    ) : (
+                                      <FileText className="w-4 h-4" />
+                                    )}
+                                  </Menu.Button>
+                                  <Transition
+                                    as={Fragment}
+                                    enter="transition ease-out duration-100"
+                                    enterFrom="transform opacity-0 scale-95"
+                                    enterTo="transform opacity-100 scale-100"
+                                    leave="transition ease-in duration-75"
+                                    leaveFrom="transform opacity-100 scale-100"
+                                    leaveTo="transform opacity-0 scale-95"
+                                  >
+                                    <Menu.Items className="absolute bottom-full right-0 sm:left-0 mb-2 w-44 origin-bottom-right sm:origin-bottom-left divide-y divide-border rounded-xl bg-card shadow-2xl ring-1 ring-black ring-opacity-10 focus:outline-none z-50 overflow-hidden backdrop-blur-xl border border-border/50">
+                                      <div className="px-1.5 py-1.5">
+                                        <Menu.Item>
+                                          {({ active }) => (
+                                            <button
+                                              onClick={() => handlePdfAction('open', msg)}
+                                              className={`${active ? 'bg-primary text-white shadow-md' : 'text-maintext hover:bg-primary/5'
+                                                } group flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-bold transition-all duration-200`}
+                                            >
+                                              <Eye className={`w-3.5 h-3.5 ${active ? 'text-white' : 'text-primary'}`} />
+                                              Open PDF
+                                            </button>
+                                          )}
+                                        </Menu.Item>
+                                        <Menu.Item>
+                                          {({ active }) => (
+                                            <button
+                                              onClick={() => handlePdfAction('download', msg)}
+                                              className={`${active ? 'bg-primary text-white shadow-md' : 'text-maintext hover:bg-primary/5'
+                                                } group flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-bold transition-all duration-200`}
+                                            >
+                                              <Download className={`w-3.5 h-3.5 ${active ? 'text-white' : 'text-primary'}`} />
+                                              Download PDF
+                                            </button>
+                                          )}
+                                        </Menu.Item>
+                                        <Menu.Item>
+                                          {({ active }) => (
+                                            <button
+                                              onClick={() => handlePdfAction('share', msg)}
+                                              className={`${active ? 'bg-primary text-white shadow-md' : 'text-maintext hover:bg-primary/5'
+                                                } group flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-bold transition-all duration-200`}
+                                            >
+                                              <Share className={`w-3.5 h-3.5 ${active ? 'text-white' : 'text-primary'}`} />
+                                              Share PDF
+                                            </button>
+                                          )}
+                                        </Menu.Item>
+                                      </div>
+                                    </Menu.Items>
+                                  </Transition>
+                                </Menu>
+                              </div>
+
+
                             </div>
                           </div>
                         </div>
@@ -3798,10 +3840,13 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                     <div className="mt-6 flex justify-end">
                       <button
                         type="button"
-                        className="inline-flex justify-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/75"
+                        disabled={isSubmittingFeedback}
+                        className={`inline-flex justify-center items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-white transition-all ${isSubmittingFeedback ? 'opacity-70 cursor-not-allowed' : 'hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98]'
+                          }`}
                         onClick={submitFeedback}
                       >
-                        Submit
+                        {isSubmittingFeedback && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                        {isSubmittingFeedback ? 'Submitting...' : 'Submit'}
                       </button>
                     </div>
                   </Dialog.Panel>
