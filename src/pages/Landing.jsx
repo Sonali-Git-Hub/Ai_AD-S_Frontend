@@ -126,7 +126,7 @@ const Landing = () => {
                     animate={{ opacity: 1, x: 0 }}
                     className="relative flex items-center gap-2 md:gap-3 cursor-pointer group"
                 >
-                    <img src="/logo/AISA.gif?v=2" alt="AISA Logo" className="w-12 h-12 md:w-20 md:h-20 object-contain hover:rotate-12 transition-transform duration-300" />
+                    <img src="/logo/AISA.gif?v=3" alt="AISA Logo" className="w-12 h-12 md:w-20 md:h-20 object-contain hover:rotate-12 transition-transform duration-300" />
 
                 </motion.div>
 
@@ -296,7 +296,7 @@ const Landing = () => {
                         {/* Brand Column */}
                         <div className="space-y-6 max-w-sm">
                             <div className="flex items-center gap-2 group cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-                                <img src="/logo/AISA.gif?v=2" alt="AISA Logo" className="w-12 h-12 object-contain group-hover:rotate-12 transition-transform duration-300" />
+                                <img src="/logo/AISA.gif?v=3" alt="AISA Logo" className="w-12 h-12 object-contain group-hover:rotate-12 transition-transform duration-300" />
                                 <span className="text-xl font-bold text-primary tracking-tighter">AISA <sup className="text-[10px]">TM</sup></span>
                             </div>
 

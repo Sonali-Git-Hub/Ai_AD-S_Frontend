@@ -2672,7 +2672,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 pb-32 md:pb-40 animate-in fade-in duration-700">
               <div className="mb-6 select-none">
                 <img
-                  src="/logo/AISA.gif?v=2"
+                  src="/logo/AISA.gif?v=3"
                   alt="AISA Icon"
                   className="w-16 h-16 md:w-24 md:h-24 object-contain drop-shadow-2xl pointer-events-none"
                   draggable={false}
@@ -2703,7 +2703,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                     {msg.role === 'user' ? (
                       <User className="w-4 h-4 text-white" />
                     ) : (
-                      <img src="/logo/AISA.gif?v=2" alt="AISA" className="w-5 h-5 object-contain" />
+                      <img src="/logo/AISA.gif?v=3" alt="AISA" className="w-5 h-5 object-contain" />
                     )}
                   </div>
 
