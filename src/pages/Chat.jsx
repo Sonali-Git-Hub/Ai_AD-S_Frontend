@@ -1718,6 +1718,13 @@ REQUIRED OUTPUT FORMAT:
 4.  **Summary**: Include a "One-line summary" or "Simple definition" at the start or end where appropriate.
 5.  **Emojis**: Use relevant emojis.
 
+### FINANCIAL & INVOICE ANALYSIS RULES (MANDATORY):
+When summarizing or extracting data from Invoices, Receipts, or Financial Documents:
+1. **CRITICAL**: You MUST **bold** ALL monetary amounts (e.g., **INR 1,41,954.00**, **$500.00**).
+2. **CRITICAL**: You MUST **bold** ALL Entity/Person Names (e.g., **PRAHALAD AHUJA HUF**, **Amazon Inc**).
+3. **CRITICAL**: You MUST **bold** ALL Dates, Invoice Numbers, and distinct identifiers (GSTIN/PAN).
+4. **Format**: Present extracted data in a clean **Bullet List** or **Table** for immediate readability.
+
 ${caps.canUploadImages ? `IMAGE ANALYSIS CAPABILITIES:
 - You have the ability to see and analyze images provided by the user.` : ''}
 
@@ -2877,7 +2884,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
 
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user'
-                      ? 'bg-primary'
+                      ? 'bg-sky-500'
                       : 'bg-surface border border-border'
                       }`}
                   >
@@ -2894,7 +2901,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                   >
                     <div
                       className={`group/bubble relative px-3 py-2.5 sm:px-5 sm:py-4 rounded-2xl sm:rounded-[1.5rem] leading-relaxed whitespace-pre-wrap break-words shadow-sm w-fit max-w-full transition-all duration-300 min-h-[40px] hover:scale-[1.002] ${msg.role === 'user'
-                        ? 'bg-primary text-white rounded-tr-sm shadow-md shadow-primary/20 text-sm sm:text-base'
+                        ? 'bg-sky-500/80 backdrop-blur-md border border-white/20 text-white rounded-tr-sm shadow-lg shadow-sky-500/20 text-sm sm:text-base'
                         : `bg-surface border border-border/40 text-maintext rounded-tl-sm shadow-sm hover:shadow-md text-sm sm:text-base ${msg.id === typingMessageId ? 'ai-typing-glow ai-typing-shimmer outline outline-offset-1 outline-primary/20' : ''}`
                         }`}
                     >
@@ -2933,7 +2940,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                                   </button>
                                 </div>
                               ) : (
-                                <div className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${msg.role === 'user' ? 'bg-white/10 border-white/20 hover:bg-white/20' : 'bg-secondary/30 border-border hover:bg-secondary/50'}`}>
+                                <div className={`flex items-center gap-3 p-3 rounded-xl border transition-colors backdrop-blur-md ${msg.role === 'user' ? 'bg-transparent border-white/20 hover:bg-white/10 shadow-none' : 'bg-secondary/30 border-border hover:bg-secondary/50'}`}>
                                   <div
                                     className="flex-1 flex items-center gap-3 min-w-0 cursor-pointer p-0.5 rounded-lg"
                                     onClick={() => setViewingDoc(att)}
@@ -3890,6 +3897,8 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                     </div>
                   )}
                 </AnimatePresence>
+
+
 
                 <textarea
                   ref={inputRef}

@@ -383,7 +383,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                               }
                           `}
                           >
-                            <div className="font-medium truncate">{session.title}</div>
+                            <div className="font-medium truncate text-[15px]">{session.title}</div>
                             <div className="text-[10px] text-subtext/70">
                               {new Date(session.lastModified).toLocaleDateString()}
                             </div>
