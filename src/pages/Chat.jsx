@@ -1396,8 +1396,14 @@ const Chat = () => {
   };
 
   const scrollToBottom = (force = false, behavior = 'auto') => {
-    if (force || shouldAutoScrollRef.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior });
+    if ((force || shouldAutoScrollRef.current) && chatContainerRef.current) {
+      const { scrollHeight, clientHeight } = chatContainerRef.current;
+      const maxScrollTop = scrollHeight - clientHeight;
+      if (behavior === 'smooth') {
+        chatContainerRef.current.scrollTo({ top: maxScrollTop, behavior: 'smooth' });
+      } else {
+        chatContainerRef.current.scrollTop = maxScrollTop;
+      }
     }
   };
 
@@ -2802,10 +2808,10 @@ For "Remix" requests with an attachment, analyze the attached image, then create
         <div
           ref={chatContainerRef}
           onScroll={handleScroll}
-          className="relative flex-1 overflow-y-auto p-1 sm:p-2 md:p-3 pb-32 md:pb-40 space-y-2.5 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent aisa-scalable-text"
+          className="relative flex-1 overflow-y-auto p-1 sm:p-2 md:p-3 pb-48 md:pb-56 space-y-2.5 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent aisa-scalable-text"
         >
           {messages.length === 0 ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 pb-32 md:pb-40 animate-in fade-in duration-700">
+            <div className="flex-1 w-full min-h-full flex flex-col items-center justify-center text-center px-4 animate-in fade-in duration-700 mt-auto mb-auto">
               <div className="mb-6 select-none">
                 <img
                   src="/logo/AISA.gif?v=3"
@@ -3645,7 +3651,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
               </div>
             )}
 
-            <form onSubmit={handleSendMessage} className="relative w-full max-w-5xl mx-auto flex items-center gap-1 bg-white dark:bg-[#0a0a0a] border border-black/5 dark:border-white/10 rounded-2xl p-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.15)] transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.1)] hover:border-primary/20 backdrop-blur-3xl px-1">
+            <form onSubmit={handleSendMessage} className="relative w-full max-w-5xl mx-auto flex items-center gap-1 bg-white dark:bg-[#0a0a0a] border border-black/5 dark:border-white/10 rounded-2xl p-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.15)] transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.1)] hover:border-primary/20 backdrop-blur-3xl px-1 z-50">
               <input
                 id="file-upload"
                 type="file"
@@ -3722,16 +3728,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                           </div>
                           <span className="text-sm font-medium text-maintext group-hover:text-primary transition-colors">Upload files</span>
                         </label>
-                        <label
-                          htmlFor="drive-upload"
-                          onClick={() => setIsAttachMenuOpen(false)}
-                          className="w-full text-left px-3 py-2.5 flex items-center gap-3 hover:bg-primary/10 rounded-xl transition-all group cursor-pointer"
-                        >
-                          <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center group-hover:border-primary/30 group-hover:bg-primary/20 transition-colors shrink-0">
-                            <Cloud className="w-4 h-4 text-subtext group-hover:text-primary transition-colors" />
-                          </div>
-                          <span className="text-sm font-medium text-maintext group-hover:text-primary transition-colors">Add from Drive</span>
-                        </label>
+
                       </div>
                     </motion.div>
                   )}

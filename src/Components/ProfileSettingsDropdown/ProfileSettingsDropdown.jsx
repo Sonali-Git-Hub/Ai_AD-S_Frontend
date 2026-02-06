@@ -292,12 +292,12 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
             tab: 'personalization',
             label: t('fontSize'),
             description: t('fontSizeDesc'),
-            keywords: 'text size large small medium extra large',
+            keywords: 'text size large small medium',
             component: renderSettingRow(t('fontSize'), t('fontSizeDesc'), renderDropdown(
                 t(personalizations.personalization?.fontSize?.toLowerCase() || 'medium'),
-                [t('small'), t('medium'), t('large'), t('extraLarge')],
+                [t('small'), t('medium'), t('large')],
                 (e) => {
-                    const sizeMap = { [t('small')]: 'Small', [t('medium')]: 'Medium', [t('large')]: 'Large', [t('extraLarge')]: 'Extra Large' };
+                    const sizeMap = { [t('small')]: 'Small', [t('medium')]: 'Medium', [t('large')]: 'Large' };
                     updatePersonalization('personalization', { fontSize: sizeMap[e.target.value] });
                 },
                 Type
@@ -344,7 +344,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
             component: (
                 <div className="pt-4 animate-in fade-in duration-300">
                     <h4 className="text-xs font-bold text-gray-400 uppercase mb-4">{t('recentChatHistory')}</h4>
-                    <div className="max-h-[300px] overflow-y-auto space-y-2 pr-2">
+                    <div className="space-y-2 pr-2">
                         {Object.keys(groupedSessions).length > 0 ? (
                             Object.keys(groupedSessions).sort((a, b) => new Date(b) - new Date(a)).map(date => (
                                 <div key={date} className="border border-gray-100 dark:border-white/5 rounded-xl">
@@ -627,7 +627,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                         {allSettings.filter(s => s.tab === 'data').map(s => <div key={s.id}>{s.component}</div>)}
                         <div className="pt-4">
                             <h4 className="text-xs font-bold text-gray-400 uppercase mb-4">{t('recentChatHistory')}</h4>
-                            <div className="max-h-[300px] overflow-y-auto space-y-2 pr-2">
+                            <div className="space-y-2 pr-2">
                                 {Object.keys(groupedSessions).length > 0 ? (
                                     Object.keys(groupedSessions).sort((a, b) => new Date(b) - new Date(a)).map(date => (
                                         <div key={date} className="border border-gray-100 dark:border-white/5 rounded-xl">
@@ -697,7 +697,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         <AnimatePresence>
             {!showPricingModal && (
                 <div key="settings-main-overlay" className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-[2px]" onClick={onClose}>
-                    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="w-full sm:max-w-[850px] h-full sm:h-[600px] bg-white dark:bg-[#161B2E] flex flex-col sm:flex-row shadow-2xl sm:rounded-[2rem] overflow-hidden" onClick={e => e.stopPropagation()}>
+                    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="w-full sm:max-w-[850px] h-full sm:h-[85vh] bg-white dark:bg-[#161B2E] flex flex-col sm:flex-row shadow-2xl sm:rounded-[2rem] overflow-hidden" onClick={e => e.stopPropagation()}>
                         <div className={`w-full sm:w-[240px] bg-gray-50 dark:bg-black/20 flex-col border-r border-gray-100 dark:border-white/5 ${view === 'detail' ? 'hidden sm:flex' : 'flex'}`}>
                             <div className="p-5 flex justify-between items-center">
                                 <h2 className="text-lg font-bold">Settings</h2>
