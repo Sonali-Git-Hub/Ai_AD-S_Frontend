@@ -2810,74 +2810,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
           onScroll={handleScroll}
           className="relative flex-1 overflow-y-auto p-1 sm:p-2 md:p-3 pb-48 md:pb-56 space-y-2.5 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent aisa-scalable-text"
         >
-          {messages.length === 0 ? (
-            <div className="flex-1 w-full min-h-full flex flex-col items-center justify-center text-center px-4 animate-in fade-in duration-700 mt-auto mb-auto">
-              <div className="mb-6 select-none">
-                <img
-                  src="/logo/AISA.gif?v=3"
-                  alt="AISA Icon"
-                  className="w-16 h-16 md:w-24 md:h-24 object-contain drop-shadow-2xl pointer-events-none"
-                  draggable={false}
-                  onDragStart={(e) => e.preventDefault()}
-                />
-              </div>
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-maintext tracking-tight max-w-4xl leading-relaxed drop-shadow-sm px-4">
-                {t('welcomeMessage')}
-              </h2>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-8 w-full max-w-lg px-6 animate-in hover:none">
-                {[
-                  {
-                    icon: <ImageIcon className="w-5 h-5 text-purple-500" />,
-                    title: "Generate Image",
-                    desc: "Create visuals from text",
-                    action: () => {
-                      if (inputRef.current) {
-                        inputRef.current.value = "Generate an image of ";
-                        inputRef.current.focus();
-                      }
-                    }
-                  },
-                  {
-                    icon: <Search className="w-5 h-5 text-blue-500" />,
-                    title: "Deep Search",
-                    desc: "Research complex topics",
-                    action: () => {
-                      setIsDeepSearch(true);
-                      if (inputRef.current) inputRef.current.focus();
-                      toast.success("Deep Search Mode Enabled");
-                    }
-                  },
-                  {
-                    icon: <FileText className="w-5 h-5 text-orange-500" />,
-                    title: "Analyze Document",
-                    desc: "Chat with PDFs & Docs",
-                    action: () => uploadInputRef.current?.click()
-                  },
-                  {
-                    icon: <Mic className="w-5 h-5 text-green-500" />,
-                    title: "Voice Chat",
-                    desc: "Talk to AISA naturally",
-                    action: () => handleVoiceInput()
-                  }
-                ].map((item, index) => (
-                  <button
-                    key={index}
-                    onClick={item.action}
-                    className="flex items-center gap-4 p-4 bg-surface/50 hover:bg-surface border border-border/50 hover:border-primary/30 rounded-2xl text-left transition-all duration-200 group active:scale-95 shadow-sm hover:shadow-md backdrop-blur-sm"
-                  >
-                    <div className="p-2.5 bg-background rounded-xl group-hover:scale-110 transition-transform duration-300 shadow-sm">
-                      {item.icon}
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-maintext text-sm">{item.title}</h3>
-                      <p className="text-xs text-subtext font-medium">{item.desc}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
+          {messages.length > 0 && (
             <>
               {messages.map((msg) => (
                 <div
@@ -3599,6 +3532,78 @@ For "Remix" requests with an attachment, analyze the attached image, then create
 
           <div ref={messagesEndRef} />
         </div>
+
+        {/* Welcome Screen - Absolute Overlay */}
+        {messages.length === 0 && (
+          <div className="absolute inset-0 z-0 flex flex-col items-center justify-center text-center px-4 pt-20 pb-40 overflow-y-auto no-scrollbar pointer-events-auto">
+            <div className="flex flex-col items-center justify-center my-auto w-full max-w-4xl">
+              <div className="mb-6 select-none shrink-0">
+                <img
+                  src="/logo/AISA.gif?v=3"
+                  alt="AISA Icon"
+                  className="w-16 h-16 md:w-24 md:h-24 object-contain drop-shadow-2xl pointer-events-none"
+                  draggable={false}
+                  onDragStart={(e) => e.preventDefault()}
+                />
+              </div>
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-maintext tracking-tight w-full leading-relaxed drop-shadow-sm px-4 shrink-0">
+                {t('welcomeMessage')}
+              </h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-8 w-full max-w-lg px-6 animate-in hover:none shrink-0">
+                {[
+                  {
+                    icon: <ImageIcon className="w-5 h-5 text-purple-500" />,
+                    title: "Generate Image",
+                    desc: "Create visuals from text",
+                    action: () => {
+                      if (inputRef.current) {
+                        inputRef.current.value = "Generate an image of ";
+                        inputRef.current.focus();
+                      }
+                    }
+                  },
+                  {
+                    icon: <Search className="w-5 h-5 text-blue-500" />,
+                    title: "Deep Search",
+                    desc: "Research complex topics",
+                    action: () => {
+                      setIsDeepSearch(true);
+                      if (inputRef.current) inputRef.current.focus();
+                      toast.success("Deep Search Mode Enabled");
+                    }
+                  },
+                  {
+                    icon: <FileText className="w-5 h-5 text-orange-500" />,
+                    title: "Analyze Document",
+                    desc: "Chat with PDFs & Docs",
+                    action: () => uploadInputRef.current?.click()
+                  },
+                  {
+                    icon: <Mic className="w-5 h-5 text-green-500" />,
+                    title: "Voice Chat",
+                    desc: "Talk to AISA naturally",
+                    action: () => handleVoiceInput()
+                  }
+                ].map((item, index) => (
+                  <button
+                    key={index}
+                    onClick={item.action}
+                    className="flex items-center gap-4 p-4 bg-surface/50 hover:bg-surface border border-border/50 hover:border-primary/30 rounded-2xl text-left transition-all duration-200 group active:scale-95 shadow-sm hover:shadow-md backdrop-blur-sm"
+                  >
+                    <div className="p-2.5 bg-background rounded-xl group-hover:scale-110 transition-transform duration-300 shadow-sm">
+                      {item.icon}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-maintext text-sm">{item.title}</h3>
+                      <p className="text-xs text-subtext font-medium">{item.desc}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Input */}
         <div className="absolute bottom-0 left-0 right-0 p-1.5 sm:p-2 md:p-4 bg-transparent z-20">
