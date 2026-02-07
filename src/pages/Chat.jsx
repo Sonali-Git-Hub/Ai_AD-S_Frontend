@@ -2833,8 +2833,8 @@ For "Remix" requests with an attachment, analyze the attached image, then create
 
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user'
-                      ? 'bg-sky-500'
-                      : 'bg-surface border border-border'
+                      ? 'bg-primary/80 backdrop-blur-md shadow-sm'
+                      : 'bg-surface border border-border shadow-sm'
                       }`}
                   >
                     {msg.role === 'user' ? (
@@ -2850,7 +2850,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                   >
                     <div
                       className={`group/bubble relative px-3 py-2.5 sm:px-5 sm:py-4 rounded-2xl sm:rounded-[1.5rem] leading-relaxed whitespace-pre-wrap break-words shadow-sm w-fit max-w-full transition-all duration-300 min-h-[40px] hover:scale-[1.002] ${msg.role === 'user'
-                        ? 'bg-sky-500/80 backdrop-blur-md border border-white/20 text-white rounded-tr-sm shadow-lg shadow-sky-500/20 text-sm sm:text-base'
+                        ? 'bg-primary/80 backdrop-blur-md border border-white/20 text-white rounded-tr-sm shadow-lg shadow-primary/20 text-sm sm:text-base'
                         : `bg-surface border border-border/40 text-maintext rounded-tl-sm shadow-sm hover:shadow-md text-sm sm:text-base ${msg.id === typingMessageId ? 'ai-typing-glow ai-typing-shimmer outline outline-offset-1 outline-primary/20' : ''}`
                         }`}
                     >
@@ -3460,53 +3460,55 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                   </div>
 
                   {/* Hover Actions - User Only (AI has footer) */}
-                  {msg.role === 'user' && (
-                    <div className={`flex items-center gap-1 transition-opacity duration-200 self-start mt-2 mr-0 flex-row-reverse ${activeMessageId === msg.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                  {
+                    msg.role === 'user' && (
+                      <div className={`flex items-center gap-1 transition-opacity duration-200 self-start mt-2 mr-0 flex-row-reverse ${activeMessageId === msg.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
 
-                      <button
-                        onClick={() => handleCopyMessage(msg.content || msg.text)}
-                        className="p-1.5 text-subtext hover:text-primary hover:bg-surface rounded-full transition-colors"
-                        title="Copy"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </button>
-                      {!msg.attachment && (
                         <button
-                          onClick={() => startEditing(msg)}
-                          className="p-1.5 text-blue-500 hover:text-primary hover:bg-surface rounded-full transition-colors"
-                          title="Edit"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                      )}
-                      {msg.attachment && (
-                        <button
-                          onClick={() => handleRenameFile(msg)}
-                          className="p-1.5 text-blue-500 hover:text-primary hover:bg-surface rounded-full transition-colors"
-                          title="Rename"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                      )}
-                      {/* Only show Undo for the most recent user message if it's the last or second to last message in the whole chat */}
-                      {msg.id === messages.findLast(m => m.role === 'user')?.id && (
-                        <button
-                          onClick={handleUndo}
+                          onClick={() => handleCopyMessage(msg.content || msg.text)}
                           className="p-1.5 text-subtext hover:text-primary hover:bg-surface rounded-full transition-colors"
-                          title="Undo"
+                          title="Copy"
                         >
-                          <Undo2 className="w-4 h-4" />
+                          <Copy className="w-4 h-4" />
                         </button>
-                      )}
-                      <button
-                        onClick={() => handleMessageDelete(msg.id)}
-                        className="p-1.5 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
+                        {!msg.attachment && (
+                          <button
+                            onClick={() => startEditing(msg)}
+                            className="p-1.5 text-blue-500 hover:text-primary hover:bg-surface rounded-full transition-colors"
+                            title="Edit"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        )}
+                        {msg.attachment && (
+                          <button
+                            onClick={() => handleRenameFile(msg)}
+                            className="p-1.5 text-blue-500 hover:text-primary hover:bg-surface rounded-full transition-colors"
+                            title="Rename"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        )}
+                        {/* Only show Undo for the most recent user message if it's the last or second to last message in the whole chat */}
+                        {msg.id === messages.findLast(m => m.role === 'user')?.id && (
+                          <button
+                            onClick={handleUndo}
+                            className="p-1.5 text-subtext hover:text-primary hover:bg-surface rounded-full transition-colors"
+                            title="Undo"
+                          >
+                            <Undo2 className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleMessageDelete(msg.id)}
+                          className="p-1.5 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )
+                  }
                 </div>
               ))}
 
@@ -3877,9 +3879,9 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                   {(isDeepSearch || isImageGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert) && (
                     <div className="absolute bottom-full left-0 mb-3 flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto w-full">
                       {isDeepSearch && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-sky-500/10 text-sky-600 rounded-full text-xs font-bold border border-sky-500/20 backdrop-blur-md whitespace-nowrap shrink-0">
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0">
                           <Search size={12} strokeWidth={3} /> <span className="hidden sm:inline">Deep Search</span>
-                          <button onClick={() => setIsDeepSearch(false)} className="ml-1 hover:text-sky-800"><X size={12} /></button>
+                          <button onClick={() => setIsDeepSearch(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
                         </motion.div>
                       )}
                       {isImageGeneration && (

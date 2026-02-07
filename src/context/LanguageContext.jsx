@@ -234,7 +234,7 @@ export const LanguageProvider = ({ children }) => {
             termsOfService: "Terms of Service",
             cookiePolicy: "Cookie Policy",
             helpCenter: "Help Center",
-            aboutAisa: "About AISA",
+
             poweredByUWO: "Powered by UWO™",
             exploreAisa: "Explore AISA™",
             existingUser: "Existing User",
@@ -429,7 +429,7 @@ export const LanguageProvider = ({ children }) => {
             successLogin: "Successfully Logged in AISA",
             serverError: "Unable to connect to the server. Please check your internet connection and try again.",
             passwordValidation: "Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character.",
-            dbDemoModeMessage: "AI is currently running in demo mode because the database is unreachable. Your messages may not be saved.",
+
             aboutAisa: "About AISA™",
             // ProfileSettingsDropdown translations
             general: "General",
@@ -603,7 +603,7 @@ export const LanguageProvider = ({ children }) => {
             termsOfService: "सेवा की शर्तें",
             cookiePolicy: "कुकी नीति",
             helpCenter: "सहायता केंद्र",
-            aboutAisa: "AISA के बारे में",
+
             poweredByUWO: "UWO™ द्वारा संचालित",
             exploreAisa: "AISA™ एक्सप्लोर करें",
             existingUser: "मौजूदा उपयोगकर्ता",
@@ -899,7 +899,7 @@ export const LanguageProvider = ({ children }) => {
             helpCenter: "Centro de ayuda",
             aboutAisa: "Sobre AISA",
             poweredByUWO: "Desarrollado por UWO",
-            exploreAisa: "Explorar AISA",
+
             existingUser: "Usuario existente",
             getStarted: "Empezar",
             faqSubtitle: "Obtenga respuestas rápidas a preguntas comunes sobre nuestra plataforma",
@@ -1211,7 +1211,7 @@ export const LanguageProvider = ({ children }) => {
             helpCenter: "Centre d'aide",
             aboutAisa: "À propos d'AISA",
             poweredByUWO: "Propulsé par UWO",
-            exploreAisa: "Explorer AISA",
+
             existingUser: "Utilisateur existant",
             getStarted: "Commencer",
             faqSubtitle: "Réponses rapides aux questions courantes sur notre plateforme",
@@ -3480,7 +3480,6 @@ export const LanguageProvider = ({ children }) => {
             newChat: "नवीन चॅट",
             history: "इतिहास",
             welcomeMessage: "नमस्कार! मी AISA आहे, तुमचा आर्टीफिशियल इंटेलिजन्स सुपर असिस्टंट.",
-            close: "बंद करा",
             lastUpdated: "शेवटचे अपडेट",
             pp_intro: "हे गोपनीयता धोरण स्पष्ट करते की AISA™ आपली माहिती कशी गोळा करते, वापरते आणि संरक्षित करते. आम्ही आमच्या सर्व वापरकर्त्यांसाठी गोपनीयता आणि सुरक्षिततेचे सर्वोच्च मानके राखण्यासाठी वचनबद्ध आहोत.",
             pp_collect_title: "आम्ही गोळा करत असलेली माहिती",
