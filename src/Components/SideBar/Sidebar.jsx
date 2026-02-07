@@ -418,7 +418,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-3">
                   <User className="w-6 h-6 text-primary" />
                 </div>
-                <p className="text-xs text-subtext mb-2">Login to save your chat history</p>
+                <p className="text-xs text-subtext mb-2">Login to sync history across devices</p>
                 <button
                   onClick={() => navigate('/login')}
                   className="text-xs font-bold text-primary hover:underline"

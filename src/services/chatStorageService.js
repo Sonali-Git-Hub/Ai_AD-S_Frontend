@@ -74,11 +74,36 @@ const getAuthHeaders = () => {
   return headers;
 };
 
+// Helper to fetch local sessions (Avoiding duplication)
+const getLocalSessions = async () => {
+  const sessions = [];
+  const keys = await idbGetAllKeys();
+
+  for (const key of keys) {
+    if (key.startsWith("chat_meta_")) {
+      const sessionId = key.replace("chat_meta_", "");
+      const meta = await idbGet(key) || {};
+      sessions.push({
+        sessionId,
+        title: meta.title || "New Chat",
+        lastModified: meta.lastModified || Date.now(),
+      });
+    }
+  }
+  return sessions.sort((a, b) => b.lastModified - a.lastModified);
+};
+
 // --- Service ---
 
 export const chatStorageService = {
 
   async getSessions() {
+    const user = getUserData();
+    // Guest User: Direct Local Fetch
+    if (!user || !user.token) {
+      return getLocalSessions();
+    }
+
     try {
       const response = await axios.get(`${API_BASE_URL}/chat`, {
         headers: getAuthHeaders(),
@@ -87,26 +112,20 @@ export const chatStorageService = {
       return response.data;
     } catch (error) {
       console.warn("Backend sessions fetch failed, using local:", error);
-      const sessions = [];
-      const keys = await idbGetAllKeys();
-
-      for (const key of keys) {
-        if (key.startsWith("chat_meta_")) {
-          const sessionId = key.replace("chat_meta_", "");
-          const meta = await idbGet(key) || {};
-          sessions.push({
-            sessionId,
-            title: meta.title || "New Chat",
-            lastModified: meta.lastModified || Date.now(),
-          });
-        }
-      }
-      return sessions.sort((a, b) => b.lastModified - a.lastModified);
+      return getLocalSessions();
     }
   },
 
   async getHistory(sessionId) {
     if (sessionId === "new") return [];
+
+    const user = getUserData();
+    // Guest User: Direct Local Fetch
+    if (!user || !user.token) {
+      const local = await idbGet(`chat_history_${sessionId}`);
+      return local || [];
+    }
+
     try {
       const response = await axios.get(`${API_BASE_URL}/chat/${sessionId}`, {
         headers: getAuthHeaders(),
@@ -148,6 +167,9 @@ export const chatStorageService = {
       console.error("Local save failed:", localErr);
     }
 
+    const user = getUserData();
+    if (!user || !user.token) return; // Guest: Stop here
+
     // 2. Sync with Backend
     try {
       await axios.post(`${API_BASE_URL}/chat/${sessionId}/message`, { message, title }, {
@@ -163,25 +185,34 @@ export const chatStorageService = {
   },
 
   async deleteSession(sessionId) {
+    // Always delete local
+    await idbDel(`chat_history_${sessionId}`);
+    await idbDel(`chat_meta_${sessionId}`);
+
+    const user = getUserData();
+    if (!user || !user.token) return;
+
     try {
       await axios.delete(`${API_BASE_URL}/chat/${sessionId}`, {
         headers: getAuthHeaders(),
         withCredentials: true
       });
     } catch (error) {
-      await idbDel(`chat_history_${sessionId}`);
-      await idbDel(`chat_meta_${sessionId}`);
+      console.warn("Backend delete failed", error);
     }
   },
 
   async deleteMessage(sessionId, messageId) {
-    try {
-      await axios.delete(`${API_BASE_URL}/chat/${sessionId}/message/${messageId}`, {
-        headers: getAuthHeaders(),
-        withCredentials: true
-      });
-    } catch (e) {
-      console.warn("Backend delete failed, converting to local update");
+    const user = getUserData();
+    if (user && user.token) {
+      try {
+        await axios.delete(`${API_BASE_URL}/chat/${sessionId}/message/${messageId}`, {
+          headers: getAuthHeaders(),
+          withCredentials: true
+        });
+      } catch (e) {
+        console.warn("Backend delete failed, converting to local update");
+      }
     }
 
     const historyKey = `chat_history_${sessionId}`;
@@ -218,6 +249,9 @@ export const chatStorageService = {
     } catch (localErr) {
       console.error("Local title update failed:", localErr);
     }
+
+    const user = getUserData();
+    if (!user || !user.token) return true;
 
     // 2. Update Backend
     try {
