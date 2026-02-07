@@ -295,7 +295,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         {/* Brand */}
         <div className="p-4 flex items-center justify-between border-b border-white/20 dark:border-white/10 bg-white/10 dark:bg-black/10 backdrop-blur-md relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent pointer-events-none"></div>
-          <Link to="/" className="relative z-10">
+          <Link to="/" state={{ fromLogo: true }} className="relative z-10">
             <h1 className="text-xl font-bold text-primary drop-shadow-sm flex items-center gap-2">
               AISA <sup className="text-[10px] opacity-70">TM</sup>
             </h1>

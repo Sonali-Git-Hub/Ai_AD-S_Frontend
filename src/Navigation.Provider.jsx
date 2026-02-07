@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Routes, Route, Outlet, Navigate, BrowserRouter, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Outlet, Navigate, BrowserRouter, useNavigate, useLocation, Link } from 'react-router-dom';
 
 import Landing from './pages/Landing';
 import Login from './pages/Login';
@@ -15,7 +15,7 @@ import AiPersonalAssistantDashboard from './pages/AiPersonalAssistant/Dashboard'
 import { AppRoute } from './types';
 import { Menu } from 'lucide-react';
 import { useRecoilState } from 'recoil';
-import { toggleState } from './userStore/userData';
+import { toggleState, getUserData } from './userStore/userData';
 
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
@@ -35,7 +35,49 @@ import ProtectedRoute from './Components/ProtectedRoute/ProtectedRoute.jsx';
 
 const SecurityAndGuidelines = lazy(() => import('./pages/SecurityAndGuidelines'));
 
+// ------------------------------
+// Home Redirect Component
+// ------------------------------
+// Redirects logged-in users to chat on direct access,
+// but allows them to view landing page when clicking logo from within app
+const HomeRedirect = () => {
+  const user = getUserData();
+  const hasToken = user?.token;
+  const location = useLocation();
 
+  // Check if user came from clicking the logo (internal navigation)
+  const isInternalNavigation = location.state?.fromLogo === true;
+
+  // If user is logged in
+  if (hasToken) {
+    // Allow viewing landing page if they clicked the logo from within the app
+    if (isInternalNavigation) {
+      return <Landing />;
+    }
+    // Otherwise (direct URL access), redirect to chat
+    return <Navigate to="/dashboard/chat" replace />;
+  }
+
+  // Non-authenticated users always see the landing page
+  return <Landing />;
+};
+
+// ------------------------------
+// Guest Route Component
+// ------------------------------
+// Protects login/signup pages - redirects authenticated users to chat
+const GuestRoute = ({ children }) => {
+  const user = getUserData();
+  const hasToken = user?.token;
+
+  // If user is already logged in, redirect to chat
+  if (hasToken) {
+    return <Navigate to="/dashboard/chat" replace />;
+  }
+
+  // Otherwise, allow access to login/signup page
+  return children;
+};
 
 const AuthenticatRoute = ({ children }) => {
   return children;
@@ -104,7 +146,9 @@ const DashboardLayout = () => {
               >
                 <Menu className="w-6 h-6" />
               </button>
-              <span className="font-bold text-lg text-primary">AISA <sup className="text-[10px]">TM</sup></span>
+              <Link to="/" state={{ fromLogo: true }} className="font-bold text-lg text-primary hover:opacity-80 transition-opacity">
+                AISA <sup className="text-[10px]">TM</sup>
+              </Link>
             </div>
 
             <div
@@ -155,9 +199,9 @@ const NavigateProvider = () => {
       </AnimatePresence>
       <Routes>
         {/* Public Routes */}
-        <Route path={AppRoute.LANDING} element={<Landing />} />
-        <Route path={AppRoute.LOGIN} element={<Login />} />
-        <Route path={AppRoute.SIGNUP} element={<Signup />} />
+        <Route path={AppRoute.LANDING} element={<HomeRedirect />} />
+        <Route path={AppRoute.LOGIN} element={<GuestRoute><Login /></GuestRoute>} />
+        <Route path={AppRoute.SIGNUP} element={<GuestRoute><Signup /></GuestRoute>} />
 
         <Route path={AppRoute.E_Verification} element={<VerificationForm />} />
         <Route path={AppRoute.FORGOT_PASSWORD} element={<ForgotPassword />} />
