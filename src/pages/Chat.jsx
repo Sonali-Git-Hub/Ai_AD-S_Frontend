@@ -3963,10 +3963,10 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                     }
                   }}
                   onPaste={handlePaste}
-                  placeholder={isLimitReached ? "Chat limit reached. Sign in to continue." : (isAudioConvertMode ? "Enter text to convert..." : isDocumentConvert ? "Upload file & ask to convert..." : "Ask AISA...")}
+                  placeholder={isLimitReached ? "Chat limit reached. Sign in to continue." : (isAudioConvertMode ? "Enter text to convert..." : isDocumentConvert ? "Upload file & ask to convert..." : "Ask AISA")}
                   rows={1}
-                  className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none p-0 text-maintext text-left placeholder-subtext/50 resize-none overflow-y-auto custom-scrollbar leading-relaxed aisa-scalable-text flex items-center ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
-                  style={{ minHeight: '1.5rem', maxHeight: '150px', lineHeight: '1.5rem' }}
+                  className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none p-0 text-maintext text-left placeholder-subtext/50 resize-none overflow-y-auto custom-scrollbar leading-relaxed aisa-scalable-text ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
+                  style={{ minHeight: '1.5em', height: '1.5em', maxHeight: '150px', lineHeight: '1.5' }}
                 />
               </div>
 
