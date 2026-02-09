@@ -4012,7 +4012,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                       setIsLoading(false);
                       isSendingRef.current = false;
                     }}
-                    className="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg hover:bg-red-600 hover:scale-105 transition-all"
+                    className="w-10 h-10 rounded-full bg-[#5555ff] text-white flex items-center justify-center shadow-lg hover:bg-[#4444ee] hover:scale-105 transition-all"
                   >
                     <div className="w-3 h-3 bg-white rounded-sm" />
                   </button>
