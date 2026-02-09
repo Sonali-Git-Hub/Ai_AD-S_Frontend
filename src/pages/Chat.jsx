@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, Fragment } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Send, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus } from 'lucide-react';
+import { Send, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code } from 'lucide-react';
 import { renderAsync } from 'docx-preview';
 import * as XLSX from 'xlsx';
 import { Menu, Transition, Dialog } from '@headlessui/react';
@@ -268,6 +268,7 @@ const Chat = () => {
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [isAudioConvertMode, setIsAudioConvertMode] = useState(false);
   const [isDocumentConvert, setIsDocumentConvert] = useState(false);
+  const [isCodeWriter, setIsCodeWriter] = useState(false);
   const abortControllerRef = useRef(null);
   const voiceUsedRef = useRef(false); // Track if voice input was used
   const inputRef = useRef(null); // Ref for textarea input
@@ -3018,7 +3019,8 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                                 h1: ({ children }) => <h1 className="font-bold mb-2 mt-3 block text-[1.4em] text-primary tracking-tight">{children}</h1>,
                                 h2: ({ children }) => <h2 className="font-bold mb-1.5 mt-2 block text-[1.2em] text-primary tracking-tight">{children}</h2>,
                                 h3: ({ children }) => <h3 className="font-bold mb-1 mt-1.5 block text-[1.1em] text-primary tracking-tight">{children}</h3>,
-                                strong: ({ children }) => <strong className="font-bold text-primary/90">{children}</strong>,
+                                strong: ({ children }) => <strong className="font-bold text-[#5555ff]">{children}</strong>,
+                                mark: ({ children }) => <mark className="bg-[#5555ff] text-white px-1 py-0.5 rounded-sm">{children}</mark>,
                                 code: ({ node, inline, className, children, ...props }) => {
                                   const match = /language-(\w+)/.exec(className || '');
                                   const lang = match ? match[1] : '';
@@ -3766,8 +3768,8 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                     type="button"
                     ref={toolsBtnRef}
                     onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
-                    className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${isToolsMenuOpen || isImageGeneration || isDeepSearch || isAudioConvertMode || isDocumentConvert ? 'bg-primary/10 text-primary scale-110' : 'bg-transparent text-subtext hover:text-primary hover:bg-secondary'}`}
-                    title="AI Capabilities"
+                    className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${isToolsMenuOpen || isImageGeneration || isDeepSearch || isAudioConvertMode || isDocumentConvert || isCodeWriter ? 'bg-primary/10 text-primary scale-110' : 'bg-transparent text-subtext hover:text-primary hover:bg-secondary'}`}
+                    title="AISA Capabilities"
                   >
                     <Sparkles className="w-5 h-5" />
                   </button>
@@ -3783,7 +3785,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                       >
                         <div className="p-3 bg-secondary/30 border-b border-border/50 mb-1">
                           <h3 className="text-xs font-bold text-subtext uppercase tracking-wider flex items-center gap-2">
-                            <Sparkles className="w-3 h-3 text-primary" /> AI Magic Tools
+                            <Sparkles className="w-3 h-3 text-primary" /> AISA Magic Tools
                           </h3>
                         </div>
                         <div className="p-1.5 space-y-0.5">
@@ -3866,6 +3868,27 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                               <span className="text-[10px] text-subtext">PDF ↔ Word conversion</span>
                             </div>
                           </button>
+
+                          <button
+                            onClick={() => {
+                              setIsToolsMenuOpen(false);
+                              setIsCodeWriter(!isCodeWriter);
+                              setIsDeepSearch(false);
+                              setIsImageGeneration(false);
+                              setIsAudioConvertMode(false);
+                              setIsDocumentConvert(false);
+                              if (!isCodeWriter) toast.success("Code Writer Mode Enabled");
+                            }}
+                            className={`w-full text-left px-3 py-3 flex items-center gap-3 rounded-xl transition-all group cursor-pointer ${isCodeWriter ? 'bg-primary/10' : 'hover:bg-primary/5'}`}
+                          >
+                            <div className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors shrink-0 ${isCodeWriter ? 'bg-primary border-primary text-white' : 'bg-surface border-border group-hover:border-primary/30 group-hover:bg-primary/10'}`}>
+                              <Code className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1">
+                              <span className="text-sm font-bold text-maintext block">Code Writer</span>
+                              <span className="text-[10px] text-subtext">Write & debug code with AISA</span>
+                            </div>
+                          </button>
                         </div>
                       </motion.div>
                     )}
@@ -3876,7 +3899,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
               {/* Input Area */}
               <div className="relative flex-1 min-w-0 py-1 px-1">
                 <AnimatePresence>
-                  {(isDeepSearch || isImageGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert) && (
+                  {(isDeepSearch || isImageGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter) && (
                     <div className="absolute bottom-full left-0 mb-3 flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto w-full">
                       {isDeepSearch && (
                         <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0">
@@ -3906,6 +3929,12 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                         <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-emerald-500/10 text-emerald-600 rounded-full text-xs font-bold border border-emerald-500/20 backdrop-blur-md whitespace-nowrap shrink-0">
                           <FileText size={12} strokeWidth={3} /> <span className="hidden sm:inline">Doc Convert</span>
                           <button onClick={() => setIsDocumentConvert(false)} className="ml-1 hover:text-emerald-800"><X size={12} /></button>
+                        </motion.div>
+                      )}
+                      {isCodeWriter && (
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-purple-500/10 text-purple-600 rounded-full text-xs font-bold border border-purple-500/20 backdrop-blur-md whitespace-nowrap shrink-0">
+                          <Code size={12} strokeWidth={3} /> <span className="hidden sm:inline">Code Writer</span>
+                          <button onClick={() => setIsCodeWriter(false)} className="ml-1 hover:text-purple-800"><X size={12} /></button>
                         </motion.div>
                       )}
                     </div>

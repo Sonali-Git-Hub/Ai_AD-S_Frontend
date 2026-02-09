@@ -121,6 +121,19 @@
     @apply bg-background text-foreground;
     font-family: var(--active-font-family, 'Outfit', sans-serif);
   }
+
+  /* Marked/Highlighted text styling */
+  mark {
+    background-color: #5555ff;
+    color: white;
+    padding: 0.1em 0.3em;
+    border-radius: 0.2em;
+  }
+
+  .dark mark {
+    background-color: #5555ff;
+    color: white;
+  }
 }
 
 /* Scrollbar Styling */
