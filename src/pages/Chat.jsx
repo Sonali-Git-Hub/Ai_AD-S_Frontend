@@ -748,8 +748,22 @@ const Chat = () => {
       setIsLoading(true);
       // isSendingRef.current = true; // Mark as sending // This variable is not defined in the provided context
 
+      // 1. Add User Message to UI
+      const userMsgId = Date.now().toString();
+      const userMsg = {
+        id: userMsgId,
+        role: 'user',
+        content: prompt,
+        timestamp: new Date(),
+        attachments: filePreviews.map(fp => ({
+          url: fp.url,
+          name: fp.name,
+          type: fp.type
+        }))
+      };
+
       // Show a message that video generation is in progress
-      const tempId = Date.now().toString();
+      const tempId = (Date.now() + 1).toString();
       const newMessage = {
         id: tempId,
         role: 'assistant',
@@ -757,8 +771,10 @@ const Chat = () => {
         timestamp: new Date(),
       };
 
-      setMessages(prev => [...prev, newMessage]);
+      setMessages(prev => [...prev, userMsg, newMessage]);
       if (inputRef.current) inputRef.current.value = '';
+      setInputValue('');
+      handleRemoveFile();
 
       try {
         // Use apiService
@@ -801,8 +817,22 @@ const Chat = () => {
       const prompt = overridePrompt || inputRef.current.value;
       setIsLoading(true);
 
+      // 1. Add User Message to UI
+      const userMsgId = Date.now().toString();
+      const userMsg = {
+        id: userMsgId,
+        role: 'user',
+        content: prompt,
+        timestamp: new Date(),
+        attachments: filePreviews.map(fp => ({
+          url: fp.url,
+          name: fp.name,
+          type: fp.type
+        }))
+      };
+
       // Show a message that image generation is in progress
-      const tempId = Date.now().toString();
+      const tempId = (Date.now() + 1).toString();
       const newMessage = {
         id: tempId,
         role: 'assistant',
@@ -810,8 +840,10 @@ const Chat = () => {
         timestamp: new Date(),
       };
 
-      setMessages(prev => [...prev, newMessage]);
+      setMessages(prev => [...prev, userMsg, newMessage]);
       if (inputRef.current) inputRef.current.value = '';
+      setInputValue('');
+      handleRemoveFile();
 
       try {
         // Use apiService
