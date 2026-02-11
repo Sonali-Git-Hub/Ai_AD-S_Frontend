@@ -27,8 +27,6 @@ import { getUserData, sessionsData, toggleState } from '../userStore/userData';
 import { usePersonalization } from '../context/PersonalizationContext';
 
 
-const WELCOME_MESSAGE = "Hello! I’m AISA™, your Artificial Intelligence Super Assistant.";
-
 const FEEDBACK_PROMPTS = {
   en: [
     "Was this helpful?",
@@ -1808,30 +1806,16 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
 \`\`\`
 - Keep the response text brief, explaining what you are doing.` : ''}
 `;
-        // Check for greeting to send the specific welcome message
-        const lowerInput = (contentToSend || "").toLowerCase().trim();
-        const isGreeting = ['hi', 'hello', 'hey', 'namaste', 'नमस्ते', 'greetings', 'hi aisa', 'hello aisa'].includes(lowerInput);
-
-        let aiResponseData;
-
-        if (isGreeting) {
-          // Respond with the welcome message for greetings
-          aiResponseData = {
-            reply: WELCOME_MESSAGE,
-            language: currentLang
-          };
-        } else {
-          // Default AI message sending
-          aiResponseData = await generateChatResponse(
-            messages,
-            userMsg.content,
-            SYSTEM_INSTRUCTION + getSystemPromptExtensions(),
-            userMsg.attachments,
-            currentLang,
-            abortControllerRef.current.signal,
-            detectedMode
-          );
-        }
+        // Default AI message sending
+        const aiResponseData = await generateChatResponse(
+          messages,
+          userMsg.content,
+          SYSTEM_INSTRUCTION + getSystemPromptExtensions(),
+          userMsg.attachments,
+          currentLang,
+          abortControllerRef.current.signal,
+          detectedMode
+        );
 
         if (aiResponseData && aiResponseData.error === "LIMIT_REACHED") {
           setIsLimitReached(true);
@@ -2468,19 +2452,37 @@ Do NOT say "I cannot create images". You CAN by using this link format.
 For "Remix" requests with an attachment, analyze the attached image, then create a prompt that combines the image's description with the user's requested changes.
 `;
 
-      const aiResponseText = await generateChatResponse(
+      const aiResponseData = await generateChatResponse(
         messagesUpToEdit,
         updatedMsg.content,
         SYSTEM_INSTRUCTION + getSystemPromptExtensions(),
-        updatedMsg.attachment,
+        updatedMsg.attachments || (updatedMsg.attachment ? [updatedMsg.attachment] : []),
         currentLang
       );
+
+      // Extract text reply and other metadata from the response object
+      let reply = "";
+      let conversion = null;
+      let videoUrl = null;
+      let imageUrl = null;
+
+      if (typeof aiResponseData === 'string') {
+        reply = aiResponseData;
+      } else if (aiResponseData && typeof aiResponseData === 'object') {
+        reply = aiResponseData.reply || "";
+        conversion = aiResponseData.conversion || null;
+        videoUrl = aiResponseData.videoUrl || null;
+        imageUrl = aiResponseData.imageUrl || null;
+      }
 
       const modelMsg = {
         id: (Date.now() + 1).toString(),
         role: 'model',
-        content: aiResponseText,
+        content: reply,
         timestamp: Date.now(),
+        ...(conversion && { conversion }),
+        ...(videoUrl && { videoUrl }),
+        ...(imageUrl && { imageUrl })
       };
 
       // Update state with new AI response
@@ -3546,7 +3548,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                 </div>
               ))}
 
-              {isLoading && (
+              {isLoading && !typingMessageId && (
                 <div className="flex items-start gap-4 max-w-4xl mx-auto">
                   <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center shrink-0">
                     <img src="/logo/AISA.gif?v=3" alt="AISA" className="w-5 h-5 object-contain" />
