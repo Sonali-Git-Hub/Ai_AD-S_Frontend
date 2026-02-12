@@ -117,3 +117,8 @@ export const sessionsData = atom({
   key: 'sessionsData',
   default: []
 })
+
+export const memoryData = atom({
+  key: 'memoryData',
+  default: null
+})

@@ -31,6 +31,7 @@ import { useRecoilState } from 'recoil';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
+import MemoryManager from '../Components/MemoryManager';
 
 const Profile = () => {
     const navigate = useNavigate();
@@ -597,6 +598,9 @@ const Profile = () => {
                         {!isEditing && <p className="text-subtext font-medium text-sm md:text-base">{user.email}</p>}
                     </div>
                 </div>
+
+                {/* AI Memory Manager */}
+                <MemoryManager />
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">

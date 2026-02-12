@@ -23,8 +23,9 @@ import { apis } from '../types';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { detectMode, getModeName, getModeIcon, getModeColor, MODES } from '../utils/modeDetection';
-import { getUserData, sessionsData, toggleState } from '../userStore/userData';
+import { getUserData, sessionsData, toggleState, memoryData } from '../userStore/userData';
 import { usePersonalization } from '../context/PersonalizationContext';
+import OnboardingModal from '../Components/OnboardingModal';
 
 
 const FEEDBACK_PROMPTS = {
@@ -227,6 +228,8 @@ const Chat = () => {
   const messagesEndRef = useRef(null);
   const [currentSessionId, setCurrentSessionId] = useState(sessionId || 'new');
   const [tglState, setTglState] = useRecoilState(toggleState);
+  const [memory, setMemoryRecoil] = useRecoilState(memoryData);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [typingMessageId, setTypingMessageId] = useState(null);
 
   // File Upload State
@@ -1416,7 +1419,45 @@ const Chat = () => {
         setMessages(history || []);
       } else {
         setCurrentSessionId('new');
-        setMessages([]);
+
+        // --- SMART WELCOME ---
+        const user = getUserData();
+        if (user && user.token) {
+          try {
+            const res = await axios.get(`${apis.baseUrl}/api/memory`, {
+              headers: { Authorization: `Bearer ${user.token}` }
+            });
+            const mem = res.data;
+            setMemoryRecoil(mem);
+
+            if (mem && mem.isMemoryEnabled) {
+              const name = mem.name || user.name || "friend";
+              const business = mem.businessType;
+
+              // If critical info is missing, show onboarding
+              if (!mem.name && !mem.businessType && sessionId === 'new') {
+                setShowOnboarding(true);
+              }
+
+              let greeting = `Hello ${name}! 👋 Welcome back. `;
+              if (business) greeting += `How is everything going with your ${business} work? `;
+              greeting += "I've loaded your context and I'm ready to assist. What can we achieve today?";
+
+              setMessages([{
+                id: 'welcome-' + Date.now(),
+                role: 'assistant',
+                content: greeting,
+                timestamp: new Date()
+              }]);
+            } else {
+              setMessages([]);
+            }
+          } catch (e) {
+            setMessages([]);
+          }
+        } else {
+          setMessages([]);
+        }
       }
 
       setShowHistory(false);
@@ -4223,6 +4264,14 @@ For "Remix" requests with an attachment, analyze the attached image, then create
           </Dialog>
         </Transition>
       </div >
+      <OnboardingModal
+        isOpen={showOnboarding}
+        onClose={() => setShowOnboarding(false)}
+        onComplete={() => {
+          // Re-init chat to show correct greeting
+          setTimeout(() => window.location.reload(), 500);
+        }}
+      />
     </div >
   );
 };
