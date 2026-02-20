@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Settings } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Settings, Download } from 'lucide-react';
 
 const CustomVideoPlayer = ({ src }) => {
     const videoRef = useRef(null);
@@ -119,6 +119,16 @@ const CustomVideoPlayer = ({ src }) => {
         };
     }, []);
 
+    const handleDownload = (e) => {
+        e.stopPropagation();
+        const a = document.createElement('a');
+        a.href = src;
+        a.download = 'aisa-generated-video.mp4';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    };
+
     return (
         <div
             ref={containerRef}
@@ -147,11 +157,15 @@ const CustomVideoPlayer = ({ src }) => {
             >
                 <div className="bg-[#2A2B32]/90 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 flex items-center gap-3 sm:gap-4 md:gap-5 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
 
-                    {/* Live Badge */}
-                    <div className="flex items-center gap-2 bg-[#8C52FF] px-3 py-1.5 rounded text-white font-bold text-xs tracking-wide shrink-0">
-                        <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
-                        LIVE
-                    </div>
+                    {/* Download Button */}
+                    <button
+                        onClick={handleDownload}
+                        className="flex items-center gap-1.5 bg-primary hover:bg-primary/90 transition-all px-3 py-1.5 rounded text-white font-bold text-[10px] tracking-wide shrink-0"
+                        title="Download Video"
+                    >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>DOWNLOAD</span>
+                    </button>
 
                     {/* Play / Pause */}
                     <button
