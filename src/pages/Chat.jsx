@@ -17,6 +17,7 @@ import LiveAI from '../Components/LiveAI';
 import { apiService } from '../services/apiService';
 
 import ImageEditor from '../Components/ImageEditor';
+import CustomVideoPlayer from '../Components/CustomVideoPlayer';
 import ModelSelector from '../Components/ModelSelector';
 import axios from 'axios';
 import { apis } from '../types';
@@ -3211,36 +3212,8 @@ For "Remix" requests with an attachment, analyze the attached image, then create
 
                             {/* Dynamic Video Rendering */}
                             {msg.videoUrl && (
-                              <div className="relative group/generated mt-4 mb-2 overflow-hidden rounded-2xl border border-white/10 shadow-2xl transition-all hover:scale-[1.01] bg-surface/50 backdrop-blur-sm">
-                                <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-100 sm:opacity-0 sm:group-hover/generated:opacity-100 transition-opacity pointer-events-none">
-                                  <div className="flex items-center gap-2">
-                                    <Video className="w-4 h-4 text-primary animate-pulse" />
-                                    <span className="text-[10px] font-bold text-white uppercase tracking-widest">AISA Generated Video</span>
-                                  </div>
-                                </div>
-
-                                <video
-                                  src={msg.videoUrl}
-                                  controls
-                                  autoPlay
-                                  loop
-                                  className="w-full max-w-full h-auto rounded-xl bg-black/5"
-                                />
-
-                                <div className="absolute bottom-3 right-14 pointer-events-auto">
-                                  {/* Additional controls if needed */}
-                                </div>
-
-                                <button
-                                  onClick={() => handleDownload(msg.videoUrl, 'aisa-generated-video.mp4')}
-                                  className="absolute bottom-3 right-3 p-2.5 bg-primary text-white rounded-xl opacity-100 sm:opacity-0 sm:group-hover/generated:opacity-100 transition-all hover:bg-primary/90 shadow-lg border border-white/20 scale-100 sm:scale-90 sm:group-hover/generated:scale-100 z-20"
-                                  title="Download Video"
-                                >
-                                  <div className="flex items-center gap-2 px-1">
-                                    <Download className="w-4 h-4" />
-                                    <span className="text-[10px] font-bold uppercase">Download</span>
-                                  </div>
-                                </button>
+                              <div className="relative mt-4 mb-2">
+                                <CustomVideoPlayer src={msg.videoUrl} />
                               </div>
                             )}
 
