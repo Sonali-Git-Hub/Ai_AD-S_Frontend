@@ -71,6 +71,18 @@ export const apiService = {
     }
   },
 
+  async downloadVideo(videoUrl) {
+    try {
+      console.log("[Frontend] Downloading video from proxy:", videoUrl);
+      const response = await apiClient.post('/video/download', { videoUrl }, { responseType: 'blob' });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to download video proxy:", error);
+      throw error;
+    }
+  },
+
+
   // --- Auth ---
   async login(credentials) {
     try {

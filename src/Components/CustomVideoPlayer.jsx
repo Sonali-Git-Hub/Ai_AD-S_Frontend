@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Download } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Download, FastForward, Rewind } from 'lucide-react';
+import { apiService } from '../services/apiService';
 
 const CustomVideoPlayer = ({ src }) => {
     const videoRef = useRef(null);
@@ -11,8 +12,10 @@ const CustomVideoPlayer = ({ src }) => {
     const [isMuted, setIsMuted] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [showControls, setShowControls] = useState(true);
+    const [skipAnim, setSkipAnim] = useState(null);
 
     const fadeTimeoutRef = useRef(null);
+    const lastTapTimeRef = useRef(0);
 
     useEffect(() => {
         // Try auto-playing
@@ -26,12 +29,49 @@ const CustomVideoPlayer = ({ src }) => {
 
     const togglePlay = () => {
         if (videoRef.current) {
-            if (isPlaying) {
-                videoRef.current.pause();
-            } else {
+            if (videoRef.current.paused) {
                 videoRef.current.play();
+                setIsPlaying(true);
+            } else {
+                videoRef.current.pause();
+                setIsPlaying(false);
             }
-            setIsPlaying(!isPlaying);
+        }
+    };
+
+    const handleVideoClick = (e) => {
+        const now = Date.now();
+        const DOUBLE_TAP_DELAY = 300;
+
+        if (now - lastTapTimeRef.current < DOUBLE_TAP_DELAY) {
+            // It's a double tap: momentarily revert the pause/play action from the 1st tap
+            if (videoRef.current) {
+                if (videoRef.current.paused) {
+                    videoRef.current.play();
+                    setIsPlaying(true);
+                } else {
+                    videoRef.current.pause();
+                    setIsPlaying(false);
+                }
+            }
+
+            const rect = videoRef.current.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+
+            if (clickX < rect.width / 2) {
+                skipBackward(e);
+                setSkipAnim('left');
+            } else {
+                skipForward(e);
+                setSkipAnim('right');
+            }
+
+            setTimeout(() => setSkipAnim(null), 500);
+            lastTapTimeRef.current = 0; // reset
+        } else {
+            // Single tap
+            togglePlay();
+            lastTapTimeRef.current = now;
         }
     };
 
@@ -59,6 +99,24 @@ const CustomVideoPlayer = ({ src }) => {
         if (videoRef.current) {
             videoRef.current.muted = !isMuted;
             setIsMuted(!isMuted);
+        }
+    };
+
+    const skipForward = (e) => {
+        e?.stopPropagation?.();
+        if (videoRef.current) {
+            const newTime = Math.min(videoRef.current.currentTime + 2, duration);
+            videoRef.current.currentTime = newTime;
+            setCurrentTime(newTime);
+        }
+    };
+
+    const skipBackward = (e) => {
+        e?.stopPropagation?.();
+        if (videoRef.current) {
+            const newTime = Math.max(videoRef.current.currentTime - 2, 0);
+            videoRef.current.currentTime = newTime;
+            setCurrentTime(newTime);
         }
     };
 
@@ -125,14 +183,32 @@ const CustomVideoPlayer = ({ src }) => {
         };
     }, []);
 
-    const handleDownload = (e) => {
+    const handleDownload = async (e) => {
         e.stopPropagation();
-        const a = document.createElement('a');
-        a.href = src;
-        a.download = 'aisa-generated-video.mp4';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        try {
+            // Fetch the video through our backend proxy to bypass cross-origin restrictions
+            const blob = await apiService.downloadVideo(src);
+            const blobUrl = window.URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = blobUrl;
+            a.download = 'aisa-generated-video.mp4';
+            document.body.appendChild(a);
+            a.click();
+
+            window.URL.revokeObjectURL(blobUrl);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error("Download failed via proxy, falling back to direct link", error);
+            const a = document.createElement('a');
+            a.href = src;
+            a.download = 'aisa-generated-video.mp4';
+            a.target = '_blank';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
     };
 
     return (
@@ -150,13 +226,32 @@ const CustomVideoPlayer = ({ src }) => {
                 className="w-full h-full object-cover sm:object-contain cursor-pointer"
                 onTimeUpdate={handleTimeUpdate}
                 onLoadedMetadata={handleLoadedMetadata}
-                onClick={togglePlay}
+                onClick={handleVideoClick}
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
                 onEnded={() => setIsPlaying(false)}
                 controlsList="nodownload"
                 playsInline
             />
+
+            {/* Skip Animation Indicators */}
+            {skipAnim === 'left' && (
+                <div className="absolute left-[25%] top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 pointer-events-none flex flex-col items-center animate-pulse">
+                    <div className="bg-black/40 backdrop-blur-md rounded-full p-3 sm:p-5 mb-1">
+                        <Rewind className="w-8 h-8 sm:w-10 sm:h-10 text-white fill-current" />
+                    </div>
+                    <span className="text-white font-bold text-sm sm:text-base drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">-2s</span>
+                </div>
+            )}
+            {skipAnim === 'right' && (
+                <div className="absolute right-[25%] top-1/2 -translate-y-1/2 translate-x-1/2 z-20 pointer-events-none flex flex-col items-center animate-pulse">
+                    <div className="bg-black/40 backdrop-blur-md rounded-full p-3 sm:p-5 mb-1">
+                        <FastForward className="w-8 h-8 sm:w-10 sm:h-10 text-white fill-current" />
+                    </div>
+                    <span className="text-white font-bold text-sm sm:text-base drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">+2s</span>
+                </div>
+            )}
+
 
             {/* AISA Watermark Logo */}
             <img
@@ -181,12 +276,32 @@ const CustomVideoPlayer = ({ src }) => {
                         <span>DOWNLOAD</span>
                     </button>
 
+                    {/* Skip Backward */}
+                    <button
+                        onClick={skipBackward}
+                        className="text-white hover:text-[#8C52FF] transition-colors shrink-0 hidden sm:flex items-center gap-0.5"
+                        title="Skip backward 2s"
+                    >
+                        <Rewind className="w-3 h-3 sm:w-4 sm:h-4 fill-current" />
+                        <span className="text-[8px] sm:text-[10px] font-bold font-mono">-2s</span>
+                    </button>
+
                     {/* Play / Pause */}
                     <button
                         onClick={togglePlay}
-                        className="text-white hover:text-[#8C52FF] transition-colors shrink-0"
+                        className="text-white hover:text-[#8C52FF] transition-colors shrink-0 hidden sm:block"
                     >
                         {isPlaying ? <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-current" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current border-2 border-transparent" />}
+                    </button>
+
+                    {/* Skip Forward */}
+                    <button
+                        onClick={skipForward}
+                        className="text-white hover:text-[#8C52FF] transition-colors shrink-0 hidden sm:flex items-center gap-0.5"
+                        title="Skip forward 2s"
+                    >
+                        <FastForward className="w-3 h-3 sm:w-4 sm:h-4 fill-current" />
+                        <span className="text-[8px] sm:text-[10px] font-bold font-mono">+2s</span>
                     </button>
 
                     {/* Progress Bar Container */}
