@@ -91,21 +91,27 @@ const CustomVideoPlayer = ({ src }) => {
         return `${m}:${s}`;
     };
 
-    const handleMouseMove = () => {
+    const handleInteraction = () => {
         setShowControls(true);
         if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
         fadeTimeoutRef.current = setTimeout(() => {
-            if (isPlaying) {
-                setShowControls(false);
-            }
-        }, 2500);
+            setShowControls(false);
+        }, 1500);
     };
 
     const handleMouseLeave = () => {
-        if (isPlaying) {
-            setShowControls(false);
-        }
+        setShowControls(false);
     };
+
+    useEffect(() => {
+        if (isPlaying) {
+            handleInteraction();
+        } else {
+            setShowControls(true);
+            if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isPlaying]);
 
     useEffect(() => {
         const handleFullscreenChange = () => {
@@ -133,9 +139,10 @@ const CustomVideoPlayer = ({ src }) => {
         <div
             ref={containerRef}
             className={`relative w-full overflow-hidden bg-black/95 rounded-2xl border border-white/5 shadow-2xl group flex flex-col justify-center ${isFullscreen ? 'h-full rounded-none border-none' : 'aspect-video'}`}
-            onMouseMove={handleMouseMove}
+            onMouseMove={handleInteraction}
             onMouseLeave={handleMouseLeave}
-            onClick={handleMouseMove}
+            onTouchStart={handleInteraction}
+            onClick={handleInteraction}
         >
             <video
                 ref={videoRef}
@@ -151,19 +158,26 @@ const CustomVideoPlayer = ({ src }) => {
                 playsInline
             />
 
+            {/* AISA Watermark Logo */}
+            <img
+                src="/logo/Logo.svg"
+                alt="AISA Watermark"
+                className={`absolute right-4 sm:right-6 md:right-8 transition-all duration-300 pointer-events-none z-10 opacity-70 select-none mix-blend-screen ${showControls || !isPlaying ? 'bottom-14 sm:bottom-20 md:bottom-20' : 'bottom-2 sm:bottom-4 md:bottom-6'} w-8 sm:w-12 md:w-14 drop-shadow-2xl`}
+            />
+
             {/* Floating Controls Bar */}
             <div
                 className={`absolute bottom-3 sm:bottom-4 md:bottom-5 left-3 right-3 sm:left-4 sm:right-4 md:left-6 md:right-6 transition-all duration-300 transform ${showControls || !isPlaying ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none'}`}
             >
-                <div className="bg-[#2A2B32]/90 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 flex items-center gap-3 sm:gap-4 md:gap-5 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+                <div className="bg-[#2A2B32]/90 backdrop-blur-xl border border-white/10 rounded-lg sm:rounded-xl px-2 py-2 sm:px-4 sm:py-3 flex items-center gap-2 sm:gap-4 md:gap-5 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
 
                     {/* Download Button */}
                     <button
                         onClick={handleDownload}
-                        className="flex items-center gap-1.5 bg-primary hover:bg-primary/90 transition-all px-3 py-1.5 rounded text-white font-bold text-[10px] tracking-wide shrink-0"
+                        className="flex items-center gap-1 sm:gap-1.5 bg-primary hover:bg-primary/90 transition-all px-2 py-1 sm:px-3 sm:py-1.5 rounded text-white font-bold text-[8px] sm:text-[10px] tracking-wide shrink-0"
                         title="Download Video"
                     >
-                        <Download className="w-3.5 h-3.5" />
+                        <Download className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                         <span>DOWNLOAD</span>
                     </button>
 
@@ -172,7 +186,7 @@ const CustomVideoPlayer = ({ src }) => {
                         onClick={togglePlay}
                         className="text-white hover:text-[#8C52FF] transition-colors shrink-0"
                     >
-                        {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current border-2 border-transparent" />}
+                        {isPlaying ? <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-current" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current border-2 border-transparent" />}
                     </button>
 
                     {/* Progress Bar Container */}
@@ -194,7 +208,7 @@ const CustomVideoPlayer = ({ src }) => {
                     </div>
 
                     {/* Time Display */}
-                    <div className="text-white/80 text-xs sm:text-sm font-medium tracking-wide shrink-0 tabular-nums">
+                    <div className="text-white/80 text-[10px] sm:text-sm font-medium tracking-wide shrink-0 tabular-nums">
                         {formatTime(currentTime)} / {formatTime(duration)}
                     </div>
 
@@ -203,7 +217,7 @@ const CustomVideoPlayer = ({ src }) => {
                         onClick={toggleMute}
                         className="text-white/80 hover:text-white transition-colors shrink-0 hidden sm:block"
                     >
-                        {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                        {isMuted ? <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" /> : <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />}
                     </button>
 
 
@@ -212,7 +226,7 @@ const CustomVideoPlayer = ({ src }) => {
                         onClick={toggleFullscreen}
                         className="text-white/80 hover:text-white transition-colors shrink-0"
                     >
-                        {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+                        {isFullscreen ? <Minimize className="w-4 h-4 sm:w-5 sm:h-5" /> : <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />}
                     </button>
 
                 </div>
