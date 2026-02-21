@@ -237,18 +237,18 @@ const CustomVideoPlayer = ({ src }) => {
             {/* Skip Animation Indicators */}
             {skipAnim === 'left' && (
                 <div className="absolute left-[25%] top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 pointer-events-none flex flex-col items-center animate-pulse">
-                    <div className="bg-black/40 backdrop-blur-md rounded-full p-3 sm:p-5 mb-1">
-                        <Rewind className="w-8 h-8 sm:w-10 sm:h-10 text-white fill-current" />
+                    <div className="bg-black/40 backdrop-blur-md rounded-full p-2 sm:p-5 mb-0.5 sm:mb-1">
+                        <Rewind className="w-5 h-5 sm:w-10 sm:h-10 text-white fill-current" />
                     </div>
-                    <span className="text-white font-bold text-sm sm:text-base drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">-2s</span>
+                    <span className="text-white font-bold text-xs sm:text-base drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">-2s</span>
                 </div>
             )}
             {skipAnim === 'right' && (
                 <div className="absolute right-[25%] top-1/2 -translate-y-1/2 translate-x-1/2 z-20 pointer-events-none flex flex-col items-center animate-pulse">
-                    <div className="bg-black/40 backdrop-blur-md rounded-full p-3 sm:p-5 mb-1">
-                        <FastForward className="w-8 h-8 sm:w-10 sm:h-10 text-white fill-current" />
+                    <div className="bg-black/40 backdrop-blur-md rounded-full p-2 sm:p-5 mb-0.5 sm:mb-1">
+                        <FastForward className="w-5 h-5 sm:w-10 sm:h-10 text-white fill-current" />
                     </div>
-                    <span className="text-white font-bold text-sm sm:text-base drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">+2s</span>
+                    <span className="text-white font-bold text-xs sm:text-base drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">+2s</span>
                 </div>
             )}
 
