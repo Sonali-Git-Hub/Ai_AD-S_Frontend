@@ -120,6 +120,8 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--active-font-family, 'Outfit', sans-serif);
+    overflow-wrap: break-word;
+    word-wrap: break-word;
   }
 
   /* Marked/Highlighted text styling */

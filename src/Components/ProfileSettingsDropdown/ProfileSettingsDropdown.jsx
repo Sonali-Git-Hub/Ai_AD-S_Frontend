@@ -224,12 +224,14 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
     ];
 
     const renderSettingRow = (label, description, control) => (
-        <div className="flex items-center justify-between py-4 border-b border-gray-100 dark:border-white/5 last:border-0">
-            <div className="flex flex-col gap-1 pr-4">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{label}</span>
+        <div className="flex flex-wrap items-center justify-between py-4 border-b border-gray-100 dark:border-white/5 last:border-0 gap-4">
+            <div className="flex flex-col gap-1 pr-4 min-w-[200px] flex-1">
+                <span className="text-[14px] font-bold text-gray-700 dark:text-gray-200">{label}</span>
                 {description && <span className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight">{description}</span>}
             </div>
-            {control}
+            <div className="shrink-0">
+                {control}
+            </div>
         </div>
     );
 
@@ -302,12 +304,16 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
             tab: 'personalization',
             label: t('fontSize'),
             description: t('fontSizeDesc'),
-            keywords: 'text size large small medium',
+            keywords: 'text size large small medium extra large',
             component: renderSettingRow(t('fontSize'), t('fontSizeDesc'), renderDropdown(
-                t(personalizations.personalization?.fontSize?.toLowerCase() || 'medium'),
-                [t('small'), t('medium'), t('large')],
+                t(personalizations.personalization?.fontSize === 'Extra Large' ? 'extraLarge' : (personalizations.personalization?.fontSize?.toLowerCase() || 'medium')),
+                [t('medium'), t('large'), t('extraLarge')],
                 (e) => {
-                    const sizeMap = { [t('small')]: 'Small', [t('medium')]: 'Medium', [t('large')]: 'Large' };
+                    const sizeMap = {
+                        [t('medium')]: 'Medium',
+                        [t('large')]: 'Large',
+                        [t('extraLarge')]: 'Extra Large'
+                    };
                     updatePersonalization('personalization', { fontSize: sizeMap[e.target.value] });
                 },
                 Type
@@ -405,11 +411,11 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
             description: 'Reset your password',
             keywords: 'login access forgot reset change secure',
             component: (
-                <div className="flex flex-col gap-1 py-4 border-b border-gray-100 dark:border-white/5">
-                    <span className="text-xs font-bold text-gray-500 uppercase">{t('loginId')}</span>
-                    <div className="flex justify-between items-center text-sm">
-                        <span>{user?.email}</span>
-                        <button onClick={() => setShowResetModal(true)} className="text-primary font-semibold">Forgot Password?</button>
+                <div className="flex flex-col gap-2 py-4 border-b border-gray-100 dark:border-white/5">
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t('loginId')}</span>
+                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-[14px]">
+                        <span className="text-gray-600 dark:text-gray-400 break-all min-w-0 flex-1">{user?.email}</span>
+                        <button onClick={() => setShowResetModal(true)} className="text-primary font-bold hover:underline whitespace-nowrap">Forgot Password?</button>
                     </div>
                 </div>
             )
@@ -422,12 +428,12 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
             description: 'Manage your subscription',
             keywords: 'upgrade billing pro max ultra payment',
             component: (
-                <div className="p-4 bg-primary/10 rounded-xl flex justify-between items-center border border-primary/20 mt-2">
-                    <div>
-                        <p className="font-bold capitalize">{user?.plan || 'Basic'} Plan</p>
-                        <p className="text-xs text-gray-500">Your current subscription</p>
+                <div className="p-4 bg-primary/10 rounded-2xl flex flex-wrap items-center justify-between gap-4 border border-primary/20 mt-4">
+                    <div className="min-w-[120px]">
+                        <p className="font-bold text-[16px] capitalize text-primary">{user?.plan || 'Basic'} Plan</p>
+                        <p className="text-[11px] text-gray-500">Your current subscription</p>
                     </div>
-                    <button onClick={() => setShowPricingModal(true)} className="px-4 py-2 bg-primary text-white text-xs font-bold rounded-lg shadow-lg shadow-primary/20">Upgrade</button>
+                    <button onClick={() => setShowPricingModal(true)} className="px-5 py-2.5 bg-primary text-white text-[12px] font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-transform active:scale-95 whitespace-nowrap">Upgrade Plan</button>
                 </div>
             )
         });
@@ -776,8 +782,8 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                 </button>
                             </div>
                         </div>
-                        <div className={`flex-1 flex-col min-w-0 bg-white dark:bg-[#161B2E] ${view === 'sidebar' ? 'hidden sm:flex' : 'flex'}`}>
-                            <div className="px-5 py-4 sm:px-8 sm:py-6 border-b sm:border-b-0 border-gray-100 dark:border-white/5 flex items-center gap-3">
+                        <div className={`flex-1 flex-col min-w-0 bg-white dark:bg-[#161B2E] overflow-hidden ${view === 'sidebar' ? 'hidden sm:flex' : 'flex'}`}>
+                            <div className="px-5 py-4 sm:px-8 sm:py-6 border-b sm:border-b-0 border-gray-100 dark:border-white/5 flex items-center gap-3 shrink-0">
                                 <button onClick={() => setView('sidebar')} className="sm:hidden p-1 -ml-1 hover:bg-black/5 rounded-full">
                                     <ChevronLeft className="w-6 h-6" />
                                 </button>
@@ -788,7 +794,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                     <X size={20} className="text-gray-500" />
                                 </button>
                             </div>
-                            <div className="flex-1 overflow-y-auto px-5 sm:px-8 pb-8">{renderContent()}</div>
+                            <div className="flex-1 overflow-y-auto px-5 sm:px-8 pb-20 custom-scrollbar">{renderContent()}</div>
                         </div>
                     </motion.div>
                 </div>

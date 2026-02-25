@@ -3754,7 +3754,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
               </div>
             )}
 
-            <form onSubmit={handleSendMessage} className="relative w-full max-w-5xl mx-auto flex items-center gap-1 bg-white dark:bg-[#0a0a0a] border border-black/5 dark:border-white/10 rounded-2xl p-0.5 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.15)] transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.1)] hover:border-primary/20 backdrop-blur-3xl px-1 z-50">
+            <form onSubmit={handleSendMessage} className="relative w-full max-w-5xl mx-auto flex items-center gap-[6px] bg-white dark:bg-[#0a0a0a] border border-black/5 dark:border-white/10 rounded-[16px] p-[6px] shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.15)] transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.1)] hover:border-primary/20 backdrop-blur-3xl px-[10px] z-50">
               <input
                 id="file-upload"
                 type="file"
@@ -3797,7 +3797,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
               />
 
               {/* Left Actions Group */}
-              <div className="flex items-center gap-0.5 pl-0.5 shrink-0">
+              <div className="flex items-center gap-[2px] pl-[2px] shrink-0">
                 <AnimatePresence>
                   {isAttachMenuOpen && (
                     <motion.div
@@ -3806,32 +3806,190 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                       exit={{ opacity: 0, scale: 0.9, y: 10 }}
                       transition={{ duration: 0.2, ease: "easeOut" }}
                       ref={menuRef}
-                      className="absolute bottom-full left-0 mb-4 w-60 bg-surface/95 dark:bg-[#1a1a1a]/95 border border-border/50 rounded-2xl shadow-2xl overflow-hidden z-30 backdrop-blur-xl ring-1 ring-black/5"
+                      className="absolute bottom-full left-0 mb-4 w-[min(85vw,220px)] bg-surface/95 dark:bg-[#1a1a1a]/95 border border-border/50 rounded-2xl shadow-2xl overflow-hidden z-30 backdrop-blur-xl ring-1 ring-black/5"
                     >
-                      <div className="p-1.5 space-y-0.5">
+                      <div className="p-2 space-y-1">
                         {getAgentCapabilities(activeAgent.agentName, activeAgent.category).canCamera && (
                           <label
                             htmlFor="camera-upload"
                             onClick={() => setTimeout(() => setIsAttachMenuOpen(false), 500)}
-                            className="w-full text-left px-3 py-2.5 flex items-center gap-3 hover:bg-primary/10 rounded-xl transition-all group cursor-pointer"
+                            className="w-full text-left px-3 py-2 flex items-center gap-3 hover:bg-primary/10 rounded-xl transition-all group cursor-pointer"
                           >
                             <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center group-hover:border-primary/30 group-hover:bg-primary/20 transition-colors shrink-0">
                               <Camera className="w-4 h-4 text-subtext group-hover:text-primary transition-colors" />
                             </div>
-                            <span className="text-sm font-medium text-maintext group-hover:text-primary transition-colors">Camera & Scan</span>
+                            <span className="text-[13px] font-semibold text-maintext group-hover:text-primary transition-colors">Camera & Scan</span>
                           </label>
                         )}
                         <label
                           htmlFor="file-upload"
                           onClick={() => setIsAttachMenuOpen(false)}
-                          className="w-full text-left px-3 py-2.5 flex items-center gap-3 hover:bg-primary/10 rounded-xl transition-all group cursor-pointer"
+                          className="w-full text-left px-3 py-2 flex items-center gap-3 hover:bg-primary/10 rounded-xl transition-all group cursor-pointer"
                         >
                           <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center group-hover:border-primary/30 group-hover:bg-primary/20 transition-colors shrink-0">
                             <Paperclip className="w-4 h-4 text-subtext group-hover:text-primary transition-colors" />
                           </div>
-                          <span className="text-sm font-medium text-maintext group-hover:text-primary transition-colors">Upload files</span>
+                          <span className="text-[13px] font-semibold text-maintext group-hover:text-primary transition-colors">Upload files</span>
                         </label>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
+                <AnimatePresence>
+                  {isToolsMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      ref={toolsMenuRef}
+                      className="absolute bottom-full left-0 mb-[12px] w-[min(94vw,320px)] sm:w-[350px] bg-surface/95 dark:bg-[#1a1a1a]/95 border border-border/50 rounded-3xl shadow-2xl overflow-hidden z-30 backdrop-blur-xl ring-1 ring-black/5"
+                      style={{ maxHeight: 'calc(100vh - 200px)' }}
+                    >
+                      <div className="px-4 py-3 bg-secondary/30 border-b border-border/50 shrink-0">
+                        <h3 className="text-[11px] font-bold text-subtext uppercase tracking-widest flex items-center gap-2">
+                          <Sparkles className="w-3.5 h-3.5 text-primary" /> AISA Magic Tools
+                        </h3>
+                      </div>
+                      <div className="p-1.5 space-y-1 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsMenuOpen(false);
+                            setIsImageGeneration(!isImageGeneration);
+                            setIsVideoGeneration(false);
+                            setIsDeepSearch(false);
+                            setIsAudioConvertMode(false);
+                            setIsDocumentConvert(false);
+                            setIsCodeWriter(false);
+                            if (!isImageGeneration) toast.success("Image Generation Mode Enabled");
+                          }}
+                          className={`w-full text-left px-3 py-2.5 flex items-center gap-3 rounded-2xl transition-all group cursor-pointer ${isImageGeneration ? 'bg-primary/10' : 'hover:bg-primary/5'}`}
+                        >
+                          <div className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors shrink-0 ${isImageGeneration ? 'bg-primary border-primary text-white' : 'bg-surface border-border group-hover:border-primary/30 group-hover:bg-primary/10'}`}>
+                            <ImageIcon className="w-4.5 h-4.5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[14px] font-bold text-maintext block leading-tight">Generate Image</span>
+                            <span className="text-[10px] text-subtext block leading-tight truncate mt-0.5">Create beautiful visuals from text</span>
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsMenuOpen(false);
+                            setIsVideoGeneration(!isVideoGeneration);
+                            setIsImageGeneration(false);
+                            setIsDeepSearch(false);
+                            setIsAudioConvertMode(false);
+                            setIsDocumentConvert(false);
+                            setIsCodeWriter(false);
+                            if (!isVideoGeneration) toast.success("Video Generation Mode Enabled");
+                          }}
+                          className={`w-full text-left px-3 py-2.5 flex items-center gap-3 rounded-2xl transition-all group cursor-pointer ${isVideoGeneration ? 'bg-primary/10' : 'hover:bg-primary/5'}`}
+                        >
+                          <div className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors shrink-0 ${isVideoGeneration ? 'bg-primary border-primary text-white' : 'bg-surface border-border group-hover:border-primary/30 group-hover:bg-primary/10'}`}>
+                            <Video className="w-4.5 h-4.5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[14px] font-bold text-maintext block leading-tight">Generate Video</span>
+                            <span className="text-[10px] text-subtext block leading-tight truncate mt-0.5">Create AI videos from text</span>
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsMenuOpen(false);
+                            setIsDeepSearch(!isDeepSearch);
+                            setIsImageGeneration(false);
+                            setIsVideoGeneration(false);
+                            setIsAudioConvertMode(false);
+                            setIsDocumentConvert(false);
+                            setIsCodeWriter(false);
+                            if (!isDeepSearch) toast.success("Deep Search Mode Enabled");
+                          }}
+                          className={`w-full text-left px-3 py-2 flex items-center gap-3 rounded-2xl transition-all group cursor-pointer ${isDeepSearch ? 'bg-primary/10' : 'hover:bg-primary/5'}`}
+                        >
+                          <div className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors shrink-0 ${isDeepSearch ? 'bg-primary border-primary text-white' : 'bg-surface border-border group-hover:border-primary/30 group-hover:bg-primary/10'}`}>
+                            <Search className="w-4.5 h-4.5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[14px] font-bold text-maintext block leading-tight">Deep Search</span>
+                            <span className="text-[10px] text-subtext block leading-tight truncate mt-0.5">Advanced web research & analysis</span>
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsMenuOpen(false);
+                            setIsAudioConvertMode(!isAudioConvertMode);
+                            setIsDeepSearch(false);
+                            setIsImageGeneration(false);
+                            setIsVideoGeneration(false);
+                            setIsDocumentConvert(false);
+                            setIsCodeWriter(false);
+                            if (!isAudioConvertMode) toast.success("Convert to Audio Mode Active");
+                          }}
+                          className={`w-full text-left px-3 py-2 flex items-center gap-3 rounded-2xl transition-all group cursor-pointer ${isAudioConvertMode ? 'bg-primary/10' : 'hover:bg-primary/5'}`}
+                        >
+                          <div className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors shrink-0 ${isAudioConvertMode ? 'bg-primary border-primary text-white' : 'bg-surface border-border group-hover:border-primary/30 group-hover:bg-primary/10'}`}>
+                            <Headphones className="w-4.5 h-4.5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[14px] font-bold text-maintext block leading-tight">Convert to Audio</span>
+                            <span className="text-[10px] text-subtext block leading-tight truncate mt-0.5">Turn documents into speech</span>
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsMenuOpen(false);
+                            setIsDocumentConvert(!isDocumentConvert);
+                            setIsDeepSearch(false);
+                            setIsImageGeneration(false);
+                            setIsVideoGeneration(false);
+                            setIsAudioConvertMode(false);
+                            setIsCodeWriter(false);
+                            if (!isDocumentConvert) toast.success("Document Converter Mode Active");
+                          }}
+                          className={`w-full text-left px-3 py-2 flex items-center gap-3 rounded-2xl transition-all group cursor-pointer ${isDocumentConvert ? 'bg-primary/10' : 'hover:bg-primary/5'}`}
+                        >
+                          <div className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors shrink-0 ${isDocumentConvert ? 'bg-primary border-primary text-white' : 'bg-surface border-border group-hover:border-primary/30 group-hover:bg-primary/10'}`}>
+                            <FileText className="w-4.5 h-4.5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[14px] font-bold text-maintext block leading-tight">Convert Documents</span>
+                            <span className="text-[10px] text-subtext block leading-tight truncate mt-0.5">PDF ↔ Word conversion</span>
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsMenuOpen(false);
+                            setIsCodeWriter(!isCodeWriter);
+                            setIsDeepSearch(false);
+                            setIsImageGeneration(false);
+                            setIsVideoGeneration(false);
+                            setIsAudioConvertMode(false);
+                            setIsDocumentConvert(false);
+                            if (!isCodeWriter) toast.success("Code Writer Mode Enabled");
+                          }}
+                          className={`w-full text-left px-3 py-2 flex items-center gap-3 rounded-2xl transition-all group cursor-pointer ${isCodeWriter ? 'bg-primary/10' : 'hover:bg-primary/5'}`}
+                        >
+                          <div className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors shrink-0 ${isCodeWriter ? 'bg-primary border-primary text-white' : 'bg-surface border-border group-hover:border-primary/30 group-hover:bg-primary/10'}`}>
+                            <Code className="w-4.5 h-4.5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[14px] font-bold text-maintext block leading-tight">Code Writer</span>
+                            <span className="text-[10px] text-subtext block leading-tight truncate mt-0.5">Write & debug code with AISA</span>
+                          </div>
+                        </button>
                       </div>
                     </motion.div>
                   )}
@@ -3839,181 +3997,24 @@ For "Remix" requests with an attachment, analyze the attached image, then create
 
                 <button
                   type="button"
-                  ref={attachBtnRef}
                   onClick={() => setIsAttachMenuOpen(!isAttachMenuOpen)}
-                  className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${isAttachMenuOpen ? 'bg-primary text-white rotate-45' : 'bg-secondary hover:bg-primary/10 text-subtext hover:text-primary'}`}
-                  title="Add to chat"
+                  className="w-[40px] h-[40px] rounded-full flex items-center justify-center text-subtext hover:text-primary hover:bg-secondary transition-all active:scale-95 shadow-sm hover:shadow-md"
+                  title="Attachments"
                 >
-                  <Plus className="w-5 h-5" />
+                  <Plus className={`w-[20px] h-[20px] transition-transform duration-300 ${isAttachMenuOpen ? 'rotate-45' : ''}`} />
                 </button>
 
-                <div className="relative">
-                  <button
-                    type="button"
-                    ref={toolsBtnRef}
-                    onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
-                    className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 ${isToolsMenuOpen || isImageGeneration || isDeepSearch || isAudioConvertMode || isDocumentConvert || isCodeWriter ? 'bg-primary/10 text-primary scale-110' : 'bg-transparent text-subtext hover:text-primary hover:bg-secondary'}`}
-                    title="AISA Capabilities"
-                  >
-                    <Sparkles className="w-5 h-5" />
-                  </button>
-                  <AnimatePresence>
-                    {isToolsMenuOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                        transition={{ duration: 0.2, ease: "easeOut" }}
-                        ref={toolsMenuRef}
-                        className="absolute bottom-full left-0 mb-2 w-64 sm:w-72 bg-surface/95 dark:bg-[#1a1a1a]/95 border border-border/50 rounded-2xl shadow-2xl overflow-hidden z-30 backdrop-blur-xl ring-1 ring-black/5"
-                        style={{ maxHeight: 'calc(100svh - 140px)' }}
-                      >
-                        <div className="p-3 bg-secondary/30 border-b border-border/50 mb-1 shrink-0">
-                          <h3 className="text-xs font-bold text-subtext uppercase tracking-wider flex items-center gap-2">
-                            <Sparkles className="w-3 h-3 text-primary" /> AISA Magic Tools
-                          </h3>
-                        </div>
-                        <div className="p-1.5 space-y-0.5 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(100svh - 200px)' }}>
-                          <button
-                            onClick={() => {
-                              setIsToolsMenuOpen(false);
-                              setIsImageGeneration(!isImageGeneration);
-                              setIsVideoGeneration(false);
-                              setIsDeepSearch(false);
-                              setIsAudioConvertMode(false);
-                              setIsDocumentConvert(false);
-                              setIsCodeWriter(false);
-                              if (!isImageGeneration) toast.success("Image Generation Mode Enabled");
-                            }}
-                            className={`w-full text-left px-3 py-3 flex items-center gap-3 rounded-xl transition-all group cursor-pointer ${isImageGeneration ? 'bg-primary/10' : 'hover:bg-primary/5'}`}
-                          >
-                            <div className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors shrink-0 ${isImageGeneration ? 'bg-primary border-primary text-white' : 'bg-surface border-border group-hover:border-primary/30 group-hover:bg-primary/10'}`}>
-                              <ImageIcon className="w-4 h-4" />
-                            </div>
-                            <div className="flex-1">
-                              <span className="text-sm font-bold text-maintext block">Generate Image</span>
-                              <span className="text-[10px] text-subtext">Create beautiful visuals from text</span>
-                            </div>
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setIsToolsMenuOpen(false);
-                              setIsVideoGeneration(!isVideoGeneration);
-                              setIsImageGeneration(false);
-                              setIsDeepSearch(false);
-                              setIsAudioConvertMode(false);
-                              setIsDocumentConvert(false);
-                              setIsCodeWriter(false);
-                              if (!isVideoGeneration) toast.success("Video Generation Mode Enabled");
-                            }}
-                            className={`w-full text-left px-3 py-3 flex items-center gap-3 rounded-xl transition-all group cursor-pointer ${isVideoGeneration ? 'bg-primary/10' : 'hover:bg-primary/5'}`}
-                          >
-                            <div className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors shrink-0 ${isVideoGeneration ? 'bg-primary border-primary text-white' : 'bg-surface border-border group-hover:border-primary/30 group-hover:bg-primary/10'}`}>
-                              <Video className="w-4 h-4" />
-                            </div>
-                            <div className="flex-1">
-                              <span className="text-sm font-bold text-maintext block">Generate Video</span>
-                              <span className="text-[10px] text-subtext">Create AI videos from text</span>
-                            </div>
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setIsToolsMenuOpen(false);
-                              setIsDeepSearch(!isDeepSearch);
-                              setIsImageGeneration(false);
-                              setIsVideoGeneration(false);
-                              setIsAudioConvertMode(false);
-                              setIsDocumentConvert(false);
-                              setIsCodeWriter(false);
-                              if (!isDeepSearch) toast.success("Deep Search Mode Enabled");
-                            }}
-                            className={`w-full text-left px-3 py-3 flex items-center gap-3 rounded-xl transition-all group cursor-pointer ${isDeepSearch ? 'bg-primary/10' : 'hover:bg-primary/5'}`}
-                          >
-                            <div className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors shrink-0 ${isDeepSearch ? 'bg-primary border-primary text-white' : 'bg-surface border-border group-hover:border-primary/30 group-hover:bg-primary/10'}`}>
-                              <Search className="w-4 h-4" />
-                            </div>
-                            <div className="flex-1">
-                              <span className="text-sm font-bold text-maintext block">Deep Search</span>
-                              <span className="text-[10px] text-subtext">Advanced web research & analysis</span>
-                            </div>
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setIsToolsMenuOpen(false);
-                              setIsAudioConvertMode(!isAudioConvertMode);
-                              setIsDeepSearch(false);
-                              setIsImageGeneration(false);
-                              setIsVideoGeneration(false);
-                              setIsDocumentConvert(false);
-                              setIsCodeWriter(false);
-                              if (!isAudioConvertMode) toast.success("Convert to Audio Mode Active");
-                            }}
-                            className={`w-full text-left px-3 py-3 flex items-center gap-3 rounded-xl transition-all group cursor-pointer ${isAudioConvertMode ? 'bg-primary/10' : 'hover:bg-primary/5'}`}
-                          >
-                            <div className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors shrink-0 ${isAudioConvertMode ? 'bg-primary border-primary text-white' : 'bg-surface border-border group-hover:border-primary/30 group-hover:bg-primary/10'}`}>
-                              <Headphones className="w-4 h-4" />
-                            </div>
-                            <div className="flex-1">
-                              <span className="text-sm font-bold text-maintext block">Convert to Audio</span>
-                              <span className="text-[10px] text-subtext">Turn documents into speech</span>
-                            </div>
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setIsToolsMenuOpen(false);
-                              setIsDocumentConvert(!isDocumentConvert);
-                              setIsDeepSearch(false);
-                              setIsImageGeneration(false);
-                              setIsVideoGeneration(false);
-                              setIsAudioConvertMode(false);
-                              setIsCodeWriter(false);
-                              if (!isDocumentConvert) toast.success("Document Converter Mode Active");
-                            }}
-                            className={`w-full text-left px-3 py-3 flex items-center gap-3 rounded-xl transition-all group cursor-pointer ${isDocumentConvert ? 'bg-primary/10' : 'hover:bg-primary/5'}`}
-                          >
-                            <div className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors shrink-0 ${isDocumentConvert ? 'bg-primary border-primary text-white' : 'bg-surface border-border group-hover:border-primary/30 group-hover:bg-primary/10'}`}>
-                              <FileText className="w-4 h-4" />
-                            </div>
-                            <div className="flex-1">
-                              <span className="text-sm font-bold text-maintext block">Convert Documents</span>
-                              <span className="text-[10px] text-subtext">PDF ↔ Word conversion</span>
-                            </div>
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setIsToolsMenuOpen(false);
-                              setIsCodeWriter(!isCodeWriter);
-                              setIsDeepSearch(false);
-                              setIsImageGeneration(false);
-                              setIsVideoGeneration(false);
-                              setIsAudioConvertMode(false);
-                              setIsDocumentConvert(false);
-                              if (!isCodeWriter) toast.success("Code Writer Mode Enabled");
-                            }}
-                            className={`w-full text-left px-3 py-3 flex items-center gap-3 rounded-xl transition-all group cursor-pointer ${isCodeWriter ? 'bg-primary/10' : 'hover:bg-primary/5'}`}
-                          >
-                            <div className={`w-9 h-9 rounded-full border flex items-center justify-center transition-colors shrink-0 ${isCodeWriter ? 'bg-primary border-primary text-white' : 'bg-surface border-border group-hover:border-primary/30 group-hover:bg-primary/10'}`}>
-                              <Code className="w-4 h-4" />
-                            </div>
-                            <div className="flex-1">
-                              <span className="text-sm font-bold text-maintext block">Code Writer</span>
-                              <span className="text-[10px] text-subtext">Write & debug code with AISA</span>
-                            </div>
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
+                  className="w-[40px] h-[40px] rounded-full flex items-center justify-center text-subtext hover:text-primary hover:bg-secondary transition-all active:scale-95 shadow-sm hover:shadow-md"
+                  title="AISA Magic Tools"
+                >
+                  <Sparkles className="w-[20px] h-[20px]" />
+                </button>
               </div>
 
-              {/* Input Area */}
-              <div className="relative flex-1 min-w-0 py-1 px-1">
+              <div className="flex-1 flex items-center min-w-0 bg-transparent border-0 ring-0 focus:ring-0">
                 <AnimatePresence>
                   {(isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter) && (
                     <div className="absolute bottom-full left-0 mb-3 flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto w-full">
@@ -4096,13 +4097,13 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                   onPaste={handlePaste}
                   placeholder={isLimitReached ? "Chat limit reached. Sign in to continue." : (isVideoGeneration ? "Describe the video you want to generate..." : isAudioConvertMode ? "Enter text to convert..." : isDocumentConvert ? "Upload file & ask to convert..." : "Ask AISA")}
                   rows={1}
-                  className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none p-0 text-maintext text-left placeholder-subtext/50 resize-none overflow-y-auto custom-scrollbar leading-relaxed aisa-scalable-text ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
-                  style={{ minHeight: '1.5em', height: '1.5em', maxHeight: '150px', lineHeight: '1.5' }}
+                  className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none p-0 py-2 text-maintext text-left placeholder-subtext/40 resize-none overflow-y-auto custom-scrollbar leading-relaxed text-[15px] ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
+                  style={{ minHeight: '24px', height: 'auto', maxHeight: '150px', lineHeight: '1.5' }}
                 />
               </div>
 
               {/* Right Actions Group */}
-              <div className="flex items-center gap-1 sm:gap-1.5 pr-0.5 shrink-0">
+              <div className="flex items-center gap-[4px] sm:gap-[6px] pr-[2px] shrink-0">
                 {isListening && (
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 rounded-full border border-red-500/20 mr-2">
                     <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
@@ -4112,25 +4113,14 @@ For "Remix" requests with an attachment, analyze the attached image, then create
 
                 {!isListening && (
                   <>
-                    {getAgentCapabilities(activeAgent.agentName, activeAgent.category).canVideo && !inputValue.trim() && (
-                      <button
-                        type="button"
-                        onClick={() => setIsLiveMode(true)}
-                        className="w-9 h-9 min-w-[2.25rem] rounded-full flex items-center justify-center text-subtext hover:text-primary hover:bg-secondary transition-colors shrink-0"
-                        title="Live Video Call"
-                      >
-                        <Video className="w-5 h-5 shrink-0" />
-                      </button>
-                    )}
-
                     {getAgentCapabilities(activeAgent.agentName, activeAgent.category).canVoice && (
                       <button
                         type="button"
                         onClick={handleVoiceInput}
-                        className={`w-9 h-9 min-w-[2.25rem] rounded-full flex items-center justify-center transition-colors shrink-0 ${isListening ? 'bg-red-500 text-white' : 'text-subtext hover:text-primary hover:bg-secondary'}`}
+                        className={`w-[36px] h-[36px] rounded-full flex items-center justify-center transition-colors shrink-0 ${isListening ? 'bg-red-500 text-white' : 'text-subtext hover:text-primary hover:bg-secondary'}`}
                         title="Voice Input"
                       >
-                        <Mic className="w-5 h-5 shrink-0" />
+                        <Mic className="w-[20px] h-[20px] shrink-0" />
                       </button>
                     )}
                   </>
@@ -4144,19 +4134,19 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                       setIsLoading(false);
                       isSendingRef.current = false;
                     }}
-                    className="w-10 h-10 rounded-full bg-[#5555ff] text-white flex items-center justify-center shadow-lg hover:bg-[#4444ee] hover:scale-105 transition-all"
+                    className="w-[36px] h-[36px] rounded-full bg-[#5555ff] text-white flex items-center justify-center shadow-lg hover:bg-[#4444ee] hover:scale-105 transition-all"
                   >
-                    <div className="w-3 h-3 bg-white rounded-sm" />
+                    <div className="w-[12px] h-[12px] bg-white rounded-sm" />
                   </button>
                 ) : (
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-[6px]">
 
                     <button
                       type="submit"
                       disabled={(!inputValue.trim() && filePreviews.length === 0) || isLoading}
-                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-lg ${(!inputValue.trim() && filePreviews.length === 0) ? 'bg-secondary text-subtext/50 shadow-none' : 'bg-gradient-to-tr from-primary to-indigo-600 text-white shadow-primary/30 hover:scale-105 hover:shadow-primary/40'}`}
+                      className={`w-[40px] h-[40px] rounded-full flex items-center justify-center transition-all shadow-lg ${(!inputValue.trim() && filePreviews.length === 0) ? 'bg-secondary text-subtext/50 shadow-none' : 'bg-gradient-to-tr from-primary to-indigo-600 text-white shadow-primary/30 hover:scale-105 hover:shadow-primary/40'}`}
                     >
-                      <Send className="w-5 h-5 ml-0.5" />
+                      <Send className="w-[20px] h-[20px] ml-[2px]" />
                     </button>
                   </div>
                 )}

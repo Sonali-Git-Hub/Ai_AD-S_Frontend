@@ -30,7 +30,7 @@ const CustomSelect = ({ value, options, onChange, label, icon: Icon }) => {
             >
                 <div className="flex items-center gap-3">
                     {Icon && <Icon className={`w-4 h-4 ${isOpen ? 'text-primary' : 'text-gray-400'}`} />}
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                    <span className="text-[14px] font-medium text-gray-700 dark:text-gray-200">
                         {value}
                     </span>
                 </div>
@@ -55,7 +55,7 @@ const CustomSelect = ({ value, options, onChange, label, icon: Icon }) => {
                                         setIsOpen(false);
                                     }}
                                     className={`
-                                        w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors group
+                                        w-full flex items-center justify-between px-3 py-2 rounded-lg text-[14px] transition-colors group
                                         ${value === opt
                                             ? 'bg-primary/10 text-primary font-bold'
                                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-700/50 hover:text-gray-900 dark:hover:text-white'

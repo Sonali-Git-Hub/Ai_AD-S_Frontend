@@ -55,7 +55,12 @@ const DEFAULT_PREFERENCES = {
 export const PersonalizationProvider = ({ children }) => {
     const [personalizations, setPersonalizationsState] = useState(() => {
         const saved = localStorage.getItem('personalizations');
-        return saved ? JSON.parse(saved) : DEFAULT_PREFERENCES;
+        const prefs = saved ? JSON.parse(saved) : DEFAULT_PREFERENCES;
+        // Migration: Small is now Medium
+        if (prefs?.personalization?.fontSize === 'Small') {
+            prefs.personalization.fontSize = 'Medium';
+        }
+        return prefs;
     });
     const [notifications, setNotifications] = useState([]);
     const [chatSessions, setChatSessions] = useState([]);
@@ -124,6 +129,10 @@ export const PersonalizationProvider = ({ children }) => {
             });
             if (res.data.personalizations) {
                 const merged = { ...DEFAULT_PREFERENCES, ...res.data.personalizations };
+                // Migration: Small is now Medium
+                if (merged.personalization?.fontSize === 'Small') {
+                    merged.personalization.fontSize = 'Medium';
+                }
                 setPersonalizationsState(merged);
                 localStorage.setItem('personalizations', JSON.stringify(merged));
                 applyDynamicStyles(merged);
@@ -145,13 +154,18 @@ export const PersonalizationProvider = ({ children }) => {
         // Font Size
         const fontSize = p.personalization.fontSize || 'Medium';
         const fontSizeMap = {
-            'Small': '13px',
-            'Medium': '15px',
-            'Large': '18px',
-            'Extra Large': '22px'
+            'Small': '14px',
+            'Medium': '16px',
+            'Large': '20px',
+            'Extra Large': '24px'
         };
 
-        const scaleMap = { 'Small': '0.85', 'Medium': '1', 'Large': '1.15', 'Extra Large': '1.3' };
+        const scaleMap = {
+            'Small': '0.9',
+            'Medium': '1',
+            'Large': '1.2',
+            'Extra Large': '1.4'
+        };
 
         document.documentElement.style.setProperty('--aisa-font-size', fontSizeMap[fontSize] || '15px');
         document.documentElement.style.setProperty('--aisa-scale', scaleMap[fontSize] || '1');
