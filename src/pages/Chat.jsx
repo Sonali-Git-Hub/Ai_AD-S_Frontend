@@ -1508,8 +1508,8 @@ const Chat = () => {
   const handleScroll = () => {
     if (chatContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
-      // Tighter threshold (50px) - if user scrolls up slightly, auto-scroll stops
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 50;
+      // Increased threshold (150px) to be less sensitive to minor scroll movements
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
       shouldAutoScrollRef.current = isNearBottom;
     }
   };
@@ -1977,6 +1977,9 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
               prev.map(m => m.id === msgId ? { ...m, content: displayedContent } : m)
             );
 
+            // Auto-scroll as content grows
+            if (j % 5 === 0) scrollToBottom();
+
             // Wait before next word
             await new Promise(resolve => setTimeout(resolve, delay));
           }
@@ -2336,41 +2339,67 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         return;
       }
 
-      // ===== PROPER PER-PAGE CANVAS SLICING =====
-      // Each PDF page gets its OWN canvas slice — zero overlap, zero repeat guaranteed
+      // ===== SMART PER-PAGE CANVAS SLICING =====
+      // Scans for white space near page breaks to avoid cutting text lines
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const margin = 8;
+      const margin = 10;
       const pageW = pdf.internal.pageSize.getWidth();   // 210mm
       const pageH = pdf.internal.pageSize.getHeight();  // 297mm
-      const printW = pageW - margin * 2;  // 194mm printable width
-      const printH = pageH - margin * 2;  // 281mm printable height per page
+      const printW = pageW - margin * 2;
+      const printH = pageH - margin * 2;
 
-      // How many canvas pixels = 1mm of PDF width?
       const pxPerMm = canvas.width / printW;
-      // How many canvas pixels fit in one page's printable height?
       const pageHeightPx = Math.floor(printH * pxPerMm);
-      const totalPages = Math.ceil(canvas.height / pageHeightPx);
+      const mainCtx = canvas.getContext('2d');
 
-      for (let i = 0; i < totalPages; i++) {
-        if (i > 0) pdf.addPage();
+      let currentY = 0;
+      let pageCount = 0;
 
-        const srcY = i * pageHeightPx;
-        const srcH = Math.min(pageHeightPx, canvas.height - srcY); // last page may be shorter
+      while (currentY < canvas.height) {
+        if (pageCount > 0) pdf.addPage();
 
-        // Create a fresh canvas for just this page slice
+        let targetH = pageHeightPx;
+        // If not the last page, try to find a "smart" break point (white space)
+        if (currentY + targetH < canvas.height) {
+          const scanRange = Math.min(120, targetH / 2); // Scan bottom ~15mm
+          try {
+            const scanData = mainCtx.getImageData(0, currentY + targetH - scanRange, canvas.width, scanRange).data;
+            for (let row = scanRange - 1; row >= 0; row--) {
+              let isWhiteRow = true;
+              // Check every 10th pixel for speed
+              for (let col = 0; col < canvas.width; col += 10) {
+                const idx = (row * canvas.width + col) * 4;
+                if (scanData[idx] < 250 || scanData[idx + 1] < 250 || scanData[idx + 2] < 250) {
+                  isWhiteRow = false;
+                  break;
+                }
+              }
+              if (isWhiteRow) {
+                targetH = (targetH - scanRange) + row + 2; // +2px buffer
+                break;
+              }
+            }
+          } catch (e) { console.warn("Smart break scan failed", e); }
+        } else {
+          targetH = canvas.height - currentY;
+        }
+
         const pageCanvas = document.createElement('canvas');
         pageCanvas.width = canvas.width;
-        pageCanvas.height = srcH;
-        const ctx = pageCanvas.getContext('2d');
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-        ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+        pageCanvas.height = targetH;
+        const pCtx = pageCanvas.getContext('2d');
+        pCtx.fillStyle = '#ffffff';
+        pCtx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+        pCtx.drawImage(canvas, 0, currentY, canvas.width, targetH, 0, 0, canvas.width, targetH);
 
-        const pageImg = pageCanvas.toDataURL('image/png', 0.92);
-        const sliceHeightMm = srcH / pxPerMm; // actual mm height of this slice
-        pdf.addImage(pageImg, 'PNG', margin, margin, printW, sliceHeightMm);
+        const pageImg = pageCanvas.toDataURL('image/png', 1.0);
+        const mmH = targetH / pxPerMm;
+        pdf.addImage(pageImg, 'PNG', margin, margin, printW, mmH, undefined, 'FAST');
+
+        currentY += targetH;
+        pageCount++;
       }
-      // ===== END PER-PAGE SLICING =====
+      // ===== END SMART SLICING =====
 
       const filename = `AISA.pdf`;
       const blob = pdf.output('blob');
@@ -2389,6 +2418,15 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         window.open(blobUrl, '_blank');
         if (processToastId) toast.dismiss(processToastId);
       } else if (action === 'share') {
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+        // On desktop, prioritize in-app WhatsApp share to avoid Windows native share login issues
+        if (!isMobile) {
+          handleWhatsAppPdfShare(msg);
+          if (processToastId) toast.dismiss(processToastId);
+          return;
+        }
+
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
             await navigator.share({ files: [file] });
@@ -2404,7 +2442,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
             }
           }
         } else {
-          // Desktop: open in new tab — no forced download
+          // Fallback or specific Desktop case without navigator.share
           const blobUrl = URL.createObjectURL(blob);
           window.open(blobUrl, '_blank');
           if (processToastId) toast.dismiss(processToastId);
@@ -2507,29 +2545,50 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         }
       });
 
-      // ===== PER-PAGE CANVAS SLICING (same as main PDF gen) =====
+      // ===== SMART PER-PAGE SLICING (for WhatsApp) =====
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const margin = 8;
+      const margin = 10;
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
       const printW = pageW - margin * 2;
       const printH = pageH - margin * 2;
       const pxPerMm = canvas.width / printW;
       const pageHeightPx = Math.floor(printH * pxPerMm);
-      const totalPages = Math.ceil(canvas.height / pageHeightPx);
-      for (let i = 0; i < totalPages; i++) {
-        if (i > 0) pdf.addPage();
-        const srcY = i * pageHeightPx;
-        const srcH = Math.min(pageHeightPx, canvas.height - srcY);
-        const pageCanvas = document.createElement('canvas');
-        pageCanvas.width = canvas.width;
-        pageCanvas.height = srcH;
-        const ctx = pageCanvas.getContext('2d');
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-        ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
-        const pageImg = pageCanvas.toDataURL('image/png', 0.92);
-        pdf.addImage(pageImg, 'PNG', margin, margin, printW, srcH / pxPerMm);
+      const mainCtx = canvas.getContext('2d', { willReadFrequently: true });
+
+      let curY = 0;
+      let pageIdx = 0;
+      while (curY < canvas.height) {
+        if (pageIdx > 0) pdf.addPage();
+        let targetH = pageHeightPx;
+        if (curY + targetH < canvas.height) {
+          const scanRange = 100;
+          try {
+            const scanData = mainCtx.getImageData(0, curY + targetH - scanRange, canvas.width, scanRange).data;
+            for (let r = scanRange - 1; r >= 0; r--) {
+              let isWhite = true;
+              for (let c = 0; c < canvas.width; c += 15) {
+                const i = (r * canvas.width + c) * 4;
+                if (scanData[i] < 250 || scanData[i + 1] < 250 || scanData[i + 2] < 250) {
+                  isWhite = false;
+                  break;
+                }
+              }
+              if (isWhite) { targetH = (targetH - scanRange) + r + 2; break; }
+            }
+          } catch (e) { }
+        } else { targetH = canvas.height - curY; }
+
+        const pCanvas = document.createElement('canvas');
+        pCanvas.width = canvas.width;
+        pCanvas.height = targetH;
+        const pCtx = pCanvas.getContext('2d');
+        pCtx.fillStyle = '#ffffff';
+        pCtx.fillRect(0, 0, pCanvas.width, pCanvas.height);
+        pCtx.drawImage(canvas, 0, curY, canvas.width, targetH, 0, 0, canvas.width, targetH);
+        pdf.addImage(pCanvas.toDataURL('image/png', 1.0), 'PNG', margin, margin, printW, targetH / pxPerMm, undefined, 'FAST');
+        curY += targetH;
+        pageIdx++;
       }
 
       // 2. Upload PDF blob to Cloudinary via backend
@@ -2564,10 +2623,34 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
   const sendWhatsAppMessage = () => {
     const cleaned = waPhone.replace(/\D/g, '');
     if (cleaned.length < 7) { toast.error("Valid phone number daalo!"); return; }
+
+    setWaUploading(true);
     const text = encodeURIComponent(waMsgContent);
-    window.open(`https://wa.me/${cleaned}?text=${text}`, '_blank', 'noopener,noreferrer');
-    setWaShareModal(false);
-    toast.success("WhatsApp mein message open ho gaya! 📤");
+
+    // Using api.whatsapp.com directly as it's more reliable for session persistence on desktop
+    // Removing noreferrer to ensure cookies/sessions are shared correctly between windows
+    const url = `https://api.whatsapp.com/send?phone=${cleaned}&text=${text}`;
+
+    try {
+      const win = window.open(url, '_blank', 'noopener');
+      if (win) {
+        win.focus();
+        toast.success("WhatsApp mein message open ho gaya! 📤");
+      } else {
+        // Fallback for popup blockers
+        const a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.click();
+        toast.success("WhatsApp opening... Check popups!");
+      }
+    } catch (err) {
+      console.error("WhatsApp redirection error:", err);
+      toast.error("Naya window nahi khul saka.");
+    } finally {
+      setWaUploading(false);
+      setWaShareModal(false);
+    }
   };
 
   const submitFeedback = async () => {
@@ -3506,8 +3589,8 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                                               const text = `I've converted "${msg.conversion.fileName}" into voice audio using AISA! ${window.location.href}`;
                                               const url = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
                                                 ? `whatsapp://send?text=${encodeURIComponent(text)}`
-                                                : `https://web.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-                                              window.open(url, '_blank');
+                                                : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+                                              window.open(url, '_blank', 'noopener');
                                             }}
                                             className={`${active ? 'bg-green-500 text-white' : 'text-maintext'} group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors`}
                                           >
