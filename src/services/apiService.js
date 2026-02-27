@@ -58,6 +58,18 @@ export const apiService = {
     }
   },
 
+  async editImage(prompt, imageUrl = null, imageBase64 = null) {
+    try {
+      console.log("[Frontend] Editing image for prompt:", prompt);
+      const response = await apiClient.post('/image/edit', { prompt, imageUrl, imageBase64 }, { timeout: 60000 });
+      console.log("[Frontend] Image editing success:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to edit image:", error);
+      throw error;
+    }
+  },
+
   async generateVideo(prompt, duration = 5, quality = 'medium', aspectRatio = '16:9') {
     try {
       console.log(`[Frontend] Generating video for prompt: ${prompt}, Ratio: ${aspectRatio}`);

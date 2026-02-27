@@ -27,6 +27,8 @@ import PlatformSubscriptionModal from './Components/SubscriptionForm/PlatformSub
 import { AnimatePresence, motion } from 'framer-motion';
 import { lazy, Suspense } from 'react';
 import ProtectedRoute from './Components/ProtectedRoute/ProtectedRoute.jsx';
+import { SubscriptionProvider } from './context/SubscriptionContext';
+import UpgradeModal from './Components/Subscription/UpgradeModal.jsx';
 
 // Vendor Imports Removed
 // import VendorLayout from './Components/Vendor/VendorLayout';
@@ -192,11 +194,13 @@ const NavigateProvider = () => {
   const [tglState] = useRecoilState(toggleState);
 
   return (
-    <BrowserRouter>
-      <Toaster position="top-right" />
-      <AnimatePresence>
-        {tglState.platformSubTgl && <PlatformSubscriptionModal />}
-      </AnimatePresence>
+    <SubscriptionProvider>
+      <BrowserRouter>
+        <Toaster position="top-right" />
+        <UpgradeModal />
+        <AnimatePresence>
+          {tglState.platformSubTgl && <PlatformSubscriptionModal />}
+        </AnimatePresence>
       <Routes>
         {/* Public Routes */}
         <Route path={AppRoute.LANDING} element={<HomeRedirect />} />
@@ -235,6 +239,7 @@ const NavigateProvider = () => {
         <Route path="*" element={<Navigate to={AppRoute.LANDING} replace />} />
       </Routes>
     </BrowserRouter >
+  </SubscriptionProvider>
   );
 };
 

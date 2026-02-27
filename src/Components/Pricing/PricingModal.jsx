@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, X, Crown, Zap, Shield, Sparkles } from 'lucide-react';
+import UsageStats from '../Subscription/UsageStats';
+import { useSubscription } from '../../context/SubscriptionContext';
 
 const PricingModal = ({ onClose, currentPlan, onUpgrade }) => {
     const plans = [

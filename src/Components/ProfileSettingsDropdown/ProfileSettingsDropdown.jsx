@@ -22,6 +22,8 @@ import CustomSelect from '../CustomSelect/CustomSelect';
 import PricingModal from '../Pricing/PricingModal';
 import usePayment from '../../hooks/usePayment';
 import { apiService } from '../../services/apiService';
+import { useSubscription } from '../../context/SubscriptionContext';
+import UsageStats from '../Subscription/UsageStats';
 
 const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
     const [currentUserData, setUserRecoil] = useRecoilState(userData);
@@ -426,14 +428,19 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
             tab: 'account',
             label: 'Subscription Plan',
             description: 'Manage your subscription',
-            keywords: 'upgrade billing pro max ultra payment',
+            keywords: 'upgrade billing pro max ultra payment usage limits',
             component: (
-                <div className="p-4 bg-primary/10 rounded-2xl flex flex-wrap items-center justify-between gap-4 border border-primary/20 mt-4">
-                    <div className="min-w-[120px]">
-                        <p className="font-bold text-[16px] capitalize text-primary">{user?.plan || 'Basic'} Plan</p>
-                        <p className="text-[11px] text-gray-500">Your current subscription</p>
+                <div className="space-y-4">
+                    <div className="p-4 bg-primary/10 rounded-2xl flex flex-wrap items-center justify-between gap-4 border border-primary/20 mt-4">
+                        <div className="min-w-[120px]">
+                            <p className="font-bold text-[16px] capitalize text-primary">{user?.plan || 'Basic'} Plan</p>
+                            <p className="text-[11px] text-gray-500">Your current subscription</p>
+                        </div>
+                        <button onClick={() => setShowPricingModal(true)} className="px-5 py-2.5 bg-primary text-white text-[12px] font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-transform active:scale-95 whitespace-nowrap">Upgrade Plan</button>
                     </div>
-                    <button onClick={() => setShowPricingModal(true)} className="px-5 py-2.5 bg-primary text-white text-[12px] font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-transform active:scale-95 whitespace-nowrap">Upgrade Plan</button>
+                    
+                    {/* Integrated Usage Stats Card */}
+                    <UsageStats />
                 </div>
             )
         });

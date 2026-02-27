@@ -42,6 +42,8 @@ import ProfileSettingsDropdown from '../ProfileSettingsDropdown/ProfileSettingsD
 import AdminHelpDesk from '../AdminHelpDesk.jsx';
 import PricingModal from '../Pricing/PricingModal';
 import usePayment from '../../hooks/usePayment';
+import { useSubscription } from '../../context/SubscriptionContext';
+import UsageStats from '../Subscription/UsageStats';
 
 const Sidebar = ({ isOpen, onClose }) => {
   const { t } = useLanguage();
@@ -73,6 +75,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   const [isAdminHelpDeskOpen, setIsAdminHelpDeskOpen] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const { handlePayment } = usePayment();
+  const { currentPlan, usage, refreshSubscription } = useSubscription();
 
   // Check if current user is admin - MUST have token AND correct email
   const token = getUserData()?.token;

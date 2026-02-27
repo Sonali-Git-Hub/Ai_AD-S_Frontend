@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, Fragment } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useSubscription } from '../context/SubscriptionContext';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Send, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code } from 'lucide-react';
 import { renderAsync } from 'docx-preview';
@@ -214,6 +215,7 @@ const ImageViewer = ({ src, alt }) => {
 };
 
 const Chat = () => {
+  const { checkLimitLocally, refreshSubscription } = useSubscription();
   const { sessionId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -243,7 +245,7 @@ const Chat = () => {
   const [waPdfUrl, setWaPdfUrl] = useState('');
   const [waUploading, setWaUploading] = useState(false);
   const [waMsgContent, setWaMsgContent] = useState('');
-  const [isEditingImage, setIsEditingImage] = useState(false);
+  const [isMagicEditing, setIsMagicEditing] = useState(false);
   const [isLiveMode, setIsLiveMode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLimitReached, setIsLimitReached] = useState(false);
@@ -339,8 +341,32 @@ const Chat = () => {
   const processFile = (file) => {
     if (!file) return;
 
-    // Validate file type
-    const validTypes = [
+    let fileName = file.name || `file_${Date.now()}`;
+    let fileType = file.type;
+
+    // Browser might fail to detect type for some pasted/dragged files
+    if (!fileType && fileName.includes('.')) {
+      const ext = fileName.split('.').pop().toLowerCase();
+      const mimeMap = {
+        'pdf': 'application/pdf',
+        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'doc': 'application/msword',
+        'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'xls': 'application/vnd.ms-excel',
+        'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'ppt': 'application/vnd.ms-powerpoint',
+        'txt': 'text/plain',
+        'csv': 'text/csv',
+        'png': 'image/png',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'webp': 'image/webp'
+      };
+      if (mimeMap[ext]) fileType = mimeMap[ext];
+    }
+
+    // List of allowed types for the AI to process (extendable)
+    const validMimes = [
       'image/',
       'application/pdf',
       'application/msword',
@@ -348,18 +374,26 @@ const Chat = () => {
       'application/vnd.ms-excel',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'text/plain',
+      'text/csv'
     ];
 
-    setSelectedFiles(prev => [...prev, file]);
+    const isAllowed = validMimes.some(mime => fileType?.startsWith(mime) || fileType === mime);
+    
+    // Even if not in list, let's allow it but maybe warn? 
+    // Actually, AISA can handle most text/data files.
+    
+    const fileWithMetadata = new File([file], fileName, { type: fileType || 'application/octet-stream' });
+    setSelectedFiles(prev => [...prev, fileWithMetadata]);
 
     // Generate Preview
     const reader = new FileReader();
     reader.onloadend = () => {
       setFilePreviews(prev => [...prev, {
         url: reader.result,
-        name: file.name,
-        type: file.type,
+        name: fileName,
+        type: fileType || 'application/octet-stream',
         size: file.size,
         id: Math.random().toString(36).substr(2, 9)
       }]);
@@ -449,6 +483,11 @@ const Chat = () => {
     const file = e.target.files[0];
     if (!file) return;
 
+    if (!checkLimitLocally('audio')) {
+      e.target.value = '';
+      return;
+    }
+
     setIsAttachMenuOpen(false);
 
     // 1. Show User Message immediately with the file
@@ -534,6 +573,7 @@ const Chat = () => {
           } : msg));
 
           toast.success("Conversion complete! 🎶");
+          refreshSubscription();
           scrollToBottom();
         };
 
@@ -569,6 +609,10 @@ const Chat = () => {
 
   const manualFileToAudioConversion = async (file) => {
     if (!file) return;
+
+    if (!checkLimitLocally('audio')) {
+      return;
+    }
 
     // 1. Show User Message immediately with the file
     const reader = new FileReader();
@@ -637,6 +681,7 @@ const Chat = () => {
             }
           } : msg));
           toast.success("File converted successfully!");
+          refreshSubscription();
           scrollToBottom();
         };
       } catch (err) {
@@ -655,6 +700,10 @@ const Chat = () => {
 
   const manualTextToAudioConversion = async (text) => {
     if (!text || !text.trim()) return;
+
+    if (!checkLimitLocally('audio')) {
+      return;
+    }
 
     const userMsg = {
       id: Date.now().toString(),
@@ -705,6 +754,7 @@ const Chat = () => {
           }
         } : msg));
         toast.success("Text converted successfully!");
+        refreshSubscription();
         scrollToBottom();
       };
     } catch (err) {
@@ -720,6 +770,9 @@ const Chat = () => {
   };
 
   const handleGenerateVideo = async (overridePrompt) => {
+    if (!checkLimitLocally('video')) {
+      return;
+    }
     try {
       if (!inputRef.current?.value.trim() && !overridePrompt && selectedFiles.length === 0) {
         // toast.error('Please enter a prompt or select a file');
@@ -825,6 +878,7 @@ const Chat = () => {
 
           setMessages(prev => prev.map(msg => msg.id === tempId ? videoMessage : msg));
           toast.success('Video generated successfully!');
+          refreshSubscription();
 
         } else if (data.imageUrl) {
           // Add image fallback
@@ -867,6 +921,9 @@ const Chat = () => {
   };
 
   const handleGenerateImage = async (overridePrompt) => {
+    if (!checkLimitLocally('image')) {
+      return;
+    }
     try {
       if (!inputRef.current?.value.trim() && !overridePrompt) {
         toast.error('Please enter a prompt for image generation');
@@ -921,6 +978,7 @@ const Chat = () => {
           setMessages(prev => prev.map(msg => msg.id === tempId ? imageMessage : msg));
 
           toast.success('Image generated successfully!');
+          refreshSubscription();
         }
       } catch (error) {
         console.error("Image Gen Error Details:", error);
@@ -936,7 +994,90 @@ const Chat = () => {
     }
   };
 
+  const handleEditImage = async (overridePrompt) => {
+    if (!checkLimitLocally('image')) {
+      return;
+    }
+    try {
+      const prompt = overridePrompt || inputRef.current?.value || "";
+      if (!prompt) {
+        toast.error('Please enter instructions for image editing');
+        return;
+      }
+
+      // Check for attached image
+      const imageFile = filePreviews.find(f => f.type.startsWith('image/'));
+      if (!imageFile) {
+        toast.error('Please upload an image to edit');
+        return;
+      }
+
+      setIsLoading(true);
+
+      // 1. Add User Message to UI
+      const userMsgId = Date.now().toString();
+      const userMsg = {
+        id: userMsgId,
+        role: 'user',
+        content: prompt,
+        timestamp: new Date(),
+        attachments: filePreviews.map(fp => ({
+          url: fp.url,
+          name: fp.name,
+          type: fp.type
+        }))
+      };
+
+      // Show a message that image editing is in progress
+      const tempId = (Date.now() + 1).toString();
+      const newMessage = {
+        id: tempId,
+        role: 'assistant',
+        content: `🪄 Editing your image: "${prompt}"\n\nPlease wait while AISA works its magic...`, 
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, userMsg, newMessage]);
+      if (inputRef.current) inputRef.current.value = '';
+      setInputValue('');
+      handleRemoveFile(); 
+
+      try {
+        // Use apiService
+        const responseData = await apiService.editImage(prompt, imageFile.url);
+
+        if (responseData && responseData.data) {
+          const finalUrl = responseData.data;
+          const editMessage = {
+            id: tempId, 
+            role: 'assistant',
+            content: `✨ Your image has been edited!`, 
+            imageUrl: finalUrl,
+            timestamp: new Date(),
+          };
+
+          setMessages(prev => prev.map(msg => msg.id === tempId ? editMessage : msg));
+          toast.success('Image edited successfully!');
+          refreshSubscription();
+        }
+      } catch (error) {
+        console.error("Image Edit Error:", error);
+        const errorMsg = error.response?.data?.message || error.message || 'Failed to edit image';
+        setMessages(prev => prev.map(msg => msg.id === tempId ? { ...msg, content: `❌ ${errorMsg}` } : msg));
+        toast.error(errorMsg);
+      }
+    } catch (error) {
+      console.error('Image editing error:', error);
+      toast.error('Error initiating image editing');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleDeepSearch = async () => {
+    if (!checkLimitLocally('deepSearch')) {
+      return;
+    }
     try {
       if (!inputRef.current?.value.trim()) {
         toast.error('Please enter a topic for deep search');
@@ -984,6 +1125,7 @@ const Chat = () => {
           });
 
           toast.success('Deep search completed!');
+          refreshSubscription();
         }
       } catch (error) {
         const errorMsg = error.message || 'Failed to perform deep search';
@@ -1580,10 +1722,24 @@ const Chat = () => {
   const handleSendMessage = async (e, overrideContent) => {
     if (e) e.preventDefault();
 
-    // Prevent duplicate sends (from voice + form race condition)
+    // Prevent duplicate sends
     if (isSendingRef.current) return;
 
-    if (isAudioConvertMode && !inputValue.trim() && selectedFiles.length === 0) {
+    const contentToSend = typeof overrideContent === 'string' ? overrideContent : inputValue.trim();
+    if ((!contentToSend && filePreviews.length === 0) || isLoading) return;
+
+    // --- Subscription Limit Checks ---
+    let featureToTrack = 'chat';
+    if (isDeepSearch) featureToTrack = 'deepSearch';
+    else if (isDocumentConvert) featureToTrack = 'document';
+    else if (isCodeWriter) featureToTrack = 'codeWriter';
+
+    if (!checkLimitLocally(featureToTrack)) {
+      // Limit reached, UpgradeModal will be triggered by SubscriptionContext
+      return;
+    }
+
+    if (isAudioConvertMode && !contentToSend && selectedFiles.length === 0) {
       toast.error('Please enter text or upload a file to convert to audio');
       return;
     }
@@ -1595,10 +1751,7 @@ const Chat = () => {
 
     // Special case for Audio Convert Mode: Handle files directly if present
     if (isAudioConvertMode && selectedFiles.length > 0) {
-      const fileToConvert = selectedFiles[0]; // Take the first one for simplicity
-
-      // Simulate click on the hidden doc-voice-upload to reuse its logic
-      // But we need to pass the file. Let's instead call a manual conversion function.
+      const fileToConvert = selectedFiles[0];
       manualFileToAudioConversion(fileToConvert);
       setSelectedFiles([]);
       setFilePreviews([]);
@@ -1606,41 +1759,43 @@ const Chat = () => {
     }
 
     // Special case for Audio Convert Mode: Handle text conversion
-    if (isAudioConvertMode && inputValue.trim()) {
-      manualTextToAudioConversion(inputValue);
+    if (isAudioConvertMode && contentToSend) {
+      manualTextToAudioConversion(contentToSend);
       setInputValue('');
       return;
     }
 
-    // Use overrideContent if provided (for instant voice sending), otherwise fallback to state
-    const contentToSend = typeof overrideContent === 'string' ? overrideContent : inputValue.trim();
-
-    if ((!contentToSend && filePreviews.length === 0) || isLoading) return;
-
     isSendingRef.current = true;
-    setInputValue(''); // Clear immediately to prevent stale reads
+    setInputValue('');
     transcriptRef.current = '';
 
     let activeSessionId = currentSessionId;
     let isFirstMessage = false;
 
-    // Stop listening if send is clicked (or auto-sent)
+    // Stop listening if send is clicked
     if (isListening && recognitionRef.current) {
-      isManualStopRef.current = true; // Guard against recursive onend
+      isManualStopRef.current = true;
       recognitionRef.current.stop();
       setIsListening(false);
     }
 
     // Handle Image Generation Mode
     if (isImageGeneration) {
-      handleGenerateImage(contentToSend); // Pass content directly if needed, or handleGenerateImage uses ref/state
-      isSendingRef.current = false; // Reset sending ref since handleGenerateImage might handle it differently or we want to allow next send
+      handleGenerateImage(contentToSend);
+      isSendingRef.current = false;
       return;
     }
 
     // Handle Video Generation Mode
     if (isVideoGeneration) {
       handleGenerateVideo(contentToSend);
+      isSendingRef.current = false;
+      return;
+    }
+
+    // Handle Image Editing Mode
+    if (isMagicEditing) {
+      handleEditImage(contentToSend);
       isSendingRef.current = false;
       return;
     }
@@ -2023,6 +2178,9 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
           // After typing is complete, save the full message to history
           await chatStorageService.saveMessage(activeSessionId, finalModelMsg);
 
+          // Refresh usage counts after successful generation
+          refreshSubscription();
+
           // CRITICAL: Update the state with the final message including conversion data
           setMessages((prev) =>
             prev.map(m => m.id === msgId ? finalModelMsg : m)
@@ -2220,9 +2378,30 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
   };
 
   const handlePdfAction = async (action, msg) => {
-    // Instant Share if PDF is already pre-generated
-    if (action === 'share' && pregeneratedPdfs[msg.id]) {
+    // Instant Share/Copy if PDF is already pre-generated
+    if ((action === 'share' || action === 'copy') && pregeneratedPdfs[msg.id]) {
       const file = pregeneratedPdfs[msg.id];
+
+      if (action === 'copy') {
+        if (!window.ClipboardItem) {
+          toast.error("Iss browser mein direct file copy supported nahi hai. Download ya Share use karein.");
+          return;
+        }
+        try {
+          // Wrap in Promise for better compatibility
+          const item = new ClipboardItem({ 
+            [file.type || 'application/pdf']: Promise.resolve(file) 
+          });
+          await navigator.clipboard.write([item]);
+          toast.success("PDF file copy ho gayi! 📋 Ab aap ise WhatsApp ya folder mein paste kar sakte hain.");
+          return;
+        } catch (err) {
+          console.error("Copy failed:", err);
+          toast.error("File copy nahi ho saki. Browser file permission check karein.");
+          return;
+        }
+      }
+
       // Try native share (works on mobile)
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
@@ -2276,6 +2455,17 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
           const url = URL.createObjectURL(blob);
           window.open(url, '_blank');
           toast.dismiss(shareToastId);
+        } else if (action === 'copy') {
+          if (!window.ClipboardItem) {
+            toast.error("Iss browser mein direct file copy supported nahi hai.");
+            toast.dismiss(shareToastId);
+            return;
+          }
+          const item = new ClipboardItem({ 
+            [file.type || 'application/pdf']: Promise.resolve(file) 
+          });
+          await navigator.clipboard.write([item]);
+          toast.success("PDF file copy ho gayi! 📋", { id: shareToastId });
         } else if (action === 'share') {
           if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
             try {
@@ -2313,6 +2503,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
       const element = document.getElementById(`msg-text-${msg.id}`);
       if (!element) {
         if (processToastId) toast.error("Content not found", { id: processToastId });
+        setPdfLoadingId(null);
         return;
       }
 
@@ -2371,7 +2562,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
 
       const pxPerMm = canvas.width / printW;
       const pageHeightPx = Math.floor(printH * pxPerMm);
-      const mainCtx = canvas.getContext('2d');
+      const mainCtx = canvas.getContext('2d', { willReadFrequently: true });
 
       let currentY = 0;
       let pageCount = 0;
@@ -2382,26 +2573,48 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         let targetH = pageHeightPx;
         // If not the last page, try to find a "smart" break point (white space)
         if (currentY + targetH < canvas.height) {
-          const scanRange = Math.min(120, targetH / 2); // Scan bottom ~15mm
+          // Increase scan range to found a better gap (max 200px or 1/3 of page)
+          const scanRange = Math.min(200, Math.floor(pageHeightPx / 3)); 
           try {
             const scanData = mainCtx.getImageData(0, currentY + targetH - scanRange, canvas.width, scanRange).data;
+            let foundSafeRow = -1;
+
+            // Search from bottom of the ideal page area upwards
             for (let row = scanRange - 1; row >= 0; row--) {
               let isWhiteRow = true;
-              // Check every 10th pixel for speed
-              for (let col = 0; col < canvas.width; col += 10) {
+              // Sampling check every 5th pixel for better accuracy than every 10th
+              for (let col = 0; col < canvas.width; col += 5) {
                 const idx = (row * canvas.width + col) * 4;
-                if (scanData[idx] < 250 || scanData[idx + 1] < 250 || scanData[idx + 2] < 250) {
+                // Check if color is near white (AISA bg or transparent)
+                if (scanData[idx] < 245 || scanData[idx+1] < 245 || scanData[idx+2] < 245) {
                   isWhiteRow = false;
                   break;
                 }
               }
               if (isWhiteRow) {
-                targetH = (targetH - scanRange) + row + 2; // +2px buffer
+                foundSafeRow = row;
                 break;
               }
             }
-          } catch (e) { console.warn("Smart break scan failed", e); }
+
+            if (foundSafeRow !== -1) {
+              // We found a gap! Slice here.
+              targetH = (targetH - scanRange) + foundSafeRow + 4; // 4px extra safety buffer
+            } else {
+              // If no gap found, we'll have to cut through text, 
+              // but let's try to avoid mid-line repetition by being exact
+              targetH = pageHeightPx;
+            }
+          } catch (e) { 
+            console.warn("Smart break scan failed", e); 
+            targetH = pageHeightPx;
+          }
         } else {
+          targetH = canvas.height - currentY;
+        }
+
+        // Clip safety: ensure we don't exceed actual canvas height
+        if (currentY + targetH > canvas.height) {
           targetH = canvas.height - currentY;
         }
 
@@ -2413,11 +2626,11 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         pCtx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
         pCtx.drawImage(canvas, 0, currentY, canvas.width, targetH, 0, 0, canvas.width, targetH);
 
-        const pageImg = pageCanvas.toDataURL('image/png', 1.0);
+        const pageImg = pageCanvas.toDataURL('image/jpeg', 0.95); // JPEG slightly faster/smaller
         const mmH = targetH / pxPerMm;
-        pdf.addImage(pageImg, 'PNG', margin, margin, printW, mmH, undefined, 'FAST');
+        pdf.addImage(pageImg, 'JPEG', margin, margin, printW, mmH, undefined, 'FAST');
 
-        currentY += targetH;
+        currentY += targetH; // Advance by exactly what we took
         pageCount++;
       }
       // ===== END SMART SLICING =====
@@ -2432,12 +2645,29 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
       }
 
       if (action === 'download') {
-        pdf.save(filename);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
         if (processToastId) toast.success("PDF Downloaded", { id: processToastId });
       } else if (action === 'open') {
-        const blobUrl = URL.createObjectURL(blob);
-        window.open(blobUrl, '_blank');
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
         if (processToastId) toast.dismiss(processToastId);
+      } else if (action === 'copy') {
+        if (!window.ClipboardItem) {
+          toast.error("Iss browser mein direct file copy supported nahi hai.");
+          if (processToastId) toast.dismiss(processToastId);
+          return;
+        }
+        const item = new ClipboardItem({ 
+          ['application/pdf']: Promise.resolve(blob) 
+        });
+        await navigator.clipboard.write([item]);
+        if (processToastId) toast.success("PDF file copy ho gayi! 📋", { id: processToastId });
       } else if (action === 'share') {
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
@@ -2583,22 +2813,28 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         if (pageIdx > 0) pdf.addPage();
         let targetH = pageHeightPx;
         if (curY + targetH < canvas.height) {
-          const scanRange = 100;
+          const scanRange = Math.min(200, Math.floor(pageHeightPx / 3));
           try {
             const scanData = mainCtx.getImageData(0, curY + targetH - scanRange, canvas.width, scanRange).data;
+            let bestRow = -1;
             for (let r = scanRange - 1; r >= 0; r--) {
               let isWhite = true;
-              for (let c = 0; c < canvas.width; c += 15) {
+              for (let c = 0; c < canvas.width; c += 5) {
                 const i = (r * canvas.width + c) * 4;
-                if (scanData[i] < 250 || scanData[i + 1] < 250 || scanData[i + 2] < 250) {
+                if (scanData[i] < 245 || scanData[i + 1] < 245 || scanData[i + 2] < 245) {
                   isWhite = false;
                   break;
                 }
               }
-              if (isWhite) { targetH = (targetH - scanRange) + r + 2; break; }
+              if (isWhite) { bestRow = r; break; }
+            }
+            if (bestRow !== -1) {
+              targetH = (targetH - scanRange) + bestRow + 4;
             }
           } catch (e) { }
         } else { targetH = canvas.height - curY; }
+
+        if (curY + targetH > canvas.height) targetH = canvas.height - curY;
 
         const pCanvas = document.createElement('canvas');
         pCanvas.width = canvas.width;
@@ -2607,11 +2843,11 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         pCtx.fillStyle = '#ffffff';
         pCtx.fillRect(0, 0, pCanvas.width, pCanvas.height);
         pCtx.drawImage(canvas, 0, curY, canvas.width, targetH, 0, 0, canvas.width, targetH);
-        pdf.addImage(pCanvas.toDataURL('image/png', 1.0), 'PNG', margin, margin, printW, targetH / pxPerMm, undefined, 'FAST');
+        pdf.addImage(pCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', margin, margin, printW, targetH / pxPerMm, undefined, 'FAST');
         curY += targetH;
         pageIdx++;
       }
-
+      // ===== END SMART SLICING =====
       // 2. Upload PDF blob to Cloudinary via backend
       toast.loading("Uploading PDF...", { id: toastId });
       const blob = pdf.output('blob');
@@ -3109,20 +3345,6 @@ For "Remix" requests with an attachment, analyze the attached image, then create
         )}
       </AnimatePresence>
 
-      {/* Image Editor */}
-      <AnimatePresence>
-        {isEditingImage && selectedFile && (
-          <ImageEditor
-            file={selectedFile}
-            onClose={() => setIsEditingImage(false)}
-            onSave={(newFile) => {
-              processFile(newFile);
-              setIsEditingImage(false);
-              toast.success("Image updated!");
-            }}
-          />
-        )}
-      </AnimatePresence>
 
       <ModelSelector
         isOpen={isModelSelectorOpen}
@@ -3731,21 +3953,35 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                                   <Share className="w-3.5 h-3.5" />
                                 </button>
 
-                                {/* PDF Share — Direct 1-click */}
-                                <button
-                                  onClick={() => handlePdfAction('share', msg)}
-                                  onMouseEnter={() => handlePdfAction('pregenerate', msg)}
-                                  onFocus={() => handlePdfAction('pregenerate', msg)}
-                                  className="text-red-500 hover:text-red-600 transition-all p-1.5 hover:bg-red-50/10 rounded-lg flex items-center gap-1 active:scale-95"
-                                  title={pregeneratedPdfs[msg.id] ? "Share PDF ✓ Ready" : "Share PDF"}
-                                >
-                                  <FileText className="w-4 h-4" />
-                                  {pdfLoadingId === msg.id && !pregeneratedPdfs[msg.id] ? (
-                                    <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                                  ) : pregeneratedPdfs[msg.id] ? (
-                                    <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                                  ) : null}
-                                </button>
+                                 {/* PDF Tools */}
+                                 <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 ml-2 pl-2">
+                                   {/* Copy PDF - NEW */}
+                                   <button
+                                     onClick={() => handlePdfAction('copy', msg)}
+                                     onMouseEnter={() => handlePdfAction('pregenerate', msg)}
+                                     onFocus={() => handlePdfAction('pregenerate', msg)}
+                                     className="text-subtext hover:text-primary transition-all p-1.5 hover:bg-surface-hover rounded-lg flex items-center gap-1 active:scale-95"
+                                     title="Copy PDF File"
+                                   >
+                                     <Copy className="w-3.5 h-3.5" />
+                                   </button>
+
+                                   {/* PDF Share — Direct 1-click */}
+                                   <button
+                                     onClick={() => handlePdfAction('share', msg)}
+                                     onMouseEnter={() => handlePdfAction('pregenerate', msg)}
+                                     onFocus={() => handlePdfAction('pregenerate', msg)}
+                                     className="text-red-500 hover:text-red-600 transition-all p-1.5 hover:bg-red-50/10 rounded-lg flex items-center gap-1 active:scale-95"
+                                     title={pregeneratedPdfs[msg.id] ? "Share PDF ✓ Ready" : "Share PDF"}
+                                   >
+                                     <FileText className="w-4 h-4" />
+                                     {pdfLoadingId === msg.id && !pregeneratedPdfs[msg.id] ? (
+                                       <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                                     ) : pregeneratedPdfs[msg.id] ? (
+                                       <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                                     ) : null}
+                                   </button>
+                                 </div>
                               </div>
 
 
@@ -4072,7 +4308,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                           <Sparkles className="w-3.5 h-3.5 text-primary" /> AISA Magic Tools
                         </h3>
                       </div>
-                      <div className="p-1.5 space-y-1 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+                      <div className="p-1.5 pb-4 space-y-1 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(100vh - 220px)' }}>
                         <button
                           type="button"
                           onClick={() => {
@@ -4198,6 +4434,8 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                             setIsVideoGeneration(false);
                             setIsAudioConvertMode(false);
                             setIsDocumentConvert(false);
+                            setIsEditingImage(false);
+                            setIsMagicEditing(false);
                             if (!isCodeWriter) toast.success("Code Writer Mode Enabled");
                           }}
                           className={`w-full text-left px-3 py-2 flex items-center gap-3 rounded-2xl transition-all group cursor-pointer ${isCodeWriter ? 'bg-primary/10' : 'hover:bg-primary/5'}`}
@@ -4208,6 +4446,30 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                           <div className="flex-1 min-w-0">
                             <span className="text-[14px] font-bold text-maintext block leading-tight">Code Writer</span>
                             <span className="text-[10px] text-subtext block leading-tight truncate mt-0.5">Write & debug code with AISA</span>
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsToolsMenuOpen(false);
+                            setIsMagicEditing(!isMagicEditing);
+                            setIsCodeWriter(false);
+                            setIsDeepSearch(false);
+                            setIsImageGeneration(false);
+                            setIsVideoGeneration(false);
+                            setIsAudioConvertMode(false);
+                            setIsDocumentConvert(false);
+                            if (!isMagicEditing) toast.success("Magic Image Editing Enabled");
+                          }}
+                          className={`w-full text-left px-3 py-2 flex items-center gap-3 rounded-2xl transition-all group cursor-pointer ${isMagicEditing ? 'bg-primary/10' : 'hover:bg-primary/5'}`}
+                        >
+                          <div className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors shrink-0 ${isMagicEditing ? 'bg-primary border-primary text-white' : 'bg-surface border-border group-hover:border-primary/30 group-hover:bg-primary/10'}`}>
+                            <Wand2 className="w-4.5 h-4.5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[14px] font-bold text-maintext block leading-tight">Magic Image Editing</span>
+                            <span className="text-[10px] text-subtext block leading-tight truncate mt-0.5">Edit & modify images with AI</span>
                           </div>
                         </button>
                       </div>
@@ -4236,7 +4498,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
 
               <div className="flex-1 flex items-center min-w-0 bg-transparent border-0 ring-0 focus:ring-0">
                 <AnimatePresence>
-                  {(isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter) && (
+                  {(isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing) && (
                     <div className="absolute bottom-full left-0 mb-3 flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto w-full">
                       {isDeepSearch && (
                         <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0">
@@ -4289,6 +4551,12 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                         <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-purple-500/10 text-purple-600 rounded-full text-xs font-bold border border-purple-500/20 backdrop-blur-md whitespace-nowrap shrink-0">
                           <Code size={12} strokeWidth={3} /> <span className="hidden sm:inline">Code Writer</span>
                           <button onClick={() => setIsCodeWriter(false)} className="ml-1 hover:text-purple-800"><X size={12} /></button>
+                        </motion.div>
+                      )}
+                      {isMagicEditing && (
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-amber-500/10 text-amber-600 rounded-full text-xs font-bold border border-amber-500/20 backdrop-blur-md whitespace-nowrap shrink-0">
+                          <Wand2 size={12} strokeWidth={3} /> <span className="hidden sm:inline">Image Edit</span>
+                          <button onClick={() => setIsMagicEditing(false)} className="ml-1 hover:text-amber-800"><X size={12} /></button>
                         </motion.div>
                       )}
                     </div>
