@@ -11,24 +11,30 @@ import { BrowserRouter } from 'react-router-dom';
 
 import ErrorBoundary from './Components/ErrorBoundary';
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
+  || import.meta.env.AISA_GOOGLE_CLIENT_ID
+  || '';
 
-createRoot(document.getElementById('root')).render(
+const AppTree = (
   <StrictMode>
     <BrowserRouter>
-      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-        <ErrorBoundary>
-          <ToastProvider>
-            <PersonalizationProvider>
-              <ThemeProvider>
-                <LanguageProvider>
-                  <App />
-                </LanguageProvider>
-              </ThemeProvider>
-            </PersonalizationProvider>
-          </ToastProvider>
-        </ErrorBoundary>
-      </GoogleOAuthProvider>
+      <ErrorBoundary>
+        <ToastProvider>
+          <PersonalizationProvider>
+            <ThemeProvider>
+              <LanguageProvider>
+                <App />
+              </LanguageProvider>
+            </ThemeProvider>
+          </PersonalizationProvider>
+        </ToastProvider>
+      </ErrorBoundary>
     </BrowserRouter>
-  </StrictMode>,
-)
+  </StrictMode>
+);
+
+createRoot(document.getElementById('root')).render(
+  GOOGLE_CLIENT_ID
+    ? <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>{AppTree}</GoogleOAuthProvider>
+    : AppTree
+);
