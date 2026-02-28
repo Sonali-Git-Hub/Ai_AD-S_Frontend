@@ -74,7 +74,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   const [newTitle, setNewTitle] = useState("");
   const [isAdminHelpDeskOpen, setIsAdminHelpDeskOpen] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
-  const { handlePayment } = usePayment();
+  const { handlePayment, loading: paymentLoading } = usePayment();
   const { currentPlan, usage, refreshSubscription } = useSubscription();
 
   // Check if current user is admin - MUST have token AND correct email
@@ -687,6 +687,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         {showPricingModal && (
           <PricingModal
             currentPlan={user?.plan}
+            loading={paymentLoading}
             onClose={() => setShowPricingModal(false)}
             onUpgrade={async (p) => {
               await handlePayment(p, user, (u) => {

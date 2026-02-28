@@ -1,10 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, X, Crown, Zap, Shield, Sparkles } from 'lucide-react';
+import { Check, X, Crown, Zap, Shield, Sparkles, Loader } from 'lucide-react';
 import UsageStats from '../Subscription/UsageStats';
 import { useSubscription } from '../../context/SubscriptionContext';
 
-const PricingModal = ({ onClose, currentPlan, onUpgrade }) => {
+const PricingModal = ({ onClose, currentPlan, onUpgrade, loading }) => {
+    const [processingPlanId, setProcessingPlanId] = useState(null);
+
+    useEffect(() => {
+        if (!loading) setProcessingPlanId(null);
+    }, [loading]);
     const plans = [
         {
             id: 'basic',
@@ -142,14 +147,23 @@ const PricingModal = ({ onClose, currentPlan, onUpgrade }) => {
                                         </ul>
 
                                         <button
-                                            onClick={() => !isCurrent && onUpgrade(plan)}
-                                            disabled={isCurrent}
-                                            className={`w-full py-3 rounded-xl font-bold text-sm transition-all shadow-sm ${isCurrent
+                                            onClick={() => {
+                                                if (!isCurrent) {
+                                                    setProcessingPlanId(plan.id);
+                                                    onUpgrade(plan);
+                                                }
+                                            }}
+                                            disabled={isCurrent || loading}
+                                            className={`w-full py-3 rounded-xl font-bold text-sm transition-all shadow-sm flex items-center justify-center gap-2 ${isCurrent
                                                 ? 'bg-gray-100 dark:bg-zinc-800 text-gray-400 cursor-not-allowed'
                                                 : 'bg-primary hover:bg-primary/90 text-white hover:shadow-primary/25 hover:scale-[1.02] active:scale-[0.98]'
                                                 }`}
                                         >
-                                            {isCurrent ? 'Current Plan' : plan.price === 0 ? 'Downgrade' : 'Upgrade'}
+                                            {(loading && processingPlanId === plan.id) ? (
+                                                <Loader className="w-5 h-5 animate-spin" />
+                                            ) : (
+                                                isCurrent ? 'Current Plan' : plan.price === 0 ? 'Downgrade' : 'Upgrade'
+                                            )}
                                         </button>
                                     </div>
                                 );

@@ -9,18 +9,22 @@ import { PersonalizationProvider } from './context/PersonalizationContext';
 
 import ErrorBoundary from './Components/ErrorBoundary';
 
+import { BrowserRouter } from 'react-router-dom';
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <ErrorBoundary>
-      <ToastProvider>
-        <PersonalizationProvider>
-          <ThemeProvider>
-            <LanguageProvider>
-              <App />
-            </LanguageProvider>
-          </ThemeProvider>
-        </PersonalizationProvider>
-      </ToastProvider>
-    </ErrorBoundary>
+    <BrowserRouter>
+      <ErrorBoundary>
+        <ToastProvider>
+          <PersonalizationProvider>
+            <ThemeProvider>
+              <LanguageProvider>
+                <App />
+              </LanguageProvider>
+            </ThemeProvider>
+          </PersonalizationProvider>
+        </ToastProvider>
+      </ErrorBoundary>
+    </BrowserRouter>
   </StrictMode>,
 )

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { getUserData } from '../userStore/userData';
+import { apis } from '../types';
 
 const SubscriptionContext = createContext();
 
@@ -39,7 +40,7 @@ export const SubscriptionProvider = ({ children }) => {
         }
 
         try {
-            const response = await axios.get(`${import.meta.env.VITE_API_URL || '/api'}/user/subscription`, {
+            const response = await axios.get(`${apis.user}/subscription`, {
                 headers: { Authorization: `Bearer ${user.token}` }
             });
             if (response.data) {

@@ -206,8 +206,25 @@ const ImageViewer = ({ src, alt }) => {
             transition: isDragging ? 'none' : 'transform 0.1s ease-out',
             cursor: scale > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default'
           }}
-          className="max-w-full max-h-full object-contain pointer-events-none"
+          className="max-w-full max-h-full object-contain pointer-events-auto"
           draggable={false}
+          onLoad={() => console.log("Viewer image loaded successfully:", src)}
+          onError={(e) => {
+            console.error("Viewer image load failed:", src);
+            if (src && !e.target.dataset.retried) {
+              e.target.dataset.retried = "true";
+              const retryUrl = src + (src.includes('?') ? '&' : '?') + 'retry=' + Date.now();
+              console.log("Retrying viewer image:", retryUrl);
+              e.target.src = retryUrl;
+            } else {
+              e.target.src = `https://placehold.co/800x600/333/eee?text=Image+Loading+Failed%0AClick+to+Retry`;
+              e.target.style.cursor = 'pointer';
+              e.target.onclick = (event) => {
+                event.stopPropagation();
+                e.target.src = src + (src.includes('?') ? '&' : '?') + 'reload=' + Date.now();
+              };
+            }
+          }}
         />
       </div>
     </div>
@@ -380,14 +397,14 @@ const Chat = () => {
     ];
 
     const isAllowed = validMimes.some(mime => fileType?.startsWith(mime) || fileType === mime);
-    
+
     // Even if not in list, let's allow it but maybe warn? 
     // Actually, AISA can handle most text/data files.
-    
+
     const fileWithMetadata = new File([file], fileName, { type: fileType || 'application/octet-stream' });
     setSelectedFiles(prev => [...prev, fileWithMetadata]);
 
-    // Generate Preview
+    // Generate Preview using DataURL (more persistent for chat messages)
     const reader = new FileReader();
     reader.onloadend = () => {
       setFilePreviews(prev => [...prev, {
@@ -769,7 +786,7 @@ const Chat = () => {
     }
   };
 
-  const handleGenerateVideo = async (overridePrompt) => {
+  const handleGenerateVideo = async (overridePrompt, activeSessionId = currentSessionId) => {
     if (!checkLimitLocally('video')) {
       return;
     }
@@ -785,50 +802,59 @@ const Chat = () => {
 
       // Voice Reader Mode Logic
       if (isVoiceMode) {
-        // 1. Add User Message to UI
-        const userMsgId = Date.now().toString();
-        const newUserMsg = {
-          id: userMsgId,
-          role: 'user', // Ensure role user
-          content: prompt, // Use content
-          timestamp: new Date(),
-          attachments: filePreviews.map(fp => ({
-            url: fp.url,
-            name: fp.name,
-            type: fp.type
-          }))
-        };
-        setMessages(prev => [...prev, newUserMsg]);
+        try {
+          // 1. Add User Message to UI
+          const userMsgId = Date.now().toString();
+          const newUserMsg = {
+            id: userMsgId,
+            role: 'user', // Ensure role user
+            content: prompt, // Use content
+            timestamp: new Date(),
+            attachments: filePreviews.map(fp => ({
+              url: fp.url,
+              name: fp.name,
+              type: fp.type
+            }))
+          };
+          setMessages(prev => [...prev, newUserMsg]);
 
-        // Clear Inputs
-        setInputValue('');
-        setSelectedFiles([]);
-        setFilePreviews([]);
-        if (inputRef.current) inputRef.current.style.height = 'auto';
+          // Clear Inputs
+          setInputValue('');
+          setSelectedFiles([]);
+          setFilePreviews([]);
+          if (inputRef.current) inputRef.current.style.height = 'auto';
 
-        // 2. Trigger Voice Reading Directly
-        // We can use speakResponse, but we need to trick it into thinking it's an AI response?
-        // Or just call speakResponse with the user content? 
-        // SpeakResponse reads content using a specific message ID for state tracking.
+          // Save to backend
+          if (activeSessionId && activeSessionId !== 'new') {
+            chatStorageService.saveMessage(activeSessionId, newUserMsg).catch(err => console.error("Error saving voice message:", err));
+          }
 
-        setIsLoading(true);
+          // 2. Trigger Voice Reading Directly
+          setIsLoading(true);
 
-        // Show a "Reading..." AI bubble
-        const aiMsgId = (Date.now() + 1).toString();
-        const readingMsg = {
-          id: aiMsgId,
-          role: 'assistant', // Ensure role assistant
-          content: "🎧 Reading content aloud...", // Use content
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, readingMsg]);
+          // Show a "Reading..." AI bubble
+          const aiMsgId = (Date.now() + 1).toString();
+          const readingMsg = {
+            id: aiMsgId,
+            role: 'assistant', // Ensure role assistant
+            content: "🎧 Reading content aloud...", // Use content
+            timestamp: new Date()
+          };
+          setMessages(prev => [...prev, readingMsg]);
 
-        setTimeout(() => {
-          speakResponse(prompt, 'en-US', aiMsgId, newUserMsg.attachments);
-          setIsLoading(false);
-        }, 500);
+          if (activeSessionId && activeSessionId !== 'new') {
+            chatStorageService.saveMessage(activeSessionId, readingMsg).catch(err => console.error("Error saving reading bubble:", err));
+          }
 
-        return; // STOP HERE (Do not call AI API)
+          setTimeout(() => {
+            speakResponse(prompt, 'en-US', aiMsgId, newUserMsg.attachments);
+            setIsLoading(false);
+          }, 500);
+
+          return; // STOP HERE (Do not call AI API)
+        } catch (err) {
+          console.error("Voice mode handler failed:", err);
+        }
       }
 
       setIsLoading(true);
@@ -862,6 +888,11 @@ const Chat = () => {
       setInputValue('');
       handleRemoveFile();
 
+      // Save user message to backend
+      if (activeSessionId && activeSessionId !== 'new') {
+        chatStorageService.saveMessage(activeSessionId, userMsg).catch(err => console.error("Error saving video user message:", err));
+      }
+
       try {
         // Use apiService
         const data = await apiService.generateVideo(prompt, 5, 'medium', videoAspectRatio);
@@ -879,6 +910,11 @@ const Chat = () => {
           setMessages(prev => prev.map(msg => msg.id === tempId ? videoMessage : msg));
           toast.success('Video generated successfully!');
           refreshSubscription();
+
+          // Save AI response to backend
+          if (activeSessionId && activeSessionId !== 'new') {
+            chatStorageService.saveMessage(activeSessionId, videoMessage).catch(err => console.error("Error saving video results:", err));
+          }
 
         } else if (data.imageUrl) {
           // Add image fallback
@@ -920,7 +956,7 @@ const Chat = () => {
     }
   };
 
-  const handleGenerateImage = async (overridePrompt) => {
+  const handleGenerateImage = async (overridePrompt, activeSessionId = currentSessionId) => {
     if (!checkLimitLocally('image')) {
       return;
     }
@@ -943,7 +979,9 @@ const Chat = () => {
         attachments: filePreviews.map(fp => ({
           url: fp.url,
           name: fp.name,
-          type: fp.type
+          type: fp.type.startsWith('image/') ? 'image' :
+            fp.type.includes('pdf') ? 'pdf' :
+              fp.type.includes('word') || fp.type.includes('document') ? 'docx' : 'file'
         }))
       };
 
@@ -960,6 +998,11 @@ const Chat = () => {
       if (inputRef.current) inputRef.current.value = '';
       setInputValue('');
       handleRemoveFile();
+
+      // Save user message to backend
+      if (activeSessionId && activeSessionId !== 'new') {
+        chatStorageService.saveMessage(activeSessionId, userMsg).catch(err => console.error("Error saving image user message:", err));
+      }
 
       try {
         // Use apiService
@@ -979,6 +1022,11 @@ const Chat = () => {
 
           toast.success('Image generated successfully!');
           refreshSubscription();
+
+          // Save AI response to backend
+          if (activeSessionId && activeSessionId !== 'new') {
+            chatStorageService.saveMessage(activeSessionId, imageMessage).catch(err => console.error("Error saving image generation results:", err));
+          }
         }
       } catch (error) {
         console.error("Image Gen Error Details:", error);
@@ -994,7 +1042,7 @@ const Chat = () => {
     }
   };
 
-  const handleEditImage = async (overridePrompt) => {
+  const handleEditImage = async (overridePrompt, activeSessionId = currentSessionId) => {
     if (!checkLimitLocally('image')) {
       return;
     }
@@ -1024,7 +1072,7 @@ const Chat = () => {
         attachments: filePreviews.map(fp => ({
           url: fp.url,
           name: fp.name,
-          type: fp.type
+          type: fp.type.startsWith('image/') ? 'image' : 'file'
         }))
       };
 
@@ -1033,37 +1081,68 @@ const Chat = () => {
       const newMessage = {
         id: tempId,
         role: 'assistant',
-        content: `🪄 Editing your image: "${prompt}"\n\nPlease wait while AISA works its magic...`, 
+        content: `🪄 Editing your image: "${prompt}"\n\nPlease wait while AISA works its magic...`,
         timestamp: new Date(),
       };
 
       setMessages(prev => [...prev, userMsg, newMessage]);
       if (inputRef.current) inputRef.current.value = '';
       setInputValue('');
-      handleRemoveFile(); 
+
+      // Save user message to backend
+      if (activeSessionId && activeSessionId !== 'new') {
+        chatStorageService.saveMessage(activeSessionId, userMsg).catch(err => console.error("Error saving image edit user message:", err));
+      }
 
       try {
+        console.log("[Image Edit] Starting edit request for:", prompt);
+
+        // Efficiently get base64 from Data URL or Fetch Blob URL
+        let base64Image = null;
+        try {
+          if (imageFile.url.startsWith('data:')) {
+            base64Image = imageFile.url.split(',')[1];
+          } else {
+            const res = await fetch(imageFile.url);
+            const blob = await res.blob();
+            base64Image = await new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result.split(',')[1]);
+              reader.readAsDataURL(blob);
+            });
+          }
+        } catch (err) {
+          console.error("[Image Edit] Data conversion failed:", err);
+        }
+
         // Use apiService
-        const responseData = await apiService.editImage(prompt, imageFile.url);
+        const responseData = await apiService.editImage(prompt, null, base64Image);
 
         if (responseData && responseData.data) {
           const finalUrl = responseData.data;
           const editMessage = {
-            id: tempId, 
+            id: tempId,
             role: 'assistant',
-            content: `✨ Your image has been edited!`, 
+            content: `✨ Your image has been edited!`,
             imageUrl: finalUrl,
             timestamp: new Date(),
           };
 
           setMessages(prev => prev.map(msg => msg.id === tempId ? editMessage : msg));
+          handleRemoveFile(); // SUCCESS - remove files now
           toast.success('Image edited successfully!');
           refreshSubscription();
+
+          // Save AI response to backend
+          if (activeSessionId && activeSessionId !== 'new') {
+            chatStorageService.saveMessage(activeSessionId, editMessage).catch(err => console.error("Error saving edited image results:", err));
+          }
         }
       } catch (error) {
         console.error("Image Edit Error:", error);
         const errorMsg = error.response?.data?.message || error.message || 'Failed to edit image';
         setMessages(prev => prev.map(msg => msg.id === tempId ? { ...msg, content: `❌ ${errorMsg}` } : msg));
+        handleRemoveFile(); // Clean up on error too
         toast.error(errorMsg);
       }
     } catch (error) {
@@ -1779,23 +1858,37 @@ const Chat = () => {
       setIsListening(false);
     }
 
+    // Create or find session
+    if (activeSessionId === 'new') {
+      try {
+        activeSessionId = await chatStorageService.createSession();
+        setCurrentSessionId(activeSessionId);
+        isFirstMessage = true;
+      } catch (err) {
+        console.error("Failed to create session:", err);
+        toast.error('Failed to start a new chat session');
+        isSendingRef.current = false;
+        return;
+      }
+    }
+
     // Handle Image Generation Mode
     if (isImageGeneration) {
-      handleGenerateImage(contentToSend);
+      handleGenerateImage(contentToSend, activeSessionId);
       isSendingRef.current = false;
       return;
     }
 
     // Handle Video Generation Mode
     if (isVideoGeneration) {
-      handleGenerateVideo(contentToSend);
+      handleGenerateVideo(contentToSend, activeSessionId);
       isSendingRef.current = false;
       return;
     }
 
     // Handle Image Editing Mode
     if (isMagicEditing) {
-      handleEditImage(contentToSend);
+      handleEditImage(contentToSend, activeSessionId);
       isSendingRef.current = false;
       return;
     }
@@ -1813,7 +1906,9 @@ const Chat = () => {
           attachments: filePreviews.map(fp => ({
             url: fp.url,
             name: fp.name,
-            type: fp.type
+            type: fp.type.startsWith('image/') ? 'image' :
+              fp.type.includes('pdf') ? 'pdf' :
+                fp.type.includes('word') || fp.type.includes('document') ? 'docx' : 'file'
           }))
         };
         setMessages(prev => [...prev, newUserMsg]);
@@ -2389,8 +2484,8 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         }
         try {
           // Wrap in Promise for better compatibility
-          const item = new ClipboardItem({ 
-            [file.type || 'application/pdf']: Promise.resolve(file) 
+          const item = new ClipboardItem({
+            [file.type || 'application/pdf']: Promise.resolve(file)
           });
           await navigator.clipboard.write([item]);
           toast.success("PDF file copy ho gayi! 📋 Ab aap ise WhatsApp ya folder mein paste kar sakte hain.");
@@ -2461,8 +2556,8 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
             toast.dismiss(shareToastId);
             return;
           }
-          const item = new ClipboardItem({ 
-            [file.type || 'application/pdf']: Promise.resolve(file) 
+          const item = new ClipboardItem({
+            [file.type || 'application/pdf']: Promise.resolve(file)
           });
           await navigator.clipboard.write([item]);
           toast.success("PDF file copy ho gayi! 📋", { id: shareToastId });
@@ -2574,7 +2669,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         // If not the last page, try to find a "smart" break point (white space)
         if (currentY + targetH < canvas.height) {
           // Increase scan range to found a better gap (max 200px or 1/3 of page)
-          const scanRange = Math.min(200, Math.floor(pageHeightPx / 3)); 
+          const scanRange = Math.min(200, Math.floor(pageHeightPx / 3));
           try {
             const scanData = mainCtx.getImageData(0, currentY + targetH - scanRange, canvas.width, scanRange).data;
             let foundSafeRow = -1;
@@ -2586,7 +2681,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
               for (let col = 0; col < canvas.width; col += 5) {
                 const idx = (row * canvas.width + col) * 4;
                 // Check if color is near white (AISA bg or transparent)
-                if (scanData[idx] < 245 || scanData[idx+1] < 245 || scanData[idx+2] < 245) {
+                if (scanData[idx] < 245 || scanData[idx + 1] < 245 || scanData[idx + 2] < 245) {
                   isWhiteRow = false;
                   break;
                 }
@@ -2605,8 +2700,8 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
               // but let's try to avoid mid-line repetition by being exact
               targetH = pageHeightPx;
             }
-          } catch (e) { 
-            console.warn("Smart break scan failed", e); 
+          } catch (e) {
+            console.warn("Smart break scan failed", e);
             targetH = pageHeightPx;
           }
         } else {
@@ -2663,8 +2758,8 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
           if (processToastId) toast.dismiss(processToastId);
           return;
         }
-        const item = new ClipboardItem({ 
-          ['application/pdf']: Promise.resolve(blob) 
+        const item = new ClipboardItem({
+          ['application/pdf']: Promise.resolve(blob)
         });
         await navigator.clipboard.write([item]);
         if (processToastId) toast.success("PDF file copy ho gayi! 📋", { id: processToastId });
@@ -3469,6 +3564,24 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                                     src={att.url}
                                     alt="Attachment"
                                     className="w-full h-auto max-h-[400px] object-contain bg-black/5"
+                                    loading="lazy"
+                                    onError={(e) => {
+                                      console.error("Attachment image load failed:", att.url);
+                                      if (att.url && !e.target.dataset.retried) {
+                                        e.target.dataset.retried = "true";
+                                        setTimeout(() => {
+                                          e.target.src = att.url + (att.url.includes('?') ? '&' : '?') + 'retry=' + Date.now();
+                                        }, 2000);
+                                      } else {
+                                        const errorText = att.url ? (att.url.substring(0, 30) + '...') : 'Unknown URL';
+                                        e.target.src = `https://placehold.co/600x400/333/eee?text=Attachment+Unavailable%0A${encodeURIComponent(errorText)}%0AClick+to+Retry`;
+                                        e.target.style.cursor = 'pointer';
+                                        e.target.onclick = (event) => {
+                                          event.stopPropagation();
+                                          e.target.src = att.url + (att.url.includes('?') ? '&' : '?') + 'manual=' + Date.now();
+                                        };
+                                      }
+                                    }}
                                   />
                                   <button
                                     onClick={(e) => {
@@ -3700,10 +3813,12 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                             )}
 
                             {/* Dynamic Image Rendering (if not in markdown) */}
-                            {msg.imageUrl && !(msg.content || msg.text || "").includes(msg.imageUrl) && (
+                            {msg.imageUrl && (
                               <div
                                 className="relative group/generated mt-4 mb-2 overflow-hidden rounded-2xl border border-white/10 shadow-2xl transition-all hover:scale-[1.01] bg-surface/50 backdrop-blur-sm cursor-zoom-in max-w-md"
-                                onClick={() => setViewingDoc({ url: msg.imageUrl, type: 'image', name: 'Generated Image' })}
+                                onClick={() => {
+                                  if (!viewingDoc) setViewingDoc({ url: msg.imageUrl, type: 'image', name: 'Generated Image' });
+                                }}
                               >
                                 <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-100 sm:opacity-0 sm:group-hover/generated:opacity-100 transition-opacity">
                                   <div className="flex items-center gap-2">
@@ -3713,12 +3828,34 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                                 </div>
                                 <img
                                   src={msg.imageUrl}
-                                  className="w-full max-w-full h-auto rounded-xl bg-black/5"
-                                  loading="lazy"
+                                  alt="Generated Content"
+                                  className="w-full h-auto max-h-[500px] object-contain transition-all duration-500 group-hover/image:scale-[1.02]"
+                                  loading="eager"
+                                  onLoad={() => console.log("Image loaded successfully:", msg.imageUrl)}
+                                  onError={(e) => {
+                                    console.error("Image load failed for URL:", msg.imageUrl);
+                                    if (!e.target.dataset.retried) {
+                                      e.target.dataset.retried = "true";
+                                      setTimeout(() => {
+                                        const retryUrl = msg.imageUrl + (msg.imageUrl.includes('?') ? '&' : '?') + 'retry=' + Date.now();
+                                        console.log("Retrying image load:", retryUrl);
+                                        e.target.src = retryUrl;
+                                      }, 2000);
+                                    } else {
+                                      const finalErrorMsg = msg.imageUrl?.includes('cloudinary') ? 'Cloudinary Error' :
+                                        msg.imageUrl?.includes('pollinations') ? 'AI Model Error' : 'Display Issue';
+                                      e.target.src = `https://placehold.co/600x400/222/fff?text=${encodeURIComponent(finalErrorMsg)}%0AClick+to+Retry`;
+                                      e.target.style.cursor = 'pointer';
+                                      e.target.onclick = (event) => {
+                                        event.stopPropagation();
+                                        e.target.src = msg.imageUrl + (msg.imageUrl.includes('?') ? '&' : '?') + 'manual=' + Date.now();
+                                      };
+                                    }
+                                  }}
                                 />
                                 <button
                                   onClick={(e) => {
-                                    e.stopPropagation(); // Prevent opening modal handling
+                                    e.stopPropagation();
                                     handleDownload(msg.imageUrl, 'aisa-generated.png');
                                   }}
                                   className="absolute bottom-3 right-3 p-2.5 bg-primary text-white rounded-xl opacity-100 sm:opacity-0 sm:group-hover/generated:opacity-100 transition-all hover:bg-primary/90 shadow-lg border border-white/20 scale-100 sm:scale-90 sm:group-hover/generated:scale-100"
@@ -3953,35 +4090,35 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                                   <Share className="w-3.5 h-3.5" />
                                 </button>
 
-                                 {/* PDF Tools */}
-                                 <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 ml-2 pl-2">
-                                   {/* Copy PDF - NEW */}
-                                   <button
-                                     onClick={() => handlePdfAction('copy', msg)}
-                                     onMouseEnter={() => handlePdfAction('pregenerate', msg)}
-                                     onFocus={() => handlePdfAction('pregenerate', msg)}
-                                     className="text-subtext hover:text-primary transition-all p-1.5 hover:bg-surface-hover rounded-lg flex items-center gap-1 active:scale-95"
-                                     title="Copy PDF File"
-                                   >
-                                     <Copy className="w-3.5 h-3.5" />
-                                   </button>
+                                {/* PDF Tools */}
+                                <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 ml-2 pl-2">
+                                  {/* Copy PDF - NEW */}
+                                  <button
+                                    onClick={() => handlePdfAction('copy', msg)}
+                                    onMouseEnter={() => handlePdfAction('pregenerate', msg)}
+                                    onFocus={() => handlePdfAction('pregenerate', msg)}
+                                    className="text-subtext hover:text-primary transition-all p-1.5 hover:bg-surface-hover rounded-lg flex items-center gap-1 active:scale-95"
+                                    title="Copy PDF File"
+                                  >
+                                    <Copy className="w-3.5 h-3.5" />
+                                  </button>
 
-                                   {/* PDF Share — Direct 1-click */}
-                                   <button
-                                     onClick={() => handlePdfAction('share', msg)}
-                                     onMouseEnter={() => handlePdfAction('pregenerate', msg)}
-                                     onFocus={() => handlePdfAction('pregenerate', msg)}
-                                     className="text-red-500 hover:text-red-600 transition-all p-1.5 hover:bg-red-50/10 rounded-lg flex items-center gap-1 active:scale-95"
-                                     title={pregeneratedPdfs[msg.id] ? "Share PDF ✓ Ready" : "Share PDF"}
-                                   >
-                                     <FileText className="w-4 h-4" />
-                                     {pdfLoadingId === msg.id && !pregeneratedPdfs[msg.id] ? (
-                                       <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                                     ) : pregeneratedPdfs[msg.id] ? (
-                                       <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                                     ) : null}
-                                   </button>
-                                 </div>
+                                  {/* PDF Share — Direct 1-click */}
+                                  <button
+                                    onClick={() => handlePdfAction('share', msg)}
+                                    onMouseEnter={() => handlePdfAction('pregenerate', msg)}
+                                    onFocus={() => handlePdfAction('pregenerate', msg)}
+                                    className="text-red-500 hover:text-red-600 transition-all p-1.5 hover:bg-red-50/10 rounded-lg flex items-center gap-1 active:scale-95"
+                                    title={pregeneratedPdfs[msg.id] ? "Share PDF ✓ Ready" : "Share PDF"}
+                                  >
+                                    <FileText className="w-4 h-4" />
+                                    {pdfLoadingId === msg.id && !pregeneratedPdfs[msg.id] ? (
+                                      <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                                    ) : pregeneratedPdfs[msg.id] ? (
+                                      <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                                    ) : null}
+                                  </button>
+                                </div>
                               </div>
 
 
@@ -4807,87 +4944,89 @@ For "Remix" requests with an attachment, analyze the attached image, then create
       />
 
       {/* ===== WHATSAPP IN-APP SHARE MODAL ===== */}
-      {waShareModal && (
-        <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
-          <div className="w-full max-w-md bg-card rounded-2xl shadow-2xl border border-border/50 overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
-            {/* Header */}
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-border/40" style={{ background: 'linear-gradient(135deg, #25D366, #128C7E)' }}>
-              <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
-                </svg>
+      {
+        waShareModal && (
+          <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+            <div className="w-full max-w-md bg-card rounded-2xl shadow-2xl border border-border/50 overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
+              {/* Header */}
+              <div className="flex items-center gap-3 px-5 py-4 border-b border-border/40" style={{ background: 'linear-gradient(135deg, #25D366, #128C7E)' }}>
+                <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-white font-bold text-sm">WhatsApp pe Share Karo</h3>
+                  <p className="text-white/70 text-xs">PDF link bhejein — bina app chhode</p>
+                </div>
+                <button onClick={() => setWaShareModal(false)} className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
               </div>
-              <div className="flex-1">
-                <h3 className="text-white font-bold text-sm">WhatsApp pe Share Karo</h3>
-                <p className="text-white/70 text-xs">PDF link bhejein — bina app chhode</p>
-              </div>
-              <button onClick={() => setWaShareModal(false)} className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
 
-            {/* Body */}
-            <div className="p-5 space-y-4">
-              {/* Phone Input */}
-              <div>
-                <label className="text-xs font-semibold text-subtext mb-1.5 block">📱 Phone Number (Country Code ke saath)</label>
-                <div className="flex gap-2">
-                  <div className="flex items-center bg-surface-hover rounded-xl px-3 border border-border/50 text-sm text-maintext font-mono">+</div>
-                  <input
-                    type="tel"
-                    value={waPhone}
-                    onChange={e => setWaPhone(e.target.value)}
-                    placeholder="91 9876543210"
-                    className="flex-1 bg-surface-hover border border-border/50 rounded-xl px-3 py-2.5 text-sm text-maintext placeholder-subtext focus:outline-none focus:border-[#25D366] focus:ring-1 focus:ring-[#25D366] transition-all"
-                    autoFocus
+              {/* Body */}
+              <div className="p-5 space-y-4">
+                {/* Phone Input */}
+                <div>
+                  <label className="text-xs font-semibold text-subtext mb-1.5 block">📱 Phone Number (Country Code ke saath)</label>
+                  <div className="flex gap-2">
+                    <div className="flex items-center bg-surface-hover rounded-xl px-3 border border-border/50 text-sm text-maintext font-mono">+</div>
+                    <input
+                      type="tel"
+                      value={waPhone}
+                      onChange={e => setWaPhone(e.target.value)}
+                      placeholder="91 9876543210"
+                      className="flex-1 bg-surface-hover border border-border/50 rounded-xl px-3 py-2.5 text-sm text-maintext placeholder-subtext focus:outline-none focus:border-[#25D366] focus:ring-1 focus:ring-[#25D366] transition-all"
+                      autoFocus
+                    />
+                  </div>
+                  <p className="text-[10px] text-subtext mt-1">Example: 91 9876543210 (India), 1 2025551234 (USA)</p>
+                </div>
+
+                {/* Message Preview */}
+                <div>
+                  <label className="text-xs font-semibold text-subtext mb-1.5 block">💬 Message Preview</label>
+                  <textarea
+                    value={waMsgContent}
+                    onChange={e => setWaMsgContent(e.target.value)}
+                    rows={3}
+                    className="w-full bg-surface-hover border border-border/50 rounded-xl px-3 py-2.5 text-xs text-maintext focus:outline-none focus:border-[#25D366] focus:ring-1 focus:ring-[#25D366] transition-all resize-none"
                   />
                 </div>
-                <p className="text-[10px] text-subtext mt-1">Example: 91 9876543210 (India), 1 2025551234 (USA)</p>
+
+                {/* PDF Link */}
+                {waPdfUrl && (
+                  <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-xl px-3 py-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
+                    <span className="text-xs text-green-600 font-medium truncate">PDF Ready: {waPdfUrl.split('/').pop()}</span>
+                  </div>
+                )}
               </div>
 
-              {/* Message Preview */}
-              <div>
-                <label className="text-xs font-semibold text-subtext mb-1.5 block">💬 Message Preview</label>
-                <textarea
-                  value={waMsgContent}
-                  onChange={e => setWaMsgContent(e.target.value)}
-                  rows={3}
-                  className="w-full bg-surface-hover border border-border/50 rounded-xl px-3 py-2.5 text-xs text-maintext focus:outline-none focus:border-[#25D366] focus:ring-1 focus:ring-[#25D366] transition-all resize-none"
-                />
+              {/* Footer Buttons */}
+              <div className="flex gap-3 px-5 pb-5">
+                <button
+                  onClick={() => setWaShareModal(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-border/50 text-sm text-subtext hover:bg-surface-hover transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={sendWhatsAppMessage}
+                  disabled={waUploading || !waPhone}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                  style={{ background: 'linear-gradient(135deg, #25D366, #128C7E)' }}
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                  </svg>
+                  WhatsApp pe Bhejo
+                </button>
               </div>
-
-              {/* PDF Link */}
-              {waPdfUrl && (
-                <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-xl px-3 py-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse flex-shrink-0" />
-                  <span className="text-xs text-green-600 font-medium truncate">PDF Ready: {waPdfUrl.split('/').pop()}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Footer Buttons */}
-            <div className="flex gap-3 px-5 pb-5">
-              <button
-                onClick={() => setWaShareModal(false)}
-                className="flex-1 py-2.5 rounded-xl border border-border/50 text-sm text-subtext hover:bg-surface-hover transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={sendWhatsAppMessage}
-                disabled={waUploading || !waPhone}
-                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
-                style={{ background: 'linear-gradient(135deg, #25D366, #128C7E)' }}
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                </svg>
-                WhatsApp pe Bhejo
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
     </div >
   );
 };

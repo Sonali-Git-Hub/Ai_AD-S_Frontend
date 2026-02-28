@@ -46,6 +46,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
     const [nicknameInput, setNicknameInput] = useState('');
     const [showPricingModal, setShowPricingModal] = useState(false);
     const { handlePayment, loading: paymentLoading } = usePayment();
+    const { refreshSubscription } = useSubscription();
     const [transactions, setTransactions] = useState([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
@@ -438,7 +439,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                         </div>
                         <button onClick={() => setShowPricingModal(true)} className="px-5 py-2.5 bg-primary text-white text-[12px] font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-transform active:scale-95 whitespace-nowrap">Upgrade Plan</button>
                     </div>
-                    
+
                     {/* Integrated Usage Stats Card */}
                     <UsageStats />
                 </div>
@@ -807,13 +808,20 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                 </div>
             )}
             {showPricingModal && (
-                <PricingModal key="pricing-modal" currentPlan={user?.plan} onClose={() => setShowPricingModal(false)} onUpgrade={async p => {
-                    await handlePayment(p, user, u => {
-                        setUserRecoil(prev => ({ ...prev, user: { ...prev.user, plan: u.plan } }));
-                        setUserData({ ...getUserData(), plan: u.plan });
-                        setShowPricingModal(false);
-                    });
-                }} />
+                <PricingModal
+                    key="pricing-modal"
+                    currentPlan={user?.plan}
+                    loading={paymentLoading}
+                    onClose={() => setShowPricingModal(false)}
+                    onUpgrade={async p => {
+                        await handlePayment(p, user, u => {
+                            setUserRecoil(prev => ({ ...prev, user: { ...prev.user, plan: u.plan } }));
+                            setUserData({ ...getUserData(), plan: u.plan });
+                            setShowPricingModal(false);
+                            refreshSubscription();
+                        });
+                    }}
+                />
             )}
             {showResetModal && (
                 <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowResetModal(false)}>

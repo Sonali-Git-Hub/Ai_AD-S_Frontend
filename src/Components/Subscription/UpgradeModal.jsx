@@ -1,10 +1,21 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check, Zap, Crown, Rocket } from 'lucide-react';
+import { X, Check, Zap, Crown, Rocket, Loader } from 'lucide-react';
 import { useSubscription } from '../../context/SubscriptionContext';
+import usePayment from '../../hooks/usePayment';
+import { getUserData } from '../../userStore/userData';
+import { useNavigate } from 'react-router-dom';
 
 const UpgradeModal = () => {
     const { isUpgradeModalOpen, setIsUpgradeModalOpen, plan } = useSubscription();
+    const { handlePayment, loading } = usePayment();
+    const navigate = useNavigate();
+    const user = getUserData();
+    const [processingPlanId, setProcessingPlanId] = React.useState(null);
+
+    React.useEffect(() => {
+        if (!loading) setProcessingPlanId(null);
+    }, [loading]);
 
     if (!isUpgradeModalOpen) return null;
 
@@ -82,7 +93,7 @@ const UpgradeModal = () => {
                         <p className="text-subtext text-sm">
                             You've used all your free credits. Unlock more power and speed with our premium plans.
                         </p>
-                        
+
                         <div className="mt-8 space-y-4 w-full">
                             <div className="p-3 bg-surface/50 rounded-xl border border-border flex items-center gap-3">
                                 <Check className="w-4 h-4 text-green-500" />
@@ -96,7 +107,7 @@ const UpgradeModal = () => {
                     </div>
 
                     {/* Right Side: Plans */}
-                    <div className="flex-1 p-8 grid grid-cols-1 md:grid-cols-2 gap-6 bg-secondary">
+                    <div className="flex-1 p-6 pt-12 md:p-8 md:pt-14 grid grid-cols-1 md:grid-cols-2 gap-6 bg-secondary">
                         {plans.map((p, idx) => (
                             <motion.div
                                 key={idx}
@@ -128,10 +139,23 @@ const UpgradeModal = () => {
                                 </ul>
 
                                 <button
-                                    onClick={() => {/* Trigger payment flow */}}
-                                    className={`w-full py-3 rounded-xl font-bold text-white transition-all transform active:scale-95 bg-gradient-to-r ${p.color} shadow-lg hover:shadow-xl`}
+                                    disabled={loading}
+                                    onClick={() => {
+                                        if (!user) {
+                                            navigate('/login');
+                                            setIsUpgradeModalOpen(false);
+                                            return;
+                                        }
+                                        setProcessingPlanId(p.name);
+                                        handlePayment(p, user, () => {
+                                            setIsUpgradeModalOpen(false);
+                                            setProcessingPlanId(null);
+                                            window.location.reload();
+                                        });
+                                    }}
+                                    className={`w-full py-3 rounded-xl font-bold text-white transition-all transform active:scale-95 bg-gradient-to-r ${p.color} shadow-lg hover:shadow-xl flex items-center justify-center gap-2`}
                                 >
-                                    Choose {p.name}
+                                    {(loading && processingPlanId === p.name) ? <Loader className="w-5 h-5 animate-spin" /> : `Choose ${p.name}`}
                                 </button>
                             </motion.div>
                         ))}
