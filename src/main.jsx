@@ -13,6 +13,7 @@ import ErrorBoundary from './Components/ErrorBoundary';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
   || import.meta.env.AISA_GOOGLE_CLIENT_ID
+  || (typeof window !== 'undefined' && window._env_?.AISA_GOOGLE_CLIENT_ID)
   || '';
 
 const AppTree = (
