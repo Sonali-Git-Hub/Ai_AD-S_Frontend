@@ -6,6 +6,10 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
+# Accept build-time env variables
+ARG VITE_GOOGLE_CLIENT_ID
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+
 COPY . .
 RUN npm run build
 

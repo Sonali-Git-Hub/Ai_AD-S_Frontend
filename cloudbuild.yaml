@@ -1,7 +1,13 @@
 steps:
   # Build the container image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/aisa-frontend:$COMMIT_SHA', '.']
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/aisa-frontend:$COMMIT_SHA'
+      - '--build-arg'
+      - 'VITE_GOOGLE_CLIENT_ID=743928421487-4k3rngu52s9ts2mpr032ladvu72v6ll7.apps.googleusercontent.com'
+      - '.'
 
   # Push the container image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
