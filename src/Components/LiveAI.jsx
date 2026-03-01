@@ -4,6 +4,7 @@ import { generateChatResponse } from '../services/geminiService';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import { apis } from '../types';
+import { getUserData } from '../userStore/userData';
 
 const LiveAI = ({ onClose, language }) => {
     const videoRef = useRef(null);
@@ -257,7 +258,8 @@ const LiveAI = ({ onClose, language }) => {
                 gender: voiceGenderRef.current,
                 tone: 'conversational'
             }, {
-                responseType: 'blob'
+                responseType: 'blob',
+                headers: { Authorization: `Bearer ${getUserData()?.token}` }
             });
 
             console.log("✅ [LiveAI] Audio received, playing...", response.data.size);

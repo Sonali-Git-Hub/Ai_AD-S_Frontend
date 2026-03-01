@@ -513,6 +513,14 @@ const Chat = () => {
       const base64Content = reader.result; // Full Data URL for display
       const base64Data = base64Content.split(',')[1]; // Raw base64 for backend
 
+      let activeSessionId = currentSessionId;
+      if (activeSessionId === 'new') {
+        activeSessionId = await chatStorageService.createSession();
+        setCurrentSessionId(activeSessionId);
+        isNavigatingRef.current = true;
+        navigate(`/dashboard/chat/${activeSessionId}`, { replace: true });
+      }
+
       // Add User Message
       const userMsgId = Date.now().toString();
       const userMsg = {
@@ -527,6 +535,7 @@ const Chat = () => {
         }]
       };
       setMessages(prev => [...prev, userMsg]);
+      chatStorageService.saveMessage(activeSessionId, userMsg, `Audio: ${file.name}`).catch(e => console.error(e));
 
       // 2. Add Processing Message from AISA
       const aiMsgId = (Date.now() + 1).toString();
@@ -553,11 +562,12 @@ const Chat = () => {
       try {
         const response = await axios.post(apis.synthesizeFile, {
           fileData: base64Data,
-          mimeType: file.type,
+          mimeType: file.type || 'application/pdf',
           gender: 'FEMALE'
         }, {
           responseType: 'arraybuffer',
-          timeout: 0 // Wait as long as needed for large "jetna bhi long" files
+          timeout: 0,
+          headers: { Authorization: `Bearer ${getUserData()?.token}` }
         });
 
         // 4. Success - Update AI Message with Player and Download
@@ -574,8 +584,9 @@ const Chat = () => {
             ? (rawBytes / (1024 * 1024)).toFixed(1) + ' MB'
             : (rawBytes / 1024).toFixed(1) + ' KB';
 
-          setMessages(prev => prev.map(msg => msg.id === aiMsgId ? {
-            ...msg,
+          const aiResponse = {
+            id: aiMsgId,
+            role: 'model',
             isProcessing: false,
             content: `✅ I have successfully converted **${file.name}** into a full audio voice.`,
             conversion: {
@@ -586,8 +597,12 @@ const Chat = () => {
               fileSize: formattedFileSize,
               rawSize: rawBytes,
               charCount: charCount
-            }
-          } : msg));
+            },
+            timestamp: new Date()
+          };
+
+          setMessages(prev => prev.map(msg => msg.id === aiMsgId ? aiResponse : msg));
+          chatStorageService.saveMessage(activeSessionId, aiResponse).catch(e => console.error(e));
 
           toast.success("Conversion complete! 🎶");
           refreshSubscription();
@@ -597,26 +612,34 @@ const Chat = () => {
       } catch (err) {
         console.error('[DocToVoice Error]:', err);
         let errorMsg = "Extraction Failed";
-        let errorDetail = "If this is a scanned PDF (image only), I cannot read the text yet. Please ensure it's a searchable PDF or Word file.";
+        let errorDetail = err.message;
 
         if (err.response?.data) {
           try {
+            // Buffer result handling
             const errorData = err.response.data instanceof ArrayBuffer
               ? JSON.parse(new TextDecoder().decode(err.response.data))
               : err.response.data;
 
             errorMsg = errorData.error || errorMsg;
             errorDetail = errorData.details || errorDetail;
-          } catch (e) { }
+          } catch (e) {
+            console.error("Failed to parse error response:", e);
+          }
         }
 
-        setMessages(prev => prev.map(msg => msg.id === aiMsgId ? {
-          ...msg,
+        const serverError = errorMsg + (errorDetail ? `: ${errorDetail}` : "");
+        const errorResponse = {
+          id: aiMsgId,
+          role: 'model',
           isProcessing: false,
-          content: `❌ **Conversion Failed**\n**${errorMsg}**\n${errorDetail}`
-        } : msg));
+          content: `❌ **Conversion Failed**\n${serverError}`,
+          timestamp: new Date()
+        };
 
-        toast.error("Conversion failed");
+        setMessages(prev => prev.map(msg => msg.id === aiMsgId ? errorResponse : msg));
+        chatStorageService.saveMessage(activeSessionId, errorResponse).catch(e => console.error(e));
+
       }
     };
     reader.readAsDataURL(file);
@@ -624,7 +647,7 @@ const Chat = () => {
     e.target.value = ''; // Always reset so user can click/upload same file again
   };
 
-  const manualFileToAudioConversion = async (file) => {
+  const manualFileToAudioConversion = async (file, activeSessionId) => {
     if (!file) return;
 
     if (!checkLimitLocally('audio')) {
@@ -636,6 +659,7 @@ const Chat = () => {
     reader.onloadend = async () => {
       const base64Content = reader.result;
       const base64Data = base64Content.split(',')[1];
+      console.log(`[DEBUG] manualFileToAudioConversion: file=${file.name}, type=${file.type}, size=${file.size}`);
 
       const userMsgId = Date.now().toString();
       const userMsg = {
@@ -646,6 +670,7 @@ const Chat = () => {
         attachments: [{ url: base64Content, name: file.name, type: file.type }]
       };
       setMessages(prev => [...prev, userMsg]);
+      chatStorageService.saveMessage(activeSessionId, userMsg, `Audio: ${file.name}`).catch(e => console.error(e));
 
       const aiMsgId = (Date.now() + 1).toString();
       const processingMsg = {
@@ -669,9 +694,9 @@ const Chat = () => {
       try {
         const response = await axios.post(apis.synthesizeFile, {
           fileData: base64Data,
-          mimeType: file.type,
+          mimeType: file.type || 'application/pdf',
           gender: 'FEMALE'
-        }, { responseType: 'arraybuffer', timeout: 0 });
+        }, { responseType: 'arraybuffer', timeout: 0, headers: { Authorization: `Bearer ${getUserData()?.token}` } });
 
         const audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
         const audioUrl = URL.createObjectURL(audioBlob);
@@ -683,8 +708,9 @@ const Chat = () => {
           const charCount = response.headers['x-text-length'] || 0;
           const formattedSize = rawBytes > 1024 * 1024 ? (rawBytes / (1024 * 1024)).toFixed(1) + ' MB' : (rawBytes / 1024).toFixed(1) + ' KB';
 
-          setMessages(prev => prev.map(msg => msg.id === aiMsgId ? {
-            ...msg,
+          const aiResponse = {
+            id: aiMsgId,
+            role: 'model',
             isProcessing: false,
             content: `✅ Audio conversion complete for **${file.name}**.`,
             conversion: {
@@ -695,27 +721,51 @@ const Chat = () => {
               fileSize: formattedSize,
               rawSize: rawBytes,
               charCount: charCount
-            }
-          } : msg));
+            },
+            timestamp: new Date()
+          };
+
+          setMessages(prev => prev.map(msg => msg.id === aiMsgId ? aiResponse : msg));
+          chatStorageService.saveMessage(activeSessionId, aiResponse).catch(e => console.error(e));
           toast.success("File converted successfully!");
           refreshSubscription();
           scrollToBottom();
         };
       } catch (err) {
         console.error('[ManualConversion Error]:', err);
-        const serverError = err.response?.data?.details || err.response?.data?.error || err.message;
-        setMessages(prev => prev.map(msg => msg.id === aiMsgId ? {
-          ...msg,
+        let errorMsg = "Conversion Failed";
+        let errorDetail = err.message;
+
+        if (err.response?.data) {
+          try {
+            // Buffer result handling
+            const errorData = err.response.data instanceof ArrayBuffer
+              ? JSON.parse(new TextDecoder().decode(err.response.data))
+              : err.response.data;
+
+            errorMsg = errorData.error || errorMsg;
+            errorDetail = errorData.details || errorDetail || err.message;
+          } catch (e) {
+            console.error("Failed to parse error response:", e);
+          }
+        }
+        const serverError = errorMsg + (errorDetail ? `: ${errorDetail}` : "");
+        const errorResponse = {
+          id: aiMsgId,
+          role: 'model',
           isProcessing: false,
-          content: `❌ **Conversion Failed**\n${serverError}`
-        } : msg));
+          content: `❌ **Conversion Failed**\n${serverError}`,
+          timestamp: new Date()
+        };
+        setMessages(prev => prev.map(msg => msg.id === aiMsgId ? errorResponse : msg));
+        chatStorageService.saveMessage(activeSessionId, errorResponse).catch(e => console.error(e));
         toast.error("Conversion failed");
       }
     };
     reader.readAsDataURL(file);
   };
 
-  const manualTextToAudioConversion = async (text) => {
+  const manualTextToAudioConversion = async (text, activeSessionId) => {
     if (!text || !text.trim()) return;
 
     if (!checkLimitLocally('audio')) {
@@ -729,6 +779,9 @@ const Chat = () => {
       timestamp: new Date()
     };
     setMessages(prev => [...prev, userMsg]);
+    const talkTitle = text.length > 20 ? text.substring(0, 20) + '...' : text;
+    chatStorageService.saveMessage(activeSessionId, userMsg, `Audio Talk: ${talkTitle}`).catch(e => console.error(e));
+
 
     const aiMsgId = (Date.now() + 1).toString();
     setMessages(prev => [...prev, {
@@ -744,7 +797,7 @@ const Chat = () => {
       const response = await axios.post(apis.synthesizeFile, {
         introText: text,
         gender: 'FEMALE'
-      }, { responseType: 'arraybuffer', timeout: 0 });
+      }, { responseType: 'arraybuffer', timeout: 0, headers: { Authorization: `Bearer ${getUserData()?.token}` } });
 
       const audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
       const audioUrl = URL.createObjectURL(audioBlob);
@@ -756,8 +809,9 @@ const Chat = () => {
         const charCount = response.headers['x-text-length'] || 0;
         const formattedSize = rawBytes > 1024 * 1024 ? (rawBytes / (1024 * 1024)).toFixed(1) + ' MB' : (rawBytes / 1024).toFixed(1) + ' KB';
 
-        setMessages(prev => prev.map(msg => msg.id === aiMsgId ? {
-          ...msg,
+        const aiResponse = {
+          id: aiMsgId,
+          role: 'model',
           isProcessing: false,
           content: `✅ Your text has been converted to voice audio.`,
           conversion: {
@@ -768,8 +822,12 @@ const Chat = () => {
             fileSize: formattedSize,
             rawSize: rawBytes,
             charCount: charCount
-          }
-        } : msg));
+          },
+          timestamp: new Date()
+        };
+
+        setMessages(prev => prev.map(msg => msg.id === aiMsgId ? aiResponse : msg));
+        chatStorageService.saveMessage(activeSessionId, aiResponse).catch(e => console.error(e));
         toast.success("Text converted successfully!");
         refreshSubscription();
         scrollToBottom();
@@ -777,11 +835,15 @@ const Chat = () => {
     } catch (err) {
       console.error('[ManualTextConversion Error]:', err);
       const serverError = err.response?.data?.details || err.response?.data?.error || err.message;
-      setMessages(prev => prev.map(msg => msg.id === aiMsgId ? {
-        ...msg,
+      const errorResponse = {
+        id: aiMsgId,
+        role: 'model',
         isProcessing: false,
-        content: `❌ **Conversion Failed**\n${serverError}`
-      } : msg));
+        content: `❌ **Conversion Failed**\n${serverError}`,
+        timestamp: new Date()
+      };
+      setMessages(prev => prev.map(msg => msg.id === aiMsgId ? errorResponse : msg));
+      chatStorageService.saveMessage(activeSessionId, errorResponse).catch(e => console.error(e));
       toast.error("Conversion failed");
     }
   };
@@ -836,7 +898,7 @@ const Chat = () => {
           const aiMsgId = (Date.now() + 1).toString();
           const readingMsg = {
             id: aiMsgId,
-            role: 'assistant', // Ensure role assistant
+            role: 'model', // Ensure role assistant
             content: "🎧 Reading content aloud...", // Use content
             timestamp: new Date()
           };
@@ -901,7 +963,7 @@ const Chat = () => {
           // Add the generated video to the message
           const videoMessage = {
             id: tempId, // Keep same ID
-            role: 'assistant',
+            role: 'model',
             content: `🎥 Video generated successfully!`, // Use content
             videoUrl: data.videoUrl,
             timestamp: new Date(),
@@ -920,7 +982,7 @@ const Chat = () => {
           // Add image fallback
           const imageMessage = {
             id: tempId, // Keep same ID
-            role: 'assistant',
+            role: 'model',
             content: `🖼️ ${data.message || 'Video generation limit reached. Generated a preview image instead.'}`,
             imageUrl: data.imageUrl,
             timestamp: new Date(),
@@ -936,7 +998,7 @@ const Chat = () => {
         if (error.response?.data?.imageUrl) {
           const imageMessage = {
             id: tempId,
-            role: 'assistant',
+            role: 'model',
             content: `🖼️ ${error.response.data.message || 'Video generation failed. Generated preview.'}`,
             imageUrl: error.response.data.imageUrl,
             timestamp: new Date(),
@@ -1012,7 +1074,7 @@ const Chat = () => {
           const finalUrl = data.imageUrl || data.data; // Handle different response structures
           const imageMessage = {
             id: tempId, // Keep same ID
-            role: 'assistant',
+            role: 'model',
             content: `🖼️ Image generated successfully!`, // Use content
             imageUrl: finalUrl,
             timestamp: new Date(),
@@ -1122,7 +1184,7 @@ const Chat = () => {
           const finalUrl = responseData.data;
           const editMessage = {
             id: tempId,
-            role: 'assistant',
+            role: 'model',
             content: `✨ Your image has been edited!`,
             imageUrl: finalUrl,
             timestamp: new Date(),
@@ -1425,7 +1487,8 @@ const Chat = () => {
               gender: 'FEMALE',
               introText: headerText
             }, {
-              responseType: 'arraybuffer'
+              responseType: 'arraybuffer',
+              headers: { Authorization: `Bearer ${getUserData()?.token}` }
             });
 
             audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
@@ -1459,7 +1522,8 @@ const Chat = () => {
               gender: 'FEMALE',
               tone: 'conversational'
             }, {
-              responseType: 'arraybuffer'
+              responseType: 'arraybuffer',
+              headers: { Authorization: `Bearer ${getUserData()?.token}` }
             });
 
             toast.dismiss('voice-loading');
@@ -1692,10 +1756,28 @@ const Chat = () => {
         console.log(`[DEBUG] Initializing chat for session: ${sessionId}`);
         const history = await chatStorageService.getHistory(sessionId);
         console.log(`[DEBUG] Received history:`, history);
-        if (history && history.length > 0) {
-          console.log(`[DEBUG] First message role: ${history[0].role}, content preview: ${history[0].content?.substring(0, 20)}`);
+
+        // Regenerate Blob URLs for audio conversions on load
+        const processedHistory = (history || []).map(msg => {
+          if (msg.conversion && msg.conversion.file) {
+            try {
+              // Only create if we don't have a CURRENT valid blob URL
+              // (URLs stored in DB are strings that are invalid on reload)
+              const byteChars = atob(msg.conversion.file);
+              const byteNums = new Array(byteChars.length);
+              for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
+              const byteArray = new Uint8Array(byteNums);
+              const blob = new Blob([byteArray], { type: msg.conversion.mimeType || 'audio/mpeg' });
+              msg.conversion.blobUrl = URL.createObjectURL(blob);
+            } catch (e) { console.error("Blob recovery failed:", e); }
+          }
+          return msg;
+        });
+
+        if (processedHistory && processedHistory.length > 0) {
+          console.log(`[DEBUG] First message role: ${processedHistory[0].role}, content preview: ${processedHistory[0].content?.substring(0, 20)}`);
         }
-        setMessages(history || []);
+        setMessages(processedHistory);
       } else {
         setCurrentSessionId('new');
 
@@ -1724,7 +1806,7 @@ const Chat = () => {
 
               setMessages([{
                 id: 'welcome-' + Date.now(),
-                role: 'assistant',
+                role: 'model',
                 content: greeting,
                 timestamp: new Date()
               }]);
@@ -1807,6 +1889,59 @@ const Chat = () => {
     const contentToSend = typeof overrideContent === 'string' ? overrideContent : inputValue.trim();
     if ((!contentToSend && filePreviews.length === 0) || isLoading) return;
 
+    // --- Proactive Magic Tool Activation Check ---
+    const lowerContent = contentToSend.toLowerCase();
+    const magicTools = [
+      {
+        id: 'image',
+        name: 'Generate Image',
+        active: isImageGeneration,
+        check: () => (lowerContent.includes('image') || lowerContent.includes('photo') || lowerContent.includes('pic') || lowerContent.includes('draw')) &&
+          (lowerContent.includes('generate') || lowerContent.includes('create') || lowerContent.includes('make') || lowerContent.includes('show'))
+      },
+      {
+        id: 'video',
+        name: 'Generate Video',
+        active: isVideoGeneration,
+        check: () => lowerContent.includes('video') && (lowerContent.includes('generate') || lowerContent.includes('create') || lowerContent.includes('make'))
+      },
+      {
+        id: 'deepsearch',
+        name: 'Deep Search',
+        active: isDeepSearch,
+        check: () => lowerContent.includes('deep search') || lowerContent.includes('research')
+      },
+      {
+        id: 'audio',
+        name: 'Convert to Audio',
+        active: isAudioConvertMode,
+        check: () => lowerContent.includes('convert to audio') || (lowerContent.includes('read this') && lowerContent.length < 50)
+      },
+      {
+        id: 'document',
+        name: 'Convert Documents',
+        active: isDocumentConvert,
+        check: () => lowerContent.includes('convert document') || lowerContent.includes('pdf to word') || lowerContent.includes('word to pdf')
+      },
+      {
+        id: 'code',
+        name: 'Code Writer',
+        active: isCodeWriter,
+        check: () => lowerContent.includes('write code') || lowerContent.includes('fix code') || lowerContent.includes('debug code')
+      }
+    ];
+
+    for (const tool of magicTools) {
+      if (!tool.active && tool.check()) {
+        toast.error(`Please activate "${tool.name}" from Magic Tools. (Is feature ko active karo)`, {
+          duration: 4000,
+          position: 'top-center'
+        });
+        setIsToolsMenuOpen(true);
+        return;
+      }
+    }
+
     // --- Subscription Limit Checks ---
     let featureToTrack = 'chat';
     if (isDeepSearch) featureToTrack = 'deepSearch';
@@ -1830,8 +1965,15 @@ const Chat = () => {
 
     // Special case for Audio Convert Mode: Handle files directly if present
     if (isAudioConvertMode && selectedFiles.length > 0) {
+      let activeSessionId = currentSessionId;
+      if (activeSessionId === 'new') {
+        activeSessionId = await chatStorageService.createSession();
+        setCurrentSessionId(activeSessionId);
+        isNavigatingRef.current = true;
+        navigate(`/dashboard/chat/${activeSessionId}`, { replace: true });
+      }
       const fileToConvert = selectedFiles[0];
-      manualFileToAudioConversion(fileToConvert);
+      manualFileToAudioConversion(fileToConvert, activeSessionId);
       setSelectedFiles([]);
       setFilePreviews([]);
       return;
@@ -1839,7 +1981,14 @@ const Chat = () => {
 
     // Special case for Audio Convert Mode: Handle text conversion
     if (isAudioConvertMode && contentToSend) {
-      manualTextToAudioConversion(contentToSend);
+      let activeSessionId = currentSessionId;
+      if (activeSessionId === 'new') {
+        activeSessionId = await chatStorageService.createSession();
+        setCurrentSessionId(activeSessionId);
+        isNavigatingRef.current = true;
+        navigate(`/dashboard/chat/${activeSessionId}`, { replace: true });
+      }
+      manualTextToAudioConversion(contentToSend, activeSessionId);
       setInputValue('');
       return;
     }
