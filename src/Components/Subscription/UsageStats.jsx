@@ -70,7 +70,7 @@ const UsageStats = () => {
                                 </div>
                                 <span className={`font-medium ${atLimit ? 'text-red-500' : nearLimit ? 'text-amber-500' : 'text-maintext'}`}>
                                     {unlimited
-                                        ? <span className="text-primary font-bold">∞ Unlimited</span>
+                                        ? <span><span className="text-maintext">{s.current} / </span><span className="text-primary font-bold">∞ Unlimited</span></span>
                                         : `${s.current} / ${s.limit}`}
                                 </span>
                             </div>
@@ -83,7 +83,7 @@ const UsageStats = () => {
                                         animate={{ width: `${pct}%` }}
                                         transition={{ duration: 0.6, ease: 'easeOut' }}
                                         className={`h-full rounded-full ${pct > 90 ? 'bg-red-500' :
-                                                pct > 70 ? 'bg-amber-500' : 'bg-primary'
+                                            pct > 70 ? 'bg-amber-500' : 'bg-primary'
                                             }`}
                                     />
                                 </div>

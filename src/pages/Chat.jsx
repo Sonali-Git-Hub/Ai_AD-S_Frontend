@@ -940,7 +940,8 @@ const Chat = () => {
       const tempId = (Date.now() + 1).toString();
       const newMessage = {
         id: tempId,
-        role: 'assistant',
+        role: 'model',
+        isGenerating: true,
         content: `🎬 Generating video from prompt: "${prompt}"\n\nPlease wait, this may take a moment...`, // Use content
         timestamp: new Date(),
       };
@@ -964,6 +965,7 @@ const Chat = () => {
           const videoMessage = {
             id: tempId, // Keep same ID
             role: 'model',
+            isGenerating: false,
             content: `🎥 Video generated successfully!`, // Use content
             videoUrl: data.videoUrl,
             timestamp: new Date(),
@@ -1051,7 +1053,8 @@ const Chat = () => {
       const tempId = (Date.now() + 1).toString();
       const newMessage = {
         id: tempId,
-        role: 'assistant',
+        role: 'model',
+        isGenerating: true,
         content: `🎨 Generating image from prompt: "${prompt}"\n\nPlease wait, this may take a moment...`, // Use content
         timestamp: new Date(),
       };
@@ -1075,6 +1078,7 @@ const Chat = () => {
           const imageMessage = {
             id: tempId, // Keep same ID
             role: 'model',
+            isGenerating: false,
             content: `🖼️ Image generated successfully!`, // Use content
             imageUrl: finalUrl,
             timestamp: new Date(),
@@ -1142,7 +1146,8 @@ const Chat = () => {
       const tempId = (Date.now() + 1).toString();
       const newMessage = {
         id: tempId,
-        role: 'assistant',
+        role: 'model',
+        isGenerating: true,
         content: `🪄 Editing your image: "${prompt}"\n\nPlease wait while AISA works its magic...`,
         timestamp: new Date(),
       };
@@ -1185,6 +1190,7 @@ const Chat = () => {
           const editMessage = {
             id: tempId,
             role: 'model',
+            isGenerating: false,
             content: `✨ Your image has been edited!`,
             imageUrl: finalUrl,
             timestamp: new Date(),
@@ -1231,8 +1237,9 @@ const Chat = () => {
       // Show a message that deep search is in progress
       const newMessage = {
         id: Date.now().toString(),
-        type: 'ai',
-        text: `🔍 Performing deep search for: "${query}"\n\nSearching the web and analyzing results... This may take a moment...`,
+        role: 'model',
+        isGenerating: true,
+        content: `🔍 Performing deep search for: "${query}"\n\nSearching the web and analyzing results... This may take a moment...`,
         timestamp: new Date(),
       };
 
@@ -1272,7 +1279,12 @@ const Chat = () => {
         const errorMsg = error.message || 'Failed to perform deep search';
         setMessages(prev => {
           const updated = [...prev];
-          updated[updated.length - 1].text = `❌ ${errorMsg}`;
+          const lastMsg = updated[updated.length - 1];
+          updated[updated.length - 1] = {
+            ...lastMsg,
+            isGenerating: false,
+            content: `❌ ${errorMsg}`
+          };
           return updated;
         });
         toast.error(errorMsg);
@@ -4229,113 +4241,115 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                         </div>
                       )}
 
-                      {/* AI Feedback Actions */}
-                      {msg.role !== 'user' && !msg.conversion && !msg.imageUrl && (
-                        <div className="mt-4 w-full block">
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
-                            {(() => {
-                              // Detect if the AI response contains Hindi (Devanagari script)
-                              const isHindiContent = /[\u0900-\u097F]/.test(msg.content);
-                              const prompts = isHindiContent ? FEEDBACK_PROMPTS.hi : FEEDBACK_PROMPTS.en;
-                              const promptIndex = (msg.id.toString().charCodeAt(msg.id.toString().length - 1) || 0) % prompts.length;
-                              return (
-                                <p className="text-xs text-subtext font-medium flex items-center gap-1.5 shrink-0 m-0">
-                                  {prompts[promptIndex]}
-                                  <span className="text-sm">😊</span>
-                                </p>
-                              );
-                            })()}
-                            <div className="flex flex-col items-end gap-2 self-end sm:self-auto">
-                              <div className="flex items-center gap-3">
-                                <button
-                                  onClick={() => {
-                                    // Pass message ID to speakResponse for tracking
-                                    const isHindi = /[\u0900-\u097F]/.test(msg.content);
-                                    speakResponse(msg.content, isHindi ? 'Hindi' : 'English', msg.id, msg.attachments || [], true);
-                                  }}
-                                  className={`transition-colors p-1.5 rounded-lg ${speakingMessageId === msg.id
-                                    ? 'text-primary bg-primary/10'
-                                    : 'text-subtext hover:text-primary hover:bg-surface-hover'
-                                    }`}
-                                  title={speakingMessageId === msg.id && !isPaused ? "Pause" : "Speak"}
-                                >
-                                  {speakingMessageId === msg.id && !isPaused ? (
-                                    <Pause className="w-3.5 h-3.5" />
-                                  ) : (
-                                    <Volume2 className="w-3.5 h-3.5" />
-                                  )}
-                                </button>
-                                <button
-                                  onClick={() => handleCopyMessage(msg.content)}
-                                  className="text-subtext hover:text-maintext transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
-                                  title="Copy"
-                                >
-                                  <Copy className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => handleThumbsUp(msg.id)}
-                                  className={`transition-colors p-1.5 rounded-lg ${messageFeedback[msg.id]?.type === 'up'
-                                    ? 'text-blue-500 bg-blue-500/10'
-                                    : 'text-subtext hover:text-primary hover:bg-surface-hover'
-                                    }`}
-                                  title="Helpful"
-                                >
-                                  <ThumbsUp className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => handleThumbsDown(msg.id)}
-                                  className={`transition-colors p-1.5 rounded-lg ${messageFeedback[msg.id]?.type === 'down'
-                                    ? 'text-red-500 bg-red-500/10'
-                                    : 'text-subtext hover:text-red-500 hover:bg-surface-hover'
-                                    }`}
-                                  title="Not Helpful"
-                                >
-                                  <ThumbsDown className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => handleShare(msg.content)}
-                                  className="text-subtext hover:text-primary transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
-                                  title="Share Text"
-                                >
-                                  <Share className="w-3.5 h-3.5" />
-                                </button>
-
-                                {/* PDF Tools */}
-                                <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 ml-2 pl-2">
-                                  {/* Copy PDF - NEW */}
+                      {/* AI Feedback Actions - Strictly hide for media and processing */}
+                      {(msg.role === 'model' || msg.role === 'assistant') &&
+                        !msg.conversion && !msg.imageUrl && !msg.videoUrl &&
+                        !msg.isProcessing && !msg.isGenerating && (
+                          <div className="mt-4 w-full block">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
+                              {(() => {
+                                // Detect if the AI response contains Hindi (Devanagari script)
+                                const isHindiContent = /[\u0900-\u097F]/.test(msg.content);
+                                const prompts = isHindiContent ? FEEDBACK_PROMPTS.hi : FEEDBACK_PROMPTS.en;
+                                const promptIndex = (msg.id.toString().charCodeAt(msg.id.toString().length - 1) || 0) % prompts.length;
+                                return (
+                                  <p className="text-xs text-subtext font-medium flex items-center gap-1.5 shrink-0 m-0">
+                                    {prompts[promptIndex]}
+                                    <span className="text-sm">😊</span>
+                                  </p>
+                                );
+                              })()}
+                              <div className="flex flex-col items-end gap-2 self-end sm:self-auto">
+                                <div className="flex items-center gap-3">
                                   <button
-                                    onClick={() => handlePdfAction('copy', msg)}
-                                    onMouseEnter={() => handlePdfAction('pregenerate', msg)}
-                                    onFocus={() => handlePdfAction('pregenerate', msg)}
-                                    className="text-subtext hover:text-primary transition-all p-1.5 hover:bg-surface-hover rounded-lg flex items-center gap-1 active:scale-95"
-                                    title="Copy PDF File"
+                                    onClick={() => {
+                                      // Pass message ID to speakResponse for tracking
+                                      const isHindi = /[\u0900-\u097F]/.test(msg.content);
+                                      speakResponse(msg.content, isHindi ? 'Hindi' : 'English', msg.id, msg.attachments || [], true);
+                                    }}
+                                    className={`transition-colors p-1.5 rounded-lg ${speakingMessageId === msg.id
+                                      ? 'text-primary bg-primary/10'
+                                      : 'text-subtext hover:text-primary hover:bg-surface-hover'
+                                      }`}
+                                    title={speakingMessageId === msg.id && !isPaused ? "Pause" : "Speak"}
+                                  >
+                                    {speakingMessageId === msg.id && !isPaused ? (
+                                      <Pause className="w-3.5 h-3.5" />
+                                    ) : (
+                                      <Volume2 className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+                                  <button
+                                    onClick={() => handleCopyMessage(msg.content)}
+                                    className="text-subtext hover:text-maintext transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
+                                    title="Copy"
                                   >
                                     <Copy className="w-3.5 h-3.5" />
                                   </button>
-
-                                  {/* PDF Share — Direct 1-click */}
                                   <button
-                                    onClick={() => handlePdfAction('share', msg)}
-                                    onMouseEnter={() => handlePdfAction('pregenerate', msg)}
-                                    onFocus={() => handlePdfAction('pregenerate', msg)}
-                                    className="text-red-500 hover:text-red-600 transition-all p-1.5 hover:bg-red-50/10 rounded-lg flex items-center gap-1 active:scale-95"
-                                    title={pregeneratedPdfs[msg.id] ? "Share PDF ✓ Ready" : "Share PDF"}
+                                    onClick={() => handleThumbsUp(msg.id)}
+                                    className={`transition-colors p-1.5 rounded-lg ${messageFeedback[msg.id]?.type === 'up'
+                                      ? 'text-blue-500 bg-blue-500/10'
+                                      : 'text-subtext hover:text-primary hover:bg-surface-hover'
+                                      }`}
+                                    title="Helpful"
                                   >
-                                    <FileText className="w-4 h-4" />
-                                    {pdfLoadingId === msg.id && !pregeneratedPdfs[msg.id] ? (
-                                      <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                                    ) : pregeneratedPdfs[msg.id] ? (
-                                      <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                                    ) : null}
+                                    <ThumbsUp className="w-3.5 h-3.5" />
                                   </button>
+                                  <button
+                                    onClick={() => handleThumbsDown(msg.id)}
+                                    className={`transition-colors p-1.5 rounded-lg ${messageFeedback[msg.id]?.type === 'down'
+                                      ? 'text-red-500 bg-red-500/10'
+                                      : 'text-subtext hover:text-red-500 hover:bg-surface-hover'
+                                      }`}
+                                    title="Not Helpful"
+                                  >
+                                    <ThumbsDown className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleShare(msg.content)}
+                                    className="text-subtext hover:text-primary transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
+                                    title="Share Text"
+                                  >
+                                    <Share className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  {/* PDF Tools */}
+                                  <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 ml-2 pl-2">
+                                    {/* Copy PDF - NEW */}
+                                    <button
+                                      onClick={() => handlePdfAction('copy', msg)}
+                                      onMouseEnter={() => handlePdfAction('pregenerate', msg)}
+                                      onFocus={() => handlePdfAction('pregenerate', msg)}
+                                      className="text-subtext hover:text-primary transition-all p-1.5 hover:bg-surface-hover rounded-lg flex items-center gap-1 active:scale-95"
+                                      title="Copy PDF File"
+                                    >
+                                      <Copy className="w-3.5 h-3.5" />
+                                    </button>
+
+                                    {/* PDF Share — Direct 1-click */}
+                                    <button
+                                      onClick={() => handlePdfAction('share', msg)}
+                                      onMouseEnter={() => handlePdfAction('pregenerate', msg)}
+                                      onFocus={() => handlePdfAction('pregenerate', msg)}
+                                      className="text-red-500 hover:text-red-600 transition-all p-1.5 hover:bg-red-50/10 rounded-lg flex items-center gap-1 active:scale-95"
+                                      title={pregeneratedPdfs[msg.id] ? "Share PDF ✓ Ready" : "Share PDF"}
+                                    >
+                                      <FileText className="w-4 h-4" />
+                                      {pdfLoadingId === msg.id && !pregeneratedPdfs[msg.id] ? (
+                                        <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                                      ) : pregeneratedPdfs[msg.id] ? (
+                                        <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                                      ) : null}
+                                    </button>
+                                  </div>
                                 </div>
+
+
                               </div>
-
-
                             </div>
                           </div>
-                        </div>
-                      )}
+                        )}
                     </div>
                     <span className="text-[10px] text-subtext mt-0 px-1">
                       {new Date(msg.timestamp).toLocaleTimeString([], {
