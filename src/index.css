@@ -2,7 +2,7 @@
 
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
-@variant dark (&:where(.dark, .dark *));
+@variant dark (&:where(.dark));
 
 @layer base {
   :root {
@@ -113,9 +113,6 @@
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
 
   body {
     @apply bg-background text-foreground;

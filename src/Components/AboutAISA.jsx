@@ -55,7 +55,7 @@ const AboutAISA = ({ isOpen, onClose }) => {
             >
                 {/* Header */}
                 <div className="relative h-48 bg-gradient-to-br from-blue-600 to-purple-700 flex flex-col items-center justify-center text-white shrink-0 overflow-hidden">
-                    <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20" />
+                    <div className="absolute inset-0 opacity-20" />
                     <div className="absolute top-[-50%] left-[-20%] w-[500px] h-[500px] bg-blue-400/30 rounded-full blur-[80px]" />
 
                     <button
