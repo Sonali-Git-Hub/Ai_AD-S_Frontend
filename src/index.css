@@ -2,7 +2,7 @@
 
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
-@variant dark (&:where(.dark));
+@custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
   :root {
@@ -44,7 +44,7 @@
     --radius: 1rem;
   }
 
-  .dark {
+  :root.dark, .dark {
     --background: 227 39% 9%;
     /* #0E1220 - Deep Calm Charcoal/Navy */
     --foreground: 210 20% 90%;

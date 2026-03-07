@@ -59,13 +59,29 @@ export const generateChatResponse = async (history, currentMessage, systemInstru
         });
 
         // Return full response data (includes reply and potentially conversion data)
-        // Return full response data (includes reply, conversion data, and imageUrl)
         return result.data;
 
     } catch (error) {
         console.error("Gemini API Error:", error);
+
+        // Handle credit / plan errors
+        if (error.response?.status === 403) {
+            const code = error.response?.data?.code;
+            const message = error.response?.data?.message;
+
+            if (code === 'OUT_OF_CREDITS') {
+                // Fire event to show CreditUpsellPopup
+                window.dispatchEvent(new Event('out_of_credits'));
+                return { error: 'OUT_OF_CREDITS', message };
+            }
+            if (code === 'PREMIUM_ONLY') {
+                // Fire event to show PremiumUpsellModal
+                window.dispatchEvent(new CustomEvent('premium_required', { detail: { toolName: 'this feature' } }));
+                return { error: 'PREMIUM_ONLY', message };
+            }
+        }
+
         if (error.response?.status === 429) {
-            // Allow backend detail to override if present, otherwise default
             const detail = error.response?.data?.details || error.response?.data?.error;
             if (detail) return `System Busy (429): ${detail}`;
             return "The A-Series system is currently busy (Quota limit reached). Please wait 60 seconds and try again.";

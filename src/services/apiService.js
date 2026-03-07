@@ -35,6 +35,14 @@ apiClient.interceptors.response.use(
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
+    
+    if (error.response?.status === 403 && error.response?.data?.code === 'OUT_OF_CREDITS') {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        user.credits = error.response.data.available || 0; 
+        localStorage.setItem('user', JSON.stringify(user));
+        
+        window.dispatchEvent(new CustomEvent('out_of_credits'));
+    }
     return Promise.reject(error);
   }
 );

@@ -23,15 +23,11 @@ import { useLanguage } from '../context/LanguageContext';
 
 import ProfileSettingsDropdown from '../Components/ProfileSettingsDropdown/ProfileSettingsDropdown';
 import ThemeToggle from '../Components/ThemeToggle';
-import { useSubscription } from '../context/SubscriptionContext';
-import usePayment from '../hooks/usePayment';
 
 const Landing = () => {
     const { t } = useLanguage();
     const navigate = useNavigate();
     const user = getUserData();
-    const { setIsUpgradeModalOpen } = useSubscription();
-    const { handlePayment, loading: paymentLoading } = usePayment();
     const [isBrandHovered, setIsBrandHovered] = useState(false);
     const [isFaqOpen, setIsFaqOpen] = useState(false);
     const [openFaqIndex, setOpenFaqIndex] = useState(null);
@@ -45,11 +41,6 @@ const Landing = () => {
     const [isCookieModalOpen, setIsCookieModalOpen] = useState(false);
     const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
     const [isProfileSettingsOpen, setIsProfileSettingsOpen] = useState(false);
-    const [processingPlanId, setProcessingPlanId] = useState(null);
-
-    useEffect(() => {
-        if (!paymentLoading) setProcessingPlanId(null);
-    }, [paymentLoading]);
 
     const toolCosts = [
         { label: "Normal Chat", cost: "1" },
@@ -322,290 +313,28 @@ const Landing = () => {
                         Pick the plan that fits your AI needs. From casual usage to full-blown enterprise power.
                     </motion.p>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                        {/* FREE PLAN */}
+                    <div className="flex justify-center mt-10">
                         <motion.div
                             variants={item}
-                            whileHover={{ y: -6 }}
-                            onClick={() => user ? navigate("/dashboard") : navigate("/login")}
-                            className="bg-white/30 dark:bg-slate-900/40 backdrop-blur-xl rounded-[2rem] p-5 border border-white/40 dark:border-white/10 shadow-lg hover:shadow-xl relative text-left flex flex-col cursor-pointer"
+                            whileHover={{ y: -5, scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => navigate("/pricing")}
+                            className="bg-white/30 dark:bg-[#161B2E]/80 backdrop-blur-xl rounded-[2rem] p-8 md:p-12 border-2 border-primary/50 shadow-2xl relative text-center flex flex-col cursor-pointer w-full max-w-2xl group transition-all"
                         >
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">FREE</h3>
-                            <div className="text-2xl font-extrabold text-primary mb-4">₹0<span className="text-sm text-gray-500 dark:text-gray-400 font-medium"> / Month</span></div>
-                            <ul className="space-y-2.5 mb-5 flex-1 text-[13px]">
-                                {[
-                                    '100 Total Credits',
-                                    'Access to all tools',
-                                    'Standard Support',
-                                    '30 Days Validity'
-                                ].map((feature, idx) => (
-                                    <li key={idx} className="flex items-center gap-2.5 text-gray-700 dark:text-gray-300">
-                                        <Zap className="w-3.5 h-3.5 text-primary shrink-0" />
-                                        <span>{feature}</span>
-                                    </li>
-                                ))}
-                            </ul>
-
-                            {/* Usage Guide */}
-                            <div className="mb-5 p-2.5 rounded-2xl bg-gray-50/50 dark:bg-slate-800/30 border border-gray-200/50 dark:border-white/5">
-                                <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-                                    {toolCosts.slice(0, 8).map((tool, tIdx) => (
-                                        <div key={tIdx} className="flex justify-between items-center text-[9px] text-gray-500 dark:text-gray-400">
-                                            <span className="truncate mr-1">{tool.label}</span>
-                                            <span className="font-bold text-primary shrink-0">{tool.cost} cr.</span>
-                                        </div>
-                                    ))}
-                                </div>
+                            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-primary to-blue-600 text-white text-[11px] font-extrabold px-6 py-1.5 rounded-full uppercase tracking-widest shadow-lg">
+                                Unlock AI Powers
                             </div>
-
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    user ? navigate("/dashboard") : navigate("/login");
-                                }}
-                                className="w-full py-2.5 rounded-xl font-bold text-sm border-2 border-primary text-primary hover:bg-primary hover:text-white transition-all duration-300"
-                            >
-                                {user ? "Go to Dashboard" : "Start Free"}
-                            </button>
-                        </motion.div>
-
-                        {/* STARTER PLAN */}
-                        <motion.div
-                            variants={item}
-                            whileHover={{ y: -6 }}
-                            onClick={() => {
-                                if (user) {
-                                    setProcessingPlanId('STARTER');
-                                    handlePayment('STARTER', user, () => navigate("/dashboard"));
-                                } else {
-                                    navigate("/login");
-                                }
-                            }}
-                            className="bg-white/30 dark:bg-slate-900/40 backdrop-blur-xl rounded-[2rem] p-5 border border-white/40 dark:border-white/10 shadow-lg hover:shadow-xl relative text-left flex flex-col cursor-pointer"
-                        >
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">STARTER</h3>
-                            <div className="text-2xl font-extrabold text-primary mb-4">₹500<span className="text-sm text-gray-500 dark:text-gray-400 font-medium"> / Month</span></div>
-                            <ul className="space-y-2.5 mb-5 flex-1 text-[13px]">
-                                {[
-                                    '500 Total Credits',
-                                    'Faster Tools',
-                                    'Priority Support',
-                                    '30 Days Validity'
-                                ].map((feature, idx) => (
-                                    <li key={idx} className="flex items-center gap-2.5 text-gray-700 dark:text-gray-300">
-                                        <Zap className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                                        <span>{feature}</span>
-                                    </li>
-                                ))}
-                            </ul>
-
-                            {/* Usage Guide */}
-                            <div className="mb-5 p-2.5 rounded-2xl bg-gray-50/50 dark:bg-slate-800/30 border border-gray-200/50 dark:border-white/5">
-                                <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-                                    {toolCosts.slice(0, 8).map((tool, tIdx) => (
-                                        <div key={tIdx} className="flex justify-between items-center text-[9px] text-gray-500 dark:text-gray-400">
-                                            <span className="truncate mr-1">{tool.label}</span>
-                                            <span className="font-bold text-primary shrink-0">{tool.cost} cr.</span>
-                                        </div>
-                                    ))}
-                                </div>
+                            <h3 className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white mb-4 group-hover:text-primary transition-colors">
+                                View AISA Subscriptions
+                            </h3>
+                            <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-lg mx-auto leading-relaxed">
+                                Get access to advanced AI models, higher rate limits, priority support, and powerful collaboration tools.
+                            </p>
+                            
+                            <div className="flex items-center justify-center gap-2 text-primary font-bold text-lg bg-primary/10 w-max mx-auto px-6 py-3 rounded-xl group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                                See Pricing Plans
+                                <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
                             </div>
-
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (user) {
-                                        setProcessingPlanId('STARTER');
-                                        handlePayment('STARTER', user, () => navigate("/dashboard"));
-                                    } else {
-                                        navigate("/login");
-                                    }
-                                }}
-                                disabled={paymentLoading}
-                                className="w-full py-2.5 rounded-xl font-bold text-sm border-2 border-primary text-primary hover:bg-primary hover:text-white transition-all duration-300"
-                            >
-                                {paymentLoading && processingPlanId === 'STARTER' ? "Processing..." : "Choose Starter"}
-                            </button>
-                        </motion.div>
-
-                        {/* PRO PLAN */}
-                        <motion.div
-                            variants={item}
-                            whileHover={{ y: -6 }}
-                            onClick={() => {
-                                if (user) {
-                                    setProcessingPlanId('PRO');
-                                    handlePayment('PRO', user, () => navigate("/dashboard"));
-                                } else {
-                                    navigate("/login");
-                                }
-                            }}
-                            className="bg-gradient-to-b from-primary/10 to-primary/5 dark:from-primary/20 dark:to-[#161B2E]/90 backdrop-blur-md rounded-[2rem] p-6 border-2 border-primary shadow-xl relative text-left flex flex-col transform md:-translate-y-2 cursor-pointer"
-                        >
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-white text-[9px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                                MOST POPULAR
-                            </div>
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">PRO</h3>
-                            <div className="text-2xl font-extrabold text-primary mb-4">₹2850<span className="text-sm text-gray-500 dark:text-gray-400 font-medium"> / Month</span></div>
-                            <ul className="space-y-2.5 mb-5 flex-1 text-[13px]">
-                                {[
-                                    '3,000 Total Credits',
-                                    'Elite AI Models',
-                                    'Instant Support',
-                                    '30 Days Validity'
-                                ].map((feature, idx) => (
-                                    <li key={idx} className="flex items-center gap-2.5 text-gray-800 dark:text-gray-200 font-medium">
-                                        <Zap className="w-3.5 h-3.5 text-primary shrink-0 fill-primary/20" />
-                                        <span>{feature}</span>
-                                    </li>
-                                ))}
-                            </ul>
-
-                            {/* Usage Guide */}
-                            <div className="mb-5 p-2.5 rounded-2xl bg-white/40 dark:bg-primary/10 border border-primary/20">
-                                <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-                                    {toolCosts.slice(0, 8).map((tool, tIdx) => (
-                                        <div key={tIdx} className="flex justify-between items-center text-[9px] text-gray-800 dark:text-gray-200 font-bold">
-                                            <span className="truncate mr-1">{tool.label}</span>
-                                            <span className="font-bold text-primary shrink-0">{tool.cost} cr.</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (user) {
-                                        setProcessingPlanId('PRO');
-                                        handlePayment('PRO', user, () => navigate("/dashboard"));
-                                    } else {
-                                        navigate("/login");
-                                    }
-                                }}
-                                disabled={paymentLoading}
-                                className="w-full py-2.5 rounded-xl font-bold text-sm bg-primary text-white shadow-lg shadow-primary/30 hover:opacity-90 transition-all duration-300 transform hover:scale-[1.02]"
-                            >
-                                {paymentLoading && processingPlanId === 'PRO' ? "Processing..." : "Upgrade to Pro"}
-                            </button>
-                        </motion.div>
-
-                        {/* BUSINESS PLAN */}
-                        <motion.div
-                            variants={item}
-                            whileHover={{ y: -6 }}
-                            onClick={() => {
-                                if (user) {
-                                    setProcessingPlanId('BUSINESS');
-                                    handlePayment('BUSINESS', user, () => navigate("/dashboard"));
-                                } else {
-                                    navigate("/login");
-                                }
-                            }}
-                            className="bg-white/30 dark:bg-slate-900/40 backdrop-blur-xl rounded-[2rem] p-5 border border-white/40 dark:border-white/10 shadow-lg hover:shadow-xl relative text-left flex flex-col cursor-pointer"
-                        >
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">BUSINESS</h3>
-                            <div className="text-2xl font-extrabold text-primary mb-4">₹4500<span className="text-sm text-gray-500 dark:text-gray-400 font-medium"> / Month</span></div>
-                            <ul className="space-y-2.5 mb-5 flex-1 text-[13px]">
-                                {[
-                                    '5,000 Total Credits',
-                                    'Collaboration Tools',
-                                    'Business Analytics',
-                                    '30 Days Validity'
-                                ].map((feature, idx) => (
-                                    <li key={idx} className="flex items-center gap-2.5 text-gray-700 dark:text-gray-300">
-                                        <Zap className="w-3.5 h-3.5 text-green-500 shrink-0" />
-                                        <span>{feature}</span>
-                                    </li>
-                                ))}
-                            </ul>
-
-                            {/* Usage Guide */}
-                            <div className="mb-5 p-2.5 rounded-2xl bg-gray-50/50 dark:bg-slate-800/30 border border-gray-200/50 dark:border-white/5">
-                                <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-                                    {toolCosts.slice(0, 8).map((tool, tIdx) => (
-                                        <div key={tIdx} className="flex justify-between items-center text-[9px] text-gray-500 dark:text-gray-400">
-                                            <span className="truncate mr-1">{tool.label}</span>
-                                            <span className="font-bold text-primary shrink-0">{tool.cost} cr.</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (user) {
-                                        setProcessingPlanId('BUSINESS');
-                                        handlePayment('BUSINESS', user, () => navigate("/dashboard"));
-                                    } else {
-                                        navigate("/login");
-                                    }
-                                }}
-                                disabled={paymentLoading}
-                                className="w-full py-2.5 rounded-xl font-bold text-sm border-2 border-primary text-primary hover:bg-primary hover:text-white transition-all duration-300"
-                            >
-                                {paymentLoading && processingPlanId === 'BUSINESS' ? "Processing..." : "Go Business"}
-                            </button>
-                        </motion.div>
-
-                        {/* ENTERPRISE PLAN */}
-                        <motion.div
-                            variants={item}
-                            whileHover={{ y: -6 }}
-                            onClick={() => {
-                                if (user) {
-                                    setProcessingPlanId('ENTERPRISE');
-                                    handlePayment('ENTERPRISE', user, () => navigate("/dashboard"));
-                                } else {
-                                    navigate("/login");
-                                }
-                            }}
-                            className="bg-white/30 dark:bg-slate-900/40 backdrop-blur-xl rounded-[2rem] p-5 border border-white/40 dark:border-white/10 shadow-lg hover:shadow-xl relative text-left flex flex-col cursor-pointer"
-                        >
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">ENTERPRISE</h3>
-                            <div className="text-2xl font-extrabold text-primary mb-4">₹8000<span className="text-sm text-gray-500 dark:text-gray-400 font-medium"> / Month</span></div>
-                            <ul className="space-y-2.5 mb-5 flex-1 text-[13px]">
-                                {[
-                                    '100,000 Total Credits',
-                                    'Custom Solutions',
-                                    '24/7 Dedicated Support',
-                                    '30 Days Validity'
-                                ].map((feature, idx) => (
-                                    <li key={idx} className="flex items-center gap-2.5 text-gray-700 dark:text-gray-300">
-                                        <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                                        <span>{feature}</span>
-                                    </li>
-                                ))}
-                            </ul>
-
-                            {/* Usage Guide */}
-                            <div className="mb-5 p-2.5 rounded-2xl bg-gray-50/50 dark:bg-slate-800/30 border border-gray-200/50 dark:border-white/5">
-                                <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-                                    {toolCosts.slice(0, 8).map((tool, tIdx) => (
-                                        <div key={tIdx} className="flex justify-between items-center text-[9px] text-gray-500 dark:text-gray-400">
-                                            <span className="truncate mr-1">{tool.label}</span>
-                                            <span className="font-bold text-primary shrink-0">{tool.cost} cr.</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (user) {
-                                        setProcessingPlanId('ENTERPRISE');
-                                        handlePayment('ENTERPRISE', user, () => navigate("/dashboard"));
-                                    } else {
-                                        navigate("/login");
-                                    }
-                                }}
-                                disabled={paymentLoading}
-                                className="w-full py-2.5 rounded-xl font-bold text-sm bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-all duration-300"
-                            >
-                                {paymentLoading && processingPlanId === 'ENTERPRISE' ? "Processing..." : "Get Enterprise"}
-                            </button>
                         </motion.div>
                     </div>
 

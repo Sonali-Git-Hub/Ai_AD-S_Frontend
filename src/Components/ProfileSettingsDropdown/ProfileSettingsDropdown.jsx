@@ -19,11 +19,6 @@ import toast from 'react-hot-toast';
 import axios from 'axios';
 import { apis } from '../../types';
 import CustomSelect from '../CustomSelect/CustomSelect';
-import PricingModal from '../Pricing/PricingModal';
-import usePayment from '../../hooks/usePayment';
-import { apiService } from '../../services/apiService';
-import { useSubscription } from '../../context/SubscriptionContext';
-import UsageStats from '../Subscription/UsageStats';
 
 const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
     const [currentUserData, setUserRecoil] = useRecoilState(userData);
@@ -44,9 +39,6 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
     const [isPlayingVoice, setIsPlayingVoice] = useState(false);
     const [accounts, setAccounts] = useState(getAccounts());
     const [nicknameInput, setNicknameInput] = useState('');
-    const [showPricingModal, setShowPricingModal] = useState(false);
-    const { handlePayment, loading: paymentLoading } = usePayment();
-    const { refreshSubscription } = useSubscription();
     const [transactions, setTransactions] = useState([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
@@ -80,7 +72,6 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
     useEffect(() => {
         if (activeTab === 'account' && user?.token) {
             fetchTransactions();
-            refreshSubscription(); // Force refresh subscription system data
 
             // Sync user profile to ensure plan is up to date
             axios.get(apis.user, {
@@ -92,7 +83,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                 }
             }).catch(err => console.error("Profile sync failed", err));
         }
-    }, [activeTab, user?.token, refreshSubscription]);
+    }, [activeTab, user?.token]);
 
     const fetchTransactions = async () => {
         try {
@@ -425,27 +416,6 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
             )
         });
 
-        settings.push({
-            id: 'plan',
-            tab: 'account',
-            label: 'Subscription Plan',
-            description: 'Manage your subscription',
-            keywords: 'upgrade billing pro max ultra payment usage limits',
-            component: (
-                <div className="space-y-4">
-                    <div className="p-4 bg-primary/10 rounded-2xl flex flex-wrap items-center justify-between gap-4 border border-primary/20 mt-4">
-                        <div className="min-w-[120px]">
-                            <p className="font-bold text-[16px] capitalize text-primary">{user?.plan || 'Basic'} Plan</p>
-                            <p className="text-[11px] text-gray-500">Your current subscription</p>
-                        </div>
-                        <button onClick={() => setIsUpgradeModalOpen(true)} className="px-5 py-2.5 bg-primary text-white text-[12px] font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-transform active:scale-95 whitespace-nowrap">Upgrade Plan</button>
-                    </div>
-
-                    {/* Integrated Usage Stats Card */}
-                    <UsageStats />
-                </div>
-            )
-        });
 
         // 3b. Transaction History (Account)
         settings.push({
@@ -720,10 +690,9 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
 
     return createPortal(
         <AnimatePresence>
-            {!showPricingModal && (
-                <div key="settings-main-overlay" className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-[2px]" onClick={onClose}>
-                    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="w-full sm:max-w-[850px] h-full sm:h-[85vh] bg-white dark:bg-[#161B2E] flex flex-col sm:flex-row shadow-2xl sm:rounded-[2rem] overflow-hidden" onClick={e => e.stopPropagation()}>
-                        <div className={`w-full sm:w-[240px] bg-gray-50 dark:bg-black/20 flex-col border-r border-gray-100 dark:border-white/5 ${view === 'detail' ? 'hidden sm:flex' : 'flex'}`}>
+            <div key="settings-main-overlay" className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-[2px]" onClick={onClose}>
+                <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="w-full sm:max-w-[850px] h-full sm:h-[85vh] bg-white dark:bg-[#161B2E] flex flex-col sm:flex-row shadow-2xl sm:rounded-[2rem] overflow-hidden" onClick={e => e.stopPropagation()}>
+                    <div className={`w-full sm:w-[240px] bg-gray-50 dark:bg-black/20 flex-col border-r border-gray-100 dark:border-white/5 ${view === 'detail' ? 'hidden sm:flex' : 'flex'}`}>
                             <div className="p-5 flex justify-between items-center">
                                 <h2 className="text-lg font-bold">Settings</h2>
                                 <button onClick={onClose} className="sm:hidden p-2 hover:bg-black/5 rounded-full"><X size={20} /></button>
@@ -807,7 +776,6 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                         </div>
                     </motion.div>
                 </div>
-            )}
             {showResetModal && (
                 <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowResetModal(false)}>
                     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white dark:bg-[#1E2438] p-6 rounded-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>

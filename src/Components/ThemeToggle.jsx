@@ -7,10 +7,11 @@ const ThemeToggle = () => {
     const { theme, setTheme } = useTheme();
 
     // Normalize theme for calculation (handling 'System' case)
-    const isDark = theme === 'Dark' || (theme === 'System' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const normalizedTheme = typeof theme === 'string' ? theme.toLowerCase() : 'system';
+    const isDark = normalizedTheme === 'dark' || (normalizedTheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
     const toggleTheme = () => {
-        setTheme(isDark ? 'Light' : 'Dark');
+        setTheme(isDark ? 'light' : 'dark');
     };
 
     return (

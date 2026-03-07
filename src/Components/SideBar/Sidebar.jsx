@@ -40,10 +40,7 @@ import { useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import ProfileSettingsDropdown from '../ProfileSettingsDropdown/ProfileSettingsDropdown.jsx';
 import AdminHelpDesk from '../AdminHelpDesk.jsx';
-import PricingModal from '../Pricing/PricingModal';
-import usePayment from '../../hooks/usePayment';
-import { useSubscription } from '../../context/SubscriptionContext';
-import UsageStats from '../Subscription/UsageStats';
+import { getSubscriptionDetails } from '../../services/pricingService';
 
 const Sidebar = ({ isOpen, onClose }) => {
   const { t } = useLanguage();
@@ -73,9 +70,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   const [editingSessionId, setEditingSessionId] = useState(null);
   const [newTitle, setNewTitle] = useState("");
   const [isAdminHelpDeskOpen, setIsAdminHelpDeskOpen] = useState(false);
-  const [showPricingModal, setShowPricingModal] = useState(false);
-  const { handlePayment, loading: paymentLoading } = usePayment();
-  const { currentPlan, usage, refreshSubscription } = useSubscription();
+  const [planName, setPlanName] = useState("Free Plan");
 
   // Check if current user is admin - MUST have token AND correct email
   const token = getUserData()?.token;
@@ -163,6 +158,18 @@ const Sidebar = ({ isOpen, onClose }) => {
       fetchNotifications();
       // Refresh every 5 mins
       const interval = setInterval(fetchNotifications, 5 * 60 * 1000);
+
+      // Fetch Plan Details
+      getSubscriptionDetails().then(data => {
+        if (data.founderStatus) {
+          setPlanName("Founder");
+        } else if (data.subscription?.planId?.planName) {
+          setPlanName(data.subscription.planId.planName);
+        } else {
+          setPlanName("Free Plan");
+        }
+      }).catch(err => console.log(err));
+
       return () => clearInterval(interval);
     }
   }, [token])
@@ -217,11 +224,11 @@ const Sidebar = ({ isOpen, onClose }) => {
       return;
     }
 
-    const oldSessions = [...sessions];
+    const oldSessions = Array.isArray(sessions) ? [...sessions] : [];
     const renamedTitle = newTitle.trim();
 
     // Optimistic update
-    setSessions(prev => prev.map(s =>
+    setSessions(prev => (Array.isArray(prev) ? prev : []).map(s =>
       s.sessionId === sessionId
         ? { ...s, title: renamedTitle, lastModified: Date.now() }
         : s
@@ -342,13 +349,13 @@ const Sidebar = ({ isOpen, onClose }) => {
 
           {/* Chat Sessions List */}
           <div className="flex-1 overflow-y-auto px-2 space-y-1">
-            {(token || sessions.length > 0) ? (
+            {(token || (Array.isArray(sessions) && sessions.length > 0)) ? (
               <>
                 <h3 className="px-4 py-2 text-xs font-bold text-primary/70 uppercase tracking-widest">
                   {t('history')}
                 </h3>
 
-                {sessions
+                {(Array.isArray(sessions) ? sessions : [])
                   .filter(session => session.title?.toLowerCase().includes(searchQuery.toLowerCase()))
                   .map((session) => (
                     <div key={session.sessionId} className="group relative px-2">
@@ -412,7 +419,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                     </div>
                   ))}
 
-                {sessions.length === 0 && (
+                {(!Array.isArray(sessions) || sessions.length === 0) && (
                   <div className="px-4 text-xs text-subtext italic">{t('noRecentChats') || 'No recent chats'}</div>
                 )}
               </>
@@ -433,6 +440,27 @@ const Sidebar = ({ isOpen, onClose }) => {
           </div>
         </div>
 
+
+        {/* Credit Meter */}
+        {token && (
+          <div className="mx-3 my-2 p-3 rounded-xl bg-white/5 dark:bg-black/20 border border-white/10 backdrop-blur-sm cursor-pointer hover:bg-white/10 transition-colors" onClick={() => navigate('/pricing')}>
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-xs font-semibold tracking-wider text-subtext uppercase flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-primary" /> Credits
+              </span>
+              <span className="text-xs font-bold text-maintext">{user.credits || 0} left</span>
+            </div>
+            <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${user.credits < 20 ? 'bg-red-500' : 'bg-primary'}`}
+                style={{ width: `${Math.min(100, Math.max(5, (user.credits || 0) / 16))}%` }}
+              />
+            </div>
+            {user.credits < 20 && (
+              <p className="text-[10px] text-red-400 mt-1 select-none">Low credits. Upgrade soon!</p>
+            )}
+          </div>
+        )}
 
         {/* User Profile Footer */}
         <div className="p-3 border-t border-white/20 dark:border-white/10 bg-white/10 dark:bg-black/10 backdrop-blur-md relative overflow-hidden">
@@ -463,21 +491,9 @@ const Sidebar = ({ isOpen, onClose }) => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 overflow-hidden">
                       <p className="text-sm font-bold text-maintext truncate group-hover:text-primary transition-colors">{user.name}</p>
-                      {user.plan && user.plan !== 'Basic' && (
-                        <span
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setIsUpgradeModalOpen(true);
-                          }}
-                          className={`px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tighter shrink-0 cursor-pointer hover:scale-110 transition-transform ${user.plan === 'King'
-                            ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-sm'
-                            : 'bg-primary text-white shadow-sm'
-                            }`}
-                          title="Click to Manage Plan"
-                        >
-                          {user.plan}
-                        </span>
-                      )}
+                      <span className="px-1.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-[9px] font-bold text-amber-500 uppercase tracking-wider shrink-0">
+                        {planName.replace(' Plan', '')}
+                      </span>
                     </div>
                     <p className="text-[11px] text-subtext truncate">{user.email}</p>
                   </div>

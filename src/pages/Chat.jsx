@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, Fragment } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useSubscription } from '../context/SubscriptionContext';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Send, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe } from 'lucide-react';
 import { renderAsync } from 'docx-preview';
@@ -28,6 +27,8 @@ import { detectMode, getModeName, getModeIcon, getModeColor, MODES } from '../ut
 import { getUserData, sessionsData, toggleState, memoryData } from '../userStore/userData';
 import { usePersonalization } from '../context/PersonalizationContext';
 import OnboardingModal from '../Components/OnboardingModal';
+import PremiumUpsellModal from '../Components/PremiumUpsellModal';
+import { getSubscriptionDetails } from '../services/pricingService';
 
 
 const FEEDBACK_PROMPTS = {
@@ -232,7 +233,29 @@ const ImageViewer = ({ src, alt }) => {
 };
 
 const Chat = () => {
-  const { checkLimitLocally, refreshSubscription } = useSubscription();
+  const checkLimitLocally = () => true;
+  const refreshSubscription = () => { };
+
+  // Premium access check: fires event for upsell modal if user is on free plan
+  const [isPremiumUser, setIsPremiumUser] = React.useState(null);
+  useEffect(() => {
+    const user = getUserData();
+    if (!user?.token) { setIsPremiumUser(false); return; }
+    getSubscriptionDetails()
+      .then(data => {
+        const hasSub = data?.subscription && data.subscription?.planId;
+        const hasPaidPlan = hasSub && (data.subscription?.planId?.priceMonthly > 0 || data.subscription?.planId?.priceYearly > 0);
+        setIsPremiumUser(hasPaidPlan || data?.founderStatus || false);
+      })
+      .catch(() => setIsPremiumUser(false));
+  }, []);
+
+  const checkPremiumTool = (toolName) => {
+    if (isPremiumUser === null) return true; // still loading, allow optimistically
+    if (isPremiumUser) return true;
+    window.dispatchEvent(new CustomEvent('premium_required', { detail: { toolName } }));
+    return false;
+  };
   const { sessionId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -2412,6 +2435,16 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
           isSendingRef.current = false;
           return;
         }
+
+        // Out of credits — popup already shown by geminiService, just stop gracefully
+        if (aiResponseData && (aiResponseData.error === "OUT_OF_CREDITS" || aiResponseData.error === "PREMIUM_ONLY")) {
+          setIsLoading(false);
+          isSendingRef.current = false;
+          // Remove the placeholder loading message if added
+          setMessages(prev => prev.filter(m => !m.isProcessing && !m.isLoading));
+          return;
+        }
+
 
         // Handle response - could be string (old format) or object (new format with conversion)
         let aiResponseText = '';
@@ -4841,6 +4874,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                         <button
                           type="button"
                           onClick={() => {
+                            if (!checkPremiumTool('Generate Image')) return;
                             setIsToolsMenuOpen(false);
                             setIsImageGeneration(!isImageGeneration);
                             setIsVideoGeneration(false);
@@ -4864,6 +4898,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                         <button
                           type="button"
                           onClick={() => {
+                            if (!checkPremiumTool('Generate Video')) return;
                             setIsToolsMenuOpen(false);
                             setIsVideoGeneration(!isVideoGeneration);
                             setIsImageGeneration(false);
@@ -4887,6 +4922,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                         <button
                           type="button"
                           onClick={() => {
+                            if (!checkPremiumTool('Web Search')) return;
                             setIsToolsMenuOpen(false);
                             setIsWebSearch(!isWebSearch);
                             setIsDeepSearch(false);
@@ -4911,6 +4947,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                         <button
                           type="button"
                           onClick={() => {
+                            if (!checkPremiumTool('Deep Search')) return;
                             setIsToolsMenuOpen(false);
                             setIsDeepSearch(!isDeepSearch);
                             setIsWebSearch(false);
@@ -4935,6 +4972,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                         <button
                           type="button"
                           onClick={() => {
+                            if (!checkPremiumTool('Convert to Audio')) return;
                             setIsToolsMenuOpen(false);
                             setIsAudioConvertMode(!isAudioConvertMode);
                             setIsDeepSearch(false);
@@ -4958,6 +4996,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                         <button
                           type="button"
                           onClick={() => {
+                            if (!checkPremiumTool('Convert Documents')) return;
                             setIsToolsMenuOpen(false);
                             setIsDocumentConvert(!isDocumentConvert);
                             setIsDeepSearch(false);
@@ -4981,6 +5020,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                         <button
                           type="button"
                           onClick={() => {
+                            if (!checkPremiumTool('Code Writer')) return;
                             setIsToolsMenuOpen(false);
                             setIsCodeWriter(!isCodeWriter);
                             setIsDeepSearch(false);
@@ -5441,6 +5481,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
           </div>
         )
       }
+      <PremiumUpsellModal />
     </div >
   );
 };

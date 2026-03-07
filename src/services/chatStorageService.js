@@ -84,7 +84,7 @@ export const chatStorageService = {
         headers: getAuthHeaders(),
         withCredentials: true
       });
-      return response.data;
+      return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
       console.warn("Backend sessions fetch failed, using local:", error);
       const sessions = [];
