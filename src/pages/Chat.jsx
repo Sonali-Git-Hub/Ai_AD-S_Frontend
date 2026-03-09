@@ -324,6 +324,8 @@ const Chat = () => {
   const [isCodeWriter, setIsCodeWriter] = useState(false);
   const [isVideoGeneration, setIsVideoGeneration] = useState(false);
   const [videoAspectRatio, setVideoAspectRatio] = useState('');
+  const [videoModelId, setVideoModelId] = useState('veo-3.1-fast-generate-001');
+  const [videoResolution, setVideoResolution] = useState('1080p');
   const [imageAspectRatio, setImageAspectRatio] = useState('1:1');
   const [imageModelId, setImageModelId] = useState('imagen-3.0-generate-001');
   const abortControllerRef = useRef(null);
@@ -992,7 +994,7 @@ const Chat = () => {
 
       try {
         // Use apiService
-        const data = await apiService.generateVideo(prompt, 5, 'medium', videoAspectRatio);
+        const data = await apiService.generateVideo(prompt, 5, 'medium', videoAspectRatio, videoModelId, videoResolution);
 
         if (data.videoUrl) {
           // Add the generated video to the message
@@ -5128,6 +5130,31 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                               <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="1:1">1:1 – For Instagram Square Post</option>
                             </select>
                             <ChevronDown size={12} className="absolute right-0 pointer-events-none" />
+                          </div>
+                          <div className="relative flex items-center ml-1 border-l border-red-500/20 pl-2">
+                            <select
+                              className="bg-transparent outline-none appearance-none cursor-pointer font-bold pr-4 pl-1 text-[11px] max-w-[150px] sm:max-w-[200px] truncate"
+                              value={videoResolution}
+                              onChange={(e) => setVideoResolution(e.target.value)}
+                            >
+                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="1080p">1080p {videoModelId === 'veo-3.1-generate-001' ? '(500 Credits/s)' : '(188 Credits/s)'}</option>
+                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="4k">4K {videoModelId === 'veo-3.1-generate-001' ? '(750 Credits/s)' : '(438 Credits/s)'}</option>
+                            </select>
+                            <ChevronDown size={12} className="absolute right-0 pointer-events-none" />
+                          </div>
+                          <div className="relative flex items-center ml-1 border-l border-red-500/20 pl-2">
+                            <select
+                              className="bg-transparent outline-none appearance-none cursor-pointer font-bold pr-4 pl-1 text-[11px] max-w-[150px] sm:max-w-[200px] truncate"
+                              value={videoModelId}
+                              onChange={(e) => setVideoModelId(e.target.value)}
+                            >
+                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="veo-3.1-fast-generate-001">Veo 3.1 Fast</option>
+                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="veo-3.1-generate-001">Veo 3.1 Full</option>
+                            </select>
+                            <ChevronDown size={12} className="absolute right-0 pointer-events-none" />
+                          </div>
+                          <div className="ml-1 border-l border-red-500/20 pl-2 text-[10px] text-red-600/80 bg-red-500/5 px-2 py-0.5 rounded-full whitespace-nowrap hidden sm:block">
+                            Charges: {videoModelId === 'veo-3.1-generate-001' ? (videoResolution === '4k' ? '750' : '500') : (videoResolution === '4k' ? '438' : '188')} Credits/s
                           </div>
                           <button onClick={() => setIsVideoGeneration(false)} className="ml-1 hover:text-red-800"><X size={12} /></button>
                         </motion.div>
