@@ -1192,6 +1192,10 @@ const Chat = () => {
       if (inputRef.current) inputRef.current.value = '';
       setInputValue('');
 
+      // ✅ Clear the attachment immediately when send is pressed
+      handleRemoveFile();
+      if (inputRef.current) inputRef.current.style.height = 'auto';
+
       // Ensure the prompt and loading state are visible
       setTimeout(() => scrollToBottom(true), 50);
 
@@ -1236,7 +1240,6 @@ const Chat = () => {
           };
 
           setMessages(prev => prev.map(msg => msg.id === tempId ? editMessage : msg));
-          handleRemoveFile(); // SUCCESS - remove files now
           toast.success('Image edited successfully!');
           refreshSubscription();
 
@@ -1248,8 +1251,7 @@ const Chat = () => {
       } catch (error) {
         console.error("Image Edit Error:", error);
         const errorMsg = error.response?.data?.message || error.message || 'Failed to edit image';
-        setMessages(prev => prev.map(msg => msg.id === tempId ? { ...msg, content: `❌ ${errorMsg}` } : msg));
-        handleRemoveFile(); // Clean up on error too
+        setMessages(prev => prev.map(msg => msg.id === tempId ? { ...msg, isGenerating: false, content: `❌ ${errorMsg}` } : msg));
         toast.error(errorMsg);
       }
     } catch (error) {
@@ -3404,11 +3406,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
       const SYSTEM_INSTRUCTION = `
 You are AISA, an advanced AI assistant.
 IMAGE GENERATION CAPABILITIES:
-If the user asks for an image (e.g., "generate", "create", "draw", "show me a pic", "image dikhao", "photo bhejo", "pic do"), you MUST generate it using the Pollinations API.
-Format: ![Image](https://image.pollinations.ai/prompt/{URL_ENCODED_DESCRIPTION}?nologo=true)
-Example: ![Cyberpunk City](https://image.pollinations.ai/prompt/cyberpunk%20city%20neon%20lights?nologo=true)
-Do NOT say "I cannot create images". You CAN by using this link format. 
-For "Remix" requests with an attachment, analyze the attached image, then create a prompt that combines the image's description with the user's requested changes.
+If the user asks for an image (e.g., "generate", "create", "draw", "show me a pic", "image dikhao", "photo bhejo", "pic do"), tell them to use the Image Generation mode via the Magic Tools button. Do NOT attempt to generate images inline.
 `;
 
       const aiResponseData = await generateChatResponse(
@@ -4213,8 +4211,7 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                                         e.target.src = retryUrl;
                                       }, 2000);
                                     } else {
-                                      const finalErrorMsg = msg.imageUrl?.includes('cloudinary') ? 'Cloudinary Error' :
-                                        msg.imageUrl?.includes('pollinations') ? 'AI Model Error' : 'Display Issue';
+                                      const finalErrorMsg = msg.imageUrl?.includes('cloudinary') ? 'Cloudinary Error' : 'Image Load Error';
                                       e.target.src = `https://placehold.co/600x400/222/fff?text=${encodeURIComponent(finalErrorMsg)}%0AClick+to+Retry`;
                                       e.target.style.cursor = 'pointer';
                                       e.target.onclick = (event) => {
@@ -5040,6 +5037,31 @@ For "Remix" requests with an attachment, analyze the attached image, then create
                           <div className="flex-1 min-w-0">
                             <span className="text-[14px] font-bold text-maintext block leading-tight">Code Writer</span>
                             <span className="text-[10px] text-subtext block leading-tight truncate mt-0.5">Write & debug code with AISA</span>
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!checkPremiumTool('Edit Image')) return;
+                            setIsToolsMenuOpen(false);
+                            setIsMagicEditing(!isMagicEditing);
+                            setIsDeepSearch(false);
+                            setIsImageGeneration(false);
+                            setIsVideoGeneration(false);
+                            setIsAudioConvertMode(false);
+                            setIsDocumentConvert(false);
+                            setIsCodeWriter(false);
+                            if (!isMagicEditing) toast.success("Image Editing Mode Enabled");
+                          }}
+                          className={`w-full text-left px-3 py-2 flex items-center gap-3 rounded-2xl transition-all group cursor-pointer ${isMagicEditing ? 'bg-primary/10' : 'hover:bg-primary/5'}`}
+                        >
+                          <div className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors shrink-0 ${isMagicEditing ? 'bg-primary border-primary text-white' : 'bg-surface border-border group-hover:border-primary/30 group-hover:bg-primary/10'}`}>
+                            <Wand2 className="w-4.5 h-4.5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[14px] font-bold text-maintext block leading-tight">Edit Image</span>
+                            <span className="text-[10px] text-subtext block leading-tight truncate mt-0.5">Edit image via Vertex AI</span>
                           </div>
                         </button>
                       </div>

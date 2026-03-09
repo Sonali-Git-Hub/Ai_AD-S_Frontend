@@ -83,6 +83,7 @@ const apis = {
   logIn: `${API}/auth/login`,
   signUp: `${API}/auth/signup`,
   googleLogin: `${API}/auth/google`,
+  socialLogin: `${API}/auth/social-login`,
   forgotPassword: `${API}/auth/forgot-password`,
   emailVerificationApi: `${API}/auth/verify-email`,
   resendCode: `${API}/auth/resend-code`,
