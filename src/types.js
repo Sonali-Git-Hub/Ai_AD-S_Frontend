@@ -57,7 +57,7 @@ export const AppRoute = {
   ADMIN_DASHBOARD: "/dashboard/admin",
 };
 
-const API = window._env_?.AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || "http://localhost:8080/api";
+const API = window._env_?.AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API ;
 
 const apis = {
   resetPassword: `${API}/auth/reset-password-otp`,
