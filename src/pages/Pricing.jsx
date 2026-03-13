@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getPlans, getCreditPackages, purchasePlan, buyCredits, createSubscriptionOrder } from '../services/pricingService';
 import './Pricing.css';
-import { Check, X, ShieldAlert, Sparkles, Zap, Image as ImageIcon, Video, Search, Users, ChevronRight } from 'lucide-react';
+import { Check, X, ShieldAlert, Sparkles, Zap, Image as ImageIcon, Video, Search, Users, ChevronRight, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useRecoilState } from 'recoil';
 import { userData, updateUser } from '../userStore/userData';
 
 const Pricing = () => {
+  const navigate = useNavigate();
   const [plans, setPlans] = useState([]);
   const [packages, setPackages] = useState([]);
   const [billingCycle, setBillingCycle] = useState('monthly');
@@ -249,7 +251,7 @@ const Pricing = () => {
     return (
       <div className="comparison-section">
         <h2>Compare Plans Details</h2>
-        <div className="comparison-table-wrapper" style={{ overflowX: 'auto' }}>
+        <div className="comparison-table-wrapper">
           <table className="comparison-table">
             <thead>
               <tr>
@@ -283,6 +285,11 @@ const Pricing = () => {
 
   return (
     <div className="pricing-page">
+      <button onClick={() => navigate(-1)} className="back-button">
+        <ArrowLeft size={18} />
+        <span>Back</span>
+      </button>
+
       <div className="pricing-header">
         <h1>Unlock Your AI Potential</h1>
         <p>Choose the perfect plan for you or your team. Upgrade anytime.</p>
@@ -291,15 +298,19 @@ const Pricing = () => {
           <span className={`billing-label ${billingCycle === 'monthly' ? 'active' : ''}`}>Monthly</span>
           <div className={`toggle-switch ${billingCycle}`} onClick={handleToggle}></div>
           <span className={`billing-label ${billingCycle === 'yearly' ? 'active' : ''}`}>Yearly</span>
-          <span className="save-badge">Save ~30%</span>
+          {billingCycle === 'yearly' && <span className="save-badge">Save ~30%</span>}
         </div>
       </div>
 
       <div className="pricing-grid">
         {plans.map((plan) => {
-          const isFounder = plan.planName.toLowerCase() === 'founder plan';
+          const isFounder = plan.planName.toLowerCase().includes('founder');
           const isFree = plan.priceMonthly === 0 && plan.priceYearly === 0;
-          const price = billingCycle === 'yearly' ? plan.priceYearly : plan.priceMonthly;
+
+          // Fetch ALL values directly from the Database (no frontend math)
+          const displayPrice = billingCycle === 'yearly' ? (plan.priceYearlyPerMonth || plan.priceMonthly) : plan.priceMonthly;
+          const displayCredits = billingCycle === 'yearly' ? (plan.creditsYearly || plan.credits) : plan.credits;
+          const totalYearlyAmount = plan.priceYearly || 0;
 
           return (
             <div key={plan._id} className={`pricing-card ${plan.isPopular ? 'popular' : ''} ${isFree ? 'free-tier-card' : ''}`}>
@@ -315,19 +326,24 @@ const Pricing = () => {
               <h3 className="plan-name">{plan.planName}</h3>
 
               <div className="plan-price">
+                {billingCycle === 'yearly' && !isFree && (
+                  <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '0.5em', marginRight: '6px' }}>
+                    ₹{plan.priceMonthly}
+                  </span>
+                )}
                 <span className="currency">₹</span>
-                {price}
+                {displayPrice}
                 <span className="billing-period">
-                  {isFounder ? '/mo (lifetime)' : billingCycle === 'yearly' ? '/mo (billed yearly)' : '/mo'}
+                  {billingCycle === 'yearly' ? (isFounder ? '/mo (lifetime, billed yearly)' : '/mo (billed yearly)') : (isFounder ? '/mo (lifetime)' : '/mo')}
                 </span>
               </div>
 
               <div className="plan-credits">
-                <Sparkles size={18} /> {plan.credits} Credits
+                <Sparkles size={18} /> {displayCredits} Credits
               </div>
 
               <div className="credit-details">
-                {calculateEstimations(plan.credits, isFree).map((est, i) => (
+                {calculateEstimations(displayCredits, isFree).map((est, i) => (
                   <p key={i} className={est.locked ? 'locked-estimation' : ''}>
                     <span style={{ opacity: est.locked ? 0.4 : 1 }}>{est.icon}</span>
                     <span style={{ opacity: est.locked ? 0.4 : 1 }}>{est.text}</span>
@@ -351,7 +367,11 @@ const Pricing = () => {
                 onClick={() => handleUpgrade(plan)}
                 disabled={processing}
               >
-                {price === 0 ? 'Start for Free' : 'Upgrade to ' + plan.planName}
+                {displayPrice === 0
+                  ? 'Start for Free'
+                  : (billingCycle === 'yearly')
+                    ? `Upgrade for ₹${totalYearlyAmount}/yr`
+                    : 'Upgrade to ' + plan.planName}
               </button>
             </div>
           );
@@ -374,15 +394,20 @@ const Pricing = () => {
         <div className="credit-modal-overlay">
           <div className="credit-modal">
             <div className="modal-header">
-              <h3>Out of Credits?</h3>
-              <p className="text-slate-400">Add an extra boost to your account instantly.</p>
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">Instant Credit Boost</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Extra credits for when you're on a roll!</p>
             </div>
 
             <div className="package-list">
               {packages.map((pkg) => (
-                <div key={pkg._id} className="package-item" onClick={() => handleBuyCredits(pkg)}>
-                  <span className="package-credits">+{pkg.credits} Credits</span>
-                  <span className="package-price">₹{pkg.price} <ChevronRight size={16} className="inline ml-2 opacity-50" /></span>
+                <div key={pkg._id} className="package-item group" onClick={() => handleBuyCredits(pkg)}>
+                  <div className="flex flex-col">
+                    <span className="package-credits text-lg font-bold group-hover:text-blue-500 transition-colors">+{pkg.credits} Credits</span>
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">One-time purchase</span>
+                  </div>
+                  <div className="bg-blue-500 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-sm group-hover:bg-blue-600 group-hover:scale-105 transition-all">
+                    ₹{pkg.price}
+                  </div>
                 </div>
               ))}
             </div>

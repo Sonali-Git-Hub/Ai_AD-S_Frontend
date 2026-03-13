@@ -81,8 +81,8 @@ export const apiService = {
   async generateVideo(prompt, duration = 5, quality = 'medium', aspectRatio = '16:9', modelId = 'veo-3.1-fast-generate-001', resolution = '1080p') {
     try {
       console.log(`[Frontend] Generating video for prompt: ${prompt}, Ratio: ${aspectRatio}, Model: ${modelId}, Res: ${resolution}`);
-      // Increased timeout to 300s (5 minutes) for video generation as it regularly takes > 2 minutes
-      const response = await apiClient.post('/video/generate', { prompt, duration, quality, aspectRatio, modelId, resolution }, { timeout: 300000 });
+      // Increased timeout to 900s (15 minutes) for video generation as it regularly takes > 5 minutes
+      const response = await apiClient.post('/video/generate', { prompt, duration, quality, aspectRatio, modelId, resolution }, { timeout: 900000 });
       console.log("[Frontend] Video generation success:", response.data);
       return response.data;
     } catch (error) {
@@ -577,6 +577,76 @@ export const apiService = {
       return response.data;
     } catch (error) {
       console.error("Failed to delete task:", error);
+      throw error;
+    }
+  },
+
+  // --- AIBASE & Knowledge ---
+  async getKnowledgeDocuments() {
+    try {
+      const response = await apiClient.get('/aibase/knowledge/documents');
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch knowledge documents:", error);
+      throw error;
+    }
+  },
+
+  async uploadKnowledgeDocument(formData, onProgress) {
+    try {
+      const response = await apiClient.post('/aibase/knowledge/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (progressEvent) => {
+          if (onProgress) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            onProgress(percentCompleted);
+          }
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to upload knowledge document:", error);
+      throw error;
+    }
+  },
+
+  async deleteKnowledgeDocument(id) {
+    try {
+      const response = await apiClient.delete(`/aibase/knowledge/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to delete knowledge document:", error);
+      throw error;
+    }
+  },
+
+  async aibaseChat(payload) {
+    try {
+      const response = await apiClient.post('/aibase/chat', payload);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to generate AIBASE chat response:", error);
+      throw error;
+    }
+  },
+
+  // --- Credits & Subscription ---
+  async getCreditHistory() {
+    try {
+      const response = await apiClient.get('/subscription/credit-history');
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch credit history:", error);
+      throw error;
+    }
+  },
+
+  async getUserCredits() {
+    try {
+      const response = await apiClient.get('/subscription/user-credits');
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch user credits:", error);
       throw error;
     }
   }

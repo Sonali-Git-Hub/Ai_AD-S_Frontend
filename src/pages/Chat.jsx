@@ -28,6 +28,7 @@ import { getUserData, sessionsData, toggleState, memoryData } from '../userStore
 import { usePersonalization } from '../context/PersonalizationContext';
 import OnboardingModal from '../Components/OnboardingModal';
 import PremiumUpsellModal from '../Components/PremiumUpsellModal';
+import MagicVideoGenModal from '../Components/MagicVideoGenModal';
 import { getSubscriptionDetails } from '../services/pricingService';
 
 
@@ -61,26 +62,26 @@ const FEEDBACK_PROMPTS = {
 const TOOL_PRICING = {
   chat: {
     models: [
-      { id: 'gemini-flash', name: 'Gemini Flash', price: 0, speed: 'Fast', description: 'Free chat model' }
+      { id: 'gemini-flash', name: 'AISA Flash', price: 0, speed: 'Fast', description: 'Free chat model' }
     ]
   },
   image: {
     models: [
-      { id: 'gemini-flash', name: 'Gemini Flash', price: 0, speed: 'Fast', description: 'Basic image analysis' },
-      { id: 'gemini-pro', name: 'Gemini Pro Vision', price: 0.02, speed: 'Medium', description: 'Advanced image understanding' },
-      { id: 'gpt4-vision', name: 'GPT-4 Vision', price: 0.05, speed: 'Slow', description: 'Premium image analysis' }
+      { id: 'gemini-flash', name: 'AISA Flash', price: 0, speed: 'Fast', description: 'Basic image analysis' },
+      { id: 'gemini-pro', name: 'AISA Pro Vision', price: 0.02, speed: 'Medium', description: 'Advanced image understanding' },
+      { id: 'gpt4-vision', name: 'AISA Vision Premium', price: 0.05, speed: 'Slow', description: 'Premium image analysis' }
     ]
   },
   document: {
     models: [
-      { id: 'gemini-flash', name: 'Gemini Flash', price: 0, speed: 'Fast', description: 'Basic document analysis' },
-      { id: 'gemini-pro', name: 'Gemini Pro', price: 0.02, speed: 'Medium', description: 'Advanced document processing' },
-      { id: 'gpt4', name: 'GPT-4', price: 0.03, speed: 'Medium', description: 'Premium document analysis' }
+      { id: 'gemini-flash', name: 'AISA Flash', price: 0, speed: 'Fast', description: 'Basic document analysis' },
+      { id: 'gemini-pro', name: 'AISA Pro', price: 0.02, speed: 'Medium', description: 'Advanced document processing' },
+      { id: 'gpt4', name: 'AISA Premium', price: 0.03, speed: 'Medium', description: 'Premium document analysis' }
     ]
   },
   voice: {
     models: [
-      { id: 'gemini-flash', name: 'Gemini Flash', price: 0, speed: 'Fast', description: 'Standard voice recognition' }
+      { id: 'gemini-flash', name: 'AISA Flash', price: 0, speed: 'Fast', description: 'Standard voice recognition' }
     ]
   }
 };
@@ -286,6 +287,7 @@ const Chat = () => {
   const [waUploading, setWaUploading] = useState(false);
   const [waMsgContent, setWaMsgContent] = useState('');
   const [isMagicEditing, setIsMagicEditing] = useState(false);
+  const [isMagicVideoModalOpen, setIsMagicVideoModalOpen] = useState(false);
   const [isLiveMode, setIsLiveMode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLimitReached, setIsLimitReached] = useState(false);
@@ -1030,7 +1032,7 @@ const Chat = () => {
           toast.success('Generated preview image');
         }
       } catch (error) {
-        const errorMsg = error.response?.data?.message || 'Failed to generate video';
+        const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to generate video';
 
         // If we got an image URL even with error (sometimes happens with 200 fallback but let's be safe)
         if (error.response?.data?.imageUrl) {
@@ -1045,7 +1047,7 @@ const Chat = () => {
           return;
         }
 
-        setMessages(prev => prev.map(msg => msg.id === tempId ? { ...msg, content: `❌ ${errorMsg}` } : msg));
+        setMessages(prev => prev.map(msg => msg.id === tempId ? { ...msg, isGenerating: false, content: `❌ ${errorMsg}` } : msg));
         toast.error(errorMsg);
       }
     } catch (error) {
@@ -1971,7 +1973,7 @@ const Chat = () => {
       {
         id: 'websearch',
         name: 'Real-Time Web Search',
-        active: isWebSearch,
+        active: isWebSearch || isDeepSearch,
         check: () => lowerContent.includes('search the web') || lowerContent.includes('live data') || lowerContent.includes('current news') || lowerContent.includes('aaj ki') || lowerContent.includes('latest')
       },
       {
@@ -2179,11 +2181,9 @@ const Chat = () => {
 
       // Capture mode states before resetting
       const deepSearchActive = isDeepSearch;
-      if (isDeepSearch) setIsDeepSearch(false);
       const documentConvertActive = isDocumentConvert;
-      if (isDocumentConvert) setIsDocumentConvert(false);
       const webSearchActive = isWebSearch;
-      if (isWebSearch) setIsWebSearch(false);
+      // Note: We don't reset these state immediately anymore so the tag stays visible in input bar while "Thinking..."
 
       // Detect mode for UI indicator
       const detectedMode = deepSearchActive ? MODES.DEEP_SEARCH :
@@ -2587,6 +2587,11 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
       setIsLoading(false);
       isSendingRef.current = false;
       abortControllerRef.current = null; // Clean up abort controller
+
+      // Clear special modes after completion
+      setIsDeepSearch(false);
+      setIsDocumentConvert(false);
+      setIsWebSearch(false);
     }
   };
 
@@ -2766,21 +2771,28 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
       const file = pregeneratedPdfs[msg.id];
 
       if (action === 'copy') {
-        if (!window.ClipboardItem) {
-          toast.error("Iss browser mein direct file copy supported nahi hai. Download ya Share use karein.");
-          return;
-        }
         try {
-          // Wrap in Promise for better compatibility
+          if (!window.ClipboardItem) throw new Error("ClipboardItem not supported");
+
+          const cleanText = msg.content
+            .replace(/\*\*(.*?)\*\*/g, '$1')
+            .replace(/### (.*)/g, '$1')
+            .replace(/\[(.*?)\]\((.*?)\)/g, '$1 ($2)');
+
+          // We try to put both PDF and Text in the clipboard
+          // Apps like WhatsApp Desktop might pick the PDF, others will pick the text
           const item = new ClipboardItem({
-            [file.type || 'application/pdf']: Promise.resolve(file)
+            ['application/pdf']: Promise.resolve(file),
+            ['text/plain']: new Blob([cleanText], { type: 'text/plain' })
           });
+
           await navigator.clipboard.write([item]);
-          toast.success("PDF file copy ho gayi! 📋 Ab aap ise WhatsApp ya folder mein paste kar sakte hain.");
+          toast.success("PDF aur Text copy ho gaya! 📋 Ab aap WhatsApp ya kisi bhi app mein Paste kar sakte hain.");
           return;
         } catch (err) {
-          console.error("Copy failed:", err);
-          toast.error("File copy nahi ho saki. Browser file permission check karein.");
+          console.warn("Direct PDF copy failed, falling back to text only:", err);
+          await navigator.clipboard.writeText(msg.content);
+          toast.success("Text copy ho gaya! (PDF copy browser mein limited hai)");
           return;
         }
       }
@@ -2900,36 +2912,62 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
 
       let canvas;
       try {
-        canvas = await html2canvas(element, {
+        // Create an unconstrained wrapper to prevent screen-size clipping
+        const tempWrapper = document.createElement('div');
+        tempWrapper.style.position = 'absolute';
+        tempWrapper.style.left = '-9999px';
+        tempWrapper.style.top = '-9999px';
+        tempWrapper.style.width = '800px'; // Fixed desktop-like width for consistency
+        tempWrapper.style.backgroundColor = '#ffffff';
+
+        // Clone the content
+        const clonedContent = element.cloneNode(true);
+        clonedContent.id = `temp-pdf-${msg.id}`;
+
+        // Add Header
+        const header = document.createElement('div');
+        header.style.marginBottom = '20px';
+        header.style.paddingBottom = '10px';
+        header.style.borderBottom = '1px solid #eee';
+        header.style.fontSize = '12px';
+        header.style.color = '#888';
+        header.style.fontWeight = 'bold';
+        header.innerText = 'AISA AI RESPONSE';
+
+        tempWrapper.appendChild(header);
+
+        // Ensure all text in clone is black and wrapping properly
+        clonedContent.style.padding = '20px';
+        clonedContent.style.color = '#000000';
+        clonedContent.style.backgroundColor = '#ffffff';
+        clonedContent.style.width = '100%';
+        clonedContent.style.lineHeight = '1.4';
+
+        const all = clonedContent.querySelectorAll('*');
+        Array.from(all).forEach(el => {
+          el.style.color = '#000000';
+          if (el.tagName === 'P') el.style.marginBottom = '6px';
+          if (el.tagName === 'A') el.style.color = '#0000ff';
+        });
+
+        tempWrapper.appendChild(clonedContent);
+        document.body.appendChild(tempWrapper);
+
+        // Wait a tiny bit for styles to apply
+        await new Promise(r => setTimeout(r, 100));
+
+        // Generate canvas from the unconstrained clone
+        canvas = await html2canvas(tempWrapper, {
           scale: 2,
           useCORS: true,
           backgroundColor: '#ffffff',
-          onclone: (clonedDoc) => {
-            const clonedEl = clonedDoc.getElementById(`msg-text-${msg.id}`);
-            if (clonedEl) {
-              const header = clonedDoc.createElement('div');
-              header.style.marginBottom = '20px';
-              header.style.paddingBottom = '10px';
-              header.style.borderBottom = '1px solid #eee';
-              header.style.fontSize = '12px';
-              header.style.color = '#888';
-              header.style.fontWeight = 'bold';
-              header.innerText = 'AISA AI RESPONSE';
-              clonedEl.insertBefore(header, clonedEl.firstChild);
-              clonedEl.style.padding = '20px';
-              clonedEl.style.color = '#000000';
-              clonedEl.style.backgroundColor = '#ffffff';
-              clonedEl.style.width = '800px';
-              clonedEl.style.lineHeight = '1.4';
-              const all = clonedEl.querySelectorAll('*');
-              Array.from(all).forEach(el => {
-                el.style.color = '#000000';
-                if (el.tagName === 'P') el.style.marginBottom = '6px';
-                if (el.tagName === 'A') el.style.color = '#0000ff';
-              });
-            }
-          }
+          windowWidth: 800, // Force window width awareness
+          logging: false
         });
+
+        // Cleanup
+        document.body.removeChild(tempWrapper);
+
       } catch (genError) {
         if (processToastId) toast.error(`Canvas Error: ${genError.message}`, { id: processToastId });
         setPdfLoadingId(null);
@@ -3049,16 +3087,26 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         window.open(url, '_blank');
         if (processToastId) toast.dismiss(processToastId);
       } else if (action === 'copy') {
-        if (!window.ClipboardItem) {
-          toast.error("Iss browser mein direct file copy supported nahi hai.");
-          if (processToastId) toast.dismiss(processToastId);
-          return;
+        try {
+          if (!window.ClipboardItem) throw new Error("ClipboardItem not supported");
+
+          const cleanText = msg.content
+            .replace(/\*\*(.*?)\*\*/g, '$1')
+            .replace(/### (.*)/g, '$1')
+            .replace(/\[(.*?)\]\((.*?)\)/g, '$1 ($2)');
+
+          const item = new ClipboardItem({
+            ['application/pdf']: Promise.resolve(blob),
+            ['text/plain']: new Blob([cleanText], { type: 'text/plain' })
+          });
+
+          await navigator.clipboard.write([item]);
+          if (processToastId) toast.success("PDF aur Text copy ho gaya! 📋", { id: processToastId });
+        } catch (err) {
+          console.warn("Binary copy failed:", err);
+          await navigator.clipboard.writeText(msg.content);
+          if (processToastId) toast.success("Text copy ho gaya!", { id: processToastId });
         }
-        const item = new ClipboardItem({
-          ['application/pdf']: Promise.resolve(blob)
-        });
-        await navigator.clipboard.write([item]);
-        if (processToastId) toast.success("PDF file copy ho gayi! 📋", { id: processToastId });
       } else if (action === 'share') {
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
@@ -3117,14 +3165,15 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
     const lastMsg = messages[messages.length - 1];
     if (!lastMsg || lastMsg.role !== 'model' || !lastMsg.content) return;
     if (pregeneratedPdfs[lastMsg.id]) return; // Already generated
+    if (typingMessageId === lastMsg.id) return; // Wait for typing animation to finish
 
-    // Wait 1.5s for DOM to render, then silently pre-generate
+    // Wait 1.5s for DOM to fully render, then silently pre-generate
     const timer = setTimeout(() => {
       handlePdfAction('pregenerate', lastMsg);
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [messages]);
+  }, [messages, typingMessageId, pregeneratedPdfs]);
 
   const handleThumbsDown = (msgId) => {
     setFeedbackMsgId(msgId);
@@ -3176,20 +3225,58 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
       const element = document.getElementById(`msg-text-${msg.id}`);
       if (!element) { toast.error("Content not found", { id: toastId }); return; }
 
-      const canvas = await html2canvas(element, {
-        scale: 2, useCORS: true, backgroundColor: '#ffffff',
-        onclone: (clonedDoc) => {
-          const el = clonedDoc.getElementById(`msg-text-${msg.id}`);
-          if (el) {
-            const hdr = clonedDoc.createElement('div');
-            hdr.style.cssText = 'margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid #eee;font-size:12px;color:#888;font-weight:bold;';
-            hdr.innerText = 'AISA AI RESPONSE';
-            el.insertBefore(hdr, el.firstChild);
-            el.style.cssText = 'padding:20px;color:#000;background:#fff;width:800px;line-height:1.4;';
-            el.querySelectorAll('*').forEach(e => { e.style.color = '#000'; });
-          }
-        }
+      // Create an unconstrained wrapper to prevent screen-size clipping
+      const tempWrapper = document.createElement('div');
+      tempWrapper.style.position = 'absolute';
+      tempWrapper.style.left = '-9999px';
+      tempWrapper.style.top = '-9999px';
+      tempWrapper.style.width = '800px'; // Fixed desktop width
+      tempWrapper.style.backgroundColor = '#ffffff';
+
+      // Clone the content
+      const clonedContent = element.cloneNode(true);
+      clonedContent.id = `temp-wa-pdf-${msg.id}`;
+
+      // Add Header
+      const header = document.createElement('div');
+      header.style.marginBottom = '20px';
+      header.style.paddingBottom = '10px';
+      header.style.borderBottom = '1px solid #eee';
+      header.style.fontSize = '12px';
+      header.style.color = '#888';
+      header.style.fontWeight = 'bold';
+      header.innerText = 'AISA AI RESPONSE';
+
+      tempWrapper.appendChild(header);
+
+      clonedContent.style.padding = '20px';
+      clonedContent.style.color = '#000000';
+      clonedContent.style.backgroundColor = '#ffffff';
+      clonedContent.style.width = '100%';
+      clonedContent.style.lineHeight = '1.4';
+
+      const all = clonedContent.querySelectorAll('*');
+      Array.from(all).forEach(el => {
+        el.style.color = '#000000';
+        if (el.tagName === 'P') el.style.marginBottom = '6px';
+        if (el.tagName === 'A') el.style.color = '#0000ff';
       });
+
+      tempWrapper.appendChild(clonedContent);
+      document.body.appendChild(tempWrapper);
+
+      // Wait a tiny bit for styles to apply
+      await new Promise(r => setTimeout(r, 100));
+
+      const canvas = await html2canvas(tempWrapper, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        windowWidth: 800,
+        logging: false
+      });
+
+      document.body.removeChild(tempWrapper);
 
       // ===== SMART PER-PAGE SLICING (for WhatsApp) =====
       const pdf = new jsPDF('p', 'mm', 'a4');
@@ -4015,16 +4102,27 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       ) : (
                         msg.content && (
                           <div id={`msg-text-${msg.id}`} className={`max-w-full break-words leading-relaxed whitespace-normal ${msg.role === 'user' ? 'text-slate-900 dark:text-white' : 'text-maintext'}`}>
-                            {msg.role === 'user' && msg.mode === MODES.DEEP_SEARCH && (
-                              <div className="flex items-center gap-1.5 mb-2 px-2 py-1 bg-white/20 rounded-lg w-fit">
-                                <Search size={10} className="text-white" />
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-white">Deep Search</span>
+                            {msg.role === 'user' && (msg.mode === MODES.DEEP_SEARCH || (msg.role === 'user' && msg.content && (msg.content.toLowerCase().includes('search') || msg.mode === 'web_search'))) && (
+                              <div className="flex items-center gap-1.5 mb-2 px-2.5 py-1 bg-white/20 backdrop-blur-md rounded-full w-fit border border-white/10 shadow-sm">
+                                <Search size={10} className="text-white animate-pulse" />
+                                <span className="text-[9px] font-black uppercase tracking-[0.1em] text-white">
+                                  {msg.mode === MODES.DEEP_SEARCH ? 'Deep Intelligence Search' : 'Web Intelligence Search'}
+                                </span>
                               </div>
                             )}
+
                             {msg.role === 'model' && msg.isRealTime && (
-                              <div className="flex items-center gap-2 mb-3 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full w-fit animate-pulse-slow">
-                                <span className="text-lg">🌐</span>
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500">Real-Time Data</span>
+                              <div className="flex items-center gap-3 mb-4 px-4 py-2 bg-gradient-to-r from-blue-600/10 to-indigo-600/10 border border-blue-500/20 rounded-2xl w-fit shadow-lg shadow-blue-500/5 transition-all hover:scale-[1.02] group/search-badge">
+                                <div className="p-1.5 bg-blue-500 rounded-lg shadow-md ring-1 ring-blue-400 group-hover/search-badge:rotate-12 transition-transform">
+                                  <Globe className="w-3.5 h-3.5 text-white animate-[spin_8s_linear_infinite]" />
+                                </div>
+                                <div className="flex flex-col">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.15em] text-blue-500 leading-none">AISA Search</span>
+                                    <div className="w-1 h-1 rounded-full bg-blue-400 animate-pulse" />
+                                  </div>
+                                  <span className="text-[9px] font-bold text-blue-500/60 uppercase tracking-widest mt-0.5">Real-Time Grounding Active</span>
+                                </div>
                               </div>
                             )}
 
@@ -4176,8 +4274,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                             {/* Dynamic Video Rendering */}
                             {msg.videoUrl && (
-                              <div className="relative mt-4 mb-2">
-                                <CustomVideoPlayer src={msg.videoUrl} />
+                              <div className="relative mt-4 mb-2 w-full max-w-xl">
+                                <CustomVideoPlayer src={msg.videoUrl} compact={true} />
                               </div>
                             )}
 
@@ -4501,35 +4599,20 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                     <Share className="w-3.5 h-3.5" />
                                   </button>
 
-                                  {/* PDF Tools */}
-                                  <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 ml-2 pl-2">
-                                    {/* Copy PDF - NEW */}
-                                    <button
-                                      onClick={() => handlePdfAction('copy', msg)}
-                                      onMouseEnter={() => handlePdfAction('pregenerate', msg)}
-                                      onFocus={() => handlePdfAction('pregenerate', msg)}
-                                      className="text-subtext hover:text-primary transition-all p-1.5 hover:bg-surface-hover rounded-lg flex items-center gap-1 active:scale-95"
-                                      title="Copy PDF File"
-                                    >
-                                      <Copy className="w-3.5 h-3.5" />
-                                    </button>
-
-                                    {/* PDF Share — Direct 1-click */}
-                                    <button
-                                      onClick={() => handlePdfAction('share', msg)}
-                                      onMouseEnter={() => handlePdfAction('pregenerate', msg)}
-                                      onFocus={() => handlePdfAction('pregenerate', msg)}
-                                      className="text-red-500 hover:text-red-600 transition-all p-1.5 hover:bg-red-50/10 rounded-lg flex items-center gap-1 active:scale-95"
-                                      title={pregeneratedPdfs[msg.id] ? "Share PDF ✓ Ready" : "Share PDF"}
-                                    >
-                                      <FileText className="w-4 h-4" />
-                                      {pdfLoadingId === msg.id && !pregeneratedPdfs[msg.id] ? (
-                                        <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                                      ) : pregeneratedPdfs[msg.id] ? (
+                                  {/* PDF Tools — Only show when fully ready (no pulsing dots) */}
+                                  {pregeneratedPdfs[msg.id] && (
+                                    <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 ml-2 pl-2 animate-in fade-in zoom-in duration-300">
+                                      {/* PDF Share — Direct 1-click */}
+                                      <button
+                                        onClick={() => handlePdfAction('share', msg)}
+                                        className="text-red-500 hover:text-red-600 transition-all p-1.5 hover:bg-red-50/10 rounded-lg flex items-center gap-1 active:scale-95"
+                                        title="Share / Download PDF ✓ Ready"
+                                      >
+                                        <FileText className="w-4 h-4" />
                                         <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                                      ) : null}
-                                    </button>
-                                  </div>
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
 
 
@@ -5067,6 +5150,25 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             <span className="text-[10px] text-subtext block leading-tight truncate mt-0.5">Edit image via Vertex AI</span>
                           </div>
                         </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!checkPremiumTool('Image to Video')) return;
+                            setIsToolsMenuOpen(false);
+                            setIsMagicVideoModalOpen(true);
+                          }}
+                          className={`w-full text-left px-3 py-2 flex items-center gap-3 rounded-2xl transition-all group cursor-pointer hover:bg-primary/5`}
+                        >
+                          <div className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors shrink-0 bg-surface border-border group-hover:border-primary/30 group-hover:bg-primary/10`}>
+                            <Wand2 className="w-4.5 h-4.5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[14px] font-bold text-maintext block leading-tight">Image {'->'} Video Magic Card</span>
+                            <span className="text-[10px] text-subtext block leading-tight truncate mt-0.5">Animate image via Veo 3.1</span>
+                          </div>
+                        </button>
+
                       </div>
                     </motion.div>
                   )}
@@ -5129,8 +5231,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               value={imageModelId}
                               onChange={(e) => setImageModelId(e.target.value)}
                             >
-                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="imagen-3.0-generate-001">Imagen 3.0 (38 Credits)</option>
-                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="imagen-4.0-ultra-generate-001">Imagen 4 Ultra (58 Credits)</option>
+                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="imagen-3.0-generate-001">Imagen 3.0 (60 Credits)</option>
+                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="imagen-4.0-ultra-generate-001">Imagen 4 Ultra (80 Credits)</option>
                             </select>
                             <ChevronDown size={12} className="absolute right-0 pointer-events-none" />
                           </div>
@@ -5159,8 +5261,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               value={videoResolution}
                               onChange={(e) => setVideoResolution(e.target.value)}
                             >
-                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="1080p">1080p {videoModelId === 'veo-3.1-generate-001' ? '(500 Credits/s)' : '(188 Credits/s)'}</option>
-                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="4k">4K {videoModelId === 'veo-3.1-generate-001' ? '(750 Credits/s)' : '(438 Credits/s)'}</option>
+                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="1080p">1080p {videoModelId === 'veo-3.1-generate-001' ? '(800 Credits/s)' : '(300 Credits/s)'}</option>
+                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="4k">4K {videoModelId === 'veo-3.1-generate-001' ? '(1200 Credits/s)' : '(700 Credits/s)'}</option>
                             </select>
                             <ChevronDown size={12} className="absolute right-0 pointer-events-none" />
                           </div>
@@ -5170,13 +5272,13 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               value={videoModelId}
                               onChange={(e) => setVideoModelId(e.target.value)}
                             >
-                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="veo-3.1-fast-generate-001">Veo 3.1 Fast</option>
-                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="veo-3.1-generate-001">Veo 3.1 Full</option>
+                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="veo-3.1-fast-generate-001">AISA Video Fast</option>
+                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="veo-3.1-generate-001">AISA Video Pro</option>
                             </select>
                             <ChevronDown size={12} className="absolute right-0 pointer-events-none" />
                           </div>
                           <div className="ml-1 border-l border-red-500/20 pl-2 text-[10px] text-red-600/80 bg-red-500/5 px-2 py-0.5 rounded-full whitespace-nowrap hidden sm:block">
-                            Charges: {videoModelId === 'veo-3.1-generate-001' ? (videoResolution === '4k' ? '750' : '500') : (videoResolution === '4k' ? '438' : '188')} Credits/s
+                            Charges: {videoModelId === 'veo-3.1-generate-001' ? (videoResolution === '4k' ? '1200' : '800') : (videoResolution === '4k' ? '700' : '300')} Credits/s
                           </div>
                           <button onClick={() => setIsVideoGeneration(false)} className="ml-1 hover:text-red-800"><X size={12} /></button>
                         </motion.div>
@@ -5543,6 +5645,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         )
       }
       <PremiumUpsellModal />
+      <MagicVideoGenModal
+        isOpen={isMagicVideoModalOpen}
+        onClose={() => setIsMagicVideoModalOpen(false)}
+        onCreditDeduction={(credits) => console.log('deducted', credits)}
+      />
     </div >
   );
 };

@@ -91,9 +91,17 @@ const apis = {
   subscription: {
     status: `${API}/subscription/status`,
     credits: `${API}/subscription/user-credits`,
-    history: `${API}/subscription/credit-usage-history`,
+    history: `${API}/subscription/credit-history`,
     purchase: `${API}/subscription/purchase-plan`,
     verify: `${API}/subscription/verify-payment`,
+  },
+  aibase: {
+    chat: `${API}/aibase/chat`,
+    knowledge: `${API}/aibase/knowledge`,
+    documents: `${API}/aibase/knowledge/documents`,
+    upload: `${API}/aibase/knowledge/upload`,
+    download: (id) => `${API}/aibase/knowledge/download/${id}`,
+    delete: (id) => `${API}/aibase/knowledge/${id}`,
   }
 };
 
