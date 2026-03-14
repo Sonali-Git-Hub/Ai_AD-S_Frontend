@@ -609,16 +609,88 @@ export const apiService = {
       throw error;
     }
   },
-
-  async deleteKnowledgeDocument(id) {
+  
+  async uploadKnowledgeUrl(payload) {
     try {
-      const response = await apiClient.delete(`/aibase/knowledge/${id}`);
+      const response = await apiClient.post('/aibase/knowledge/upload-url', payload);
       return response.data;
     } catch (error) {
-      console.error("Failed to delete knowledge document:", error);
+      console.error("Failed to upload knowledge URL:", error);
       throw error;
     }
   },
+
+  async getKnowledgeList() {
+    try {
+      const response = await apiClient.get('/aibase/knowledge/list');
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch knowledge list:", error);
+      throw error;
+    }
+  },
+
+  async reindexDocument(id) {
+    try {
+      const response = await apiClient.post(`/aibase/knowledge/reindex/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to reindex document:", error);
+      throw error;
+    }
+  },
+
+  // --- Knowledge Source (Website Crawler) Management ---
+  async getKnowledgeSources() {
+    try {
+      const response = await apiClient.get('/aibase/knowledge/sources');
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch knowledge sources:", error);
+      throw error;
+    }
+  },
+
+    async recrawlSource(payload) {
+        try {
+            const path = payload.id ? `/aibase/knowledge/recrawl/${payload.id}` : '/aibase/knowledge/recrawl';
+            const response = await apiClient.post(path, payload);
+            return response.data;
+        } catch (error) {
+            console.error("Failed to recrawl source:", error);
+            throw error;
+        }
+    },
+
+  async updateKnowledgeSource(id, payload) {
+    try {
+      const response = await apiClient.patch(`/aibase/knowledge/sources/${id}`, payload);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to update knowledge source:", error);
+      throw error;
+    }
+  },
+
+  async deleteKnowledgeSource(id) {
+    try {
+      const response = await apiClient.delete(`/aibase/knowledge/sources/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to delete knowledge source:", error);
+      throw error;
+    }
+  },
+
+    async deleteKnowledgeDocument(id) {
+        try {
+            const response = await apiClient.delete(`/aibase/knowledge/delete/${id}`);
+            return response.data;
+        } catch (error) {
+            console.error("Failed to delete knowledge document:", error);
+            throw error;
+        }
+    },
 
   async aibaseChat(payload) {
     try {

@@ -198,7 +198,7 @@ const Landing = () => {
             >
                 <motion.div
                     variants={item}
-                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/60 dark:bg-black/40 border border-primary/20 text-sm text-black dark:text-white mb-8 backdrop-blur-sm"
+                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/40 dark:bg-black/40 border border-primary/20 text-sm text-black dark:text-white mb-8 backdrop-blur-md"
                 >
                     <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
                     {t('poweredByUWO')}
@@ -237,7 +237,7 @@ const Landing = () => {
                             whileHover={{ y: -5, scale: 1.02, backgroundColor: "rgba(255,255,255,0.8)" }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => navigate("/login")}
-                            className="px-8 py-4 bg-white/60 dark:bg-slate-900/40 border border-border rounded-2xl font-bold text-lg text-maintext transition-all duration-300 backdrop-blur-sm"
+                            className="px-8 py-4 bg-white/40 dark:bg-slate-900/40 border border-border rounded-2xl font-bold text-lg text-maintext transition-all duration-300 backdrop-blur-md"
                         >
                             {t('existingUser')}
                         </motion.button>
@@ -274,7 +274,7 @@ const Landing = () => {
                                 key={i}
                                 variants={item}
                                 whileHover={{ y: -10, scale: 1.02, borderColor: "var(--primary)" }}
-                                className="p-6 rounded-3xl bg-white/50 dark:bg-[#161B2E] border border-white/50 dark:border-white/5 shadow-sm hover:shadow-xl transition-all group backdrop-blur-sm cursor-default"
+                                className="p-6 rounded-3xl bg-white/20 dark:bg-[#161B2E]/60 border border-white/40 dark:border-white/5 shadow-sm hover:shadow-xl transition-all group backdrop-blur-md cursor-default"
                             >
                                 <motion.div
                                     animate={{ y: [0, -5, 0] }}
@@ -322,7 +322,7 @@ const Landing = () => {
                             whileHover={{ y: -5, scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => navigate("/pricing")}
-                            className="bg-white/30 dark:bg-[#161B2E]/80 backdrop-blur-xl rounded-[2rem] p-8 md:p-12 border-2 border-primary/50 shadow-2xl relative text-center flex flex-col cursor-pointer w-full max-w-2xl group transition-all"
+                            className="bg-white/5 dark:bg-white/[0.03] backdrop-blur-[50px] backdrop-saturate-[180%] rounded-[2.5rem] p-8 md:p-12 border border-white/30 dark:border-white/[0.08] shadow-2xl relative text-center flex flex-col cursor-pointer w-full max-w-2xl group transition-all ring-1 ring-black/5 dark:ring-white/[0.05]"
                         >
                             <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-primary to-blue-600 text-white text-[11px] font-extrabold px-6 py-1.5 rounded-full uppercase tracking-widest shadow-lg">
                                 Unlock AI Powers
@@ -334,7 +334,7 @@ const Landing = () => {
                                 Get access to advanced AI models, higher rate limits, priority support, and powerful collaboration tools.
                             </p>
                             
-                            <div className="flex items-center justify-center gap-2 text-primary font-bold text-lg bg-primary/10 w-max mx-auto px-6 py-3 rounded-xl group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                            <div className="flex items-center justify-center gap-2 text-primary font-bold text-lg bg-primary/10 backdrop-blur-md border border-primary/10 w-max mx-auto px-6 py-3 rounded-xl group-hover:bg-primary group-hover:text-white transition-all duration-300 shadow-sm hover:shadow-primary/20">
                                 See Pricing Plans
                                 <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
                             </div>

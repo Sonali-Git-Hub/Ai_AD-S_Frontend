@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { NavLink, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Settings, Bell, Sparkles, LayoutGrid,
@@ -368,6 +369,39 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
             case 'account':
                 return (
                     <div className="space-y-4">
+                        <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-gray-100 dark:border-white/5">
+                            <div 
+                                className="relative group/avatar cursor-pointer shrink-0"
+                                onClick={() => document.getElementById('dropdown-avatar-upload').click()}
+                            >
+                                <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full opacity-0 group-hover/avatar:opacity-100 transition-opacity" />
+                                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden relative z-10 transition-transform group-hover/avatar:scale-105">
+                                    {user.avatar ? (
+                                        <img src={user.avatar} alt={user.name} className="w-full h-full object-cover group-hover/avatar:opacity-50 transition-opacity" />
+                                    ) : (
+                                        <span className="text-3xl font-bold group-hover/avatar:opacity-50 transition-opacity">{(user.name || 'U').charAt(0).toUpperCase()}</span>
+                                    )}
+                                </div>
+                                <button className="absolute -bottom-2 -right-2 w-8 h-8 bg-primary text-white rounded-lg flex items-center justify-center shadow-lg border-2 border-white dark:border-[#161B2E] z-20">
+                                    <Plus className="w-4 h-4" />
+                                </button>
+                            </div>
+
+                            <div className="flex-1 text-center sm:text-left space-y-3">
+                                <div>
+                                    <h3 className="text-xl font-black text-gray-800 dark:text-white capitalize">{user.name}</h3>
+                                    <p className="text-sm font-bold text-gray-500 max-w-[200px] truncate sm:max-w-none">{user.email}</p>
+                                </div>
+                                <button 
+                                    onClick={() => window._aisa_sync_profile && window._aisa_sync_profile()}
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl transition-all group/sync"
+                                >
+                                    <RefreshCcw className="w-3.5 h-3.5 group-hover/sync:rotate-180 transition-transform duration-500" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Sync from Social</span>
+                                </button>
+                            </div>
+                        </div>
+
                         {allSettings.filter(s => s.tab === 'account').map(s => <div key={s.id}>{s.component}</div>)}
                         <div className="py-4 flex justify-between items-center text-sm">
                             <div>
@@ -452,6 +486,34 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                             <button onClick={onClose} className="sm:hidden text-subtext"><X size={20} /></button>
                         </div>
 
+                        {/* SYNC PROFILE FUNCTION */}
+                        {(() => {
+                            const handleSync = async () => {
+                                const loading = toast.loading("Syncing with social profile...");
+                                try {
+                                    const res = await axios.get(apis.syncProfile, {
+                                        headers: { 'Authorization': `Bearer ${user.token}` }
+                                    });
+                                    if (res.data.avatar) {
+                                        const updatedUser = { ...user, avatar: res.data.avatar };
+                                        setUserRecoil(prev => ({ ...prev, user: updatedUser }));
+                                        setUserData(updatedUser);
+                                        toast.dismiss(loading);
+                                        toast.success(res.data.message);
+                                    } else {
+                                        toast.dismiss(loading);
+                                        toast.error(res.data.message || "No new photo found.");
+                                    }
+                                } catch (err) {
+                                    toast.dismiss(loading);
+                                    const errMsg = err.response?.data?.error || err.message || "Sync failed";
+                                    toast.error(`${errMsg}. Ensure you are logged in with Google/Microsoft.`);
+                                }
+                            };
+                            window._aisa_sync_profile = handleSync;
+                            return null;
+                        })()}
+
                         <div className="px-4 pb-3">
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -459,7 +521,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                             </div>
                         </div>
 
-                        <nav className="flex-1 px-2 space-y-1 overflow-y-auto">
+                        <nav className="flex-1 px-2 py-2 space-y-1 overflow-y-auto">
                             {tabs.map(tab => (
                                 <button key={tab.id} onClick={() => { setActiveTab(tab.id); setView('detail'); }} className={`w-full flex items-center gap-3 px-4 py-3 sm:py-2.5 rounded-xl text-sm transition-all ${activeTab === tab.id ? 'bg-white dark:bg-[#1E2438] shadow-sm text-primary' : 'text-subtext hover:bg-gray-100 dark:hover:bg-white/5'}`}>
                                     <tab.icon className="w-4 h-4" />
@@ -467,6 +529,8 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                     <ChevronRight className="w-4 h-4 ml-auto sm:hidden opacity-50" />
                                 </button>
                             ))}
+                            
+
                         </nav>
 
                         <div className="p-4 space-y-1 border-t border-gray-100 dark:border-white/5">

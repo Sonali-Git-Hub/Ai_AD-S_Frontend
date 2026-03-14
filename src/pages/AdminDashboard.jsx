@@ -6,7 +6,7 @@ import {
     Search, Shield, Ban, Trash2, Plus, Edit2, X,
     TrendingUp, DollarSign, Activity, Zap,
     ChevronDown, Save, RefreshCw, ArrowLeft,
-    Eye, EyeOff, Check, AlertCircle, FileText, PlusCircle, Headphones
+    Eye, EyeOff, Check, AlertCircle, FileText, PlusCircle, Headphones, BookOpen
 } from 'lucide-react';
 import { apiService } from '../services/apiService';
 import { getUserData } from '../userStore/userData';
@@ -14,6 +14,7 @@ import toast from 'react-hot-toast';
 import { COOKIE_POLICY_DEFAULTS, TERMS_OF_SERVICE_DEFAULTS, PRIVACY_POLICY_DEFAULTS } from '../constants/legalDefaults';
 import AdminHelpDesk from '../Components/AdminHelpDesk';
 import KnowledgeUpload from '../Components/KnowledgeUpload';
+import KnowledgeManagement from '../Components/KnowledgeManagement';
 const ADMIN_EMAIL = 'admin@uwo24.com';
 
 // ─── Tab Button ───
@@ -97,8 +98,6 @@ const OverviewTab = () => {
                 <StatCard icon={DollarSign} label="Total Revenue" value={`₹${stats?.totalRevenue ?? 0}`} color="amber-500" />
                 <StatCard icon={Zap} label="Credits Used" value={stats?.totalCreditsUsed ?? 0} color="violet-500" />
             </div>
-
-            <KnowledgeUpload />
 
             {stats?.toolUsage && stats.toolUsage.length > 0 && (
                 <SectionCard title="Tool Usage Analytics">
@@ -1011,10 +1010,37 @@ const LoadingSpinner = () => (
 );
 
 // ═══════════════════════════════
+// KNOWLEDGE BASE TAB
+// ═══════════════════════════════
+const KnowledgeBaseTab = () => {
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    const handleUploadSuccess = () => {
+        setRefreshTrigger(prev => prev + 1);
+        toast.success("Knowledge base updated. Re-indexing assets...");
+    };
+
+    return (
+        <div className="space-y-6">
+            <SectionCard 
+                title="Ingest New Knowledge" 
+                action={<span className="text-xs text-subtext font-medium">Add files or websites to RAG</span>}
+            >
+                <KnowledgeUpload onUploadSuccess={handleUploadSuccess} />
+            </SectionCard>
+
+            <SectionCard title="Knowledge Assets Management">
+                <KnowledgeManagement key={refreshTrigger} />
+            </SectionCard>
+        </div>
+    );
+};
+
+// ═══════════════════════════════
 // MAIN ADMIN DASHBOARD
 // ═══════════════════════════════
 const AdminDashboard = () => {
-    const [activeTab, setActiveTab] = useState('overview');
+    const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'users', 'plans', 'packages', 'legal', 'helpdesk', 'settings', 'knowledge'
     const navigate = useNavigate();
 
     // Verify admin access
@@ -1036,6 +1062,7 @@ const AdminDashboard = () => {
         { id: 'packages', label: 'Packages', icon: Package },
         { id: 'legal', label: 'Legal Pages', icon: FileText },
         { id: 'helpdesk', label: 'Help Desk', icon: Headphones },
+        { id: 'knowledge', label: 'Knowledge', icon: BookOpen },
         { id: 'settings', label: 'Settings', icon: Settings },
     ];
 
@@ -1047,6 +1074,7 @@ const AdminDashboard = () => {
             case 'packages': return <PackagesTab />;
             case 'legal': return <LegalPagesTab />;
             case 'helpdesk': return <AdminHelpDesk isOpen={true} isEmbedded={true} />;
+            case 'knowledge': return <KnowledgeBaseTab />;
             case 'settings': return <SettingsTab />;
             default: return <OverviewTab />;
         }
