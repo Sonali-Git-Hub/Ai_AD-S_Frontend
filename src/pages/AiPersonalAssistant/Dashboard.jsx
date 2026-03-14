@@ -207,12 +207,12 @@ const Dashboard = () => {
                         </h3>
                     </div>
 
-                    <div className="bg-white/80 dark:bg-[#1A1A1A]/90 backdrop-blur-xl p-4 md:p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 border-t-4 border-t-orange-500 relative overflow-hidden group hover:shadow-lg transition-all">
+                    <div className="bg-white/80 dark:bg-[#1A1A1A]/90 backdrop-blur-xl p-4 md:p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 border-t-4 border-t-blue-500 relative overflow-hidden group hover:shadow-lg transition-all">
                         <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <Clock className="w-12 h-12 md:w-14 md:h-14 text-orange-500" />
+                            <Clock className="w-12 h-12 md:w-14 md:h-14 text-blue-500" />
                         </div>
                         <p className="text-gray-500 text-xs md:text-sm font-medium">{t('pending')}</p>
-                        <h3 className="text-2xl md:text-3xl font-bold text-orange-500 mt-1">
+                        <h3 className="text-2xl md:text-3xl font-bold text-blue-500 mt-1">
                             {tasks.filter(t => t.status === 'pending' || t.status === 'missed').length}
                         </h3>
                     </div>

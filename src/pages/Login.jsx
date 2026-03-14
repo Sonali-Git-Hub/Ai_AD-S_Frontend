@@ -38,6 +38,7 @@ const Login = () => {
     const userName = params.get('userName');
     const userEmail = params.get('userEmail');
     const provider = params.get('provider');
+    const picture = params.get('picture');
 
     if (isSocialAuth && token && userId) {
       toast.success(`Successfully authenticated as ${userName}!`);
@@ -49,7 +50,8 @@ const Login = () => {
         token: token,
         role: "user",
         plan: "Basic",
-        provider: provider || "local"
+        provider: provider || "local",
+        avatar: picture || ""
       };
 
       // Real state update & storage
@@ -149,7 +151,9 @@ const Login = () => {
 
     // Construct the backend auth URL safely
     // Redirecting to backend which then handles provider-specific handshake
-    const backendAuthUrl = apis.logIn.replace('/login', `/${provider.toLowerCase()}`);
+    const backendAuthUrl = provider.toLowerCase() === 'microsoft' 
+      ? apis.microsoftLogin 
+      : apis.logIn.replace('/login', `/${provider.toLowerCase()}`);
 
     toast.loading(`Opening ${provider} Login...`);
 
@@ -201,6 +205,8 @@ const Login = () => {
               </motion.div>
             )}
           </AnimatePresence>
+
+
 
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="relative group">
