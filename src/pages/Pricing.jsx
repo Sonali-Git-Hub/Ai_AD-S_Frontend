@@ -418,13 +418,13 @@ const Pricing = () => {
 
       {renderComparisonTable()}
 
-      {/* Development Utility button to trigger UpSell popup test */}
-      <div className="text-center mt-20 opacity-30 hover:opacity-100 transition-opacity">
+      <div className="text-center mt-24 mb-10 px-4">
         <button
           onClick={() => setShowUpsell(true)}
-          className="bg-slate-800 text-slate-300 px-4 py-2 rounded-lg text-sm"
+          className="bg-primary/10 hover:bg-primary text-primary hover:text-white border border-primary/30 px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all shadow-lg hover:shadow-primary/20 flex items-center gap-2 mx-auto"
         >
-          [Dev] Test Micro Upsell Popup
+          <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+          Developer Utility: Test Upsell Popup
         </button>
       </div>
 
