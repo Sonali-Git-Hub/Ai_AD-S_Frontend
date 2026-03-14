@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect, Fragment } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Send, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe } from 'lucide-react';
+import { Send, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe, Sliders, PlayCircle } from 'lucide-react';
 import { renderAsync } from 'docx-preview';
 import * as XLSX from 'xlsx';
-import { Menu, Transition, Dialog, Portal } from '@headlessui/react';
+import { Menu, Transition, Dialog, Listbox, Portal } from '@headlessui/react';
 import { generateChatResponse } from '../services/geminiService';
 import { chatStorageService } from '../services/chatStorageService';
 import { useLanguage } from '../context/LanguageContext';
@@ -328,6 +328,11 @@ const Chat = () => {
   const [videoAspectRatio, setVideoAspectRatio] = useState('');
   const [videoModelId, setVideoModelId] = useState('veo-3.1-fast-generate-001');
   const [videoResolution, setVideoResolution] = useState('1080p');
+  const [audioLangCode, setAudioLangCode] = useState('en-US');
+  const [audioVoiceName, setAudioVoiceName] = useState('en-US-Chirp3-HD-Autonoe');
+  const [audioPitch, setAudioPitch] = useState(0);
+  const [audioSpeed, setAudioSpeed] = useState(1.0);
+  const [isVoiceSettingsOpen, setIsVoiceSettingsOpen] = useState(false);
   const [imageAspectRatio, setImageAspectRatio] = useState('1:1');
   const [imageModelId, setImageModelId] = useState('imagen-3.0-generate-001');
   const abortControllerRef = useRef(null);
@@ -593,7 +598,10 @@ const Chat = () => {
         const response = await axios.post(apis.synthesizeFile, {
           fileData: base64Data,
           mimeType: file.type || 'application/pdf',
-          gender: 'FEMALE'
+          languageCode: audioLangCode,
+          voiceName: audioVoiceName,
+          pitch: audioPitch,
+          speakingRate: audioSpeed
         }, {
           responseType: 'arraybuffer',
           timeout: 0,
@@ -726,7 +734,10 @@ const Chat = () => {
         const response = await axios.post(apis.synthesizeFile, {
           fileData: base64Data,
           mimeType: file.type || 'application/pdf',
-          gender: 'FEMALE'
+          languageCode: audioLangCode,
+          voiceName: audioVoiceName,
+          pitch: audioPitch,
+          speakingRate: audioSpeed
         }, {
           responseType: 'arraybuffer',
           timeout: 300000, // 5 minute timeout for large files on live servers
@@ -831,7 +842,10 @@ const Chat = () => {
     try {
       const response = await axios.post(apis.synthesizeFile, {
         introText: text,
-        gender: 'FEMALE'
+        languageCode: audioLangCode,
+        voiceName: audioVoiceName,
+        pitch: audioPitch,
+        speakingRate: audioSpeed
       }, { responseType: 'arraybuffer', timeout: 0, headers: { Authorization: `Bearer ${getUserData()?.token}` } });
 
       const audioBlob = new Blob([response.data], { type: 'audio/mpeg' });
@@ -869,7 +883,17 @@ const Chat = () => {
       };
     } catch (err) {
       console.error('[ManualTextConversion Error]:', err);
-      const serverError = err.response?.data?.details || err.response?.data?.error || err.message;
+      let serverError = err.message;
+      if (err.response?.data) {
+        try {
+          const errorData = err.response.data instanceof ArrayBuffer
+            ? JSON.parse(new TextDecoder().decode(err.response.data))
+            : err.response.data;
+          serverError = errorData.details || errorData.error || err.message;
+        } catch (e) {
+          console.error("Failed to parse", e);
+        }
+      }
       const errorResponse = {
         id: aiMsgId,
         role: 'model',
@@ -1444,48 +1468,59 @@ const Chat = () => {
   const audioRef = useRef(null);
   const audioCacheRef = useRef({});
 
-  // Helper to clean markdown for TTS
+  // Helper to clean markdown for TTS — narrative mode with natural pauses for Chirp 3 HD
   const cleanTextForTTS = (text) => {
     if (!text) return "";
-    // Remove emojis using regex range for various emoji blocks
     return text
+      // ── Emojis out
       .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F0F5}\u{1F200}-\u{1F270}]/gu, '')
-      // Remove headers (keep text): ### Title -> Title
-      .replace(/^#+\s+/gm, '')
-      // Remove bold: **text** -> text
+      // ── Headers → spoken as a sentence with a pause after (period adds natural pause)
+      .replace(/^#{1,2}\s+(.+)$/gm, '$1. ')
+      .replace(/^#{3,}\s+(.+)$/gm, '$1. ')
+      // ── Bold → keep text, no markup
       .replace(/\*\*(.*?)\*\*/g, '$1')
-      // Remove italic: *text* -> text
+      // ── Italic
       .replace(/\*(.*?)\*/g, '$1')
-      // Remove underline: __text__ -> text
+      // ── Underline / strikethrough
       .replace(/__(.*?)__/g, '$1')
-      // Remove strikethrough: ~~text~~ -> text
       .replace(/~~(.*?)~~/g, '$1')
-      // Remove links: [text](url) -> text
+      // ── Links → just the label
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-      // Remove images: ![alt](url) -> empty
+      // ── Images → omit entirely
       .replace(/!\[([^\]]*)\]\([^)]+\)/g, '')
-      // Remove code blocks (replace with brief pause/text to avoid reading syntax)
+      // ── Code blocks → brief spoken note with pause
       .replace(/`{3}[\s\S]*?`{3}/g, ' Code snippet. ')
-      // Remove inline code ticks: `text` -> text
+      // ── Inline code → just the text
       .replace(/`(.+?)`/g, '$1')
-      // Remove list bullets: - text -> text
-      .replace(/^\s*[-*+]\s+/gm, '')
-      // Remove blockquotes: > text -> text
+      // ── Bullet / numbered list items → each becomes a sentence for natural pause
+      .replace(/^\s*[-*+]\s+(.+)$/gm, '$1. ')
+      .replace(/^\s*\d+\.\s+(.+)$/gm, '$1. ')
+      // ── Blockquote → keep content
       .replace(/^\s*>\s+/gm, '')
-      // Replace Trademark with 'tm' so it's handled by next step
-      .replace(/™|&trade;/g, ' tm ')
-      .replace(/©/g, ' ')
-      // Hinglish Normalization for natural Hindi pronunciation
-      // Ensure 'tm' is spoken as 'tum' clearly (NOT HIDDEN)
-      .replace(/\btm\b/gi, 'tum ')
-      .replace(/\bkkrh\b/gi, 'kya kar rahe ho ')
-      .replace(/\bclg\b/gi, 'college ')
-      .replace(/\bplz\b/gi, 'please ')
-      // Remove specific symbols as requested: , . ? ; " \ * / + - : @ [ ] ( ) | _
-      .replace(/[,\.\?;\"\\\*\/\+\-:@\[\]\(\)\|\_]/g, ' ')
-      // Remove quotes/dashes just in case regex above missed something or for extra safety
-      .replace(/["']/g, '')
-      // Collapse whitespace
+      // ── Tables → remove
+      .replace(/\|.*?\|/g, '')
+      // ── Horizontal rules → pause
+      .replace(/^---+$/gm, '. ')
+      // ── Special chars
+      .replace(/™|&trade;/g, ' T M ')
+      .replace(/©/g, '')
+      .replace(/&amp;/g, 'and')
+      .replace(/&lt;/g, '').replace(/&gt;/g, '')
+      // ── Abbreviations → spoken form
+      .replace(/\btm\b/gi, 'tum')
+      .replace(/\bkkrh\b/gi, 'kya kar rahe ho')
+      .replace(/\bclg\b/gi, 'college')
+      .replace(/\bplz\b/gi, 'please')
+      .replace(/\bbtw\b/gi, 'by the way')
+      .replace(/\bidk\b/gi, 'I do not know')
+      .replace(/\bAI\b/g, 'A I')
+      // ── Keep commas, periods, question marks for natural prosody — remove only noise chars
+      .replace(/[;:\"\\@\[\]\(\)\|]/g, ' ')
+      // ── Multiple punctuation → single
+      .replace(/\.{2,}/g, '. ')
+      .replace(/!{2,}/g, '! ')
+      .replace(/\?{2,}/g, '? ')
+      // ── Collapse whitespace
       .replace(/\s+/g, ' ')
       .trim();
   };
@@ -1565,23 +1600,246 @@ const Chat = () => {
               return;
             }
 
-            const langMap = {
-              'Hindi': 'hi-IN',
-              'English': 'en-US',
-              'Hinglish': 'hi-IN'
+            // ── Comprehensive Language Auto-Detector ──────────────────────────────
+            // PHASE 1: Unicode script block detection (non-Latin scripts)
+            // PHASE 2: Romanized language word-frequency scoring (Latin scripts)
+            const detectLanguageFromText = (text) => {
+              const lowerText = text.toLowerCase();
+
+              // ── PHASE 1: Unicode Script Block Detection ─────────────────────────
+              const scriptCounts = {
+                devanagari: (text.match(/[\u0900-\u097F]/g) || []).length,
+                arabic:     (text.match(/[\u0600-\u06FF\u0750-\u077F]/g) || []).length,
+                urdu:       (text.match(/[\uFB50-\uFEFF]/g) || []).length,
+                cyrillic:   (text.match(/[\u0400-\u04FF]/g) || []).length,
+                cjkChinese: (text.match(/[\u4E00-\u9FFF\u3400-\u4DBF]/g) || []).length,
+                hiragana:   (text.match(/[\u3041-\u3096]/g) || []).length,
+                katakana:   (text.match(/[\u30A1-\u30FA]/g) || []).length,
+                hangul:     (text.match(/[\uAC00-\uD7AF\u1100-\u11FF]/g) || []).length,
+                tamil:      (text.match(/[\u0B80-\u0BFF]/g) || []).length,
+                telugu:     (text.match(/[\u0C00-\u0C7F]/g) || []).length,
+                kannada:    (text.match(/[\u0C80-\u0CFF]/g) || []).length,
+                malayalam:  (text.match(/[\u0D00-\u0D7F]/g) || []).length,
+                bengali:    (text.match(/[\u0980-\u09FF]/g) || []).length,
+                gujarati:   (text.match(/[\u0A80-\u0AFF]/g) || []).length,
+                gurmukhi:   (text.match(/[\u0A00-\u0A7F]/g) || []).length,
+                thai:       (text.match(/[\u0E00-\u0E7F]/g) || []).length,
+                greek:      (text.match(/[\u0370-\u03FF]/g) || []).length,
+                hebrew:     (text.match(/[\u05D0-\u05EA]/g) || []).length,
+                latin:      (text.match(/[a-zA-ZÀ-ÖØ-öø-ÿ]/g) || []).length,
+              };
+
+              const totalChars = text.replace(/\s/g, '').length || 1;
+              const dominant = Object.entries(scriptCounts).sort((a, b) => b[1] - a[1])[0];
+              const [dominantScript, dominantCount] = dominant;
+              const dominantRatio = dominantCount / totalChars;
+
+              const scriptToLang = {
+                devanagari: 'hi-IN', arabic: 'ar-XA', urdu: 'ur-IN',
+                cyrillic: 'ru-RU', hiragana: 'ja-JP', katakana: 'ja-JP',
+                hangul: 'ko-KR', tamil: 'ta-IN', telugu: 'te-IN',
+                kannada: 'kn-IN', malayalam: 'ml-IN', bengali: 'bn-IN',
+                gujarati: 'gu-IN', gurmukhi: 'pa-IN', thai: 'th-TH',
+                greek: 'el-GR', hebrew: 'he-IL',
+              };
+
+              if (dominantScript !== 'latin' && dominantRatio > 0.05 && scriptToLang[dominantScript]) {
+                return scriptToLang[dominantScript];
+              }
+              if (dominantScript === 'cjkChinese' && dominantRatio > 0.05) {
+                return (scriptCounts.hiragana + scriptCounts.katakana) > 3 ? 'ja-JP' : 'cmn-CN';
+              }
+              if (dominantScript === 'cyrillic' && dominantRatio > 0.05) {
+                return (text.match(/[їієґ]/gi) || []).length > 2 ? 'uk-UA' : 'ru-RU';
+              }
+
+              // ── PHASE 2: Romanized Language Word-Frequency Scoring ───────────────
+              // For Latin-script text, score against curated word lists.
+              // This handles Hinglish, romanized Urdu, and other transliterated langs.
+              const words = lowerText.match(/\b[a-z]{2,}\b/g) || [];
+              if (words.length === 0) return audioLangCode || 'en-US';
+
+              // Word sets for each romanized language — high-frequency, unambiguous words
+              const romanizedWordSets = {
+                'hi-IN': new Set([
+                  // Verbs & conjugations
+                  'hai','hain','tha','thi','the','hoga','hogi','raha','rahi','rahe',
+                  'karna','karo','karo','kiya','ki','kar','karta','karti','karte',
+                  'hota','hoti','hote','hona','jata','jati','jate','jana','aana',
+                  'aata','aati','dena','deta','deti','lena','leta','leti','milna',
+                  'chahiye','chahte','chahta','chahti','sochna','bolta','bolti',
+                  'dekho','dekh','dekha','suno','sun','sunna','batao','bata',
+                  // Pronouns & particles
+                  'mein','main','hum','aap','tum','woh','yeh','ye','jo','wo',
+                  'mujhe','mujhko','tumhe','unhe','use','ise','kuch','sab','koi',
+                  // Question words
+                  'kya','kyun','kaise','kaun','kahan','kab','kitna','kitni','kitne',
+                  // Common connectors & misc
+                  'aur','ya','lekin','par','magar','toh','toh','agar','jab','tab',
+                  'phir','bhi','nahi','nhi','nahin','bilkul','bahut','bohot','thoda',
+                  'bahot','zyada','kam','accha','achha','theek','sahi','galat',
+                  'abhi','aaj','kal','sirf','bas','matlab','matlab','yaar','bhai',
+                  'dost','pyaar','zindagi','duniya','waqt','time','kaam','kab',
+                  // Responses
+                  'haan','han','nahi','okay','achha','bilkul','zaroor','shukriya',
+                  'dhanyavad','namaste','alag','saath','sath','pehle','baad',
+                ]),
+                'ur-IN': new Set([
+                  'hai','hain','tha','thi','aur','ya','lekin','kyun','kya','kaise',
+                  'mein','hum','aap','tum','woh','yeh','nahi','bilkul','bahut',
+                  'agar','phir','bhi','abhi','aaj','kal','theek','shukriya',
+                  'khuda','hafiz','inshallah','mashallah','subhanallah','alhamdulillah',
+                  'janab','sahib','baat','baten','dil','ishq','mohabbat','aman',
+                  'zindagi','duniya','log','waqt','khayal','zaroor','mehrbani',
+                ]),
+                'de-DE': new Set([
+                  'ist','sind','war','waren','werden','wurde','haben','hat','hatte',
+                  'ich','du','er','sie','wir','ihr','nicht','kein','aber','oder',
+                  'und','auch','mit','von','zu','bei','nach','aus','als','wie',
+                  'dass','wenn','dann','noch','schon','eine','einer','eines','dem',
+                  'den','des','die','der','das','ein','auf','an','im','am',
+                  'sehr','gut','mehr','sein','ihre','ihrer','unser','bitte','danke',
+                ]),
+                'fr-FR': new Set([
+                  'est','sont','était','avoir','a','ont','vous','nous','ils','elles',
+                  'je','tu','il','elle','pas','non','mais','ou','et','aussi',
+                  'avec','de','du','des','les','une','un','le','la','dans',
+                  'pour','sur','par','que','qui','quoi','comment','pourquoi','quand',
+                  'très','bien','plus','mon','ma','mes','ton','ce','cet','cette',
+                  'merci','oui','bonjour','au','aux','être','faire','aller',
+                ]),
+                'es-ES': new Set([
+                  'es','son','está','están','era','fue','ser','estar','tener','tiene',
+                  'yo','tú','él','ella','nosotros','vosotros','ellos','no','pero',
+                  'que','qué','cómo','cuándo','dónde','quién','porque','para',
+                  'con','sin','por','del','los','las','una','unos','unas',
+                  'muy','más','bien','gracias','hola','sí','también','siempre',
+                ]),
+                'it-IT': new Set([
+                  'è','sono','era','essere','avere','ha','hanno','ho','hai','siamo',
+                  'io','tu','lui','lei','noi','voi','loro','non','ma','o','e',
+                  'che','chi','come','quando','dove','perché','anche','con','per',
+                  'una','uno','del','della','dei','degli','il','la','le','gli',
+                  'molto','bene','grazie','ciao','sì','prego','sempre','ancora',
+                ]),
+                'pt-BR': new Set([
+                  'é','são','está','estão','era','ser','estar','ter','tem','têm',
+                  'eu','tu','ele','ela','nós','vocês','eles','não','mas','ou','e',
+                  'que','quê','como','quando','onde','quem','porque','para','com',
+                  'uma','um','dos','das','do','da','os','as','no','na',
+                  'muito','bem','obrigado','olá','sim','também','sempre','ainda',
+                ]),
+                'tr-TR': new Set([
+                  'bir','bu','da','de','den','dir','dır','dür','dùr','için','ile',
+                  'mi','mu','mü','mı','ne','nin','nın','nun','nün','var','yok',
+                  'ben','sen','o','biz','siz','onlar','ama','ve','veya','çok',
+                  'iyi','evet','hayır','tamam','nasıl','neden','nerede','ne zaman',
+                  'teşekkür','merhaba','güzel','büyük','küçük','şimdi','zaman',
+                ]),
+                'vi-VN': new Set([
+                  'là','có','không','và','của','trong','với','các','một','những',
+                  'được','cho','người','tôi','bạn','anh','chị','em','họ','chúng',
+                  'này','đó','gì','nào','sao','khi','vì','để','đã','đang',
+                  'rất','thì','mà','nhưng','hoặc','còn','cũng','nếu','thế','cần',
+                ]),
+                'id-ID': new Set([
+                  'adalah','ada','dan','atau','tidak','bukan','dengan','untuk','dari',
+                  'yang','ini','itu','di','ke','pada','oleh','akan','sudah','belum',
+                  'saya','anda','kamu','dia','kami','kita','mereka','bisa','harus',
+                  'sangat','juga','lagi','sudah','masih','pernah','selalu','kadang',
+                  'bagaimana','mengapa','kapan','dimana','siapa','berapa','apa',
+                  'terima','kasih','selamat','baik','senang','maaf','tolong',
+                ]),
+                'ms-MY': new Set([
+                  'adalah','ada','dan','atau','tidak','bukan','dengan','untuk','dari',
+                  'yang','ini','itu','di','ke','pada','oleh','akan','sudah','belum',
+                  'saya','awak','kamu','dia','kami','kita','mereka','boleh','perlu',
+                  'sangat','juga','lagi','masih','pernah','selalu','kadang',
+                  'terima','kasih','selamat','baik','bagus','maaf','tolong','lah','la',
+                ]),
+                'fil-PH': new Set([
+                  'ang','ng','mga','sa','na','at','ay','para','si','siya',
+                  'ko','mo','niya','tayo','kami','kayo','sila','hindi','oo','ito',
+                  'iyan','iyon','dito','diyan','doon','bakit','paano','sino','kailan',
+                  'sobra','masaya','malaki','maliit','salamat','kumusta','maganda',
+                ]),
+                'nl-NL': new Set([
+                  'is','zijn','was','waren','worden','heeft','hebben','had','kunnen',
+                  'ik','jij','hij','zij','wij','jullie','niet','geen','maar','of','en',
+                  'ook','met','van','te','bij','na','uit','als','hoe','wat','wie',
+                  'dat','dit','die','de','het','een','meer','heel','goed','dank',
+                ]),
+                'pl-PL': new Set([
+                  'jest','są','był','była','być','mam','masz','ma','mamy','mają',
+                  'ja','ty','on','ona','my','wy','oni','nie','ale','lub','i','też',
+                  'co','jak','kiedy','gdzie','kto','dlaczego','tu','tam','już','to',
+                  'bardzo','dobrze','dziękuję','cześć','tak','też','zawsze','jeszcze',
+                ]),
+                'ko-KR': new Set([
+                  // Romanized Korean (konglish / casual roman)
+                  'annyeong','gamsahamnida','nae','ne','anieyo','iseo','isseo',
+                  'hamnida','haeseo','gayo','wayo','juseyo','kamsahamnida','saranghae',
+                  'oppa','unni','hyung','noona','aigoo','daebak','heol','mwo',
+                ]),
+              };
+
+              // Score each language by counting matched words
+              const scores = {};
+              for (const [langCode, wordSet] of Object.entries(romanizedWordSets)) {
+                let score = 0;
+                for (const w of words) {
+                  if (wordSet.has(w)) score++;
+                }
+                scores[langCode] = score;
+              }
+
+              // Find winner — must have at least 2 word hits and beat runner-up by 1
+              const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+              const [topLang, topScore] = sorted[0];
+              const runnerScore = sorted[1]?.[1] || 0;
+
+              if (topScore >= 2 && topScore > runnerScore) {
+                console.log(`[LANG] Romanized detection → ${topLang} (score:${topScore})`);
+                return topLang;
+              }
+
+              // ── PHASE 3: User's Voice Settings → then English fallback ──────────
+              return audioLangCode || 'en-US';
             };
-            targetLang = /[\u0900-\u097F]/.test(cleanText) ? 'hi-IN' : (langMap[language] || 'en-US');
 
-            // Show loading for normal TTS too
-            toast.loading("Generating voice...", { id: 'voice-loading' });
+            targetLang = detectLanguageFromText(cleanText);
 
-            const response = await axios.post(apis.synthesizeVoice, {
-              text: cleanText,
+            // Show loading with detected language
+            const langLabels = {
+              'hi-IN': 'Hindi', 'en-US': 'English (US)', 'en-GB': 'English (UK)',
+              'en-AU': 'English (AU)', 'en-IN': 'English (IN)', 'ar-XA': 'Arabic',
+              'ur-IN': 'Urdu', 'ru-RU': 'Russian', 'uk-UA': 'Ukrainian',
+              'cmn-CN': 'Chinese (CN)', 'cmn-TW': 'Chinese (TW)', 'ja-JP': 'Japanese',
+              'ko-KR': 'Korean', 'ta-IN': 'Tamil', 'te-IN': 'Telugu', 'kn-IN': 'Kannada',
+              'ml-IN': 'Malayalam', 'bn-IN': 'Bengali', 'gu-IN': 'Gujarati',
+              'pa-IN': 'Punjabi', 'mr-IN': 'Marathi', 'th-TH': 'Thai',
+              'el-GR': 'Greek', 'he-IL': 'Hebrew', 'de-DE': 'German',
+              'fr-FR': 'French', 'es-ES': 'Spanish', 'it-IT': 'Italian',
+              'pt-BR': 'Portuguese', 'nl-NL': 'Dutch', 'pl-PL': 'Polish',
+              'sv-SE': 'Swedish', 'nb-NO': 'Norwegian', 'da-DK': 'Danish',
+              'fi-FI': 'Finnish', 'cs-CZ': 'Czech', 'sk-SK': 'Slovak',
+              'ro-RO': 'Romanian', 'hu-HU': 'Hungarian', 'tr-TR': 'Turkish',
+              'vi-VN': 'Vietnamese', 'id-ID': 'Indonesian', 'ms-MY': 'Malay',
+              'fil-PH': 'Filipino', 'yue-HK': 'Cantonese',
+            };
+            toast.loading(`🌐 Speaking in ${langLabels[targetLang] || targetLang}...`, { id: 'voice-loading' });
+
+            // Use Chirp 3 HD Autonoe — soft, gentle voice with natural pauses
+            const chirpVoice = `${targetLang}-Chirp3-HD-Autonoe`;
+            const response = await axios.post(apis.synthesizeFile, {
+              introText: cleanText,
               languageCode: targetLang,
-              gender: 'FEMALE',
-              tone: 'conversational'
+              voiceName: chirpVoice,
+              pitch: 0,
+              speakingRate: 1.0
             }, {
               responseType: 'arraybuffer',
+              timeout: 60000,
               headers: { Authorization: `Bearer ${getUserData()?.token}` }
             });
 
@@ -4403,42 +4661,162 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       {/* File Conversion Download Button */}
                       {msg.conversion && msg.conversion.file && (
                         <div className="mt-4 pt-3 border-t border-border/40 space-y-3">
-                          {/* Integrated Audio Player for Voice Conversations */}
-                          {msg.conversion.mimeType.startsWith('audio/') && (
-                            <div className="bg-primary/5 rounded-xl p-2 border border-primary/10 mb-2">
-                              <audio
-                                controls
-                                className="w-full h-10 accent-primary rounded-lg"
-                                src={msg.conversion.blobUrl || `data:${msg.conversion.mimeType};base64,${msg.conversion.file}`}
-                              >
-                                Your browser does not support the audio element.
-                              </audio>
+
+                          {/* ── Modern Audio Player ── */}
+                          {msg.conversion.mimeType.startsWith('audio/') && (() => {
+                            const audioSrc = msg.conversion.blobUrl || `data:${msg.conversion.mimeType};base64,${msg.conversion.file}`;
+                            const playerId = `player-${msg.id}`;
+                            return (
+                              <div className="rounded-2xl overflow-hidden mb-2" style={{ background: 'linear-gradient(135deg, rgba(20,20,40,0.95) 0%, rgba(30,20,60,0.95) 100%)', border: '1px solid rgba(139,92,246,0.2)' }}>
+                                {/* Waveform decorative bars + header */}
+                                <div className="px-4 pt-4 pb-2 flex items-center gap-3">
+                                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}>
+                                    <Volume2 className="w-4 h-4 text-white" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-bold text-white truncate">{msg.conversion.fileName}</p>
+                                    <p className="text-[10px] text-purple-300/60 font-medium">
+                                      {msg.conversion.fileSize || ''}{msg.conversion.charCount ? ` · ${msg.conversion.charCount} chars` : ''} · MP3 Audio
+                                    </p>
+                                  </div>
+                                  {/* Decorative waveform */}
+                                  <div className="flex items-center gap-[2px] shrink-0">
+                                    {[3,5,8,6,9,7,5,8,6,4,7,5].map((h, i) => (
+                                      <div key={i} className="w-[2px] rounded-full opacity-40" style={{ height: `${h}px`, background: 'linear-gradient(to top, #7c3aed, #818cf8)' }} />
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {/* Player controls */}
+                                <div className="px-4 pb-4">
+                                  <audio id={playerId} src={audioSrc} preload="metadata" style={{ display: 'none' }} />
+
+                                  {/* Seek bar */}
+                                  <div className="mb-3">
+                                    <input
+                                      type="range" min="0" max="100" defaultValue="0" step="0.1"
+                                      className="w-full h-1 rounded-full cursor-pointer appearance-none"
+                                      style={{ background: 'rgba(255,255,255,0.08)' }}
+                                      onInput={(e) => {
+                                        const audio = document.getElementById(playerId);
+                                        if (audio && audio.duration) {
+                                          audio.currentTime = (e.target.value / 100) * audio.duration;
+                                        }
+                                        e.target.style.background = `linear-gradient(to right, #7c3aed 0%, #818cf8 ${e.target.value}%, rgba(255,255,255,0.08) ${e.target.value}%, rgba(255,255,255,0.08) 100%)`;
+                                      }}
+                                      ref={(el) => {
+                                        if (!el) return;
+                                        const audio = document.getElementById(playerId);
+                                        if (!audio) return;
+                                        const update = () => {
+                                          if (!audio.duration) return;
+                                          const pct = (audio.currentTime / audio.duration) * 100;
+                                          el.value = pct;
+                                          el.style.background = `linear-gradient(to right, #7c3aed 0%, #818cf8 ${pct}%, rgba(255,255,255,0.08) ${pct}%, rgba(255,255,255,0.08) 100%)`;
+                                          // update time display
+                                          const fmt = (s) => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+                                          const timeEl = document.getElementById(`time-${playerId}`);
+                                          const durEl = document.getElementById(`dur-${playerId}`);
+                                          if (timeEl) timeEl.textContent = fmt(audio.currentTime);
+                                          if (durEl && audio.duration) durEl.textContent = fmt(audio.duration);
+                                        };
+                                        audio.addEventListener('timeupdate', update);
+                                        audio.addEventListener('loadedmetadata', update);
+                                      }}
+                                    />
+                                    <div className="flex justify-between text-[10px] text-white/20 mt-1 font-mono">
+                                      <span id={`time-${playerId}`}>0:00</span>
+                                      <span id={`dur-${playerId}`}>--:--</span>
+                                    </div>
+                                  </div>
+
+                                  {/* Buttons */}
+                                  <div className="flex items-center gap-3">
+                                    {/* Play/Pause */}
+                                    <button
+                                      onClick={(e) => {
+                                        const audio = document.getElementById(playerId);
+                                        const btn = e.currentTarget;
+                                        if (!audio) return;
+                                        if (audio.paused) {
+                                          // Pause all other players
+                                          document.querySelectorAll('audio').forEach(a => { if (a !== audio) a.pause(); });
+                                          audio.play();
+                                          btn.dataset.playing = 'true';
+                                          btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
+                                          audio.addEventListener('ended', () => {
+                                            btn.dataset.playing = '';
+                                            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+                                          }, { once: true });
+                                        } else {
+                                          audio.pause();
+                                          btn.dataset.playing = '';
+                                          btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+                                        }
+                                      }}
+                                      className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 shadow-lg shadow-purple-500/30 transition-transform active:scale-90"
+                                      style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                                    </button>
+
+                                    {/* Speed pill */}
+                                    <button
+                                      onClick={(e) => {
+                                        const audio = document.getElementById(playerId);
+                                        if (!audio) return;
+                                        const speeds = [1, 1.25, 1.5, 1.75, 2];
+                                        const cur = speeds.indexOf(audio.playbackRate);
+                                        const next = speeds[(cur + 1) % speeds.length];
+                                        audio.playbackRate = next;
+                                        e.currentTarget.textContent = `${next}×`;
+                                      }}
+                                      className="px-2.5 py-1 text-[10px] font-bold text-purple-300 rounded-lg border border-purple-500/20 hover:border-purple-400/50 transition-colors"
+                                      style={{ background: 'rgba(124,58,237,0.1)' }}
+                                    >1×</button>
+
+                                    <div className="flex-1" />
+
+                                    {/* Volume */}
+                                    <button onClick={(e) => {
+                                      const audio = document.getElementById(playerId);
+                                      if (!audio) return;
+                                      audio.muted = !audio.muted;
+                                      e.currentTarget.style.opacity = audio.muted ? '0.4' : '1';
+                                    }} className="text-white/40 hover:text-white/80 transition-colors">
+                                      <Volume2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* File metadata + Download button */}
+                          {!msg.conversion.mimeType.startsWith('audio/') && (
+                            <div className="flex items-center justify-between px-1 py-1">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold text-maintext truncate">{msg.conversion.fileName}</p>
+                                <p className="text-[10px] text-subtext font-bold uppercase tracking-widest flex items-center gap-2">
+                                  <span className="px-1.5 py-0.5 bg-primary/10 text-primary rounded-md border border-primary/20">
+                                    {msg.conversion.fileSize || "Ready"}
+                                  </span>
+                                  {msg.conversion.charCount && (
+                                    <span className="px-1.5 py-0.5 bg-secondary/30 text-subtext rounded-md border border-border/50">
+                                      {msg.conversion.charCount} CHARS
+                                    </span>
+                                  )}
+                                  {msg.conversion.mimeType.includes('pdf') ? 'PDF • DOCUMENT' : 'WORD • DOCUMENT'}
+                                </p>
+                              </div>
                             </div>
                           )}
-
-                          <div className="flex items-center justify-between px-1 py-1">
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-bold text-maintext truncate">{msg.conversion.fileName}</p>
-                              <p className="text-[10px] text-subtext font-bold uppercase tracking-widest flex items-center gap-2">
-                                <span className="px-1.5 py-0.5 bg-primary/10 text-primary rounded-md border border-primary/20">
-                                  {msg.conversion.fileSize || "Ready"}
-                                </span>
-                                {msg.conversion.charCount && (
-                                  <span className="px-1.5 py-0.5 bg-secondary/30 text-subtext rounded-md border border-border/50">
-                                    {msg.conversion.charCount} CHARS
-                                  </span>
-                                )}
-                                {msg.conversion.mimeType.includes('audio') ? 'AUDIO • MP3' : msg.conversion.mimeType.includes('pdf') ? 'PDF • DOCUMENT' : 'WORD • DOCUMENT'}
-                              </p>
-                            </div>
-                          </div>
 
                           <div className="flex flex-col sm:flex-row gap-2">
                             <button
                               onClick={() => {
                                 const downloadToast = toast.loading("Starting download...");
                                 try {
-                                  // Create download link
                                   const byteCharacters = atob(msg.conversion.file);
                                   const byteNumbers = new Array(byteCharacters.length);
                                   for (let i = 0; i < byteCharacters.length; i++) {
@@ -4463,7 +4841,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                   toast.error("Download failed");
                                 }
                               }}
-                              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl transition-all hover:bg-primary/90 shadow-sm font-bold text-sm active:scale-95"
+                              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-white rounded-xl transition-all shadow-lg font-bold text-sm active:scale-95 hover:opacity-90"
+                              style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}
                             >
                               <Download className="w-4 h-4" />
                               Download {msg.conversion.mimeType.includes('audio') ? 'Audio' : msg.conversion.mimeType.includes('pdf') ? 'PDF' : 'Document'}
@@ -4569,9 +4948,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 <div className="flex items-center gap-3">
                                   <button
                                     onClick={() => {
-                                      // Pass message ID to speakResponse for tracking
-                                      const isHindi = /[\u0900-\u097F]/.test(msg.content);
-                                      speakResponse(msg.content, isHindi ? 'Hindi' : 'English', msg.id, msg.attachments || [], true);
+                                      // Language is auto-detected inside speakResponse / detectLanguageFromText
+                                      speakResponse(msg.content, null, msg.id, msg.attachments || [], true);
                                     }}
                                     className={`transition-colors p-1.5 rounded-lg ${speakingMessageId === msg.id
                                       ? 'text-primary bg-primary/10'
@@ -5331,6 +5709,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       {isAudioConvertMode && (
                         <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-indigo-500/10 text-indigo-600 rounded-full text-xs font-bold border border-indigo-500/20 backdrop-blur-md whitespace-nowrap shrink-0">
                           <Headphones size={12} strokeWidth={3} /> <span className="hidden sm:inline">Audio Convert</span>
+                          <button onClick={() => setIsVoiceSettingsOpen(true)} className="ml-1 hover:text-indigo-800" title="Voice Settings">
+                            <Sliders size={12} />
+                          </button>
                           <button onClick={() => setIsAudioConvertMode(false)} className="ml-1 hover:text-indigo-800"><X size={12} /></button>
                         </motion.div>
                       )}
@@ -5683,6 +6064,330 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
           </div>
         )
       }
+      {/* ===== VOICE SETTINGS MODAL ===== */}
+      <Transition appear show={isVoiceSettingsOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-[999]" onClose={() => setIsVoiceSettingsOpen(false)}>
+          <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-md" />
+          </Transition.Child>
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4">
+              <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95 translate-y-4" enterTo="opacity-100 scale-100 translate-y-0" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
+                <Dialog.Panel className="w-full max-w-md overflow-hidden rounded-3xl shadow-2xl border border-white/10" style={{ background: 'linear-gradient(135deg, rgba(20,20,35,0.97) 0%, rgba(15,15,28,0.98) 100%)', backdropFilter: 'blur(40px)' }}>
+                  
+                  {/* ── Header ── */}
+                  <div className="relative px-6 pt-6 pb-4">
+                    <div className="absolute inset-0 opacity-20" style={{ background: 'radial-gradient(ellipse at top, rgba(99,102,241,0.4) 0%, transparent 70%)' }} />
+                    <div className="relative flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                          <Sliders className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                          <Dialog.Title as="h3" className="text-sm font-bold text-white leading-none">Voice Settings</Dialog.Title>
+                          <p className="text-[10px] text-indigo-400 font-semibold mt-0.5">Chirp 3 HD · 30 voices · 35+ languages</p>
+                        </div>
+                      </div>
+                      <button onClick={() => setIsVoiceSettingsOpen(false)} className="w-7 h-7 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-all border border-white/10">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="px-6 pb-6 space-y-5">
+
+                    {/* ── Language Picker ── */}
+                    {(() => {
+                      const LANGS = [
+                        { group: '🇺🇸 English', items: [
+                          { value: 'en-US', label: 'English (US)', flag: '🇺🇸' },
+                          { value: 'en-GB', label: 'English (UK)', flag: '🇬🇧' },
+                          { value: 'en-AU', label: 'English (Australia)', flag: '🇦🇺' },
+                          { value: 'en-IN', label: 'English (India)', flag: '🇮🇳' },
+                        ]},
+                        { group: '🇮🇳 South Asian', items: [
+                          { value: 'hi-IN', label: 'Hindi', flag: '🇮🇳' },
+                          { value: 'bn-IN', label: 'Bengali', flag: '🇧🇩' },
+                          { value: 'gu-IN', label: 'Gujarati', flag: '🇮🇳' },
+                          { value: 'kn-IN', label: 'Kannada', flag: '🇮🇳' },
+                          { value: 'ml-IN', label: 'Malayalam', flag: '🇮🇳' },
+                          { value: 'mr-IN', label: 'Marathi', flag: '🇮🇳' },
+                          { value: 'pa-IN', label: 'Punjabi ✨', flag: '🇮🇳' },
+                          { value: 'ta-IN', label: 'Tamil', flag: '🇮🇳' },
+                          { value: 'te-IN', label: 'Telugu', flag: '🇮🇳' },
+                          { value: 'ur-IN', label: 'Urdu', flag: '🇮🇳' },
+                        ]},
+                        { group: '🇪🇺 European', items: [
+                          { value: 'cs-CZ', label: 'Czech', flag: '🇨🇿' },
+                          { value: 'da-DK', label: 'Danish', flag: '🇩🇰' },
+                          { value: 'de-DE', label: 'German', flag: '🇩🇪' },
+                          { value: 'el-GR', label: 'Greek', flag: '🇬🇷' },
+                          { value: 'es-ES', label: 'Spanish (Spain)', flag: '🇪🇸' },
+                          { value: 'es-US', label: 'Spanish (US)', flag: '🇺🇸' },
+                          { value: 'fi-FI', label: 'Finnish', flag: '🇫🇮' },
+                          { value: 'fr-FR', label: 'French (France)', flag: '🇫🇷' },
+                          { value: 'fr-CA', label: 'French (Canada)', flag: '🇨🇦' },
+                          { value: 'hu-HU', label: 'Hungarian', flag: '🇭🇺' },
+                          { value: 'it-IT', label: 'Italian', flag: '🇮🇹' },
+                          { value: 'nb-NO', label: 'Norwegian', flag: '🇳🇴' },
+                          { value: 'nl-NL', label: 'Dutch', flag: '🇳🇱' },
+                          { value: 'pl-PL', label: 'Polish', flag: '🇵🇱' },
+                          { value: 'pt-BR', label: 'Portuguese (Brazil)', flag: '🇧🇷' },
+                          { value: 'pt-PT', label: 'Portuguese (Portugal)', flag: '🇵🇹' },
+                          { value: 'ro-RO', label: 'Romanian', flag: '🇷🇴' },
+                          { value: 'ru-RU', label: 'Russian', flag: '🇷🇺' },
+                          { value: 'sk-SK', label: 'Slovak', flag: '🇸🇰' },
+                          { value: 'sv-SE', label: 'Swedish', flag: '🇸🇪' },
+                          { value: 'tr-TR', label: 'Turkish', flag: '🇹🇷' },
+                          { value: 'uk-UA', label: 'Ukrainian', flag: '🇺🇦' },
+                        ]},
+                        { group: '🌏 East Asian', items: [
+                          { value: 'cmn-CN', label: 'Chinese — Mandarin (CN)', flag: '🇨🇳' },
+                          { value: 'cmn-TW', label: 'Chinese — Mandarin (TW)', flag: '🇹🇼' },
+                          { value: 'yue-HK', label: 'Cantonese (HK) ✨', flag: '🇭🇰' },
+                          { value: 'ja-JP', label: 'Japanese', flag: '🇯🇵' },
+                          { value: 'ko-KR', label: 'Korean', flag: '🇰🇷' },
+                        ]},
+                        { group: '🌍 Others', items: [
+                          { value: 'ar-XA', label: 'Arabic', flag: '🇸🇦' },
+                          { value: 'fil-PH', label: 'Filipino', flag: '🇵🇭' },
+                          { value: 'he-IL', label: 'Hebrew', flag: '🇮🇱' },
+                          { value: 'id-ID', label: 'Indonesian', flag: '🇮🇩' },
+                          { value: 'ms-MY', label: 'Malay', flag: '🇲🇾' },
+                          { value: 'th-TH', label: 'Thai', flag: '🇹🇭' },
+                          { value: 'vi-VN', label: 'Vietnamese', flag: '🇻🇳' },
+                        ]},
+                      ];
+                      const allLangItems = LANGS.flatMap(g => g.items);
+                      const selLang = allLangItems.find(l => l.value === audioLangCode) || allLangItems[0];
+                      return (
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">Language</p>
+                          <Listbox value={audioLangCode} onChange={(val) => { setAudioLangCode(val); setAudioVoiceName(`${val}-Chirp3-HD-Autonoe`); }}>
+                            <div className="relative">
+                              <Listbox.Button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/8 hover:border-indigo-500/40 transition-all group text-left">
+                                <span className="text-xl leading-none">{selLang.flag}</span>
+                                <span className="flex-1 text-sm font-semibold text-white">{selLang.label}</span>
+                                <ChevronDown className="w-4 h-4 text-white/30 group-hover:text-indigo-400 transition-colors shrink-0" />
+                              </Listbox.Button>
+                              <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100 translate-y-0" leaveTo="opacity-0 -translate-y-1">
+                                <Listbox.Options className="absolute z-50 mt-2 w-full rounded-2xl overflow-hidden shadow-2xl border border-white/10 outline-none" style={{ background: 'rgba(18,18,32,0.98)', backdropFilter: 'blur(40px)', maxHeight: '240px', overflowY: 'auto' }}>
+                                  {LANGS.map((group) => (
+                                    <div key={group.group}>
+                                      <div className="px-4 py-1.5 text-[9px] font-bold uppercase tracking-widest text-indigo-400/70 sticky top-0" style={{ background: 'rgba(18,18,32,0.95)' }}>{group.group}</div>
+                                      {group.items.map((item) => (
+                                        <Listbox.Option key={item.value} value={item.value} className={({ active, selected }) =>
+                                          `flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${
+                                            selected ? 'bg-indigo-600/20 text-indigo-300' : active ? 'bg-white/5 text-white' : 'text-white/60'
+                                          }`
+                                        }>
+                                          {({ selected }) => (
+                                            <>
+                                              <span className="text-base leading-none">{item.flag}</span>
+                                              <span className="flex-1 text-sm font-medium">{item.label}</span>
+                                              {selected && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
+                                            </>
+                                          )}
+                                        </Listbox.Option>
+                                      ))}
+                                    </div>
+                                  ))}
+                                </Listbox.Options>
+                              </Transition>
+                            </div>
+                          </Listbox>
+                        </div>
+                      );
+                    })()}
+
+                    {/* ── Voice Picker ── */}
+                    {(() => {
+                      const VOICES = [
+                        { group: '♀ Female Voices', color: 'rose', items: [
+                          { name: 'Achernar', style: 'Bright, clear' },
+                          { name: 'Achird', style: 'Warm, friendly' },
+                          { name: 'Algenib', style: 'Smooth, graceful' },
+                          { name: 'Algieba', style: 'Bold, expressive' },
+                          { name: 'Aoede', style: 'Natural, balanced' },
+                          { name: 'Autonoe', style: 'Soft, gentle · Default' },
+                          { name: 'Callirrhoe', style: 'Rich, elegant' },
+                          { name: 'Despina', style: 'Light, airy' },
+                          { name: 'Erinome', style: 'Calm, composed' },
+                          { name: 'Gacrux', style: 'Strong, confident' },
+                          { name: 'Kore', style: 'Pure, melodic' },
+                          { name: 'Laomedeia', style: 'Serene, flowing' },
+                          { name: 'Leda', style: 'Warm, storytelling' },
+                          { name: 'Pulcherrima', style: 'Radiant, vibrant' },
+                          { name: 'Sulafat', style: 'Deep, resonant' },
+                          { name: 'Vindemiatrix', style: 'Measured, clear' },
+                          { name: 'Zephyr', style: 'Breezy, lively' },
+                        ]},
+                        { group: '♂ Male Voices', color: 'blue', items: [
+                          { name: 'Alnilam', style: 'Deep, authoritative' },
+                          { name: 'Charon', style: 'Dark, dramatic' },
+                          { name: 'Enceladus', style: 'Crisp, powerful' },
+                          { name: 'Fenrir', style: 'Bold, intense' },
+                          { name: 'Iapetus', style: 'Steady, reliable' },
+                          { name: 'Orus', style: 'Warm, friendly' },
+                          { name: 'Puck', style: 'Playful, energetic' },
+                          { name: 'Rasalgethi', style: 'Smooth, velvety' },
+                          { name: 'Sadachbia', style: 'Calm, measured' },
+                          { name: 'Sadaltager', style: 'Strong, clear' },
+                          { name: 'Schedar', style: 'Rich, balanced' },
+                          { name: 'Umbriel', style: 'Mysterious, deep' },
+                          { name: 'Zubenelgenubi', style: 'Commanding, precise' },
+                        ]},
+                      ];
+                      const voiceKey = audioVoiceName.split('-Chirp3-HD-')[1] || 'Autonoe';
+                      const allVoices = VOICES.flatMap(g => g.items.map(v => ({ ...v, group: g.group, color: g.color })));
+                      const selVoice = allVoices.find(v => v.name === voiceKey) || allVoices[4];
+                      const isFemale = VOICES[0].items.some(v => v.name === voiceKey);
+                      return (
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">Voice</p>
+                          <Listbox value={audioVoiceName} onChange={setAudioVoiceName}>
+                            <div className="relative">
+                              <Listbox.Button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/8 hover:border-indigo-500/40 transition-all group text-left">
+                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm shrink-0 ${
+                                  isFemale ? 'bg-rose-500/20 text-rose-300' : 'bg-blue-500/20 text-blue-300'
+                                }`}>
+                                  {isFemale ? '♀' : '♂'}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-bold text-white leading-none">{selVoice.name}</p>
+                                  <p className="text-[10px] text-white/40 mt-0.5 truncate">{selVoice.style}</p>
+                                </div>
+                                <ChevronDown className="w-4 h-4 text-white/30 group-hover:text-indigo-400 transition-colors shrink-0" />
+                              </Listbox.Button>
+                              <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100 translate-y-0" leaveTo="opacity-0 -translate-y-1">
+                                <Listbox.Options className="absolute z-50 mt-2 w-full rounded-2xl overflow-hidden shadow-2xl border border-white/10 outline-none" style={{ background: 'rgba(18,18,32,0.98)', backdropFilter: 'blur(40px)', maxHeight: '280px', overflowY: 'auto' }}>
+                                  {VOICES.map((group) => (
+                                    <div key={group.group}>
+                                      <div className={`px-4 py-1.5 text-[9px] font-bold uppercase tracking-widest sticky top-0 ${
+                                        group.color === 'rose' ? 'text-rose-400/70' : 'text-blue-400/70'
+                                      }`} style={{ background: 'rgba(18,18,32,0.95)' }}>{group.group}</div>
+                                      {group.items.map((item) => {
+                                        const voiceVal = `${audioLangCode}-Chirp3-HD-${item.name}`;
+                                        return (
+                                          <Listbox.Option key={item.name} value={voiceVal} className={({ active, selected }) =>
+                                            `flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${
+                                              selected
+                                                ? (group.color === 'rose' ? 'bg-rose-600/15 text-rose-300' : 'bg-blue-600/15 text-blue-300')
+                                                : active ? 'bg-white/5 text-white' : 'text-white/60'
+                                            }`
+                                          }>
+                                            {({ selected }) => (
+                                              <>
+                                                <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs shrink-0 ${
+                                                  group.color === 'rose' ? 'bg-rose-500/10 text-rose-400' : 'bg-blue-500/10 text-blue-400'
+                                                }`}>{group.color === 'rose' ? '♀' : '♂'}</div>
+                                                <div className="flex-1 min-w-0">
+                                                  <p className="text-xs font-semibold leading-none">{item.name}</p>
+                                                  <p className="text-[9px] text-white/30 mt-0.5 truncate">{item.style}</p>
+                                                </div>
+                                                {selected && <Check className="w-3 h-3 shrink-0" />}
+                                              </>
+                                            )}
+                                          </Listbox.Option>
+                                        );
+                                      })}
+                                    </div>
+                                  ))}
+                                </Listbox.Options>
+                              </Transition>
+                            </div>
+                          </Listbox>
+                        </div>
+                      );
+                    })()}
+
+                    {/* ── Pitch Slider ── */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Pitch</p>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-mono font-bold text-indigo-300">{audioPitch > 0 ? '+' : ''}{audioPitch.toFixed(1)}</span>
+                          {audioPitch !== 0 && (
+                            <button onClick={() => setAudioPitch(0)} className="text-[9px] text-white/30 hover:text-white/60 transition-colors">reset</button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <input type="range" min="-10" max="10" step="0.5" value={audioPitch}
+                          onChange={(e) => setAudioPitch(parseFloat(e.target.value))}
+                          className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+                          style={{ background: `linear-gradient(to right, #6366f1 0%, #6366f1 ${((audioPitch + 10) / 20) * 100}%, rgba(255,255,255,0.1) ${((audioPitch + 10) / 20) * 100}%, rgba(255,255,255,0.1) 100%)` }}
+                        />
+                        <div className="flex justify-between text-[9px] text-white/25 mt-1.5 font-medium">
+                          <span>Lower</span><span>Normal</span><span>Higher</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ── Speed Slider ── */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Speed</p>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-mono font-bold text-indigo-300">{audioSpeed.toFixed(2)}×</span>
+                          {audioSpeed !== 1.0 && (
+                            <button onClick={() => setAudioSpeed(1.0)} className="text-[9px] text-white/30 hover:text-white/60 transition-colors">reset</button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <input type="range" min="0.25" max="4.0" step="0.25" value={audioSpeed}
+                          onChange={(e) => setAudioSpeed(parseFloat(e.target.value))}
+                          className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+                          style={{ background: `linear-gradient(to right, #6366f1 0%, #6366f1 ${((audioSpeed - 0.25) / 3.75) * 100}%, rgba(255,255,255,0.1) ${((audioSpeed - 0.25) / 3.75) * 100}%, rgba(255,255,255,0.1) 100%)` }}
+                        />
+                        <div className="flex justify-between text-[9px] text-white/25 mt-1.5 font-medium">
+                          <span>0.25×</span><span>1×</span><span>Normal</span><span>4×</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ── Buttons ── */}
+                    <div className="flex gap-3 pt-1">
+                      <button type="button" onClick={async () => {
+                        const t = toast.loading('Generating sample...');
+                        try {
+                          const langSamples = {
+                            'hi-IN': 'नमस्ते! मैं आपकी आवाज़ हूँ। क्या यह अच्छी लगती है?',
+                            'ar-XA': 'مرحباً! أنا صوتك. هل يبدو هذا جيداً؟',
+                            'ja-JP': 'こんにちは。私はあなたの声です。どう聞こえますか？',
+                            'cmn-CN': '你好！我是您的声音。这听起来好吗？',
+                            'ko-KR': '안녕하세요! 저는 당신의 목소리입니다.',
+                            'de-DE': 'Hallo! Ich bin Ihre Stimme. Klingt das gut?',
+                            'fr-FR': 'Bonjour! Je suis votre voix. Est-ce que ça sonne bien?',
+                            'es-ES': '¡Hola! Soy tu voz. ¿Suena bien?',
+                          };
+                          const txt = langSamples[audioLangCode] || 'Hello! This is a voice sample. How does it sound to you?';
+                          const res = await axios.post(apis.synthesizeFile, {
+                            introText: txt, languageCode: audioLangCode,
+                            voiceName: audioVoiceName, pitch: audioPitch, speakingRate: audioSpeed
+                          }, { responseType: 'arraybuffer', timeout: 30000, headers: { Authorization: `Bearer ${getUserData()?.token}` } });
+                          new Audio(URL.createObjectURL(new Blob([res.data], { type: 'audio/mpeg' }))).play();
+                          toast.dismiss(t); toast.success('Playing sample ▶');
+                        } catch (e) { toast.dismiss(t); toast.error('Sample failed — check voice/language combo.'); }
+                      }} className="flex-1 flex items-center justify-center gap-2 h-11 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 text-sm font-bold text-white/70 hover:text-white transition-all">
+                        <PlayCircle className="w-4 h-4 text-indigo-400" /> Play Sample
+                      </button>
+                      <button type="button" onClick={() => setIsVoiceSettingsOpen(false)}
+                        className="flex-[2] h-11 rounded-2xl text-sm font-bold text-white transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40"
+                        style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+                      >
+                        Apply Settings
+                      </button>
+                    </div>
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
+
       <PremiumUpsellModal />
       <MagicVideoGenModal
         isOpen={isMagicVideoModalOpen}
