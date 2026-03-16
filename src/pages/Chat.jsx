@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, Fragment } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Send, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe, Sliders, PlayCircle, Brain, ImagePlus, PlaySquare } from 'lucide-react';
+import { Send, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe, Sliders, PlayCircle, Brain, ImagePlus, PlaySquare, RefreshCcw } from 'lucide-react';
 import { renderAsync } from 'docx-preview';
 import * as XLSX from 'xlsx';
 import { Menu, Transition, Dialog, Listbox, Portal } from '@headlessui/react';
@@ -287,6 +287,7 @@ const Chat = () => {
   const [waUploading, setWaUploading] = useState(false);
   const [waMsgContent, setWaMsgContent] = useState('');
   const [isMagicEditing, setIsMagicEditing] = useState(false);
+  const [editRefImage, setEditRefImage] = useState(null);
   const [isMagicVideoModalOpen, setIsMagicVideoModalOpen] = useState(false);
   const [isLiveMode, setIsLiveMode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -1184,10 +1185,29 @@ const Chat = () => {
         return;
       }
 
-      // Check for attached image
-      const imageFile = filePreviews.find(f => f.type.startsWith('image/'));
+      // Check for attached image or find the most recent image in chat
+      let imageFile = filePreviews.find(f => f.type.startsWith('image/'));
+      
       if (!imageFile) {
-        toast.error('Please upload an image to edit');
+        // 1. Check if we have a specific reference set from an "Edit" button click
+        if (editRefImage) {
+          imageFile = editRefImage;
+        } 
+        // 2. Fallback: find the most recent image message in the session
+        else {
+          const lastImageMsg = [...messages].reverse().find(msg => msg.imageUrl);
+          if (lastImageMsg) {
+            imageFile = {
+              url: lastImageMsg.imageUrl,
+              name: 'Reference Image',
+              type: 'image/png'
+            };
+          }
+        }
+      }
+
+      if (!imageFile) {
+        toast.error('Please upload an image or generate one first to edit');
         return;
       }
 
@@ -1200,11 +1220,15 @@ const Chat = () => {
         role: 'user',
         content: prompt,
         timestamp: new Date(),
-        attachments: filePreviews.map(fp => ({
+        attachments: imageFile.id ? filePreviews.map(fp => ({
           url: fp.url,
           name: fp.name,
           type: fp.type.startsWith('image/') ? 'image' : 'file'
-        }))
+        })) : [{
+          url: imageFile.url,
+          name: imageFile.name,
+          type: 'image'
+        }]
       };
 
       // Show a message that image editing is in progress
@@ -1223,6 +1247,7 @@ const Chat = () => {
 
       // ✅ Clear the attachment immediately when send is pressed
       handleRemoveFile();
+      setEditRefImage(null);
       if (inputRef.current) inputRef.current.style.height = 'auto';
 
       // Ensure the prompt and loading state are visible
@@ -1609,24 +1634,24 @@ const Chat = () => {
               // ── PHASE 1: Unicode Script Block Detection ─────────────────────────
               const scriptCounts = {
                 devanagari: (text.match(/[\u0900-\u097F]/g) || []).length,
-                arabic:     (text.match(/[\u0600-\u06FF\u0750-\u077F]/g) || []).length,
-                urdu:       (text.match(/[\uFB50-\uFEFF]/g) || []).length,
-                cyrillic:   (text.match(/[\u0400-\u04FF]/g) || []).length,
+                arabic: (text.match(/[\u0600-\u06FF\u0750-\u077F]/g) || []).length,
+                urdu: (text.match(/[\uFB50-\uFEFF]/g) || []).length,
+                cyrillic: (text.match(/[\u0400-\u04FF]/g) || []).length,
                 cjkChinese: (text.match(/[\u4E00-\u9FFF\u3400-\u4DBF]/g) || []).length,
-                hiragana:   (text.match(/[\u3041-\u3096]/g) || []).length,
-                katakana:   (text.match(/[\u30A1-\u30FA]/g) || []).length,
-                hangul:     (text.match(/[\uAC00-\uD7AF\u1100-\u11FF]/g) || []).length,
-                tamil:      (text.match(/[\u0B80-\u0BFF]/g) || []).length,
-                telugu:     (text.match(/[\u0C00-\u0C7F]/g) || []).length,
-                kannada:    (text.match(/[\u0C80-\u0CFF]/g) || []).length,
-                malayalam:  (text.match(/[\u0D00-\u0D7F]/g) || []).length,
-                bengali:    (text.match(/[\u0980-\u09FF]/g) || []).length,
-                gujarati:   (text.match(/[\u0A80-\u0AFF]/g) || []).length,
-                gurmukhi:   (text.match(/[\u0A00-\u0A7F]/g) || []).length,
-                thai:       (text.match(/[\u0E00-\u0E7F]/g) || []).length,
-                greek:      (text.match(/[\u0370-\u03FF]/g) || []).length,
-                hebrew:     (text.match(/[\u05D0-\u05EA]/g) || []).length,
-                latin:      (text.match(/[a-zA-ZÀ-ÖØ-öø-ÿ]/g) || []).length,
+                hiragana: (text.match(/[\u3041-\u3096]/g) || []).length,
+                katakana: (text.match(/[\u30A1-\u30FA]/g) || []).length,
+                hangul: (text.match(/[\uAC00-\uD7AF\u1100-\u11FF]/g) || []).length,
+                tamil: (text.match(/[\u0B80-\u0BFF]/g) || []).length,
+                telugu: (text.match(/[\u0C00-\u0C7F]/g) || []).length,
+                kannada: (text.match(/[\u0C80-\u0CFF]/g) || []).length,
+                malayalam: (text.match(/[\u0D00-\u0D7F]/g) || []).length,
+                bengali: (text.match(/[\u0980-\u09FF]/g) || []).length,
+                gujarati: (text.match(/[\u0A80-\u0AFF]/g) || []).length,
+                gurmukhi: (text.match(/[\u0A00-\u0A7F]/g) || []).length,
+                thai: (text.match(/[\u0E00-\u0E7F]/g) || []).length,
+                greek: (text.match(/[\u0370-\u03FF]/g) || []).length,
+                hebrew: (text.match(/[\u05D0-\u05EA]/g) || []).length,
+                latin: (text.match(/[a-zA-ZÀ-ÖØ-öø-ÿ]/g) || []).length,
               };
 
               const totalChars = text.replace(/\s/g, '').length || 1;
@@ -1663,123 +1688,123 @@ const Chat = () => {
               const romanizedWordSets = {
                 'hi-IN': new Set([
                   // Verbs & conjugations
-                  'hai','hain','tha','thi','the','hoga','hogi','raha','rahi','rahe',
-                  'karna','karo','karo','kiya','ki','kar','karta','karti','karte',
-                  'hota','hoti','hote','hona','jata','jati','jate','jana','aana',
-                  'aata','aati','dena','deta','deti','lena','leta','leti','milna',
-                  'chahiye','chahte','chahta','chahti','sochna','bolta','bolti',
-                  'dekho','dekh','dekha','suno','sun','sunna','batao','bata',
+                  'hai', 'hain', 'tha', 'thi', 'the', 'hoga', 'hogi', 'raha', 'rahi', 'rahe',
+                  'karna', 'karo', 'karo', 'kiya', 'ki', 'kar', 'karta', 'karti', 'karte',
+                  'hota', 'hoti', 'hote', 'hona', 'jata', 'jati', 'jate', 'jana', 'aana',
+                  'aata', 'aati', 'dena', 'deta', 'deti', 'lena', 'leta', 'leti', 'milna',
+                  'chahiye', 'chahte', 'chahta', 'chahti', 'sochna', 'bolta', 'bolti',
+                  'dekho', 'dekh', 'dekha', 'suno', 'sun', 'sunna', 'batao', 'bata',
                   // Pronouns & particles
-                  'mein','main','hum','aap','tum','woh','yeh','ye','jo','wo',
-                  'mujhe','mujhko','tumhe','unhe','use','ise','kuch','sab','koi',
+                  'mein', 'main', 'hum', 'aap', 'tum', 'woh', 'yeh', 'ye', 'jo', 'wo',
+                  'mujhe', 'mujhko', 'tumhe', 'unhe', 'use', 'ise', 'kuch', 'sab', 'koi',
                   // Question words
-                  'kya','kyun','kaise','kaun','kahan','kab','kitna','kitni','kitne',
+                  'kya', 'kyun', 'kaise', 'kaun', 'kahan', 'kab', 'kitna', 'kitni', 'kitne',
                   // Common connectors & misc
-                  'aur','ya','lekin','par','magar','toh','toh','agar','jab','tab',
-                  'phir','bhi','nahi','nhi','nahin','bilkul','bahut','bohot','thoda',
-                  'bahot','zyada','kam','accha','achha','theek','sahi','galat',
-                  'abhi','aaj','kal','sirf','bas','matlab','matlab','yaar','bhai',
-                  'dost','pyaar','zindagi','duniya','waqt','time','kaam','kab',
+                  'aur', 'ya', 'lekin', 'par', 'magar', 'toh', 'toh', 'agar', 'jab', 'tab',
+                  'phir', 'bhi', 'nahi', 'nhi', 'nahin', 'bilkul', 'bahut', 'bohot', 'thoda',
+                  'bahot', 'zyada', 'kam', 'accha', 'achha', 'theek', 'sahi', 'galat',
+                  'abhi', 'aaj', 'kal', 'sirf', 'bas', 'matlab', 'matlab', 'yaar', 'bhai',
+                  'dost', 'pyaar', 'zindagi', 'duniya', 'waqt', 'time', 'kaam', 'kab',
                   // Responses
-                  'haan','han','nahi','okay','achha','bilkul','zaroor','shukriya',
-                  'dhanyavad','namaste','alag','saath','sath','pehle','baad',
+                  'haan', 'han', 'nahi', 'okay', 'achha', 'bilkul', 'zaroor', 'shukriya',
+                  'dhanyavad', 'namaste', 'alag', 'saath', 'sath', 'pehle', 'baad',
                 ]),
                 'ur-IN': new Set([
-                  'hai','hain','tha','thi','aur','ya','lekin','kyun','kya','kaise',
-                  'mein','hum','aap','tum','woh','yeh','nahi','bilkul','bahut',
-                  'agar','phir','bhi','abhi','aaj','kal','theek','shukriya',
-                  'khuda','hafiz','inshallah','mashallah','subhanallah','alhamdulillah',
-                  'janab','sahib','baat','baten','dil','ishq','mohabbat','aman',
-                  'zindagi','duniya','log','waqt','khayal','zaroor','mehrbani',
+                  'hai', 'hain', 'tha', 'thi', 'aur', 'ya', 'lekin', 'kyun', 'kya', 'kaise',
+                  'mein', 'hum', 'aap', 'tum', 'woh', 'yeh', 'nahi', 'bilkul', 'bahut',
+                  'agar', 'phir', 'bhi', 'abhi', 'aaj', 'kal', 'theek', 'shukriya',
+                  'khuda', 'hafiz', 'inshallah', 'mashallah', 'subhanallah', 'alhamdulillah',
+                  'janab', 'sahib', 'baat', 'baten', 'dil', 'ishq', 'mohabbat', 'aman',
+                  'zindagi', 'duniya', 'log', 'waqt', 'khayal', 'zaroor', 'mehrbani',
                 ]),
                 'de-DE': new Set([
-                  'ist','sind','war','waren','werden','wurde','haben','hat','hatte',
-                  'ich','du','er','sie','wir','ihr','nicht','kein','aber','oder',
-                  'und','auch','mit','von','zu','bei','nach','aus','als','wie',
-                  'dass','wenn','dann','noch','schon','eine','einer','eines','dem',
-                  'den','des','die','der','das','ein','auf','an','im','am',
-                  'sehr','gut','mehr','sein','ihre','ihrer','unser','bitte','danke',
+                  'ist', 'sind', 'war', 'waren', 'werden', 'wurde', 'haben', 'hat', 'hatte',
+                  'ich', 'du', 'er', 'sie', 'wir', 'ihr', 'nicht', 'kein', 'aber', 'oder',
+                  'und', 'auch', 'mit', 'von', 'zu', 'bei', 'nach', 'aus', 'als', 'wie',
+                  'dass', 'wenn', 'dann', 'noch', 'schon', 'eine', 'einer', 'eines', 'dem',
+                  'den', 'des', 'die', 'der', 'das', 'ein', 'auf', 'an', 'im', 'am',
+                  'sehr', 'gut', 'mehr', 'sein', 'ihre', 'ihrer', 'unser', 'bitte', 'danke',
                 ]),
                 'fr-FR': new Set([
-                  'est','sont','était','avoir','a','ont','vous','nous','ils','elles',
-                  'je','tu','il','elle','pas','non','mais','ou','et','aussi',
-                  'avec','de','du','des','les','une','un','le','la','dans',
-                  'pour','sur','par','que','qui','quoi','comment','pourquoi','quand',
-                  'très','bien','plus','mon','ma','mes','ton','ce','cet','cette',
-                  'merci','oui','bonjour','au','aux','être','faire','aller',
+                  'est', 'sont', 'était', 'avoir', 'a', 'ont', 'vous', 'nous', 'ils', 'elles',
+                  'je', 'tu', 'il', 'elle', 'pas', 'non', 'mais', 'ou', 'et', 'aussi',
+                  'avec', 'de', 'du', 'des', 'les', 'une', 'un', 'le', 'la', 'dans',
+                  'pour', 'sur', 'par', 'que', 'qui', 'quoi', 'comment', 'pourquoi', 'quand',
+                  'très', 'bien', 'plus', 'mon', 'ma', 'mes', 'ton', 'ce', 'cet', 'cette',
+                  'merci', 'oui', 'bonjour', 'au', 'aux', 'être', 'faire', 'aller',
                 ]),
                 'es-ES': new Set([
-                  'es','son','está','están','era','fue','ser','estar','tener','tiene',
-                  'yo','tú','él','ella','nosotros','vosotros','ellos','no','pero',
-                  'que','qué','cómo','cuándo','dónde','quién','porque','para',
-                  'con','sin','por','del','los','las','una','unos','unas',
-                  'muy','más','bien','gracias','hola','sí','también','siempre',
+                  'es', 'son', 'está', 'están', 'era', 'fue', 'ser', 'estar', 'tener', 'tiene',
+                  'yo', 'tú', 'él', 'ella', 'nosotros', 'vosotros', 'ellos', 'no', 'pero',
+                  'que', 'qué', 'cómo', 'cuándo', 'dónde', 'quién', 'porque', 'para',
+                  'con', 'sin', 'por', 'del', 'los', 'las', 'una', 'unos', 'unas',
+                  'muy', 'más', 'bien', 'gracias', 'hola', 'sí', 'también', 'siempre',
                 ]),
                 'it-IT': new Set([
-                  'è','sono','era','essere','avere','ha','hanno','ho','hai','siamo',
-                  'io','tu','lui','lei','noi','voi','loro','non','ma','o','e',
-                  'che','chi','come','quando','dove','perché','anche','con','per',
-                  'una','uno','del','della','dei','degli','il','la','le','gli',
-                  'molto','bene','grazie','ciao','sì','prego','sempre','ancora',
+                  'è', 'sono', 'era', 'essere', 'avere', 'ha', 'hanno', 'ho', 'hai', 'siamo',
+                  'io', 'tu', 'lui', 'lei', 'noi', 'voi', 'loro', 'non', 'ma', 'o', 'e',
+                  'che', 'chi', 'come', 'quando', 'dove', 'perché', 'anche', 'con', 'per',
+                  'una', 'uno', 'del', 'della', 'dei', 'degli', 'il', 'la', 'le', 'gli',
+                  'molto', 'bene', 'grazie', 'ciao', 'sì', 'prego', 'sempre', 'ancora',
                 ]),
                 'pt-BR': new Set([
-                  'é','são','está','estão','era','ser','estar','ter','tem','têm',
-                  'eu','tu','ele','ela','nós','vocês','eles','não','mas','ou','e',
-                  'que','quê','como','quando','onde','quem','porque','para','com',
-                  'uma','um','dos','das','do','da','os','as','no','na',
-                  'muito','bem','obrigado','olá','sim','também','sempre','ainda',
+                  'é', 'são', 'está', 'estão', 'era', 'ser', 'estar', 'ter', 'tem', 'têm',
+                  'eu', 'tu', 'ele', 'ela', 'nós', 'vocês', 'eles', 'não', 'mas', 'ou', 'e',
+                  'que', 'quê', 'como', 'quando', 'onde', 'quem', 'porque', 'para', 'com',
+                  'uma', 'um', 'dos', 'das', 'do', 'da', 'os', 'as', 'no', 'na',
+                  'muito', 'bem', 'obrigado', 'olá', 'sim', 'também', 'sempre', 'ainda',
                 ]),
                 'tr-TR': new Set([
-                  'bir','bu','da','de','den','dir','dır','dür','dùr','için','ile',
-                  'mi','mu','mü','mı','ne','nin','nın','nun','nün','var','yok',
-                  'ben','sen','o','biz','siz','onlar','ama','ve','veya','çok',
-                  'iyi','evet','hayır','tamam','nasıl','neden','nerede','ne zaman',
-                  'teşekkür','merhaba','güzel','büyük','küçük','şimdi','zaman',
+                  'bir', 'bu', 'da', 'de', 'den', 'dir', 'dır', 'dür', 'dùr', 'için', 'ile',
+                  'mi', 'mu', 'mü', 'mı', 'ne', 'nin', 'nın', 'nun', 'nün', 'var', 'yok',
+                  'ben', 'sen', 'o', 'biz', 'siz', 'onlar', 'ama', 've', 'veya', 'çok',
+                  'iyi', 'evet', 'hayır', 'tamam', 'nasıl', 'neden', 'nerede', 'ne zaman',
+                  'teşekkür', 'merhaba', 'güzel', 'büyük', 'küçük', 'şimdi', 'zaman',
                 ]),
                 'vi-VN': new Set([
-                  'là','có','không','và','của','trong','với','các','một','những',
-                  'được','cho','người','tôi','bạn','anh','chị','em','họ','chúng',
-                  'này','đó','gì','nào','sao','khi','vì','để','đã','đang',
-                  'rất','thì','mà','nhưng','hoặc','còn','cũng','nếu','thế','cần',
+                  'là', 'có', 'không', 'và', 'của', 'trong', 'với', 'các', 'một', 'những',
+                  'được', 'cho', 'người', 'tôi', 'bạn', 'anh', 'chị', 'em', 'họ', 'chúng',
+                  'này', 'đó', 'gì', 'nào', 'sao', 'khi', 'vì', 'để', 'đã', 'đang',
+                  'rất', 'thì', 'mà', 'nhưng', 'hoặc', 'còn', 'cũng', 'nếu', 'thế', 'cần',
                 ]),
                 'id-ID': new Set([
-                  'adalah','ada','dan','atau','tidak','bukan','dengan','untuk','dari',
-                  'yang','ini','itu','di','ke','pada','oleh','akan','sudah','belum',
-                  'saya','anda','kamu','dia','kami','kita','mereka','bisa','harus',
-                  'sangat','juga','lagi','sudah','masih','pernah','selalu','kadang',
-                  'bagaimana','mengapa','kapan','dimana','siapa','berapa','apa',
-                  'terima','kasih','selamat','baik','senang','maaf','tolong',
+                  'adalah', 'ada', 'dan', 'atau', 'tidak', 'bukan', 'dengan', 'untuk', 'dari',
+                  'yang', 'ini', 'itu', 'di', 'ke', 'pada', 'oleh', 'akan', 'sudah', 'belum',
+                  'saya', 'anda', 'kamu', 'dia', 'kami', 'kita', 'mereka', 'bisa', 'harus',
+                  'sangat', 'juga', 'lagi', 'sudah', 'masih', 'pernah', 'selalu', 'kadang',
+                  'bagaimana', 'mengapa', 'kapan', 'dimana', 'siapa', 'berapa', 'apa',
+                  'terima', 'kasih', 'selamat', 'baik', 'senang', 'maaf', 'tolong',
                 ]),
                 'ms-MY': new Set([
-                  'adalah','ada','dan','atau','tidak','bukan','dengan','untuk','dari',
-                  'yang','ini','itu','di','ke','pada','oleh','akan','sudah','belum',
-                  'saya','awak','kamu','dia','kami','kita','mereka','boleh','perlu',
-                  'sangat','juga','lagi','masih','pernah','selalu','kadang',
-                  'terima','kasih','selamat','baik','bagus','maaf','tolong','lah','la',
+                  'adalah', 'ada', 'dan', 'atau', 'tidak', 'bukan', 'dengan', 'untuk', 'dari',
+                  'yang', 'ini', 'itu', 'di', 'ke', 'pada', 'oleh', 'akan', 'sudah', 'belum',
+                  'saya', 'awak', 'kamu', 'dia', 'kami', 'kita', 'mereka', 'boleh', 'perlu',
+                  'sangat', 'juga', 'lagi', 'masih', 'pernah', 'selalu', 'kadang',
+                  'terima', 'kasih', 'selamat', 'baik', 'bagus', 'maaf', 'tolong', 'lah', 'la',
                 ]),
                 'fil-PH': new Set([
-                  'ang','ng','mga','sa','na','at','ay','para','si','siya',
-                  'ko','mo','niya','tayo','kami','kayo','sila','hindi','oo','ito',
-                  'iyan','iyon','dito','diyan','doon','bakit','paano','sino','kailan',
-                  'sobra','masaya','malaki','maliit','salamat','kumusta','maganda',
+                  'ang', 'ng', 'mga', 'sa', 'na', 'at', 'ay', 'para', 'si', 'siya',
+                  'ko', 'mo', 'niya', 'tayo', 'kami', 'kayo', 'sila', 'hindi', 'oo', 'ito',
+                  'iyan', 'iyon', 'dito', 'diyan', 'doon', 'bakit', 'paano', 'sino', 'kailan',
+                  'sobra', 'masaya', 'malaki', 'maliit', 'salamat', 'kumusta', 'maganda',
                 ]),
                 'nl-NL': new Set([
-                  'is','zijn','was','waren','worden','heeft','hebben','had','kunnen',
-                  'ik','jij','hij','zij','wij','jullie','niet','geen','maar','of','en',
-                  'ook','met','van','te','bij','na','uit','als','hoe','wat','wie',
-                  'dat','dit','die','de','het','een','meer','heel','goed','dank',
+                  'is', 'zijn', 'was', 'waren', 'worden', 'heeft', 'hebben', 'had', 'kunnen',
+                  'ik', 'jij', 'hij', 'zij', 'wij', 'jullie', 'niet', 'geen', 'maar', 'of', 'en',
+                  'ook', 'met', 'van', 'te', 'bij', 'na', 'uit', 'als', 'hoe', 'wat', 'wie',
+                  'dat', 'dit', 'die', 'de', 'het', 'een', 'meer', 'heel', 'goed', 'dank',
                 ]),
                 'pl-PL': new Set([
-                  'jest','są','był','była','być','mam','masz','ma','mamy','mają',
-                  'ja','ty','on','ona','my','wy','oni','nie','ale','lub','i','też',
-                  'co','jak','kiedy','gdzie','kto','dlaczego','tu','tam','już','to',
-                  'bardzo','dobrze','dziękuję','cześć','tak','też','zawsze','jeszcze',
+                  'jest', 'są', 'był', 'była', 'być', 'mam', 'masz', 'ma', 'mamy', 'mają',
+                  'ja', 'ty', 'on', 'ona', 'my', 'wy', 'oni', 'nie', 'ale', 'lub', 'i', 'też',
+                  'co', 'jak', 'kiedy', 'gdzie', 'kto', 'dlaczego', 'tu', 'tam', 'już', 'to',
+                  'bardzo', 'dobrze', 'dziękuję', 'cześć', 'tak', 'też', 'zawsze', 'jeszcze',
                 ]),
                 'ko-KR': new Set([
                   // Romanized Korean (konglish / casual roman)
-                  'annyeong','gamsahamnida','nae','ne','anieyo','iseo','isseo',
-                  'hamnida','haeseo','gayo','wayo','juseyo','kamsahamnida','saranghae',
-                  'oppa','unni','hyung','noona','aigoo','daebak','heol','mwo',
+                  'annyeong', 'gamsahamnida', 'nae', 'ne', 'anieyo', 'iseo', 'isseo',
+                  'hamnida', 'haeseo', 'gayo', 'wayo', 'juseyo', 'kamsahamnida', 'saranghae',
+                  'oppa', 'unni', 'hyung', 'noona', 'aigoo', 'daebak', 'heol', 'mwo',
                 ]),
               };
 
@@ -4531,6 +4556,24 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 />
                                 <div className="absolute bottom-3 right-3 flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover/generated:opacity-100 transition-all scale-100 sm:scale-90 sm:group-hover/generated:scale-100">
                                   <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setIsMagicEditing(true);
+                                      setEditRefImage({
+                                        url: msg.imageUrl,
+                                        name: 'Generated Asset',
+                                        type: 'image/png'
+                                      });
+                                      toast.success('Magic Edit mode active! Type your request.');
+                                      inputRef.current?.focus();
+                                    }}
+                                    className="p-2.5 bg-white/20 backdrop-blur-sm text-white rounded-xl hover:bg-white/30 shadow-lg border border-white/20"
+                                    title="Edit this Image"
+                                  >
+                                    <Wand2 className="w-4 h-4" />
+                                  </button>
+
+                                  <button
                                     onClick={async (e) => {
                                       e.stopPropagation();
                                       try {
@@ -4609,7 +4652,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                   </div>
                                   {/* Decorative waveform */}
                                   <div className="flex items-center gap-[2px] shrink-0">
-                                    {[3,5,8,6,9,7,5,8,6,4,7,5].map((h, i) => (
+                                    {[3, 5, 8, 6, 9, 7, 5, 8, 6, 4, 7, 5].map((h, i) => (
                                       <div key={i} className="w-[2px] rounded-full opacity-40" style={{ height: `${h}px`, background: 'linear-gradient(to top, #7c3aed, #818cf8)' }} />
                                     ))}
                                   </div>
@@ -4642,7 +4685,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                           el.value = pct;
                                           el.style.background = `linear-gradient(to right, #7c3aed 0%, #818cf8 ${pct}%, rgba(255,255,255,0.08) ${pct}%, rgba(255,255,255,0.08) 100%)`;
                                           // update time display
-                                          const fmt = (s) => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+                                          const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
                                           const timeEl = document.getElementById(`time-${playerId}`);
                                           const durEl = document.getElementById(`dur-${playerId}`);
                                           if (timeEl) timeEl.textContent = fmt(audio.currentTime);
@@ -4685,7 +4728,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                       className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 shadow-lg shadow-purple-500/30 transition-transform active:scale-90"
                                       style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}
                                     >
-                                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                                     </button>
 
                                     {/* Speed pill */}
@@ -5059,7 +5102,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 <h2 className="font-bold text-maintext tracking-tight w-full px-4" style={{ fontSize: 'clamp(1.1rem, 4vw, 1.5rem)', lineHeight: '1.3', marginBottom: '1.5rem' }}>
                   {t('welcomeMessage')}
                 </h2>
- 
+
                 <div className="relative w-full max-w-5xl mx-auto px-1 sm:px-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 justify-items-center sm:justify-items-stretch animate-in fade-in slide-in-from-bottom-4 duration-1000">
                     {[
@@ -5178,21 +5221,20 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       <button
                         key={index}
                         onClick={item.action}
-                        className={`group relative flex items-center gap-2.5 sm:gap-3.5 p-2.5 sm:p-3.5 min-h-[72px] sm:min-h-[95px] rounded-[20px] sm:rounded-[28px] text-left transition-all duration-500 active:scale-[0.98] w-full max-w-[260px] sm:max-w-none mx-auto overflow-hidden border ${
-                          item.active 
-                            ? "bg-primary/10 border-primary/40 shadow-[0_20px_50px_rgba(var(--primary-rgb),0.15)] ring-2 ring-primary/20" 
+                        className={`group relative flex items-center gap-2.5 sm:gap-3.5 p-2.5 sm:p-3.5 min-h-[72px] sm:min-h-[95px] rounded-[20px] sm:rounded-[28px] text-left transition-all duration-500 active:scale-[0.98] w-full max-w-[260px] sm:max-w-none mx-auto overflow-hidden border ${item.active
+                            ? "bg-primary/10 border-primary/40 shadow-[0_20px_50px_rgba(var(--primary-rgb),0.15)] ring-2 ring-primary/20"
                             : "bg-white dark:bg-zinc-900/60 border-slate-200/50 dark:border-white/[0.05] hover:border-primary/30"
-                        } shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)]`}
+                          } shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)]`}
                       >
                         <div className={`w-11 h-11 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center shrink-0 transition-all duration-500 group-hover:scale-110 shadow-inner overflow-hidden relative bg-gradient-to-br ${item.color} border border-white/40 dark:border-white/5`}>
                           <div className="relative z-10 transition-transform duration-500 group-hover:scale-110">
                             {item.icon}
                           </div>
                         </div>
-                        
+
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5 mb-1">
-                             <span className={`px-1.5 py-0.5 rounded-md text-[7px] sm:text-[8px] font-black uppercase tracking-widest border bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-zinc-500 border-slate-200/50 dark:border-white/5`}>AISA</span>
+                            <span className={`px-1.5 py-0.5 rounded-md text-[7px] sm:text-[8px] font-black uppercase tracking-widest border bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-zinc-500 border-slate-200/50 dark:border-white/5`}>AISA</span>
                           </div>
                           <h3 className={`font-black text-[13px] sm:text-[15px] leading-tight mb-0.5 tracking-tight text-slate-800 dark:text-white group-hover:text-primary transition-colors`}>{item.title}</h3>
                           <p className={`text-[10px] sm:text-[12px] font-medium line-clamp-1 opacity-70 text-slate-500 dark:text-zinc-400`}>{item.desc}</p>
@@ -5254,6 +5296,41 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Reference Image Preview (for Magic Editing) */}
+            {isMagicEditing && editRefImage && filePreviews.length === 0 && (
+              <div className="absolute bottom-full left-0 right-0 mb-4 px-2 overflow-x-auto custom-scrollbar no-scrollbar flex gap-3 pb-2 z-20 pointer-events-auto">
+                <div
+                  className="relative shrink-0 w-64 md:w-72 bg-primary/5 dark:bg-primary/10 border border-primary/30 rounded-2xl p-2.5 flex items-center gap-3 shadow-xl backdrop-blur-xl animate-in slide-in-from-bottom-2 duration-300 ring-1 ring-primary/20"
+                >
+                  <div className="relative group shrink-0">
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border border-primary/20 bg-black/5">
+                      <img src={editRefImage.url} alt="Reference" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                    </div>
+
+                    <div className="absolute -top-2 -right-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditRefImage(null)}
+                        className="p-1 w-6 h-6 bg-zinc-500 text-white rounded-full hover:bg-zinc-600 transition-colors shadow-lg hover:scale-110 active:scale-95 flex items-center justify-center border-2 border-surface"
+                        title="Remove reference"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="min-w-0 flex-1 py-1">
+                    <p className="text-sm font-semibold text-maintext truncate pr-1">Using Chat Image</p>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="text-[10px] text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-lg uppercase tracking-wider font-bold">
+                        REFERENCE
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -6088,7 +6165,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
             <div className="flex min-h-full items-center justify-center p-4">
               <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95 translate-y-4" enterTo="opacity-100 scale-100 translate-y-0" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
                 <Dialog.Panel className="w-full max-w-md overflow-hidden rounded-3xl shadow-2xl border border-white/10" style={{ background: 'linear-gradient(135deg, rgba(20,20,35,0.97) 0%, rgba(15,15,28,0.98) 100%)', backdropFilter: 'blur(40px)' }}>
-                  
+
                   {/* ── Header ── */}
                   <div className="relative px-6 pt-6 pb-4">
                     <div className="absolute inset-0 opacity-20" style={{ background: 'radial-gradient(ellipse at top, rgba(99,102,241,0.4) 0%, transparent 70%)' }} />
@@ -6113,64 +6190,74 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     {/* ── Language Picker ── */}
                     {(() => {
                       const LANGS = [
-                        { group: '🇺🇸 English', items: [
-                          { value: 'en-US', label: 'English (US)', flag: '🇺🇸' },
-                          { value: 'en-GB', label: 'English (UK)', flag: '🇬🇧' },
-                          { value: 'en-AU', label: 'English (Australia)', flag: '🇦🇺' },
-                          { value: 'en-IN', label: 'English (India)', flag: '🇮🇳' },
-                        ]},
-                        { group: '🇮🇳 South Asian', items: [
-                          { value: 'hi-IN', label: 'Hindi', flag: '🇮🇳' },
-                          { value: 'bn-IN', label: 'Bengali', flag: '🇧🇩' },
-                          { value: 'gu-IN', label: 'Gujarati', flag: '🇮🇳' },
-                          { value: 'kn-IN', label: 'Kannada', flag: '🇮🇳' },
-                          { value: 'ml-IN', label: 'Malayalam', flag: '🇮🇳' },
-                          { value: 'mr-IN', label: 'Marathi', flag: '🇮🇳' },
-                          { value: 'pa-IN', label: 'Punjabi ✨', flag: '🇮🇳' },
-                          { value: 'ta-IN', label: 'Tamil', flag: '🇮🇳' },
-                          { value: 'te-IN', label: 'Telugu', flag: '🇮🇳' },
-                          { value: 'ur-IN', label: 'Urdu', flag: '🇮🇳' },
-                        ]},
-                        { group: '🇪🇺 European', items: [
-                          { value: 'cs-CZ', label: 'Czech', flag: '🇨🇿' },
-                          { value: 'da-DK', label: 'Danish', flag: '🇩🇰' },
-                          { value: 'de-DE', label: 'German', flag: '🇩🇪' },
-                          { value: 'el-GR', label: 'Greek', flag: '🇬🇷' },
-                          { value: 'es-ES', label: 'Spanish (Spain)', flag: '🇪🇸' },
-                          { value: 'es-US', label: 'Spanish (US)', flag: '🇺🇸' },
-                          { value: 'fi-FI', label: 'Finnish', flag: '🇫🇮' },
-                          { value: 'fr-FR', label: 'French (France)', flag: '🇫🇷' },
-                          { value: 'fr-CA', label: 'French (Canada)', flag: '🇨🇦' },
-                          { value: 'hu-HU', label: 'Hungarian', flag: '🇭🇺' },
-                          { value: 'it-IT', label: 'Italian', flag: '🇮🇹' },
-                          { value: 'nb-NO', label: 'Norwegian', flag: '🇳🇴' },
-                          { value: 'nl-NL', label: 'Dutch', flag: '🇳🇱' },
-                          { value: 'pl-PL', label: 'Polish', flag: '🇵🇱' },
-                          { value: 'pt-BR', label: 'Portuguese (Brazil)', flag: '🇧🇷' },
-                          { value: 'pt-PT', label: 'Portuguese (Portugal)', flag: '🇵🇹' },
-                          { value: 'ro-RO', label: 'Romanian', flag: '🇷🇴' },
-                          { value: 'ru-RU', label: 'Russian', flag: '🇷🇺' },
-                          { value: 'sk-SK', label: 'Slovak', flag: '🇸🇰' },
-                          { value: 'sv-SE', label: 'Swedish', flag: '🇸🇪' },
-                          { value: 'tr-TR', label: 'Turkish', flag: '🇹🇷' },
-                          { value: 'uk-UA', label: 'Ukrainian', flag: '🇺🇦' },
-                        ]},
-                        { group: '🌏 East Asian', items: [
-                          { value: 'cmn-CN', label: 'Chinese — Mandarin (CN)', flag: '🇨🇳' },
-                          { value: 'cmn-TW', label: 'Chinese — Mandarin (TW)', flag: '🇹🇼' },
-                          { value: 'yue-HK', label: 'Cantonese (HK) ✨', flag: '🇭🇰' },
-                          { value: 'ja-JP', label: 'Japanese', flag: '🇯🇵' },
-                          { value: 'ko-KR', label: 'Korean', flag: '🇰🇷' },
-                        ]},
-                        { group: '🌍 Others', items: [
-                          { value: 'ar-XA', label: 'Arabic', flag: '🇸🇦' },
-                          { value: 'fil-PH', label: 'Filipino', flag: '🇵🇭' },
-                          { value: 'he-IL', label: 'Hebrew', flag: '🇮🇱' },
-                          { value: 'id-ID', label: 'Indonesian', flag: '🇮🇩' },
-                          { value: 'ms-MY', label: 'Malay', flag: '🇲🇾' },
-                          { value: 'th-TH', label: 'Thai', flag: '🇹🇭' },
-                          { value: 'vi-VN', label: 'Vietnamese', flag: '🇻🇳' },
-                        ]},
+                        {
+                          group: '🇺🇸 English', items: [
+                            { value: 'en-US', label: 'English (US)', flag: '🇺🇸' },
+                            { value: 'en-GB', label: 'English (UK)', flag: '🇬🇧' },
+                            { value: 'en-AU', label: 'English (Australia)', flag: '🇦🇺' },
+                            { value: 'en-IN', label: 'English (India)', flag: '🇮🇳' },
+                          ]
+                        },
+                        {
+                          group: '🇮🇳 South Asian', items: [
+                            { value: 'hi-IN', label: 'Hindi', flag: '🇮🇳' },
+                            { value: 'bn-IN', label: 'Bengali', flag: '🇧🇩' },
+                            { value: 'gu-IN', label: 'Gujarati', flag: '🇮🇳' },
+                            { value: 'kn-IN', label: 'Kannada', flag: '🇮🇳' },
+                            { value: 'ml-IN', label: 'Malayalam', flag: '🇮🇳' },
+                            { value: 'mr-IN', label: 'Marathi', flag: '🇮🇳' },
+                            { value: 'pa-IN', label: 'Punjabi ✨', flag: '🇮🇳' },
+                            { value: 'ta-IN', label: 'Tamil', flag: '🇮🇳' },
+                            { value: 'te-IN', label: 'Telugu', flag: '🇮🇳' },
+                            { value: 'ur-IN', label: 'Urdu', flag: '🇮🇳' },
+                          ]
+                        },
+                        {
+                          group: '🇪🇺 European', items: [
+                            { value: 'cs-CZ', label: 'Czech', flag: '🇨🇿' },
+                            { value: 'da-DK', label: 'Danish', flag: '🇩🇰' },
+                            { value: 'de-DE', label: 'German', flag: '🇩🇪' },
+                            { value: 'el-GR', label: 'Greek', flag: '🇬🇷' },
+                            { value: 'es-ES', label: 'Spanish (Spain)', flag: '🇪🇸' },
+                            { value: 'es-US', label: 'Spanish (US)', flag: '🇺🇸' },
+                            { value: 'fi-FI', label: 'Finnish', flag: '🇫🇮' },
+                            { value: 'fr-FR', label: 'French (France)', flag: '🇫🇷' },
+                            { value: 'fr-CA', label: 'French (Canada)', flag: '🇨🇦' },
+                            { value: 'hu-HU', label: 'Hungarian', flag: '🇭🇺' },
+                            { value: 'it-IT', label: 'Italian', flag: '🇮🇹' },
+                            { value: 'nb-NO', label: 'Norwegian', flag: '🇳🇴' },
+                            { value: 'nl-NL', label: 'Dutch', flag: '🇳🇱' },
+                            { value: 'pl-PL', label: 'Polish', flag: '🇵🇱' },
+                            { value: 'pt-BR', label: 'Portuguese (Brazil)', flag: '🇧🇷' },
+                            { value: 'pt-PT', label: 'Portuguese (Portugal)', flag: '🇵🇹' },
+                            { value: 'ro-RO', label: 'Romanian', flag: '🇷🇴' },
+                            { value: 'ru-RU', label: 'Russian', flag: '🇷🇺' },
+                            { value: 'sk-SK', label: 'Slovak', flag: '🇸🇰' },
+                            { value: 'sv-SE', label: 'Swedish', flag: '🇸🇪' },
+                            { value: 'tr-TR', label: 'Turkish', flag: '🇹🇷' },
+                            { value: 'uk-UA', label: 'Ukrainian', flag: '🇺🇦' },
+                          ]
+                        },
+                        {
+                          group: '🌏 East Asian', items: [
+                            { value: 'cmn-CN', label: 'Chinese — Mandarin (CN)', flag: '🇨🇳' },
+                            { value: 'cmn-TW', label: 'Chinese — Mandarin (TW)', flag: '🇹🇼' },
+                            { value: 'yue-HK', label: 'Cantonese (HK) ✨', flag: '🇭🇰' },
+                            { value: 'ja-JP', label: 'Japanese', flag: '🇯🇵' },
+                            { value: 'ko-KR', label: 'Korean', flag: '🇰🇷' },
+                          ]
+                        },
+                        {
+                          group: '🌍 Others', items: [
+                            { value: 'ar-XA', label: 'Arabic', flag: '🇸🇦' },
+                            { value: 'fil-PH', label: 'Filipino', flag: '🇵🇭' },
+                            { value: 'he-IL', label: 'Hebrew', flag: '🇮🇱' },
+                            { value: 'id-ID', label: 'Indonesian', flag: '🇮🇩' },
+                            { value: 'ms-MY', label: 'Malay', flag: '🇲🇾' },
+                            { value: 'th-TH', label: 'Thai', flag: '🇹🇭' },
+                            { value: 'vi-VN', label: 'Vietnamese', flag: '🇻🇳' },
+                          ]
+                        },
                       ];
                       const allLangItems = LANGS.flatMap(g => g.items);
                       const selLang = allLangItems.find(l => l.value === audioLangCode) || allLangItems[0];
@@ -6191,8 +6278,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                       <div className="px-4 py-1.5 text-[9px] font-bold uppercase tracking-widest text-indigo-400/70 sticky top-0" style={{ background: 'rgba(18,18,32,0.95)' }}>{group.group}</div>
                                       {group.items.map((item) => (
                                         <Listbox.Option key={item.value} value={item.value} className={({ active, selected }) =>
-                                          `flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${
-                                            selected ? 'bg-indigo-600/20 text-indigo-300' : active ? 'bg-white/5 text-white' : 'text-white/60'
+                                          `flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${selected ? 'bg-indigo-600/20 text-indigo-300' : active ? 'bg-white/5 text-white' : 'text-white/60'
                                           }`
                                         }>
                                           {({ selected }) => (
@@ -6217,40 +6303,44 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     {/* ── Voice Picker ── */}
                     {(() => {
                       const VOICES = [
-                        { group: '♀ Female Voices', color: 'rose', items: [
-                          { name: 'Achernar', style: 'Bright, clear' },
-                          { name: 'Achird', style: 'Warm, friendly' },
-                          { name: 'Algenib', style: 'Smooth, graceful' },
-                          { name: 'Algieba', style: 'Bold, expressive' },
-                          { name: 'Aoede', style: 'Natural, balanced' },
-                          { name: 'Autonoe', style: 'Soft, gentle · Default' },
-                          { name: 'Callirrhoe', style: 'Rich, elegant' },
-                          { name: 'Despina', style: 'Light, airy' },
-                          { name: 'Erinome', style: 'Calm, composed' },
-                          { name: 'Gacrux', style: 'Strong, confident' },
-                          { name: 'Kore', style: 'Pure, melodic' },
-                          { name: 'Laomedeia', style: 'Serene, flowing' },
-                          { name: 'Leda', style: 'Warm, storytelling' },
-                          { name: 'Pulcherrima', style: 'Radiant, vibrant' },
-                          { name: 'Sulafat', style: 'Deep, resonant' },
-                          { name: 'Vindemiatrix', style: 'Measured, clear' },
-                          { name: 'Zephyr', style: 'Breezy, lively' },
-                        ]},
-                        { group: '♂ Male Voices', color: 'blue', items: [
-                          { name: 'Alnilam', style: 'Deep, authoritative' },
-                          { name: 'Charon', style: 'Dark, dramatic' },
-                          { name: 'Enceladus', style: 'Crisp, powerful' },
-                          { name: 'Fenrir', style: 'Bold, intense' },
-                          { name: 'Iapetus', style: 'Steady, reliable' },
-                          { name: 'Orus', style: 'Warm, friendly' },
-                          { name: 'Puck', style: 'Playful, energetic' },
-                          { name: 'Rasalgethi', style: 'Smooth, velvety' },
-                          { name: 'Sadachbia', style: 'Calm, measured' },
-                          { name: 'Sadaltager', style: 'Strong, clear' },
-                          { name: 'Schedar', style: 'Rich, balanced' },
-                          { name: 'Umbriel', style: 'Mysterious, deep' },
-                          { name: 'Zubenelgenubi', style: 'Commanding, precise' },
-                        ]},
+                        {
+                          group: '♀ Female Voices', color: 'rose', items: [
+                            { name: 'Achernar', style: 'Bright, clear' },
+                            { name: 'Achird', style: 'Warm, friendly' },
+                            { name: 'Algenib', style: 'Smooth, graceful' },
+                            { name: 'Algieba', style: 'Bold, expressive' },
+                            { name: 'Aoede', style: 'Natural, balanced' },
+                            { name: 'Autonoe', style: 'Soft, gentle · Default' },
+                            { name: 'Callirrhoe', style: 'Rich, elegant' },
+                            { name: 'Despina', style: 'Light, airy' },
+                            { name: 'Erinome', style: 'Calm, composed' },
+                            { name: 'Gacrux', style: 'Strong, confident' },
+                            { name: 'Kore', style: 'Pure, melodic' },
+                            { name: 'Laomedeia', style: 'Serene, flowing' },
+                            { name: 'Leda', style: 'Warm, storytelling' },
+                            { name: 'Pulcherrima', style: 'Radiant, vibrant' },
+                            { name: 'Sulafat', style: 'Deep, resonant' },
+                            { name: 'Vindemiatrix', style: 'Measured, clear' },
+                            { name: 'Zephyr', style: 'Breezy, lively' },
+                          ]
+                        },
+                        {
+                          group: '♂ Male Voices', color: 'blue', items: [
+                            { name: 'Alnilam', style: 'Deep, authoritative' },
+                            { name: 'Charon', style: 'Dark, dramatic' },
+                            { name: 'Enceladus', style: 'Crisp, powerful' },
+                            { name: 'Fenrir', style: 'Bold, intense' },
+                            { name: 'Iapetus', style: 'Steady, reliable' },
+                            { name: 'Orus', style: 'Warm, friendly' },
+                            { name: 'Puck', style: 'Playful, energetic' },
+                            { name: 'Rasalgethi', style: 'Smooth, velvety' },
+                            { name: 'Sadachbia', style: 'Calm, measured' },
+                            { name: 'Sadaltager', style: 'Strong, clear' },
+                            { name: 'Schedar', style: 'Rich, balanced' },
+                            { name: 'Umbriel', style: 'Mysterious, deep' },
+                            { name: 'Zubenelgenubi', style: 'Commanding, precise' },
+                          ]
+                        },
                       ];
                       const voiceKey = audioVoiceName.split('-Chirp3-HD-')[1] || 'Autonoe';
                       const allVoices = VOICES.flatMap(g => g.items.map(v => ({ ...v, group: g.group, color: g.color })));
@@ -6262,9 +6352,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           <Listbox value={audioVoiceName} onChange={setAudioVoiceName}>
                             <div className="relative">
                               <Listbox.Button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/8 hover:border-indigo-500/40 transition-all group text-left">
-                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm shrink-0 ${
-                                  isFemale ? 'bg-rose-500/20 text-rose-300' : 'bg-blue-500/20 text-blue-300'
-                                }`}>
+                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm shrink-0 ${isFemale ? 'bg-rose-500/20 text-rose-300' : 'bg-blue-500/20 text-blue-300'
+                                  }`}>
                                   {isFemale ? '♀' : '♂'}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -6277,24 +6366,21 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 <Listbox.Options className="absolute z-50 mt-2 w-full rounded-2xl overflow-hidden shadow-2xl border border-white/10 outline-none" style={{ background: 'rgba(18,18,32,0.98)', backdropFilter: 'blur(40px)', maxHeight: '280px', overflowY: 'auto' }}>
                                   {VOICES.map((group) => (
                                     <div key={group.group}>
-                                      <div className={`px-4 py-1.5 text-[9px] font-bold uppercase tracking-widest sticky top-0 ${
-                                        group.color === 'rose' ? 'text-rose-400/70' : 'text-blue-400/70'
-                                      }`} style={{ background: 'rgba(18,18,32,0.95)' }}>{group.group}</div>
+                                      <div className={`px-4 py-1.5 text-[9px] font-bold uppercase tracking-widest sticky top-0 ${group.color === 'rose' ? 'text-rose-400/70' : 'text-blue-400/70'
+                                        }`} style={{ background: 'rgba(18,18,32,0.95)' }}>{group.group}</div>
                                       {group.items.map((item) => {
                                         const voiceVal = `${audioLangCode}-Chirp3-HD-${item.name}`;
                                         return (
                                           <Listbox.Option key={item.name} value={voiceVal} className={({ active, selected }) =>
-                                            `flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${
-                                              selected
-                                                ? (group.color === 'rose' ? 'bg-rose-600/15 text-rose-300' : 'bg-blue-600/15 text-blue-300')
-                                                : active ? 'bg-white/5 text-white' : 'text-white/60'
+                                            `flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${selected
+                                              ? (group.color === 'rose' ? 'bg-rose-600/15 text-rose-300' : 'bg-blue-600/15 text-blue-300')
+                                              : active ? 'bg-white/5 text-white' : 'text-white/60'
                                             }`
                                           }>
                                             {({ selected }) => (
                                               <>
-                                                <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs shrink-0 ${
-                                                  group.color === 'rose' ? 'bg-rose-500/10 text-rose-400' : 'bg-blue-500/10 text-blue-400'
-                                                }`}>{group.color === 'rose' ? '♀' : '♂'}</div>
+                                                <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs shrink-0 ${group.color === 'rose' ? 'bg-rose-500/10 text-rose-400' : 'bg-blue-500/10 text-blue-400'
+                                                  }`}>{group.color === 'rose' ? '♀' : '♂'}</div>
                                                 <div className="flex-1 min-w-0">
                                                   <p className="text-xs font-semibold leading-none">{item.name}</p>
                                                   <p className="text-[9px] text-white/30 mt-0.5 truncate">{item.style}</p>
