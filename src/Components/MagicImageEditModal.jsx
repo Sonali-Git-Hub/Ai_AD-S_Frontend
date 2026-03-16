@@ -4,7 +4,7 @@ import { X, Upload, Wand2, Download, Image as ImageIcon, Loader2, ArrowRight, Ro
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+const baseURL = window._env_?.VITE_AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || "http://localhost:8080/api";
 
 const MagicImageEditModal = ({ isOpen, onClose, onCreditDeduction }) => {
     const [selectedImage, setSelectedImage] = useState(null);
@@ -52,7 +52,7 @@ const MagicImageEditModal = ({ isOpen, onClose, onCreditDeduction }) => {
         const token = JSON.parse(localStorage.getItem('user') || '{}')?.token;
 
         try {
-            const response = await axios.post(`${baseURL}/api/edit-image`, formData, {
+            const response = await axios.post(`${baseURL}/edit-image`, formData, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'multipart/form-data'

@@ -5,7 +5,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import CustomVideoPlayer from './CustomVideoPlayer';
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+const baseURL = window._env_?.VITE_AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || "http://localhost:8080/api";
 
 const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
     const [selectedImage, setSelectedImage] = useState(null);
@@ -23,7 +23,7 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
         setIsLoadingHistory(true);
         try {
             const token = JSON.parse(localStorage.getItem('user') || '{}')?.token;
-            const res = await axios.get(`${baseURL}/api/video/history?type=imageToVideo`, {
+            const res = await axios.get(`${baseURL}/video/history?type=imageToVideo`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.data.success) {
@@ -104,7 +104,7 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
         const token = JSON.parse(localStorage.getItem('user') || '{}')?.token;
 
         try {
-            const response = await axios.post(`${baseURL}/api/video/generate`, formData, {
+            const response = await axios.post(`${baseURL}/video/generate`, formData, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'multipart/form-data'
@@ -132,7 +132,7 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
         if (!resultVideoUrl) return;
         try {
             const token = JSON.parse(localStorage.getItem('user') || '{}')?.token;
-            const response = await axios.post(`${baseURL}/api/video/download`, { videoUrl: resultVideoUrl }, {
+            const response = await axios.post(`${baseURL}/video/download`, { videoUrl: resultVideoUrl }, {
                 headers: { 'Authorization': `Bearer ${token}` },
                 responseType: 'blob'
             });

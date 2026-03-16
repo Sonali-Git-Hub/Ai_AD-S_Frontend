@@ -160,7 +160,8 @@ const Signup = () => {
               <div className="absolute inset-0 bg-primary/20 blur-[60px] rounded-full group-hover/avatar:bg-primary/30 transition-all opacity-50" />
               <div className="w-24 h-24 rounded-[2.5rem] bg-white dark:bg-slate-800 border-2 border-white dark:border-slate-800 shadow-2xl overflow-hidden flex items-center justify-center relative translate-y-[-10px] ring-4 ring-white/10">
                 {(() => {
-                  const baseUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
+                  let baseUrl = window._env_?.VITE_AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || "http://localhost:8080/api";
+                  if (baseUrl.endsWith('/api')) baseUrl = baseUrl.slice(0, -4);
                   const normalized = email.trim().toLowerCase();
                   const previewUrl = normalized.includes('@') && normalized.length > 5
                     ? `${baseUrl}/api/auth/proxy-avatar?email=${encodeURIComponent(normalized)}&name=${encodeURIComponent(name || "U")}`
