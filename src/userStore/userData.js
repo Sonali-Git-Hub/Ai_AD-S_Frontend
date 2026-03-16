@@ -2,10 +2,10 @@ import { atom } from "recoil"
 
 const getAvatarUrl = (user) => {
   if (!user || !user.email) return "";
-  let baseUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8080";
-  // Remove /api if it exists to avoid duplication in the template string below
+  let baseUrl = import.meta.env.VITE_AISA_BACKEND_API || "http://localhost:8080/api";
+  // Remove /api suffix to get the base host for the proxy avatar URL
   if (baseUrl.endsWith('/api')) {
-    baseUrl = baseUrl.replace('/api', '');
+    baseUrl = baseUrl.slice(0, -4);
   }
   const name = user.name || user.email.split('@')[0];
   return `${baseUrl}/api/auth/proxy-avatar?email=${encodeURIComponent(user.email)}&name=${encodeURIComponent(name)}`;

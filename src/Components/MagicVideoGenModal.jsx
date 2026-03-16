@@ -5,7 +5,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import CustomVideoPlayer from './CustomVideoPlayer';
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+const baseURL = import.meta.env.VITE_API_BASE_URL;
 
 const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
     const [selectedImage, setSelectedImage] = useState(null);

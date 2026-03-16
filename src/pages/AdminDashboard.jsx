@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { apiService } from '../services/apiService';
 import { getUserData } from '../userStore/userData';
+import { API } from '../types.js';
 import toast from 'react-hot-toast';
 import { COOKIE_POLICY_DEFAULTS, TERMS_OF_SERVICE_DEFAULTS, PRIVACY_POLICY_DEFAULTS } from '../constants/legalDefaults';
 import AdminHelpDesk from '../Components/AdminHelpDesk';
@@ -170,7 +171,7 @@ const UsersTab = () => {
     const handleAdjustCredits = async (userId) => {
         if (!creditAmount) return;
         try {
-            const response = await fetch(`${import.meta.env.VITE_AISA_BACKEND_API || 'http://localhost:8080/api'}/admin/adjust-credits`, {
+            const response = await fetch(`${API}/admin/adjust-credits`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -195,7 +196,7 @@ const UsersTab = () => {
     const handleManualUpgrade = async (userId) => {
         if (!upgradeData.planName) return;
         try {
-            const response = await fetch(`${import.meta.env.VITE_AISA_BACKEND_API || 'http://localhost:8080/api'}/admin/manual-upgrade`, {
+            const response = await fetch(`${API}/admin/manual-upgrade`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -376,7 +377,7 @@ const PlansTab = () => {
     const fetchPlans = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`${import.meta.env.VITE_AISA_BACKEND_API || 'http://localhost:8080/api'}/pricing/plans`);
+            const response = await fetch(`${API}/pricing/plans`);
             const data = await response.json();
             setPlans(Array.isArray(data) ? data : data.plans || []);
         } catch (err) {
@@ -389,8 +390,8 @@ const PlansTab = () => {
     const handleSubmit = async () => {
         const token = getUserData()?.token;
         const url = editingPlan
-            ? `${import.meta.env.VITE_AISA_BACKEND_API || 'http://localhost:8080/api'}/admin/plans/${editingPlan._id}`
-            : `${import.meta.env.VITE_AISA_BACKEND_API || 'http://localhost:8080/api'}/admin/plans`;
+            ? `${API}/admin/plans/${editingPlan._id}`
+            : `${API}/admin/plans`;
         const method = editingPlan ? 'PUT' : 'POST';
 
         try {
@@ -423,7 +424,7 @@ const PlansTab = () => {
         if (!confirm('Delete this plan?')) return;
         try {
             const token = getUserData()?.token;
-            await fetch(`${import.meta.env.VITE_AISA_BACKEND_API || 'http://localhost:8080/api'}/admin/plans/${planId}`, {
+            await fetch(`${API}/admin/plans/${planId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -555,7 +556,7 @@ const PackagesTab = () => {
     const fetchPackages = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`${import.meta.env.VITE_AISA_BACKEND_API || 'http://localhost:8080/api'}/pricing/packages`);
+            const response = await fetch(`${API}/pricing/packages`);
             const data = await response.json();
             setPackages(Array.isArray(data) ? data : data.packages || []);
         } catch (err) {
@@ -568,8 +569,8 @@ const PackagesTab = () => {
     const handleSubmit = async () => {
         const token = getUserData()?.token;
         const url = editingPkg
-            ? `${import.meta.env.VITE_AISA_BACKEND_API || 'http://localhost:8080/api'}/admin/packages/${editingPkg._id}`
-            : `${import.meta.env.VITE_AISA_BACKEND_API || 'http://localhost:8080/api'}/admin/packages`;
+            ? `${API}/admin/packages/${editingPkg._id}`
+            : `${API}/admin/packages`;
         const method = editingPkg ? 'PUT' : 'POST';
 
         try {
@@ -594,7 +595,7 @@ const PackagesTab = () => {
         if (!confirm('Delete this package?')) return;
         try {
             const token = getUserData()?.token;
-            await fetch(`${import.meta.env.VITE_AISA_BACKEND_API || 'http://localhost:8080/api'}/admin/packages/${pkgId}`, {
+            await fetch(`${API}/admin/packages/${pkgId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
