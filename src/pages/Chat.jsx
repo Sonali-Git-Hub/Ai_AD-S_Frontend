@@ -2206,85 +2206,9 @@ const Chat = () => {
     const contentToSend = typeof overrideContent === 'string' ? overrideContent : inputValue.trim();
     if ((!contentToSend && filePreviews.length === 0) || isLoading) return;
 
-    // --- Proactive Magic Tool Activation Check ---
-    const lowerContent = contentToSend.toLowerCase().trim();
-    const magicTools = [
-      {
-        id: 'image',
-        name: 'Generate Image',
-        active: isImageGeneration,
-        check: () => {
-          const startsWithImage = lowerContent.startsWith('image') || lowerContent.startsWith('picture') || lowerContent.startsWith('photo') || lowerContent.startsWith('drawing') || lowerContent.startsWith('imagine') || lowerContent.startsWith('paint') || lowerContent.startsWith('generate');
-          const hasImageAction = (lowerContent.includes('image') || lowerContent.includes('photo') || lowerContent.includes('pic') || lowerContent.includes('portrait') || lowerContent.includes('sketch') || lowerContent.includes('wallpaper')) && 
-                                (lowerContent.includes('generate') || lowerContent.includes('create') || lowerContent.includes('make') || lowerContent.includes('show') || lowerContent.includes('draw'));
-          return (startsWithImage && lowerContent.length > 15) || hasImageAction;
-        }
-      },
-      {
-        id: 'video',
-        name: 'Generate Video',
-        active: isVideoGeneration,
-        check: () => {
-          const startsWithVideo = lowerContent.startsWith('video') || lowerContent.startsWith('animate') || lowerContent.startsWith('movie');
-          const hasVideoAction = lowerContent.includes('video') && (lowerContent.includes('generate') || lowerContent.includes('create') || lowerContent.includes('make') || lowerContent.includes('animate'));
-          return (startsWithVideo && lowerContent.length > 10) || hasVideoAction;
-        }
-      },
-      {
-        id: 'deepsearch',
-        name: 'Deep Search',
-        active: isDeepSearch,
-        check: () => lowerContent.includes('deep search') || lowerContent.includes('research')
-      },
-      {
-        id: 'websearch',
-        name: 'Real-Time Web Search',
-        active: isWebSearch || isDeepSearch,
-        check: () => lowerContent.includes('search the web') || lowerContent.includes('live data') || lowerContent.includes('current news') || lowerContent.includes('aaj ki') || lowerContent.includes('latest') || lowerContent.includes('stock price') || lowerContent.includes('weather')
-      },
-      {
-        id: 'audio',
-        name: 'Convert to Audio',
-        active: isAudioConvertMode,
-        check: () => lowerContent.includes('convert to audio') || lowerContent.includes('text to speech') || lowerContent.includes('make a voice') || (lowerContent.includes('read this') && lowerContent.length < 50)
-      },
-      {
-        id: 'document',
-        name: 'Convert Documents',
-        active: isDocumentConvert,
-        check: () => lowerContent.includes('convert document') || lowerContent.includes('pdf to') || lowerContent.includes('word to') || lowerContent.includes('extract text')
-      },
-      {
-        id: 'code',
-        name: 'Code Writer',
-        active: isCodeWriter,
-        check: () => {
-          const codingKeywords = ['code', 'programming', 'python', 'javascript', 'html', 'css', 'react', 'function', 'script', 'algorithm', 'debug', 'develop', 'java', 'c++', 'php', 'sql'];
-          const hasCodingKeyword = codingKeywords.some(kw => lowerContent.includes(kw));
-          const hasActionKeyword = ['write', 'generate', 'create', 'give', 'show', 'debug', 'fix', 'make', 'build'].some(kw => lowerContent.includes(kw));
-          return hasCodingKeyword && hasActionKeyword;
-        }
-      },
-      {
-        id: 'edit_image',
-        name: 'Edit Image',
-        active: isMagicEditing,
-        check: () => (lowerContent.includes('edit') || lowerContent.includes('modify') || lowerContent.includes('change') || lowerContent.includes('remove')) && 
-                     (lowerContent.includes('image') || lowerContent.includes('photo') || lowerContent.includes('pic') || lowerContent.includes('background') || lowerContent.includes('bg'))
-      }
-    ];
-
-    for (const tool of magicTools) {
-      if (!tool.active && tool.check()) {
-        toast.error(`Please activate "${tool.name}" from Magic Tools. (Is feature ko active karo)`, {
-          duration: 5000,
-          position: 'top-center'
-        });
-        setIsToolsMenuOpen(true);
-        isSendingRef.current = false; // Reset sending state
-        return;
-      }
-    }
+    // --- Proactive Magic Tool Activation Check Removed ---
+    // Messages now flow to the backend normally. 
+    // The backend's adaptive system will handle tool restrictions based on the active mode.
 
     // --- Subscription Limit Checks ---
     let featureToTrack = 'chat';
@@ -2462,6 +2386,8 @@ const Chat = () => {
       const deepSearchActive = isDeepSearch;
       const documentConvertActive = isDocumentConvert;
       const webSearchActive = isWebSearch;
+      const imageGenActive = isImageGeneration;
+      const videoGenActive = isVideoGeneration;
       // Note: We don't reset these state immediately anymore so the tag stays visible in input bar while "Thinking..."
 
       // Detect mode for UI indicator
@@ -2474,32 +2400,14 @@ const Chat = () => {
       // Update user message with the detected mode
       userMsg.mode = detectedMode;
 
-      // Determine loading intent for UI feedback
-      const lowerContent = (userMsg.content || "").toLowerCase();
-      if (
-        (lowerContent.includes('image') || lowerContent.includes('photo') || lowerContent.includes('pic') || lowerContent.includes('draw')) &&
-        (lowerContent.includes('generate') || lowerContent.includes('create') || lowerContent.includes('make') || lowerContent.includes('show'))
-      ) {
+      // Determine loading intent for UI feedback (Strictly based on active mode/card)
+      if (imageGenActive) {
         setLoadingText("Generating Image... 🎨");
-      } else if (lowerContent.includes('video')) {
+      } else if (videoGenActive) {
         setLoadingText("Generating Video... 🎥");
       } else if (documentConvertActive) {
         setLoadingText("Converting Document... 🔄");
-      } else if (
-        lowerContent.includes('news') ||
-        lowerContent.includes('price') ||
-        lowerContent.includes('score') ||
-        lowerContent.includes('weather') ||
-        lowerContent.includes('latest') ||
-        lowerContent.includes('current') ||
-        lowerContent.includes('aaj') ||
-        lowerContent.includes('date') ||
-        lowerContent.includes('time') ||
-        lowerContent.includes('samay') ||
-        lowerContent.includes('tareekh') ||
-        lowerContent.includes('rate') ||
-        lowerContent.includes('bhav')
-      ) {
+      } else if (deepSearchActive || webSearchActive) {
         setLoadingText("Searching the web... 🌐");
       } else {
         setLoadingText("Thinking...");
