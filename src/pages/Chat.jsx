@@ -4153,7 +4153,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     {msg.role === 'user' ? (
                       <User className="w-4 h-4 text-slate-800 dark:text-slate-200" />
                     ) : (
-                      <img src="/logo/AISA.gif?v=3" alt="AISA" className="w-5 h-5 object-contain" />
+                      <img src="/logo/Logo.svg" alt="AISA" className="w-5 h-5 object-contain" />
                     )}
                   </div>
 
@@ -5055,7 +5055,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
               {isLoading && !typingMessageId && (
                 <div className="flex items-start gap-4 max-w-4xl mx-auto">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0">
-                    <img src="/logo/AISA.gif?v=3" alt="AISA" className="w-5 h-5 object-contain" />
+                    <img src="/logo/Logo.svg" alt="AISA" className="w-5 h-5 object-contain" />
 
                   </div>
                   <div className="p-1 flex items-center gap-3">
@@ -5092,7 +5092,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
               <div className="flex flex-col items-center w-full max-w-4xl px-4 text-center shrink-0">
                 <div className="select-none flex items-center justify-center w-full mb-4">
                   <img
-                    src="/logo/AISA.gif?v=3"
+                    src="/logo/Logo.svg"
                     alt="AISA Icon"
                     className="object-contain drop-shadow-2xl pointer-events-none shrink-0"
                     style={{ width: 'clamp(3rem, 10vw, 3.5rem)', height: 'clamp(3rem, 10vw, 3.5rem)' }}
