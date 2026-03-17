@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { NavLink, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,6 +22,7 @@ import { API, apis } from '../../types';
 import CustomSelect from '../CustomSelect/CustomSelect';
 
 const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
+    const fileInputRef = useRef(null);
     const [currentUserData, setUserRecoil] = useRecoilState(userData);
     const user = currentUserData.user || getUserData();
     const {
@@ -413,7 +414,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                         <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-gray-100 dark:border-white/5">
                             <div 
                                 className="relative group/avatar cursor-pointer shrink-0"
-                                onClick={() => document.getElementById('dropdown-avatar-upload').click()}
+                                onClick={() => fileInputRef.current?.click()}
                             >
                                 <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full opacity-0 group-hover/avatar:opacity-100 transition-opacity" />
                                 <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden relative z-10 transition-transform group-hover/avatar:scale-105">
@@ -427,14 +428,14 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                     className="absolute -bottom-2 -right-2 w-8 h-8 bg-primary text-white rounded-lg flex items-center justify-center shadow-lg border-2 border-white dark:border-[#161B2E] z-20"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        document.getElementById('dropdown-avatar-upload').click();
+                                        fileInputRef.current?.click();
                                     }}
                                 >
                                     <Plus className="w-4 h-4" />
                                 </button>
                                 <input
                                     type="file"
-                                    id="dropdown-avatar-upload"
+                                    ref={fileInputRef}
                                     className="hidden"
                                     accept="image/*"
                                     onChange={handleImageUpload}
