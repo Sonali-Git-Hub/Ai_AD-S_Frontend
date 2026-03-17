@@ -5254,7 +5254,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
             {/* File Preview Area */}
             {filePreviews.length > 0 && (
-              <div className="absolute bottom-full left-0 right-0 mb-4 px-2 overflow-x-auto custom-scrollbar no-scrollbar flex gap-3 pb-2 z-20 pointer-events-auto">
+              <div className={`absolute bottom-full left-0 right-0 ${ (isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing) ? 'mb-[60px]' : 'mb-4' } px-2 overflow-x-auto custom-scrollbar no-scrollbar flex gap-3 pb-2 z-20 pointer-events-auto`}>
                 {filePreviews.map((preview) => (
                   <div
                     key={preview.id}
@@ -5301,7 +5301,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
             {/* Reference Image Preview (for Magic Editing) */}
             {isMagicEditing && editRefImage && filePreviews.length === 0 && (
-              <div className="absolute bottom-full left-0 right-0 mb-4 px-2 overflow-x-auto custom-scrollbar no-scrollbar flex gap-3 pb-2 z-20 pointer-events-auto">
+              <div className={`absolute bottom-full left-0 right-0 ${ (isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing) ? 'mb-[60px]' : 'mb-4' } px-2 overflow-x-auto custom-scrollbar no-scrollbar flex gap-3 pb-2 z-20 pointer-events-auto`}>
                 <div
                   className="relative shrink-0 w-64 md:w-72 bg-primary/5 dark:bg-primary/10 border border-primary/30 rounded-2xl p-2.5 flex items-center gap-3 shadow-xl backdrop-blur-xl animate-in slide-in-from-bottom-2 duration-300 ring-1 ring-primary/20"
                 >
@@ -5386,7 +5386,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       exit={{ opacity: 0, scale: 0.9, y: 10 }}
                       transition={{ duration: 0.2, ease: "easeOut" }}
                       ref={menuRef}
-                      className="absolute bottom-full left-0 mb-4 w-[min(85vw,220px)] bg-surface/95 dark:bg-[#1a1a1a]/95 border border-border/50 rounded-2xl shadow-2xl overflow-hidden z-30 backdrop-blur-xl ring-1 ring-black/5"
+                      className={`absolute bottom-full left-0 ${ (isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing) ? 'mb-[60px]' : 'mb-4' } w-[min(85vw,220px)] bg-surface/95 dark:bg-[#1a1a1a]/95 border border-border/50 rounded-2xl shadow-2xl overflow-hidden z-30 backdrop-blur-xl ring-1 ring-black/5`}
                     >
                       <div className="p-2 space-y-1">
                         {getAgentCapabilities(activeAgent.agentName, activeAgent.category).canCamera && (
@@ -5424,7 +5424,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       exit={{ opacity: 0, scale: 0.9, y: 10 }}
                       transition={{ duration: 0.2, ease: "easeOut" }}
                       ref={toolsMenuRef}
-                      className="absolute bottom-full left-0 mb-[16px] w-[min(94vw,310px)] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[36px] shadow-[0_40px_80px_-15px_rgba(0,0,0,0.2)] overflow-hidden z-30 ring-1 ring-black/5"
+                      className={`absolute bottom-full left-0 ${ (isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing) ? 'mb-[60px]' : 'mb-[16px]' } w-[min(94vw,310px)] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[36px] shadow-[0_40px_80px_-15px_rgba(0,0,0,0.2)] overflow-hidden z-30 ring-1 ring-black/5`}
                       style={{ maxHeight: 'calc(100vh - 180px)' }}
                     >
                       <div className="px-6 py-5 bg-slate-50 dark:bg-zinc-800/80 border-b border-slate-100 dark:border-zinc-800 shrink-0">
@@ -5687,7 +5687,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                 <button
                   type="button"
-                  onClick={() => setIsAttachMenuOpen(!isAttachMenuOpen)}
+                  ref={attachBtnRef}
+                  onClick={() => {
+                    setIsAttachMenuOpen(!isAttachMenuOpen);
+                    setIsToolsMenuOpen(false);
+                  }}
                   className="w-[40px] h-[40px] rounded-full flex items-center justify-center text-subtext hover:text-primary hover:bg-secondary transition-all active:scale-95 shadow-sm hover:shadow-md"
                   title="Attachments"
                 >
@@ -5696,7 +5700,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                 <button
                   type="button"
-                  onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
+                  ref={toolsBtnRef}
+                  onClick={() => {
+                    setIsToolsMenuOpen(!isToolsMenuOpen);
+                    setIsAttachMenuOpen(false);
+                  }}
                   className="w-[40px] h-[40px] rounded-full flex items-center justify-center text-subtext hover:text-primary hover:bg-secondary transition-all active:scale-95 shadow-sm hover:shadow-md"
                   title="AISA Magic Tools"
                 >
