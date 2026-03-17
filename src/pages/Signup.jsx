@@ -279,14 +279,7 @@ const Signup = () => {
               )}
             </motion.button>
             
-            <button 
-              type="button"
-              onClick={() => navigate('/login')} // Redirect to login for other social options for simplicity
-              className="w-full flex items-center justify-center gap-2 py-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest hover:text-primary transition-colors group mt-2"
-            >
-              <span>More Options (Microsoft, FB, GitHub)</span>
-              <ArrowLeft className="w-3 h-3 rotate-180" />
-            </button>
+
 
             <div className="mt-10 pt-8 border-t border-white/10 dark:border-slate-800/50 text-center text-xs font-bold text-slate-400 tracking-wide uppercase relative">
               {t('alreadyHaveAccount')}? <Link to="/login" className="text-primary hover:underline ml-1 uppercase tracking-widest font-black">{t('logIn')}</Link>
