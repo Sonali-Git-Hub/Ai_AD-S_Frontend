@@ -5150,23 +5150,29 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         {/* Welcome Screen - Absolute Overlay */}
         {
           messages.length === 0 && (
-            <div className="absolute inset-0 z-0 flex flex-col items-center justify-start sm:justify-center overflow-y-auto overflow-x-hidden pointer-events-auto no-scrollbar scroll-smooth" style={{ paddingTop: 'calc(80px + env(safe-area-inset-top))', paddingBottom: '200px', WebkitOverflowScrolling: 'touch' }}>
-              <div className="flex flex-col items-center w-full max-w-4xl px-4 text-center shrink-0">
-                <div className="select-none flex items-center justify-center w-full mb-4">
+            <div className="absolute inset-0 z-0 overflow-y-auto overflow-x-hidden pointer-events-auto scroll-smooth custom-scrollbar"
+              style={{ WebkitOverflowScrolling: 'touch' }}
+            >
+              {/* min-h-full ensures justify-center works correctly on desktop */}
+              <div className="min-h-full flex flex-col items-center justify-start sm:justify-center px-4 pb-[200px] sm:pb-8"
+                style={{ paddingTop: 'calc(70px + env(safe-area-inset-top))' }}
+              >
+              <div className="flex flex-col items-center w-full max-w-4xl text-center shrink-0">
+                <div className="select-none flex items-center justify-center w-full mb-2 sm:mb-4">
                   <img
                     src="/logo/Logo.svg"
                     alt="AISA Icon"
                     className="object-contain drop-shadow-2xl pointer-events-none shrink-0"
-                    style={{ width: 'clamp(3rem, 10vw, 3.5rem)', height: 'clamp(3rem, 10vw, 3.5rem)' }}
+                    style={{ width: 'clamp(2.5rem, 8vw, 3.5rem)', height: 'clamp(2.5rem, 8vw, 3.5rem)' }}
                     draggable={false}
                   />
                 </div>
-                <h2 className="font-bold text-maintext tracking-tight w-full px-4" style={{ fontSize: 'clamp(1.1rem, 4vw, 1.5rem)', lineHeight: '1.3', marginBottom: '1.5rem' }}>
+                <h2 className="font-black text-maintext tracking-tighter w-full px-4 mb-3 sm:mb-6" style={{ fontSize: 'clamp(0.9rem, 4vw, 1.5rem)', lineHeight: '1.3' }}>
                   {t('welcomeMessage')}
                 </h2>
 
-                <div className="relative w-full max-w-5xl mx-auto px-1 sm:px-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 justify-items-center sm:justify-items-stretch animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                <div className="relative w-full max-w-5xl mx-auto">
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 justify-items-stretch animate-in fade-in slide-in-from-bottom-4 duration-1000">
                     {[
                       {
                         icon: <ImagePlus className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />,
@@ -5273,13 +5279,10 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           if (!checkPremiumTool('Edit Image')) return;
                           setIsMagicEditing(true);
                           if (inputRef.current) inputRef.current.focus();
-                          
-                          // Auto-select last image if none selected
                           if (!editRefImage && messages.length > 0) {
                             const lastImg = [...messages].reverse().find(m => m.imageUrl);
                             if (lastImg) setEditRefImage({ url: lastImg.imageUrl, name: 'Last Generated', type: 'image' });
                           }
-                          
                           toast.success("Image Editing Enabled");
                         }
                       },
@@ -5303,28 +5306,29 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       <button
                         key={index}
                         onClick={item.action}
-                        className={`group relative flex items-center gap-2.5 sm:gap-3.5 p-2.5 sm:p-3.5 min-h-[72px] sm:min-h-[95px] rounded-[20px] sm:rounded-[28px] text-left transition-all duration-500 active:scale-[0.98] w-full max-w-[260px] sm:max-w-none mx-auto overflow-hidden border ${item.active
+                        className={`group relative flex flex-row items-center gap-2 sm:gap-3.5 p-1.5 sm:p-3.5 min-h-[56px] sm:min-h-[95px] rounded-[16px] sm:rounded-[28px] text-left transition-all duration-500 active:scale-[0.98] w-full mx-auto overflow-hidden border ${item.active
                             ? "bg-primary/10 border-primary/40 shadow-[0_20px_50px_rgba(var(--primary-rgb),0.15)] ring-2 ring-primary/20"
                             : "bg-white dark:bg-zinc-900/60 border-slate-200/50 dark:border-white/[0.05] hover:border-primary/30"
                           } shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)]`}
                       >
-                        <div className={`w-11 h-11 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center shrink-0 transition-all duration-500 group-hover:scale-110 shadow-inner overflow-hidden relative bg-gradient-to-br ${item.color} border border-white/40 dark:border-white/5`}>
+                        <div className={`w-9 h-9 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center shrink-0 transition-all duration-500 group-hover:scale-110 shadow-inner overflow-hidden relative bg-gradient-to-br ${item.color} border border-white/40 dark:border-white/5`}>
                           <div className="relative z-10 transition-transform duration-500 group-hover:scale-110">
                             {item.icon}
                           </div>
                         </div>
 
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <span className={`px-1.5 py-0.5 rounded-md text-[7px] sm:text-[8px] font-black uppercase tracking-widest border bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-zinc-500 border-slate-200/50 dark:border-white/5`}>AISA ™</span>
+                          <div className="flex items-center gap-1 sm:gap-1.5 mb-0 sm:mb-1">
+                            <span className={`px-1 sm:px-1.5 py-0.5 rounded-md text-[6px] sm:text-[8px] font-black uppercase tracking-widest border bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-zinc-500 border-slate-200/50 dark:border-white/5`}>AISA ™</span>
                           </div>
-                          <h3 className={`font-black text-[13px] sm:text-[15px] leading-tight mb-0.5 tracking-tight text-slate-800 dark:text-white group-hover:text-primary transition-colors`}>{item.title}</h3>
-                          <p className={`text-[10px] sm:text-[12px] font-medium line-clamp-1 opacity-70 text-slate-500 dark:text-zinc-400`}>{item.desc}</p>
+                          <h3 className={`font-black text-[11px] sm:text-[15px] leading-tight mb-0 sm:mb-0.5 tracking-tight text-slate-800 dark:text-white group-hover:text-primary transition-colors truncate`}>{item.title}</h3>
+                          <p className={`text-[10px] sm:text-[12px] font-medium line-clamp-1 opacity-70 text-slate-500 dark:text-zinc-400 hidden sm:block`}>{item.desc}</p>
                         </div>
                       </button>
                     ))}
                   </div>
                 </div>
+              </div>
               </div>
             </div>
           )
