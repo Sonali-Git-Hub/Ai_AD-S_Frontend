@@ -2841,12 +2841,8 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
       isSendingRef.current = false;
       abortControllerRef.current = null; // Clean up abort controller
 
-      // Clear special modes after completion
-      setIsDeepSearch(false);
-      setIsDocumentConvert(false);
-      setIsWebSearch(false);
-      setIsMagicEditing(false); // Reset Magic Editing after each turn
-      setEditRefImage(null);    // Reset Ref Image
+      // Tool modes are intentionally NOT cleared here so they persist until the user manually closes them
+      // setEditRefImage(null); // Optional: if you want edit ref image to persist too, leave this commented
     }
   };
 
@@ -5320,7 +5316,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5 mb-1">
-                            <span className={`px-1.5 py-0.5 rounded-md text-[7px] sm:text-[8px] font-black uppercase tracking-widest border bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-zinc-500 border-slate-200/50 dark:border-white/5`}>AISA</span>
+                            <span className={`px-1.5 py-0.5 rounded-md text-[7px] sm:text-[8px] font-black uppercase tracking-widest border bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-zinc-500 border-slate-200/50 dark:border-white/5`}>AISA ™</span>
                           </div>
                           <h3 className={`font-black text-[13px] sm:text-[15px] leading-tight mb-0.5 tracking-tight text-slate-800 dark:text-white group-hover:text-primary transition-colors`}>{item.title}</h3>
                           <p className={`text-[10px] sm:text-[12px] font-medium line-clamp-1 opacity-70 text-slate-500 dark:text-zinc-400`}>{item.desc}</p>
@@ -5519,7 +5515,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             <Brain className="w-5 h-5 text-white" />
                           </div>
                           <h3 className="text-[16px] font-black text-slate-800 dark:text-white uppercase tracking-tight">
-                            AISA Magic Tools
+                            AISA ™ Magic Tools
                           </h3>
                         </div>
                       </div>
@@ -5544,7 +5540,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
-                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA</span>
+                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
                               <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Generate Image</span>
                             </div>
                             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Create unique AI art from your text.</p>
@@ -5571,7 +5567,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
-                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA</span>
+                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
                               <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Generate Video</span>
                             </div>
                             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Convert scenes into dynamic videos.</p>
@@ -5599,7 +5595,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
-                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA</span>
+                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
                               <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Web Search</span>
                             </div>
                             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Fast and accurate web queries.</p>
@@ -5627,7 +5623,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
-                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA</span>
+                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
                               <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Deep Search</span>
                             </div>
                             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">In-depth analysis and data mining.</p>
@@ -5654,7 +5650,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
-                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA</span>
+                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
                               <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Convert to Audio</span>
                             </div>
                             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Natural-sounding text-to-speech.</p>
@@ -5681,7 +5677,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
-                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA</span>
+                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
                               <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Convert Documents</span>
                             </div>
                             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Format conversion and text extraction.</p>
@@ -5710,7 +5706,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
-                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA</span>
+                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
                               <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Code Writer</span>
                             </div>
                             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Generate multi-language code snippets.</p>
@@ -5745,7 +5741,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
-                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA</span>
+                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
                               <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Edit Image</span>
                             </div>
                             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Enhance and modify existing visuals.</p>
@@ -5766,7 +5762,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
-                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA</span>
+                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
                               <span className="text-[16px] font-extrabold text-slate-800 dark:text-white leading-none">Image {'->'} Video</span>
                             </div>
                             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Animate your images with AI magic.</p>
@@ -5799,7 +5795,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     setIsAttachMenuOpen(false);
                   }}
                   className="w-[40px] h-[40px] rounded-full flex items-center justify-center text-subtext hover:text-primary hover:bg-secondary transition-all active:scale-95 shadow-sm hover:shadow-md"
-                  title="AISA Magic Tools"
+                  title="AISA ™ Magic Tools"
                 >
                   <Brain className="w-[20px] h-[20px]" />
                 </button>
@@ -5810,19 +5806,19 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                   {(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing) && (
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto w-[calc(100vw-24px)] max-w-5xl px-2 z-[100] justify-start sm:justify-start">
                       {isWebSearch && (
-                        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded-full text-[10px] sm:text-xs font-bold border border-primary/20 shadow-lg backdrop-blur-xl shrink-0">
-                          <Globe size={12} strokeWidth={3} /> <span className="">Web Search</span>
-                          <button onClick={() => setIsWebSearch(false)} className="ml-1 hover:text-white/80"><X size={12} /></button>
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0">
+                          <Globe size={12} strokeWidth={3} /> <span className="hidden sm:inline">Web Search</span>
+                          <button onClick={() => setIsWebSearch(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
                         </motion.div>
                       )}
                       {isDeepSearch && (
-                        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded-full text-[10px] sm:text-xs font-bold border border-primary/20 shadow-lg backdrop-blur-xl shrink-0">
-                          <Search size={12} strokeWidth={3} /> <span className="">Deep Search</span>
-                          <button onClick={() => setIsDeepSearch(false)} className="ml-1 hover:text-white/80"><X size={12} /></button>
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0">
+                          <Search size={12} strokeWidth={3} /> <span className="hidden sm:inline">Deep Search</span>
+                          <button onClick={() => setIsDeepSearch(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
                         </motion.div>
                       )}
                       {isImageGeneration && (
-                        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 px-2 py-1.5 bg-primary text-white rounded-full text-[10px] sm:text-xs font-bold border border-primary/20 shadow-lg backdrop-blur-xl shrink-0">
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0">
                           <ImageIcon size={12} strokeWidth={3} />
                           <div className="relative flex items-center">
                             <select
@@ -5837,7 +5833,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             </select>
                             <ChevronDown size={10} className="absolute right-0 pointer-events-none" />
                           </div>
-                          <div className="relative flex items-center ml-1 border-l border-white/20 pl-2">
+                          <div className="relative flex items-center ml-1 border-l border-primary/20 pl-2">
                             <select
                               className="bg-transparent outline-none appearance-none cursor-pointer font-bold pr-3 pl-1 text-[10px] sm:text-[11px] max-w-[100px] sm:max-w-[200px] truncate"
                               value={imageModelId}
@@ -5847,11 +5843,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             </select>
                             <ChevronDown size={10} className="absolute right-0 pointer-events-none" />
                           </div>
-                          <button onClick={() => setIsImageGeneration(false)} className="ml-1 hover:text-white/80"><X size={12} /></button>
+                          <button onClick={() => setIsImageGeneration(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
                         </motion.div>
                       )}
                       {isVideoGeneration && (
-                        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 px-2 py-1.5 bg-primary text-white rounded-full text-[10px] sm:text-xs font-bold border border-primary/20 shadow-lg backdrop-blur-xl shrink-0">
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0">
                           <Video size={12} strokeWidth={3} />
                           <div className="relative flex items-center">
                             <select
@@ -5866,7 +5862,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             </select>
                             <ChevronDown size={10} className="absolute right-0 pointer-events-none" />
                           </div>
-                          <div className="relative flex items-center ml-1 border-l border-white/20 pl-2">
+                          <div className="relative flex items-center ml-1 border-l border-primary/20 pl-2">
                             <select
                               className="bg-transparent outline-none appearance-none cursor-pointer font-bold pr-3 pl-1 text-[10px] sm:text-[11px] max-w-[80px] sm:max-w-[120px] truncate"
                               value={videoResolution}
@@ -5877,7 +5873,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             </select>
                             <ChevronDown size={10} className="absolute right-0 pointer-events-none" />
                           </div>
-                          <div className="relative flex items-center ml-1 border-l border-white/20 pl-2">
+                          <div className="relative flex items-center ml-1 border-l border-primary/20 pl-2">
                             <select
                               className="bg-transparent outline-none appearance-none cursor-pointer font-bold pr-3 pl-1 text-[10px] sm:text-[11px] max-w-[100px] sm:max-w-[120px] truncate"
                               value={videoModelId}
@@ -5888,7 +5884,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             </select>
                             <ChevronDown size={10} className="absolute right-0 pointer-events-none" />
                           </div>
-                          <button onClick={() => setIsVideoGeneration(false)} className="ml-1 hover:text-white/80"><X size={12} /></button>
+                          <button onClick={() => setIsVideoGeneration(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
                         </motion.div>
                       )}
                       {isVoiceMode && (
@@ -5947,7 +5943,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       }
                     }
                   }}
-                  placeholder={isLimitReached ? "Chat limit reached. Sign in to continue." : (isVideoGeneration ? "Describe the video you want to generate..." : isAudioConvertMode ? "Enter text to convert..." : isDocumentConvert ? "Upload file & ask to convert..." : "Ask AISA")}
+                  placeholder={isLimitReached ? "Chat limit reached. Sign in to continue." : (isVideoGeneration ? "Describe the video you want to generate..." : isAudioConvertMode ? "Enter text to convert..." : isDocumentConvert ? "Upload file & ask to convert..." : "Ask AISA ™")}
                   rows={1}
                   className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none p-0 py-2 text-maintext text-left placeholder-subtext/40 resize-none overflow-y-auto custom-scrollbar leading-relaxed text-[15px] ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
                   style={{ minHeight: '24px', height: 'auto', maxHeight: '150px', lineHeight: '1.5' }}

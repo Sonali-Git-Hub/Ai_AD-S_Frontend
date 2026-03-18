@@ -284,7 +284,7 @@ const Landing = () => {
                                     <img src={feature.img} alt={feature.title} className="w-full h-full object-contain drop-shadow-md" />
                                 </motion.div>
                                 <h3 className="text-xl font-bold mb-2 text-black dark:text-white group-hover:text-primary transition-colors flex items-center gap-2">
-                                   <span className="aisa-badge-small">AISA</span>
+                                   <span className="aisa-badge-small">AISA ™</span>
                                    {feature.title}
                                  </h3>
                                 <p className="text-black dark:text-white leading-relaxed">
@@ -307,7 +307,7 @@ const Landing = () => {
                         variants={item}
                         className="text-3xl md:text-5xl font-extrabold mb-4 text-black dark:text-white"
                     >
-                        Choose Your AISA Power Level
+                        Choose Your AISA ™ Power Level
                     </motion.h2>
                     <motion.p
                         variants={item}
@@ -328,7 +328,7 @@ const Landing = () => {
                                 Unlock AI Powers
                             </div>
                             <h3 className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white mb-4 group-hover:text-primary transition-colors">
-                                View AISA Subscriptions
+                                View AISA ™ Subscriptions
                             </h3>
                             <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-lg mx-auto leading-relaxed">
                                 Get access to advanced AI models, higher rate limits, priority support, and powerful collaboration tools.
@@ -361,7 +361,7 @@ const Landing = () => {
                         <div className="space-y-6 max-w-sm">
                             <div className="flex items-center gap-2 group cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
                                 <img src="/logo/Logo.svg" alt="AISA Logo" className="w-12 h-12 object-contain group-hover:rotate-12 transition-transform duration-300" />
-                                <span className="text-xl font-bold text-primary tracking-tighter">AISA <sup className="text-[10px]">TM</sup></span>
+                                <span className="text-xl font-bold text-primary tracking-tighter">AISA ™</span>
                             </div>
 
                             <div className="flex items-center gap-3 flex-wrap">
@@ -463,7 +463,7 @@ const Landing = () => {
                     {/* Bottom Bar */}
                     <div className="pt-10 border-t border-border flex flex-col md:flex-row items-center justify-between gap-6">
                         <p className="text-xs text-maintext font-medium opacity-80">
-                            © {new Date().getFullYear()} {name} <sup className="text-xs">TM</sup>. {t('allRightsReserved')}
+                            © {new Date().getFullYear()} {name} ™. {t('allRightsReserved')}
                         </p>
                         <div className="flex items-center gap-8">
                             <button onClick={() => setIsPrivacyModalOpen(true)} className="text-xs text-maintext hover:text-primary hover:underline decoration-primary underline-offset-4 transition-all font-medium opacity-80 hover:opacity-100">{t('privacyPolicy')}</button>
