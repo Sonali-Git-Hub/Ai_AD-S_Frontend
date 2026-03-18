@@ -30,6 +30,9 @@ import OnboardingModal from '../Components/OnboardingModal';
 import PremiumUpsellModal from '../Components/PremiumUpsellModal';
 import MagicVideoGenModal from '../Components/MagicVideoGenModal';
 import { getSubscriptionDetails } from '../services/pricingService';
+import IntentSuggestionBanner from '../components/IntentSuggestionBanner';
+import { detectIntent, mapModeToToolState } from '../services/intentService';
+
 
 
 const FEEDBACK_PROMPTS = {
@@ -339,6 +342,11 @@ const Chat = () => {
   const inputRef = useRef(null); // Ref for textarea input
   const transcriptRef = useRef(''); // Ref for speech transcript
   const isManualStopRef = useRef(false); // Track manual stop to avoid recursive loops
+  const isDetectionPausedRef = useRef(false); // Pause detection after explicit dismissal
+  const [intentSuggestion, setIntentSuggestion] = useState(null);
+  const [isIntentLoading, setIsIntentLoading] = useState(false);
+  const lastDetectedTextRef = useRef('');
+
 
   const toolsBtnRef = useRef(null);
   const toolsMenuRef = useRef(null);
@@ -368,6 +376,75 @@ const Chat = () => {
   useEffect(() => {
     if (isMagicEditing) { setIsImageGeneration(false); setIsDeepSearch(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsVideoGeneration(false); }
   }, [isMagicEditing]);
+
+  // ─── Intent Detection Logic (Routing System) ──────────────────────────────
+  useEffect(() => {
+    // Only detect if input is long enough and not already loading/paused
+    const text = inputValue.trim();
+    if (text.length < 12 || isIntentLoading || isDetectionPausedRef.current) {
+      if (text.length < 8) setIntentSuggestion(null); // Clear once they delete text
+      return;
+    }
+
+    // Check if we've already detected for this EXACT text prefix to avoid spam
+    if (text.startsWith(lastDetectedTextRef.current) && lastDetectedTextRef.current.length > 0 && text.length - lastDetectedTextRef.current.length < 5) {
+      return;
+    }
+
+    // Heuristic: Check for action keywords before calling expensive LLM
+    const actionKeywords = ['make', 'create', 'search', 'find', 'convert', 'write', 'draw', 'video', 'music', 'banao', 'dalo', 'edit', 'animate'];
+    const hasKeyword = actionKeywords.some(k => text.toLowerCase().includes(k));
+    if (!hasKeyword) return;
+
+    const debounceTimer = setTimeout(async () => {
+      setIsIntentLoading(true);
+      lastDetectedTextRef.current = text;
+      
+      try {
+        const result = await detectIntent(text, filePreviews, messages);
+        if (result && result.success && result.intent !== 'normal_chat' && result.confidence > 0.6) {
+          setIntentSuggestion(result);
+        } else {
+          setIntentSuggestion(null);
+        }
+      } catch (err) {
+        console.error("Intent detection failed:", err);
+      } finally {
+        setIsIntentLoading(false);
+      }
+    }, 700);
+
+    return () => clearTimeout(debounceTimer);
+  }, [inputValue, filePreviews.length]);
+
+  const handleAcceptSuggestion = (suggestion) => {
+    const toolUpdates = mapModeToToolState(suggestion.frontend_mode);
+    
+    // Deactivate all first (safety)
+    setIsImageGeneration(false); setIsVideoGeneration(false); setIsDeepSearch(false); 
+    setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); 
+    setIsCodeWriter(false); setIsMagicEditing(false);
+
+    // Dynamic activation based on map
+    if (toolUpdates.activeImageGen) setIsImageGeneration(true);
+    if (toolUpdates.activeVideoGen) setIsVideoGeneration(true);
+    if (toolUpdates.activeMagicEdit) setIsMagicEditing(true);
+    if (toolUpdates.activeAudioTalk) setIsAudioConvertMode(true);
+    if (toolUpdates.webSearchMode) setIsWebSearch(true);
+    if (toolUpdates.deepSearchMode) setIsDeepSearch(true);
+    if (toolUpdates.mode) setCurrentMode(toolUpdates.mode);
+
+    toast.success(`AISA switched to ${suggestion.intent.replace('_', ' ')}! ✨`);
+    setIntentSuggestion(null);
+    isDetectionPausedRef.current = true; // Don't re-detect immediately after switch
+  };
+
+  const handleDismissSuggestion = () => {
+    setIntentSuggestion(null);
+    isDetectionPausedRef.current = true;
+    setTimeout(() => { isDetectionPausedRef.current = false; }, 30000); // 30s pause
+  };
+
 
   // Close menu on click outside
   useEffect(() => {
@@ -2270,6 +2347,21 @@ const Chat = () => {
       // Limit reached, UpgradeModal will be triggered by SubscriptionContext
       return;
     }
+
+    // ─── Smart Routing Interceptor (Pipeline System) ─────────────────────────
+    // If a tool intent was detected with high confidence but not activated,
+    // we route it through the pipeline instead of standard chat.
+    if (intentSuggestion && intentSuggestion.confidence > 0.85 && intentSuggestion.intent !== 'normal_chat') {
+       const isCurrentModeChat = !isImageGeneration && !isVideoGeneration && !isDeepSearch && !isWebSearch && !isMagicEditing;
+       if (isCurrentModeChat) {
+          console.log(`[IntentRouting] High confidence intent (${intentSuggestion.intent}) detected. Routing to pipeline.`);
+          handleAcceptSuggestion(intentSuggestion);
+          // After switching mode, we recursively call handleSendMessage to trigger the correct handler
+          setTimeout(() => handleSendMessage(e, contentToSend), 50);
+          return;
+       }
+    }
+
 
     if (isAudioConvertMode && !contentToSend && selectedFiles.length === 0) {
       toast.error('Please enter text or upload a file to convert to audio');
@@ -5896,7 +5988,15 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
 
 
+                <IntentSuggestionBanner 
+                  suggestion={intentSuggestion} 
+                  onAccept={handleAcceptSuggestion} 
+                  onDismiss={handleDismissSuggestion} 
+                  isDarkMode={true} 
+                />
+
                 <textarea
+
                   ref={inputRef}
                   value={inputValue}
                   disabled={isLoading || isLimitReached}
