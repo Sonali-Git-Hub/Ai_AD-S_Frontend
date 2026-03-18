@@ -31,7 +31,7 @@ import PremiumUpsellModal from '../Components/PremiumUpsellModal';
 import MagicVideoGenModal from '../Components/MagicVideoGenModal';
 import DeleteConfirmModal from '../Components/DeleteConfirmModal';
 import { getSubscriptionDetails } from '../services/pricingService';
-import IntentSuggestionBanner from '../components/IntentSuggestionBanner';
+import IntentSuggestionBanner from '../Components/IntentSuggestionBanner';
 import { detectIntent, mapModeToToolState } from '../services/intentService';
 
 
