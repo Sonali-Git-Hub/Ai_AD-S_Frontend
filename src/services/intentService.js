@@ -161,8 +161,8 @@ export const mapModeToToolState = (frontendMode) => {
         'web_search': { webSearchMode: true },
         'DEEP_SEARCH': { deepSearchMode: true },
         'CODING_HELP': { mode: 'CODING_HELP' },
-        'FILE_ANALYSIS': { mode: 'FILE_ANALYSIS' },
-        'FILE_CONVERSION': { mode: 'FILE_CONVERSION' },
+        'FILE_ANALYSIS': { activeFileAnalysis: true, mode: 'FILE_ANALYSIS' },
+        'FILE_CONVERSION': { activeFileAnalysis: true, mode: 'FILE_CONVERSION' },
         'NORMAL_CHAT': {}
     };
     return modeMap[frontendMode] || {};

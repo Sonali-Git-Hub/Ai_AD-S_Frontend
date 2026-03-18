@@ -327,6 +327,7 @@ const Chat = () => {
   const [isAudioConvertMode, setIsAudioConvertMode] = useState(false);
   const [isDocumentConvert, setIsDocumentConvert] = useState(false);
   const [isCodeWriter, setIsCodeWriter] = useState(false);
+  const [isFileAnalysis, setIsFileAnalysis] = useState(false);
   const [isVideoGeneration, setIsVideoGeneration] = useState(false);
   const [videoAspectRatio, setVideoAspectRatio] = useState('');
   const [videoModelId, setVideoModelId] = useState('veo-3.1-fast-generate-001');
@@ -360,29 +361,32 @@ const Chat = () => {
 
   // Group: Ensure only one tool card can be active at a time
   useEffect(() => {
-    if (isImageGeneration) { setIsDeepSearch(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsVideoGeneration(false); setIsMagicEditing(false); }
+    if (isImageGeneration) { setIsDeepSearch(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsVideoGeneration(false); setIsMagicEditing(false); setIsFileAnalysis(false); }
   }, [isImageGeneration]);
   useEffect(() => {
-    if (isVideoGeneration) { setIsDeepSearch(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsImageGeneration(false); setIsMagicEditing(false); }
+    if (isVideoGeneration) { setIsDeepSearch(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsImageGeneration(false); setIsMagicEditing(false); setIsFileAnalysis(false); }
   }, [isVideoGeneration]);
   useEffect(() => {
-    if (isDeepSearch) { setIsImageGeneration(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsVideoGeneration(false); setIsMagicEditing(false); }
+    if (isDeepSearch) { setIsImageGeneration(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsVideoGeneration(false); setIsMagicEditing(false); setIsFileAnalysis(false); }
   }, [isDeepSearch]);
   useEffect(() => {
-    if (isWebSearch) { setIsImageGeneration(false); setIsDeepSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsVideoGeneration(false); setIsMagicEditing(false); }
+    if (isWebSearch) { setIsImageGeneration(false); setIsDeepSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsVideoGeneration(false); setIsMagicEditing(false); setIsFileAnalysis(false); }
   }, [isWebSearch]);
   useEffect(() => {
-    if (isAudioConvertMode) { setIsImageGeneration(false); setIsDeepSearch(false); setIsWebSearch(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsVideoGeneration(false); setIsMagicEditing(false); }
+    if (isAudioConvertMode) { setIsImageGeneration(false); setIsDeepSearch(false); setIsWebSearch(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsVideoGeneration(false); setIsMagicEditing(false); setIsFileAnalysis(false); }
   }, [isAudioConvertMode]);
   useEffect(() => {
-    if (isDocumentConvert) { setIsImageGeneration(false); setIsDeepSearch(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsCodeWriter(false); setIsVideoGeneration(false); setIsMagicEditing(false); }
+    if (isDocumentConvert) { setIsImageGeneration(false); setIsDeepSearch(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsCodeWriter(false); setIsVideoGeneration(false); setIsMagicEditing(false); setIsFileAnalysis(false); }
   }, [isDocumentConvert]);
   useEffect(() => {
-    if (isCodeWriter) { setIsImageGeneration(false); setIsDeepSearch(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsVideoGeneration(false); setIsMagicEditing(false); }
+    if (isCodeWriter) { setIsImageGeneration(false); setIsDeepSearch(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsVideoGeneration(false); setIsMagicEditing(false); setIsFileAnalysis(false); }
   }, [isCodeWriter]);
   useEffect(() => {
-    if (isMagicEditing) { setIsImageGeneration(false); setIsDeepSearch(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsVideoGeneration(false); }
+    if (isMagicEditing) { setIsImageGeneration(false); setIsDeepSearch(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsVideoGeneration(false); setIsFileAnalysis(false); }
   }, [isMagicEditing]);
+  useEffect(() => {
+    if (isFileAnalysis) { setIsImageGeneration(false); setIsDeepSearch(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsVideoGeneration(false); setIsMagicEditing(false); }
+  }, [isFileAnalysis]);
 
   // ─── Intent Detection Logic (Routing System) ──────────────────────────────
   useEffect(() => {
@@ -430,7 +434,7 @@ const Chat = () => {
     // Deactivate all first (safety)
     setIsImageGeneration(false); setIsVideoGeneration(false); setIsDeepSearch(false); 
     setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); 
-    setIsCodeWriter(false); setIsMagicEditing(false);
+    setIsCodeWriter(false); setIsMagicEditing(false); setIsFileAnalysis(false);
 
     // Dynamic activation based on map
     if (toolUpdates.activeImageGen) setIsImageGeneration(true);
@@ -439,6 +443,7 @@ const Chat = () => {
     if (toolUpdates.activeAudioTalk) setIsAudioConvertMode(true);
     if (toolUpdates.webSearchMode) setIsWebSearch(true);
     if (toolUpdates.deepSearchMode) setIsDeepSearch(true);
+    if (toolUpdates.activeFileAnalysis) setIsFileAnalysis(true);
     if (toolUpdates.mode) setCurrentMode(toolUpdates.mode);
 
     toast.success(`AISA switched to ${suggestion.intent.replace('_', ' ')}! ✨`);
@@ -5335,11 +5340,13 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         icon: <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />,
                         title: "Analyze Document",
                         desc: "Chat with PDFs & Docs",
-                        active: false,
+                        active: isFileAnalysis,
                         color: "from-blue-500/20 to-indigo-500/20",
                         action: () => {
                           if (!checkPremiumTool('Analyze Document')) return;
-                          uploadInputRef.current?.click();
+                          setIsFileAnalysis(true);
+                          if (inputRef.current) inputRef.current.focus();
+                          toast.success("Document Analysis Active. Use the + button to upload files.");
                         }
                       },
                       {
@@ -6010,6 +6017,12 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0">
                           <Wand2 size={12} strokeWidth={3} /> <span className="hidden sm:inline">Image Edit</span>
                           <button onClick={() => setIsMagicEditing(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
+                        </motion.div>
+                      )}
+                      {isFileAnalysis && (
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0">
+                          <FileText size={12} strokeWidth={3} /> <span className="hidden sm:inline">Analyze Document</span>
+                          <button onClick={() => setIsFileAnalysis(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
                         </motion.div>
                       )}
                     </div>
