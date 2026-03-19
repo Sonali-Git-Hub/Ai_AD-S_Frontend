@@ -6660,8 +6660,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
                           style={{ background: `linear-gradient(to right, #6366f1 0%, #6366f1 ${((audioSpeed - 0.25) / 3.75) * 100}%, rgba(255,255,255,0.1) ${((audioSpeed - 0.25) / 3.75) * 100}%, rgba(255,255,255,0.1) 100%)` }}
                         />
-                        <div className="flex justify-between text-[9px] text-white/25 mt-1.5 font-medium">
-                          <span>0.25×</span><span>1×</span><span>Normal</span><span>4×</span>
+                        <div className="relative mt-2 h-3 text-[9px] text-white/25 font-medium">
+                          <span className="absolute left-0">0.25×</span>
+                          <span className="absolute transform -translate-x-1/2" style={{ left: '20%' }}>1× (Normal)</span>
+                          <span className="absolute transform -translate-x-1/2" style={{ left: '46.66%' }}>2×</span>
+                          <span className="absolute right-0">4×</span>
                         </div>
                       </div>
                     </div>
