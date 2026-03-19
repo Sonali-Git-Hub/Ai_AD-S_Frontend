@@ -2544,6 +2544,7 @@ const Chat = () => {
       const imageGenActive = isImageGeneration;
       const videoGenActive = isVideoGeneration;
       const magicEditActive = isMagicEditing; // New: capture magic edit state
+      const codeWriterActive = isCodeWriter; // Added: capture code writer state
       // Note: We don't reset these state immediately anymore so the tag stays visible in input bar while "Thinking..."
 
       // Detect mode for UI indicator
@@ -2551,7 +2552,8 @@ const Chat = () => {
         (deepSearchActive ? MODES.DEEP_SEARCH :
           (documentConvertActive ? MODES.DOCUMENT_CONVERT :
             (webSearchActive ? MODES.WEB_SEARCH :
-              detectMode(contentToSend, userMsg.attachments))));
+              (codeWriterActive ? MODES.CODING_HELP :
+                detectMode(contentToSend, userMsg.attachments)))));
       setCurrentMode(detectedMode);
 
       // Update user message with the detected mode
@@ -2568,6 +2570,8 @@ const Chat = () => {
         setLoadingText("Converting Document... 🔄");
       } else if (deepSearchActive || webSearchActive) {
         setLoadingText("Searching the web... 🌐");
+      } else if (codeWriterActive) {
+        setLoadingText("Writing Code... 💻");
       } else {
         setLoadingText("Thinking...");
       }
