@@ -74,25 +74,51 @@ const SectionCard = ({ title, children, action }) => (
 const OverviewTab = () => {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const fetchStats = async (isManual = false) => {
+        if (isManual) setRefreshing(true);
+        try {
+            const data = await apiService.getAdminOverviewStats();
+            setStats(data.stats || data);
+        } catch (err) {
+            console.error('Failed to fetch stats:', err);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const data = await apiService.getAdminOverviewStats();
-                setStats(data.stats || data);
-            } catch (err) {
-                console.error('Failed to fetch stats:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchStats();
+        // Polling for real-time updates every 10 seconds
+        const interval = setInterval(() => fetchStats(), 10000);
+        return () => clearInterval(interval);
     }, []);
 
-    if (loading) return <LoadingSpinner />;
+    if (loading) return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <RefreshCw className="w-8 h-8 text-primary animate-spin" />
+        <p className="text-subtext text-sm">Loading real-time overview...</p>
+      </div>
+    );
 
     return (
         <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <h2 className="text-sm font-bold text-subtext uppercase tracking-widest flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-primary" /> Live Platform Activity
+                </h2>
+                <button 
+                  onClick={() => fetchStats(true)} 
+                  disabled={refreshing}
+                  className="p-2 rounded-lg hover:bg-primary/10 text-primary transition-all disabled:opacity-50"
+                  title="Manual Refresh"
+                >
+                  <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                </button>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard icon={Users} label="Total Users" value={stats?.totalUsers ?? 0} />
                 <StatCard icon={Activity} label="Active Subscriptions" value={stats?.activeSubscriptions ?? 0} color="emerald-500" />
