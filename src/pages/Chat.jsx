@@ -4669,9 +4669,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               </div>
                             )}
 
-                            {/* Dynamic Video Rendering */}
                             {msg.videoUrl && (
-                              <div className="relative mt-4 mb-2 w-full max-w-xl">
+                              <div className="relative mt-4 mb-2 w-fit max-w-full">
                                 <CustomVideoPlayer src={msg.videoUrl} compact={true} />
                               </div>
                             )}

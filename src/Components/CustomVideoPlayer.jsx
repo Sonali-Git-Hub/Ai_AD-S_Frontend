@@ -233,7 +233,10 @@ const CustomVideoPlayer = ({ src, compact = false }) => {
     return (
         <div
             ref={containerRef}
-            className={`relative w-full overflow-hidden bg-black/95 rounded-2xl border border-white/5 shadow-2xl group flex flex-col justify-center ${isFullscreen ? 'h-full rounded-none border-none' : aspectRatio}`}
+            className={`relative overflow-hidden bg-black/95 rounded-2xl border border-white/5 shadow-2xl group flex flex-col justify-center ${isFullscreen 
+                ? 'w-full h-full rounded-none border-none' 
+                : `${aspectRatio} ${aspectRatio.includes('video') ? 'w-full' : 'w-auto mx-auto max-h-[550px] px-2'}`
+            }`}
             onMouseMove={handleInteraction}
             onMouseLeave={handleMouseLeave}
             onTouchStart={handleInteraction}
