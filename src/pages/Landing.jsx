@@ -23,6 +23,7 @@ import { useLanguage } from '../context/LanguageContext';
 
 import ProfileSettingsDropdown from '../Components/ProfileSettingsDropdown/ProfileSettingsDropdown';
 import ThemeToggle from '../Components/ThemeToggle';
+import Ballpit from '../Components/Ballpit';
 
 const Landing = () => {
     const { t } = useLanguage();
@@ -129,6 +130,18 @@ const Landing = () => {
 
             {/* Background Overlay - Balanced Gradient (Top & Bottom) */}
             <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-primary/10 dark:from-slate-950/80 dark:via-transparent dark:to-slate-950/80 pointer-events-none z-0" />
+
+            {/* Ballpit Background */}
+            <div className="absolute inset-0 pointer-events-auto z-0 opacity-70 dark:opacity-40">
+                <Ballpit 
+                    count={40}
+                    gravity={0.1}
+                    friction={0.998}
+                    wallBounce={0.95}
+                    followCursor={true}
+                    colors={[0x8b5cf6, 0x6366f1, 0xec4899]}
+                />
+            </div>
 
             {/* Header */}
             <header className="relative z-10 px-4 py-4 md:px-6 md:py-6 flex justify-between items-center max-w-7xl mx-auto w-full">

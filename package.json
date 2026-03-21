@@ -26,6 +26,7 @@
     "recoil": "^0.7.7",
     "remark-gfm": "^4.0.1",
     "styled-components": "^6.3.8",
+    "three": "^0.183.2",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
