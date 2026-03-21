@@ -4445,11 +4445,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
 
                       {editingMessageId === msg.id ? (
-                        <div className="flex flex-col gap-3 min-w-[200px] w-full">
+                        <div className="flex flex-col gap-3 min-w-[200px] w-full mt-2">
                           <textarea
                             value={editContent}
                             onChange={(e) => setEditContent(e.target.value)}
-                            className="w-full bg-white/10 text-white rounded-xl p-3 text-sm focus:outline-none resize-none border border-white/20 placeholder-white/50"
+                            className="w-full bg-black/5 dark:bg-white/10 text-slate-900 dark:text-white rounded-xl p-3 text-sm focus:outline-none resize-none border border-black/10 dark:border-white/20 placeholder-slate-400 dark:placeholder-white/50"
                             rows={2}
                             autoFocus
                             onKeyDown={(e) => {
@@ -4463,13 +4463,13 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           <div className="flex gap-3 justify-end items-center">
                             <button
                               onClick={cancelEdit}
-                              className="text-white/80 hover:text-white text-sm font-medium transition-colors"
+                              className="text-slate-500 dark:text-white/80 hover:text-slate-800 dark:hover:text-white text-sm font-medium transition-colors"
                             >
                               Cancel
                             </button>
                             <button
                               onClick={() => saveEdit(msg)}
-                              className="bg-white text-primary px-6 py-2 rounded-full text-sm font-bold hover:bg-white/90 transition-colors shadow-sm"
+                              className="bg-primary text-white dark:bg-white dark:text-primary px-6 py-2 rounded-full text-sm font-bold hover:opacity-90 transition-all shadow-sm"
                             >
                               Update
                             </button>
@@ -4668,9 +4668,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               </div>
                             )}
 
-                            {/* Dynamic Video Rendering */}
                             {msg.videoUrl && (
-                              <div className="relative mt-4 mb-2 w-full max-w-xl">
+                              <div className="relative mt-4 mb-2 w-fit max-w-full">
                                 <CustomVideoPlayer src={msg.videoUrl} compact={true} />
                               </div>
                             )}
