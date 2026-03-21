@@ -16,6 +16,7 @@ import { COOKIE_POLICY_DEFAULTS, TERMS_OF_SERVICE_DEFAULTS, PRIVACY_POLICY_DEFAU
 import AdminHelpDesk from '../Components/AdminHelpDesk';
 import KnowledgeUpload from '../Components/KnowledgeUpload';
 import KnowledgeManagement from '../Components/KnowledgeManagement';
+import DeleteConfirmModal from '../components/DeleteConfirmModal';
 const ADMIN_EMAIL = 'admin@uwo24.com';
 
 // ─── Tab Button ───
@@ -119,11 +120,12 @@ const OverviewTab = () => {
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <StatCard icon={Users} label="Total Users" value={stats?.totalUsers ?? 0} />
                 <StatCard icon={Activity} label="Active Subscriptions" value={stats?.activeSubscriptions ?? 0} color="emerald-500" />
                 <StatCard icon={DollarSign} label="Total Revenue" value={`₹${stats?.totalRevenue ?? 0}`} color="amber-500" />
                 <StatCard icon={Zap} label="Credits Used" value={stats?.totalCreditsUsed ?? 0} color="violet-500" />
+                <StatCard icon={Headphones} label="Support" value={stats?.pendingTickets ?? 0} color="primary" trend={stats?.pendingTickets > 0 ? "Action Required" : "All Clear"} />
             </div>
 
             {stats?.toolUsage && stats.toolUsage.length > 0 && (
@@ -155,6 +157,7 @@ const UsersTab = () => {
     const [selectedUser, setSelectedUser] = useState(null);
     const [creditAmount, setCreditAmount] = useState('');
     const [upgradeData, setUpgradeData] = useState({ planName: '', expiryDate: '' });
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, userId: null });
 
     useEffect(() => {
         fetchUsers();
@@ -182,14 +185,16 @@ const UsersTab = () => {
         }
     };
 
-    const handleDeleteUser = async (userId) => {
-        if (!confirm('Are you sure? This cannot be undone.')) return;
+    const handleDeleteUser = async () => {
+        if (!deleteModal.userId) return;
         try {
-            await apiService.deleteUser(userId);
+            await apiService.deleteUser(deleteModal.userId);
             toast.success('User deleted');
+            setDeleteModal({ isOpen: false, userId: null });
             fetchUsers();
         } catch (err) {
             toast.error('Failed to delete user');
+            setDeleteModal({ isOpen: false, userId: null });
         }
     };
 
@@ -307,7 +312,7 @@ const UsersTab = () => {
                                     {user.isBlocked ? <Check className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
                                 </button>
                                 <button
-                                    onClick={() => handleDeleteUser(user._id || user.id)}
+                                    onClick={() => setDeleteModal({ isOpen: true, userId: user._id || user.id })}
                                     className="p-2 rounded-lg hover:bg-red-500/10 text-red-500 transition-all"
                                     title="Delete"
                                 >
@@ -381,6 +386,14 @@ const UsersTab = () => {
                     </motion.div>
                 ))}
             </div>
+
+            <DeleteConfirmModal
+                isOpen={deleteModal.isOpen}
+                onClose={() => setDeleteModal({ isOpen: false, userId: null })}
+                onConfirm={handleDeleteUser}
+                title="Delete User?"
+                description="Are you sure you want to delete this user? This action cannot be undone."
+            />
         </div>
     );
 };
@@ -402,6 +415,7 @@ const PlansTab = () => {
         creditsYearly: '', 
         features: '' 
     });
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, planId: null });
 
     useEffect(() => {
         fetchPlans();
@@ -454,18 +468,20 @@ const PlansTab = () => {
         }
     };
 
-    const handleDelete = async (planId) => {
-        if (!confirm('Delete this plan?')) return;
+    const handleDelete = async () => {
+        if (!deleteModal.planId) return;
         try {
             const token = getUserData()?.token;
-            await fetch(`${API}/admin/plans/${planId}`, {
+            await fetch(`${API}/admin/plans/${deleteModal.planId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             toast.success('Plan deleted');
+            setDeleteModal({ isOpen: false, planId: null });
             fetchPlans();
         } catch (err) {
             toast.error('Failed to delete plan');
+            setDeleteModal({ isOpen: false, planId: null });
         }
     };
 
@@ -556,7 +572,7 @@ const PlansTab = () => {
                                 <button onClick={() => startEdit(plan)} className="p-2 rounded-lg hover:bg-primary/10 text-subtext hover:text-primary transition-all">
                                     <Edit2 className="w-4 h-4" />
                                 </button>
-                                <button onClick={() => handleDelete(plan._id)} className="p-2 rounded-lg hover:bg-red-500/10 text-subtext hover:text-red-500 transition-all">
+                                <button onClick={() => setDeleteModal({ isOpen: true, planId: plan._id })} className="p-2 rounded-lg hover:bg-red-500/10 text-subtext hover:text-red-500 transition-all">
                                     <Trash2 className="w-4 h-4" />
                                 </button>
                             </div>
@@ -584,6 +600,14 @@ const PlansTab = () => {
                 ))}
                 {plans.length === 0 && <p className="text-subtext text-sm col-span-full text-center py-8">No plans created yet</p>}
             </div>
+
+            <DeleteConfirmModal
+                isOpen={deleteModal.isOpen}
+                onClose={() => setDeleteModal({ isOpen: false, planId: null })}
+                onConfirm={handleDelete}
+                title="Delete Plan?"
+                description="Are you sure you want to delete this plan? This action cannot be undone."
+            />
         </div>
     );
 };
@@ -597,6 +621,7 @@ const PackagesTab = () => {
     const [showForm, setShowForm] = useState(false);
     const [editingPkg, setEditingPkg] = useState(null);
     const [form, setForm] = useState({ name: '', credits: '', price: '', description: '' });
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, pkgId: null });
 
     useEffect(() => {
         fetchPackages();
@@ -640,18 +665,20 @@ const PackagesTab = () => {
         }
     };
 
-    const handleDelete = async (pkgId) => {
-        if (!confirm('Delete this package?')) return;
+    const handleDelete = async () => {
+        if (!deleteModal.pkgId) return;
         try {
             const token = getUserData()?.token;
-            await fetch(`${API}/admin/packages/${pkgId}`, {
+            await fetch(`${API}/admin/packages/${deleteModal.pkgId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             toast.success('Package deleted');
+            setDeleteModal({ isOpen: false, pkgId: null });
             fetchPackages();
         } catch (err) {
             toast.error('Failed to delete package');
+            setDeleteModal({ isOpen: false, pkgId: null });
         }
     };
 
@@ -716,7 +743,7 @@ const PackagesTab = () => {
                             </div>
                             <div className="flex gap-1">
                                 <button onClick={() => startEdit(pkg)} className="p-2 rounded-lg hover:bg-primary/10 text-subtext hover:text-primary transition-all"><Edit2 className="w-4 h-4" /></button>
-                                <button onClick={() => handleDelete(pkg._id)} className="p-2 rounded-lg hover:bg-red-500/10 text-subtext hover:text-red-500 transition-all"><Trash2 className="w-4 h-4" /></button>
+                                <button onClick={() => setDeleteModal({ isOpen: true, pkgId: pkg._id })} className="p-2 rounded-lg hover:bg-red-500/10 text-subtext hover:text-red-500 transition-all"><Trash2 className="w-4 h-4" /></button>
                             </div>
                         </div>
                         <div className="flex items-baseline gap-2">
@@ -727,6 +754,14 @@ const PackagesTab = () => {
                 ))}
                 {packages.length === 0 && <p className="text-subtext text-sm col-span-full text-center py-8">No packages created yet</p>}
             </div>
+
+            <DeleteConfirmModal
+                isOpen={deleteModal.isOpen}
+                onClose={() => setDeleteModal({ isOpen: false, pkgId: null })}
+                onConfirm={handleDelete}
+                title="Delete Package?"
+                description="Are you sure you want to delete this package? This action cannot be undone."
+            />
         </div>
     );
 };

@@ -4,6 +4,7 @@ import TaskModal from './TaskModal';
 import { Plus, CheckCircle, Clock, Calendar as CalendarIcon, AlertTriangle, Trash2, Mic, Settings2, Menu as MenuIcon } from 'lucide-react';
 import { useRecoilState } from 'recoil';
 import { toggleState } from '../../userStore/userData';
+import DeleteConfirmModal from '../../components/DeleteConfirmModal';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -12,6 +13,7 @@ const Dashboard = () => {
     const [tasks, setTasks] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState(null);
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, taskId: null });
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all'); // all, today, pending, completed
     const [tglState, setTglState] = useRecoilState(toggleState);
@@ -127,14 +129,16 @@ const Dashboard = () => {
         }
     };
 
-    const handleDelete = async (id) => {
-        if (!window.confirm("Are you sure?")) return;
+    const handleDelete = async () => {
+        if (!deleteModal.taskId) return;
         try {
-            await apiService.deletePersonalTask(id);
-            setTasks(prev => prev.filter(t => t._id !== id));
+            await apiService.deletePersonalTask(deleteModal.taskId);
+            setTasks(prev => prev.filter(t => t._id !== deleteModal.taskId));
             toast.success("Task deleted");
+            setDeleteModal({ isOpen: false, taskId: null });
         } catch (err) {
             toast.error("Error deleting task");
+            setDeleteModal({ isOpen: false, taskId: null });
         }
     };
 
@@ -346,7 +350,7 @@ const Dashboard = () => {
                                                     <Settings2 className="w-4 h-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDelete(task._id)}
+                                                    onClick={() => setDeleteModal({ isOpen: true, taskId: task._id })}
                                                     className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
@@ -366,6 +370,14 @@ const Dashboard = () => {
                 onClose={() => setIsModalOpen(false)}
                 onSave={handleSave}
                 task={editingTask}
+            />
+
+            <DeleteConfirmModal
+                isOpen={deleteModal.isOpen}
+                onClose={() => setDeleteModal({ isOpen: false, taskId: null })}
+                onConfirm={handleDelete}
+                title="Delete Task?"
+                description="Are you sure you want to delete this task? This cannot be undone."
             />
         </div>
     );

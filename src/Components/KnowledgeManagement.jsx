@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { apiService } from '../services/apiService';
 import toast from 'react-hot-toast';
+import DeleteConfirmModal from '../components/DeleteConfirmModal';
 
 const KnowledgeManagement = () => {
     const [loading, setLoading] = useState(true);
@@ -16,6 +17,7 @@ const KnowledgeManagement = () => {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [viewMode, setViewMode] = useState('table'); // 'table' or 'grid'
     const [selectedItem, setSelectedItem] = useState(null);
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, type: null, id: null });
 
     const fetchKnowledge = useCallback(async () => {
         setLoading(true);
@@ -43,26 +45,35 @@ const KnowledgeManagement = () => {
         toast.success("Knowledge list updated");
     };
 
-    const handleDeleteDoc = async (id) => {
-        if (!window.confirm("Delete this document and all its embeddings?")) return;
+    const handleDeleteDoc = async () => {
+        if (!deleteModal.id) return;
         try {
-            await apiService.deleteKnowledgeDocument(id);
+            await apiService.deleteKnowledgeDocument(deleteModal.id);
             toast.success("Document removed");
+            setDeleteModal({ isOpen: false, type: null, id: null });
             fetchKnowledge();
         } catch (error) {
             toast.error("Delete failed");
+            setDeleteModal({ isOpen: false, type: null, id: null });
         }
     };
 
-    const handleDeleteSource = async (id) => {
-        if (!window.confirm("Delete this website source and all crawled pages?")) return;
+    const handleDeleteSource = async () => {
+        if (!deleteModal.id) return;
         try {
-            await apiService.deleteKnowledgeSource(id);
+            await apiService.deleteKnowledgeSource(deleteModal.id);
             toast.success("Source removed");
+            setDeleteModal({ isOpen: false, type: null, id: null });
             fetchKnowledge();
         } catch (error) {
             toast.error("Delete failed");
+            setDeleteModal({ isOpen: false, type: null, id: null });
         }
+    };
+
+    const handleConfirmDelete = () => {
+        if (deleteModal.type === 'source') handleDeleteSource();
+        else handleDeleteDoc();
     };
 
     const handleReindex = async (id) => {
@@ -220,8 +231,8 @@ const KnowledgeManagement = () => {
                                 </button>
                                 <button 
                                     onClick={() => {
-                                        if (selectedItem.isSource) handleDeleteSource(selectedItem.id);
-                                        else handleDeleteDoc(selectedItem.id);
+                                        if (selectedItem.isSource) setDeleteModal({ isOpen: true, type: 'source', id: selectedItem.id });
+                                        else setDeleteModal({ isOpen: true, type: 'doc', id: selectedItem.id });
                                         setSelectedItem(null);
                                     }}
                                     className="px-6 py-3 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl font-bold hover:bg-red-500 hover:text-white transition-all"
@@ -366,7 +377,7 @@ const KnowledgeManagement = () => {
                                         )}
 
                                         <button 
-                                            onClick={() => item.isSource ? handleDeleteSource(item.id) : handleDeleteDoc(item.id)}
+                                            onClick={() => item.isSource ? setDeleteModal({ isOpen: true, type: 'source', id: item.id }) : setDeleteModal({ isOpen: true, type: 'doc', id: item.id })}
                                             className="p-2 text-subtext hover:text-red-400 hover:bg-red-400/10 rounded-md transition-all"
                                             title="Delete Permanently"
                                         >
@@ -386,6 +397,14 @@ const KnowledgeManagement = () => {
                     </div>
                 )}
             </div>
+
+            <DeleteConfirmModal
+                isOpen={deleteModal.isOpen}
+                onClose={() => setDeleteModal({ isOpen: false, type: null, id: null })}
+                onConfirm={handleConfirmDelete}
+                title={deleteModal.type === 'source' ? "Delete Source?" : "Delete Document?"}
+                description={deleteModal.type === 'source' ? "Are you sure you want to delete this website source and all crawled pages? This cannot be undone." : "Are you sure you want to delete this document and all its embeddings? This cannot be undone."}
+            />
         </div>
     );
 };
