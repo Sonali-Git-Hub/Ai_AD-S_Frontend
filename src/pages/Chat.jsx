@@ -19,6 +19,7 @@ import { apiService } from '../services/apiService';
 import ImageEditor from '../Components/ImageEditor';
 import CustomVideoPlayer from '../Components/CustomVideoPlayer';
 import ModelSelector from '../Components/ModelSelector';
+import MagicToolSettingsCard from '../Components/MagicToolSettingsCard';
 import axios from 'axios';
 import { apis } from '../types';
 import { jsPDF } from 'jspdf';
@@ -71,14 +72,21 @@ const TOOL_PRICING = {
   },
   image: {
     models: [
-      { id: 'imagen-3.0-generate-001', name: 'AISA Imagen 3', price: 0, speed: 'Fast', description: 'Advanced image generation & editing' }
+      { id: 'imagen-3.0-generate-001', name: 'AISA Imagen 3', price: 60, speed: 'Fast', description: 'Advanced image generation & editing' },
+      { id: 'imagen-4.0-ultra-generate-001', name: 'AISA Imagen 4 Ultra', price: 80, speed: 'Premium', description: 'Next-generation hyper-realistic image generation' }
+    ]
+  },
+  video: {
+    models: [
+      { id: 'veo-3.1-fast-generate-001', name: 'AISA Video Fast', price: '300/s', speed: 'Fast', description: 'Quick high-quality video generation' },
+      { id: 'veo-3.1-generate-001', name: 'AISA Video Pro', price: '800/s', speed: 'Cinema', description: 'Next-gen cinematic video synthesis' }
     ]
   },
   document: {
     models: [
       { id: 'gemini-flash', name: 'AISA Flash', price: 0, speed: 'Fast', description: 'Basic document analysis' },
-      { id: 'gemini-pro', name: 'AISA Pro', price: 0.02, speed: 'Medium', description: 'Advanced document processing' },
-      { id: 'gpt4', name: 'AISA Premium', price: 0.03, speed: 'Medium', description: 'Premium document analysis' }
+      { id: 'gemini-pro', name: 'AISA Pro', price: 20, speed: 'Medium', description: 'Advanced document processing' },
+      { id: 'gpt4', name: 'AISA Premium', price: 30, speed: 'Medium', description: 'Premium document analysis' }
     ]
   },
   voice: {
@@ -339,6 +347,7 @@ const Chat = () => {
   const [isVoiceSettingsOpen, setIsVoiceSettingsOpen] = useState(false);
   const [imageAspectRatio, setImageAspectRatio] = useState('1:1');
   const [imageModelId, setImageModelId] = useState('imagen-3.0-generate-001');
+  const [isMagicSettingsOpen, setIsMagicSettingsOpen] = useState(false);
   const abortControllerRef = useRef(null);
   const voiceUsedRef = useRef(false); // Track if voice input was used
   const inputRef = useRef(null); // Ref for textarea input
@@ -5925,73 +5934,41 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         </motion.div>
                       )}
                       {isImageGeneration && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0">
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0 group">
                           <ImageIcon size={12} strokeWidth={3} />
-                          <div className="relative flex items-center">
-                            <select
-                              className="bg-transparent outline-none appearance-none cursor-pointer font-bold pr-3 pl-1 text-[10px] sm:text-[11px] max-w-[100px] sm:max-w-[200px] truncate"
-                              value={imageAspectRatio}
-                              onChange={(e) => setImageAspectRatio(e.target.value)}
-                            >
-                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="1:1">1:1 – Post</option>
-                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="16:9">16:9 – Landscape</option>
-                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="4:5">4:5 – Post</option>
-                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="4:7">4:7 – Vertical</option>
-                            </select>
-                            <ChevronDown size={10} className="absolute right-0 pointer-events-none" />
-                          </div>
-                          <div className="relative flex items-center ml-1 border-l border-primary/20 pl-2">
-                            <select
-                              className="bg-transparent outline-none appearance-none cursor-pointer font-bold pr-3 pl-1 text-[10px] sm:text-[11px] max-w-[100px] sm:max-w-[200px] truncate"
-                              value={imageModelId}
-                              onChange={(e) => setImageModelId(e.target.value)}
-                            >
-                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="imagen-3.0-generate-001">Imagen 3.0</option>
-                            </select>
-                            <ChevronDown size={10} className="absolute right-0 pointer-events-none" />
-                          </div>
-                          <button onClick={() => setIsImageGeneration(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
+                          <span className="text-[10px] font-black uppercase tracking-tight hidden xs:inline">Image Gen</span>
+                          <div className="w-[1px] h-3 bg-primary/20 mx-0.5 hidden xs:block" />
+                          <button 
+                            type="button"
+                            onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
+                            className="flex items-center gap-1 hover:text-primary/80 transition-colors"
+                          >
+                            <span className="text-[10px] font-bold">{imageAspectRatio}</span>
+                            <div className="w-1 h-1 rounded-full bg-primary/40" />
+                            <span className="text-[10px] font-bold truncate max-w-[60px] sm:max-w-[100px]">
+                              {TOOL_PRICING.image.models.find(m => m.id === imageModelId)?.name.replace('AISA ', '') || 'Model'}
+                            </span>
+                            <ChevronDown size={10} className={`transition-transform duration-200 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
+                          </button>
+                          <button type="button" onClick={() => setIsImageGeneration(false)} className="ml-1 hover:text-primary/80 border-l border-primary/20 pl-1.5"><X size={12} /></button>
                         </motion.div>
                       )}
                       {isVideoGeneration && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0">
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0 group">
                           <Video size={12} strokeWidth={3} />
-                          <div className="relative flex items-center">
-                            <select
-                              className="bg-transparent outline-none appearance-none cursor-pointer font-bold pr-3 pl-1 text-[10px] sm:text-[11px] max-w-[100px] sm:max-w-[120px] truncate"
-                              value={videoAspectRatio}
-                              onChange={(e) => setVideoAspectRatio(e.target.value)}
-                            >
-                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="">D (16:9)</option>
-                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="16:9">16:9</option>
-                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="9:16">9:16</option>
-                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="1:1">1:1</option>
-                            </select>
-                            <ChevronDown size={10} className="absolute right-0 pointer-events-none" />
-                          </div>
-                          <div className="relative flex items-center ml-1 border-l border-primary/20 pl-2">
-                            <select
-                              className="bg-transparent outline-none appearance-none cursor-pointer font-bold pr-3 pl-1 text-[10px] sm:text-[11px] max-w-[80px] sm:max-w-[120px] truncate"
-                              value={videoResolution}
-                              onChange={(e) => setVideoResolution(e.target.value)}
-                            >
-                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="1080p">1080p</option>
-                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="4k">4K</option>
-                            </select>
-                            <ChevronDown size={10} className="absolute right-0 pointer-events-none" />
-                          </div>
-                          <div className="relative flex items-center ml-1 border-l border-primary/20 pl-2">
-                            <select
-                              className="bg-transparent outline-none appearance-none cursor-pointer font-bold pr-3 pl-1 text-[10px] sm:text-[11px] max-w-[100px] sm:max-w-[120px] truncate"
-                              value={videoModelId}
-                              onChange={(e) => setVideoModelId(e.target.value)}
-                            >
-                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="veo-3.1-fast-generate-001">Fast</option>
-                              <option className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-white font-medium" value="veo-3.1-generate-001">Pro</option>
-                            </select>
-                            <ChevronDown size={10} className="absolute right-0 pointer-events-none" />
-                          </div>
-                          <button onClick={() => setIsVideoGeneration(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
+                          <span className="text-[10px] font-black uppercase tracking-tight hidden xs:inline">Video Gen</span>
+                          <div className="w-[1px] h-3 bg-primary/20 mx-0.5 hidden xs:block" />
+                          <button 
+                            type="button"
+                            onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
+                            className="flex items-center gap-1 hover:text-primary/80 transition-colors"
+                          >
+                            <span className="text-[10px] font-bold">{videoAspectRatio || 'D'}</span>
+                            <div className="w-1 h-1 rounded-full bg-primary/40" />
+                            <span className="text-[10px] font-bold">{videoResolution}</span>
+                            <ChevronDown size={10} className={`transition-transform duration-200 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
+                          </button>
+                          <button type="button" onClick={() => setIsVideoGeneration(false)} className="ml-1 hover:text-primary/80 border-l border-primary/20 pl-1.5"><X size={12} /></button>
                         </motion.div>
                       )}
                       {isVoiceMode && (
@@ -6713,6 +6690,30 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         isOpen={isMagicVideoModalOpen}
         onClose={() => setIsMagicVideoModalOpen(false)}
         onCreditDeduction={(credits) => console.log('deducted', credits)}
+      />
+
+      <MagicToolSettingsCard 
+        isOpen={isMagicSettingsOpen}
+        onClose={() => setIsMagicSettingsOpen(false)}
+        toolType={isImageGeneration ? 'image' : isVideoGeneration ? 'video' : ''}
+        config={
+          isImageGeneration 
+            ? { aspectRatio: imageAspectRatio, modelId: imageModelId }
+            : isVideoGeneration
+              ? { aspectRatio: videoAspectRatio, resolution: videoResolution, modelId: videoModelId }
+              : {}
+        }
+        onChange={(key, value) => {
+          if (isImageGeneration) {
+            if (key === 'aspectRatio') setImageAspectRatio(value);
+            if (key === 'modelId') setImageModelId(value);
+          } else if (isVideoGeneration) {
+            if (key === 'aspectRatio') setVideoAspectRatio(value);
+            if (key === 'modelId') setVideoModelId(value);
+            if (key === 'resolution') setVideoResolution(value);
+          }
+        }}
+        pricing={TOOL_PRICING}
       />
     </div >
   );
