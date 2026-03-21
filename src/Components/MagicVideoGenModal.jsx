@@ -14,6 +14,8 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [resultVideoUrl, setResultVideoUrl] = useState(null);
     const [showHistory, setShowHistory] = useState(false);
+    const [resolution, setResolution] = useState("1080p");
+    const [modelId, setModelId] = useState("veo-3.1-fast-generate-001");
     const [historyVideos, setHistoryVideos] = useState([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
@@ -42,6 +44,23 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
             fetchHistory();
         }
     }, [showHistory]);
+
+    useEffect(() => {
+        if (modelId.includes('fast') && resolution === '4k') {
+            setResolution('1080p');
+            toast('4K resolution requires Veo 3.1 Pro', { icon: 'ℹ️', style: { borderRadius: '10px', background: '#333', color: '#fff' }});
+        }
+    }, [modelId, resolution]);
+
+    const getCreditCost = (modId = modelId, res = resolution) => {
+        let multiplier = 525;
+        if (modId === 'veo-3.1-fast-generate-001') {
+            multiplier = res === '4k' ? 525 : 225;
+        } else {
+            multiplier = res === '4k' ? 900 : 600;
+        }
+        return multiplier * 5; 
+    };
     const handleImageSelect = (e) => {
         const file = e.target.files[0];
         processFile(file);
@@ -99,6 +118,8 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
         const formData = new FormData();
         formData.append("image", selectedImage);
         formData.append("prompt", prompt);
+        formData.append("resolution", resolution);
+        formData.append("modelId", modelId);
         formData.append("isImageToVideo", "true");
 
         const token = JSON.parse(localStorage.getItem('user') || '{}')?.token;
@@ -113,13 +134,13 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
 
             if (response.data.success) {
                 setResultVideoUrl(response.data.videoUrl);
-                if (onCreditDeduction) onCreditDeduction(50);
+                if (onCreditDeduction) onCreditDeduction(getCreditCost());
                 toast.success("Video generated successfully!");
             }
         } catch (error) {
             console.error("Video Generation Error:", error);
             if (error.response?.data?.error === "Insufficient credits") {
-                toast.error("Insufficient credits (Need 50 credits)");
+                toast.error(`Insufficient credits (Need ${getCreditCost()} credits)`);
             } else {
                 toast.error(error.response?.data?.message || error.response?.data?.error || "Failed to generate video");
             }
@@ -180,7 +201,7 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
                                     {showHistory ? 'Your Video History' : 'Image to Video Magic'}
                                 </h2>
                                 <p className="text-xs text-subtext font-medium">
-                                    {showHistory ? 'Previously generated videos' : 'Google Vertex AI Veo ⚡ 50 Credits'}
+                                    {showHistory ? 'Previously generated videos' : `Google Vertex AI Veo ⚡ ${getCreditCost()} Credits`}
                                 </p>
                             </div>
                         </div>
@@ -309,6 +330,37 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
                                 </div>
                             </div>
 
+                            {/* Controls */}
+                            <div className="flex flex-wrap gap-4 shrink-0">
+                                <div className="flex flex-col gap-2 w-full sm:w-auto flex-1">
+                                    <label className="text-xs font-bold text-subtext uppercase tracking-wider">Quality Core</label>
+                                    <select
+                                        value={modelId}
+                                        onChange={e => setModelId(e.target.value)}
+                                        disabled={isGenerating}
+                                        className="w-full bg-black/5 dark:bg-white/5 border border-border rounded-xl px-4 py-2.5 text-sm text-maintext outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 cursor-pointer disabled:opacity-50"
+                                    >
+                                        <option value="veo-3.1-fast-generate-001">Veo 3.1 Fast ({getCreditCost('veo-3.1-fast-generate-001', resolution)}/gen)</option>
+                                        <option value="veo-3.1-generate-001">Veo 3.1 Pro ({getCreditCost('veo-3.1-generate-001', resolution)}/gen)</option>
+                                    </select>
+                                </div>
+                                <div className="flex flex-col gap-2 w-full sm:w-auto flex-1">
+                                    <label className="text-xs font-bold text-subtext uppercase tracking-wider">Resolution</label>
+                                    <select
+                                        value={resolution}
+                                        onChange={e => setResolution(e.target.value)}
+                                        disabled={isGenerating}
+                                        className="w-full bg-black/5 dark:bg-white/5 border border-border rounded-xl px-4 py-2.5 text-sm text-maintext outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 cursor-pointer disabled:opacity-50"
+                                    >
+                                        <option value="720p">720p ({getCreditCost(modelId, '720p')} cr)</option>
+                                        <option value="1080p">1080p ({getCreditCost(modelId, '1080p')} cr)</option>
+                                        <option value="4k" disabled={modelId.includes('fast')}>
+                                            4K {modelId.includes('fast') ? '(Pro Only)' : `(${getCreditCost(modelId, '4k')} cr)`}
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                            
                             {/* Input Field */}
                             <div className="flex flex-col gap-2 shrink-0">
                                 <label className="text-xs font-bold text-subtext uppercase tracking-wider">Animation Prompt</label>

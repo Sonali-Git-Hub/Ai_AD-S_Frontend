@@ -241,6 +241,7 @@ const Chat = () => {
 
   // Premium access check: fires event for upsell modal if user is on free plan
   const [isPremiumUser, setIsPremiumUser] = React.useState(null);
+  const [userPlanName, setUserPlanName] = React.useState('');
   useEffect(() => {
     const user = getUserData();
     if (!user?.token) { setIsPremiumUser(false); return; }
@@ -249,12 +250,28 @@ const Chat = () => {
         const hasSub = data?.subscription && data.subscription?.planId;
         const hasPaidPlan = hasSub && (data.subscription?.planId?.priceMonthly > 0 || data.subscription?.planId?.priceYearly > 0);
         setIsPremiumUser(hasPaidPlan || data?.founderStatus || false);
+        setUserPlanName(data?.subscription?.planId?.planName || '');
       })
       .catch(() => setIsPremiumUser(false));
   }, []);
 
   const checkPremiumTool = (toolName) => {
     if (isPremiumUser === null) return true; // still loading, allow optimistically
+
+    // Check if tool is video and plan is starter/founder
+    if (['Generate Video', 'Image to Video', 'Image to Video Magic'].includes(toolName)) {
+      const plan = (userPlanName || '').toLowerCase();
+      if (plan.includes('starter') || plan.includes('founder')) {
+        window.dispatchEvent(new CustomEvent('premium_required', { 
+          detail: { 
+            toolName, 
+            customMessage: `Text to Video features are not available on the ${userPlanName || 'current'} plan. Please upgrade to Pro or Business to generate videos.`
+          } 
+        }));
+        return false;
+      }
+    }
+
     if (isPremiumUser) return true;
     window.dispatchEvent(new CustomEvent('premium_required', { detail: { toolName } }));
     return false;

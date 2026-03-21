@@ -6,11 +6,13 @@ import { useNavigate } from 'react-router-dom';
 const PremiumUpsellModal = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [toolName, setToolName] = useState('');
+    const [customMessage, setCustomMessage] = useState('');
     const navigate = useNavigate();
 
     useEffect(() => {
         const handlePremiumRequired = (e) => {
             setToolName(e.detail?.toolName || 'this feature');
+            setCustomMessage(e.detail?.customMessage || '');
             setIsOpen(true);
         };
         window.addEventListener('premium_required', handlePremiumRequired);
@@ -65,7 +67,9 @@ const PremiumUpsellModal = () => {
                             {toolName}
                         </p>
                         <p className="text-white/40 text-sm mb-6 leading-relaxed">
-                            This magic tool is only available for <span className="text-amber-400 font-bold">paid plan users</span>. Upgrade your plan to unlock all AI magic tools.
+                            {customMessage ? customMessage : (
+                                <>This magic tool is only available for <span className="text-amber-400 font-bold">paid plan users</span>. Upgrade your plan to unlock all AI magic tools.</>
+                            )}
                         </p>
 
                         {/* Feature bullets */}
