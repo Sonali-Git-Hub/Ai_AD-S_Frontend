@@ -146,15 +146,15 @@ const Landing = () => {
             {/* Background Overlay - Balanced Gradient (Top & Bottom) */}
             <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-primary/10 dark:from-slate-950/80 dark:via-transparent dark:to-slate-950/80 pointer-events-none z-0" />
 
-            {/* Ballpit Background */}
-            <div className="absolute inset-0 pointer-events-auto z-0 opacity-70 dark:opacity-40">
+            {/* Ballpit Background - Harmonized with AISA Theme */}
+            <div className="absolute inset-0 pointer-events-auto z-0 opacity-40 dark:opacity-20">
                 <Ballpit 
-                    count={40}
-                    gravity={0.1}
-                    friction={0.998}
-                    wallBounce={0.95}
+                    count={35}
+                    gravity={0.08}
+                    friction={0.999}
+                    wallBounce={0.9}
                     followCursor={true}
-                    colors={[0x8b5cf6, 0x6366f1, 0xec4899]}
+                    colors={[0x4f46e5, 0x3b82f6, 0x6366f1, 0x1e293b]}
                 />
             </div>
 

@@ -84,27 +84,41 @@ const AboutAISA = ({ isOpen, onClose }) => {
                     <X className="w-5 h-5 text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white" />
                 </button>
 
-                {/* AISA Signature Header - Harmonized Lavender Theme */}
-                <div className="relative h-64 bg-[#D1D9FF]/40 dark:bg-gradient-to-br dark:from-[#1E293B] dark:via-[#0F172A] dark:to-black flex flex-col items-center justify-center shrink-0 overflow-hidden border-b border-primary/10 dark:border-white/5 backdrop-blur-xl">
-                    {/* Subtle Background Accents */}
-                    <div className="absolute inset-0">
-                         <div className="absolute top-[-50%] left-[-10%] w-[500px] h-[500px] bg-white/40 rounded-full blur-[100px]" />
-                         <div className="absolute bottom-[-50%] right-[-10%] w-[400px] h-[400px] bg-white/30 rounded-full blur-[100px]" />
+                {/* AISA Signature Header - Premium Mesh Gradient Theme */}
+                <div className="relative h-64 bg-[#D1D9FF]/40 dark:bg-[#0B0F1A] flex flex-col items-center justify-center shrink-0 overflow-hidden border-b border-primary/10 dark:border-white/5 backdrop-blur-xl">
+                    {/* Animated Background Accents for Dark Mode */}
+                    <div className="absolute inset-0 overflow-hidden">
+                        {/* Light Mode Accents */}
+                        <div className="absolute top-[-50%] left-[-10%] w-[500px] h-[500px] bg-white/40 rounded-full blur-[100px] dark:hidden" />
+                        <div className="absolute bottom-[-50%] right-[-10%] w-[400px] h-[400px] bg-white/30 rounded-full blur-[100px] dark:hidden" />
+                         
+                        {/* Dark Mode Mesh Accents */}
+                        <motion.div 
+                            animate={{ scale: [1, 1.2, 1], x: [0, 50, 0], y: [0, -30, 0] }}
+                            transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+                            className="hidden dark:block absolute -top-40 -left-40 w-96 h-96 bg-primary/20 rounded-full blur-[100px]" 
+                        />
+                        <motion.div 
+                            animate={{ scale: [1, 1.3, 1], x: [0, -60, 0], y: [0, 40, 0] }}
+                            transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+                            className="hidden dark:block absolute -bottom-40 -right-40 w-96 h-96 bg-purple-600/10 rounded-full blur-[100px]" 
+                        />
+                        <div className="hidden dark:block absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(15,23,42,0.6)_100%)]" />
                     </div>
 
                     <div className="relative z-10 text-center px-6">
                         <motion.div 
                             initial={{ y: -5, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/60 dark:bg-white/5 backdrop-blur-sm border border-primary/20 dark:border-white/10 mb-5"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/60 dark:bg-primary/10 backdrop-blur-sm border border-primary/20 dark:border-primary/20 mb-5 shadow-lg shadow-primary/5"
                         >
-                            <Sparkles className="w-3 h-3 text-primary dark:text-white" />
-                            <span className="text-[8px] font-black tracking-[0.2em] uppercase text-primary dark:text-white/80">Intelligence Reinvented</span>
+                            <Sparkles className="w-3 h-3 text-primary dark:text-primary-light" />
+                            <span className="text-[8px] font-black tracking-[0.2em] uppercase text-primary dark:text-primary-light">Intelligence Reinvented</span>
                         </motion.div>
                         <h2 className="text-4xl md:text-6xl font-black tracking-tighter mb-2 text-slate-900 dark:text-white leading-none">
                             AISA <span className="text-primary font-bold">™</span>
                         </h2>
-                        <p className="text-slate-500 dark:text-white/50 text-[10px] md:text-xs font-black tracking-[0.4em] uppercase">
+                        <p className="text-slate-500 dark:text-slate-400 text-[10px] md:text-xs font-black tracking-[0.4em] uppercase opacity-80">
                             Think, Create, and Command.
                         </p>
                     </div>
@@ -158,16 +172,16 @@ const AboutAISA = ({ isOpen, onClose }) => {
                                     {cat.features.map((feat, fIdx) => (
                                         <motion.div 
                                             key={feat.title}
-                                            whileHover={{ y: -5, backgroundColor: "rgba(209, 217, 255, 0.5)" }}
-                                            className="p-6 rounded-[1.5rem] bg-[#D1D9FF]/20 dark:bg-[#161B2E]/40 border border-primary/5 dark:border-white/5 shadow-sm hover:shadow-2xl transition-all cursor-default group backdrop-blur-sm"
+                                            whileHover={{ y: -5 }}
+                                            className="p-6 rounded-[1.5rem] bg-[#D1D9FF]/20 dark:bg-[#161B2E]/40 border border-primary/5 dark:border-white/5 shadow-sm hover:shadow-2xl hover:bg-[#D1D9FF]/50 dark:hover:bg-primary/20 transition-all cursor-default group backdrop-blur-sm"
                                         >
                                             <div className="w-10 h-10 rounded-xl bg-white/60 dark:bg-white/5 flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-all duration-300">
                                                 <div className="text-primary group-hover:text-white transition-colors">
                                                     {React.cloneElement(feat.icon, { className: "w-4 h-4" })}
                                                 </div>
                                             </div>
-                                            <h5 className="text-slate-800 dark:text-white text-[15px] font-black mb-2 group-hover:text-primary transition-colors leading-tight uppercase tracking-tight">{feat.title}</h5>
-                                            <p className="text-slate-500 dark:text-slate-500 text-[10px] leading-relaxed font-bold opacity-70">
+                                            <h5 className="text-slate-800 dark:text-white text-[15px] font-black mb-2 group-hover:text-primary dark:group-hover:text-primary transition-colors leading-tight uppercase tracking-tight">{feat.title}</h5>
+                                            <p className="text-slate-500 dark:text-slate-400 text-[10px] leading-relaxed font-bold opacity-70">
                                                 {feat.desc}
                                             </p>
                                         </motion.div>
