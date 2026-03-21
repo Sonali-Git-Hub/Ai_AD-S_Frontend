@@ -7,11 +7,13 @@ import {
 } from 'lucide-react';
 import { apiService } from '../services/apiService';
 import toast from 'react-hot-toast';
+import DeleteConfirmModal from '../components/DeleteConfirmModal';
 
 const KnowledgeSourceManager = () => {
     const [sources, setSources] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(null);
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null });
 
     const fetchSources = useCallback(async () => {
         try {
@@ -54,14 +56,16 @@ const KnowledgeSourceManager = () => {
         }
     };
 
-    const handleDelete = async (id) => {
-        if (!confirm("Are you sure? This will delete the source tracking AND all associated knowledge pages from RAG.")) return;
+    const handleDelete = async () => {
+        if (!deleteModal.id) return;
         try {
-            await apiService.deleteKnowledgeSource(id);
+            await apiService.deleteKnowledgeSource(deleteModal.id);
             toast.success("Source and pages deleted");
+            setDeleteModal({ isOpen: false, id: null });
             fetchSources();
         } catch (error) {
             toast.error("Failed to delete source");
+            setDeleteModal({ isOpen: false, id: null });
         }
     };
 
@@ -188,7 +192,7 @@ const KnowledgeSourceManager = () => {
                                         {source.status === 'active' ? <PauseCircle className="w-4 h-4" /> : <PlayCircle className="w-4 h-4" />}
                                     </button>
                                     <button
-                                        onClick={() => handleDelete(source._id)}
+                                        onClick={() => setDeleteModal({ isOpen: true, id: source._id })}
                                         className="p-3 bg-white/5 hover:bg-red-500/10 text-subtext hover:text-red-500 rounded-xl transition-all"
                                         title="Delete Source"
                                     >
@@ -200,6 +204,14 @@ const KnowledgeSourceManager = () => {
                     ))}
                 </div>
             )}
+
+            <DeleteConfirmModal
+                isOpen={deleteModal.isOpen}
+                onClose={() => setDeleteModal({ isOpen: false, id: null })}
+                onConfirm={handleDelete}
+                title="Delete Source?"
+                description="Are you sure? This will delete the source tracking AND all associated knowledge pages. This cannot be undone."
+            />
         </div>
     );
 };
