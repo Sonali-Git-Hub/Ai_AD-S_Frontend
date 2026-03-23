@@ -362,6 +362,8 @@ const Chat = () => {
   const [audioPitch, setAudioPitch] = useState(0);
   const [audioSpeed, setAudioSpeed] = useState(1.0);
   const [isVoiceSettingsOpen, setIsVoiceSettingsOpen] = useState(false);
+  const [isPlayingSample, setIsPlayingSample] = useState(false);
+  const sampleAudioRef = useRef(null);
   const [imageAspectRatio, setImageAspectRatio] = useState('1:1');
   const [imageModelId, setImageModelId] = useState('imagen-3.0-generate-001');
   const [isMagicSettingsOpen, setIsMagicSettingsOpen] = useState(false);
@@ -5999,10 +6001,10 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       {isAudioConvertMode && (
                         <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0">
                           <Headphones size={12} strokeWidth={3} /> <span className="hidden sm:inline">Audio Convert</span>
-                          <button onClick={() => setIsVoiceSettingsOpen(true)} className="ml-1 hover:text-indigo-800" title="Voice Settings">
+                          <button type="button" onClick={() => setIsVoiceSettingsOpen(true)} className="ml-1 hover:text-indigo-800" title="Voice Settings">
                             <Sliders size={12} />
                           </button>
-                          <button onClick={() => setIsAudioConvertMode(false)} className="ml-1 hover:text-indigo-800"><X size={12} /></button>
+                          <button type="button" onClick={() => setIsAudioConvertMode(false)} className="ml-1 hover:text-indigo-800"><X size={12} /></button>
                         </motion.div>
                       )}
                       {isDocumentConvert && (
@@ -6665,7 +6667,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                     {/* ── Buttons ── */}
                     <div className="flex gap-3 pt-1">
-                      <button type="button" onClick={async () => {
+                      <button type="button" disabled={isPlayingSample} onClick={async () => {
+                        if (isPlayingSample) return;
+                        setIsPlayingSample(true);
+                        // Stop any previously playing sample
+                        if (sampleAudioRef.current) { sampleAudioRef.current.pause(); sampleAudioRef.current = null; }
                         const t = toast.loading('Generating sample...');
                         try {
                           const langSamples = {
@@ -6683,11 +6689,14 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             introText: txt, languageCode: audioLangCode,
                             voiceName: audioVoiceName, pitch: audioPitch, speakingRate: audioSpeed
                           }, { responseType: 'arraybuffer', timeout: 30000, headers: { Authorization: `Bearer ${getUserData()?.token}` } });
-                          new Audio(URL.createObjectURL(new Blob([res.data], { type: 'audio/mpeg' }))).play();
+                          const audio = new Audio(URL.createObjectURL(new Blob([res.data], { type: 'audio/mpeg' })));
+                          sampleAudioRef.current = audio;
+                          audio.onended = () => setIsPlayingSample(false);
+                          audio.play();
                           toast.dismiss(t); toast.success('Playing sample ▶');
-                        } catch (e) { toast.dismiss(t); toast.error('Sample failed — check voice/language combo.'); }
-                      }} className="flex-1 flex items-center justify-center gap-2 h-11 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 text-sm font-bold text-white/70 hover:text-white transition-all">
-                        <PlayCircle className="w-4 h-4 text-indigo-400" /> Play Sample
+                        } catch (e) { toast.dismiss(t); toast.error('Sample failed — check voice/language combo.'); setIsPlayingSample(false); }
+                      }} className={`flex-1 flex items-center justify-center gap-2 h-11 rounded-2xl border border-white/10 text-sm font-bold transition-all ${isPlayingSample ? 'bg-indigo-500/20 text-indigo-300 cursor-not-allowed opacity-70' : 'bg-white/5 hover:bg-white/10 text-white/70 hover:text-white'}`}>
+                        <PlayCircle className={`w-4 h-4 ${isPlayingSample ? 'animate-pulse' : ''} text-indigo-400`} /> {isPlayingSample ? 'Playing...' : 'Play Sample'}
                       </button>
                       <button type="button" onClick={() => setIsVoiceSettingsOpen(false)}
                         className="flex-[2] h-11 rounded-2xl text-sm font-bold text-white transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40"
