@@ -1489,7 +1489,9 @@ const Chat = () => {
           query,
           "DEEP SEARCH MODE ENABLED: Analyze the web search results comprehensively.",
           [],
-          currentLang
+          currentLang,
+          null,
+          MODES.DEEP_SEARCH
         );
 
         if (responseData && responseData.reply) {

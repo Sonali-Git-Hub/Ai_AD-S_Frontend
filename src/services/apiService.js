@@ -609,7 +609,7 @@ export const apiService = {
       throw error;
     }
   },
-  
+
   async uploadKnowledgeUrl(payload) {
     try {
       const response = await apiClient.post('/aibase/knowledge/upload-url', payload);
@@ -651,16 +651,16 @@ export const apiService = {
     }
   },
 
-    async recrawlSource(payload) {
-        try {
-            const path = payload.id ? `/aibase/knowledge/recrawl/${payload.id}` : '/aibase/knowledge/recrawl';
-            const response = await apiClient.post(path, payload);
-            return response.data;
-        } catch (error) {
-            console.error("Failed to recrawl source:", error);
-            throw error;
-        }
-    },
+  async recrawlSource(payload) {
+    try {
+      const path = payload.id ? `/aibase/knowledge/recrawl/${payload.id}` : '/aibase/knowledge/recrawl';
+      const response = await apiClient.post(path, payload);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to recrawl source:", error);
+      throw error;
+    }
+  },
 
   async updateKnowledgeSource(id, payload) {
     try {
@@ -682,15 +682,15 @@ export const apiService = {
     }
   },
 
-    async deleteKnowledgeDocument(id) {
-        try {
-            const response = await apiClient.delete(`/aibase/knowledge/delete/${id}`);
-            return response.data;
-        } catch (error) {
-            console.error("Failed to delete knowledge document:", error);
-            throw error;
-        }
-    },
+  async deleteKnowledgeDocument(id) {
+    try {
+      const response = await apiClient.delete(`/aibase/knowledge/delete/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to delete knowledge document:", error);
+      throw error;
+    }
+  },
 
   async aibaseChat(payload) {
     try {
@@ -719,6 +719,26 @@ export const apiService = {
       return response.data;
     } catch (error) {
       console.error("Failed to fetch user credits:", error);
+      throw error;
+    }
+  },
+
+  async getFeatureCredits() {
+    try {
+      const response = await apiClient.get('/admin/feature-credits');
+      return response.data;
+    } catch (error) {
+      console.error("Failed to load feature credits:", error);
+      throw error;
+    }
+  },
+
+  async updateFeatureCredit(id, data) {
+    try {
+      const response = await apiClient.put(`/admin/feature-credits/${id}`, data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to update feature credit:", error);
       throw error;
     }
   }

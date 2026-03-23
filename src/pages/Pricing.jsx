@@ -53,8 +53,8 @@ const Pricing = () => {
     }
     return [
       { text: `≈ ${credits} chats`, icon: <Zap size={14} /> },
-      { text: `≈ ${Math.floor(credits / 60)} images`, icon: <ImageIcon size={14} /> },
-      { text: `≈ ${Math.floor(credits / 300)} sec video`, icon: <Video size={14} /> }
+      { text: `≈ ${Math.floor(credits / 45)} images`, icon: <ImageIcon size={14} /> },
+      { text: `≈ ${Math.floor(credits / 225)} sec video`, icon: <Video size={14} /> }
     ];
   };
 

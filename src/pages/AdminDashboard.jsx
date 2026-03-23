@@ -98,10 +98,10 @@ const OverviewTab = () => {
     }, []);
 
     if (loading) return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <RefreshCw className="w-8 h-8 text-primary animate-spin" />
-        <p className="text-subtext text-sm">Loading real-time overview...</p>
-      </div>
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <RefreshCw className="w-8 h-8 text-primary animate-spin" />
+            <p className="text-subtext text-sm">Loading real-time overview...</p>
+        </div>
     );
 
     return (
@@ -110,13 +110,13 @@ const OverviewTab = () => {
                 <h2 className="text-sm font-bold text-subtext uppercase tracking-widest flex items-center gap-2">
                     <Activity className="w-4 h-4 text-primary" /> Live Platform Activity
                 </h2>
-                <button 
-                  onClick={() => fetchStats(true)} 
-                  disabled={refreshing}
-                  className="p-2 rounded-lg hover:bg-primary/10 text-primary transition-all disabled:opacity-50"
-                  title="Manual Refresh"
+                <button
+                    onClick={() => fetchStats(true)}
+                    disabled={refreshing}
+                    className="p-2 rounded-lg hover:bg-primary/10 text-primary transition-all disabled:opacity-50"
+                    title="Manual Refresh"
                 >
-                  <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                    <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
                 </button>
             </div>
 
@@ -406,14 +406,14 @@ const PlansTab = () => {
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [editingPlan, setEditingPlan] = useState(null);
-    const [form, setForm] = useState({ 
-        planId: '', 
-        planName: '', 
-        priceMonthly: '', 
-        priceYearly: '', 
-        credits: '', 
-        creditsYearly: '', 
-        features: '' 
+    const [form, setForm] = useState({
+        planId: '',
+        planName: '',
+        priceMonthly: '',
+        priceYearly: '',
+        credits: '',
+        creditsYearly: '',
+        features: ''
     });
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, planId: null });
 
@@ -565,7 +565,7 @@ const PlansTab = () => {
                                 <h4 className="font-bold text-maintext">{plan.planName}</h4>
                                 <div className="mt-1 space-y-0.5">
                                     <p className="text-lg font-black text-primary leading-none">₹{plan.priceMonthly}<span className="text-[10px] text-subtext font-normal ml-1">/mo</span></p>
-                                    <p className="text-[10px] text-subtext">Yearly: ₹{plan.priceYearly} (₹{Math.round(plan.priceYearly/12)}/mo)</p>
+                                    <p className="text-[10px] text-subtext">Yearly: ₹{plan.priceYearly} (₹{Math.round(plan.priceYearly / 12)}/mo)</p>
                                 </div>
                             </div>
                             <div className="flex gap-1">
@@ -1108,8 +1108,8 @@ const KnowledgeBaseTab = () => {
 
     return (
         <div className="space-y-6">
-            <SectionCard 
-                title="Ingest New Knowledge" 
+            <SectionCard
+                title="Ingest New Knowledge"
                 action={<span className="text-xs text-subtext font-medium">Add files or websites to RAG</span>}
             >
                 <KnowledgeUpload onUploadSuccess={handleUploadSuccess} />
@@ -1123,15 +1123,162 @@ const KnowledgeBaseTab = () => {
 };
 
 // ═══════════════════════════════
+// FEATURE CREDITS TAB
+// ═══════════════════════════════
+const FeatureCreditsTab = () => {
+    const [features, setFeatures] = useState([]);
+    const [modifiedFeatures, setModifiedFeatures] = useState({});
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+
+    const fetchFeatures = async () => {
+        try {
+            const res = await apiService.getFeatureCredits();
+            if (res.success && res.features) {
+                setFeatures(res.features.sort((a, b) => a.category.localeCompare(b.category)));
+                setModifiedFeatures({});
+            }
+        } catch (err) {
+            toast.error("Failed to load feature credits");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => { fetchFeatures(); }, []);
+
+    const handleFeatureChange = (id, field, value) => {
+        setModifiedFeatures(prev => ({
+            ...prev,
+            [id]: {
+                ...prev[id],
+                [field]: value
+            }
+        }));
+    };
+
+    const handleSaveChanges = async () => {
+        const changes = Object.entries(modifiedFeatures);
+        if (changes.length === 0) return;
+
+        setSaving(true);
+        try {
+            // Batch update visually by executing promises
+            await Promise.all(changes.map(async ([id, data]) => {
+                const original = features.find(f => f._id === id);
+                const updatePayload = {
+                    cost: data.cost !== undefined ? Number(data.cost) : original.cost,
+                    uiLabel: data.uiLabel !== undefined ? data.uiLabel : original.uiLabel
+                };
+                await apiService.updateFeatureCredit(id, updatePayload);
+            }));
+            
+            toast.success('All feature costs updated successfully!');
+            fetchFeatures();
+        } catch (error) {
+            toast.error('Failed to save some features');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    if (loading) return <LoadingSpinner />;
+
+    // Group features by category
+    const grouped = features.reduce((acc, curr) => {
+        if (!acc[curr.category]) acc[curr.category] = [];
+        acc[curr.category].push(curr);
+        return acc;
+    }, {});
+
+    const hasChanges = Object.keys(modifiedFeatures).length > 0;
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 flex items-start gap-4 flex-1">
+                    <AlertCircle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                    <div>
+                        <h4 className="font-bold text-maintext">Credit Cost Economics</h4>
+                        <p className="text-xs text-subtext mt-1">Adjust the credit deduction costs for features dynamically. Changes here are instantly applied across the entire AISA Magic Tool ecosystem. Ensure values align with your targeted 50% profit margins.</p>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-3 shrink-0">
+                    <button
+                        onClick={fetchFeatures}
+                        className="px-4 py-2 bg-white/10 dark:bg-black/20 text-maintext rounded-xl font-bold text-sm hover:bg-white/20 transition-all border border-white/20 flex items-center gap-2"
+                        disabled={saving}
+                    >
+                        <RefreshCw className={`w-4 h-4 ${saving ? 'animate-spin' : ''}`} /> Reset
+                    </button>
+                    <button
+                        onClick={handleSaveChanges}
+                        disabled={!hasChanges || saving}
+                        className={`px-5 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${
+                            hasChanges && !saving
+                                ? 'bg-primary text-white shadow-lg shadow-primary/30 hover:scale-105'
+                                : 'bg-white/5 text-subtext cursor-not-allowed border border-white/10'
+                        }`}
+                    >
+                        {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+
+            {Object.entries(grouped).map(([category, items]) => (
+                <SectionCard key={category} title={category}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {items.map(f => {
+                            const mod = modifiedFeatures[f._id] || {};
+                            const currentCost = mod.cost !== undefined ? mod.cost : f.cost;
+                            const currentLabel = mod.uiLabel !== undefined ? mod.uiLabel : f.uiLabel;
+                            const isChanged = mod.cost !== undefined || mod.uiLabel !== undefined;
+                            
+                            return (
+                                <div key={f._id} className={`bg-white/5 border rounded-xl p-4 relative flex flex-col justify-between transition-colors ${isChanged ? 'border-primary/50' : 'border-white/10'}`}>
+                                    <div>
+                                        <p className="text-xs font-bold text-subtext uppercase tracking-wider mb-1">{f.featureKey}</p>
+                                        <input 
+                                            type="text" 
+                                            className="font-bold text-maintext bg-transparent border-none p-0 outline-none w-full"
+                                            value={currentLabel}
+                                            onChange={(e) => handleFeatureChange(f._id, 'uiLabel', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="mt-4 flex items-center justify-between">
+                                        <p className="text-xs text-subtext font-medium">Credit Cost</p>
+                                        <div className="flex items-center bg-black/20 rounded-lg w-24 overflow-hidden border border-transparent focus-within:border-primary/50 transition-colors">
+                                            <input
+                                                type="number"
+                                                className="bg-transparent border-none outline-none text-right font-black text-primary text-lg w-full p-2"
+                                                value={currentCost}
+                                                onChange={(e) => handleFeatureChange(f._id, 'cost', e.target.value)}
+                                                min="0"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </SectionCard>
+            ))}
+        </div>
+    );
+};
+
+// ═══════════════════════════════
 // MAIN ADMIN DASHBOARD
 // ═══════════════════════════════
 const AdminDashboard = () => {
-    const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'users', 'plans', 'packages', 'legal', 'helpdesk', 'settings', 'knowledge'
+    const [activeTab, setActiveTab] = useState('overview'); 
     const navigate = useNavigate();
 
     // Verify admin access
     const user = getUserData();
-    const isAdmin = user?.token && user?.email === ADMIN_EMAIL;
+    const isAdmin = user?.token && (user?.email === ADMIN_EMAIL || user?.role === 'admin');
 
     useEffect(() => {
         if (!isAdmin) {
@@ -1146,6 +1293,7 @@ const AdminDashboard = () => {
         { id: 'users', label: 'Users', icon: Users },
         { id: 'plans', label: 'Plans', icon: CreditCard },
         { id: 'packages', label: 'Packages', icon: Package },
+        { id: 'credits', label: 'Tool Costs', icon: Zap },
         { id: 'legal', label: 'Legal Pages', icon: FileText },
         { id: 'helpdesk', label: 'Help Desk', icon: Headphones },
         { id: 'knowledge', label: 'Knowledge', icon: BookOpen },
@@ -1158,6 +1306,7 @@ const AdminDashboard = () => {
             case 'users': return <UsersTab />;
             case 'plans': return <PlansTab />;
             case 'packages': return <PackagesTab />;
+            case 'credits': return <FeatureCreditsTab />;
             case 'legal': return <LegalPagesTab />;
             case 'helpdesk': return <AdminHelpDesk isOpen={true} isEmbedded={true} />;
             case 'knowledge': return <KnowledgeBaseTab />;
