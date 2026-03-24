@@ -198,10 +198,13 @@ const UsersTab = () => {
         }
     };
 
-    const handleAdjustCredits = async (userId, overrideCredits = null) => {
-        if (!creditAmount && overrideCredits === null) return;
+    const handleAdjustCredits = async (userId, amount = null, absoluteCredits = null) => {
+        if (amount === null && absoluteCredits === null && !creditAmount) return;
         
-        const targetCredits = overrideCredits !== null ? overrideCredits : parseInt(creditAmount);
+        const payload = { userId };
+        if (amount !== null) payload.amount = amount;
+        else if (absoluteCredits !== null) payload.credits = absoluteCredits;
+        else payload.credits = parseInt(creditAmount);
 
         try {
             const response = await fetch(`${API}/admin/adjust-credits`, {
@@ -210,7 +213,7 @@ const UsersTab = () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${getUserData()?.token}`
                 },
-                body: JSON.stringify({ userId, credits: targetCredits })
+                body: JSON.stringify(payload)
             });
             const data = await response.json();
             if (data.success) {
@@ -353,8 +356,7 @@ const UsersTab = () => {
                                             </div>
                                             <button
                                                 onClick={() => {
-                                                    const newTotal = (user.credits || 0) + parseInt(creditAmount);
-                                                    handleAdjustCredits(user._id || user.id, newTotal);
+                                                    handleAdjustCredits(user._id || user.id, parseInt(creditAmount));
                                                 }}
                                                 disabled={!creditAmount || parseInt(creditAmount) <= 0}
                                                 className="w-full py-2 bg-amber-500 text-white rounded-lg font-bold text-xs disabled:opacity-40 hover:bg-amber-600 transition-all flex justify-center items-center gap-2"
