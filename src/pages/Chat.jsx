@@ -2579,11 +2579,12 @@ const Chat = () => {
 
       // Detect mode for UI indicator
       const detectedMode = magicEditActive ? MODES.IMAGE_EDIT :
-        (deepSearchActive ? MODES.DEEP_SEARCH :
-          (documentConvertActive ? MODES.DOCUMENT_CONVERT :
-            (webSearchActive ? MODES.WEB_SEARCH :
-              (codeWriterActive ? MODES.CODING_HELP :
-                detectMode(contentToSend, userMsg.attachments)))));
+        (isFileAnalysis ? MODES.FILE_ANALYSIS :
+          (deepSearchActive ? MODES.DEEP_SEARCH :
+            (documentConvertActive ? MODES.DOCUMENT_CONVERT :
+              (webSearchActive ? MODES.WEB_SEARCH :
+                (codeWriterActive ? MODES.CODING_HELP :
+                  detectMode(contentToSend, userMsg.attachments))))));
       setCurrentMode(detectedMode);
 
       // Update user message with the detected mode
@@ -2598,6 +2599,8 @@ const Chat = () => {
         setLoadingText("Generating Video... 🎥");
       } else if (documentConvertActive) {
         setLoadingText("Converting Document... 🔄");
+      } else if (isFileAnalysis) {
+        setLoadingText("Analyzing Document... 📄");
       } else if (deepSearchActive || webSearchActive) {
         setLoadingText("Searching the web... 🌐");
       } else if (codeWriterActive) {

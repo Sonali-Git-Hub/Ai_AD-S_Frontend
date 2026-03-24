@@ -198,8 +198,11 @@ const UsersTab = () => {
         }
     };
 
-    const handleAdjustCredits = async (userId) => {
-        if (!creditAmount) return;
+    const handleAdjustCredits = async (userId, overrideCredits = null) => {
+        if (!creditAmount && overrideCredits === null) return;
+        
+        const targetCredits = overrideCredits !== null ? overrideCredits : parseInt(creditAmount);
+
         try {
             const response = await fetch(`${API}/admin/adjust-credits`, {
                 method: 'POST',
@@ -207,11 +210,11 @@ const UsersTab = () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${getUserData()?.token}`
                 },
-                body: JSON.stringify({ userId, credits: parseInt(creditAmount) })
+                body: JSON.stringify({ userId, credits: targetCredits })
             });
             const data = await response.json();
             if (data.success) {
-                toast.success('Credits adjusted');
+                toast.success('Credits adjusted successfully!');
                 setCreditAmount('');
                 setSelectedUser(null);
                 fetchUsers();
@@ -334,22 +337,29 @@ const UsersTab = () => {
                                         {/* Adjust Credits */}
                                         <div className="bg-white/10 dark:bg-black/10 rounded-xl p-4 space-y-3">
                                             <h4 className="font-bold text-sm text-maintext flex items-center gap-2">
-                                                <Zap className="w-4 h-4 text-amber-500" /> Adjust Credits
+                                                <Zap className="w-4 h-4 text-amber-500" /> Transfer Credits
                                             </h4>
-                                            <p className="text-xs text-subtext">Current: {user.credits ?? '—'}</p>
-                                            <input
-                                                type="number"
-                                                placeholder="New credit amount"
-                                                value={creditAmount}
-                                                onChange={e => setCreditAmount(e.target.value)}
-                                                className="w-full bg-white/20 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-lg py-2 px-3 text-sm outline-none focus:border-primary/50 text-maintext"
-                                            />
+                                            <p className="text-xs text-subtext">User Balance: <span className="font-bold text-maintext">{user.credits ?? 0}</span></p>
+                                            <div className="relative">
+                                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-maintext font-black text-sm opacity-60">+</div>
+                                                <input
+                                                    type="number"
+                                                    placeholder="Amount to send"
+                                                    value={creditAmount}
+                                                    onChange={e => setCreditAmount(e.target.value)}
+                                                    className="w-full bg-white/20 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-lg py-2 pl-7 pr-3 text-sm outline-none focus:border-amber-500/50 text-maintext font-bold"
+                                                    min="1"
+                                                />
+                                            </div>
                                             <button
-                                                onClick={() => handleAdjustCredits(user._id || user.id)}
-                                                disabled={!creditAmount}
-                                                className="w-full py-2 bg-amber-500 text-white rounded-lg font-bold text-xs disabled:opacity-40 hover:opacity-90 transition-all"
+                                                onClick={() => {
+                                                    const newTotal = (user.credits || 0) + parseInt(creditAmount);
+                                                    handleAdjustCredits(user._id || user.id, newTotal);
+                                                }}
+                                                disabled={!creditAmount || parseInt(creditAmount) <= 0}
+                                                className="w-full py-2 bg-amber-500 text-white rounded-lg font-bold text-xs disabled:opacity-40 hover:bg-amber-600 transition-all flex justify-center items-center gap-2"
                                             >
-                                                Update Credits
+                                                Send Credits
                                             </button>
                                         </div>
 
