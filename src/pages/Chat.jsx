@@ -482,7 +482,9 @@ const Chat = () => {
     if (toolUpdates.activeImageGen) setIsImageGeneration(true);
     if (toolUpdates.activeVideoGen) setIsVideoGeneration(true);
     if (toolUpdates.activeMagicEdit) setIsMagicEditing(true);
-    if (toolUpdates.activeAudioTalk) setIsAudioConvertMode(true);
+    if (toolUpdates.activeAudioTalk) {
+      setIsAudioConvertMode(true);
+    }
     if (toolUpdates.webSearchMode) setIsWebSearch(true);
     if (toolUpdates.deepSearchMode) setIsDeepSearch(true);
     if (toolUpdates.activeFileAnalysis) setIsFileAnalysis(true);
@@ -967,32 +969,40 @@ const Chat = () => {
     reader.readAsDataURL(file);
   };
 
-  const manualTextToAudioConversion = async (text, activeSessionId) => {
+  const manualTextToAudioConversion = async (text, activeSessionId, replaceAssistantMsgId = null) => {
     if (!text || !text.trim()) return;
 
     if (!checkLimitLocally('audio')) {
       return;
     }
 
-    const userMsg = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: `Convert this text to audio: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`,
-      timestamp: new Date()
-    };
-    setMessages(prev => [...prev, userMsg]);
-    const talkTitle = text.length > 20 ? text.substring(0, 20) + '...' : text;
-    chatStorageService.saveMessage(activeSessionId, userMsg, `Audio Talk: ${talkTitle}`).catch(e => console.error(e));
+    if (!replaceAssistantMsgId) {
+      const userMsg = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: `Convert this text to audio: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, userMsg]);
+      const talkTitle = text.length > 20 ? text.substring(0, 20) + '...' : text;
+      chatStorageService.saveMessage(activeSessionId, userMsg, `Audio Talk: ${talkTitle}`).catch(e => console.error(e));
+    }
 
-
-    const aiMsgId = (Date.now() + 1).toString();
-    setMessages(prev => [...prev, {
+    const aiMsgId = replaceAssistantMsgId || (Date.now() + 1).toString();
+    const generatingMsg = {
       id: aiMsgId,
-      role: 'assistant',
+      role: 'model',
       content: `🎧 **Generating voice for your text...**`,
       timestamp: new Date(),
       isProcessing: true
-    }]);
+    };
+
+    if (replaceAssistantMsgId) {
+      setMessages(prev => prev.map(msg => msg.id === aiMsgId ? generatingMsg : msg));
+    } else {
+      setMessages(prev => [...prev, generatingMsg]);
+    }
+
     scrollToBottom();
 
     try {
@@ -1032,7 +1042,13 @@ const Chat = () => {
         };
 
         setMessages(prev => prev.map(msg => msg.id === aiMsgId ? aiResponse : msg));
-        chatStorageService.saveMessage(activeSessionId, aiResponse).catch(e => console.error(e));
+        
+        if (replaceAssistantMsgId) {
+          chatStorageService.updateMessage(activeSessionId, aiResponse).catch(e => console.error(e));
+        } else {
+          chatStorageService.saveMessage(activeSessionId, aiResponse).catch(e => console.error(e));
+        }
+        
         toast.success("Text converted successfully!");
         refreshSubscription();
         scrollToBottom();
@@ -2397,7 +2413,7 @@ const Chat = () => {
     if ((!contentToSend && filePreviews.length === 0) || isLoading) return;
 
     // --- Proactive Magic Tool Activation Check Removed ---
-    // Messages now flow to the backend normally. 
+    // Messages now flow to the backend normally.
     // The backend's adaptive system will handle tool restrictions based on the active mode.
 
     // --- Subscription Limit Checks ---
@@ -3943,6 +3959,31 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
     // Find the index of the edited message
     const editedMsgIndex = messages.findIndex(m => m.id === msg.id);
 
+    // If in Audio Convert Mode, perform an in-place update without truncating history
+    if (isAudioConvertMode) {
+      const updatedMessages = [...messages];
+      updatedMessages[editedMsgIndex] = updatedMsg;
+      setMessages(updatedMessages);
+      setEditingMessageId(null);
+      setIsLoading(true);
+      
+      try {
+        await chatStorageService.updateMessage(sessionId, updatedMsg);
+        
+        // Find the assistant's message that immediately follows the edited text
+        const nextMsg = messages[editedMsgIndex + 1];
+        const replaceAssistantMsgId = (nextMsg && nextMsg.role !== 'user') ? nextMsg.id : null;
+        
+        await manualTextToAudioConversion(updatedMsg.content, sessionId, replaceAssistantMsgId);
+      } catch (e) {
+        console.error("Error during audio edit:", e);
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    // Normal chat mode behavior: truncate history
     // Remove all messages after the edited message
     const messagesUpToEdit = messages.slice(0, editedMsgIndex);
     const updatedMessages = [...messagesUpToEdit, updatedMsg];
@@ -4174,6 +4215,12 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         });
     }
   }, [viewingDoc]);
+
+  useEffect(() => {
+    if (isAudioConvertMode) {
+      setIsVoiceSettingsOpen(true);
+    }
+  }, [isAudioConvertMode]);
 
   return (
     <div className="flex w-full bg-secondary relative overflow-hidden aisa-scalable-text overscroll-none h-[100dvh] fixed inset-0 lg:static lg:h-full">
