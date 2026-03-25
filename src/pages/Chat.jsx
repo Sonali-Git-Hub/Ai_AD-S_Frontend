@@ -1261,7 +1261,7 @@ const Chat = () => {
         id: tempId,
         role: 'model',
         isGenerating: true,
-        content: `🎨 Generating image from prompt: "${prompt}"\n\nPlease wait, this may take a moment...`, // Use content
+        content: `✨ **Advanced Controller Active**\n🎨 Generating high-quality poster from your prompt: "${prompt}"\n\nIntelligently refining text detection, placement, and cinematic styling...`, // Use content
         timestamp: new Date(),
       };
 
@@ -1380,7 +1380,7 @@ const Chat = () => {
         id: tempId,
         role: 'model',
         isGenerating: true,
-        content: `🪄 Editing your image: "${prompt}"\n\nPlease wait while AISA works its magic...`,
+        content: `🪄 **Advanced Precision Editor Active**\n🔧 Executing Photoshop-level modifications for: "${prompt}"\n\nPreserving original composition, art style, and character-perfect text rendering...`,
         timestamp: new Date(),
       };
 
