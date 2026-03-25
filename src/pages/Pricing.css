@@ -261,6 +261,49 @@
   background: linear-gradient(90deg, #2563eb, #4f46e5);
 }
 
+/* ── Current Plan Highlight ── */
+.pricing-card.current-plan-card {
+  border-color: #10b981;
+  border-width: 2px;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12), 0 12px 30px rgba(16, 185, 129, 0.15);
+}
+
+.dark .pricing-card.current-plan-card {
+  border-color: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15), 0 0 40px -10px rgba(16, 185, 129, 0.3);
+}
+
+.current-plan-badge {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, #059669, #10b981);
+  color: white;
+  padding: 4px 14px;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(16, 185, 129, 0.4);
+  z-index: 1;
+}
+
+.cta-button.current-plan-btn {
+  background: linear-gradient(135deg, #059669, #10b981) !important;
+  color: white !important;
+  cursor: default !important;
+  opacity: 1 !important;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.25);
+}
+
+.cta-button.current-plan-btn:hover {
+  transform: none !important;
+  background: linear-gradient(135deg, #059669, #10b981) !important;
+}
+
 .plan-name {
   font-size: 0.85rem;
   font-weight: 800;

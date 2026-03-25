@@ -34,6 +34,8 @@ import DeleteConfirmModal from '../Components/DeleteConfirmModal';
 import { getSubscriptionDetails } from '../services/pricingService';
 import IntentSuggestionBanner from '../Components/IntentSuggestionBanner';
 import { detectIntent, mapModeToToolState } from '../services/intentService';
+import LoginRequiredModal from '../Components/LoginRequiredModal';
+
 
 
 
@@ -264,6 +266,11 @@ const Chat = () => {
   }, []);
 
   const checkPremiumTool = (toolName) => {
+    const user = getUserData();
+    if (!user?.token) {
+      window.dispatchEvent(new CustomEvent('login_required', { detail: { toolName } }));
+      return false;
+    }
     if (isPremiumUser === null) return true; // still loading, allow optimistically
 
     // Check if tool is video and plan is starter/founder
@@ -459,6 +466,11 @@ const Chat = () => {
   }, [inputValue, filePreviews.length]);
 
   const handleAcceptSuggestion = (suggestion) => {
+    const user = getUserData();
+    if (!user?.token) {
+      window.dispatchEvent(new CustomEvent('login_required', { detail: { toolName: suggestion.intent.replace('_', ' ') } }));
+      return;
+    }
     const toolUpdates = mapModeToToolState(suggestion.frontend_mode);
     
     // Deactivate all first (safety)
@@ -6190,6 +6202,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
             />
           )}
         </AnimatePresence>
+
+        <LoginRequiredModal />
 
         {/* Feedback Modal */}
         <Transition appear show={feedbackOpen} as={Fragment}>
