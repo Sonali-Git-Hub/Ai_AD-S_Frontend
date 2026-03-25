@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getPlans, getCreditPackages, purchasePlan, buyCredits, createSubscriptionOrder } from '../services/pricingService';
+import { getPlans, getCreditPackages, purchasePlan, buyCredits, createSubscriptionOrder, getSubscriptionDetails } from '../services/pricingService';
 import './Pricing.css';
 import { Check, X, ShieldAlert, Sparkles, Zap, Image as ImageIcon, Video, Search, Users, ChevronRight, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -15,11 +15,28 @@ const Pricing = () => {
   const [loading, setLoading] = useState(true);
   const [showUpsell, setShowUpsell] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [currentPlanName, setCurrentPlanName] = useState('');
   const [userState, setUserState] = useRecoilState(userData);
 
   useEffect(() => {
     fetchPricingData();
+    fetchCurrentPlan();
   }, []);
+
+  const fetchCurrentPlan = async () => {
+    try {
+      const data = await getSubscriptionDetails();
+      if (data?.founderStatus) {
+        setCurrentPlanName('founder');
+      } else if (data?.subscription?.planId?.planName) {
+        setCurrentPlanName(data.subscription.planId.planName.toLowerCase());
+      } else {
+        setCurrentPlanName('free');
+      }
+    } catch (e) {
+      setCurrentPlanName('free');
+    }
+  };
 
   const fetchPricingData = async () => {
     try {
@@ -325,6 +342,12 @@ const Pricing = () => {
         {plans.map((plan) => {
           const isFounder = plan.planName.toLowerCase().includes('founder');
           const isFree = plan.priceMonthly === 0 && plan.priceYearly === 0;
+          const isCurrentPlan = (() => {
+            const pn = plan.planName.toLowerCase();
+            if (currentPlanName === 'founder') return pn.includes('founder');
+            if (currentPlanName === 'free' || currentPlanName === 'free tier') return isFree;
+            return pn.includes(currentPlanName) || currentPlanName.includes(pn.split(' ')[0]);
+          })();
 
           // Fetch ALL values directly from the Database (no frontend math)
           const displayPrice = billingCycle === 'yearly' ? (plan.priceYearlyPerMonth || plan.priceMonthly) : plan.priceMonthly;
@@ -333,8 +356,13 @@ const Pricing = () => {
           const displayValidity = billingCycle === 'yearly' ? (plan.validityYearly || 12) + ' Months' : (plan.validityMonthly || 1) + ' Month';
 
           return (
-            <div key={plan._id} className={`pricing-card ${plan.isPopular ? 'popular' : ''} ${isFree ? 'free-tier-card' : ''}`}>
-              {plan.badge && (
+            <div key={plan._id} className={`pricing-card ${plan.isPopular ? 'popular' : ''} ${isFree ? 'free-tier-card' : ''} ${isCurrentPlan ? 'current-plan-card' : ''}`}>
+              {isCurrentPlan && (
+                <div className="current-plan-badge">
+                  ✓ Current Plan
+                </div>
+              )}
+              {!isCurrentPlan && plan.badge && (
                 <div className={`popular-badge ${isFounder ? 'launch-badge' : ''}`}>
                   {plan.badge}
                 </div>
@@ -400,17 +428,23 @@ const Pricing = () => {
               </ul>
 
 
-              <button
-                className="cta-button"
-                onClick={() => handleUpgrade(plan)}
-                disabled={processing}
-              >
-                {displayPrice === 0
-                  ? 'Start for Free'
-                  : (billingCycle === 'yearly')
-                    ? `Upgrade for ₹${totalYearlyAmount}/yr`
-                    : 'Upgrade to ' + plan.planName}
-              </button>
+              {isCurrentPlan ? (
+                <button className="cta-button current-plan-btn" disabled>
+                  ✓ Current Plan
+                </button>
+              ) : (
+                <button
+                  className="cta-button"
+                  onClick={() => handleUpgrade(plan)}
+                  disabled={processing}
+                >
+                  {displayPrice === 0
+                    ? 'Start for Free'
+                    : (billingCycle === 'yearly')
+                      ? `Upgrade for ₹${totalYearlyAmount}/yr`
+                      : 'Upgrade to ' + plan.planName}
+                </button>
+              )}
             </div>
           );
         })}

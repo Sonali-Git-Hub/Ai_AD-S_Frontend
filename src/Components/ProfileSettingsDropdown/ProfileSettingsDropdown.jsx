@@ -20,6 +20,8 @@ import toast from 'react-hot-toast';
 import axios from 'axios';
 import { API, apis } from '../../types';
 import CustomSelect from '../CustomSelect/CustomSelect';
+import Cropper from 'react-easy-crop';
+import { getCroppedImgBlob } from '../../utils/canvasUtils';
 
 const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
     const fileInputRef = useRef(null);
@@ -55,6 +57,16 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
     const [newPassword, setNewPassword] = useState('');
     const [resetLoading, setResetLoading] = useState(false);
     const [planName, setPlanName] = useState("Free Plan");
+
+    // Cropping State
+    const [imageToCrop, setImageToCrop] = useState(null);
+    const [crop, setCrop] = useState({ x: 0, y: 0 });
+    const [zoom, setZoom] = useState(1);
+    const [rotation, setRotation] = useState(0);
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+    const [showCropper, setShowCropper] = useState(false);
+    const [aspect, setAspect] = useState(1 / 1); // Default to square
+    const [uploadingCroppedImage, setUploadingCroppedImage] = useState(false);
 
     const groupedSessions = useMemo(() => {
         const groups = {};
@@ -181,11 +193,32 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
             return;
         }
 
-        const loadingToast = toast.loading("Uploading image...");
-        const formData = new FormData();
-        formData.append('file', file);
+        const reader = new FileReader();
+        reader.onload = () => {
+            setImageToCrop(reader.result);
+            setShowCropper(true);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleCropComplete = (croppedArea, croppedAreaPixels) => {
+        setCroppedAreaPixels(croppedAreaPixels);
+    };
+
+    const handleSaveCrop = async () => {
+        if (!imageToCrop || !croppedAreaPixels) return;
+
+        setUploadingCroppedImage(true);
+        const loadingToast = toast.loading("Saving and uploading...");
 
         try {
+            const croppedBlob = await getCroppedImgBlob(imageToCrop, croppedAreaPixels, rotation);
+            const truncatedName = (user.name || 'avatar').substring(0, 10).replace(/\s+/g, '-');
+            const file = new File([croppedBlob], `${truncatedName}-avatar.jpg`, { type: 'image/jpeg' });
+
+            const formData = new FormData();
+            formData.append('file', file);
+
             const res = await axios.post(apis.uploadAvatar, formData, {
                 headers: {
                     'Authorization': `Bearer ${user.token}`,
@@ -197,13 +230,16 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                 const updatedUser = { ...user, avatar: res.data.avatar };
                 setUserRecoil(prev => ({ ...prev, user: updatedUser }));
                 setUserData(updatedUser);
-                toast.dismiss(loadingToast);
                 toast.success("Profile photo updated!");
+                setShowCropper(false);
+                setImageToCrop(null);
             }
         } catch (error) {
-            console.error("Upload failed", error);
-            toast.dismiss(loadingToast);
+            console.error("Selection/Upload failed", error);
             toast.error(error.response?.data?.error || "Upload failed. Please try again.");
+        } finally {
+            toast.dismiss(loadingToast);
+            setUploadingCroppedImage(false);
         }
     };
 
@@ -663,6 +699,114 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                 </button>
                             </div>
                         )}
+                    </motion.div>
+                </div>
+            )}
+            {/* Image Cropping Modal */}
+            {showCropper && (
+                <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/80 backdrop-blur-md p-4" onClick={() => setShowCropper(false)}>
+                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white dark:bg-[#1E2438] rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+                        <div className="p-6 flex items-center justify-between border-b border-gray-100 dark:border-white/5">
+                            <div>
+                                <h3 className="text-xl font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">Adjust Profile Photo</h3>
+                                <p className="text-xs text-subtext mt-1">Crop, rotate, and resize your photo</p>
+                            </div>
+                            <button onClick={() => setShowCropper(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors">
+                                <X size={20} className="text-gray-400" />
+                            </button>
+                        </div>
+
+                        <div className="relative h-[250px] sm:h-[400px] bg-[#161B2E]">
+                            <Cropper
+                                image={imageToCrop}
+                                crop={crop}
+                                zoom={zoom}
+                                rotation={rotation}
+                                aspect={aspect}
+                                onCropChange={setCrop}
+                                onCropComplete={handleCropComplete}
+                                onZoomChange={setZoom}
+                                onRotationChange={setRotation}
+                                cropShape="round"
+                                showGrid={true}
+                            />
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                {/* Zoom Control */}
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-center text-xs font-bold text-gray-500 uppercase tracking-widest">
+                                        <span>Zoom</span>
+                                        <span className="text-primary">{Math.round(zoom * 100)}%</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        value={zoom}
+                                        min={1}
+                                        max={3}
+                                        step={0.1}
+                                        aria-labelledby="Zoom"
+                                        onChange={(e) => setZoom(e.target.value)}
+                                        className="w-full h-1.5 bg-gray-100 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary"
+                                    />
+                                </div>
+
+                                {/* Rotation Control */}
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-center text-xs font-bold text-gray-500 uppercase tracking-widest">
+                                        <span>Rotation</span>
+                                        <span className="text-primary">{rotation}°</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        value={rotation}
+                                        min={0}
+                                        max={360}
+                                        step={1}
+                                        aria-labelledby="Rotation"
+                                        onChange={(e) => setRotation(e.target.value)}
+                                        className="w-full h-1.5 bg-gray-100 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-primary"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 mr-2">Aspect Ratio:</span>
+                                    {[
+                                        { label: 'Square', value: 1 / 1 },
+                                        { label: 'Circle', value: 1 / 1 },
+                                        { label: 'Portrait', value: 4 / 5 },
+                                        { label: 'Landscape', value: 16 / 9 }
+                                    ].map((opt) => (
+                                        <button
+                                            key={opt.label}
+                                            onClick={() => setAspect(opt.value)}
+                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${aspect === opt.value ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-primary'}`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="flex items-center gap-3 w-full sm:w-auto">
+                                    <button
+                                        onClick={() => setShowCropper(false)}
+                                        className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-all"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleSaveCrop}
+                                        disabled={uploadingCroppedImage}
+                                        className="flex-1 sm:flex-none px-8 py-2.5 bg-primary text-white rounded-xl text-sm font-black shadow-lg shadow-primary/30 hover:opacity-90 transition-all disabled:opacity-50"
+                                    >
+                                        {uploadingCroppedImage ? 'Saving...' : 'Save & Update'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </motion.div>
                 </div>
             )}
