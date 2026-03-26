@@ -383,6 +383,8 @@ const Chat = () => {
   const [intentSuggestion, setIntentSuggestion] = useState(null);
   const [isIntentLoading, setIsIntentLoading] = useState(false);
   const lastDetectedTextRef = useRef('');
+  const [expandedMessages, setExpandedMessages] = useState({}); // { [msgId]: true/false }
+  const USER_MSG_COLLAPSE_CHARS = 200; // Collapse threshold
 
   const [deleteConfig, setDeleteConfig] = useState({
     isOpen: false,
@@ -977,7 +979,7 @@ const Chat = () => {
     const userMsg = {
       id: Date.now().toString(),
       role: 'user',
-      content: `Convert this text to audio: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`,
+      content: `Convert this text to audio: "${text}"`,
       timestamp: new Date()
     };
     setMessages(prev => [...prev, userMsg]);
@@ -4623,8 +4625,17 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               </div>
                             )}
 
-                            <ReactMarkdown
-                              remarkPlugins={[remarkGfm]}
+                            {/* ——— User message Read More toggle ——— */}
+                            {msg.role === 'user' && (() => {
+                              const isLong = msg.content && msg.content.length > USER_MSG_COLLAPSE_CHARS;
+                              const isExpanded = !!expandedMessages[msg.id];
+                              const displayContent = isLong && !isExpanded
+                                ? msg.content.substring(0, USER_MSG_COLLAPSE_CHARS)
+                                : msg.content;
+                              return (
+                                <>
+                                  <ReactMarkdown
+                                    remarkPlugins={[remarkGfm]}
                               components={{
                                 a: ({ href, children }) => {
                                   const isInternal = href && href.startsWith('/');
@@ -4737,10 +4748,149 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                   )
                                 },
                               }}
-                            >
-                              {msg.content || msg.text || ""}
-                            </ReactMarkdown>
+                                  >
+                                    {displayContent || ""}
+                                  </ReactMarkdown>
+                                  {/* Read More / Show Less button */}
+                                  {isLong && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setExpandedMessages(prev => ({ ...prev, [msg.id]: !isExpanded }));
+                                      }}
+                                      className="mt-1.5 flex items-center gap-1 text-[11px] font-bold text-white/70 hover:text-white transition-colors group/readmore select-none"
+                                    >
+                                      <span>{isExpanded ? 'Show less' : 'Read more'}</span>
+                                      <svg
+                                        className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                                        fill="none" stroke="currentColor" strokeWidth="2.5"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                      </svg>
+                                    </button>
+                                  )}
+                                </>
+                              );
+                            })()}
 
+                            {/* Model message content */}
+                            {msg.role === 'model' && (
+                              <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                components={{
+                                  a: ({ href, children }) => {
+                                    const isInternal = href && href.startsWith('/');
+                                    return (
+                                      <a
+                                        href={href}
+                                        onClick={(e) => {
+                                          if (isInternal) {
+                                            e.preventDefault();
+                                            navigate(href);
+                                          }
+                                        }}
+                                        className="text-primary hover:underline font-bold cursor-pointer"
+                                        target={isInternal ? "_self" : "_blank"}
+                                        rel={isInternal ? "" : "noopener noreferrer"}
+                                      >
+                                        {children}
+                                      </a>
+                                    );
+                                  },
+                                  p: ({ children }) => <p className={`mb-2 last:mb-0 leading-[1.75] tracking-[0.015em] [word-spacing:0.05em]`}>{children}</p>,
+                                  ul: ({ children }) => <ul className="list-disc pl-5 mb-3 last:mb-0 space-y-2 marker:text-subtext/70 transition-all">{children}</ul>,
+                                  ol: ({ children }) => <ol className="list-decimal pl-5 mb-3 last:mb-0 space-y-2 marker:text-subtext/70 transition-all">{children}</ol>,
+                                  li: ({ children }) => <li className="mb-1.5 last:mb-0 transition-colors leading-[1.75] tracking-[0.015em] [word-spacing:0.05em]">{children}</li>,
+                                  h1: ({ children }) => <h1 className="font-bold mb-2 mt-3 block text-[1.4em] text-maintext tracking-tight">{children}</h1>,
+                                  h2: ({ children }) => <h2 className="font-bold mb-1.5 mt-2 block text-[1.2em] text-maintext tracking-tight">{children}</h2>,
+                                  h3: ({ children }) => <h3 className="font-bold mb-1 mt-1.5 block text-[1.1em] text-maintext tracking-tight">{children}</h3>,
+                                  strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                                  mark: ({ children }) => <mark className="bg-[#5555ff] text-white px-1 py-0.5 rounded-sm">{children}</mark>,
+                                  code: ({ node, inline, className, children, ...props }) => {
+                                    const match = /language-(\w+)/.exec(className || '');
+                                    const lang = match ? match[1] : '';
+
+                                    if (!inline && match) {
+                                      return (
+                                        <div className="rounded-xl overflow-hidden my-2 border border-border bg-[#1e1e1e] shadow-md w-full max-w-full">
+                                          <div className="flex items-center justify-between px-4 py-2 bg-[#2d2d2d] border-b border-[#404040]">
+                                            <span className="text-xs font-mono text-gray-300 lowercase">{lang}</span>
+                                            <button
+                                              onClick={() => {
+                                                navigator.clipboard.writeText(String(children).replace(/\n$/, ''));
+                                                toast.success("Code copied!");
+                                              }}
+                                              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
+                                            >
+                                              <Copy className="w-3.5 h-3.5" />
+                                              Copy code
+                                            </button>
+                                          </div>
+                                          <div className="p-4 overflow-x-auto custom-scrollbar bg-[#1e1e1e]">
+                                            <code className={`${className} font-mono text-[0.9em] leading-relaxed text-[#d4d4d4] block min-w-full`} {...props}>
+                                              {children}
+                                            </code>
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+                                    return (
+                                      <code className="bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded font-mono text-primary font-bold mx-0.5" {...props}>
+                                        {children}
+                                      </code>
+                                    );
+                                  },
+                                  img: ({ node, ...props }) => {
+                                    return (
+                                      <div
+                                        className="relative group/generated mt-4 mb-2 overflow-hidden rounded-2xl border border-white/10 shadow-2xl transition-all hover:scale-[1.01] bg-surface/50 backdrop-blur-sm cursor-zoom-in max-w-md"
+                                        onClick={() => setViewingDoc({ url: props.src, type: 'image', name: 'Generated Image' })}
+                                      >
+                                        <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-100 sm:opacity-0 sm:group-hover/generated:opacity-100 transition-opacity">
+                                          <div className="flex items-center gap-2">
+                                            <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                                            <span className="text-[10px] font-bold text-white uppercase tracking-widest">AISA Generated Asset</span>
+                                          </div>
+                                        </div>
+                                        <img
+                                          {...props}
+                                          className="w-full max-w-sm h-auto max-h-[400px] object-contain rounded-xl bg-black/5"
+                                          loading="lazy"
+                                          onLoad={() => scrollToBottom(true)}
+                                          onError={(e) => {
+                                            e.target.src = 'https://placehold.co/600x400?text=Image+Generating...';
+                                          }}
+                                        />
+                                        <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/generated:opacity-100 transition-opacity pointer-events-none" />
+                                        <button
+                                          disabled={isDownloadingUrl === props.src}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDownload(props.src, 'aisa-generated.png');
+                                          }}
+                                          className={`absolute bottom-3 right-3 p-2.5 rounded-xl opacity-100 sm:opacity-0 sm:group-hover/generated:opacity-100 transition-all shadow-lg border border-white/20 scale-100 sm:scale-90 sm:group-hover/generated:scale-100 ${isDownloadingUrl === props.src ? 'bg-zinc-600 cursor-wait' : 'bg-primary hover:bg-primary/90 text-white'}`}
+                                          title="Download High-Res"
+                                        >
+                                          <div className="flex items-center gap-2 px-1">
+                                            {isDownloadingUrl === props.src ? (
+                                              <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                                            ) : (
+                                              <Download className="w-4 h-4" />
+                                            )}
+                                            <span className="text-[10px] font-bold uppercase">
+                                              {isDownloadingUrl === props.src ? 'Downloading...' : 'Download'}
+                                            </span>
+                                          </div>
+                                        </button>
+                                      </div>
+                                    )
+                                  },
+                                }}
+                              >
+                                {msg.content || msg.text || ""}
+                              </ReactMarkdown>
+                            )}
                             {/* Sources List (For both Web Search and RAG) */}
                             {msg.role === 'model' && msg.sources && msg.sources.length > 0 && (
                               <div className="mt-4 pt-4 border-t border-border/50">
