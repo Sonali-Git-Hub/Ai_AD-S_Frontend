@@ -270,9 +270,9 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
                         <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar flex flex-col gap-6">
 
                             {/* Preview Area */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className={`grid grid-cols-1 ${isGenerating || resultVideoUrl ? 'md:grid-cols-2' : ''} gap-4`}>
                                 {/* Source Image */}
-                                <div className="flex flex-col gap-2">
+                                <div className={`flex flex-col gap-2 ${!isGenerating && !resultVideoUrl ? 'max-w-sm mx-auto w-full' : ''}`}>
                                     <span className="text-xs font-bold text-subtext uppercase tracking-wider">Source Image</span>
                                     {previewUrl ? (
                                         <div className="relative group w-full aspect-square bg-black/5 dark:bg-white/5 rounded-2xl overflow-hidden border border-border">
@@ -308,26 +308,23 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
                                 </div>
 
                                 {/* Result Video */}
-                                <div className="flex flex-col gap-2">
-                                    <span className="text-xs font-bold text-subtext uppercase tracking-wider">Video Result</span>
-                                    <div className={`relative w-full aspect-square rounded-2xl overflow-hidden border ${isGenerating ? 'border-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.2)]' : 'border-border'} flex items-center justify-center bg-black/5 dark:bg-white/5`}>
-                                        {isGenerating ? (
-                                            <div className="flex flex-col items-center gap-4 text-primary animate-in fade-in duration-500">
-                                                <Loader2 className="w-8 h-8 animate-spin" />
-                                                <p className="text-sm font-semibold animate-pulse text-center px-4">Veo is animating...<br /><span className="text-xs font-medium opacity-75">This usually takes ~30 seconds</span></p>
-                                            </div>
-                                        ) : resultVideoUrl ? (
-                                            <div className="w-full h-full animate-in zoom-in-95 duration-500 flex items-center justify-center bg-black">
-                                                <CustomVideoPlayer src={resultVideoUrl} compact={true} />
-                                            </div>
-                                        ) : (
-                                            <div className="flex flex-col items-center gap-3 text-subtext/50">
-                                                <VideoIcon className="w-8 h-8" />
-                                                <p className="text-xs font-semibold">Ready for magic</p>
-                                            </div>
-                                        )}
+                                {(isGenerating || resultVideoUrl) && (
+                                    <div className="flex flex-col gap-2">
+                                        <span className="text-xs font-bold text-subtext uppercase tracking-wider">Video Result</span>
+                                        <div className={`relative w-full aspect-square rounded-2xl overflow-hidden border ${isGenerating ? 'border-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.2)]' : 'border-border'} flex items-center justify-center bg-black/5 dark:bg-white/5`}>
+                                            {isGenerating ? (
+                                                <div className="flex flex-col items-center gap-4 text-primary animate-in fade-in duration-500">
+                                                    <Loader2 className="w-8 h-8 animate-spin" />
+                                                    <p className="text-sm font-semibold animate-pulse text-center px-4">Veo is animating...<br /><span className="text-xs font-medium opacity-75">This usually takes ~30 seconds</span></p>
+                                                </div>
+                                            ) : resultVideoUrl ? (
+                                                <div className="w-full h-full animate-in zoom-in-95 duration-500 flex items-center justify-center bg-black">
+                                                    <CustomVideoPlayer src={resultVideoUrl} compact={true} />
+                                                </div>
+                                            ) : null}
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
 
                             {/* Controls */}

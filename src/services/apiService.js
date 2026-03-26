@@ -499,6 +499,88 @@ export const apiService = {
     }
   },
 
+  // --- Packages ---
+  async getPackages() {
+    try {
+      const response = await apiClient.get('/pricing/packages');
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch packages:", error);
+      throw error;
+    }
+  },
+
+  async createPackage(data) {
+    try {
+      const response = await apiClient.post('/admin/packages', data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to create package:", error);
+      throw error;
+    }
+  },
+
+  async updatePackage(id, data) {
+    try {
+      const response = await apiClient.put(`/admin/packages/${id}`, data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to update package:", error);
+      throw error;
+    }
+  },
+
+  async deletePackage(id) {
+    try {
+      const response = await apiClient.delete(`/admin/packages/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to delete package:", error);
+      throw error;
+    }
+  },
+
+  // --- Plans ---
+  async getPlans() {
+    try {
+      const response = await apiClient.get('/pricing/plans');
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch plans:", error);
+      throw error;
+    }
+  },
+
+  async createPlan(data) {
+    try {
+      const response = await apiClient.post('/admin/plans', data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to create plan:", error);
+      throw error;
+    }
+  },
+
+  async updatePlan(id, data) {
+    try {
+      const response = await apiClient.put(`/admin/plans/${id}`, data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to update plan:", error);
+      throw error;
+    }
+  },
+
+  async deletePlan(id) {
+    try {
+      const response = await apiClient.delete(`/admin/plans/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to delete plan:", error);
+      throw error;
+    }
+  },
+
   // --- Legal ---
   async getLegalPage(pageType) {
     try {

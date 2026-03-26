@@ -160,7 +160,7 @@ export const mapModeToToolState = (frontendMode) => {
         'AUDIO_TALK': { activeAudioTalk: true },
         'web_search': { webSearchMode: true },
         'DEEP_SEARCH': { deepSearchMode: true },
-        'CODING_HELP': { mode: 'CODING_HELP' },
+        'CODING_HELP': { activeCodeWriter: true, mode: 'CODING_HELP' },
         'FILE_ANALYSIS': { activeFileAnalysis: true, mode: 'FILE_ANALYSIS' },
         'FILE_CONVERSION': { activeFileAnalysis: true, mode: 'FILE_CONVERSION' },
         'NORMAL_CHAT': {}
