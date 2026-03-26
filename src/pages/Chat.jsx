@@ -295,6 +295,9 @@ const Chat = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { personalizations, getSystemPromptExtensions } = usePersonalization();
+  const isDarkMode = personalizations?.general?.theme === 'Dark' || 
+                    (personalizations?.general?.theme !== 'Light' && 
+                     window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   const [messages, setMessages] = useState([]);
   const [excelHTML, setExcelHTML] = useState(null);
@@ -442,7 +445,7 @@ const Chat = () => {
     }
 
     // Heuristic: Check for action keywords before calling expensive LLM
-    const actionKeywords = ['make', 'create', 'search', 'find', 'convert', 'write', 'draw', 'video', 'music', 'banao', 'dalo', 'edit', 'animate'];
+    const actionKeywords = ['make', 'create', 'search', 'find', 'convert', 'write', 'draw', 'video', 'music', 'banao', 'dalo', 'edit', 'animate', 'code', 'optimize', 'debug', 'refactor', 'script'];
     const hasKeyword = actionKeywords.some(k => text.toLowerCase().includes(k));
     if (!hasKeyword) return;
 
@@ -484,10 +487,13 @@ const Chat = () => {
     if (toolUpdates.activeImageGen) setIsImageGeneration(true);
     if (toolUpdates.activeVideoGen) setIsVideoGeneration(true);
     if (toolUpdates.activeMagicEdit) setIsMagicEditing(true);
-    if (toolUpdates.activeAudioTalk) setIsAudioConvertMode(true);
+    if (toolUpdates.activeAudioTalk) {
+      setIsAudioConvertMode(true);
+    }
     if (toolUpdates.webSearchMode) setIsWebSearch(true);
     if (toolUpdates.deepSearchMode) setIsDeepSearch(true);
     if (toolUpdates.activeFileAnalysis) setIsFileAnalysis(true);
+    if (toolUpdates.activeCodeWriter) setIsCodeWriter(true);
     if (toolUpdates.mode) setCurrentMode(toolUpdates.mode);
 
     toast.success(`AISA switched to ${suggestion.intent.replace('_', ' ')}! ✨`);
@@ -969,32 +975,40 @@ const Chat = () => {
     reader.readAsDataURL(file);
   };
 
-  const manualTextToAudioConversion = async (text, activeSessionId) => {
+  const manualTextToAudioConversion = async (text, activeSessionId, replaceAssistantMsgId = null) => {
     if (!text || !text.trim()) return;
 
     if (!checkLimitLocally('audio')) {
       return;
     }
 
-    const userMsg = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: `Convert this text to audio: "${text}"`,
-      timestamp: new Date()
-    };
-    setMessages(prev => [...prev, userMsg]);
-    const talkTitle = text.length > 20 ? text.substring(0, 20) + '...' : text;
-    chatStorageService.saveMessage(activeSessionId, userMsg, `Audio Talk: ${talkTitle}`).catch(e => console.error(e));
+    if (!replaceAssistantMsgId) {
+      const userMsg = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: `Convert this text to audio: "${text}"`,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, userMsg]);
+      const talkTitle = text.length > 20 ? text.substring(0, 20) + '...' : text;
+      chatStorageService.saveMessage(activeSessionId, userMsg, `Audio Talk: ${talkTitle}`).catch(e => console.error(e));
+    }
 
-
-    const aiMsgId = (Date.now() + 1).toString();
-    setMessages(prev => [...prev, {
+    const aiMsgId = replaceAssistantMsgId || (Date.now() + 1).toString();
+    const generatingMsg = {
       id: aiMsgId,
-      role: 'assistant',
+      role: 'model',
       content: `🎧 **Generating voice for your text...**`,
       timestamp: new Date(),
       isProcessing: true
-    }]);
+    };
+
+    if (replaceAssistantMsgId) {
+      setMessages(prev => prev.map(msg => msg.id === aiMsgId ? generatingMsg : msg));
+    } else {
+      setMessages(prev => [...prev, generatingMsg]);
+    }
+
     scrollToBottom();
 
     try {
@@ -1034,7 +1048,13 @@ const Chat = () => {
         };
 
         setMessages(prev => prev.map(msg => msg.id === aiMsgId ? aiResponse : msg));
-        chatStorageService.saveMessage(activeSessionId, aiResponse).catch(e => console.error(e));
+        
+        if (replaceAssistantMsgId) {
+          chatStorageService.updateMessage(activeSessionId, aiResponse).catch(e => console.error(e));
+        } else {
+          chatStorageService.saveMessage(activeSessionId, aiResponse).catch(e => console.error(e));
+        }
+        
         toast.success("Text converted successfully!");
         refreshSubscription();
         scrollToBottom();
@@ -2340,7 +2360,7 @@ const Chat = () => {
     if (chatContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
       // Increased threshold (250px) to be less sensitive to minor scroll movements or large images
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 250;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 350;
       shouldAutoScrollRef.current = isNearBottom;
     }
   };
@@ -2348,11 +2368,12 @@ const Chat = () => {
   const scrollToBottom = (force = false, behavior = 'auto') => {
     if ((force || shouldAutoScrollRef.current) && chatContainerRef.current) {
       const { scrollHeight, clientHeight } = chatContainerRef.current;
-      const maxScrollTop = scrollHeight - clientHeight;
+      const maxScrollTop = Math.max(0, scrollHeight - clientHeight);
+      
       if (behavior === 'smooth') {
-        chatContainerRef.current.scrollTo({ top: maxScrollTop, behavior: 'smooth' });
+        chatContainerRef.current.scrollTo({ top: maxScrollTop + 100, behavior: 'smooth' }); // Add a bit of padding to be safe
       } else {
-        chatContainerRef.current.scrollTop = maxScrollTop;
+        chatContainerRef.current.scrollTop = maxScrollTop + 500; // Extra buffer to over-scroll
       }
     }
   };
@@ -2389,7 +2410,7 @@ const Chat = () => {
 
   const isSendingRef = useRef(false);
 
-  const handleSendMessage = async (e, overrideContent) => {
+  const handleSendMessage = async (e, overrideContent, toolOverride = null) => {
     if (e) e.preventDefault();
 
     // Prevent duplicate sends
@@ -2399,15 +2420,15 @@ const Chat = () => {
     if ((!contentToSend && filePreviews.length === 0) || isLoading) return;
 
     // --- Proactive Magic Tool Activation Check Removed ---
-    // Messages now flow to the backend normally. 
+    // Messages now flow to the backend normally.
     // The backend's adaptive system will handle tool restrictions based on the active mode.
 
     // --- Subscription Limit Checks ---
     let featureToTrack = 'chat';
-    if (isDeepSearch) featureToTrack = 'deepSearch';
-    else if (isWebSearch) featureToTrack = 'webSearch';
-    else if (isDocumentConvert) featureToTrack = 'document';
-    else if (isCodeWriter) featureToTrack = 'codeWriter';
+    if (isDeepSearch || toolOverride === 'deep_search') featureToTrack = 'deepSearch';
+    else if (isWebSearch || toolOverride === 'web_search') featureToTrack = 'webSearch';
+    else if (isDocumentConvert || toolOverride === 'file_conversion') featureToTrack = 'document';
+    else if (isCodeWriter || toolOverride === 'code_writer') featureToTrack = 'codeWriter';
 
     if (!checkLimitLocally(featureToTrack)) {
       // Limit reached, UpgradeModal will be triggered by SubscriptionContext
@@ -2417,13 +2438,20 @@ const Chat = () => {
     // ─── Smart Routing Interceptor (Pipeline System) ─────────────────────────
     // If a tool intent was detected with high confidence but not activated,
     // we route it through the pipeline instead of standard chat.
-    if (intentSuggestion && intentSuggestion.confidence > 0.85 && intentSuggestion.intent !== 'normal_chat') {
-       const isCurrentModeChat = !isImageGeneration && !isVideoGeneration && !isDeepSearch && !isWebSearch && !isMagicEditing;
+    if (intentSuggestion && !toolOverride && intentSuggestion.confidence > 0.85 && intentSuggestion.intent !== 'normal_chat') {
+       // Check if ANY magic tool mode is already active
+       const isCurrentModeChat = !isImageGeneration && !isVideoGeneration && !isDeepSearch && !isWebSearch && 
+                                !isMagicEditing && !isCodeWriter && !isFileAnalysis && !isAudioConvertMode && 
+                                !isDocumentConvert && !isVoiceMode;
+                                
        if (isCurrentModeChat) {
           console.log(`[IntentRouting] High confidence intent (${intentSuggestion.intent}) detected. Routing to pipeline.`);
-          handleAcceptSuggestion(intentSuggestion);
-          // After switching mode, we recursively call handleSendMessage to trigger the correct handler
-          setTimeout(() => handleSendMessage(e, contentToSend), 50);
+          const activeSuggestion = intentSuggestion;
+          setIntentSuggestion(null); // Clear state immediately
+          
+          handleAcceptSuggestion(activeSuggestion);
+          // After switching mode, we recursively call handleSendMessage with the tool override
+          setTimeout(() => handleSendMessage(e, contentToSend, activeSuggestion.intent), 50);
           return;
        }
     }
@@ -2498,21 +2526,21 @@ const Chat = () => {
     }
 
     // Handle Image Generation Mode
-    if (isImageGeneration) {
+    if (isImageGeneration || toolOverride === 'text_to_image') {
       handleGenerateImage(contentToSend, activeSessionId);
       isSendingRef.current = false;
       return;
     }
 
     // Handle Video Generation Mode
-    if (isVideoGeneration) {
+    if (isVideoGeneration || toolOverride === 'text_to_video' || toolOverride === 'image_to_video') {
       handleGenerateVideo(contentToSend, activeSessionId);
       isSendingRef.current = false;
       return;
     }
 
     // Handle Image Editing Mode
-    if (isMagicEditing) {
+    if (isMagicEditing || toolOverride === 'image_edit') {
       handleEditImage(contentToSend, activeSessionId);
       isSendingRef.current = false;
       return;
@@ -2566,10 +2594,26 @@ const Chat = () => {
         isFirstMessage = true;
       }
 
+      // [SMART FORMATTING]: If input is long code, automatically wrap in backticks for structured display
+      let displayContent = contentToSend;
+      const hasCodeStructure = (contentToSend?.split('\n').length || 0) >= 6 && 
+                              (/function\s*\(|const\s+\w+\s*=|class\s+\w+|import\s+.*from|<\w+>|{\s*\w+:|\/\/|\/\*/.test(contentToSend));
+      
+      if ((isCodeWriter || hasCodeStructure) && contentToSend && !contentToSend.trim().startsWith('```')) {
+         let detectedLang = 'javascript'; // Default for web-centric AISA
+         const low = contentToSend.toLowerCase();
+         if (low.includes('def ') || low.includes('import os') || low.includes('np.') || low.includes('pd.')) detectedLang = 'python';
+         else if (low.includes('<html>') || low.includes('<!doctype html>')) detectedLang = 'html';
+         else if (low.includes('select * from') || low.includes('create table')) detectedLang = 'sql';
+         else if (low.includes('public static void main')) detectedLang = 'java';
+         
+         displayContent = `\`\`\`${detectedLang}\n${contentToSend.trim()}\n\`\`\``;
+      }
+
       const userMsg = {
         id: Date.now().toString(),
         role: 'user',
-        content: contentToSend || (filePreviews.length > 0 ? (isDocumentConvert ? "Convert this document" : "Analyze these files") : ""),
+        content: displayContent || (filePreviews.length > 0 ? (isDocumentConvert ? "Convert this document" : "Analyze these files") : ""),
         timestamp: Date.now(),
         attachments: filePreviews.map(p => ({
           url: p.url,
@@ -2586,7 +2630,9 @@ const Chat = () => {
 
       const updatedMessages = [...messages, userMsg];
       setMessages(updatedMessages);
-      scrollToBottom(true, 'smooth'); // Force smooth scroll for user message
+      // Double-attempt auto-scroll for user message to ensure it handles layout changes correctly
+      setTimeout(() => scrollToBottom(true, 'smooth'), 50);
+      setTimeout(() => scrollToBottom(true, 'smooth'), 400); 
       setInputValue('');
 
       // Capture mode states before resetting
@@ -3945,6 +3991,31 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
     // Find the index of the edited message
     const editedMsgIndex = messages.findIndex(m => m.id === msg.id);
 
+    // If in Audio Convert Mode, perform an in-place update without truncating history
+    if (isAudioConvertMode) {
+      const updatedMessages = [...messages];
+      updatedMessages[editedMsgIndex] = updatedMsg;
+      setMessages(updatedMessages);
+      setEditingMessageId(null);
+      setIsLoading(true);
+      
+      try {
+        await chatStorageService.updateMessage(sessionId, updatedMsg);
+        
+        // Find the assistant's message that immediately follows the edited text
+        const nextMsg = messages[editedMsgIndex + 1];
+        const replaceAssistantMsgId = (nextMsg && nextMsg.role !== 'user') ? nextMsg.id : null;
+        
+        await manualTextToAudioConversion(updatedMsg.content, sessionId, replaceAssistantMsgId);
+      } catch (e) {
+        console.error("Error during audio edit:", e);
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    // Normal chat mode behavior: truncate history
     // Remove all messages after the edited message
     const messagesUpToEdit = messages.slice(0, editedMsgIndex);
     const updatedMessages = [...messagesUpToEdit, updatedMsg];
@@ -4176,6 +4247,12 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         });
     }
   }, [viewingDoc]);
+
+  useEffect(() => {
+    if (isAudioConvertMode) {
+      setIsVoiceSettingsOpen(true);
+    }
+  }, [isAudioConvertMode]);
 
   return (
     <div className="flex w-full bg-secondary relative overflow-hidden aisa-scalable-text overscroll-none h-[100dvh] fixed inset-0 lg:static lg:h-full">
@@ -4891,12 +4968,12 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 {msg.content || msg.text || ""}
                               </ReactMarkdown>
                             )}
-                            {/* Sources List (For both Web Search and RAG) */}
-                            {msg.role === 'model' && msg.sources && msg.sources.length > 0 && (
+                            {/* Sources List (ONLY for Web Search, HIDE for RAG as requested) */}
+                            {msg.role === 'model' && msg.isRealTime && msg.sources && msg.sources.length > 0 && (
                               <div className="mt-4 pt-4 border-t border-border/50">
                                 <p className="text-[10px] font-bold uppercase text-subtext mb-3 flex items-center gap-2">
                                   <ExternalLink className="w-3 h-3" />
-                                  {msg.isRealTime ? 'Web Sources' : 'Knowledge Sources'}
+                                  Web Sources
                                 </p>
                                 <div className="flex flex-wrap gap-2">
                                   {msg.sources.map((source, sIdx) => (
@@ -5780,6 +5857,17 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
               </div>
             )}
 
+            {intentSuggestion && (
+              <div className="absolute bottom-full left-0 right-0 mb-3 px-2 z-30 pointer-events-auto">
+                <IntentSuggestionBanner
+                  suggestion={intentSuggestion}
+                  onAccept={handleAcceptSuggestion}
+                  onDismiss={handleDismissSuggestion}
+                  isDarkMode={isDarkMode}
+                />
+              </div>
+            )}
+
             <form onSubmit={handleSendMessage} className="relative w-full max-w-5xl mx-auto flex items-center gap-[6px] bg-white dark:bg-[#0a0a0a] border border-black/5 dark:border-white/10 rounded-[16px] p-[6px] shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.15)] transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.1)] hover:border-primary/20 backdrop-blur-3xl px-[10px] z-50">
               <input
                 id="file-upload"
@@ -6263,13 +6351,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 </AnimatePresence>
 
 
-
-                <IntentSuggestionBanner 
-                  suggestion={intentSuggestion} 
-                  onAccept={handleAcceptSuggestion} 
-                  onDismiss={handleDismissSuggestion} 
-                  isDarkMode={true} 
-                />
 
                 <textarea
 

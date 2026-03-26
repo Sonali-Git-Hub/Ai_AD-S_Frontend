@@ -289,4 +289,16 @@ html {
 .dark .aisa-badge-small {
   background: linear-gradient(135deg, #4f46e5, #6366f1);
   box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
-}
+}
+
+/* Hide number input spinners */
+.no-spinner::-webkit-inner-spin-button,
+.no-spinner::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+.no-spinner {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
