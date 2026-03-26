@@ -138,7 +138,7 @@ const DashboardLayout = () => {
 
         {/* Mobile Header - Hide on Chat/Assistant if they provide their own toggle */}
         {!isFullScreen && !location.pathname.includes('/chat') && !location.pathname.includes('/ai-personal-assistant') && (
-          <div className="lg:hidden flex items-center justify-between p-4 border-b border-border bg-secondary shrink-0 z-50 shadow-sm">
+          <div className="lg:hidden flex items-center justify-between p-4 bg-secondary shrink-0 z-50 shadow-sm">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setIsSidebarOpen(true)}

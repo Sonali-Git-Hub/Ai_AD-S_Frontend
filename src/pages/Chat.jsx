@@ -4356,7 +4356,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         )}
 
         {/* Header */}
-        <div className="h-12 md:h-14 border-b border-border flex items-center justify-between px-3 md:px-4 bg-secondary z-10 shrink-0 gap-2">
+        <div className="h-12 md:h-14 flex items-center justify-between px-3 md:px-4 bg-transparent backdrop-blur-xl z-20 shrink-0 gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <button
               onClick={() => setTglState(prev => ({ ...prev, sidebarOpen: true }))}
@@ -5032,11 +5032,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-bold text-maintext truncate">{msg.conversion.fileName}</p>
                                 <p className="text-[10px] text-subtext font-bold uppercase tracking-widest flex items-center gap-2">
-                                  <span className="px-1.5 py-0.5 bg-primary/10 text-primary rounded-md border border-primary/20">
+                                  <span className="px-1.5 py-0.5 bg-primary/10 text-primary rounded-md border border-transparent">
                                     {msg.conversion.fileSize || "Ready"}
                                   </span>
                                   {msg.conversion.charCount && (
-                                    <span className="px-1.5 py-0.5 bg-secondary/30 text-subtext rounded-md border border-border/50">
+                                    <span className="px-1.5 py-0.5 bg-secondary/30 text-subtext rounded-md border border-transparent">
                                       {msg.conversion.charCount} CHARS
                                     </span>
                                   )}
@@ -5083,7 +5083,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             </button>
 
                             <Menu as="div" className="relative">
-                              <Menu.Button className="flex items-center justify-center gap-2 px-4 py-2.5 bg-surface border border-border text-maintext rounded-xl transition-all hover:bg-hover font-bold text-sm shadow-sm active:scale-95 whitespace-nowrap">
+                              <Menu.Button className="flex items-center justify-center gap-2 px-4 py-2.5 bg-surface border border-transparent text-maintext rounded-xl transition-all hover:bg-hover font-bold text-sm shadow-sm active:scale-95 whitespace-nowrap">
                                 <Share className="w-4 h-4" />
                                 Share
                               </Menu.Button>
@@ -5100,7 +5100,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 >
                                   <Menu.Items
                                     anchor="bottom end"
-                                    className="w-56 mt-2 origin-top-right divide-y divide-border rounded-xl bg-surface shadow-2xl border border-border focus:outline-none z-[100] overflow-hidden"
+                                    className="w-56 mt-2 origin-top-right divide-y divide-border/20 rounded-xl bg-surface shadow-2xl border border-transparent focus:outline-none z-[100] overflow-hidden"
                                   >
                                     <div className="px-1 py-1">
                                       <Menu.Item>
@@ -5548,15 +5548,15 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 {filePreviews.map((preview) => (
                   <div
                     key={preview.id}
-                    className="relative shrink-0 w-64 md:w-72 bg-surface/95 dark:bg-zinc-900/95 border border-border/50 rounded-2xl p-2.5 flex items-center gap-3 shadow-xl backdrop-blur-xl animate-in slide-in-from-bottom-2 duration-300 ring-1 ring-black/5"
+                    className="relative shrink-0 w-64 md:w-72 bg-surface/95 dark:bg-zinc-900/95 border border-transparent rounded-2xl p-2.5 flex items-center gap-3 shadow-xl backdrop-blur-xl animate-in slide-in-from-bottom-2 duration-300 ring-1 ring-black/5"
                   >
                     <div className="relative group shrink-0">
                       {preview.type.startsWith('image/') ? (
-                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border border-border/50 bg-black/5">
+                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border border-transparent bg-black/5">
                           <img src={preview.url} alt="Preview" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
                         </div>
                       ) : (
-                        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20 shadow-sm">
+                        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-primary/10 rounded-xl flex items-center justify-center border border-transparent shadow-sm">
                           <FileText className="w-7 h-7 text-primary" />
                         </div>
                       )}
@@ -5624,7 +5624,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
               </div>
             )}
 
-            <form onSubmit={handleSendMessage} className="relative w-full max-w-5xl mx-auto flex items-center gap-[6px] bg-white dark:bg-[#0a0a0a] border border-black/5 dark:border-white/10 rounded-[16px] p-[6px] shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.15)] transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.1)] hover:border-primary/20 backdrop-blur-3xl px-[10px] z-50">
+            <form onSubmit={handleSendMessage} className="relative w-full max-w-5xl mx-auto flex items-center gap-[6px] bg-white dark:bg-[#0a0a0a] border border-transparent rounded-[16px] p-[6px] shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.15)] transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.1)] hover:border-primary/20 backdrop-blur-3xl px-[10px] z-50">
               <input
                 id="file-upload"
                 type="file"
@@ -6014,13 +6014,13 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                   {(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis) && (
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto w-[calc(100vw-24px)] max-w-5xl px-2 z-[100] justify-start sm:justify-start">
                       {isWebSearch && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0">
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
                           <Globe size={12} strokeWidth={3} /> <span className="hidden sm:inline">Web Search</span>
                           <button onClick={() => setIsWebSearch(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
                         </motion.div>
                       )}
                       {isDeepSearch && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0">
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
                           <Search size={12} strokeWidth={3} /> <span className="hidden sm:inline">Deep Search</span>
                           <button onClick={() => setIsDeepSearch(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
                         </motion.div>
@@ -6029,48 +6029,44 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0 group">
                           <ImageIcon size={12} strokeWidth={3} />
                           <span className="text-[10px] font-black uppercase tracking-tight hidden xs:inline">Image Gen</span>
-                          <div className="w-[1px] h-3 bg-primary/20 mx-0.5 hidden xs:block" />
                           <button 
                             type="button"
                             onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
                             className="flex items-center gap-1 hover:text-primary/80 transition-colors"
                           >
                             <span className="text-[10px] font-bold">{imageAspectRatio}</span>
-                            <div className="w-1 h-1 rounded-full bg-primary/40" />
-                            <span className="text-[10px] font-bold truncate max-w-[60px] sm:max-w-[100px]">
+                            <span className="text-[10px] font-bold truncate max-w-[60px] sm:max-w-[100px] ml-1">
                               {TOOL_PRICING.image.models.find(m => m.id === imageModelId)?.name.replace('AISA ', '') || 'Model'}
                             </span>
                             <ChevronDown size={10} className={`transition-transform duration-200 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
                           </button>
-                          <button type="button" onClick={() => setIsImageGeneration(false)} className="ml-1 hover:text-primary/80 border-l border-primary/20 pl-1.5"><X size={12} /></button>
+                          <button type="button" onClick={() => setIsImageGeneration(false)} className="ml-1 hover:text-primary/80 border-transparent pl-1.5"><X size={12} /></button>
                         </motion.div>
                       )}
                       {isVideoGeneration && (
                         <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0 group">
                           <Video size={12} strokeWidth={3} />
                           <span className="text-[10px] font-black uppercase tracking-tight hidden xs:inline">Video Gen</span>
-                          <div className="w-[1px] h-3 bg-primary/20 mx-0.5 hidden xs:block" />
                           <button 
                             type="button"
                             onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
                             className="flex items-center gap-1 hover:text-primary/80 transition-colors"
                           >
                             <span className="text-[10px] font-bold">{videoAspectRatio || 'D'}</span>
-                            <div className="w-1 h-1 rounded-full bg-primary/40" />
-                            <span className="text-[10px] font-bold">{videoResolution}</span>
+                            <span className="text-[10px] font-bold ml-1">{videoResolution}</span>
                             <ChevronDown size={10} className={`transition-transform duration-200 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
                           </button>
-                          <button type="button" onClick={() => setIsVideoGeneration(false)} className="ml-1 hover:text-primary/80 border-l border-primary/20 pl-1.5"><X size={12} /></button>
+                          <button type="button" onClick={() => setIsVideoGeneration(false)} className="ml-1 hover:text-primary/80 border-transparent pl-1.5"><X size={12} /></button>
                         </motion.div>
                       )}
                       {isVoiceMode && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0">
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
                           <Volume2 size={12} strokeWidth={3} /> <span className="hidden sm:inline">Voice Mode</span>
                           <button onClick={() => setIsVoiceMode(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
                         </motion.div>
                       )}
                       {isAudioConvertMode && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0">
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
                           <Headphones size={12} strokeWidth={3} /> <span className="hidden sm:inline">Audio Convert</span>
                           <button type="button" onClick={() => setIsVoiceSettingsOpen(true)} className="ml-1 hover:text-indigo-800" title="Voice Settings">
                             <Sliders size={12} />
@@ -6079,25 +6075,25 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         </motion.div>
                       )}
                       {isDocumentConvert && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0">
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
                           <FileText size={12} strokeWidth={3} /> <span className="hidden sm:inline">Doc Convert</span>
                           <button onClick={() => setIsDocumentConvert(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
                         </motion.div>
                       )}
                       {isCodeWriter && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0">
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
                           <Code size={12} strokeWidth={3} /> <span className="hidden sm:inline">Code Writer</span>
                           <button onClick={() => setIsCodeWriter(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
                         </motion.div>
                       )}
                       {isMagicEditing && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0">
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
                           <Wand2 size={12} strokeWidth={3} /> <span className="hidden sm:inline">Image Edit</span>
                           <button onClick={() => setIsMagicEditing(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
                         </motion.div>
                       )}
                       {isFileAnalysis && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0">
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
                           <FileText size={12} strokeWidth={3} /> <span className="hidden sm:inline">Analyze Document</span>
                           <button onClick={() => setIsFileAnalysis(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
                         </motion.div>
