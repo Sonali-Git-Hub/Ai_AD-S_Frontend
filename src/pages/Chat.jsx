@@ -5424,6 +5424,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           if (!checkPremiumTool('Image Generation')) return;
                           setIsImageGeneration(true);
                           setIsVideoGeneration(false);
+                          setIsMagicSettingsOpen(true);
                           if (inputRef.current) {
                             inputRef.current.value = "Generate an image of ";
                             inputRef.current.focus();
@@ -5440,6 +5441,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           if (!checkPremiumTool('Generate Video')) return;
                           setIsVideoGeneration(true);
                           setIsImageGeneration(false);
+                          setIsMagicSettingsOpen(true);
                           if (inputRef.current) inputRef.current.focus();
                           toast.success("Video Generation Mode Active");
                         }
@@ -5771,13 +5773,17 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           onClick={() => {
                             if (!checkPremiumTool('Generate Image')) return;
                             setIsToolsMenuOpen(false);
-                            setIsImageGeneration(!isImageGeneration);
+                            const newMode = !isImageGeneration;
+                            setIsImageGeneration(newMode);
                             setIsVideoGeneration(false);
                             setIsDeepSearch(false);
                             setIsAudioConvertMode(false);
                             setIsDocumentConvert(false);
                             setIsCodeWriter(false);
-                            if (!isImageGeneration) toast.success("Image Generation Mode Enabled");
+                            if (newMode) {
+                              setIsMagicSettingsOpen(true);
+                              toast.success("Image Generation Mode Enabled");
+                            }
                           }}
                           className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isImageGeneration ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
                         >
@@ -5798,13 +5804,17 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           onClick={() => {
                             if (!checkPremiumTool('Generate Video')) return;
                             setIsToolsMenuOpen(false);
-                            setIsVideoGeneration(!isVideoGeneration);
+                            const newMode = !isVideoGeneration;
+                            setIsVideoGeneration(newMode);
                             setIsImageGeneration(false);
                             setIsDeepSearch(false);
                             setIsAudioConvertMode(false);
                             setIsDocumentConvert(false);
                             setIsCodeWriter(false);
-                            if (!isVideoGeneration) toast.success("Video Generation Mode Enabled");
+                            if (newMode) {
+                              setIsMagicSettingsOpen(true);
+                              toast.success("Video Generation Mode Enabled");
+                            }
                           }}
                           className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isVideoGeneration ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
                         >
