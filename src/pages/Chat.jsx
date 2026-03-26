@@ -5777,7 +5777,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
             {/* File Preview Area */}
             {filePreviews.length > 0 && (
-              <div className={`absolute bottom-full left-0 right-0 ${ (isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing) ? 'mb-[60px]' : 'mb-4' } px-2 overflow-x-auto custom-scrollbar no-scrollbar flex gap-3 pb-2 z-20 pointer-events-auto`}>
+              <div className={`absolute bottom-full left-0 right-0 ${ (isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing) ? 'mb-[38px]' : 'mb-2' } px-2 overflow-x-auto custom-scrollbar no-scrollbar flex gap-3 pb-1 z-20 pointer-events-auto`}>
                 {filePreviews.map((preview) => (
                   <div
                     key={preview.id}
