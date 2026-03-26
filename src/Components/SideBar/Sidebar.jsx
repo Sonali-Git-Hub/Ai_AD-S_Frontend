@@ -260,7 +260,6 @@ const Sidebar = ({ isOpen, onClose }) => {
         className={`
           fixed inset-y-0 left-0 z-[100] w-[280px] sm:w-72 lg:w-64 
           bg-white/40 dark:bg-black/40 backdrop-blur-2xl 
-          border-r border-white/20 dark:border-white/10
           flex flex-col transition-transform duration-300 ease-in-out 
           lg:relative lg:translate-x-0 
           shadow-[0_8px_32px_0_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]
@@ -270,7 +269,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         `}
       >
         {/* Brand */}
-        <div className="p-4 flex items-center justify-between border-b border-white/20 dark:border-white/10 bg-white/10 dark:bg-black/10 backdrop-blur-md relative overflow-hidden">
+        <div className="p-4 flex items-center justify-between bg-white/10 dark:bg-black/10 backdrop-blur-md relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent pointer-events-none"></div>
           <Link to="/" state={{ fromLogo: true }} className="relative z-10">
             <h1 className="text-xl font-bold text-primary drop-shadow-sm flex items-center gap-2">
@@ -298,7 +297,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 placeholder="Search history..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white/30 dark:bg-black/30 backdrop-blur-xl border border-white/30 dark:border-white/10 focus:border-primary/50 focus:bg-white/40 dark:focus:bg-black/40 focus:ring-4 focus:ring-primary/10 rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none transition-all placeholder:text-subtext/50 font-medium shadow-inner"
+                className="w-full bg-white/30 dark:bg-black/30 backdrop-blur-xl border border-transparent focus:border-primary/50 focus:bg-white/40 dark:focus:bg-black/40 focus:ring-4 focus:ring-primary/10 rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none transition-all placeholder:text-subtext/50 font-medium shadow-inner"
               />
             </div>
           </div>
@@ -307,7 +306,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           <div className="p-3">
             <button
               onClick={handleNewChat}
-              className="w-full bg-primary hover:opacity-90 hover:scale-[1.02] text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/30 text-sm border border-white/30 backdrop-blur-sm relative overflow-hidden group"
+              className="w-full bg-primary hover:opacity-90 hover:scale-[1.02] text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/30 text-sm border border-transparent backdrop-blur-sm relative overflow-hidden group"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
               <Plus className="w-4 h-4 relative z-10" /> <span className="relative z-10">{t('newChat')}</span>
@@ -355,8 +354,8 @@ const Sidebar = ({ isOpen, onClose }) => {
                             }}
                             className={`w-full text-left px-4 py-3 rounded-lg text-sm transition-all truncate pr-16 backdrop-blur-sm
                             ${currentSessionId === session.sessionId
-                                ? 'bg-primary/20 text-primary shadow-md border border-primary/30 backdrop-blur-md'
-                                : 'text-subtext hover:bg-white/20 dark:hover:bg-white/10 hover:text-primary border border-transparent hover:border-white/20'
+                                ? 'bg-primary/20 text-primary shadow-md border border-transparent backdrop-blur-md'
+                                : 'text-subtext hover:bg-white/20 dark:hover:bg-white/10 hover:text-primary border border-transparent hover:border-transparent'
                               }
                           `}
                           >
@@ -412,7 +411,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
 
         {/* User Profile Footer */}
-        <div className="p-3 border-t border-white/20 dark:border-white/10 bg-white/10 dark:bg-black/10 backdrop-blur-md relative overflow-hidden">
+        <div className="p-3 bg-white/10 dark:bg-black/10 backdrop-blur-md relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent pointer-events-none"></div>
           {token ? (
             <div className="relative profile-menu-container">
