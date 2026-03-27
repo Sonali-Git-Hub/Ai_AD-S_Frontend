@@ -2423,8 +2423,11 @@ const Chat = () => {
   const handleSendMessage = async (e, overrideContent, toolOverride = null) => {
     if (e) e.preventDefault();
 
-    // Prevent duplicate sends
-    if (isSendingRef.current) return;
+    // Prevent duplicate sends - moved to the very start to protect against race conditions
+    if (isSendingRef.current) {
+        console.warn("[AISA] Send already in progress, ignoring duplicate.");
+        return;
+    }
 
     const contentToSend = typeof overrideContent === 'string' ? overrideContent : inputValue.trim();
     if ((!contentToSend && filePreviews.length === 0) || isLoading) return;
@@ -2986,6 +2989,13 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
           // Extract media URLs if present
           aiVideoUrl = aiResponseData.videoUrl || null;
           aiImageUrl = aiResponseData.imageUrl || null;
+
+          // If backend provided specific error details, show them to help user understand why 'brain' is failing
+          if (aiResponseData.error && aiResponseData.details) {
+             console.error("[AISA Backend Error]", aiResponseData.details);
+             // Append a small subtle hint for the developer/user
+             aiResponseText += `\n\n*(Debug: ${aiResponseData.details})*`;
+          }
         } else {
           aiResponseText = "Sorry, I encountered an issue while generating a response. Please try again.";
         }
@@ -3017,6 +3027,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
             content: '', // Start empty for typewriter effect
             isRealTime: isRealTimeResponse,
             sources: responseSources,
+            error: !!aiResponseData?.error, // Track if this is an error bubble
             timestamp: Date.now() + i * 100,
           };
 
@@ -5308,7 +5319,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       {/* AI Feedback Actions - Strictly hide for media and processing */}
                       {(msg.role === 'model' || msg.role === 'assistant') &&
                         !msg.conversion && !msg.imageUrl && !msg.videoUrl &&
-                        !msg.isProcessing && !msg.isGenerating && (
+                        !msg.isProcessing && !msg.isGenerating && !msg.error && (
                           <div className="mt-4 w-full block">
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
                               {(() => {
