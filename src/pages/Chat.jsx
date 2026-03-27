@@ -2428,6 +2428,8 @@ const Chat = () => {
         console.warn("[AISA] Send already in progress, ignoring duplicate.");
         return;
     }
+    // Mark as sending IMMEDIATELY to block any simultaneous calls (form submit + Enter key)
+    isSendingRef.current = true;
 
     const contentToSend = typeof overrideContent === 'string' ? overrideContent : inputValue.trim();
     if ((!contentToSend && filePreviews.length === 0) || isLoading) return;
@@ -2510,7 +2512,7 @@ const Chat = () => {
       return;
     }
 
-    isSendingRef.current = true;
+    // (isSendingRef already set above at function start)
     setInputValue('');
     transcriptRef.current = '';
 
@@ -2835,7 +2837,7 @@ ${PERSONA_INSTRUCTION}
 - Do NOT add summaries or closing lines after interruption
 - Resume ONLY if user explicitly asks again
 
-### MULTI-FILE ANALYSIS MANDATE (STRICT 1:1 RULE):
+${filePreviews.length > 0 ? `### MULTI-FILE ANALYSIS MANDATE (STRICT 1:1 RULE):
 You have received exactly ${filePreviews.length} file(s).
 You MUST provide exactly ${filePreviews.length} distinct analysis blocks.
 
@@ -2856,7 +2858,7 @@ REQUIRED OUTPUT FORMAT:
 **Analysis of: {Filename 2}**
 [Full detailed answer/analysis for File 2]
 
-(Repeat strictly for ALL ${filePreviews.length} files)
+(Repeat strictly for ALL ${filePreviews.length} files)` : ''}
 
 ### RESPONSE FORMATTING RULES (STRICT):
 1.  **Structure**: ALWAYS use **Bold Headings** and **Bullet Points**. Avoid long paragraphs.
@@ -3005,14 +3007,19 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         }
 
         // Check for multiple file analysis headers to split into separate cards
+        // IMPORTANT: Only split when 2+ files are attached to prevent double responses
+        // on normal chat when AI accidentally includes the delimiter
         const delimiter = '---SPLIT_RESPONSE---';
         let responseParts = [];
 
-        if (aiResponseText && aiResponseText.includes(delimiter)) {
+        const hasMultipleFiles = filePreviews.length >= 2;
+        if (hasMultipleFiles && aiResponseText && aiResponseText.includes(delimiter)) {
           const rawParts = aiResponseText.split(delimiter).filter(p => p && p.trim().length > 0);
           responseParts = rawParts.length > 0 ? rawParts.map(part => part.trim()) : [aiResponseText];
         } else {
-          responseParts = [aiResponseText || "No response generated."];
+          // Single response — strip the delimiter if AI accidentally included it
+          const cleanedText = (aiResponseText || "No response generated.").replace(/---SPLIT_RESPONSE---/g, '').trim();
+          responseParts = [cleanedText || "No response generated."];
         }
 
         // Process response parts and add to messages
@@ -4724,175 +4731,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             )}
 
                             {/* [READ MORE LOGIC]: For long messages, we show a truncate and read more option */}
-                            {(() => {
-                              const isLongMessage = msg.content && (msg.content.length > 1000 || msg.content.split('\n').length > 12);
-                              const isExpanded = expandedMessageIds.has(msg.id);
-
-                              return (
-                                <div className="relative group/msg-content">
-                                  <div className={`transition-all duration-300 ${!isExpanded && isLongMessage ? 'max-h-[380px] overflow-hidden' : 'max-h-none'}`}>
-                                    <ReactMarkdown
-                                      remarkPlugins={[remarkGfm]}
-                                      components={{
-                                        a: ({ href, children }) => {
-                                          const isInternal = href && href.startsWith('/');
-                                          return (
-                                            <a
-                                              href={href}
-                                              onClick={(e) => {
-                                                if (isInternal) {
-                                                  e.preventDefault();
-                                                  navigate(href);
-                                                }
-                                              }}
-                                              className="text-primary hover:underline font-bold cursor-pointer"
-                                              target={isInternal ? "_self" : "_blank"}
-                                              rel={isInternal ? "" : "noopener noreferrer"}
-                                            >
-                                              {children}
-                                            </a>
-                                          );
-                                        },
-                                        p: ({ children }) => <p className={`mb-2 last:mb-0 ${msg.role === 'user' ? 'm-0 leading-normal' : 'leading-[1.75] tracking-[0.015em] [word-spacing:0.05em]'}`}>{children}</p>,
-                                        ul: ({ children }) => <ul className="list-disc pl-5 mb-3 last:mb-0 space-y-2 marker:text-subtext/70 transition-all">{children}</ul>,
-                                        ol: ({ children }) => <ol className="list-decimal pl-5 mb-3 last:mb-0 space-y-2 marker:text-subtext/70 transition-all">{children}</ol>,
-                                        li: ({ children }) => <li className="mb-1.5 last:mb-0 transition-colors leading-[1.75] tracking-[0.015em] [word-spacing:0.05em]">{children}</li>,
-                                        h1: ({ children }) => <h1 className="font-bold mb-2 mt-3 block text-[1.4em] text-maintext tracking-tight">{children}</h1>,
-                                        h2: ({ children }) => <h2 className="font-bold mb-1.5 mt-2 block text-[1.2em] text-maintext tracking-tight">{children}</h2>,
-                                        h3: ({ children }) => <h3 className="font-bold mb-1 mt-1.5 block text-[1.1em] text-maintext tracking-tight">{children}</h3>,
-                                        strong: ({ children }) => <strong className="font-bold">{children}</strong>,
-                                        mark: ({ children }) => <mark className="bg-[#5555ff] text-white px-1 py-0.5 rounded-sm">{children}</mark>,
-                                        code: ({ node, inline, className, children, ...props }) => {
-                                          const match = /language-(\w+)/.exec(className || '');
-                                          const lang = match ? match[1] : '';
-                                          const codeValue = String(children).replace(/\n$/, '');
-                                          const isUser = msg.role === 'user';
-
-                                          if (!inline) {
-                                            return (
-                                              <div className={`rounded-xl overflow-hidden my-3 border ${isUser ? 'border-white/10 bg-black/20' : 'border-zinc-700/50 bg-[#1e1e1e]'} shadow-2xl w-full max-w-full group/code`}>
-                                                {!isUser && (
-                                                  <div className="flex items-center justify-between px-4 py-2.5 bg-[#2d2d2d]/80 backdrop-blur-sm border-b border-zinc-800">
-                                                    <div className="flex items-center gap-2">
-                                                      <span className="text-[10px] font-black uppercase tracking-widest text-[#9ca3af]">{lang || 'plain text'}</span>
-                                                    </div>
-                                                    <button
-                                                      onClick={() => {
-                                                        navigator.clipboard.writeText(codeValue);
-                                                        toast.success("Code copied!");
-                                                      }}
-                                                      className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 hover:text-white transition-all bg-white/5 hover:bg-white/10 px-3 py-1 rounded-lg border border-white/5 active:scale-95"
-                                                    >
-                                                      <Copy className="w-3.5 h-3.5" />
-                                                      Copy
-                                                    </button>
-                                                  </div>
-                                                )}
-                                                <div className={`${isUser ? 'max-h-[500px]' : 'max-h-[600px]'} overflow-auto custom-scrollbar-thin ${isUser ? 'bg-transparent' : 'bg-[#1e1e1e]'}`}>
-                                                  <SyntaxHighlighter
-                                                    language={lang || 'text'}
-                                                    style={highlighterTheme}
-                                                    PreTag="div"
-                                                    customStyle={{
-                                                      margin: 0,
-                                                      padding: isUser ? '16px' : '20px',
-                                                      fontSize: isUser ? '12.5px' : '13.5px',
-                                                      lineHeight: '1.6',
-                                                      background: 'transparent',
-                                                      borderRadius: 0,
-                                                      border: 'none',
-                                                      fontFamily: '"Fira Code", "JetBrains Mono", source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace'
-                                                    }}
-                                                    codeTagProps={{
-                                                      style: {
-                                                        fontFamily: 'inherit',
-                                                        background: 'transparent'
-                                                      }
-                                                    }}
-                                                    {...props}
-                                                  >
-                                                    {codeValue}
-                                                  </SyntaxHighlighter>
-                                                </div>
-                                              </div>
-                                            );
-                                          }
-                                          return (
-                                            <code className="bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded-md font-mono text-primary font-bold mx-0.5 text-xs translate-y-[-1px] inline-block" {...props}>
-                                              {children}
-                                            </code>
-                                          );
-                                        },
-                                        img: ({ node, ...props }) => {
-                                          const isDownloadingUrl = downloadState.isDownloading && downloadState.url === props.src;
-                                          return (
-                                            <div className="relative my-4 group/img-container max-w-full">
-                                              <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl bg-black/5 aspect-auto max-w-[500px]">
-                                                <ImageViewer
-                                                  src={props.src}
-                                                  alt={props.alt || "AI Image"}
-                                                />
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover/img-container:opacity-100 transition-opacity pointer-events-none" />
-                                              </div>
-                                              <button
-                                                onClick={() => handleDownload(props.src, `aisa_gen_${Date.now()}.png`)}
-                                                disabled={isDownloadingUrl}
-                                                className="absolute bottom-4 right-4 z-20 flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl border border-white/20 text-white shadow-lg transition-all active:scale-95 disabled:opacity-50"
-                                              >
-                                                <div className="flex items-center gap-2">
-                                                  {isDownloadingUrl ? (
-                                                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                  ) : (
-                                                    <Download className="w-4 h-4" />
-                                                  )}
-                                                  <span className="text-[10px] font-bold uppercase">
-                                                    {isDownloadingUrl ? 'Downloading...' : 'Download'}
-                                                  </span>
-                                                </div>
-                                              </button>
-                                            </div>
-                                          )
-                                        },
-                                      }}
-                                    >
-                                      {msg.content || msg.text || ""}
-                                    </ReactMarkdown>
-                                  </div>
-
-                                  {!isExpanded && isLongMessage && (
-                                    <>
-                                      <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-white/20 dark:from-white/5 to-transparent pointer-events-none z-10" />
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          toggleExpandMessage(msg.id);
-                                        }}
-                                        className="mt-3 relative z-20 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-[#9ca3af] hover:text-white transition-all bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl border border-white/10 backdrop-blur-md shadow-lg"
-                                      >
-                                        Read more
-                                        <ChevronDown size={14} className="animate-bounce opacity-70" />
-                                      </button>
-                                    </>
-                                  )}
-
-                                  {isExpanded && isLongMessage && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        toggleExpandMessage(msg.id);
-                                      }}
-                                      className="mt-4 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest text-[#9ca3af] hover:text-white transition-all bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl border border-white/10"
-                                    >
-                                      Show less
-                                      <RefreshCcw size={12} className="rotate-180 opacity-70" />
-                                    </button>
-                                  )}
-                                </div>
-                              );
-                            })()}
-
-                            {/* Model message content */}
-                            {msg.role === 'model' && (
+                            <div className="relative group/msg-content">
                               <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
                                 components={{
@@ -4915,16 +4754,28 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                       </a>
                                     );
                                   },
-                                  p: ({ children }) => <p className={`mb-2 last:mb-0 leading-[1.75] tracking-[0.015em] [word-spacing:0.05em]`}>{children}</p>,
+                                  p: ({ children }) => <p className={`mb-2 last:mb-0 ${msg.role === 'user' ? 'm-0 leading-normal' : 'leading-[1.75] tracking-[0.015em] [word-spacing:0.05em]'}`}>{children}</p>,
                                   ul: ({ children }) => <ul className="list-disc pl-5 mb-3 last:mb-0 space-y-2 marker:text-subtext/70 transition-all">{children}</ul>,
                                   ol: ({ children }) => <ol className="list-decimal pl-5 mb-3 last:mb-0 space-y-2 marker:text-subtext/70 transition-all">{children}</ol>,
                                   li: ({ children }) => <li className="mb-1.5 last:mb-0 transition-colors leading-[1.75] tracking-[0.015em] [word-spacing:0.05em]">{children}</li>,
-                                  h1: ({ children }) => <h1 style={{ fontSize: '2rem', lineHeight: '1.2' }} className="font-black mb-4 mt-7 block text-maintext tracking-tight border-b border-border/30 pb-2">{children}</h1>,
-                                  h2: ({ children }) => <h2 style={{ fontSize: '1.6rem', lineHeight: '1.25' }} className="font-extrabold mb-3 mt-6 block text-maintext tracking-tight">{children}</h2>,
-                                  h3: ({ children }) => <h3 style={{ fontSize: '1.3rem', lineHeight: '1.3' }} className="font-bold mb-2 mt-4 block text-maintext tracking-tight">{children}</h3>,
+                                  h1: ({ children }) => (
+                                    msg.role === 'model' ? 
+                                      <h1 style={{ fontSize: '2rem', lineHeight: '1.2' }} className="font-black mb-4 mt-7 block text-maintext tracking-tight border-b border-border/30 pb-2">{children}</h1> :
+                                      <h1 className="font-bold mb-2 mt-3 block text-[1.4em] text-maintext tracking-tight">{children}</h1>
+                                  ),
+                                  h2: ({ children }) => (
+                                    msg.role === 'model' ?
+                                      <h2 style={{ fontSize: '1.6rem', lineHeight: '1.25' }} className="font-extrabold mb-3 mt-6 block text-maintext tracking-tight">{children}</h2> :
+                                      <h2 className="font-bold mb-1.5 mt-2 block text-[1.2em] text-maintext tracking-tight">{children}</h2>
+                                  ),
+                                  h3: ({ children }) => (
+                                    msg.role === 'model' ?
+                                      <h3 style={{ fontSize: '1.3rem', lineHeight: '1.3' }} className="font-bold mb-2 mt-4 block text-maintext tracking-tight">{children}</h3> :
+                                      <h3 className="font-bold mb-1 mt-1.5 block text-[1.1em] text-maintext tracking-tight">{children}</h3>
+                                  ),
                                   strong: ({ children }) => <strong className="font-bold">{children}</strong>,
                                   table: ({ children }) => (
-                                    <div className="overflow-x-auto my-4 rounded-xl border border-border/50 shadow-lg">
+                                    <div className="overflow-x-auto my-4 rounded-xl border border-border/50 shadow-lg bg-surface/30 backdrop-blur-sm">
                                       <table className="w-full border-collapse text-sm">{children}</table>
                                     </div>
                                   ),
@@ -4937,76 +4788,96 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                   code: ({ node, inline, className, children, ...props }) => {
                                     const match = /language-(\w+)/.exec(className || '');
                                     const lang = match ? match[1] : '';
+                                    const codeValue = String(children).replace(/\n$/, '');
+                                    const isUser = msg.role === 'user';
 
-                                    if (!inline && match) {
+                                    if (!inline) {
                                       return (
-                                        <div className="rounded-xl overflow-hidden my-2 border border-border bg-[#1e1e1e] shadow-md w-full max-w-full">
-                                          <div className="flex items-center justify-between px-4 py-2 bg-[#2d2d2d] border-b border-[#404040]">
-                                            <span className="text-xs font-mono text-gray-300 lowercase">{lang}</span>
-                                            <button
-                                              onClick={() => {
-                                                navigator.clipboard.writeText(String(children).replace(/\n$/, ''));
-                                                toast.success("Code copied!");
+                                        <div className={`rounded-xl overflow-hidden my-3 border ${isUser ? 'border-white/10 bg-black/20' : 'border-zinc-700/50 bg-[#1e1e1e]'} shadow-2xl w-full max-w-full group/code`}>
+                                          {!isUser && (
+                                            <div className="flex items-center justify-between px-4 py-2.5 bg-[#2d2d2d]/80 backdrop-blur-sm border-b border-zinc-800">
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-[#9ca3af]">{lang || 'plain text'}</span>
+                                              </div>
+                                              <button
+                                                onClick={() => {
+                                                  navigator.clipboard.writeText(codeValue);
+                                                  toast.success("Code copied!");
+                                                }}
+                                                className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 hover:text-white transition-all bg-white/5 hover:bg-white/10 px-3 py-1 rounded-lg border border-white/5 active:scale-95"
+                                              >
+                                                <Copy className="w-3.5 h-3.5" />
+                                                Copy
+                                              </button>
+                                            </div>
+                                          )}
+                                          <div className={`${isUser ? 'max-h-[500px]' : 'max-h-[600px]'} overflow-auto custom-scrollbar-thin ${isUser ? 'bg-transparent' : 'bg-[#1e1e1e]'}`}>
+                                            <SyntaxHighlighter
+                                              language={lang || 'text'}
+                                              style={highlighterTheme}
+                                              PreTag="div"
+                                              customStyle={{
+                                                margin: 0,
+                                                padding: isUser ? '16px' : '20px',
+                                                fontSize: isUser ? '12.5px' : '13.5px',
+                                                lineHeight: '1.6',
+                                                background: 'transparent',
+                                                borderRadius: 0,
+                                                border: 'none',
+                                                fontFamily: '"Fira Code", "JetBrains Mono", source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace'
                                               }}
-                                              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
+                                              codeTagProps={{
+                                                style: {
+                                                  fontFamily: 'inherit',
+                                                  background: 'transparent'
+                                                }
+                                              }}
+                                              {...props}
                                             >
-                                              <Copy className="w-3.5 h-3.5" />
-                                              Copy code
-                                            </button>
-                                          </div>
-                                          <div className="p-4 overflow-x-auto custom-scrollbar bg-[#1e1e1e]">
-                                            <code className={`${className} font-mono text-[0.9em] leading-relaxed text-[#d4d4d4] block min-w-full`} {...props}>
-                                              {children}
-                                            </code>
+                                              {codeValue}
+                                            </SyntaxHighlighter>
                                           </div>
                                         </div>
                                       );
                                     }
                                     return (
-                                      <code className="bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded font-mono text-primary font-bold mx-0.5" {...props}>
+                                      <code className="bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded-md font-mono text-primary font-bold mx-0.5 text-xs translate-y-[-1px] inline-block" {...props}>
                                         {children}
                                       </code>
                                     );
                                   },
                                   img: ({ node, ...props }) => {
+                                    const isDownloading = isDownloadingUrl === props.src;
                                     return (
-                                      <div
-                                        className="relative group/generated mt-4 mb-2 overflow-hidden rounded-2xl border border-white/10 shadow-2xl transition-all hover:scale-[1.01] bg-surface/50 backdrop-blur-sm cursor-zoom-in max-w-md"
-                                        onClick={() => setViewingDoc({ url: props.src, type: 'image', name: 'Generated Image' })}
-                                      >
-                                        <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-100 sm:opacity-0 sm:group-hover/generated:opacity-100 transition-opacity">
-                                          <div className="flex items-center gap-2">
-                                            <Sparkles className="w-4 h-4 text-primary animate-pulse" />
-                                            <span className="text-[10px] font-bold text-white uppercase tracking-widest">AISA Generated Asset</span>
-                                          </div>
+                                      <div className="relative my-4 group/img-container max-w-full">
+                                        <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl bg-black/5 aspect-auto max-w-[500px] cursor-zoom-in" onClick={() => setViewingDoc({ url: props.src, type: 'image', name: 'AI Image' })}>
+                                          {msg.role === 'model' && (
+                                            <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-100 sm:opacity-0 sm:group-hover/img-container:opacity-100 transition-opacity">
+                                              <div className="flex items-center gap-2">
+                                                <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                                                <span className="text-[10px] font-bold text-white uppercase tracking-widest">AISA Generated Asset</span>
+                                              </div>
+                                            </div>
+                                          )}
+                                          <ImageViewer
+                                            src={props.src}
+                                            alt={props.alt || "AI Image"}
+                                          />
+                                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover/img-container:opacity-100 transition-opacity pointer-events-none" />
                                         </div>
-                                        <img
-                                          {...props}
-                                          className="w-full max-w-sm h-auto max-h-[400px] object-contain rounded-xl bg-black/5"
-                                          loading="lazy"
-                                          onLoad={() => scrollToBottom(true)}
-                                          onError={(e) => {
-                                            e.target.src = 'https://placehold.co/600x400?text=Image+Generating...';
-                                          }}
-                                        />
-                                        <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/generated:opacity-100 transition-opacity pointer-events-none" />
                                         <button
-                                          disabled={isDownloadingUrl === props.src}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDownload(props.src, 'aisa-generated.png');
-                                          }}
-                                          className={`absolute bottom-3 right-3 p-2.5 rounded-xl opacity-100 sm:opacity-0 sm:group-hover/generated:opacity-100 transition-all shadow-lg border border-white/20 scale-100 sm:scale-90 sm:group-hover/generated:scale-100 ${isDownloadingUrl === props.src ? 'bg-zinc-600 cursor-wait' : 'bg-primary hover:bg-primary/90 text-white'}`}
-                                          title="Download High-Res"
+                                          onClick={() => handleDownload(props.src, `aisa_gen_${Date.now()}.png`)}
+                                          disabled={isDownloading}
+                                          className="absolute bottom-4 right-4 z-20 flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl border border-white/20 text-white shadow-lg transition-all active:scale-95 disabled:opacity-50"
                                         >
-                                          <div className="flex items-center gap-2 px-1">
-                                            {isDownloadingUrl === props.src ? (
-                                              <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                                          <div className="flex items-center gap-2">
+                                            {isDownloading ? (
+                                              <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                             ) : (
                                               <Download className="w-4 h-4" />
                                             )}
                                             <span className="text-[10px] font-bold uppercase">
-                                              {isDownloadingUrl === props.src ? 'Downloading...' : 'Download'}
+                                              {isDownloading ? 'Downloading...' : 'Download'}
                                             </span>
                                           </div>
                                         </button>
@@ -5017,7 +4888,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               >
                                 {msg.content || msg.text || ""}
                               </ReactMarkdown>
-                            )}
+                            </div>
                             {/* Sources List (ONLY for Web Search, HIDE for RAG as requested) */}
                             {msg.role === 'model' && msg.isRealTime && msg.sources && msg.sources.length > 0 && (
                               <div className="mt-4 pt-4 border-t border-border/50">
