@@ -5523,9 +5523,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     draggable={false}
                   />
                 </div>
-                <h2 className="font-black text-maintext tracking-tighter w-full px-4 mb-3 sm:mb-6" style={{ fontSize: 'clamp(0.9rem, 4vw, 1.5rem)', lineHeight: '1.3' }}>
-                  {t('welcomeMessage')}
-                </h2>
+
 
                 <div className="relative w-full max-w-5xl mx-auto">
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 justify-items-stretch animate-in fade-in slide-in-from-bottom-4 duration-1000">
@@ -6297,7 +6295,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       }
                     }
                   }}
-                  placeholder={isLimitReached ? "Chat limit reached. Sign in to continue." : (isVideoGeneration ? "Describe the video you want to generate..." : isAudioConvertMode ? "Enter text to convert..." : isDocumentConvert ? "Upload file & ask to convert..." : "Ask AISA ™")}
+                  placeholder={isLimitReached ? "Chat limit reached. Sign in to continue." : (isVideoGeneration ? "Describe the video you want to generate..." : isAudioConvertMode ? "Enter text to convert..." : isDocumentConvert ? "Upload file & ask to convert..." : "Ask anything...")}
                   rows={1}
                   className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none p-0 py-2 text-maintext text-left placeholder-subtext/40 resize-none overflow-y-auto custom-scrollbar leading-relaxed text-[15px] ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
                   style={{ minHeight: '24px', height: 'auto', maxHeight: '150px', lineHeight: '1.5' }}
