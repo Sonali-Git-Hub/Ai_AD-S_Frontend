@@ -13,9 +13,8 @@ export const generateChatResponse = async (history, currentMessage, systemInstru
             headers.Authorization = `Bearer ${token}`;
         }
 
-        // Enhanced system instruction based on user language
-        const langInstruction = language ? `You are a helpful AI assistant. Please respond to the user in ${language}. ` : '';
-        const combinedSystemInstruction = (langInstruction + (systemInstruction || '')).trim();
+        // Language handling is now performed centrally in the backend ai.service.js
+        const combinedSystemInstruction = (systemInstruction || '').trim();
 
         let images = [];
         let documents = [];

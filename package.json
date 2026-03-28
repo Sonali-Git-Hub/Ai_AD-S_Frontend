@@ -10,10 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@codesandbox/sandpack-react": "^2.20.0",
     "@headlessui/react": "^2.2.9",
+    "@monaco-editor/react": "^4.7.0",
     "@react-oauth/google": "^0.13.4",
     "axios": "^1.7.9",
     "docx-preview": "^0.3.7",
+    "file-saver": "^2.0.5",
     "framer-motion": "^11.18.2",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.0.0",
@@ -24,6 +27,7 @@
     "react-hot-toast": "^2.5.1",
     "react-markdown": "^9.0.3",
     "react-router-dom": "^6.28.1",
+    "react-syntax-highlighter": "^16.1.1",
     "recoil": "^0.7.7",
     "remark-gfm": "^4.0.1",
     "styled-components": "^6.3.8",
