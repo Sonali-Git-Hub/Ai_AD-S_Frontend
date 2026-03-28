@@ -2646,7 +2646,6 @@ const Chat = () => {
     }
 
 
->>>>>>> f3da343527bd0a22f7d91d3c8fb419a490cd9cc7
     try {
       if (isAudioConvertMode && !contentToSend && selectedFiles.length === 0) {
         toast.error('Please enter text or upload a file to convert to audio');
