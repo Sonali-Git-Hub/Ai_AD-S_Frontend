@@ -37,6 +37,7 @@ import { getSubscriptionDetails } from '../services/pricingService';
 import IntentSuggestionBanner from '../Components/IntentSuggestionBanner';
 import { detectIntent, mapModeToToolState } from '../services/intentService';
 import LoginRequiredModal from '../Components/LoginRequiredModal';
+import AiAdDashboard from '../Components/AiAdDashboard';
 
 
 
@@ -332,6 +333,7 @@ const Chat = () => {
   const [isMagicEditing, setIsMagicEditing] = useState(false);
   const [editRefImage, setEditRefImage] = useState(null);
   const [isMagicVideoModalOpen, setIsMagicVideoModalOpen] = useState(false);
+  const [isAiAdDashboardOpen, setIsAiAdDashboardOpen] = useState(false);
   const [isLiveMode, setIsLiveMode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLimitReached, setIsLimitReached] = useState(false);
@@ -5728,6 +5730,17 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           if (!checkPremiumTool('Image to Video')) return;
                           setIsMagicVideoModalOpen(true);
                         }
+                      },
+                      {
+                        icon: <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />,
+                        title: "AI Ad Agent",
+                        desc: "Automate 30-Day Campaign",
+                        active: isAiAdDashboardOpen,
+                        color: "from-primary/20 to-purple-500/20",
+                        action: () => {
+                          if (!checkPremiumTool('AI Ad Agent')) return;
+                          setIsAiAdDashboardOpen(true);
+                        }
                       }
                     ].map((item, index) => (
                       <button
@@ -6216,6 +6229,27 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               <span className="text-[16px] font-extrabold text-slate-800 dark:text-white leading-none">Image {'->'} Video</span>
                             </div>
                             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Animate your images with AI magic.</p>
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!checkPremiumTool('AI Ad Agent')) return;
+                            setIsToolsMenuOpen(false);
+                            setIsAiAdDashboardOpen(true);
+                          }}
+                          className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md`}
+                        >
+                          <div className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300`}>
+                            <Sparkles className="w-7 h-7 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
+                              <span className="text-[16px] font-extrabold text-slate-800 dark:text-white leading-none">AI Ad Agent</span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Automate 30 days of social media content.</p>
                           </div>
                         </button>
 
@@ -7024,6 +7058,12 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         isOpen={isMagicVideoModalOpen}
         onClose={() => setIsMagicVideoModalOpen(false)}
         onCreditDeduction={(credits) => console.log('deducted', credits)}
+      />
+
+      <AiAdDashboard 
+        isOpen={isAiAdDashboardOpen}
+        onClose={() => setIsAiAdDashboardOpen(false)}
+        userPlan={userPlanName}
       />
 
       <MagicToolSettingsCard 

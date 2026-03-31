@@ -106,6 +106,11 @@ const apis = {
   },
   uploadAvatar: `${API}/user/avatar`,
   removeAvatar: `${API}/user/avatar`,
+  aiAdAgent: {
+    configure: `${API}/ai-ad/configure`,
+    posts: `${API}/ai-ad/posts`,
+    status: `${API}/ai-ad/status`,
+  },
 };
 
 export { API, apis };

@@ -784,6 +784,37 @@ export const apiService = {
     }
   },
 
+  // --- AI Ad Agent ---
+  async configureAiAdAgent(configData) {
+    try {
+      const response = await apiClient.post('/ai-ad/configure', configData);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to configure AI Ad Agent:", error);
+      throw error;
+    }
+  },
+
+  async getAiAdPosts() {
+    try {
+      const response = await apiClient.get('/ai-ad/posts');
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch AI Ad posts:", error);
+      throw error;
+    }
+  },
+
+  async getAiAdStatus() {
+    try {
+      const response = await apiClient.get('/ai-ad/status');
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch AI Ad status:", error);
+      throw error;
+    }
+  },
+
   // --- Credits & Subscription ---
   async getCreditHistory() {
     try {
