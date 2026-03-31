@@ -245,44 +245,7 @@ const ImageViewer = ({ src, alt }) => {
           }}
         />
       </div>
-      <LegalToolkitCard 
-        isOpen={activeLegalToolkit}
-        onClose={() => setActiveLegalToolkit(false)}
-        isAdmin={isAdminUser}
-        unlockedTools={unlockedTools}
-        onSelect={(tool, isUnlocked) => {
-          if (!isUnlocked) {
-            setMessages(prev => [...prev, {
-              id: Date.now().toString(),
-              role: 'user',
-              content: `Use ${tool.name}`,
-              timestamp: Date.now()
-            }, {
-              id: (Date.now() + 1).toString(),
-              role: 'assistant',
-              content: `**Premium Mode Restricted**\n\nThe **${tool.name}** tool is part of our Premium AI Legal archive.\n\n**To access this tool:**\n1. Select "Unlock All" to get full access.\n2. Or upgrade your subscription to the **FOUNDER PLAN**.\n\n*Would you like to see pricing for the AI Legal Archive?*`,
-              isPremiumRestricted: true,
-              timestamp: Date.now()
-            }]);
-            return;
-          }
 
-          setSelectedLegalTool({ id: tool.id, name: tool.name });
-          if (inputRef.current) inputRef.current.focus();
-          toast.success(`✅ AI Legal Activated: ${tool.name} ✨`, {
-            position: 'top-right',
-            style: {
-              background: '#F0FDF4',
-              color: '#166534',
-              borderRadius: '16px',
-              padding: '16px 24px',
-              fontWeight: 'bold',
-              border: '1px solid #BBF7D0',
-              boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
-            }
-          });
-        }}
-      />
     </div>
   );
 };
@@ -596,7 +559,14 @@ const Chat = () => {
 
     // Dynamic activation based on map
     if (toolUpdates.activeImageGen) { setIsImageGeneration(true); setIsMagicSettingsOpen(true); }
-    if (toolUpdates.activeVideoGen) { setIsVideoGeneration(true); setIsMagicSettingsOpen(true); }
+    if (toolUpdates.activeVideoGen) { 
+      if (toolUpdates.videoMode === 'image_to_video') {
+        setIsMagicVideoModalOpen(true);
+      } else {
+        setIsVideoGeneration(true); 
+        setIsMagicSettingsOpen(true); 
+      }
+    }
     if (toolUpdates.activeMagicEdit) setIsMagicEditing(true);
     if (toolUpdates.activeAudioTalk) setIsAudioConvertMode(true);
     if (toolUpdates.webSearchMode) setIsWebSearch(true);
@@ -6467,7 +6437,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
                               <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">AI Legal</span>
                             </div>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">6 specialized AI legal tools.</p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">13 specialized AI legal tools.</p>
                           </div>
                         </button>
 
