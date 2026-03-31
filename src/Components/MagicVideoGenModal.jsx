@@ -1,11 +1,70 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Upload, Wand2, Download, Video as VideoIcon, Loader2, History, ArrowLeft, RotateCw } from 'lucide-react';
+import { X, Upload, Wand2, Download, Video as VideoIcon, Loader2, History, ArrowLeft, RotateCw, ChevronDown, Check } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import CustomVideoPlayer from './CustomVideoPlayer';
 
 const baseURL = window._env_?.VITE_AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || "http://localhost:8080/api";
+
+const CustomSelect = ({ value, onChange, options, disabled }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const selectRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (selectRef.current && !selectRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const selectedOption = options.find(opt => opt.value === value) || options[0];
+
+    return (
+        <div ref={selectRef} className="relative w-full">
+            <button
+                type="button"
+                onClick={() => !disabled && setIsOpen(!isOpen)}
+                className={`w-full flex items-center justify-between bg-black/5 dark:bg-white/5 border ${isOpen ? 'border-primary ring-1 ring-primary/50' : 'border-border'} rounded-xl px-4 py-2.5 text-sm text-maintext outline-none transition-all ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-primary/50'}`}
+                disabled={disabled}
+            >
+                <span className="truncate">{selectedOption?.label || value}</span>
+                <ChevronDown className={`w-4 h-4 text-subtext transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                        transition={{ duration: 0.15, ease: "easeOut" }}
+                        className="absolute z-50 w-full mt-2 py-2 bg-white dark:bg-[#2a2a2a] border border-black/10 dark:border-white/10 rounded-xl shadow-2xl overflow-y-auto custom-scrollbar max-h-[135px] backdrop-blur-xl"
+                    >
+                        {options.map((option) => (
+                            <button
+                                key={option.value}
+                                onClick={() => {
+                                    if (!option.disabled) {
+                                        onChange(option.value);
+                                        setIsOpen(false);
+                                    }
+                                }}
+                                disabled={option.disabled}
+                                className={`w-full flex items-center justify-between px-4 py-2.5 text-sm text-left transition-colors ${option.disabled ? 'opacity-50 cursor-not-allowed text-subtext' : 'text-maintext hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer'} ${value === option.value ? 'bg-primary/10 text-primary font-medium' : ''}`}
+                            >
+                                <span className="truncate block pr-4">{option.label}</span>
+                                {value === option.value && <Check className="w-4 h-4 shrink-0" />}
+                            </button>
+                        ))}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
 
 const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
     const [selectedImage, setSelectedImage] = useState(null);
@@ -15,6 +74,7 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
     const [resultVideoUrl, setResultVideoUrl] = useState(null);
     const [showHistory, setShowHistory] = useState(false);
     const [resolution, setResolution] = useState("1080p");
+    const [aspectRatio, setAspectRatio] = useState("16:9");
     const [modelId, setModelId] = useState("veo-3.1-fast-generate-001");
     const [historyVideos, setHistoryVideos] = useState([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
@@ -119,6 +179,7 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
         formData.append("image", selectedImage);
         formData.append("prompt", prompt);
         formData.append("resolution", resolution);
+        formData.append("aspectRatio", aspectRatio);
         formData.append("modelId", modelId);
         formData.append("isImageToVideo", "true");
 
@@ -329,32 +390,45 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
 
                             {/* Controls */}
                             <div className="flex flex-wrap gap-4 shrink-0">
-                                <div className="flex flex-col gap-2 w-full sm:w-auto flex-1">
+                                <div className="flex flex-col gap-2 w-full sm:w-auto flex-1 text-left">
                                     <label className="text-xs font-bold text-subtext uppercase tracking-wider">Quality Core</label>
-                                    <select
-                                        value={modelId}
-                                        onChange={e => setModelId(e.target.value)}
+                                    <CustomSelect 
+                                        value={modelId} 
+                                        onChange={setModelId} 
                                         disabled={isGenerating}
-                                        className="w-full bg-black/5 dark:bg-white/5 border border-border rounded-xl px-4 py-2.5 text-sm text-maintext outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 cursor-pointer disabled:opacity-50"
-                                    >
-                                        <option value="veo-3.1-fast-generate-001">Veo 3.1 Fast ({getCreditCost('veo-3.1-fast-generate-001', resolution)}/gen)</option>
-                                        <option value="veo-3.1-generate-001">Veo 3.1 Pro ({getCreditCost('veo-3.1-generate-001', resolution)}/gen)</option>
-                                    </select>
+                                        options={[
+                                            { value: "veo-3.1-fast-generate-001", label: `Veo 3.1 Fast (${getCreditCost('veo-3.1-fast-generate-001', resolution)}/gen)` },
+                                            { value: "veo-3.1-generate-001", label: `Veo 3.1 Pro (${getCreditCost('veo-3.1-generate-001', resolution)}/gen)` }
+                                        ]} 
+                                    />
                                 </div>
-                                <div className="flex flex-col gap-2 w-full sm:w-auto flex-1">
+                                <div className="flex flex-col gap-2 w-full sm:w-auto flex-1 text-left">
                                     <label className="text-xs font-bold text-subtext uppercase tracking-wider">Resolution</label>
-                                    <select
-                                        value={resolution}
-                                        onChange={e => setResolution(e.target.value)}
+                                    <CustomSelect 
+                                        value={resolution} 
+                                        onChange={setResolution} 
                                         disabled={isGenerating}
-                                        className="w-full bg-black/5 dark:bg-white/5 border border-border rounded-xl px-4 py-2.5 text-sm text-maintext outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 cursor-pointer disabled:opacity-50"
-                                    >
-                                        <option value="720p">720p ({getCreditCost(modelId, '720p')} cr)</option>
-                                        <option value="1080p">1080p ({getCreditCost(modelId, '1080p')} cr)</option>
-                                        <option value="4k" disabled={modelId.includes('fast')}>
-                                            4K {modelId.includes('fast') ? '(Pro Only)' : `(${getCreditCost(modelId, '4k')} cr)`}
-                                        </option>
-                                    </select>
+                                        options={[
+                                            { value: "720p", label: `720p (${getCreditCost(modelId, '720p')} cr)` },
+                                            { value: "1080p", label: `1080p (${getCreditCost(modelId, '1080p')} cr)` },
+                                            { value: "4k", label: `4K ${modelId.includes('fast') ? '(Pro Only)' : '(' + getCreditCost(modelId, '4k') + ' cr)'}`, disabled: modelId.includes('fast') }
+                                        ]} 
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-2 w-full sm:w-auto flex-1 text-left">
+                                    <label className="text-xs font-bold text-subtext uppercase tracking-wider">Video Ratio</label>
+                                    <CustomSelect 
+                                        value={aspectRatio} 
+                                        onChange={setAspectRatio} 
+                                        disabled={isGenerating}
+                                        options={[
+                                            { value: "16:9", label: "16:9 (Landscape)" },
+                                            { value: "9:16", label: "9:16 (Portrait)" },
+                                            { value: "1:1", label: "1:1 (Square)" },
+                                            { value: "4:3", label: "4:3 (Classic)" },
+                                            { value: "3:4", label: "3:4 (Vertical)" }
+                                        ]} 
+                                    />
                                 </div>
                             </div>
                             

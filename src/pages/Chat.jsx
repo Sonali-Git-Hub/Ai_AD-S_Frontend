@@ -6986,22 +6986,22 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
           <div className="fixed inset-0 overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4">
               <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95 translate-y-4" enterTo="opacity-100 scale-100 translate-y-0" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
-                <Dialog.Panel className="w-full max-w-md overflow-hidden rounded-3xl shadow-2xl border border-white/10" style={{ background: 'linear-gradient(135deg, rgba(20,20,35,0.97) 0%, rgba(15,15,28,0.98) 100%)', backdropFilter: 'blur(40px)' }}>
+                <Dialog.Panel className="w-full max-w-md overflow-hidden rounded-3xl shadow-2xl border border-black/5 dark:border-white/10 bg-white/95 dark:bg-[#12121a]/95 backdrop-blur-3xl">
 
                   {/* ── Header ── */}
                   <div className="relative px-6 pt-6 pb-4">
-                    <div className="absolute inset-0 opacity-20" style={{ background: 'radial-gradient(ellipse at top, rgba(99,102,241,0.4) 0%, transparent 70%)' }} />
+                    <div className="absolute inset-0 opacity-10 dark:opacity-20 pointer-events-none" style={{ background: 'radial-gradient(ellipse at top, rgba(99,102,241,0.4) 0%, transparent 70%)' }} />
                     <div className="relative flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
                           <Sliders className="w-4 h-4 text-white" />
                         </div>
                         <div>
-                          <Dialog.Title as="h3" className="text-sm font-bold text-white leading-none">Voice Settings</Dialog.Title>
-                          <p className="text-[10px] text-indigo-400 font-semibold mt-0.5">Chirp 3 HD · 30 voices · 35+ languages</p>
+                          <Dialog.Title as="h3" className="text-sm font-bold text-maintext leading-none">Voice Settings</Dialog.Title>
+                          <p className="text-[10px] text-indigo-500 dark:text-indigo-400 font-semibold mt-0.5">Chirp 3 HD · 30 voices · 35+ languages</p>
                         </div>
                       </div>
-                      <button onClick={() => setIsVoiceSettingsOpen(false)} className="w-7 h-7 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-all border border-white/10">
+                      <button onClick={() => setIsVoiceSettingsOpen(false)} className="w-7 h-7 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center text-subtext hover:text-maintext transition-all border border-black/5 dark:border-white/10">
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -7085,29 +7085,29 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       const selLang = allLangItems.find(l => l.value === audioLangCode) || allLangItems[0];
                       return (
                         <div>
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">Language</p>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-subtext mb-2">Language</p>
                           <Listbox value={audioLangCode} onChange={(val) => { setAudioLangCode(val); setAudioVoiceName(`${val}-Chirp3-HD-Autonoe`); }}>
                             <div className="relative">
-                              <Listbox.Button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/8 hover:border-indigo-500/40 transition-all group text-left">
+                              <Listbox.Button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 hover:border-indigo-500/40 transition-all group text-left">
                                 <span className="text-xl leading-none">{selLang.flag}</span>
-                                <span className="flex-1 text-sm font-semibold text-white">{selLang.label}</span>
-                                <ChevronDown className="w-4 h-4 text-white/30 group-hover:text-indigo-400 transition-colors shrink-0" />
+                                <span className="flex-1 text-sm font-semibold text-maintext">{selLang.label}</span>
+                                <ChevronDown className="w-4 h-4 text-subtext group-hover:text-indigo-400 transition-colors shrink-0" />
                               </Listbox.Button>
                               <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100 translate-y-0" leaveTo="opacity-0 -translate-y-1">
-                                <Listbox.Options className="absolute z-50 mt-2 w-full rounded-2xl overflow-hidden shadow-2xl border border-white/10 outline-none" style={{ background: 'rgba(18,18,32,0.98)', backdropFilter: 'blur(40px)', maxHeight: '240px', overflowY: 'auto' }}>
+                                <Listbox.Options className="absolute z-50 mt-2 w-full rounded-2xl overflow-hidden shadow-2xl border border-black/10 dark:border-white/10 outline-none bg-white/95 dark:bg-[#12121a]/95 backdrop-blur-3xl" style={{ maxHeight: '240px', overflowY: 'auto' }}>
                                   {LANGS.map((group) => (
                                     <div key={group.group}>
-                                      <div className="px-4 py-1.5 text-[9px] font-bold uppercase tracking-widest text-indigo-400/70 sticky top-0" style={{ background: 'rgba(18,18,32,0.95)' }}>{group.group}</div>
+                                      <div className="px-4 py-1.5 text-[9px] font-bold uppercase tracking-widest text-indigo-500 dark:text-indigo-400/70 sticky top-0 bg-white/95 dark:bg-[#12121a]/95 backdrop-blur-md z-10">{group.group}</div>
                                       {group.items.map((item) => (
                                         <Listbox.Option key={item.value} value={item.value} className={({ active, selected }) =>
-                                          `flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${selected ? 'bg-indigo-600/20 text-indigo-300' : active ? 'bg-white/5 text-white' : 'text-white/60'
+                                          `flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${selected ? 'bg-indigo-50 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-300' : active ? 'bg-black/5 dark:bg-white/5 text-maintext' : 'text-subtext'
                                           }`
                                         }>
                                           {({ selected }) => (
                                             <>
                                               <span className="text-base leading-none">{item.flag}</span>
                                               <span className="flex-1 text-sm font-medium">{item.label}</span>
-                                              {selected && <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
+                                              {selected && <Check className="w-3.5 h-3.5 shrink-0" />}
                                             </>
                                           )}
                                         </Listbox.Option>
@@ -7170,42 +7170,42 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       const isFemale = VOICES[0].items.some(v => v.name === voiceKey);
                       return (
                         <div>
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">Voice</p>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-subtext mb-2">Voice</p>
                           <Listbox value={audioVoiceName} onChange={setAudioVoiceName}>
                             <div className="relative">
-                              <Listbox.Button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/8 hover:border-indigo-500/40 transition-all group text-left">
-                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm shrink-0 ${isFemale ? 'bg-rose-500/20 text-rose-300' : 'bg-blue-500/20 text-blue-300'
+                              <Listbox.Button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 hover:border-indigo-500/40 transition-all group text-left">
+                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm shrink-0 ${isFemale ? 'bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-300' : 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-300'
                                   }`}>
                                   {isFemale ? '♀' : '♂'}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-bold text-white leading-none">{selVoice.name}</p>
-                                  <p className="text-[10px] text-white/40 mt-0.5 truncate">{selVoice.style}</p>
+                                  <p className="text-sm font-bold text-maintext leading-none">{selVoice.name}</p>
+                                  <p className="text-[10px] text-subtext mt-0.5 truncate">{selVoice.style}</p>
                                 </div>
-                                <ChevronDown className="w-4 h-4 text-white/30 group-hover:text-indigo-400 transition-colors shrink-0" />
+                                <ChevronDown className="w-4 h-4 text-subtext group-hover:text-indigo-400 transition-colors shrink-0" />
                               </Listbox.Button>
                               <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100 translate-y-0" leaveTo="opacity-0 -translate-y-1">
-                                <Listbox.Options className="absolute z-50 mt-2 w-full rounded-2xl overflow-hidden shadow-2xl border border-white/10 outline-none" style={{ background: 'rgba(18,18,32,0.98)', backdropFilter: 'blur(40px)', maxHeight: '280px', overflowY: 'auto' }}>
+                                <Listbox.Options className="absolute z-50 mt-2 w-full rounded-2xl overflow-hidden shadow-2xl border border-black/10 dark:border-white/10 outline-none bg-white/95 dark:bg-[#12121a]/95 backdrop-blur-3xl" style={{ maxHeight: '280px', overflowY: 'auto' }}>
                                   {VOICES.map((group) => (
                                     <div key={group.group}>
-                                      <div className={`px-4 py-1.5 text-[9px] font-bold uppercase tracking-widest sticky top-0 ${group.color === 'rose' ? 'text-rose-400/70' : 'text-blue-400/70'
-                                        }`} style={{ background: 'rgba(18,18,32,0.95)' }}>{group.group}</div>
+                                      <div className={`px-4 py-1.5 text-[9px] font-bold uppercase tracking-widest sticky top-0 bg-white/95 dark:bg-[#12121a]/95 backdrop-blur-md z-10 ${group.color === 'rose' ? 'text-rose-500 dark:text-rose-400/70' : 'text-blue-500 dark:text-blue-400/70'
+                                        }`}>{group.group}</div>
                                       {group.items.map((item) => {
                                         const voiceVal = `${audioLangCode}-Chirp3-HD-${item.name}`;
                                         return (
                                           <Listbox.Option key={item.name} value={voiceVal} className={({ active, selected }) =>
                                             `flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${selected
-                                              ? (group.color === 'rose' ? 'bg-rose-600/15 text-rose-300' : 'bg-blue-600/15 text-blue-300')
-                                              : active ? 'bg-white/5 text-white' : 'text-white/60'
+                                              ? (group.color === 'rose' ? 'bg-rose-50 dark:bg-rose-600/15 text-rose-600 dark:text-rose-300' : 'bg-blue-50 dark:bg-blue-600/15 text-blue-600 dark:text-blue-300')
+                                              : active ? 'bg-black/5 dark:bg-white/5 text-maintext' : 'text-subtext'
                                             }`
                                           }>
                                             {({ selected }) => (
                                               <>
-                                                <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs shrink-0 ${group.color === 'rose' ? 'bg-rose-500/10 text-rose-400' : 'bg-blue-500/10 text-blue-400'
+                                                <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs shrink-0 ${group.color === 'rose' ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400' : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
                                                   }`}>{group.color === 'rose' ? '♀' : '♂'}</div>
                                                 <div className="flex-1 min-w-0">
                                                   <p className="text-xs font-semibold leading-none">{item.name}</p>
-                                                  <p className="text-[9px] text-white/30 mt-0.5 truncate">{item.style}</p>
+                                                  <p className="text-[9px] text-subtext mt-0.5 truncate">{item.style}</p>
                                                 </div>
                                                 {selected && <Check className="w-3 h-3 shrink-0" />}
                                               </>
@@ -7226,11 +7226,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     {/* ── Pitch Slider ── */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Pitch</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-subtext">Pitch</p>
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-mono font-bold text-indigo-300">{audioPitch > 0 ? '+' : ''}{audioPitch.toFixed(1)}</span>
+                          <span className="text-xs font-mono font-bold text-indigo-500 dark:text-indigo-300">{audioPitch > 0 ? '+' : ''}{audioPitch.toFixed(1)}</span>
                           {audioPitch !== 0 && (
-                            <button onClick={() => setAudioPitch(0)} className="text-[9px] text-white/30 hover:text-white/60 transition-colors">reset</button>
+                            <button onClick={() => setAudioPitch(0)} className="text-[9px] text-subtext/50 hover:text-subtext transition-colors">reset</button>
                           )}
                         </div>
                       </div>
@@ -7238,9 +7238,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         <input type="range" min="-10" max="10" step="0.5" value={audioPitch}
                           onChange={(e) => setAudioPitch(parseFloat(e.target.value))}
                           className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
-                          style={{ background: `linear-gradient(to right, #6366f1 0%, #6366f1 ${((audioPitch + 10) / 20) * 100}%, rgba(255,255,255,0.1) ${((audioPitch + 10) / 20) * 100}%, rgba(255,255,255,0.1) 100%)` }}
+                          style={{ background: `linear-gradient(to right, #6366f1 0%, #6366f1 ${((audioPitch + 10) / 20) * 100}%, rgba(128,128,128,0.2) ${((audioPitch + 10) / 20) * 100}%, rgba(128,128,128,0.2) 100%)` }}
                         />
-                        <div className="flex justify-between text-[9px] text-white/25 mt-1.5 font-medium">
+                        <div className="flex justify-between text-[9px] text-subtext/50 mt-1.5 font-medium">
                           <span>Lower</span><span>Normal</span><span>Higher</span>
                         </div>
                       </div>
@@ -7249,11 +7249,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     {/* ── Speed Slider ── */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Speed</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-subtext">Speed</p>
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-mono font-bold text-indigo-300">{audioSpeed.toFixed(2)}×</span>
+                          <span className="text-xs font-mono font-bold text-indigo-500 dark:text-indigo-300">{audioSpeed.toFixed(2)}×</span>
                           {audioSpeed !== 1.0 && (
-                            <button onClick={() => setAudioSpeed(1.0)} className="text-[9px] text-white/30 hover:text-white/60 transition-colors">reset</button>
+                            <button onClick={() => setAudioSpeed(1.0)} className="text-[9px] text-subtext/50 hover:text-subtext transition-colors">reset</button>
                           )}
                         </div>
                       </div>
@@ -7261,9 +7261,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         <input type="range" min="0.25" max="4.0" step="0.25" value={audioSpeed}
                           onChange={(e) => setAudioSpeed(parseFloat(e.target.value))}
                           className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
-                          style={{ background: `linear-gradient(to right, #6366f1 0%, #6366f1 ${((audioSpeed - 0.25) / 3.75) * 100}%, rgba(255,255,255,0.1) ${((audioSpeed - 0.25) / 3.75) * 100}%, rgba(255,255,255,0.1) 100%)` }}
+                          style={{ background: `linear-gradient(to right, #6366f1 0%, #6366f1 ${((audioSpeed - 0.25) / 3.75) * 100}%, rgba(128,128,128,0.2) ${((audioSpeed - 0.25) / 3.75) * 100}%, rgba(128,128,128,0.2) 100%)` }}
                         />
-                        <div className="relative mt-2 h-3 text-[9px] text-white/25 font-medium">
+                        <div className="relative mt-2 h-3 text-[9px] text-subtext/50 font-medium">
                           <span className="absolute left-0">0.25×</span>
                           <span className="absolute transform -translate-x-1/2" style={{ left: '20%' }}>1× (Normal)</span>
                           <span className="absolute transform -translate-x-1/2" style={{ left: '46.66%' }}>2×</span>
@@ -7302,8 +7302,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           audio.play();
                           toast.dismiss(t); toast.success('Playing sample ▶');
                         } catch (e) { toast.dismiss(t); toast.error('Sample failed — check voice/language combo.'); setIsPlayingSample(false); }
-                      }} className={`flex-1 flex items-center justify-center gap-2 h-11 rounded-2xl border border-white/10 text-sm font-bold transition-all ${isPlayingSample ? 'bg-indigo-500/20 text-indigo-300 cursor-not-allowed opacity-70' : 'bg-white/5 hover:bg-white/10 text-white/70 hover:text-white'}`}>
-                        <PlayCircle className={`w-4 h-4 ${isPlayingSample ? 'animate-pulse' : ''} text-indigo-400`} /> {isPlayingSample ? 'Playing...' : 'Play Sample'}
+                      }} className={`flex-1 flex items-center justify-center gap-2 h-11 rounded-2xl border border-black/5 dark:border-white/10 text-sm font-bold transition-all ${isPlayingSample ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-500 dark:text-indigo-300 cursor-not-allowed opacity-70' : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-subtext hover:text-maintext'}`}>
+                        <PlayCircle className={`w-4 h-4 ${isPlayingSample ? 'animate-pulse' : ''} text-indigo-500 dark:text-indigo-400`} /> {isPlayingSample ? 'Playing...' : 'Play Sample'}
                       </button>
                       <button type="button" onClick={() => setIsVoiceSettingsOpen(false)}
                         className="flex-[2] h-11 rounded-2xl text-sm font-bold text-white transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40"
