@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, Fragment } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Send, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe, Sliders, PlayCircle, Brain, ImagePlus, PlaySquare, RefreshCcw } from 'lucide-react';
+import { Send, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe, Sliders, PlayCircle, Brain, ImagePlus, PlaySquare, RefreshCcw, Scale } from 'lucide-react';
 import { renderAsync } from 'docx-preview';
 import * as XLSX from 'xlsx';
 import { Menu, Transition, Dialog, Listbox, Portal } from '@headlessui/react';
@@ -22,6 +22,7 @@ import ImageEditor from '../Components/ImageEditor';
 import CustomVideoPlayer from '../Components/CustomVideoPlayer';
 import ModelSelector from '../Components/ModelSelector';
 import MagicToolSettingsCard from '../Components/MagicToolSettingsCard';
+import LegalToolkitCard from '../Components/LegalToolkitCard';
 import axios from 'axios';
 import { apis } from '../types';
 import { jsPDF } from 'jspdf';
@@ -37,6 +38,7 @@ import { getSubscriptionDetails } from '../services/pricingService';
 import IntentSuggestionBanner from '../Components/IntentSuggestionBanner';
 import { detectIntent, mapModeToToolState } from '../services/intentService';
 import LoginRequiredModal from '../Components/LoginRequiredModal';
+// LegalToolSuggestions import removed
 
 
 
@@ -243,6 +245,44 @@ const ImageViewer = ({ src, alt }) => {
           }}
         />
       </div>
+      <LegalToolkitCard 
+        isOpen={activeLegalToolkit}
+        onClose={() => setActiveLegalToolkit(false)}
+        isAdmin={isAdminUser}
+        unlockedTools={unlockedTools}
+        onSelect={(tool, isUnlocked) => {
+          if (!isUnlocked) {
+            setMessages(prev => [...prev, {
+              id: Date.now().toString(),
+              role: 'user',
+              content: `Use ${tool.name}`,
+              timestamp: Date.now()
+            }, {
+              id: (Date.now() + 1).toString(),
+              role: 'assistant',
+              content: `**Premium Mode Restricted**\n\nThe **${tool.name}** tool is part of our Premium AI Legal archive.\n\n**To access this tool:**\n1. Select "Unlock All" to get full access.\n2. Or upgrade your subscription to the **FOUNDER PLAN**.\n\n*Would you like to see pricing for the AI Legal Archive?*`,
+              isPremiumRestricted: true,
+              timestamp: Date.now()
+            }]);
+            return;
+          }
+
+          setSelectedLegalTool({ id: tool.id, name: tool.name });
+          if (inputRef.current) inputRef.current.focus();
+          toast.success(`✅ AI Legal Activated: ${tool.name} ✨`, {
+            position: 'top-right',
+            style: {
+              background: '#F0FDF4',
+              color: '#166534',
+              borderRadius: '16px',
+              padding: '16px 24px',
+              fontWeight: 'bold',
+              border: '1px solid #BBF7D0',
+              boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
+            }
+          });
+        }}
+      />
     </div>
   );
 };
@@ -258,9 +298,24 @@ const Chat = () => {
   // Premium access check: fires event for upsell modal if user is on free plan
   const [isPremiumUser, setIsPremiumUser] = React.useState(null);
   const [userPlanName, setUserPlanName] = React.useState('');
+  const [isAdminUser, setIsAdminUser] = React.useState(false);
+  
   useEffect(() => {
     const user = getUserData();
-    if (!user?.token) { setIsPremiumUser(false); return; }
+    if (!user?.token) { 
+      setIsPremiumUser(false); 
+      setIsAdminUser(false);
+      return; 
+    }
+
+    // Admin Access Rule
+    if (user.email && user.email.toLowerCase() === 'admin@uwo24.com') {
+      setIsAdminUser(true);
+      setIsPremiumUser(true);
+      setUserPlanName('AISA Admin');
+      return; // Skip server subscription check for admin
+    }
+
     getSubscriptionDetails()
       .then(data => {
         const hasSub = data?.subscription && data.subscription?.planId;
@@ -277,6 +332,10 @@ const Chat = () => {
       window.dispatchEvent(new CustomEvent('login_required', { detail: { toolName } }));
       return false;
     }
+
+    // Admin Access Rule: Treat all tools as unlocked
+    if (user.email === 'admin@uwo24.com' || isAdminUser) return true;
+
     if (isPremiumUser === null) return true; // still loading, allow optimistically
 
     // Check if tool is video and plan is starter/founder
@@ -370,6 +429,10 @@ const Chat = () => {
   const [isCodeWriter, setIsCodeWriter] = useState(false);
   const [isFileAnalysis, setIsFileAnalysis] = useState(false);
   const [isVideoGeneration, setIsVideoGeneration] = useState(false);
+  const [activeLegalToolkit, setActiveLegalToolkit] = useState(false);
+  const [activeTool, setActiveTool] = useState(null);
+  const [unlockedTools, setUnlockedTools] = useState([]);
+  const [selectedLegalTool, setSelectedLegalTool] = useState(null);
   const [videoAspectRatio, setVideoAspectRatio] = useState('');
   const [videoModelId, setVideoModelId] = useState('veo-3.1-fast-generate-001');
   const [videoResolution, setVideoResolution] = useState('1080p');
@@ -385,6 +448,28 @@ const Chat = () => {
   const [isMagicSettingsOpen, setIsMagicSettingsOpen] = useState(false);
   const abortControllerRef = useRef(null);
   const voiceUsedRef = useRef(false); // Track if voice input was used
+
+  // Tool Persistence
+  useEffect(() => {
+    const savedTool = localStorage.getItem('aisa_active_legal_tool');
+    if (savedTool && currentMode === 'LEGAL_TOOLKIT') {
+      setActiveTool(savedTool);
+    }
+  }, [currentMode]);
+
+  useEffect(() => {
+    if (activeTool) {
+      localStorage.setItem('aisa_active_legal_tool', activeTool);
+    } else {
+      localStorage.removeItem('aisa_active_legal_tool');
+    }
+  }, [activeTool]);
+
+  useEffect(() => {
+    if (currentMode !== 'LEGAL_TOOLKIT') {
+      setActiveTool(null);
+    }
+  }, [currentMode]);
   const inputRef = useRef(null); // Ref for textarea input
   const transcriptRef = useRef(''); // Ref for speech transcript
   const isManualStopRef = useRef(false); // Track manual stop to avoid recursive loops
@@ -449,8 +534,11 @@ const Chat = () => {
     if (isFileAnalysis) { setIsImageGeneration(false); setIsDeepSearch(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsVideoGeneration(false); setIsMagicEditing(false); setIsMagicVideoModalOpen(false); }
   }, [isFileAnalysis]);
   useEffect(() => {
-    if (isMagicVideoModalOpen) { setIsImageGeneration(false); setIsDeepSearch(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsVideoGeneration(false); setIsMagicEditing(false); setIsFileAnalysis(false); }
+    if (isMagicVideoModalOpen) { setIsImageGeneration(false); setIsDeepSearch(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsVideoGeneration(false); setIsMagicEditing(false); setIsFileAnalysis(false); setActiveLegalToolkit(false); }
   }, [isMagicVideoModalOpen]);
+  useEffect(() => {
+    if (activeLegalToolkit) { setIsImageGeneration(false); setIsDeepSearch(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsVideoGeneration(false); setIsMagicEditing(false); setIsFileAnalysis(false); setIsMagicVideoModalOpen(false); }
+  }, [activeLegalToolkit]);
 
   // ─── Intent Detection Logic (Routing System) ──────────────────────────────
   useEffect(() => {
@@ -504,23 +592,94 @@ const Chat = () => {
     setIsImageGeneration(false); setIsVideoGeneration(false); setIsDeepSearch(false); 
     setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); 
     setIsCodeWriter(false); setIsMagicEditing(false); setIsFileAnalysis(false);
+    setActiveLegalToolkit(false); // Reset legal toolkit too
 
     // Dynamic activation based on map
-    if (toolUpdates.activeImageGen) setIsImageGeneration(true);
-    if (toolUpdates.activeVideoGen) setIsVideoGeneration(true);
+    if (toolUpdates.activeImageGen) { setIsImageGeneration(true); setIsMagicSettingsOpen(true); }
+    if (toolUpdates.activeVideoGen) { setIsVideoGeneration(true); setIsMagicSettingsOpen(true); }
     if (toolUpdates.activeMagicEdit) setIsMagicEditing(true);
-    if (toolUpdates.activeAudioTalk) {
-      setIsAudioConvertMode(true);
-    }
+    if (toolUpdates.activeAudioTalk) setIsAudioConvertMode(true);
     if (toolUpdates.webSearchMode) setIsWebSearch(true);
     if (toolUpdates.deepSearchMode) setIsDeepSearch(true);
     if (toolUpdates.activeFileAnalysis) setIsFileAnalysis(true);
     if (toolUpdates.activeCodeWriter) setIsCodeWriter(true);
+    
+    if (toolUpdates.activeLegalToolkit) {
+      setActiveLegalToolkit(true);
+      // Auto-select tool if intent matches a specific legal tool
+      if (suggestion.intent && suggestion.intent.startsWith('legal_')) {
+        const toolId = suggestion.intent;
+        const toolMap = {
+          'legal_free_chat': 'Legal Assistant',
+          'legal_draft_maker': 'Draft Maker',
+          'legal_nda_generator': 'NDA Generator',
+          'legal_contract_analyzer': 'Contract Analyzer',
+          'legal_case_predictor': 'Case Predictor',
+          'legal_evidence_checker': 'Evidence Checker',
+          'legal_notice_generator': 'Legal Notice',
+          'legal_affidavit_generator': 'Affidavit Gen',
+          'legal_clause_scanner': 'Clause Scanner',
+          'legal_clause_rewriter': 'Clause Rewriter',
+          'legal_strategy_engine': 'Strategy Engine',
+          'legal_research_assistant': 'Research Assistant',
+          'legal_timeline_generator': 'Timeline Generator',
+          'legal_compliance_checker': 'Compliance Checker',
+          'legal_law_comparator': 'Law Comparator'
+        };
+        const activeToolName = toolMap[toolId] || toolId;
+        setSelectedLegalTool({ id: toolId, name: activeToolName });
+        setActiveTool(activeToolName);
+      }
+    }
+    
     if (toolUpdates.mode) setCurrentMode(toolUpdates.mode);
 
-    toast.success(`AISA switched to ${suggestion.intent.replace('_', ' ')}! ✨`);
+    toast.success(`AISA switched to ${suggestion.intent.replace('legal_', '').replace('_', ' ')}! ✨`);
     setIntentSuggestion(null);
     isDetectionPausedRef.current = true; // Don't re-detect immediately after switch
+  };
+
+  const handleSelectLegalSuggestion = (toolId, toolName) => {
+    const user = getUserData();
+    if (!user?.token) {
+      window.dispatchEvent(new CustomEvent('login_required', { detail: { toolName } }));
+      return;
+    }
+
+    const isUnlocked = isAdminUser || unlockedTools.includes(toolId);
+    
+    if (!isUnlocked) {
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        role: 'user',
+        content: `Use ${toolName}`,
+        timestamp: Date.now()
+      }, {
+        id: (Date.now() + 1).toString(),
+        role: 'model',
+        content: `**Premium Mode Restricted**\n\nThe **${toolName}** tool is part of our Premium AI Legal archive.\n\n**To access this tool:**\n1. Select "Unlock All" to get full access.\n2. Or upgrade your subscription to the **FOUNDER PLAN**.`,
+        isPremiumRestricted: true,
+        timestamp: Date.now()
+      }]);
+      return;
+    }
+
+    setSelectedLegalTool({ id: toolId, name: toolName });
+    setActiveTool(toolName); // Set dynamic tool name
+    setActiveLegalToolkit(false); // Close toolkit if open
+    setCurrentMode('LEGAL_TOOLKIT');
+    
+    if (inputRef.current) inputRef.current.focus();
+    
+    toast.success(`✅ AI Legal Activated: ${toolName} ✨`, {
+      style: {
+        background: '#F0FDF4',
+        color: '#166534',
+        borderRadius: '16px',
+        fontWeight: 'bold',
+        border: '1px solid #BBF7D0',
+      }
+    });
   };
 
   const handleDismissSuggestion = () => {
@@ -2594,6 +2753,66 @@ const Chat = () => {
         }
       }
 
+      // Handle AI Legal Mode
+      if (activeLegalToolkit && selectedLegalTool) {
+        setLoadingText(`${selectedLegalTool.name}... ⚖️`);
+        try {
+          const userMsgId = Date.now().toString();
+          const newUserMsg = {
+            id: userMsgId,
+            role: 'user',
+            content: contentToSend,
+            timestamp: new Date(),
+            attachments: filePreviews.map(fp => ({
+              url: fp.url,
+              name: fp.name,
+              type: fp.type.startsWith('image/') ? 'image' :
+                fp.type.includes('pdf') ? 'pdf' :
+                  fp.type.includes('word') || fp.type.includes('document') ? 'docx' : 'file'
+            }))
+          };
+          setMessages(prev => [...prev, newUserMsg]);
+          setInputValue('');
+          handleRemoveFile();
+
+          const res = await axios.post(`${apis.baseUrl}/api/legal-toolkit/execute`, {
+            message: contentToSend,
+            toolName: selectedLegalTool.id,
+            sessionId: activeSessionId,
+            attachments: newUserMsg.attachments,
+            conversationHistory: messages
+          }, {
+            headers: { Authorization: `Bearer ${getUserData()?.token}` }
+          });
+
+          if (res.data.success) {
+            const aiMsgId = (Date.now() + 1).toString();
+            const aiMsg = {
+              id: aiMsgId,
+              role: 'model',
+              content: res.data.reply,
+              timestamp: new Date(),
+              toolUsed: res.data.toolUsed || selectedLegalTool.name
+            };
+            if (res.data.toolUsed) setActiveTool(res.data.toolUsed);
+            setMessages(prev => [...prev, aiMsg]);
+            await chatStorageService.saveMessage(activeSessionId, newUserMsg);
+            await chatStorageService.saveMessage(activeSessionId, aiMsg);
+            refreshSubscription();
+          } else {
+            throw new Error(res.data.error || 'Execution failed');
+          }
+          return;
+        } catch (err) {
+          console.error('[LegalToolkit Error]:', err);
+          toast.error(err.message || 'Failed to execute legal tool');
+          setIsLoading(false);
+          isSendingRef.current = false;
+          isGlobalSending = false;
+          return;
+        }
+      }
+
       // Handle Image Generation Mode
       if (isImageGeneration || toolOverride === 'text_to_image') {
         await handleGenerateImage(contentToSend, activeSessionId);
@@ -4536,7 +4755,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
             }}
           >
             <span>{getModeIcon(isDeepSearch ? 'DEEP_SEARCH' : currentMode)}</span>
-            <span className="hidden sm:inline">{getModeName(isDeepSearch ? 'DEEP_SEARCH' : currentMode)}</span>
+            <span className="hidden sm:inline">
+              {activeTool ? `AI Legal: ${activeTool}` : getModeName(isDeepSearch ? 'DEEP_SEARCH' : currentMode)}
+            </span>
           </div>
         </div>
 
@@ -4936,6 +5157,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               >
                                 {msg.content || msg.text || ""}
                               </ReactMarkdown>
+                              {/* AI Suggested Actions Removed */}
                             </div>
                             {/* Sources List (ONLY for Web Search, HIDE for RAG as requested) */}
                             {msg.role === 'model' && msg.isRealTime && msg.sources && msg.sources.length > 0 && (
@@ -5728,6 +5950,27 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           if (!checkPremiumTool('Image to Video')) return;
                           setIsMagicVideoModalOpen(true);
                         }
+                      },
+                      {
+                        icon: <Scale className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />,
+                        title: "AI Legal",
+                        desc: "6 specialized AI legal tools.",
+                        active: activeLegalToolkit,
+                        color: "from-indigo-500/20 to-purple-500/20",
+                        action: () => {
+                          if (!checkPremiumTool('AI Legal')) return;
+                          setActiveLegalToolkit(!activeLegalToolkit);
+                          if (!activeLegalToolkit) {
+                            setIsImageGeneration(false);
+                            setIsVideoGeneration(false);
+                            setIsDeepSearch(false);
+                            setIsAudioConvertMode(false);
+                            setIsDocumentConvert(false);
+                            setIsCodeWriter(false);
+                            setIsMagicEditing(false);
+                            toast.success("AI Legal Enabled ⚖️");
+                          }
+                        }
                       }
                     ].map((item, index) => (
                       <button
@@ -5756,10 +5999,10 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                   </div>
                 </div>
               </div>
-              </div>
             </div>
-          )
-        }
+          </div>
+        )
+      }
 
         {/* Input */}
         <div className="absolute bottom-0 left-0 right-0 bg-transparent z-20" style={{ padding: 'max(0.375rem, env(safe-area-inset-bottom, 0.375rem)) max(0.5rem, env(safe-area-inset-right, 0.5rem)) max(0.375rem, 0.375rem) max(0.5rem, env(safe-area-inset-left, 0.5rem))' }}>
@@ -6201,6 +6444,36 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         <button
                           type="button"
                           onClick={() => {
+                            if (!checkPremiumTool('AI Legal')) return;
+                            setIsToolsMenuOpen(false);
+                            const newMode = !activeLegalToolkit;
+                            setActiveLegalToolkit(newMode);
+                            setIsImageGeneration(false);
+                            setIsVideoGeneration(false);
+                            setIsDeepSearch(false);
+                            setIsAudioConvertMode(false);
+                            setIsDocumentConvert(false);
+                            setIsCodeWriter(false);
+                            setIsMagicEditing(false);
+                            if (newMode) toast.success("AI Legal Enabled ⚖️");
+                          }}
+                          className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${activeLegalToolkit ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
+                        >
+                          <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${activeLegalToolkit ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
+                            <Scale className="w-5.5 h-5.5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
+                              <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">AI Legal</span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">6 specialized AI legal tools.</p>
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
                             if (!checkPremiumTool('Image to Video')) return;
                             setIsToolsMenuOpen(false);
                             setIsMagicVideoModalOpen(true);
@@ -6253,7 +6526,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
               <div className="flex-1 flex items-center min-w-0 bg-transparent border-0 ring-0 focus:ring-0">
                 <AnimatePresence>
-                  {(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis) && (
+                  {(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || activeLegalToolkit) && (
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto w-[calc(100vw-24px)] max-w-5xl px-2 z-[100] justify-start sm:justify-start">
                       {isWebSearch && (
                         <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
@@ -6326,6 +6599,34 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
                           <Code size={12} strokeWidth={3} /> <span className="hidden sm:inline">Code Writer</span>
                           <button onClick={() => setIsCodeWriter(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
+                        </motion.div>
+                      )}
+                      {activeTool && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 5 }} 
+                          animate={{ opacity: 1, y: 0 }} 
+                          exit={{ opacity: 0 }} 
+                          className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-xs font-bold border border-emerald-500/20 backdrop-blur-md whitespace-nowrap shrink-0"
+                        >
+                          <Scale size={12} strokeWidth={3} />
+                          <span className="hidden sm:inline">AI Legal: {activeTool}</span>
+                          <span className="sm:hidden">{activeTool}</span>
+                          <button 
+                            onClick={() => {
+                              setActiveTool(null);
+                              if (currentMode === 'LEGAL_TOOLKIT') setCurrentMode('NORMAL_CHAT');
+                            }} 
+                            className="ml-1 hover:text-emerald-500 transition-colors"
+                          >
+                            <X size={12} />
+                          </button>
+                        </motion.div>
+                      )}
+                      {activeLegalToolkit && (
+                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-purple-500/10 text-purple-400 rounded-full text-xs font-bold border border-purple-500/20 backdrop-blur-md whitespace-nowrap shrink-0">
+                          <Scale size={12} strokeWidth={3} /> <span className="hidden sm:inline">AI Legal</span>
+                          {selectedLegalTool && <span className="text-[10px] opacity-70 ml-1 border-l border-purple-500/30 pl-1.5">{selectedLegalTool.name || selectedLegalTool}</span>}
+                          <button onClick={() => setActiveLegalToolkit(false)} className="ml-1 hover:text-purple-400/80"><X size={12} /></button>
                         </motion.div>
                       )}
                       {isMagicEditing && (
@@ -6424,6 +6725,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
               </div>
             </form>
           </div>
+        </div>
         </div>
 
         {/* Live AI Modal */}
@@ -6582,7 +6884,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
             </div>
           </Dialog>
         </Transition>
-      </div >
       <OnboardingModal
         isOpen={showOnboarding}
         onClose={() => setShowOnboarding(false)}
@@ -7049,7 +7350,67 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         }}
         pricing={TOOL_PRICING}
       />
-    </div >
+
+      <LegalToolkitCard 
+        isOpen={activeLegalToolkit}
+        onClose={() => setActiveLegalToolkit(false)}
+        isAdmin={isAdminUser}
+        unlockedTools={unlockedTools}
+        onSelect={(tool, isUnlocked) => {
+          if (tool.id === 'legal_chat') {
+            setSelectedLegalTool(null); // Clear specific tool to go to general chat
+            setCurrentMode('LEGAL_TOOLKIT');
+            setActiveLegalToolkit(false);
+            toast.success("Legal Chat Activated ⚖️", {
+              icon: '⚖️',
+              style: {
+                background: '#eff6ff',
+                color: '#1d4ed8',
+                borderRadius: '16px',
+                border: '1px solid #bfdbfe',
+                fontWeight: 'bold'
+              }
+            });
+            if (inputRef.current) inputRef.current.focus();
+            return;
+          }
+
+          if (!isUnlocked) {
+            setMessages(prev => [...prev, {
+              id: Date.now().toString(),
+              role: 'user',
+              content: `Use ${tool.name}`,
+              timestamp: Date.now()
+            }, {
+              id: (Date.now() + 1).toString(),
+              role: 'assistant',
+              content: `**Premium Mode Restricted**\n\nThe **${tool.name}** tool is part of our Premium AI Legal Toolkit.\n\n**To access this tool:**\n1. Select "Unlock All" to get full toolkit access.\n2. Or upgrade your subscription to the **FOUNDER PLAN**.\n\n*Would you like to see pricing for the AI Legal Archive?*`,
+              isPremiumRestricted: true,
+              timestamp: Date.now()
+            }]);
+            setActiveLegalToolkit(false);
+            return;
+          }
+
+          setSelectedLegalTool({ id: tool.id, name: tool.name });
+          setCurrentMode('LEGAL_TOOLKIT');
+          setActiveLegalToolkit(false);
+          if (inputRef.current) inputRef.current.focus();
+          toast.success(`✅ AI Legal Activated: ${tool.name} ✨`, {
+            position: 'top-right',
+            style: {
+              background: '#F0FDF4',
+              color: '#166534',
+              borderRadius: '16px',
+              padding: '16px 24px',
+              fontWeight: 'bold',
+              border: '1px solid #BBF7D0',
+              boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
+            }
+          });
+        }}
+      />
+    </div>
   );
 };
 

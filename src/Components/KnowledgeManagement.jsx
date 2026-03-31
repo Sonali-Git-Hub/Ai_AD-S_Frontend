@@ -119,7 +119,7 @@ const KnowledgeManagement = () => {
             date: src.createdAt,
             chunks: src.pages_indexed || 0,
             status: src.status === 'active' ? 'Active' : 'Paused',
-            category: 'Web',
+            category: src.category || 'GENERAL',
             raw: src,
             isSource: true
         }))
@@ -308,7 +308,15 @@ const KnowledgeManagement = () => {
                                         </div>
                                         <div className="max-w-[250px]">
                                             <p className="text-sm font-bold text-maintext truncate" title={item.name}>{item.name}</p>
-                                            <p className="text-[10px] text-subtext uppercase tracking-tight font-black">{item.category}</p>
+                                            <div className="flex gap-1 mt-1">
+                                                <span className={`text-[9px] font-black uppercase tracking-tight px-1.5 py-0.5 rounded ${
+                                                    item.category === 'LEGAL' 
+                                                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                                                        : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                                                }`}>
+                                                    {item.category || 'GENERAL'}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </td>

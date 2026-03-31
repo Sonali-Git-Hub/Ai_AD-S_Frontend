@@ -666,7 +666,7 @@ export const apiService = {
   // --- AIBASE & Knowledge ---
   async getKnowledgeDocuments() {
     try {
-      const response = await apiClient.get('/aibase/knowledge/documents');
+      const response = await apiClient.get('aibase/knowledge/documents');
       return response.data;
     } catch (error) {
       console.error("Failed to fetch knowledge documents:", error);
@@ -676,7 +676,7 @@ export const apiService = {
 
   async uploadKnowledgeDocument(formData, onProgress) {
     try {
-      const response = await apiClient.post('/aibase/knowledge/upload', formData, {
+      const response = await apiClient.post('aibase/knowledge/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (progressEvent) => {
           if (onProgress) {
@@ -694,7 +694,7 @@ export const apiService = {
 
   async uploadKnowledgeUrl(payload) {
     try {
-      const response = await apiClient.post('/aibase/knowledge/upload-url', payload);
+      const response = await apiClient.post('aibase/knowledge/upload-url', payload);
       return response.data;
     } catch (error) {
       console.error("Failed to upload knowledge URL:", error);
@@ -704,7 +704,7 @@ export const apiService = {
 
   async getKnowledgeList() {
     try {
-      const response = await apiClient.get('/aibase/knowledge/list');
+      const response = await apiClient.get('aibase/knowledge/list');
       return response.data;
     } catch (error) {
       console.error("Failed to fetch knowledge list:", error);
@@ -714,7 +714,7 @@ export const apiService = {
 
   async reindexDocument(id) {
     try {
-      const response = await apiClient.post(`/aibase/knowledge/reindex/${id}`);
+      const response = await apiClient.post(`aibase/knowledge/reindex/${id}`);
       return response.data;
     } catch (error) {
       console.error("Failed to reindex document:", error);
@@ -725,7 +725,7 @@ export const apiService = {
   // --- Knowledge Source (Website Crawler) Management ---
   async getKnowledgeSources() {
     try {
-      const response = await apiClient.get('/aibase/knowledge/sources');
+      const response = await apiClient.get('aibase/knowledge/sources');
       return response.data;
     } catch (error) {
       console.error("Failed to fetch knowledge sources:", error);
@@ -735,7 +735,7 @@ export const apiService = {
 
   async recrawlSource(payload) {
     try {
-      const path = payload.id ? `/aibase/knowledge/recrawl/${payload.id}` : '/aibase/knowledge/recrawl';
+      const path = payload.id ? `aibase/knowledge/recrawl/${payload.id}` : 'aibase/knowledge/recrawl';
       const response = await apiClient.post(path, payload);
       return response.data;
     } catch (error) {
@@ -746,7 +746,7 @@ export const apiService = {
 
   async updateKnowledgeSource(id, payload) {
     try {
-      const response = await apiClient.patch(`/aibase/knowledge/sources/${id}`, payload);
+      const response = await apiClient.patch(`aibase/knowledge/sources/${id}`, payload);
       return response.data;
     } catch (error) {
       console.error("Failed to update knowledge source:", error);
@@ -756,7 +756,7 @@ export const apiService = {
 
   async deleteKnowledgeSource(id) {
     try {
-      const response = await apiClient.delete(`/aibase/knowledge/sources/${id}`);
+      const response = await apiClient.delete(`aibase/knowledge/sources/${id}`);
       return response.data;
     } catch (error) {
       console.error("Failed to delete knowledge source:", error);
@@ -766,7 +766,7 @@ export const apiService = {
 
   async deleteKnowledgeDocument(id) {
     try {
-      const response = await apiClient.delete(`/aibase/knowledge/delete/${id}`);
+      const response = await apiClient.delete(`aibase/knowledge/delete/${id}`);
       return response.data;
     } catch (error) {
       console.error("Failed to delete knowledge document:", error);
@@ -776,7 +776,7 @@ export const apiService = {
 
   async aibaseChat(payload) {
     try {
-      const response = await apiClient.post('/aibase/chat', payload);
+      const response = await apiClient.post('aibase/chat', payload);
       return response.data;
     } catch (error) {
       console.error("Failed to generate AIBASE chat response:", error);

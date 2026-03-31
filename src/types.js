@@ -57,9 +57,10 @@ export const AppRoute = {
   ADMIN_DASHBOARD: "/dashboard/admin",
 };
 
-// API Base URL
-const API = window._env_?.VITE_AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || "http://localhost:8080/api";
-console.log(API);
+// API Base URL - import.meta.env is baked at build time (most reliable), window._env_ is runtime
+const API = import.meta.env.VITE_AISA_BACKEND_API || window._env_?.VITE_AISA_BACKEND_API || "http://localhost:8080/api";
+console.log("[AISA] API Base URL:", API);
+
 const apis = {
   resetPassword: `${API}/auth/reset-password-otp`,
   user: `${API}/user`,
