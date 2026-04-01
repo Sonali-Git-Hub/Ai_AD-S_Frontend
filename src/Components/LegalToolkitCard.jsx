@@ -1,10 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FileText, Shield, FileCheck, Scale, Binary, 
   Mail, PenTool, AlertTriangle, Edit3, Brain, 
   Library, Clock, CheckCircle, ArrowLeftRight, Lock, Sparkles,
-  MessageCircle, ArrowRight, X, ChevronDown, Zap
+  MessageCircle, ArrowRight, X, ChevronDown, Zap, Maximize2, Minimize2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -59,11 +59,26 @@ const PREMIUM_TOOLS = [
 ];
 
 const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdmin = false }) => {
+  const [isMaximized, setIsMaximized] = useState(false);
+
   useEffect(() => {
-    const handleEsc = (e) => { if (e.key === 'Escape') onClose(); };
+    const handleEsc = (e) => { 
+      if (e.key === 'Escape') {
+        if (isMaximized) {
+          setIsMaximized(false);
+        } else {
+          onClose(); 
+        }
+      } 
+    };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
-  }, [onClose]);
+  }, [onClose, isMaximized]);
+
+  // Reset maximization state when opening/closing
+  useEffect(() => {
+    if (!isOpen) setIsMaximized(false);
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) { document.body.style.overflow = 'hidden'; } 
@@ -136,31 +151,59 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            className="relative w-full max-w-4xl max-h-[85vh] bg-white border border-slate-200/60 rounded-[2.5rem] shadow-[0_30px_90px_rgba(0,0,0,0.1)] flex flex-col overflow-hidden"
+            layout
+            transition={{ 
+              layout: { duration: 0.3, ease: "easeInOut" },
+              opacity: { duration: 0.2 },
+              scale: { duration: 0.3 }
+            }}
+            className={`relative flex flex-col bg-white border border-slate-200/60 overflow-hidden ${isMaximized ? 'modal-maximized' : 'modal-default'}`}
           >
-            {/* Header */}
-            <div className="absolute top-6 right-6 z-20">
-              <button 
-                onClick={onClose}
-                className="p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-400 hover:text-slate-600 transition-all active:scale-90"
-              >
-                <X className="w-4 h-4" />
-              </button>
+            {/* Header - Fixed & Sticky */}
+            <div 
+              className="flex items-center justify-between px-8 sm:px-12 py-6 border-b border-slate-100 bg-white/80 backdrop-blur-md z-20 cursor-default select-none"
+              onDoubleClick={() => setIsMaximized(!isMaximized)}
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center border border-blue-100 shadow-sm">
+                   <Scale className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-black text-slate-900 leading-tight">AI Legal</h1>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Professional Toolkit</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setIsMaximized(!isMaximized)}
+                  title={isMaximized ? "Restore" : "Maximize"}
+                  className="p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-blue-600 transition-all border border-slate-100 active:scale-90"
+                >
+                  {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                </button>
+                <button 
+                  onClick={onClose}
+                  title="Close"
+                   className="p-2.5 bg-slate-50 hover:bg-red-50 rounded-xl text-slate-400 hover:text-red-500 transition-all border border-slate-100 active:scale-90"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-8 sm:p-12 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-8 sm:p-12 custom-scrollbar space-y-12">
               
-              {/* Main Heading */}
-              <div className="mb-10 text-center sm:text-left">
-                <div className="flex items-center gap-2 mb-2 justify-center sm:justify-start">
-                  <div className="w-6 h-6 rounded-lg bg-blue-50 flex items-center justify-center border border-blue-100">
-                    <Scale className="w-3 h-3 text-blue-600" />
-                  </div>
-                  <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em]">Professional Legal Engines</span>
+              {/* Context Info (Visible only when NOT maximized to save space if needed, or keeping it for consistency) */}
+              {/* Actually, user wants it professional, so I'll keep the hero section visible but maybe tighter */}
+              
+              {!isMaximized && (
+                <div className="text-center sm:text-left">
+                  <p className="text-sm text-slate-500 font-bold max-w-lg">Advanced AI-driven professional suites for legal mastery.</p>
                 </div>
-                <h1 className="text-4xl font-[950] text-slate-900 tracking-tight leading-none mb-2">AI Legal</h1>
-                <p className="text-sm text-slate-500 font-bold max-w-lg">Advanced AI-driven professional suites for legal mastery.</p>
-              </div>
+              )}
 
               {/* 1. HERO SECTION: GENERAL LEGAL CHAT */}
               <motion.div
