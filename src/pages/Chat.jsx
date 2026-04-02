@@ -24,7 +24,7 @@ import ModelSelector from '../Components/ModelSelector';
 import MagicToolSettingsCard from '../Components/MagicToolSettingsCard';
 import LegalToolkitCard from '../Components/LegalToolkitCard';
 import axios from 'axios';
-import { apis } from '../types';
+import { apis, API } from '../types';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { detectMode, getModeName, getModeIcon, getModeColor, MODES } from '../utils/modeDetection';
@@ -2723,8 +2723,8 @@ const Chat = () => {
         }
       }
 
-      // Handle AI Legal Mode
-      if (activeLegalToolkit && selectedLegalTool) {
+      // Handle AI Legal Mode (Specific Tool Execution)
+      if (currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool) {
         setLoadingText(`${selectedLegalTool.name}... ⚖️`);
         try {
           const userMsgId = Date.now().toString();
@@ -2745,7 +2745,7 @@ const Chat = () => {
           setInputValue('');
           handleRemoveFile();
 
-          const res = await axios.post(`${apis.baseUrl}/api/legal-toolkit/execute`, {
+          const res = await axios.post(`${API}/legal-toolkit/execute`, {
             message: contentToSend,
             toolName: selectedLegalTool.id,
             sessionId: activeSessionId,
@@ -2900,7 +2900,9 @@ const Chat = () => {
             (documentConvertActive ? MODES.DOCUMENT_CONVERT :
               (webSearchActive ? MODES.WEB_SEARCH :
                 (codeWriterActive ? MODES.CODING_HELP :
-                  detectMode(contentToSend, userMsg.attachments))))));
+                  (currentMode === 'LEGAL_TOOLKIT' ? MODES.LEGAL_TOOLKIT :
+                    detectMode(contentToSend, userMsg.attachments)))))));
+      
       setCurrentMode(detectedMode);
 
       // Update user message with the detected mode
@@ -6437,7 +6439,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
                               <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">AI Legal</span>
                             </div>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">13 specialized AI legal tools.</p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">6 specialized AI legal tools.</p>
                           </div>
                         </button>
 
