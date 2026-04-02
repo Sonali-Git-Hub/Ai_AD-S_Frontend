@@ -5663,9 +5663,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                   onClick={() => {
                                     handleSendMessage(null, q);
                                   }}
-                                  className="text-xs px-3.5 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-primary hover:bg-primary hover:text-white transition-all flex items-center gap-1.5 font-medium shadow-sm active:scale-95"
+                                  className="text-xs px-3.5 py-1.5 rounded-full border border-primary/30 bg-primary/20 text-white hover:bg-primary transition-all flex items-center gap-1.5 font-bold shadow-sm active:scale-95"
                                 >
-                                  <Sparkles className="w-3 h-3" />
+                                  <Brain className="w-3 h-3" />
                                   {q}
                                 </button>
                               ))}
