@@ -1,157 +1,392 @@
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Layout, Monitor, Smartphone, Check, Zap, DollarSign, Settings2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence, LayoutGroup, useMotionTemplate, useMotionValue } from 'framer-motion';
+import { X, Layout, Monitor, Smartphone, Check, Zap, Shield, Rocket, Sparkles, Wand2 } from 'lucide-react';
 
-const MagicToolSettingsCard = ({ 
-    isOpen, 
-    onClose, 
-    toolType, 
-    config, 
-    onChange, 
-    pricing 
-}) => {
+// Wave fill animation for Active Aspect Ratio
+const WaveFill = () => (
+    <div className="absolute inset-0 overflow-hidden rounded-[10px] z-0 pointer-events-none">
+        <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: "0%" }}
+            transition={{ type: "spring", stiffness: 100, damping: 20 }}
+            className="absolute inset-0 bg-primary/95"
+        >
+            <motion.div
+                animate={{ x: ["0%", "-50%", "0%"] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute top-0 left-0 right-0 h-[250%] w-[200%] opacity-40 mix-blend-overlay"
+                style={{
+                    background: "radial-gradient(circle at center, rgba(255,255,255,0.8) 0%, transparent 70%)"
+                }}
+            />
+        </motion.div>
+    </div>
+);
+
+// High-end Floating Particles (Bokeh & Stardust)
+const PremiumEnvironment = () => {
+    const [particles, setParticles] = useState([]);
+
+    useEffect(() => {
+        // Deep magical colors + pure black for stardust feeling under light frost
+        const palettes = ['bg-slate-900', 'bg-indigo-900', 'bg-violet-950', 'bg-[#0f172a]', 'bg-blue-900'];
+        // Reduced particle count slightly for mobile performance
+        const particleCount = window.innerWidth < 768 ? 20 : 35;
+        
+        const generated = Array.from({ length: particleCount }).map((_, i) => ({
+            id: i,
+            size: Math.random() > 0.8 ? Math.random() * 6 + 3 : Math.random() * 2 + 1,
+            left: Math.random() * 100,
+            top: Math.random() * 100,
+            duration: Math.random() * 15 + 10,
+            delay: Math.random() * 5,
+            xMove: (Math.random() - 0.5) * 50,
+            yMove: -Math.random() * 120 - 40,
+            colorClass: palettes[Math.floor(Math.random() * palettes.length)],
+            blur: Math.random() > 0.8 ? 'blur-[2px] md:blur-[3px]' : 'blur-[0px] md:blur-[1px]'
+        }));
+        setParticles(generated);
+    }, []);
+
+    return (
+        <div className="absolute inset-0 overflow-hidden rounded-[27px] pointer-events-none z-[1] opacity-70">
+            {particles.map((p) => (
+                <motion.div
+                    key={p.id}
+                    className={`absolute ${p.colorClass} rounded-full ${p.blur} shadow-md sm:shadow-lg`}
+                    style={{
+                        width: p.size,
+                        height: p.size,
+                        left: `${p.left}%`,
+                        top: `${p.top}%`,
+                    }}
+                    animate={{
+                        y: [0, p.yMove],
+                        x: [0, p.xMove],
+                        opacity: [0, Math.random() * 0.8 + 0.2, 0],
+                        scale: [0, 1.2, 0],
+                        rotate: [0, 180]
+                    }}
+                    transition={{
+                        duration: p.duration,
+                        repeat: Infinity,
+                        ease: "linear",
+                        delay: p.delay,
+                    }}
+                />
+            ))}
+        </div>
+    );
+};
+
+// Deep cinematic shadows rotating
+const CinematicShadows = () => (
+    <div className="absolute inset-0 overflow-hidden rounded-[27px] pointer-events-none opacity-[0.25] mix-blend-multiply z-0">
+        <motion.div animate={{ x: ["0%", "50%", "0%"], y: ["0%", "20%", "0%"], scale: [1, 1.2, 1] }} transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }} className="absolute -top-[10%] -left-[10%] w-[80%] h-[80%] bg-indigo-800 rounded-full filter blur-[40px] md:blur-[70px]" />
+        <motion.div animate={{ x: ["0%", "-40%", "0%"], y: ["0%", "30%", "0%"], scale: [1, 1.3, 1] }} transition={{ duration: 25, repeat: Infinity, ease: "easeInOut", delay: 2 }} className="absolute top-[30%] -right-[20%] w-[90%] h-[90%] bg-blue-900 rounded-full filter blur-[40px] md:blur-[60px]" />
+        <motion.div animate={{ x: ["0%", "30%", "0%"], y: ["0%", "-40%", "0%"], scale: [1, 1.1, 1] }} transition={{ duration: 22, repeat: Infinity, ease: "easeInOut", delay: 4 }} className="absolute -bottom-[20%] left-[20%] w-[80%] h-[60%] bg-violet-900 rounded-full filter blur-[40px] md:blur-[70px]" />
+    </div>
+);
+
+const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pricing }) => {
+    const [hoveredModel, setHoveredModel] = useState(null);
+    const [isHovered, setIsHovered] = useState(false);
+    
+    // Spotlight Effect logic
+    let mouseX = useMotionValue(0);
+    let mouseY = useMotionValue(0);
+    function handleMouseMove({ currentTarget, clientX, clientY }) {
+        let { left, top } = currentTarget.getBoundingClientRect();
+        mouseX.set(clientX - left);
+        mouseY.set(clientY - top);
+    }
+
+    const spotlightBackground = useMotionTemplate`
+        radial-gradient(
+            350px circle at ${mouseX}px ${mouseY}px,
+            rgba(0,0,0,0.12),
+            transparent 80%
+        )
+    `;
+
     if (!isOpen) return null;
 
     const toolPricing = pricing[toolType] || { models: [] };
     
     const aspectRatios = toolType === 'video' ? [
-        { id: '16:9', label: '16:9 Landscape', icon: Monitor },
-        { id: '9:16', label: '9:16 Portrait', icon: Smartphone },
-        { id: '1:1', label: '1:1 Square', icon: Layout },
+        { id: '16:9', label: '16:9', icon: Monitor, w: 14, h: 8 },
+        { id: '9:16', label: '9:16', icon: Smartphone, w: 8, h: 14 },
+        { id: '1:1', label: '1:1', icon: Layout, w: 1, h: 1 },
     ] : [
-        { id: '1:1', label: '1:1 Square', icon: Layout },
-        { id: '16:9', label: '16:9 Wide', icon: Monitor },
-        { id: '9:16', label: '9:16 Portrait', icon: Smartphone },
-        { id: '4:5', label: '4:5 Post', icon: Layout },
+        { id: '1:1', label: '1:1', icon: Layout, w: 1, h: 1 },
+        { id: '16:9', label: '16:9', icon: Monitor, w: 14, h: 8 },
+        { id: '9:16', label: '9:16', icon: Smartphone, w: 8, h: 14 },
+        { id: '4:5', label: '4:5', icon: Layout, w: 4, h: 5 },
     ];
 
+    const modelHoverColors = ["bg-blue-50/90", "bg-indigo-50/90", "bg-violet-50/90", "bg-purple-50/90"];
+
     return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="relative w-full max-w-md overflow-hidden rounded-3xl shadow-2xl border border-white/10"
-                style={{ background: 'linear-gradient(135deg, rgba(20,20,35,0.97) 0%, rgba(15,15,28,0.98) 100%)', backdropFilter: 'blur(40px)' }}
+        <AnimatePresence>
+            <div 
+                className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-4 bg-black/60 sm:bg-black/70 backdrop-blur-[8px] sm:backdrop-blur-[16px]"
+                onClick={(e) => e.target === e.currentTarget && onClose()}
             >
-                {/* ── Header ── */}
-                <div className="relative px-6 pt-6 pb-4">
-                    <div className="absolute inset-0 opacity-20" style={{ background: 'radial-gradient(ellipse at top, rgba(99,102,241,0.4) 0%, transparent 70%)' }} />
-                    <div className="relative flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                                <Settings2 className="w-4 h-4 text-white" />
-                            </div>
-                            <div>
-                                <h3 className="text-sm font-bold text-white leading-none">
-                                    {toolType === 'image' ? 'Image' : 'Video'} Settings
-                                </h3>
-                                <p className="text-[10px] text-indigo-400 font-semibold mt-0.5">
-                                    {toolType === 'image' ? 'Imagen 4.0 · Hyper-realistic · Ultra HD' : 'Veo 3.1 · Fast Motion · 4K Ready'}
-                                </p>
-                            </div>
-                        </div>
-                        <button onClick={onClose} className="w-7 h-7 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-all border border-white/10">
-                            <X className="w-3.5 h-3.5" />
-                        </button>
+                {/* Main animated container */}
+                <motion.div
+                    onMouseMove={handleMouseMove}
+                    onHoverStart={() => setIsHovered(true)}
+                    onHoverEnd={() => setIsHovered(false)}
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    animate={{ 
+                        opacity: 1, 
+                        scale: isHovered ? 1.005 : [1, 1.01, 1], 
+                        y: 0,
+                    }}
+                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                    transition={{ 
+                        scale: { duration: 5, repeat: Infinity, ease: "easeInOut" },
+                        default: { type: "spring", stiffness: 350, damping: 28, mass: 1 }
+                    }}
+                    className="relative w-full max-w-[320px] sm:max-w-[340px] rounded-[28px] overflow-visible shadow-[0_20px_50px_-10px_rgba(0,0,0,0.5)] sm:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.6)] group ring-1 ring-white/30 sm:ring-white/50"
+                >
+                    {/* Pulsing Backlight */}
+                    <div className="absolute inset-0 rounded-[28px] overflow-hidden pointer-events-none">
+                        <motion.div 
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
+                            className="absolute -inset-[60%] z-0 bg-[conic-gradient(from_0deg,transparent_0%,rgba(255,255,255,0.7)_15%,transparent_30%,rgba(0,0,0,0.1)_50%,rgba(255,255,255,0.6)_85%,transparent_100%)] sm:bg-[conic-gradient(from_0deg,transparent_0%,rgba(255,255,255,1)_15%,transparent_30%,rgba(0,0,0,0.2)_50%,rgba(255,255,255,0.8)_85%,transparent_100%)] opacity-20 blur-[8px]"
+                        />
                     </div>
-                </div>
 
-                <div className="px-6 pb-6 space-y-6">
-                    {/* Aspect Ratio Section */}
-                    {config.aspectRatio !== undefined && (
-                        <div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-3">Aspect Ratio</p>
-                            <div className="grid grid-cols-2 gap-2.5">
-                                {aspectRatios.map((ar) => (
-                                    <button
-                                        key={ar.id}
-                                        onClick={() => onChange('aspectRatio', ar.id)}
-                                        className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all group ${
-                                            config.aspectRatio === ar.id
-                                            ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300'
-                                            : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/8 hover:text-white'
-                                        }`}
-                                    >
-                                        <ar.icon size={16} className={config.aspectRatio === ar.id ? 'text-indigo-400' : 'text-white/30 group-hover:text-white/50'} />
-                                        <span className="text-xs font-semibold">{ar.label}</span>
-                                        {config.aspectRatio === ar.id && <Check size={14} className="ml-auto text-indigo-400" />}
-                                    </button>
-                                ))}
+                    {/* Main Content Glass Layer */}
+                    <div className="relative z-10 w-full h-full rounded-[27px] flex flex-col overflow-hidden bg-white/80 sm:bg-white/75 backdrop-blur-[20px] sm:backdrop-blur-[50px] shadow-[inset_0_1px_3px_rgba(255,255,255,0.9)] sm:shadow-[inset_0_2px_4px_rgba(255,255,255,0.8)] border border-white/50 sm:border-white/60">
+                        
+                        {/* Dynamic Interactive Spotlight overlay (Hidden on pure mobile since no hover) */}
+                        <motion.div
+                            className="pointer-events-none hidden md:block absolute -inset-px z-20 rounded-[27px] opacity-0 transition duration-500 group-hover:opacity-100 mix-blend-soft-light"
+                            style={{ background: spotlightBackground }}
+                        />
+
+                        {/* Background Animations */}
+                        <CinematicShadows />
+                        <PremiumEnvironment />
+
+                        {/* Soft Noise Texture */}
+                        <div className="absolute inset-0 z-0 opacity-[0.015] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }} />
+
+                        {/* ── Header ── */}
+                        <div className="relative z-20 px-5 sm:px-6 pt-6 pb-4 border-b border-black/[0.04] bg-white/40">
+                            <div className="absolute top-0 right-8 w-[150px] h-full bg-gradient-to-l from-white/30 to-transparent pointer-events-none blur-xl" />
+
+                            <div className="flex items-center justify-between relative">
+                                <div className="flex items-center gap-3.5">
+                                    <div className="relative">
+                                        <motion.div 
+                                            animate={{ rotate: 360 }} 
+                                            transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                                            className="absolute inset--1.5 bg-primary/20 sm:bg-primary/30 rounded-full blur-md opacity-70"
+                                        />
+                                        <motion.div 
+                                            whileHover={{ rotate: 180, scale: 1.08 }}
+                                            className="w-[34px] sm:w-[38px] h-[34px] sm:h-[38px] relative z-10 rounded-[10px] sm:rounded-xl bg-gradient-to-br from-primary via-[#4F46E5] to-[#3B82F6] flex items-center justify-center shadow-[0_6px_15px_rgba(var(--primary-rgb),0.3)] border border-white/30"
+                                        >
+                                            <Wand2 className="w-[16px] sm:w-[18px] h-[16px] sm:h-[18px] text-white" />
+                                        </motion.div>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-[15px] sm:text-[16px] font-black text-slate-900 tracking-tight leading-none mb-1 shadow-sm">Image Settings</h3>
+                                        <p className="text-[8.5px] sm:text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em] flex items-center gap-1 opacity-90">
+                                            <Sparkles className="w-2.5 h-2.5 text-primary animate-pulse" />
+                                            Advanced Engine
+                                        </p>
+                                    </div>
+                                </div>
+                                <motion.button 
+                                    whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.7)", rotate: 90 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={onClose} 
+                                    className="w-7 h-7 rounded-full bg-white/50 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:shadow-md transition-all shadow-sm border border-white/50 relative z-10"
+                                >
+                                    <X size={16} strokeWidth={2.5} />
+                                </motion.button>
                             </div>
                         </div>
-                    )}
 
-                    {/* Resolution Section (for Video) */}
-                    {config.resolution !== undefined && (
-                        <div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-3">Resolution</p>
-                            <div className="flex gap-2.5">
-                                {['1080p', '4k'].map((res) => (
-                                    <button
-                                        key={res}
-                                        onClick={() => onChange('resolution', res)}
-                                        className={`flex-1 flex items-center justify-center py-3 rounded-2xl border font-bold text-xs transition-all ${
-                                            config.resolution === res
-                                            ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300'
-                                            : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/8 hover:text-white'
-                                        }`}
-                                    >
-                                        {res.toUpperCase()}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                        {/* ── Body ── */}
+                        <div className="relative z-20 px-5 sm:px-6 py-5 space-y-5 sm:space-y-6 max-h-[60vh] sm:max-h-[55vh] overflow-y-auto custom-scrollbar">
+                            
+                            {/* Segmented Aspect Control */}
+                            {config.aspectRatio !== undefined && (
+                                <div>
+                                    <div className="flex items-center gap-2 mb-3 ml-1">
+                                        <div className="w-1 h-1 rounded-full bg-slate-800 shadow-[0_0_6px_rgba(0,0,0,0.5)]" />
+                                        <p className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-800/80 drop-shadow-sm">Aspect Ratio</p>
+                                    </div>
+                                    <div className="relative grid grid-cols-4 gap-1.5 bg-white/50 p-1.5 rounded-[16px] border border-white/60 shadow-[inset_0_2px_12px_rgba(0,0,0,0.03)] backdrop-blur-xl">
+                                        <LayoutGroup id="aspectSwitch">
+                                            {aspectRatios.map((ar) => {
+                                                const isActive = config.aspectRatio === ar.id;
+                                                return (
+                                                    <motion.button
+                                                        key={ar.id}
+                                                        onClick={() => onChange('aspectRatio', ar.id)}
+                                                        whileHover={!isActive ? { scale: 1.05 } : {}}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        className="relative h-12 rounded-[10px] flex flex-col items-center justify-center transition-colors outline-none overflow-hidden group shadow-sm"
+                                                    >
+                                                        {isActive ? (
+                                                            <WaveFill />
+                                                        ) : (
+                                                            <div className="absolute inset-0 bg-white/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-[10px]" />
+                                                        )}
 
-                    {/* Model Section */}
-                    {config.modelId !== undefined && (
-                        <div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-3">AI Engine</p>
-                            <div className="space-y-2">
-                                {toolPricing.models.map((model) => (
-                                    <button
-                                        key={model.id}
-                                        onClick={() => onChange('modelId', model.id)}
-                                        className={`w-full p-4 rounded-2xl border transition-all text-left relative group ${
-                                            config.modelId === model.id
-                                            ? 'bg-indigo-600/20 border-indigo-500/50'
-                                            : 'bg-white/5 border-white/10 hover:bg-white/8'
-                                        }`}
-                                    >
-                                        <div className="flex justify-between items-start mb-1">
-                                            <span className={`text-[13px] font-bold ${config.modelId === model.id ? 'text-indigo-300' : 'text-white'}`}>
-                                                {model.name}
-                                            </span>
-                                            {config.modelId === model.id && <Check size={14} className="text-indigo-400" />}
-                                        </div>
-                                        <p className="text-[11px] text-white/40 line-clamp-1 font-medium mb-3 italic">{model.description}</p>
-                                        
-                                        <div className="flex items-center gap-4">
-                                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-white/30">
-                                                <Zap size={11} className={config.modelId === model.id ? 'text-indigo-400' : ''} /> {model.speed}
-                                            </div>
-                                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-white/30">
-                                                <DollarSign size={11} className={config.modelId === model.id ? 'text-indigo-400' : ''} /> {model.price === 0 ? 'Free' : `${model.price} Credits`}
-                                            </div>
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
+                                                        <div className={`relative z-10 flex flex-col items-center transition-all duration-300 ${isActive ? 'scale-105' : 'scale-100 opacity-70 group-hover:opacity-100'}`}>
+                                                            <div className="flex items-center justify-center mb-1 drop-shadow-sm">
+                                                                <div 
+                                                                    className={`border-[1.5px] rounded-[2px] transition-colors ${isActive ? 'border-white' : 'border-slate-500 group-hover:border-slate-800'}`}
+                                                                    style={{ 
+                                                                        width: ar.w > ar.h ? 12 : ar.w === ar.h ? 9 : 6,
+                                                                        height: ar.h > ar.w ? 12 : ar.h === ar.w ? 9 : 6,
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                            <span className={`text-[9.5px] font-black tracking-tighter ${isActive ? 'text-white' : 'text-slate-600 group-hover:text-slate-900'}`}>{ar.label}</span>
+                                                        </div>
+                                                    </motion.button>
+                                                );
+                                            })}
+                                        </LayoutGroup>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Synthesis Core Items */}
+                            {config.modelId !== undefined && (
+                                <div className="space-y-3.5">
+                                    <div className="flex items-center gap-2 mb-3 ml-1">
+                                        <div className="w-1 h-1 rounded-full bg-slate-800 shadow-[0_0_6px_rgba(0,0,0,0.5)]" />
+                                        <p className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-800/80 drop-shadow-sm">Synthesis Core</p>
+                                    </div>
+                                    <div className="space-y-3 relative">
+                                        <AnimatePresence>
+                                            {toolPricing.models.map((model, idx) => {
+                                                const isActive = config.modelId === model.id;
+                                                const isThisHovered = hoveredModel === model.id;
+                                                const hoverBaseColor = modelHoverColors[idx % modelHoverColors.length];
+
+                                                return (
+                                                    <motion.div
+                                                        key={model.id}
+                                                        initial={{ opacity: 0, x: -10 }}
+                                                        animate={{ opacity: 1, x: 0 }}
+                                                        transition={{ delay: idx * 0.08, type: "spring", stiffness: 300, damping: 25 }}
+                                                        className="relative"
+                                                    >
+                                                        {isActive && (
+                                                            <motion.div 
+                                                                layoutId="activeModelRing"
+                                                                className="absolute -inset-[1px] rounded-[20px] bg-gradient-to-r from-primary via-[#8b5cf6] to-[#0ea5e9] opacity-[0.35] blur-[5px] z-0"
+                                                            />
+                                                        )}
+
+                                                        <motion.button
+                                                            onHoverStart={() => setHoveredModel(model.id)}
+                                                            onHoverEnd={() => setHoveredModel(null)}
+                                                            onClick={() => onChange('modelId', model.id)}
+                                                            whileHover={{ y: -2, scale: 1.01 }}
+                                                            whileTap={{ scale: 0.98 }}
+                                                            className={`w-full relative p-[14px] rounded-[18px] text-left transition-all duration-300 z-10 overflow-hidden ${
+                                                                isActive 
+                                                                ? 'bg-white shadow-[0_15px_30px_-5px_rgba(var(--primary-rgb),0.25)] border-2 border-primary/20' 
+                                                                : `bg-white/60 border border-white/50 hover:${hoverBaseColor} shadow-sm backdrop-blur-md hover:shadow-lg`
+                                                            }`}
+                                                        >
+                                                            {/* Lens Flare Sweep Effect when Hovered */}
+                                                            {isThisHovered && !isActive && (
+                                                                <motion.div 
+                                                                    initial={{ left: "-100%" }}
+                                                                    animate={{ left: "200%" }}
+                                                                    transition={{ duration: 1.2, ease: "easeInOut" }}
+                                                                    className="absolute top-0 bottom-0 w-[50%] bg-gradient-to-r from-transparent via-white/50 to-transparent skew-x-12 pointer-events-none"
+                                                                />
+                                                            )}
+
+                                                            <div className="flex items-center gap-3.5 relative z-10 w-full">
+                                                                <motion.div 
+                                                                    animate={{ scale: isActive ? 1.1 : 1 }}
+                                                                    className={`w-[36px] h-[36px] rounded-[12px] flex items-center justify-center transition-all duration-500 shadow-inner shrink-0 ${isActive ? 'bg-gradient-to-br from-primary to-blue-600 text-white shadow-[0_8px_20px_rgba(var(--primary-rgb),0.4)] border border-primary/50' : 'bg-white text-slate-400 group-hover:text-primary'}`}
+                                                                >
+                                                                    {model.speed === 'Fast' ? <Rocket size={18} className={isActive ? 'drop-shadow-md' : ''} /> : <Zap size={18} className={isActive ? 'drop-shadow-md' : ''} />}
+                                                                </motion.div>
+
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="flex items-center justify-between mb-1">
+                                                                        <span className={`text-[14px] font-black truncate pr-2 transition-colors ${isActive ? 'text-slate-900' : 'text-slate-700'}`}>{model.name}</span>
+                                                                        
+                                                                        <div className="flex items-center gap-1.5 shrink-0">
+                                                                            <span className={`text-[8.5px] font-black uppercase tracking-[0.1em] transition-colors ${isActive ? 'text-primary' : 'text-slate-500'}`}>
+                                                                                {model.price === 0 ? 'Free' : `${model.price} CR`}
+                                                                            </span>
+                                                                            
+                                                                            {isActive && (
+                                                                                <motion.div
+                                                                                    initial={{ scale: 0, rotate: -90 }}
+                                                                                    animate={{ scale: 1, rotate: 0 }}
+                                                                                    transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                                                                                    className="bg-primary/10 rounded-full p-0.5"
+                                                                                >
+                                                                                    <Check size={12} className="text-primary" strokeWidth={4} />
+                                                                                </motion.div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                    <p className={`text-[10.5px] font-medium leading-snug transition-colors line-clamp-2 ${isActive ? 'text-slate-500' : 'text-slate-400 group-hover:text-slate-600'}`}>{model.description}</p>
+                                                                </div>
+                                                            </div>
+                                                        </motion.button>
+                                                    </motion.div>
+                                                );
+                                            })}
+                                        </AnimatePresence>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                    )}
-                </div>
-                
-                <div className="p-6 bg-white/5 border-t border-white/10">
-                   <button 
-                    onClick={onClose}
-                    className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-bold text-sm uppercase tracking-wider hover:opacity-90 transition-all shadow-xl shadow-indigo-500/20 active:scale-[0.98]"
-                   >
-                     Apply Configurations
-                   </button>
-                </div>
-            </motion.div>
-        </div>
+                        
+                        {/* ── Footer ── */}
+                        <div className="p-4 relative z-20 border-t border-black/[0.04] bg-white/40 backdrop-blur-md">
+                            <motion.button 
+                                whileHover={{ scale: 1.01, y: -0.5 }}
+                                whileTap={{ 
+                                    scale: 0.98,
+                                    y: 0,
+                                    transition: { type: "spring", stiffness: 250, damping: 20 }
+                                }}
+                                onClick={onClose}
+                                className="relative w-11/12 mx-auto flex items-center justify-center py-2.5 rounded-[12px] bg-gradient-to-r from-primary via-[#4F46E5] to-[#3B82F6] group overflow-hidden shadow-[0_10px_20px_rgba(var(--primary-rgb),0.25)]"
+                                style={{ backgroundSize: '200% 100%' }}
+                                animate={{ backgroundPosition: ['0% 0%', '100% 0%', '0% 0%'] }}
+                                transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+                            >
+                                <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_50%,transparent_75%)] bg-[length:250%_250%,100%_100%] bg-[position:200%_0,0_0] bg-no-repeat group-hover:animate-shine pointer-events-none transition-all duration-1000 ease-out" />
+
+                                <div className="relative z-10 flex items-center justify-center gap-1.5">
+                                    <Shield className="w-3.5 h-3.5 text-white drop-shadow-sm group-hover:scale-105 transition-transform duration-500" strokeWidth={2.5} />
+                                    <span className="text-[11.5px] font-black text-white uppercase tracking-[0.2em] drop-shadow-sm">Activate Core</span>
+                                </div>
+                            </motion.button>
+                        </div>
+                    </div>
+                </motion.div>
+            </div>
+            
+            <style jsx>{`
+                @keyframes shine {
+                    100% { background-position: -200% 0, 0 0; }
+                }
+            `}</style>
+        </AnimatePresence>
     );
 };
 

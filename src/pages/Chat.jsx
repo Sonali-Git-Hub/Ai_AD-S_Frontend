@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, Fragment } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Send, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe, Sliders, PlayCircle, Brain, ImagePlus, PlaySquare, RefreshCcw } from 'lucide-react';
+import { Send, SendHorizontal, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe, Sliders, PlayCircle, Brain, ImagePlus, PlaySquare, RefreshCcw, Zap } from 'lucide-react';
 import { renderAsync } from 'docx-preview';
 import * as XLSX from 'xlsx';
 import { Menu, Transition, Dialog, Listbox, Portal } from '@headlessui/react';
@@ -37,6 +37,160 @@ import { getSubscriptionDetails } from '../services/pricingService';
 import IntentSuggestionBanner from '../Components/IntentSuggestionBanner';
 import { detectIntent, mapModeToToolState } from '../services/intentService';
 import LoginRequiredModal from '../Components/LoginRequiredModal';
+import FuturisticToolCards from '../Components/FuturisticToolCards';
+import AisaTypingIndicator from '../Components/AisaTypingIndicator';
+import NeuralBackground from '../Components/NeuralBackground';
+
+const SendRipple = ({ onComplete }) => {
+  return (
+    <div className="absolute inset-0 pointer-events-none z-0">
+      <motion.div
+        initial={{ scale: 1, opacity: 0.8 }}
+        animate={{ scale: 3.5, opacity: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        onAnimationComplete={onComplete}
+        className="absolute inset-0 rounded-full border-2 border-primary/40 bg-primary/5"
+      />
+      {/* Mini Sparkle Burst for Send */}
+      {[...Array(12)].map((_, i) => {
+        const angle = (i / 12) * Math.PI * 2;
+        const dist = 60 + Math.random() * 40;
+        return (
+          <motion.div
+            key={i}
+            initial={{ x: 0, y: 0, scale: 0, opacity: 0 }}
+            animate={{ 
+              x: Math.cos(angle) * dist, 
+              y: Math.sin(angle) * dist, 
+              scale: [0, 1.5, 0], 
+              opacity: [0, 1, 0] 
+            }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+          >
+            <Sparkles size={10} className="text-primary fill-current" />
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+};
+
+const MagicShowEffect = ({ isMobileIdle = false }) => {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const particleCount = isMobileIdle ? 4 : (isMobile ? 8 : 28);
+
+  return (
+    <div className={`absolute inset-0 pointer-events-none overflow-visible z-0 ${isMobileIdle ? 'opacity-40' : 'opacity-100'}`}>
+      {/* 1. Pulsing Expansion Halos */}
+      <motion.div
+        animate={{ scale: [1, 2.2], opacity: [0.5, 0] }}
+        transition={{ duration: isMobileIdle ? 3 : 1.5, repeat: Infinity, ease: "easeOut" }}
+        className="absolute inset-[-4px] border-[1.5px] border-primary/40 rounded-full blur-[1px]"
+      />
+      
+      {!isMobileIdle && (
+        <motion.div
+          animate={{ scale: [0.8, 1.8], opacity: [0.3, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeOut", delay: 0.5 }}
+          className="absolute inset-[-4px] border-[1px] border-blue-400/20 rounded-full blur-[2px]"
+        />
+      )}
+
+      {/* 2. Sweeping Lens Glint across the button */}
+      <div className="absolute inset-0 rounded-full overflow-hidden z-20">
+        <motion.div
+          animate={{ x: [-60, 60], opacity: [0, 0.8, 0] }}
+          transition={{ duration: isMobileIdle ? 3 : 1.2, repeat: Infinity, repeatDelay: isMobileIdle ? 2 : 0.8 }}
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent skew-x-[-30deg]"
+        />
+      </div>
+
+      {/* 3. Theatrical Magic Sparkles */}
+      {[...Array(particleCount)].map((_, i) => {
+        const randomX = (Math.random() - 0.5) * (isMobileIdle ? 100 : 280); 
+        const randomY = (Math.random() - 0.5) * (isMobileIdle ? 100 : 240) - (isMobileIdle ? 0 : 50); 
+        const randomScale = Math.random() * 1.4 + 0.5;
+        const randomRotation = Math.random() * 360;
+        const randomDuration = isMobileIdle ? 1.5 + Math.random() * 2 : 0.5 + Math.random() * 1.0;
+        const randomDelay = Math.random() * (isMobileIdle ? 1.5 : 0.15);
+
+        return (
+          <motion.div
+            key={i}
+            initial={{ x: 0, y: 0, opacity: 0, scale: 0 }}
+            animate={{
+              x: randomX,
+              y: randomY,
+              opacity: [0, 1, 0.8, 0],
+              scale: [0, randomScale, 1.2, 0],
+              rotate: [0, randomRotation],
+            }}
+            transition={{
+              duration: randomDuration,
+              repeat: Infinity,
+              delay: randomDelay,
+              ease: [0.23, 1, 0.32, 1] 
+            }}
+            className="absolute flex items-center justify-center top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+          >
+            <Sparkles 
+              size={Math.random() * 14 + 10} 
+              className={i % 3 === 0 ? "text-indigo-400" : (i % 2 === 0 ? "text-primary" : "text-white")} 
+              fill="currentColor"
+              style={isMobile ? {} : { filter: `drop-shadow(0 0 12px ${i % 2 === 0 ? '#8b5cf6' : '#fff'})` }}
+            />
+          </motion.div>
+        );
+      })}
+
+      {/* 4. Underlying Glow Bloom (Hidden on mobile to heavily save GPU rendering) */}
+      {!isMobile && (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 0.7, scale: 1.25 }}
+          className="absolute inset-[-40px] rounded-full blur-[50px] mix-blend-screen pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(139, 92, 246, 0.6) 0%, transparent 70%)' }}
+        />
+      )}
+    </div>
+  );
+};
+
+const NeuralExplosion = ({ x, y, onComplete }) => {
+  const particles = Array.from({ length: 24 });
+  return (
+    <div className="fixed inset-0 pointer-events-none z-[9999]">
+      {particles.map((_, i) => (
+        <motion.div
+          key={i}
+          initial={{ x, y, opacity: 1, scale: 0.2 }}
+          animate={{
+            x: x + (Math.random() - 0.5) * 250,
+            y: y + (Math.random() - 0.5) * 250,
+            opacity: 0.8,
+            scale: 1,
+            transition: { 
+              duration: 0.4, 
+              ease: "easeOut" 
+            }
+          }}
+          onAnimationComplete={i === 0 ? onComplete : undefined}
+        >
+          <motion.div
+            animate={{ opacity: 0, scale: 0 }}
+            transition={{ delay: 0.4, duration: 0.4 }}
+            className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full"
+            style={{ 
+              background: i % 2 === 0 ? '#8b5cf6' : '#3b82f6',
+              boxShadow: `0 0 15px ${i % 2 === 0 ? '#8b5cf6' : '#3b82f6'}`
+            }}
+          />
+        </motion.div>
+      ))}
+    </div>
+  );
+};
 
 
 
@@ -242,6 +396,14 @@ const ImageViewer = ({ src, alt }) => {
             }
           }}
         />
+        {explosions.map(exp => (
+          <NeuralExplosion 
+            key={exp.id} 
+            x={exp.x} 
+            y={exp.y} 
+            onComplete={() => setExplosions(prev => prev.filter(e => e.id !== exp.id))} 
+          />
+        ))}
       </div>
     </div>
   );
@@ -332,6 +494,60 @@ const Chat = () => {
   const [isMagicEditing, setIsMagicEditing] = useState(false);
   const [editRefImage, setEditRefImage] = useState(null);
   const [isMagicVideoModalOpen, setIsMagicVideoModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
+  const [explosions, setExplosions] = useState([]);
+  const [isBrainHovered, setIsBrainHovered] = useState(false);
+  const [isMicHovered, setIsMicHovered] = useState(false);
+  const [isSendHovered, setIsSendHovered] = useState(false);
+  const [isAttachHovered, setIsAttachHovered] = useState(false);
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+  const [isLaunching, setIsLaunching] = useState(false);
+  const [ripples, setRipples] = useState([]);
+  const DISCOVERY_PROMPTS = [
+    "Analyze complex legal documents...",
+    "Generate cinematic 8k images in space...",
+    "Search for real-time market updates...",
+    "Animate static scenes into cinematic video...",
+    "Summarize 50-page PDF reports...",
+    "Write production-ready Python code...",
+    "Convert documents into human-like audio..."
+  ];
+  const [typedPlaceholder, setTypedPlaceholder] = useState("");
+  const [discoveryIndex, setDiscoveryIndex] = useState(0);
+
+  useEffect(() => {
+    let charIndex = 0;
+    let isDeleting = false;
+    let timeoutId;
+    
+    const type = () => {
+      const currentPrompt = DISCOVERY_PROMPTS[discoveryIndex];
+      
+      if (isDeleting) {
+        setTypedPlaceholder(currentPrompt.substring(0, charIndex - 1));
+        charIndex--;
+      } else {
+        setTypedPlaceholder(currentPrompt.substring(0, charIndex + 1));
+        charIndex++;
+      }
+
+      let typingSpeed = isDeleting ? 30 : 50;
+
+      if (!isDeleting && charIndex === currentPrompt.length) {
+        isDeleting = true;
+        typingSpeed = 3000; // Pause at end before deleting
+      } else if (isDeleting && charIndex === 0) {
+        isDeleting = false;
+        setDiscoveryIndex((prev) => (prev + 1) % DISCOVERY_PROMPTS.length);
+        return; // Hand over to the next effect run
+      }
+
+      timeoutId = setTimeout(type, typingSpeed);
+    };
+
+    timeoutId = setTimeout(type, 500); // Initial pause before typing starts for this word
+    return () => clearTimeout(timeoutId);
+  }, [discoveryIndex]);
   const [isLiveMode, setIsLiveMode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLimitReached, setIsLimitReached] = useState(false);
@@ -386,6 +602,8 @@ const Chat = () => {
   const abortControllerRef = useRef(null);
   const voiceUsedRef = useRef(false); // Track if voice input was used
   const inputRef = useRef(null); // Ref for textarea input
+  const welcomeSearchRef = useRef(null); // Ref for welcome screen search bar
+  const [welcomeInputValue, setWelcomeInputValue] = useState('');
   const transcriptRef = useRef(''); // Ref for speech transcript
   const isManualStopRef = useRef(false); // Track manual stop to avoid recursive loops
   const isDetectionPausedRef = useRef(false); // Pause detection after explicit dismissal
@@ -4332,6 +4550,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
   return (
     <div className="flex w-full bg-secondary relative overflow-hidden aisa-scalable-text overscroll-none h-[100dvh] fixed inset-0 lg:static lg:h-full">
+      <NeuralBackground />
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmModal
@@ -4516,29 +4735,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
           </div>
         )}
 
-        {/* Header */}
-        <div className="h-12 md:h-14 flex items-center justify-between px-3 md:px-4 bg-transparent backdrop-blur-xl z-20 shrink-0 gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <button
-              onClick={() => setTglState(prev => ({ ...prev, sidebarOpen: true }))}
-              className="lg:hidden p-2 -ml-2 text-subtext hover:text-maintext rounded-lg hover:bg-surface/50 transition-colors"
-            >
-              <MenuIcon className="w-6 h-6" />
-            </button>
-          </div>
+        {/* Header - Removed for minimalist cinematic aesthetic */}
 
-          {/* Mode Indicator */}
-          <div
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-300"
-            style={{
-              backgroundColor: `${getModeColor(isDeepSearch ? 'DEEP_SEARCH' : currentMode)}15`,
-              color: getModeColor(isDeepSearch ? 'DEEP_SEARCH' : currentMode)
-            }}
-          >
-            <span>{getModeIcon(isDeepSearch ? 'DEEP_SEARCH' : currentMode)}</span>
-            <span className="hidden sm:inline">{getModeName(isDeepSearch ? 'DEEP_SEARCH' : currentMode)}</span>
-          </div>
-        </div>
 
 
 
@@ -5540,31 +5738,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
               ))}
 
               {isLoading && !typingMessageId && (
-                <div className="flex items-start gap-4 max-w-4xl mx-auto">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0">
-                    <img src="/logo/Logo.svg" alt="AISA" className="w-5 h-5 object-contain" />
-
-                  </div>
-                  <div className="p-1 flex items-center gap-3">
-                    <span className="text-sm font-medium text-subtext animate-pulse">
-                      {loadingText}
-                    </span>
-                    <div className="flex gap-1">
-                      <span
-                        className="w-1.5 h-1.5 bg-subtext/50 rounded-full animate-bounce"
-                        style={{ animationDelay: '0ms' }}
-                      ></span>
-                      <span
-                        className="w-1.5 h-1.5 bg-subtext/50 rounded-full animate-bounce"
-                        style={{ animationDelay: '150ms' }}
-                      ></span>
-                      <span
-                        className="w-1.5 h-1.5 bg-subtext/50 rounded-full animate-bounce"
-                        style={{ animationDelay: '300ms' }}
-                      ></span>
-                    </div>
-                  </div>
-                </div>
+                <AisaTypingIndicator visible={true} />
               )}
             </>
           )}
@@ -5573,193 +5747,100 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         </div>
 
         {/* Welcome Screen - Absolute Overlay */}
-        {
-          messages.length === 0 && (
-            <div className="absolute inset-0 z-0 overflow-y-auto overflow-x-hidden pointer-events-auto scroll-smooth custom-scrollbar"
-              style={{ WebkitOverflowScrolling: 'touch' }}
+        <AnimatePresence>
+          {messages.length === 0 && (
+            <motion.div
+              key="welcome-screen"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
+              className="absolute inset-0 z-0 overflow-y-auto no-scrollbar scroll-smooth pointer-events-auto bg-transparent"
             >
-              {/* min-h-full ensures justify-center works correctly on desktop */}
-              <div className="min-h-full flex flex-col items-center justify-start sm:justify-center px-4 pb-[200px] sm:pb-8"
-                style={{ paddingTop: 'calc(70px + env(safe-area-inset-top))' }}
-              >
-              <div className="flex flex-col items-center w-full max-w-4xl text-center shrink-0">
-                <div className="select-none flex items-center justify-center w-full mb-2 sm:mb-4">
+              <NeuralBackground />
+              <div className="relative z-10 flex flex-col items-center w-full min-h-screen pt-12">
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.1 }}
+                  className="mb-12"
+                >
                   <img
                     src="/logo/Logo.svg"
-                    alt="AISA Icon"
-                    className="object-contain drop-shadow-2xl pointer-events-none shrink-0"
-                    style={{ width: 'clamp(2.5rem, 8vw, 3.5rem)', height: 'clamp(2.5rem, 8vw, 3.5rem)' }}
-                    draggable={false}
+                    alt="AISA"
+                    className="w-16 h-16 sm:w-20 sm:h-20 mx-auto drop-shadow-[0_0_20px_rgba(139,92,246,0.3)]"
                   />
-                </div>
+                </motion.div>
 
+                {/* 2. TOOL SECTIONS (2 ROWS) */}
+                <section className="w-full pb-32">
+                  <FuturisticToolCards 
+                    onToolSelect={(id) => {
+                      // Reset states
+                      setIsImageGeneration(false);
+                      setIsVideoGeneration(false);
+                      setIsAudioConvertMode(false);
+                      setIsCodeWriter(false);
+                      setIsDeepSearch(false);
+                      setIsWebSearch(false);
+                      setIsFileAnalysis(false);
+                      setIsMagicEditing(false);
+                      setIsMagicVideoModalOpen(false);
 
-                <div className="relative w-full max-w-5xl mx-auto">
-                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 justify-items-stretch animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                    {[
-                      {
-                        icon: <ImagePlus className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />,
-                        title: "Generate Image",
-                        desc: "Create visuals from text",
-                        active: isImageGeneration,
-                        color: "from-purple-500/20 to-pink-500/20",
-                        action: () => {
-                          if (!checkPremiumTool('Image Generation')) return;
-                          setIsImageGeneration(true);
-                          setIsVideoGeneration(false);
-                          setIsMagicSettingsOpen(true);
-                          if (inputRef.current) {
-                            inputRef.current.value = "Generate an image of ";
-                            inputRef.current.focus();
-                          }
+                      if (id === 'image') {
+                        if (!checkPremiumTool('Image Generation')) return;
+                        setIsImageGeneration(true);
+                        setIsMagicSettingsOpen(true);
+                        if (inputRef.current) { inputRef.current.value = "Generate an image of "; inputRef.current.focus(); }
+                        toast.success("Image Mode Active");
+                      } else if (id === 'video') {
+                        if (!checkPremiumTool('Generate Video')) return;
+                        setIsVideoGeneration(true);
+                        setIsMagicSettingsOpen(true);
+                        if (inputRef.current) { inputRef.current.value = "Generate a video of "; inputRef.current.focus(); }
+                        toast.success("Video Mode Active");
+                      } else if (id === 'audio') {
+                        if (!checkPremiumTool('Convert to Audio')) return;
+                        setIsAudioConvertMode(true);
+                        if (inputRef.current) { inputRef.current.value = "Convert this text to audio: "; inputRef.current.focus(); }
+                        toast.success("Audio Mode Active");
+                      } else if (id === 'code') {
+                        if (!checkPremiumTool('Code Writer')) return;
+                        setIsCodeWriter(true);
+                        if (inputRef.current) { inputRef.current.value = "Write a function to "; inputRef.current.focus(); }
+                        toast.success("Code Mode Active");
+                      } else if (id === 'deep_search') {
+                        setIsDeepSearch(true);
+                        if (inputRef.current) { inputRef.current.value = "Research in-depth about "; inputRef.current.focus(); }
+                        toast.success("Deep Intelligence Active");
+                      } else if (id === 'web_search') {
+                        setIsWebSearch(true);
+                        if (inputRef.current) { inputRef.current.value = "Search for live updates on "; inputRef.current.focus(); }
+                        toast.success("Real-Time Search Active");
+                      } else if (id === 'document') {
+                        setIsFileAnalysis(true);
+                        uploadInputRef.current?.click();
+                        toast.success("Upload document for analysis");
+                      } else if (id === 'edit_image') {
+                        if (!checkPremiumTool('Edit Image')) return;
+                        setIsMagicEditing(true);
+                        toast.success("Image Editor Active");
+                      } else if (id === 'image_to_video') {
+                        if (!checkPremiumTool('Image to Video')) return;
+                        setIsMagicVideoModalOpen(true);
+                      } else if (id === 'legal') {
+                        if (inputRef.current) {
+                          inputRef.current.value = "AI Legal Specialist: Analyze this legal concern: ";
+                          inputRef.current.focus();
                         }
-                      },
-                      {
-                        icon: <Video className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />,
-                        title: "Generate Video",
-                        desc: "Text to Cinematic Video",
-                        active: isVideoGeneration,
-                        color: "from-red-500/20 to-orange-500/20",
-                        action: () => {
-                          if (!checkPremiumTool('Generate Video')) return;
-                          setIsVideoGeneration(true);
-                          setIsImageGeneration(false);
-                          setIsMagicSettingsOpen(true);
-                          if (inputRef.current) inputRef.current.focus();
-                          toast.success("Video Generation Mode Active");
-                        }
-                      },
-                      {
-                        icon: <Search className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />,
-                        title: "Deep Search",
-                        desc: "Research complex topics",
-                        active: isDeepSearch,
-                        color: "from-blue-500/20 to-sky-500/20",
-                        action: () => {
-                          if (!checkPremiumTool('Deep Search')) return;
-                          setIsDeepSearch(true);
-                          setIsWebSearch(false);
-                          if (inputRef.current) inputRef.current.focus();
-                          toast.success("Deep Search Mode Enabled");
-                        }
-                      },
-                      {
-                        icon: <Globe className="w-5 h-5 sm:w-6 sm:h-6 text-sky-600" />,
-                        title: "Real-Time Search",
-                        desc: "Live web data access",
-                        active: isWebSearch,
-                        color: "from-sky-500/20 to-emerald-500/20",
-                        action: () => {
-                          if (!checkPremiumTool('Web Search')) return;
-                          setIsWebSearch(true);
-                          setIsDeepSearch(false);
-                          if (inputRef.current) inputRef.current.focus();
-                          toast.success("Real-Time Web Search Enabled");
-                        }
-                      },
-                      {
-                        icon: <Headphones className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />,
-                        title: "Convert to Audio",
-                        desc: "Text/Docs to Voice",
-                        active: isAudioConvertMode,
-                        color: "from-emerald-500/20 to-teal-500/20",
-                        action: () => {
-                          if (!checkPremiumTool('Convert to Audio')) return;
-                          setIsAudioConvertMode(true);
-                          if (inputRef.current) inputRef.current.focus();
-                          toast.success("Audio Conversion Active");
-                        }
-                      },
-                      {
-                        icon: <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />,
-                        title: "Analyze Document",
-                        desc: "Chat with PDFs & Docs",
-                        active: isFileAnalysis,
-                        color: "from-blue-500/20 to-indigo-500/20",
-                        action: () => {
-                          if (!checkPremiumTool('Analyze Document')) return;
-                          setIsFileAnalysis(true);
-                          if (inputRef.current) inputRef.current.focus();
-                          toast.success("Document Analysis Active. Use the + button to upload files.");
-                        }
-                      },
-                      {
-                        icon: <Code className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />,
-                        title: "Code Writer",
-                        desc: "Write & debug code",
-                        active: isCodeWriter,
-                        color: "from-indigo-500/20 to-violet-500/20",
-                        action: () => {
-                          if (!checkPremiumTool('Code Writer')) return;
-                          setIsCodeWriter(true);
-                          if (inputRef.current) inputRef.current.focus();
-                          toast.success("Code Writer Mode Enabled");
-                        }
-                      },
-                      {
-                        icon: <Wand2 className="w-5 h-5 sm:w-6 sm:h-6 text-pink-600" />,
-                        title: "Edit Image",
-                        desc: "Magic Image Editor",
-                        active: isMagicEditing,
-                        color: "from-pink-500/20 to-rose-500/20",
-                        action: () => {
-                          if (!checkPremiumTool('Edit Image')) return;
-                          setIsMagicEditing(true);
-                          if (inputRef.current) inputRef.current.focus();
-                          if (!editRefImage && messages.length > 0) {
-                            const lastImg = [...messages].reverse().find(m => m.imageUrl);
-                            if (lastImg) setEditRefImage({ url: lastImg.imageUrl, name: 'Last Generated', type: 'image' });
-                          }
-                          toast.success("Image Editing Enabled");
-                        }
-                      },
-                      {
-                        icon: (
-                          <div className="relative">
-                            <PlaySquare className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" />
-                            <Sparkles className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                          </div>
-                        ),
-                        title: "Image to Video",
-                        desc: "Image to Video Magic",
-                        active: false,
-                        color: "from-amber-500/20 to-orange-500/20",
-                        action: () => {
-                          if (!checkPremiumTool('Image to Video')) return;
-                          setIsMagicVideoModalOpen(true);
-                        }
+                        toast.success("Legal AI Activated");
                       }
-                    ].map((item, index) => (
-                      <button
-                        key={index}
-                        onClick={item.action}
-                        className={`group relative flex flex-row items-center gap-2 sm:gap-3.5 p-1.5 sm:p-3.5 min-h-[56px] sm:min-h-[95px] rounded-[16px] sm:rounded-[28px] text-left transition-all duration-500 active:scale-[0.98] w-full mx-auto overflow-hidden border ${item.active
-                            ? "bg-primary/10 border-primary/40 shadow-[0_20px_50px_rgba(var(--primary-rgb),0.15)] ring-2 ring-primary/20"
-                            : "bg-white dark:bg-zinc-900/60 border-slate-200/50 dark:border-white/[0.05] hover:border-primary/30"
-                          } shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)]`}
-                      >
-                        <div className={`w-9 h-9 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center shrink-0 transition-all duration-500 group-hover:scale-110 shadow-inner overflow-hidden relative bg-gradient-to-br ${item.color} border border-white/40 dark:border-white/5`}>
-                          <div className="relative z-10 transition-transform duration-500 group-hover:scale-110">
-                            {item.icon}
-                          </div>
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1 sm:gap-1.5 mb-0 sm:mb-1">
-                            <span className={`px-1 sm:px-1.5 py-0.5 rounded-md text-[6px] sm:text-[8px] font-black uppercase tracking-widest border bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-zinc-500 border-slate-200/50 dark:border-white/5`}>AISA ™</span>
-                          </div>
-                          <h3 className={`font-black text-[11px] sm:text-[15px] leading-tight mb-0 sm:mb-0.5 tracking-tight text-slate-800 dark:text-white group-hover:text-primary transition-colors truncate`}>{item.title}</h3>
-                          <p className={`text-[10px] sm:text-[12px] font-medium line-clamp-1 opacity-70 text-slate-500 dark:text-zinc-400 hidden sm:block`}>{item.desc}</p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                    }}
+                  />
+                </section>
               </div>
-              </div>
-            </div>
-          )
-        }
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Input */}
         <div className="absolute bottom-0 left-0 right-0 bg-transparent z-20" style={{ padding: 'max(0.375rem, env(safe-area-inset-bottom, 0.375rem)) max(0.5rem, env(safe-area-inset-right, 0.5rem)) max(0.375rem, 0.375rem) max(0.5rem, env(safe-area-inset-left, 0.5rem))' }}>
@@ -5858,7 +5939,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
               </div>
             )}
 
-            <form onSubmit={handleSendMessage} className="relative w-full max-w-5xl mx-auto flex items-center gap-[6px] bg-white dark:bg-[#0a0a0a] border border-transparent rounded-[16px] p-[6px] shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.15)] transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.1)] hover:border-primary/20 backdrop-blur-3xl px-[10px] z-50">
+            <form onSubmit={handleSendMessage} className="relative w-full max-w-5xl mx-auto flex items-center gap-[6px] transition-all duration-300 backdrop-blur-3xl px-[10px] py-[6px] z-50 aisa-chat-input-wrapper">
               <input
                 id="file-upload"
                 type="file"
@@ -6224,31 +6305,65 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                   )}
                 </AnimatePresence>
 
-                <button
-                  type="button"
-                  ref={attachBtnRef}
-                  onClick={() => {
-                    setIsAttachMenuOpen(!isAttachMenuOpen);
-                    setIsToolsMenuOpen(false);
-                  }}
-                  className="w-[40px] h-[40px] rounded-full flex items-center justify-center text-subtext hover:text-primary hover:bg-secondary transition-all active:scale-95 shadow-sm hover:shadow-md"
-                  title="Attachments"
-                >
-                  <Plus className={`w-[20px] h-[20px] transition-transform duration-300 ${isAttachMenuOpen ? 'rotate-45' : ''}`} />
-                </button>
+                <div className="relative">
+                  <AnimatePresence>
+                    {isAttachHovered && <MagicShowEffect />}
+                  </AnimatePresence>
+                  <motion.button
+                    type="button"
+                    ref={attachBtnRef}
+                    onMouseEnter={() => setIsAttachHovered(true)}
+                    onMouseLeave={() => setIsAttachHovered(false)}
+                    whileHover={{ scale: 1.15, rotate: 90 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      setIsAttachMenuOpen(!isAttachMenuOpen);
+                      setIsToolsMenuOpen(false);
+                    }}
+                    className="w-[40px] h-[40px] rounded-full flex items-center justify-center text-subtext hover:text-primary hover:bg-secondary transition-all shadow-sm hover:shadow-md relative overflow-visible z-20"
+                    title="Attachments"
+                  >
+                    <Plus className={`w-[22px] h-[22px] transition-transform duration-300 ${isAttachMenuOpen ? 'rotate-45' : ''}`} />
+                  </motion.button>
+                </div>
 
-                <button
-                  type="button"
-                  ref={toolsBtnRef}
-                  onClick={() => {
-                    setIsToolsMenuOpen(!isToolsMenuOpen);
-                    setIsAttachMenuOpen(false);
-                  }}
-                  className="w-[40px] h-[40px] rounded-full flex items-center justify-center text-subtext hover:text-primary hover:bg-secondary transition-all active:scale-95 shadow-sm hover:shadow-md"
-                  title="AISA ™ Magic Tools"
-                >
-                  <Brain className="w-[20px] h-[20px]" />
-                </button>
+                <div className="relative">
+                  <AnimatePresence>
+                    {isBrainHovered && <MagicShowEffect />}
+                  </AnimatePresence>
+                  <motion.button
+                    type="button"
+                    ref={toolsBtnRef}
+                    onMouseEnter={() => setIsBrainHovered(true)}
+                    onMouseLeave={() => setIsBrainHovered(false)}
+                    whileHover={{ scale: 1.15, rotate: [0, -5, 5, 0] }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setExplosions(prev => [...prev, { 
+                        id: Date.now(), 
+                        x: rect.left + rect.width / 2, 
+                        y: rect.top + rect.height / 2 
+                      }]);
+                      setIsToolsMenuOpen(!isToolsMenuOpen);
+                      setIsAttachMenuOpen(false);
+                    }}
+                    className="w-[40px] h-[40px] rounded-full flex items-center justify-center bg-secondary/80 text-subtext hover:text-primary transition-colors shadow-lg hover:shadow-primary/40 relative overflow-visible z-20"
+                    title="AISA ™ Magic Tools"
+                  >
+                    <Brain className={`w-[22px] h-[22px] relative z-10 transition-colors ${isBrainHovered ? 'text-primary' : ''}`} />
+                    <AnimatePresence>
+                      {isBrainHovered && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.5 }}
+                          animate={{ opacity: 1, scale: 1.1 }}
+                          exit={{ opacity: 0, scale: 0.5 }}
+                          className="absolute inset-0 rounded-full bg-primary/20 blur-md pointer-events-none"
+                        />
+                      )}
+                    </AnimatePresence>
+                  </motion.button>
+                </div>
               </div>
 
               <div className="flex-1 flex items-center min-w-0 bg-transparent border-0 ring-0 focus:ring-0">
@@ -6366,9 +6481,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       }
                     }
                   }}
-                  placeholder={isLimitReached ? "Chat limit reached. Sign in to continue." : (isVideoGeneration ? "Describe the video you want to generate..." : isAudioConvertMode ? "Enter text to convert..." : isDocumentConvert ? "Upload file & ask to convert..." : "Ask anything...")}
+                  placeholder={isLimitReached ? "Chat limit reached. Sign in to continue." : (isVideoGeneration ? "Describe the video you want to generate..." : isAudioConvertMode ? "Enter text to convert..." : isDocumentConvert ? "Upload file & ask to convert..." : typedPlaceholder)}
                   rows={1}
-                  className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none p-0 py-2 text-maintext text-left placeholder-subtext/40 resize-none overflow-y-auto custom-scrollbar leading-relaxed text-[15px] ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
+                  className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none p-0 py-2 text-white text-left placeholder-white/50 resize-none overflow-y-auto custom-scrollbar font-medium leading-relaxed text-[16px] ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
                   style={{ minHeight: '24px', height: 'auto', maxHeight: '150px', lineHeight: '1.5' }}
                 />
               </div>
@@ -6385,14 +6500,23 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 {!isListening && (
                   <>
                     {getAgentCapabilities(activeAgent.agentName, activeAgent.category).canVoice && (
-                      <button
-                        type="button"
-                        onClick={handleVoiceInput}
-                        className={`w-[36px] h-[36px] rounded-full flex items-center justify-center transition-colors shrink-0 ${isListening ? 'bg-red-500 text-white' : 'text-subtext hover:text-primary hover:bg-secondary'}`}
-                        title="Voice Input"
-                      >
-                        <Mic className="w-[20px] h-[20px] shrink-0" />
-                      </button>
+                      <div className="relative">
+                        <AnimatePresence>
+                          {(isMicHovered || (typeof window !== 'undefined' && window.innerWidth < 768 && !inputValue.trim() && filePreviews.length === 0)) && <MagicShowEffect isMobileIdle={true} />}
+                        </AnimatePresence>
+                        <motion.button
+                          type="button"
+                          onMouseEnter={() => setIsMicHovered(true)}
+                          onMouseLeave={() => setIsMicHovered(false)}
+                          whileHover={{ scale: 1.15, rotate: [0, -10, 10, 0] }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={handleVoiceInput}
+                          className={`w-[40px] h-[40px] rounded-full flex items-center justify-center transition-colors shrink-0 relative z-20 ${isListening ? 'bg-red-500 text-white' : 'text-subtext hover:text-primary hover:bg-secondary shadow-sm hover:shadow-md'}`}
+                          title="Voice Input"
+                        >
+                          <Mic className={`w-[22px] h-[22px] shrink-0 transition-colors ${isMicHovered && !isListening ? 'text-primary' : ''}`} />
+                        </motion.button>
+                      </div>
                     )}
                   </>
                 )}
@@ -6410,15 +6534,50 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     <div className="w-[12px] h-[12px] bg-white rounded-sm" />
                   </button>
                 ) : (
-                  <div className="flex items-center gap-[6px]">
-
-                    <button
+                  <div className="flex items-center gap-[6px] relative">
+                    <AnimatePresence>
+                      {(isSendHovered || (typeof window !== 'undefined' && window.innerWidth < 768 && (inputValue.trim() || filePreviews.length > 0))) && !isLoading && <MagicShowEffect />}
+                    </AnimatePresence>
+                    <motion.button
                       type="submit"
-                      disabled={(!inputValue.trim() && filePreviews.length === 0) || isLoading}
-                      className={`w-[40px] h-[40px] rounded-full flex items-center justify-center transition-all shadow-lg ${(!inputValue.trim() && filePreviews.length === 0) ? 'bg-secondary text-subtext/50 shadow-none' : 'bg-gradient-to-tr from-primary to-indigo-600 text-white shadow-primary/30 hover:scale-105 hover:shadow-primary/40'}`}
+                      disabled={!inputValue.trim() && filePreviews.length === 0}
+                      onMouseEnter={() => setIsSendHovered(true)}
+                      onMouseLeave={() => setIsSendHovered(false)}
+                      whileHover={{ scale: 1.15, rotate: 2 }}
+                      whileTap={{ scale: 0.88 }}
+                      className={`w-[42px] h-[42px] rounded-full flex items-center justify-center transition-all shadow-lg relative overflow-visible z-20 ${(!inputValue.trim() && filePreviews.length === 0) ? 'opacity-30 cursor-not-allowed bg-secondary border border-border/10' : 'bg-gradient-to-br from-primary to-indigo-600 text-white shadow-primary/30 hover:shadow-primary/50'}`}
                     >
-                      <Send className="w-[20px] h-[20px] ml-[2px]" />
-                    </button>
+                      <AnimatePresence>
+                        {ripples.map(id => (
+                          <SendRipple key={id} onComplete={() => setRipples(r => r.filter(i => i !== id))} />
+                        ))}
+                        {isLaunching && (
+                          <motion.div
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: [1, 2.5], opacity: [0.6, 0] }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 rounded-full bg-white/20 blur-xl pointer-events-none"
+                          />
+                        )}
+                      </AnimatePresence>
+                     <motion.div
+                        animate={isLaunching ? { 
+                          y: [0, -120], 
+                          scale: [1, 2.8, 0],
+                          opacity: [1, 0.4, 0],
+                          rotate: [0, 720],
+                          filter: ["blur(0px)", "blur(30px)"]
+                        } : { y: 0, scale: 1, opacity: 1, filter: "blur(0px)" }}
+                        transition={{ duration: 0.8, ease: "anticipate" }}
+                        className="relative z-10"
+                      >
+                        <Sparkles 
+                          className={`w-[26px] h-[26px] transition-all duration-300 ${!inputValue.trim() && filePreviews.length === 0 ? 'text-subtext/20' : 'text-white drop-shadow-[0_0_15px_rgba(255,255,255,1)] hover:scale-110'}`} 
+                          fill={(!inputValue.trim() && filePreviews.length === 0) ? 'none' : 'currentColor'} 
+                          strokeWidth={2.5} 
+                        />
+                      </motion.div>
+                    </motion.button>
                   </div>
                 )}
               </div>
@@ -7049,6 +7208,14 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         }}
         pricing={TOOL_PRICING}
       />
+      {explosions && explosions.map(exp => (
+        <NeuralExplosion 
+          key={exp.id} 
+          x={exp.x} 
+          y={exp.y} 
+          onComplete={() => setExplosions(prev => prev.filter(e => e.id !== exp.id))} 
+        />
+      ))}
     </div >
   );
 };
