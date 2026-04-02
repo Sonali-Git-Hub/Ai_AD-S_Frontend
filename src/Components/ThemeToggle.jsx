@@ -26,7 +26,7 @@ const ThemeToggle = () => {
             >
                 {/* Sliding Knob */}
                 <motion.div
-                    layout
+                    animate={{ x: isDark ? 24 : 0 }}
                     transition={{
                         type: "spring",
                         stiffness: 400,
@@ -34,7 +34,6 @@ const ThemeToggle = () => {
                     }}
                     className={`w-6 h-6 rounded-full flex items-center justify-center shadow-lg relative z-10 ${isDark ? 'bg-[#dfe6e9]' : 'bg-white'
                         }`}
-                    style={{ x: isDark ? '24px' : '0px' }}
                 >
                     <AnimatePresence mode="wait" initial={false}>
                         {isDark ? (

@@ -7100,7 +7100,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             { name: 'Achernar', style: 'Bright, clear' },
                             { name: 'Achird', style: 'Warm, friendly' },
                             { name: 'Algenib', style: 'Smooth, graceful' },
-                            { name: 'Algieba', style: 'Bold, expressive' },
                             { name: 'Aoede', style: 'Natural, balanced' },
                             { name: 'Autonoe', style: 'Soft, gentle · Default' },
                             { name: 'Callirrhoe', style: 'Rich, elegant' },
@@ -7118,6 +7117,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         },
                         {
                           group: '♂ Male Voices', color: 'blue', items: [
+                            { name: 'Algieba', style: 'Bold, expressive' },
                             { name: 'Alnilam', style: 'Deep, authoritative' },
                             { name: 'Charon', style: 'Dark, dramatic' },
                             { name: 'Enceladus', style: 'Crisp, powerful' },

@@ -81,10 +81,10 @@ const TermsOfServiceModal = ({ isOpen, onClose }) => {
                     className="bg-card dark:bg-slate-900 rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl border border-border"
                 >
                     {/* Header */}
-                    <div className="p-6 border-b border-border bg-indigo-500/5 flex items-center justify-between">
+                    <div className="p-6 border-b border-border bg-emerald-500/5 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center">
-                                <Scale className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                                <Scale className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                             </div>
                             <div>
                                 <h2 className="text-2xl font-bold text-maintext">{t('termsOfService')}</h2>
@@ -110,17 +110,17 @@ const TermsOfServiceModal = ({ isOpen, onClose }) => {
 
                         {/* Sections */}
                         {sections.map((section, index) => (
-                            <div key={index} className="bg-surface rounded-xl p-5 border border-border hover:border-indigo-500/30 transition-all">
+                            <div key={index} className="bg-surface rounded-xl p-5 border border-border hover:border-emerald-500/30 transition-all">
                                 <div className="flex items-start gap-3 mb-4">
-                                    <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-                                        <section.icon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                                    <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                                        <section.icon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                                     </div>
                                     <h3 className="text-lg font-bold text-maintext pt-1">{section.title}</h3>
                                 </div>
                                 <ul className="ml-1 sm:ml-14 space-y-2">
                                     {section.items.map((item, idx) => (
                                         <li key={idx} className="flex items-start gap-2 text-sm text-subtext">
-                                            <span className="text-indigo-600 dark:text-indigo-400 mt-1">•</span>
+                                            <span className="text-emerald-600 dark:text-emerald-400 mt-1">•</span>
                                             <span className="flex-1">{item}</span>
                                         </li>
                                     ))}
@@ -129,7 +129,7 @@ const TermsOfServiceModal = ({ isOpen, onClose }) => {
                         ))}
 
                         {/* Contact */}
-                        <div className="bg-gradient-to-r from-indigo-500/5 to-blue-500/5 rounded-xl p-5 border border-indigo-500/20">
+                        <div className="bg-gradient-to-r from-emerald-500/5 to-emerald-500/5 rounded-xl p-5 border border-emerald-500/20">
                             <h3 className="text-lg font-bold text-maintext mb-3">{t('tos_questions_title_terms')}</h3>
                             <div className="space-y-1.5 text-sm text-subtext">
                                 <p><strong className="text-maintext">Email:</strong> <a href="mailto:admin@uwo24.com" className="text-primary hover:underline">admin@uwo24.com</a></p>
@@ -142,7 +142,7 @@ const TermsOfServiceModal = ({ isOpen, onClose }) => {
                     <div className="p-4 border-t border-border bg-surface flex justify-end">
                         <button
                             onClick={onClose}
-                            className="px-6 py-2 bg-indigo-600 dark:bg-indigo-500 text-white rounded-xl font-semibold hover:opacity-90 transition-all shadow-lg shadow-indigo-600/20"
+                            className="px-6 py-2 bg-emerald-600 dark:bg-emerald-500 text-white rounded-xl font-semibold hover:opacity-90 transition-all shadow-lg shadow-emerald-600/20"
                         >
                             {t('close')}
                         </button>
