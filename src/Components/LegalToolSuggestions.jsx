@@ -9,6 +9,7 @@ const SUGGESTION_MAP = {
   'legal_notice_generator': { name: 'Generate Notice', icon: Scale, color: 'text-orange-600', bg: 'bg-orange-50' },
   'legal_evidence_checker': { name: 'Check Evidence', icon: Scale, color: 'text-cyan-600', bg: 'bg-cyan-50' },
   'legal_nda_generator': { name: 'Create NDA', icon: Scale, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+  'legal_argument_builder': { name: 'Build Argument', icon: Scale, color: 'text-rose-600', bg: 'bg-rose-50' },
 };
 
 const LegalToolSuggestions = ({ suggestions, onSelect }) => {

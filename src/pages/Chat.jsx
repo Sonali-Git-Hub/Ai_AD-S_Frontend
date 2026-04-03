@@ -5931,7 +5931,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       {
                         icon: <Scale className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />,
                         title: "AI Legal",
-                        desc: "6 specialized AI legal tools.",
+                        desc: "7 specialized AI legal tools.",
                         active: activeLegalToolkit,
                         color: "from-indigo-500/20 to-purple-500/20",
                         action: () => {
@@ -6444,7 +6444,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
                               <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">AI Legal</span>
                             </div>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">6 specialized AI legal tools.</p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">7 specialized AI legal tools.</p>
                           </div>
                         </button>
 

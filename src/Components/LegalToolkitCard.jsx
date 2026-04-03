@@ -4,13 +4,13 @@ import {
   FileText, Shield, FileCheck, Scale, Binary, 
   Mail, PenTool, AlertTriangle, Edit3, Brain, 
   Library, Clock, CheckCircle, ArrowLeftRight, Lock, Sparkles,
-  MessageCircle, ArrowRight, X, ChevronDown, Zap, Maximize2, Minimize2
+  MessageCircle, ArrowRight, X, ChevronDown, Zap, Maximize2, Minimize2, Gavel
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const SECTIONS = {
   CORE: ['legal_draft_maker', 'legal_contract_analyzer', 'legal_case_predictor'],
-  ADVANCED: ['legal_strategy_engine', 'legal_evidence_checker', 'legal_research_assistant']
+  ADVANCED: ['legal_strategy_engine', 'legal_evidence_checker', 'legal_research_assistant', 'legal_argument_builder']
 };
 
 const PREMIUM_TOOLS = [
@@ -55,6 +55,13 @@ const PREMIUM_TOOLS = [
     icon: Library, 
     desc: 'Statutory Interpetation & Case Law CITATIONS', 
     price: '₹699' 
+  },
+  { 
+    id: 'legal_argument_builder', 
+    name: 'Argument Builder', 
+    icon: Gavel, 
+    desc: 'Structure Courtroom-Ready Arguments & Cross-Exams', 
+    price: '₹999' 
   }
 ];
 
