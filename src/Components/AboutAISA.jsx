@@ -13,12 +13,12 @@ const AboutAISA = ({ isOpen, onClose }) => {
     const sections = [
         {
             title: t('coreIntelligence'),
-            icon: <Bot className="w-5 h-5 text-emerald-500" />,
+            icon: <Bot className="w-5 h-5 text-primary" />,
             content: t('coreIntelligenceDesc')
         },
         {
             title: t('whyAisaExists'),
-            icon: <Sparkles className="w-5 h-5 text-emerald-500" />,
+            icon: <Sparkles className="w-5 h-5 text-primary" />,
             content: t('whyAisaExistsDesc')
         }
     ];
@@ -38,12 +38,11 @@ const AboutAISA = ({ isOpen, onClose }) => {
     ];
 
     return (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" onClick={onClose}>
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                onClick={onClose}
                 className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
 
@@ -51,12 +50,13 @@ const AboutAISA = ({ isOpen, onClose }) => {
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
                 className="relative bg-white dark:bg-gray-900 w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-white/20"
             >
                 {/* Header */}
-                <div className="relative h-48 bg-gradient-to-br from-green-600 to-emerald-700 flex flex-col items-center justify-center text-white shrink-0 overflow-hidden">
+                <div className="relative h-48 bg-gradient-to-br from-blue-600 to-indigo-700 flex flex-col items-center justify-center text-white shrink-0 overflow-hidden">
                     <div className="absolute inset-0 opacity-20" />
-                    <div className="absolute top-[-50%] left-[-20%] w-[500px] h-[500px] bg-green-400/30 rounded-full blur-[80px]" />
+                    <div className="absolute top-[-50%] left-[-20%] w-[500px] h-[500px] bg-blue-400/30 rounded-full blur-[80px]" />
 
                     <button
                         onClick={(e) => {
@@ -77,7 +77,7 @@ const AboutAISA = ({ isOpen, onClose }) => {
                         <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-2">
                             AISA <sup className="text-lg font-bold">TM</sup>
                         </h2>
-                        <p className="text-green-100 text-lg font-medium max-w-xl mx-auto">
+                        <p className="text-blue-100 text-lg font-medium max-w-xl mx-auto">
                             {t('aiSmartAssistant')}
                         </p>
                     </div>
@@ -96,7 +96,7 @@ const AboutAISA = ({ isOpen, onClose }) => {
                     {/* Core Sections Grid */}
                     <div className="grid md:grid-cols-2 gap-6">
                         {sections.map((sec, i) => (
-                            <div key={i} className="p-6 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 hover:border-emerald-500/30 transition-colors">
+                            <div key={i} className="p-6 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 hover:border-primary/30 transition-colors">
                                 <div className="flex items-center gap-3 mb-3">
                                     <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
                                         {sec.icon}
@@ -115,8 +115,8 @@ const AboutAISA = ({ isOpen, onClose }) => {
                         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-6 text-center">{t('powerhouseFeatures')}</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             {features.map((feat, i) => (
-                                <div key={i} className="flex items-start gap-3 p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-lg hover:border-emerald-500/20 transition-all group">
-                                    <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform">
+                                <div key={i} className="flex items-start gap-3 p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:shadow-lg hover:border-primary/20 transition-all group">
+                                    <div className="p-2 rounded-lg bg-primary/5 text-primary group-hover:scale-110 transition-transform">
                                         {feat.icon}
                                     </div>
                                     <div>
@@ -131,7 +131,7 @@ const AboutAISA = ({ isOpen, onClose }) => {
                     </div>
 
                     {/* Who is it for? */}
-                    <div className="bg-gradient-to-r from-emerald-50 to-emerald-50 dark:from-emerald-900/10 dark:to-emerald-900/10 rounded-2xl p-8 border border-green-100 dark:border-white/5">
+                    <div className="bg-gradient-to-r from-primary/5 to-blue-500/5 dark:from-primary/10 dark:to-blue-500/10 rounded-2xl p-8 border border-primary/10 dark:border-white/5">
                         <h3 className="text-center text-lg font-bold text-gray-900 dark:text-white mb-6">{t('builtForEveryone')}</h3>
                         <div className="flex flex-wrap justify-center gap-3">
                             {[`🎓 ${t('students')}`, `💼 ${t('professionals')}`, `🏢 ${t('businesses')}`, `🎨 ${t('creators')}`, `🌍 ${t('everydayUsers')}`].map((label, i) => (
@@ -154,7 +154,7 @@ const AboutAISA = ({ isOpen, onClose }) => {
                             onClose();
                             navigate('/dashboard/chat/new');
                         }}
-                        className="w-full md:w-auto px-8 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
+                        className="w-full md:w-auto px-8 py-3 bg-primary hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-primary/20 transition-all active:scale-95"
                     >
                         {t('exploreAisa')}
                     </button>

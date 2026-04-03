@@ -374,22 +374,30 @@ const Sidebar = ({ isOpen, onClose }) => {
           <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[40%] bg-primary/20 blur-[100px] animate-float-slow" />
           <div className="absolute bottom-[10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/20 blur-[100px] animate-float-slow" style={{ animationDelay: '-5s' }} />
         </div>
-
-        {/* Brand */}
+        {/* Brand & Top Actions */}
         <div className="p-6 pb-2 flex items-center justify-between relative z-10">
           <Link to="/" state={{ fromLogo: true }} className="group/logo">
-            <h1 className="text-2xl font-black tracking-tighter text-primary flex items-center gap-2 group-hover/logo:scale-110 transition-all duration-500">
-              <span className="bg-gradient-to-br from-primary via-blue-400 to-indigo-500 bg-clip-text text-transparent drop-shadow-2xl">AISA</span>
-              <sup className="text-[9px] font-black opacity-40 bg-white/5 px-2 py-1 rounded-lg border border-white/5 uppercase tracking-widest">Master</sup>
-            </h1>
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 animate-pulse opacity-0 group-hover/logo:opacity-100 transition-opacity" />
+              <img 
+                 src={"/logo/Logo.svg"} 
+                alt="AISA" 
+                className="h-10 w-auto relative z-10 transition-transform duration-500 group-hover/logo:scale-110 drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]" 
+              />
+            </div>
           </Link>
+          
           <button
             onClick={onClose}
-            className="lg:hidden p-2 text-subtext hover:text-maintext rounded-2xl bg-white/5 hover:bg-white/10 transition-all border border-white/5 shadow-inner"
+            className={`lg:hidden p-2.5 rounded-2xl transition-all border shadow-sm active:scale-95
+              ${theme === 'dark' 
+                ? 'text-subtext hover:text-white bg-white/5 hover:bg-white/10 border-white/10' 
+                : 'text-slate-500 hover:text-primary bg-slate-100 hover:bg-slate-200 border-slate-200'}`}
           >
-            <X className="w-5 h-5" />
+            <X className="w-5.5 h-5.5" />
           </button>
         </div>
+
 
         {/* Chat History Section */}
         <div className="flex-1 flex flex-col overflow-hidden">
@@ -462,7 +470,10 @@ const Sidebar = ({ isOpen, onClose }) => {
                 placeholder="Find a session..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-black/20 dark:bg-black/30 backdrop-blur-3xl border border-white/5 focus:border-primary/40 focus:bg-black/40 focus:ring-[6px] focus:ring-primary/5 rounded-[20px] py-3 pl-11 pr-4 text-sm outline-none transition-all placeholder:text-subtext/30 font-semibold text-maintext shadow-2xl"
+                className={`w-full backdrop-blur-3xl border focus:ring-[6px] rounded-[20px] py-3 pl-11 pr-4 text-sm outline-none transition-all font-semibold shadow-sm 
+                  ${theme === 'dark' 
+                    ? 'bg-black/40 border-white/10 focus:border-primary/50 focus:bg-black/60 focus:ring-primary/10 placeholder:text-subtext/40 text-white' 
+                    : 'bg-white/80 border-slate-200 focus:border-primary/40 focus:bg-white focus:ring-primary/10 placeholder:text-slate-400 text-slate-900 shadow-inner'}`}
               />
             </div>
           </div>
@@ -471,10 +482,14 @@ const Sidebar = ({ isOpen, onClose }) => {
           <div className="p-5 relative z-10">
             <button
               onClick={handleNewChat}
-              className="w-full relative overflow-hidden group bg-primary p-[1.5px] rounded-2xl transition-all duration-500 hover:scale-[1.03] active:scale-[0.97] shadow-[0_10px_30px_rgba(var(--primary),0.3)] hover:shadow-[0_15px_40px_rgba(var(--primary),0.5)]"
+              className={`w-full relative overflow-hidden group p-[1.5px] rounded-2xl transition-all duration-500 hover:scale-[1.03] active:scale-[0.97]
+                ${theme === 'dark' 
+                  ? 'bg-primary shadow-[0_10px_30px_rgba(var(--primary),0.3)] hover:shadow-[0_15px_40px_rgba(var(--primary),0.5)]' 
+                  : 'bg-primary shadow-[0_8px_20px_rgba(var(--primary),0.2)] hover:shadow-[0_12px_30px_rgba(var(--primary),0.3)]'}`}
             >
               <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-primary to-purple-600 animate-gradient bg-[length:300%_auto]" />
-              <div className="relative flex items-center justify-center gap-3 px-5 py-3.5 bg-[#0a0c1a]/80 backdrop-blur-md rounded-[15px] group-hover:bg-transparent transition-all duration-500">
+              <div className={`relative flex items-center justify-center gap-3 px-5 py-3.5 backdrop-blur-md rounded-[15px] group-hover:bg-transparent transition-all duration-500
+                ${theme === 'dark' ? 'bg-[#0a0c1a]/80' : 'bg-white/10'}`}>
                 <Plus className="w-4.5 h-4.5 text-white group-hover:rotate-180 transition-transform duration-700" strokeWidth={3} />
                 <span className="font-extrabold text-white text-[15px] tracking-tight">{t('newChat')}</span>
               </div>
@@ -490,8 +505,12 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <button
                   onClick={() => handleSwitchProject(null)}
                   className={`w-full flex items-center gap-4 px-5 py-4 rounded-[32px] transition-all duration-700 group border relative overflow-hidden shadow-2xl ${!currentProjectId 
-                    ? 'bg-gradient-to-br from-primary/30 to-indigo-500/20 text-white border-primary/40 shadow-[0_20px_50px_rgba(var(--primary),0.25)]' 
-                    : 'text-subtext bg-white/[0.02] border-white/5 hover:bg-white/[0.08] hover:text-white hover:border-white/20 hover:shadow-[0_15px_40px_rgba(0,0,0,0.4)]'}`}
+                    ? (theme === 'dark' 
+                        ? 'bg-gradient-to-br from-primary/30 to-indigo-500/20 text-white border-primary/40 shadow-[0_20px_50px_rgba(var(--primary),0.25)]' 
+                        : 'bg-gradient-to-br from-primary/10 to-indigo-500/5 text-primary border-primary/20 shadow-[0_20px_50px_rgba(var(--primary),0.1)]')
+                    : (theme === 'dark'
+                        ? 'text-subtext bg-white/[0.02] border-white/5 hover:bg-white/[0.08] hover:text-white hover:border-white/20 hover:shadow-[0_15px_40px_rgba(0,0,0,0.4)]'
+                        : 'text-slate-500 bg-slate-50 border-slate-200/60 hover:bg-white hover:text-primary hover:border-primary/20 hover:shadow-[0_15px_40px_rgba(0,0,0,0.05)]')}`}
                 >
                   {!currentProjectId && (
                     <motion.div 
@@ -515,8 +534,10 @@ const Sidebar = ({ isOpen, onClose }) => {
                 className="px-5 pt-4 pb-2 flex items-center justify-between cursor-pointer group/header select-none relative z-10"
               >
                 <div className="flex items-center gap-2">
-                  <h3 className="text-[11px] font-bold text-subtext/60 uppercase tracking-[0.1em] group-hover/header:text-primary transition-colors">Projects</h3>
-                  <div className="h-[1px] w-8 bg-subtext/20 group-hover/header:w-12 group-hover/header:bg-primary/30 transition-all"></div>
+                  <h3 className={`text-[11px] font-bold uppercase tracking-[0.1em] group-hover/header:text-primary transition-colors 
+                    ${theme === 'dark' ? 'text-subtext/60' : 'text-slate-400'}`}>Projects</h3>
+                  <div className={`h-[1px] w-8 transition-all group-hover/header:w-12 group-hover/header:bg-primary/30 
+                    ${theme === 'dark' ? 'bg-subtext/20' : 'bg-slate-200'}`}></div>
                 </div>
                 <ChevronDown className={`w-3.5 h-3.5 text-subtext/40 transition-transform duration-300 ${isProjectsExpanded ? '' : '-rotate-90'}`} />
               </div>
@@ -693,43 +714,36 @@ const Sidebar = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        {/* User Profile Footer */}
-        <div className="p-4 border-t border-white/5 relative z-20">
-          {token ? (
-            <div className="relative profile-menu-container">
+        {/* Bottom Utils */}
+        <div className="p-4 border-t border-white/5 relative z-20 space-y-3">
+          <div className="flex items-center gap-2">
+            {/* Theme Toggle Button */}
+            <button 
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className={`flex-1 h-12 rounded-2xl border transition-all duration-300 group/theme flex items-center justify-center
+                ${theme === 'dark' 
+                  ? 'bg-white/5 border-white/5 text-subtext hover:text-primary hover:bg-primary/10' 
+                  : 'bg-black/5 border-black/5 text-slate-800 hover:text-primary hover:bg-primary/5'}`}
+              title={theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
+            >
+              {theme === 'dark' ? <Sun className="w-5 h-5 group-hover/theme:rotate-90 transition-transform duration-500" /> : <Moon className="w-5 h-5 group-hover/theme:-rotate-12 transition-transform duration-500" />}
+            </button>
+
+            {/* Profile Action - Repositioned to bottom */}
+            <div className="relative profile-menu-container flex-1">
               <button
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                className="w-full rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10 transition-all duration-300 flex items-center gap-3 p-3 group shadow-xl active:scale-95"
+                className={`w-full h-12 rounded-2xl border transition-all duration-300 flex items-center justify-center
+                  ${theme === 'dark' 
+                    ? 'bg-white/5 border-white/5 text-subtext hover:text-primary hover:bg-primary/10' 
+                    : 'bg-black/5 border-black/5 text-slate-800 hover:text-primary hover:bg-primary/5'}`}
               >
-                <div className="relative">
-                  <div className="w-10 h-10 flex items-center justify-center shrink-0 rounded-xl overflow-hidden bg-gradient-to-br from-primary/20 to-purple-500/20 border border-white/10 group-hover:border-primary/50 transition-all">
-                    {user.avatar ? (
-                      <img
-                        src={user.avatar}
-                        alt={user.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-primary/20 text-primary font-bold text-base uppercase">
-                        {user.name ? user.name.charAt(0) : "U"}
-                      </div>
-                    )}
-                  </div>
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-background rounded-full"></div>
-                </div>
-                
-                <div className="flex-1 min-w-0 text-left">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-bold text-maintext truncate group-hover:text-primary transition-colors">{user.name}</p>
-                    <span className="px-1.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-[8px] font-black text-amber-500 uppercase tracking-widest shrink-0">
-                      {planName.replace(' Plan', '')}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-subtext/60 truncate italic">{user.email}</p>
-                </div>
-                <ChevronUp className={`w-4 h-4 text-subtext/40 group-hover:text-primary transition-all duration-300 ${isProfileMenuOpen ? 'rotate-180' : ''}`} />
+                {user.avatar ? (
+                  <img src={user.avatar} alt="P" className="w-7 h-7 object-cover rounded-xl" />
+                ) : (
+                  <User className="w-5 h-5" />
+                )}
               </button>
-
               <AnimatePresence>
                 {isProfileMenuOpen && (
                   <ProfileSettingsDropdown
@@ -742,7 +756,9 @@ const Sidebar = ({ isOpen, onClose }) => {
                 )}
               </AnimatePresence>
             </div>
-          ) : (
+          </div>
+
+          {!token && (
             <div
               onClick={() => navigate(AppRoute.LOGIN)}
               className="rounded-xl border border-transparent hover:bg-white/20 dark:hover:bg-white/10 transition-all cursor-pointer flex items-center gap-3 px-3 py-2 group relative z-10"
@@ -756,7 +772,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {isAdmin && (
               <button
                 onClick={() => { navigate('/dashboard/admin'); onClose(); }}
@@ -768,9 +784,12 @@ const Sidebar = ({ isOpen, onClose }) => {
             )}
             <button
               onClick={() => setIsFaqOpen(true)}
-              className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-white hover:bg-white/10 transition-all text-[10px] font-bold border border-white/5 ${!isAdmin ? 'col-span-2' : ''}`}
+              className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl transition-all text-[10px] font-bold border ${!isAdmin ? 'col-span-2' : ''} 
+                ${theme === 'dark' 
+                  ? 'text-white bg-white/5 border-white/5 hover:bg-white/10' 
+                  : 'text-slate-800 bg-black/5 border-black/5 hover:bg-black/10'}`}
             >
-              <HelpCircle className="w-3 h-3 text-white" />
+              <HelpCircle className={`w-3 h-3 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`} />
               <span>{t('helpFaq')}</span>
             </button>
           </div>

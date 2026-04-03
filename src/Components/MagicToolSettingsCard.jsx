@@ -195,7 +195,9 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
                                         </motion.div>
                                     </div>
                                     <div>
-                                        <h3 className="text-[15px] sm:text-[16px] font-black text-slate-900 tracking-tight leading-none mb-1 shadow-sm">Image Settings</h3>
+                                        <h3 className="text-[15px] sm:text-[16px] font-black text-slate-900 tracking-tight leading-none mb-1 shadow-sm">
+                                            {toolType === 'video' ? 'Video Settings' : 'Image Settings'}
+                                        </h3>
                                         <p className="text-[8.5px] sm:text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em] flex items-center gap-1 opacity-90">
                                             <Sparkles className="w-2.5 h-2.5 text-primary animate-pulse" />
                                             Advanced Engine

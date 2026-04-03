@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useInView, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { ImagePlus, PlaySquare, Headphones, Code, Sparkles, Zap, Search, Globe, FileText, Wand2, PlayCircle, Scale, Video, Brain } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 /* ─── Typewriter Engine ────────────────────────────────────── */
 
@@ -27,8 +28,8 @@ const TypewriterPrompt = ({ text, active }) => {
 
   return (
     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full px-4 text-center z-20">
-      <div className="bg-black/70 backdrop-blur-md rounded-lg p-2.5 border border-white/10 inline-block max-w-[90%] shadow-2xl">
-        <p className="text-[10px] sm:text-[11px] font-mono font-bold text-white leading-tight">
+      <div className="bg-white/80 dark:bg-black/70 backdrop-blur-md rounded-lg p-2.5 border border-slate-200 dark:border-white/10 inline-block max-w-[90%] shadow-2xl">
+        <p className="text-[10px] sm:text-[11px] font-mono font-bold text-slate-800 dark:text-white leading-tight">
           <span className="text-primary mr-1">/</span>{displayed}
           <motion.span animate={{ opacity: [1, 0] }} transition={{ repeat: Infinity, duration: 0.6 }} className="inline-block w-1 h-3 bg-primary ml-0.5" />
         </p>
@@ -206,6 +207,8 @@ const ALL_TOOLS = [
 /* ─── 3D Tilt Card ─────────────────────────────────────────── */
 
 const ToolCard = ({ tool, onToolSelect, index }) => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [isHovered, setIsHovered] = useState(false);
   const cardRef = useRef(null);
   const { icon: Icon } = tool;
@@ -285,29 +288,25 @@ const ToolCard = ({ tool, onToolSelect, index }) => {
         >
           {/* FRONT */}
           <div
-            className="absolute inset-0 w-full h-full rounded-[24px] overflow-hidden border border-white/10 flex flex-col justify-between p-4 group"
+            className="absolute inset-0 w-full h-full rounded-[24px] overflow-hidden flex flex-col justify-between p-4 group"
             style={{
               backfaceVisibility: 'hidden',
-              background: 'rgba(20, 24, 45, 0.95)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: isDark ? 'rgba(20, 24, 45, 0.95)' : 'rgba(255, 255, 255, 0.9)',
+              border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.05)',
+              boxShadow: isDark ? 'none' : '0 10px 25px -5px rgba(0,0,0,0.05)',
               transform: 'translateZ(0)',
             }}
           >
             {/* Glow on hover */}
             <div
-              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-[24px]"
-              style={{ boxShadow: `inset 0 0 40px ${tool.color}22, 0 0 30px ${tool.color}18` }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
-            <div
-              className="absolute inset-0 opacity-10 pointer-events-none"
-              style={{ background: `radial-gradient(circle at center, ${tool.color} 0%, transparent 70%)` }}
+              className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-[24px]`}
+              style={{ boxShadow: `inset 0 0 40px ${tool.color}${isDark ? '22' : '10'}, 0 0 30px ${tool.color}${isDark ? '18' : '05'}` }}
             />
             {/* Shimmer sweep */}
             <div className="absolute inset-0 overflow-hidden rounded-[24px] pointer-events-none">
               <motion.div
                 className="absolute top-0 left-[-60%] w-[40%] h-full skew-x-[-20deg]"
-                style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent)' }}
+                style={{ background: isDark ? 'linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent)' : 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)' }}
                 animate={{ left: ['−60%', '140%'] }}
                 transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 2, ease: 'easeInOut' }}
               />
@@ -315,19 +314,19 @@ const ToolCard = ({ tool, onToolSelect, index }) => {
 
             <div className="flex items-center justify-between relative z-10">
               <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center border border-white/10 transition-transform duration-300 group-hover:scale-110"
-                style={{ background: `${tool.color}20` }}
+                className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-transform duration-300 group-hover:scale-110 ${isDark ? 'border-white/10' : 'border-slate-200 shadow-sm'}`}
+                style={{ background: isDark ? `${tool.color}20` : `${tool.color}10` }}
               >
                 <Icon size={18} style={{ color: tool.color }} />
               </div>
-              <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">
+              <span className={`text-[9px] font-black uppercase tracking-[0.2em] ${isDark ? 'text-white/30' : 'text-slate-400'}`}>
                 {tool.badge}
               </span>
             </div>
 
             <div className="relative z-10 space-y-1">
-              <h3 className="text-[14px] font-black text-white leading-tight">{tool.label}</h3>
-              <p className="text-[10px] text-white/40 font-medium truncate">{tool.desc}</p>
+              <h3 className={`text-[14px] font-black leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>{tool.label}</h3>
+              <p className={`text-[10px] font-medium truncate ${isDark ? 'text-white/40' : 'text-slate-500'}`}>{tool.desc}</p>
             </div>
           </div>
 

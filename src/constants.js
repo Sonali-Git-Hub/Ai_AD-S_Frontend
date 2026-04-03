@@ -1,5 +1,5 @@
 export const logo = "/logo/Logo.svg";
-export const name = "AISA";
+export const name = "AISA™";
 
 export const faqs = [
     {

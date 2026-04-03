@@ -1,6 +1,8 @@
 import React, { useEffect, useRef } from 'react';
+import { useTheme } from '../context/ThemeContext';
 
 const NeuralBackground = () => {
+  const { theme } = useTheme();
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -37,6 +39,11 @@ const NeuralBackground = () => {
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseout', handleMouseLeave);
 
+    const isDark = theme === 'dark';
+    const bgColor = isDark ? '#06080F' : '#f8f9fc';
+    const pColor1 = isDark ? '#8b5cf6' : '#6366f1'; // Purple/Indigo
+    const pColor2 = isDark ? '#3b82f6' : '#22d3ee'; // Blue/Cyan
+
     class Particle {
       constructor() {
         this.x = Math.random() * canvas.width;
@@ -46,7 +53,7 @@ const NeuralBackground = () => {
         this.baseX = this.x;
         this.baseY = this.y;
         this.size = Math.random() * 2.5 + 1;
-        this.color = Math.random() > 0.5 ? '#8b5cf6' : '#3b82f6'; // Neon Purple & Blue
+        this.color = Math.random() > 0.5 ? pColor1 : pColor2;
         this.angle = Math.random() * 360;
         this.spin = (Math.random() - 0.5) * 0.05;
       }
@@ -169,14 +176,20 @@ const NeuralBackground = () => {
     };
   }, []);
 
+  const isDark = theme === 'dark';
+  const bgColor = isDark ? '#06080F' : '#f8f9fc';
+
   return (
-    <div className="fixed inset-0 w-full h-full overflow-hidden pointer-events-none z-0 bg-[#06080F]">
+    <div className={`fixed inset-0 w-full h-full overflow-hidden pointer-events-none z-0 ${isDark ? 'bg-[#06080F]' : 'bg-[#f8f9fc]'}`}>
       <canvas
         ref={canvasRef}
         className="block w-full h-full"
       />
       {/* Heavy vignette overlay for dramatic cinematic focus */}
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#06080F_100%)] opacity-80" />
+      <div 
+        className="fixed inset-0 opacity-80" 
+        style={{ background: `radial-gradient(circle at center, transparent 0%, ${bgColor} 100%)` }}
+      />
     </div>
   );
 };

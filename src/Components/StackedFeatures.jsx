@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import {
@@ -531,6 +532,7 @@ const features = [
    Main StackedFeatures
    ════════════════════════════════════════════ */
 const StackedFeatures = () => {
+  const navigate = useNavigate();
   const { theme } = useTheme();
   const normalizedTheme = typeof theme === 'string' ? theme.toLowerCase() : 'system';
   const isDarkMode = normalizedTheme === 'dark' || (normalizedTheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -565,9 +567,10 @@ const StackedFeatures = () => {
 
   return (
     <div style={{ overflow: 'hidden' }}>
-      <div ref={wrapperRef} style={{ height: '100vh', overflow: 'hidden' }}>
+      <div ref={wrapperRef} className="sf-wrapper" style={{ height: '100vh', overflow: 'hidden' }}>
         <div
           ref={trackRef}
+          className="sf-track"
           style={{ display: 'flex', width: `${NUM_SLIDES * 100}vw`, height: '100vh', willChange: 'transform' }}
         >
           {features.map((feat, index) => {
@@ -578,10 +581,11 @@ const StackedFeatures = () => {
             return (
               <div
                 key={feat.id}
+                className="sf-slide"
                 style={{
                   width: '100vw', height: '100vh', flexShrink: 0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  position: 'relative', padding: '2rem',
+                  position: 'relative', padding: '1rem',
                   background: isDarkMode 
                     ? `radial-gradient(circle at 15% 50%, ${feat.bgFrom} 0%, ${feat.bgTo} 100%)`
                     : `radial-gradient(circle at 15% 50%, #EEF2FF 0%, #F8FAFF 100%)`,
@@ -589,31 +593,76 @@ const StackedFeatures = () => {
                 }}
               >
                 {/* Glows */}
-                <div style={{ position:'absolute', top:'10%', right:'-5%', width:'55vw', height:'70vh', borderRadius:'50%', background:`radial-gradient(circle,${feat.accentGlow} 0%,transparent 65%)`, filter:'blur(60px)', pointerEvents:'none' }}/>
-                <div style={{ position:'absolute', bottom:'-10%', left:'5%', width:'40vw', height:'50vh', borderRadius:'50%', background:`radial-gradient(circle,${feat.accentGlow.replace('0.35','0.1').replace('0.3','0.08')} 0%,transparent 70%)`, filter:'blur(70px)', pointerEvents:'none' }}/>
+                <div className="sf-glow-1" style={{ position:'absolute', top:'10%', right:'-5%', width:'55vw', height:'70vh', borderRadius:'50%', background:`radial-gradient(circle,${feat.accentGlow} 0%,transparent 65%)`, filter:'blur(60px)', pointerEvents:'none' }}/>
+                <div className="sf-glow-2" style={{ position:'absolute', bottom:'-10%', left:'5%', width:'40vw', height:'50vh', borderRadius:'50%', background:`radial-gradient(circle,${feat.accentGlow.replace('0.35','0.1').replace('0.3','0.08')} 0%,transparent 70%)`, filter:'blur(70px)', pointerEvents:'none' }}/>
 
-                <div style={{ position:'relative', zIndex:10, display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4vw', alignItems:'center', maxWidth:1280, width:'100%', height:'80vh' }}>
-                  {/* Text */}
-                  <div style={{ display:'flex', flexDirection:'column', gap:'1.4rem' }}>
-                    <div style={{ display:'inline-flex', alignItems:'center', gap:10, padding:'5px 14px', borderRadius:999, background:isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(79, 70, 229, 0.08)', border:isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(79, 70, 229, 0.2)', width:'fit-content' }}>
-                      <span style={{ fontFamily:'monospace', fontSize:'0.7rem', color:isDarkMode ? 'rgba(255,255,255,0.45)' : '#475569', letterSpacing:'0.12em' }}>FEATURE 0{index+1} / 0{NUM_SLIDES}</span>
+                <div className="sf-content-grid" style={{ 
+                  position:'relative', zIndex:10, 
+                  display:'grid', 
+                  gridTemplateColumns: 'minmax(400px, 1.2fr) 0.8fr', 
+                  gap:'6vw', alignItems:'center', 
+                  maxWidth:1400, width:'92%', 
+                  height:'auto',
+                  margin: '0 auto'
+                }}>
+                  {/* Text Container */}
+                  <div className="sf-text-content" style={{ display:'flex', flexDirection:'column', gap:'1.5rem', textAlign: 'left' }}>
+                    <div className="sf-icon-box" style={{ width:60, height:60, borderRadius:20, background:isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(255, 255, 255, 0.4)', border:`1px solid ${feat.accentColor}55`, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:isDarkMode ? `0 0 30px ${feat.accentGlow}` : `0 10px 25px ${feat.accentColor}20`, backdropFilter: isDarkMode ? 'none' : 'blur(12px)' }}>
+                      <Icon size={28} style={{ color:feat.accentColor }} />
                     </div>
-                    <div style={{ width:60, height:60, borderRadius:16, background:isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(255, 255, 255, 0.4)', border:`1px solid ${feat.accentColor}55`, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:isDarkMode ? `0 0 24px ${feat.accentGlow}` : `0 10px 25px ${feat.accentColor}20`, backdropFilter: isDarkMode ? 'none' : 'blur(12px)' }}>
-                      <Icon size={26} style={{ color:feat.accentColor }} />
-                    </div>
-                    <h2 style={{ fontSize:'clamp(2.2rem,4.5vw,4.5rem)', fontWeight:900, lineHeight:1.05, color:isDarkMode ? '#f8fafc' : '#0F172A', letterSpacing:'-0.03em', margin:0 }}>
+                    <h2 className="sf-title" style={{ 
+                      fontSize:'clamp(2.5rem, 4.5vw, 4rem)', 
+                      fontWeight:950, 
+                      lineHeight:1, 
+                      color:isDarkMode ? '#ffffff' : '#0F172A', 
+                      letterSpacing:'-0.04em', 
+                      margin:0,
+                      maxWidth: '12ch'
+                    }}>
                       {feat.title}
                     </h2>
-                    <p style={{ fontSize:'clamp(0.9rem,1.3vw,1.05rem)', color:isDarkMode ? 'rgba(203,213,225,0.7)' : '#475569', lineHeight:1.7, maxWidth:420, margin:0 }}>
+                    <p className="sf-description" style={{ 
+                      fontSize:'clamp(1rem, 1.1vw, 1.15rem)', 
+                      color:isDarkMode ? 'rgba(203,213,225,0.65)' : '#475569', 
+                      lineHeight:1.7, 
+                      maxWidth:480, 
+                      margin:0,
+                      fontWeight: 450
+                    }}>
                       {feat.description}
                     </p>
-                    <button style={{ display:'inline-flex', alignItems:'center', gap:10, padding:'12px 24px', borderRadius:40, background:isDarkMode ? `linear-gradient(135deg,${feat.accentColor}22,${feat.accentColor}44)` : `linear-gradient(135deg,${feat.accentColor}12,${feat.accentColor}24)`, border:`1px solid ${feat.accentColor}60`, color:feat.accentColor, fontWeight:700, fontSize:'0.88rem', cursor:'pointer', backdropFilter:'blur(8px)', width:'fit-content', boxShadow: isDarkMode ? 'none' : `0 10px 30px ${feat.accentColor}15` }}>
-                      Try it Now <ArrowRight size={15} />
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', marginTop: '1rem' }}>
+                      <button 
+                        onClick={() => {
+                          const modeMap = {
+                            'Deep Search': 'deepsearch',
+                            'Image Generation': 'imagegen',
+                            'Video Generation': 'videogen',
+                            'Web Search': 'websearch',
+                            'Code Builder': 'coding'
+                          };
+                          const mode = modeMap[feat.title] || 'chat';
+                          navigate(`/dashboard/chat?mode=${mode}`);
+                        }}
+                        className="sf-button" style={{ 
+                        display:'inline-flex', alignItems:'center', gap:12, padding:'14px 32px', borderRadius:18, 
+                        background:isDarkMode ? feat.accentColor : feat.accentColor, 
+                        color: '#fff', fontWeight:800, fontSize:'0.95rem', cursor:'pointer', 
+                        border: 'none',
+                        boxShadow: `0 15px 35px ${feat.accentColor}40`,
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                      }}>
+                        Try {feat.title} <ArrowRight size={16} />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Animated Demo */}
-                  <div style={{ height:'100%' }}>
+                  <div className="sf-demo-container" style={{ 
+                    height:'500px', 
+                    width: '100%',
+                    position: 'relative'
+                  }}>
                     <Demo active={isActive} />
                   </div>
                 </div>
@@ -626,7 +675,7 @@ const StackedFeatures = () => {
                 </div>
 
                 {/* Big bg number */}
-                <div style={{ position:'absolute', right:'-1rem', bottom:'-2rem', fontSize:'18rem', fontWeight:900, lineHeight:1, color:isDarkMode ? 'rgba(255,255,255,0.025)' : 'rgba(79, 70, 229, 0.04)', userSelect:'none', pointerEvents:'none', zIndex:0 }}>
+                <div className="sf-bg-number" style={{ position:'absolute', right:'-1rem', bottom:'-2rem', fontSize:'18rem', fontWeight:900, lineHeight:1, color:isDarkMode ? 'rgba(255,255,255,0.025)' : 'rgba(79, 70, 229, 0.04)', userSelect:'none', pointerEvents:'none', zIndex:0 }}>
                   {String(index+1).padStart(2,'0')}
                 </div>
               </div>
@@ -634,13 +683,57 @@ const StackedFeatures = () => {
           })}
         </div>
       </div>
-
       <style>{`
         @keyframes sfBIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
         @keyframes sfPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.6)} }
         @keyframes sfSpin { to{transform:rotate(360deg)} }
         @keyframes sfBlink { 0%,100%{opacity:1} 50%{opacity:0} }
         @keyframes sfvp { from{transform:scaleX(0);transform-origin:left} to{transform:scaleX(1);transform-origin:left} }
+
+        /* Mobile Optimization */
+        @media (max-width: 900px) {
+          .sf-content-grid {
+            grid-template-columns: 1fr !important;
+            height: 90vh !important;
+            gap: 2rem !important;
+            padding-top: 5rem !important;
+            text-align: center;
+          }
+          .sf-text-content {
+            align-items: center;
+            order: 1;
+          }
+          .sf-demo-container {
+            order: 2;
+            height: 35vh !important;
+            min-height: 250px !important;
+            width: 100%;
+          }
+          .sf-title {
+            font-size: 2.8rem !important;
+          }
+          .sf-bg-number {
+            font-size: 10rem !important;
+            bottom: 2rem !important;
+            right: 0 !important;
+          }
+        }
+        @media (max-width: 600px) {
+          .sf-title {
+            font-size: 2.2rem !important;
+          }
+          .sf-description {
+            font-size: 0.85rem !important;
+            line-height: 1.5 !important;
+          }
+          .sf-content-grid {
+            padding-top: 4rem !important;
+            height: 85vh !important;
+          }
+          .sf-demo-container {
+            height: 30vh !important;
+          }
+        }
       `}</style>
     </div>
   );

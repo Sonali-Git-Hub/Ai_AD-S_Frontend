@@ -135,6 +135,25 @@ const DashboardLayout = () => {
 
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
+      {/* Persistent Floating Mobile Menu Button */}
+      <AnimatePresence>
+        {!isSidebarOpen && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            className="fixed top-5 left-5 z-[1000] lg:hidden"
+          >
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="w-12 h-12 flex items-center justify-center bg-white/20 dark:bg-black/40 backdrop-blur-xl rounded-2xl border border-amber-500/40 dark:border-amber-400/30 shadow-2xl text-amber-500 dark:text-amber-400 active:scale-95 transition-all"
+            >
+              <Menu className="w-6 h-6 stroke-[2.5]" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex-1 flex flex-col min-w-0 bg-transparent h-full relative">
 
         {/* Mobile Header - Hide on Chat/Assistant if they provide their own toggle */}
