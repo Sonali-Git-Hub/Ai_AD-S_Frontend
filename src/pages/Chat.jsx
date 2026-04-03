@@ -1489,11 +1489,14 @@ const Chat = () => {
             isGenerating: false,
             content: `🖼️ Image generated successfully!`, // Use content
             imageUrl: finalUrl,
+            suggestions: data.followUpPrompts || [],
             timestamp: new Date(),
             projectId: currentProjectId
           };
 
           setMessages(prev => prev.map(msg => msg.id === tempId ? imageMessage : msg));
+          setTypingMessageId(null); // Clear typing status after image generation
+          console.log("[DEBUG] Image suggestions:", data.followUpPrompts);
 
           toast.success('Image generated successfully!');
           refreshSubscription();
@@ -1635,11 +1638,14 @@ const Chat = () => {
             isGenerating: false,
             content: `✨ Your image has been edited!`,
             imageUrl: finalUrl,
+            suggestions: responseData.followUpPrompts || [],
             timestamp: new Date(),
             projectId: currentProjectId
           };
 
           setMessages(prev => prev.map(msg => msg.id === tempId ? editMessage : msg));
+          setTypingMessageId(null); // Clear typing status after image edit
+          console.log("[DEBUG] Edit suggestions:", responseData.followUpPrompts);
           toast.success('Image edited successfully!');
           refreshSubscription();
 
@@ -5654,8 +5660,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                         {/* Related Questions Suggestions */}
                         {(msg.role === 'model' || msg.role === 'assistant') &&
-                          msg.suggestions && msg.suggestions.length > 0 &&
-                          typingMessageId !== msg.id && (
+                          msg.suggestions && msg.suggestions.length > 0 && (
                             <div className="mt-4 flex flex-wrap gap-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
                               {msg.suggestions.map((q, idx) => (
                                 <button
@@ -5663,9 +5668,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                   onClick={() => {
                                     handleSendMessage(null, q);
                                   }}
-                                  className="text-xs px-3.5 py-1.5 rounded-full border border-primary/30 bg-primary/20 text-white hover:bg-primary transition-all flex items-center gap-1.5 font-bold shadow-sm active:scale-95"
+                                  className="text-xs px-4 py-2 rounded-2xl border border-white/20 bg-primary/90 dark:bg-primary/70 text-white hover:bg-primary hover:scale-[1.02] transition-all flex items-center gap-2 font-bold shadow-lg backdrop-blur-md active:scale-95 group/sug border-dashed"
                                 >
-                                  <Brain className="w-3 h-3" />
+                                  <Brain className="w-3.5 h-3.5 text-white transition-colors" />
                                   {q}
                                 </button>
                               ))}
