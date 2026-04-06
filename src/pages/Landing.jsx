@@ -23,7 +23,8 @@ import AboutAISA from '../Components/AboutAISA';
 import Hero from '../Components/Hero';
 import StackedFeatures from '../Components/StackedFeatures';
 import DemoSection from '../Components/DemoSection';
-import StackedCards from '../Components/StackedCards';
+import AiLegalDemoSection from '../Components/AiLegalDemoSection';
+import ComingSoonSurprise from '../Components/ComingSoonSurprise';
 import FlowingAICreature from '../Components/FlowingAICreature';
 import { useLanguage } from '../context/LanguageContext';
 import ErrorBoundary from '../Components/ErrorBoundary';
@@ -78,7 +79,7 @@ const Landing = () => {
     };
 
     return (
-        <div style={{ background: isDarkMode ? '#04040e' : '#EEF2FF' }} className="min-h-screen flex flex-col relative overflow-hidden aisa-scalable-text">
+        <div style={{ background: isDarkMode ? '#0b0b12' : '#EEF2FF' }} className="min-h-screen flex flex-col relative overflow-hidden aisa-scalable-text">
             
 
             {/* ── 3D Immersive Adventure Element ── */}
@@ -97,8 +98,11 @@ const Landing = () => {
             {/* ── Practical Demonstrations ── */}
             <DemoSection />
 
-            {/* ── Value Pillars Card Stack ── */}
-            <StackedCards />
+            {/* ── AILEGAL Specialization Showcase ── */}
+            <AiLegalDemoSection />
+
+            {/* ── Upcoming Features Surprise ── */}
+            <ComingSoonSurprise />
 
             {/* ── Main Conversion Section (Glassmorphism) ── */}
             <motion.main
@@ -169,22 +173,22 @@ const Landing = () => {
                     >
                         {/* Brand Pillar */}
                         <motion.div variants={itemVariants} className="space-y-10">
-                            <div className="flex items-center gap-4 cursor-pointer group" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                            <div className="flex flex-col items-start gap-4 cursor-pointer group" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
                                 <div className="relative">
                                     <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    <img src={logo} alt="AISA" className="w-16 h-16 relative transform group-hover:scale-110 transition-transform duration-500" />
+                                    <img src={logo} alt="AISA" className="w-20 h-20 relative transform group-hover:scale-110 transition-transform duration-500" />
                                 </div>
-                                <span className="text-3xl font-black text-primary tracking-tighter">AISA</span>
                             </div>
                             <p className="text-base text-gray-500 dark:text-gray-400 leading-relaxed font-medium">
                                 We are defining the next generation of human-AI collaboration through immersive, frontier conversational intelligence.
                             </p>
-                            <div className="flex items-center gap-5 flex-wrap">
+                            <div className="flex items-center gap-3">
                                 {[
                                     { img: "/social-media-icons/Linkedin.svg", href: "https://www.linkedin.com/in/aimall-global/" },
                                     { img: "/social-media-icons/X.svg", href: "https://x.com/aimallglobal" },
                                     { img: "/social-media-icons/FB.svg", href: "https://www.facebook.com/aimallglobal/" },
                                     { img: "/social-media-icons/Insta.svg", href: "https://www.instagram.com/aimall.global/" },
+                                    { img: "/social-media-icons/Whatsapp.svg", href: "https://wa.me/918358990909" },
                                 ].map((s, i) => (
                                     <a key={i} href={s.href} target="_blank" rel="noreferrer" className="w-10 h-10 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 hover:bg-primary/20 transition-all duration-300 group">
                                         <img src={s.img} alt="social" className="w-5 h-5 opacity-60 group-hover:opacity-100 transition-opacity dark:invert" />
@@ -208,7 +212,7 @@ const Landing = () => {
                             <ul className="space-y-6 text-gray-600 dark:text-gray-400 text-[0.95rem] font-medium">
                                 <li className="flex items-center gap-4 group cursor-default">
                                     <div className="p-2 rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-white"><MapPin size={18} /></div>
-                                    <span className="transition-colors group-hover:text-primary">{t('city')}</span>
+                                    <span className="transition-colors group-hover:text-primary footer-link-sparkle">{t('city')}</span>
                                 </li>
                                 <li className="flex items-center gap-4 group cursor-pointer">
                                     <div className="p-2 rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-white"><Mail size={18} /></div>

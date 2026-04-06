@@ -205,9 +205,8 @@ const Hero = () => {
       y: 0,
       filter: 'blur(0px)',
       transition: {
-        type: "spring",
-        damping: 12,
-        stiffness: 100,
+        duration: 0.8,
+        ease: [0.22, 1, 0.36, 1]
       },
     },
     hidden: {
@@ -303,7 +302,8 @@ const Hero = () => {
         transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
         style={{
           position: 'absolute', top: 0, left: 0, right: 0,
-          padding: '0.8rem 2.5rem', zIndex: 50,
+          padding: window.innerWidth < 640 ? '0.2rem 1rem' : '0.4rem 2.5rem', 
+          zIndex: 50,
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           background: 'transparent',
           backdropFilter: 'none',
@@ -312,13 +312,26 @@ const Hero = () => {
       >
         <motion.div 
           whileHover={{ scale: 1.05 }} 
-          style={{ cursor: 'pointer' }} 
+          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }} 
           onClick={() => navigate('/')}
         >
-          <img src={logo} alt="AISA" style={{ height: '42px' }} />
+          <div className="relative">
+            <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full scale-150 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <img src={logo} alt="AISA" 
+              style={{ 
+                height: window.innerWidth < 640 ? '50px' : '90px', 
+                width: 'auto' 
+              }} 
+              className="drop-shadow-[0_0_40px_rgba(99,102,241,0.6)] relative transition-all duration-500" 
+            />
+          </div>
         </motion.div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: window.innerWidth < 640 ? '0.8rem' : '1.5rem' 
+        }}>
           <ThemeToggle />
           {user ? (
             <div style={{ position: 'relative' }}>
@@ -360,7 +373,7 @@ const Hero = () => {
       <div style={{
         position: 'relative', zIndex: 10,
         textAlign: 'center', maxWidth: '1000px',
-        padding: '120px 1.5rem 60px',
+        padding: window.innerWidth < 640 ? '160px 1.25rem 60px' : '120px 1.5rem 60px',
         transform: 'translateY(-40px)'
       }}>
         {/* Badge */}
@@ -378,7 +391,7 @@ const Hero = () => {
             marginBottom: '2.5rem', letterSpacing: '0.1em'
           }}>
             <Sparkles size={16} fill={isDarkMode ? "#818cf8" : "#6366f1"} />
-            Powered by UWO
+            Powered by UWO™
           </div>
         </motion.div>
 
@@ -390,7 +403,7 @@ const Hero = () => {
             animate={introStage !== 'waiting' ? "visible" : "hidden"}
             onAnimationComplete={() => { if (introStage === 'animating') setIntroStage('finished'); }}
             style={{
-              fontSize: 'clamp(3rem, 9vw, 5.5rem)',
+              fontSize: 'clamp(2.2rem, 10vw, 5.5rem)',
               fontWeight: 900,
               color: isDarkMode ? '#fff' : '#0F172A',
               lineHeight: 1.1,
@@ -403,7 +416,7 @@ const Hero = () => {
             }}
           >
             {/* Line 1: The Future of */}
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap' }}>
               {"The Future of".split("").map((char, index) => (
                 <motion.span
                   key={`l1-${index}`}
@@ -416,7 +429,7 @@ const Hero = () => {
             </div>
             
             {/* Line 2: Conversational AI (with Gradient across letters) */}
-            <div style={{ display: 'flex', justifyContent: 'center', position: 'relative' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', flexWrap: 'wrap' }}>
               {"Conversational AI".split("").map((char, index, arr) => (
                 <motion.span
                   key={`l2-${index}`}
@@ -466,7 +479,7 @@ const Hero = () => {
             fontWeight: 400
           }}
         >
-          Build intelligent workflows with AISA that learn, analyze and generate insights in real time.
+          Build intelligent workflows with AISA™ that learn, analyze and generate insights in real time.
         </motion.p>
 
         {/* Buttons */}
@@ -474,7 +487,15 @@ const Hero = () => {
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={introStage === 'finished' ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 20, scale: 0.95 }}
           transition={{ duration: 1, delay: 0.3 }}
-          style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', flexWrap: 'wrap' }}
+          style={{ 
+            display: 'flex', 
+            gap: '1rem', 
+            justifyContent: 'center', 
+            flexWrap: 'wrap',
+            flexDirection: window.innerWidth < 640 ? 'column' : 'row',
+            alignItems: 'center',
+            width: window.innerWidth < 640 ? '100%' : 'auto'
+          }}
         >
           <motion.button
             whileHover={{ scale: 1.05, boxShadow: isDarkMode ? '0 20px 40px rgba(99, 102, 241, 0.5)' : '0 15px 35px rgba(79, 70, 229, 0.2)' }}
@@ -485,11 +506,12 @@ const Hero = () => {
               background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
               color: '#fff', fontWeight: 800, fontSize: '1.1rem',
               cursor: 'pointer', boxShadow: isDarkMode ? '0 20px 50px rgba(99, 102, 241, 0.4)' : '0 10px 40px rgba(79, 70, 229, 0.15)',
-              display: 'flex', alignItems: 'center', gap: '12px',
-              transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
+              transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+              width: window.innerWidth < 640 ? '100%' : 'auto'
             }}
           >
-            Explore AISA <ArrowRight size={22} />
+            Explore AISA™ <ArrowRight size={22} />
           </motion.button>
           
           <motion.button
@@ -502,7 +524,8 @@ const Hero = () => {
               border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(99, 102, 241, 0.2)',
               color: isDarkMode ? '#fff' : '#0F172A', fontWeight: 800, fontSize: '1.1rem',
               cursor: 'pointer', backdropFilter: 'blur(20px)',
-              transition: 'all 0.4s ease'
+              transition: 'all 0.4s ease',
+              width: window.innerWidth < 640 ? '100%' : 'auto'
             }}
           >
             Existing User

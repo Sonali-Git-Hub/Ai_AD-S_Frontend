@@ -1,11 +1,48 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionTemplate, useMotionValue } from 'framer-motion';
 import { X, Upload, Wand2, Download, Video as VideoIcon, Loader2, History, ArrowLeft, RotateCw, ChevronDown, Check } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import CustomVideoPlayer from './CustomVideoPlayer';
 
 const baseURL = window._env_?.VITE_AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || "http://localhost:8080/api";
+
+const CinematicParticles = ({ count = 20 }) => {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const actualCount = isMobile ? Math.floor(count / 2) : count;
+  
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden mix-blend-screen z-0">
+      {[...Array(actualCount)].map((_, i) => {
+        const size = Math.random() * 3 + 1;
+        return (
+          <motion.div
+            key={i}
+            className="absolute rounded-full bg-indigo-400/40"
+            style={{ width: size, height: size, filter: 'blur(1px)' }}
+            initial={{
+              x: `${Math.random() * 100}%`,
+              y: `${Math.random() * 100}%`,
+              scale: 0,
+              opacity: 0
+            }}
+            animate={{
+              y: [`${Math.random() * 100}%`, `${Math.random() * 100 - 20}%`],
+              scale: [0, 1, 1.5, 0],
+              opacity: [0, 0.8, 0.4, 0]
+            }}
+            transition={{
+              duration: Math.random() * 4 + 4,
+              repeat: Infinity,
+              ease: "linear",
+              delay: Math.random() * 3
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+};
 
 const CustomSelect = ({ value, onChange, options, disabled }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -28,7 +65,7 @@ const CustomSelect = ({ value, onChange, options, disabled }) => {
             <button
                 type="button"
                 onClick={() => !disabled && setIsOpen(!isOpen)}
-                className={`w-full flex items-center justify-between bg-black/5 dark:bg-white/5 border ${isOpen ? 'border-primary ring-1 ring-primary/50' : 'border-border'} rounded-xl px-4 py-2.5 text-sm text-maintext outline-none transition-all ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-primary/50'}`}
+                className={`w-full flex items-center justify-between bg-black/5 dark:bg-white/5 border ${isOpen ? 'border-primary ring-1 ring-primary/50' : 'border-black/10 dark:border-white/10'} rounded-xl px-4 py-2.5 text-sm text-maintext outline-none transition-all ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-white/30 hover:bg-black/10 dark:hover:bg-white/10'}`}
                 disabled={disabled}
             >
                 <span className="truncate">{selectedOption?.label || value}</span>
@@ -41,7 +78,7 @@ const CustomSelect = ({ value, onChange, options, disabled }) => {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
                         transition={{ duration: 0.15, ease: "easeOut" }}
-                        className="absolute z-50 w-full mt-2 py-2 bg-white dark:bg-[#2a2a2a] border border-black/10 dark:border-white/10 rounded-xl shadow-2xl overflow-y-auto custom-scrollbar max-h-[135px] backdrop-blur-xl"
+                        className="absolute z-50 w-full mt-2 py-2 bg-white/90 dark:bg-[#1a1a1a]/95 border border-black/10 dark:border-white/10 rounded-xl shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] overflow-y-auto custom-scrollbar max-h-[135px] backdrop-blur-2xl"
                     >
                         {options.map((option) => (
                             <button
@@ -53,7 +90,7 @@ const CustomSelect = ({ value, onChange, options, disabled }) => {
                                     }
                                 }}
                                 disabled={option.disabled}
-                                className={`w-full flex items-center justify-between px-4 py-2.5 text-sm text-left transition-colors ${option.disabled ? 'opacity-50 cursor-not-allowed text-subtext' : 'text-maintext hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer'} ${value === option.value ? 'bg-primary/10 text-primary font-medium' : ''}`}
+                                className={`w-full flex items-center justify-between px-4 py-2.5 text-sm text-left transition-colors ${option.disabled ? 'opacity-50 cursor-not-allowed text-subtext' : 'text-maintext hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer'} ${value === option.value ? 'bg-primary/20 text-primary font-bold' : ''}`}
                             >
                                 <span className="truncate block pr-4">{option.label}</span>
                                 {value === option.value && <Check className="w-4 h-4 shrink-0" />}
@@ -80,6 +117,25 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef(null);
+
+    // Spotlight Logic
+    const mouseX = useMotionValue(0);
+    const mouseY = useMotionValue(0);
+    const [isHovering, setIsHovering] = useState(false);
+    const cardRef = useRef(null);
+
+    const handleMouseMove = (e) => {
+        if (!cardRef.current || (typeof window !== 'undefined' && window.innerWidth < 768)) return;
+        const rect = cardRef.current.getBoundingClientRect();
+        mouseX.set(e.clientX - rect.left);
+        mouseY.set(e.clientY - rect.top);
+    };
+
+    const backgroundSpotlight = useMotionTemplate`radial-gradient(
+      600px circle at ${mouseX}px ${mouseY}px,
+      rgba(139, 92, 246, 0.15),
+      transparent 80%
+    )`;
 
     const fetchHistory = async () => {
         setIsLoadingHistory(true);
@@ -244,15 +300,31 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
 
     return (
         <AnimatePresence>
+            {isOpen && (
             <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className="relative w-full max-w-2xl bg-white dark:bg-[#1a1a1a] border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                    ref={cardRef}
+                    onMouseMove={handleMouseMove}
+                    onMouseEnter={() => setIsHovering(true)}
+                    onMouseLeave={() => setIsHovering(false)}
+                    initial={{ opacity: 0, scale: 0.9, y: 40, rotateX: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0, rotateX: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 20, rotateX: -10 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    className="relative w-full max-w-3xl bg-white/10 dark:bg-black/40 backdrop-blur-3xl border border-white/20 dark:border-white/10 rounded-[32px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh]"
+                    style={{ transformStyle: "preserve-3d" }}
                 >
+                    {/* Cinematic Backgrounds */}
+                    <motion.div 
+                        className="absolute inset-0 pointer-events-none z-0 transition-opacity duration-500"
+                        style={{ background: isHovering && (typeof window !== 'undefined' && window.innerWidth >= 768) ? backgroundSpotlight : 'transparent' }}
+                    />
+                    <div className="absolute inset-x-0 -top-40 h-[300px] bg-gradient-to-b from-indigo-500/20 to-transparent blur-[80px] pointer-events-none z-0"></div>
+                    <div className="absolute inset-x-0 -bottom-40 h-[300px] bg-gradient-to-t from-purple-500/20 to-transparent blur-[80px] pointer-events-none z-0"></div>
+                    <CinematicParticles count={30} />
+
                     {/* Header */}
-                    <div className="px-6 py-4 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-white/50 dark:bg-black/20 backdrop-blur-xl z-10 shrink-0">
+                    <div className="px-6 py-4 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-black/5 dark:bg-white/5 backdrop-blur-xl z-20 shrink-0">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                                 <Wand2 className="w-5 h-5 text-primary" />
@@ -292,7 +364,7 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
                     </div>
 
                     {showHistory ? (
-                        <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
+                        <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar relative z-10">
                             {isLoadingHistory ? (
                                 <div className="flex justify-center items-center h-40">
                                     <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -328,20 +400,20 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
                             )}
                         </div>
                     ) : (
-                        <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar flex flex-col gap-6">
+                        <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar flex flex-col gap-6 relative z-10">
 
                             {/* Preview Area */}
                             <div className={`grid grid-cols-1 ${isGenerating || resultVideoUrl ? 'md:grid-cols-2' : ''} gap-4`}>
                                 {/* Source Image */}
                                 <div className={`flex flex-col gap-2 ${!isGenerating && !resultVideoUrl ? 'max-w-sm mx-auto w-full' : ''}`}>
-                                    <span className="text-xs font-bold text-subtext uppercase tracking-wider">Source Image</span>
+                                    <span className="text-xs font-bold text-maintext uppercase tracking-wider backdrop-blur-md px-2 py-0.5 rounded shadow-sm self-start">Source Image</span>
                                     {previewUrl ? (
-                                        <div className="relative group w-full aspect-square bg-black/5 dark:bg-white/5 rounded-2xl overflow-hidden border border-border">
+                                        <div className="relative group w-full aspect-square bg-black/10 dark:bg-white/5 rounded-[20px] overflow-hidden border border-black/10 dark:border-white/10">
                                             <img src={previewUrl} alt="Original" className="w-full h-full object-contain" />
-                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center backdrop-blur-sm opacity-0 group-hover:opacity-100">
                                                 <button
                                                     onClick={() => fileInputRef.current?.click()}
-                                                    className="opacity-0 group-hover:opacity-100 flex items-center gap-2 px-4 py-2 bg-white/90 text-black rounded-full font-semibold text-sm transform scale-95 group-hover:scale-100 transition-all shadow-lg"
+                                                    className="flex items-center gap-2 px-4 py-2 bg-white/90 text-black rounded-full font-semibold text-sm transform scale-95 group-hover:scale-100 transition-all shadow-lg"
                                                 >
                                                     <Upload className="w-4 h-4" /> Change Frame
                                                 </button>
@@ -353,16 +425,16 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
                                             onDragOver={handleDragOver}
                                             onDragLeave={handleDragLeave}
                                             onDrop={handleDrop}
-                                            className={`w-full aspect-square bg-black/5 dark:bg-white/5 border-2 border-dashed ${isDragging ? 'border-primary bg-primary/10' : 'border-border'} rounded-2xl flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all text-subtext hover:text-primary group`}
+                                            className={`w-full aspect-square bg-black/10 dark:bg-white/5 border-2 border-dashed ${isDragging ? 'border-primary bg-primary/10' : 'border-black/20 dark:border-white/10'} rounded-[20px] flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-primary/50 hover:bg-black/5 dark:hover:bg-white/10 transition-all text-maintext group`}
                                         >
-                                            <div className={`w-12 h-12 rounded-full ${isDragging ? 'bg-primary/20' : 'bg-black/5 dark:bg-white/5'} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                                            <div className={`w-12 h-12 rounded-full ${isDragging ? 'bg-primary/20' : 'bg-black/10 dark:bg-white/10'} flex items-center justify-center group-hover:scale-110 transition-transform`}>
                                                 <Upload className={`w-6 h-6 ${isDragging ? 'text-primary' : ''}`} />
                                             </div>
                                             <div className="text-center px-4">
-                                                <p className="text-sm font-semibold text-maintext">
+                                                <p className="text-sm font-bold text-maintext">
                                                     {isDragging ? 'Drop Image Here' : 'Click or Drag Image'}
                                                 </p>
-                                                <p className="text-xs mt-1">First frame of the video</p>
+                                                <p className="text-xs mt-1 text-subtext">First frame of the video</p>
                                             </div>
                                         </div>
                                     )}
@@ -371,8 +443,8 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
                                 {/* Result Video */}
                                 {(isGenerating || resultVideoUrl) && (
                                     <div className="flex flex-col gap-2">
-                                        <span className="text-xs font-bold text-subtext uppercase tracking-wider">Video Result</span>
-                                        <div className={`relative w-full aspect-square rounded-2xl overflow-hidden border ${isGenerating ? 'border-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.2)]' : 'border-border'} flex items-center justify-center bg-black/5 dark:bg-white/5`}>
+                                        <span className="text-xs font-bold text-maintext uppercase tracking-wider backdrop-blur-md px-2 py-0.5 rounded shadow-sm self-start">Video Result</span>
+                                        <div className={`relative w-full aspect-square rounded-[20px] overflow-hidden border ${isGenerating ? 'border-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.2)]' : 'border-black/10 dark:border-white/10'} flex items-center justify-center bg-black/10 dark:bg-white/5`}>
                                             {isGenerating ? (
                                                 <div className="flex flex-col items-center gap-4 text-primary animate-in fade-in duration-500">
                                                     <Loader2 className="w-8 h-8 animate-spin" />
@@ -434,7 +506,7 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
                             
                             {/* Input Field */}
                             <div className="flex flex-col gap-2 shrink-0">
-                                <label className="text-xs font-bold text-subtext uppercase tracking-wider">Animation Prompt</label>
+                                <label className="text-xs font-bold text-maintext uppercase tracking-wider backdrop-blur-md px-2 py-0.5 rounded shadow-sm self-start">Animation Prompt</label>
                                 <div className="relative flex items-center">
                                     <input
                                         type="text"
@@ -442,7 +514,7 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
                                         onChange={e => setPrompt(e.target.value)}
                                         disabled={!selectedImage || isGenerating}
                                         placeholder="e.g. A cluster of vibrant wildflowers swaying gently in a sun-drenched meadow"
-                                        className="w-full bg-black/5 dark:bg-white/5 border border-border rounded-2xl py-3.5 pl-4 pr-12 text-sm text-maintext outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="w-full bg-black/10 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-2xl py-3.5 pl-4 pr-12 text-sm text-maintext outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                         onKeyDown={e => {
                                             if (e.key === 'Enter' && !isGenerating && selectedImage && prompt.trim()) {
                                                 e.preventDefault();
@@ -459,10 +531,10 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
 
                     {/* Footer Actions */}
                     {!showHistory && (
-                        <div className="px-6 py-4 border-t border-black/5 dark:border-white/5 bg-black/5 dark:bg-[#1a1a1a] flex items-center justify-between shrink-0">
+                        <div className="px-6 py-4 border-t border-black/5 dark:border-white/5 bg-black/10 dark:bg-white/5 flex items-center justify-between shrink-0 relative z-20">
                             <button
                                 onClick={handleReset}
-                                className="text-sm font-semibold text-subtext hover:text-maintext transition-colors"
+                                className="text-sm font-semibold text-maintext/70 hover:text-maintext transition-colors"
                             >
                                 Reset
                             </button>
@@ -480,24 +552,33 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
                                 <button
                                     onClick={handleGenerate}
                                     disabled={!selectedImage || !prompt.trim() || isGenerating}
-                                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm shadow-lg transition-all ${(!selectedImage || !prompt.trim() || isGenerating)
-                                        ? 'bg-purple-500/50 text-white/70 cursor-not-allowed shadow-none'
-                                        : 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:shadow-indigo-500/30 hover:scale-[1.02] active:scale-[0.98]'
+                                    className={`relative flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm overflow-hidden transition-all duration-300 ${(!selectedImage || !prompt.trim() || isGenerating)
+                                        ? 'bg-black/10 dark:bg-white/5 text-subtext cursor-not-allowed border border-black/10 dark:border-white/10'
+                                        : 'text-white border border-transparent shadow-[0_0_20px_rgba(139,92,246,0.3)] hover:shadow-[0_0_30px_rgba(139,92,246,0.5)] transform hover:scale-[1.02] active:scale-[0.98]'
                                         }`}
                                 >
-                                    {isGenerating ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 animate-spin" /> Generating...
-                                        </>
-                                    ) : resultVideoUrl ? (
-                                        <>
-                                            <RotateCw className="w-4 h-4" /> Regenerate
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Wand2 className="w-4 h-4" /> Generate Video
-                                        </>
+                                    {(!(!selectedImage || !prompt.trim() || isGenerating)) && (
+                                        <motion.div 
+                                          className="absolute inset-0 z-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 bg-[length:200%_auto]"
+                                          animate={{ backgroundPosition: ['0% center', '200% center'] }}
+                                          transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                                        />
                                     )}
+                                    <div className="relative z-10 flex items-center gap-2">
+                                        {isGenerating ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 animate-spin text-white" /> Generating...
+                                            </>
+                                        ) : resultVideoUrl ? (
+                                            <>
+                                                <RotateCw className="w-4 h-4" /> Regenerate
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Wand2 className="w-4 h-4" /> Generate Video
+                                            </>
+                                        )}
+                                    </div>
                                 </button>
                             </div>
                         </div>
@@ -512,8 +593,9 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
                         onChange={handleImageSelect}
                     />
                 </motion.div>
-            </div >
-        </AnimatePresence >
+            </div>
+            )}
+        </AnimatePresence>
     );
 };
 

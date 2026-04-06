@@ -3,7 +3,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import {
   Bot, User, Search, ImageIcon, Video, Globe, Code2, Zap,
-  Sparkles, ExternalLink, Terminal, ChevronRight
+  Sparkles, ExternalLink, Terminal, ChevronRight, Scale, TrendingUp
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
@@ -19,84 +19,77 @@ const FEATURES = [
     glow: 'rgba(99,102,241,0.5)',
     bgAccent: 'rgba(30,27,75,0.4)',
     type: 'title',
-    text: 'HOW DOES AISA WORKS',
+    text: 'HOW AISA™ WORKS',
     steps: [],
   },
   {
-    id: 0,
+    id: 'deepsearch',
     label: 'Deep Search',
     icon: Search,
     color: '#60a5fa',
     glow: 'rgba(59,130,246,0.4)',
     bgAccent: 'rgba(30,58,138,0.3)',
     steps: [
-      { from: 'user', text: 'Research latest LLM breakthroughs in 2025.' },
-      { from: 'ai',   text: '🔍 Scanning 200+ sources…', typing: true, ms: 450 },
-      { from: 'ai',   text: '📄 63 papers found:\n• GPT-5 reasoning +47%\n• MoE scaling laws\n• Multimodal alignment', card: 'search', ms: 150 },
-      { from: 'user', text: 'Summarize the top finding.' },
-      { from: 'ai',   text: '🧠 Chain-of-thought self-verification reduces hallucination by 47%.', ms: 400 },
+      { from: 'user', text: 'Deep search: Latest breakthroughs in quantum computing 2025.' },
+      { from: 'ai',   text: '🔍 DeepSearch Engine engaged — scanning 40M+ sources...', typing: true, ms: 1000 },
+      { from: 'ai',   text: '🧠 Cross-referencing arXiv, Nature, IEEE & live web...', typing: true, ms: 900 },
+      { from: 'ai',   text: '✅ Deep Search Complete:\n• Google unveils 1M qubit chip "Willow-X".\n• IBM Quantum breaks error correction record.\n• 3 peer-reviewed papers synthesized.', card: 'search', ms: 1200 },
     ],
   },
   {
-    id: 1,
-    label: 'Image Gen',
+    id: 'imagegen',
+    label: 'Image Generation',
     icon: ImageIcon,
     color: '#a78bfa',
     glow: 'rgba(139,92,246,0.4)',
     bgAccent: 'rgba(76,29,149,0.3)',
     steps: [
-      { from: 'user', text: 'Generate a cyberpunk city at night.' },
-      { from: 'ai',   text: '🎨 Generating with AISA Image Engine…', typing: true, ms: 450 },
-      { from: 'ai',   text: '✅ Image ready!', card: 'image', ms: 150 },
-      { from: 'user', text: 'Add pink and blue neon tones.' },
-      { from: 'ai',   text: '🎨 Re-rendering with neon palette…', typing: true, ms: 400 },
-      { from: 'ai',   text: '✅ Updated version generated!', card: 'image2', ms: 150 },
+      { from: 'user', text: 'Generate an 8K cinematic neon city floating in space.' },
+      { from: 'ai',   text: '🎨 AISA Imagine™ activated — crafting prompt blueprint...', typing: true, ms: 900 },
+      { from: 'ai',   text: '⚡ Rendering with FLUX Ultra + VEO-3 pipeline...', typing: true, ms: 1200 },
+      { from: 'ai',   text: '✅ 8K masterpiece generated.\n📐 Resolution: 7680×4320 · Style: Cinematic Noir', card: 'image', ms: 300 },
     ],
   },
   {
-    id: 2,
-    label: 'Video Gen',
+    id: 'videogen',
+    label: 'Video Generation',
     icon: Video,
     color: '#f472b6',
-    glow: 'rgba(236,72,153,0.4)',
-    bgAccent: 'rgba(131,24,67,0.3)',
+    glow: 'rgba(244,114,182,0.45)',
+    bgAccent: 'rgba(80,10,50,0.35)',
     steps: [
-      { from: 'user', text: 'Create a 5s cinematic AI robot in space.' },
-      { from: 'ai',   text: '🎬 Rendering frames 0%…', typing: true, ms: 380 },
-      { from: 'ai',   text: '⏳ 40%… 75%… 100% ✅', typing: true, ms: 420 },
-      { from: 'ai',   text: '🎬 Video ready! 5s · 4K · 24fps', card: 'video', ms: 150 },
-      { from: 'user', text: 'Add orchestral music.' },
-      { from: 'ai',   text: '🎵 Audio layer added. Final export done!', ms: 350 },
+      { from: 'user', text: 'Animate that city scene into a cinematic 5-second loop.' },
+      { from: 'ai',   text: '🎬 Video Node online — compositing frames with VEO-3...', typing: true, ms: 1100 },
+      { from: 'ai',   text: '🎵 Syncing AI soundtrack and motion blur...', typing: true, ms: 1000 },
+      { from: 'ai',   text: '✅ Video ready — 5s · 4K · 24fps · +Spatial Audio', card: 'video', ms: 300 },
     ],
   },
   {
-    id: 3,
-    label: 'Web Browse',
+    id: 'websearch',
+    label: 'Web Search',
     icon: Globe,
-    color: '#2dd4bf',
+    color: '#34d399',
     glow: 'rgba(45,212,191,0.4)',
-    bgAccent: 'rgba(19,78,74,0.3)',
+    bgAccent: 'rgba(6,50,40,0.35)',
     steps: [
-      { from: 'user', text: 'Current Bitcoin price and market sentiment?' },
-      { from: 'ai',   text: '🌐 Browsing live data…', typing: true, ms: 380 },
-      { from: 'ai',   text: '📊 BTC: $67,420 (+3.2%)\n🟢 Sentiment: Bullish\nETF inflows: $2.1B this week', card: 'web', ms: 150 },
-      { from: 'user', text: 'Price prediction next month?' },
-      { from: 'ai',   text: '📈 78% analysts bullish.\nTarget: $70K–$80K by April.', ms: 380 },
+      { from: 'user', text: 'Live web: What is the Bitcoin price and top crypto news today?' },
+      { from: 'ai',   text: '🌐 Live Web Agent active — connecting to real-time feeds...', typing: true, ms: 900 },
+      { from: 'ai',   text: '📡 Scanning CoinGecko, Bloomberg, Reuters...', typing: true, ms: 800 },
+      { from: 'ai',   text: '✅ Live Data Retrieved:\n• BTC: $67,420 ▲3.2% · 24h Vol: $38B\n• ETH: $3,210 ▲1.8%', card: 'web', ms: 400 },
     ],
   },
   {
-    id: 4,
-    label: 'Code AI',
+    id: 'codebuilder',
+    label: 'Code Builder',
     icon: Code2,
-    color: '#818cf8',
-    glow: 'rgba(99,102,241,0.4)',
-    bgAccent: 'rgba(49,46,129,0.3)',
+    color: '#fbbf24',
+    glow: 'rgba(251,191,36,0.4)',
+    bgAccent: 'rgba(60,40,0,0.35)',
     steps: [
-      { from: 'user', text: 'Write a Python Google scraper function.' },
-      { from: 'ai',   text: '💻 Writing code…', typing: true, ms: 420 },
-      { from: 'ai',   text: '', card: 'code', ms: 150 },
-      { from: 'user', text: 'Add error handling + rate limiting.' },
-      { from: 'ai',   text: '🔧 Added try/except + 1s delay. ✅', ms: 350 },
+      { from: 'user', text: 'Build a Python web scraper for live crypto prices.' },
+      { from: 'ai',   text: '💻 Neural Code Builder online — architecting solution...', typing: true, ms: 1000 },
+      { from: 'ai',   text: '⚙️ Generating optimized, production-ready code...', typing: true, ms: 1100 },
+      { from: 'ai',   text: '✅ Code ready — Python · 100% async · Rate-limit safe', card: 'code', ms: 300 },
     ],
   },
   {
@@ -107,7 +100,7 @@ const FEATURES = [
     glow: 'rgba(236,72,153,0.5)',
     bgAccent: 'rgba(70,20,50,0.4)',
     type: 'title',
-    text: 'ONE AI ANYTHING IS POSSIBLE',
+    text: 'ONE INTELLIGENCE. UNLIMITED POSSIBILITIES.',
     steps: [],
   },
 ];
@@ -158,15 +151,29 @@ const Card = ({ type, isDarkMode }) => {
   );
   if (type === 'video') return (
     <div style={{
-      marginTop: 8, height: 70, borderRadius: 8,
-      background: isDarkMode ? 'linear-gradient(135deg,rgba(50,0,30,1),rgba(15,0,50,1))' : 'linear-gradient(135deg,rgba(244,114,182,0.1),rgba(219,39,119,0.1))',
-      border: isDarkMode ? '1px solid rgba(244,114,182,0.2)' : '1px solid rgba(244,114,182,0.3)',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 16px',
+      marginTop: 10, 
+      width: '100%',
+      borderRadius: 12,
+      overflow: 'hidden',
+      background: '#000',
+      border: isDarkMode ? '1px solid rgba(244,114,182,0.3)' : '1px solid rgba(244,114,182,0.5)',
+      position: 'relative',
+      boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
     }}>
-      <div style={{ width: '100%', height: 3, background: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(15,23,42,0.1)', borderRadius: 2, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: '100%', background: 'linear-gradient(90deg,#f472b6,#a855f7)', borderRadius: 2, animation: 'vprog 2s ease-out forwards' }} />
+      <video 
+        src="https://assets.mixkit.co/videos/preview/mixkit-cyberpunk-city-street-at-night-with-neon-lights-44565-large.mp4"
+        autoPlay
+        muted
+        loop
+        playsInline
+        style={{ width: '100%', height: 140, objectFit: 'cover', opacity: 0.8 }}
+      />
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 50%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: 8, left: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#ff4b91', boxShadow: '0 0 10px #ff4b91', animation: 'pulse 1.5s infinite' }} />
+        <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#f472b6', letterSpacing: '0.1em' }}>4K CINEMATIC MASTER</span>
       </div>
-      <span style={{ fontSize: '0.7rem', color: isDarkMode ? 'rgba(244,114,182,0.8)' : '#be185d', fontWeight: 600 }}>▶ 5s · 4K · 24fps · +Audio</span>
+      <div style={{ position: 'absolute', bottom: 8, right: 10, fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>00:05 / 24FPS</div>
     </div>
   );
   if (type === 'web') return (
@@ -310,12 +317,12 @@ const DemoSection = () => {
   const flipToNext = useCallback((card, nextIdx, onDone) => {
     const tl = gsap.timeline({ onComplete: onDone });
     // Flip out — front half
-    tl.to(card, { rotateY: 90, scale: 0.94, duration: 0.15, ease: 'power2.in' })
+    tl.to(card, { rotateY: 180, scale: 0.82, filter: 'blur(8px)', duration: 0.45, ease: 'power2.inOut' })
     // Swap content (happens at 90deg — invisible)
       .call(() => setMessages([]))
       .call(() => setActiveIdx(nextIdx))
     // Flip in — back half
-      .to(card, { rotateY: 0, scale: 1, duration: 0.15, ease: 'power2.out' });
+      .to(card, { rotateY: 0, scale: 1, filter: 'blur(0px)', duration: 0.6, ease: 'elastic.out(1, 0.75)' });
   }, []);
 
   /* Infinite cycle */
@@ -395,7 +402,7 @@ const DemoSection = () => {
         textAlign: 'center', marginBottom: '0.6rem',
         letterSpacing: '-0.03em', lineHeight: 1.1, zIndex: 10, position: 'relative',
       }}>
-        See AISA{' '}
+        See AISA™{' '}
         <span style={{
           background: 'linear-gradient(135deg,#4F46E5,#7C3AED,#EC4899)',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',

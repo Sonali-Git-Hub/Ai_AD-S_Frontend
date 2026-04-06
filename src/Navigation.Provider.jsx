@@ -15,6 +15,7 @@ import CreditUpsellPopup from './Components/CreditUpsellPopup';
 
 import { AppRoute } from './types';
 import { Menu } from 'lucide-react';
+import NeuralBackground from './Components/NeuralBackground.jsx';
 import { useRecoilState } from 'recoil';
 import { toggleState, getUserData } from './userStore/userData';
 
@@ -103,36 +104,55 @@ const DashboardLayout = () => {
 
   return (
     <div className="fixed inset-0 flex bg-transparent text-maintext overflow-hidden aisa-scalable-text">
-      {/* Animated Atmospheric Background */}
-      <div className="fixed inset-0 -z-10 bg-gradient-to-br from-[#f8fafc] via-[#eef2ff] to-[#fce7f3] dark:from-[#020617] dark:via-[#0f172a] dark:to-[#1e1b4b] overflow-hidden">
+      {/* ─── Animated Atmospheric Background ─── */}
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        {/* Light mode gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#f8fafc] via-[#eef2ff] to-[#fce7f3] dark:opacity-0 transition-opacity duration-500" />
+        {/* Dark mode deep space */}
+        <div className="absolute inset-0 opacity-0 dark:opacity-100 transition-opacity duration-500"
+          style={{ background: 'radial-gradient(ellipse at 15% 20%, rgba(139,92,246,0.14) 0%, transparent 55%), radial-gradient(ellipse at 85% 80%, rgba(59,130,246,0.12) 0%, transparent 55%), linear-gradient(160deg, #050816 0%, #0a0f2e 50%, #060b20 100%)' }} />
+        {/* Dark mode neural background */}
+        <div className="dark:block hidden">
+          <NeuralBackground />
+        </div>
+        {/* Light mode orbs */}
         <motion.div
-          animate={{
-            y: [0, 30, 0],
-            x: [0, 20, 0],
-            scale: [1, 1.1, 1]
-          }}
-          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-primary/20 dark:bg-primary/5 blur-[120px]"
+          animate={{ y: [0, 30, 0], x: [0, 20, 0], scale: [1, 1.1, 1] }}
+          transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-primary/20 dark:bg-violet-600/6 blur-[120px]"
         />
         <motion.div
-          animate={{
-            y: [0, -40, 0],
-            x: [0, -30, 0],
-            scale: [1, 1.2, 1]
-          }}
-          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-primary/20 dark:bg-primary/5 blur-[120px]"
+          animate={{ y: [0, -40, 0], x: [0, -30, 0], scale: [1, 1.2, 1] }}
+          transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-primary/20 dark:bg-blue-600/6 blur-[120px]"
         />
         <motion.div
-          animate={{
-            opacity: [0.1, 0.3, 0.1]
-          }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[30%] left-[20%] w-[40%] h-[40%] rounded-full bg-primary/10 dark:bg-primary/5 blur-[100px]"
+          animate={{ opacity: [0.1, 0.3, 0.1] }}
+          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute top-[30%] left-[20%] w-[40%] h-[40%] rounded-full bg-primary/10 dark:bg-orange-500/3 blur-[100px]"
         />
       </div>
 
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+
+      {/* Persistent Floating Mobile Menu Button */}
+      <AnimatePresence>
+        {!isSidebarOpen && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            className="fixed top-5 left-5 z-[1000] lg:hidden"
+          >
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="w-12 h-12 flex items-center justify-center bg-white/20 dark:bg-black/40 backdrop-blur-xl rounded-2xl border border-amber-500/40 dark:border-amber-400/30 shadow-2xl text-amber-500 dark:text-amber-400 active:scale-95 transition-all"
+            >
+              <Menu className="w-6 h-6 stroke-[2.5]" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="flex-1 flex flex-col min-w-0 bg-transparent h-full relative">
 

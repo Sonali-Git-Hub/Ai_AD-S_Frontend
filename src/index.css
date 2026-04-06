@@ -195,6 +195,36 @@
   animation: gradient 8s linear infinite;
 }
 
+@keyframes float-slow {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.3; }
+  33% { transform: translate(10px, -15px) scale(1.1); opacity: 0.5; }
+  66% { transform: translate(-15px, 10px) scale(0.95); opacity: 0.4; }
+}
+
+.animate-float-slow {
+  animation: float-slow 15s ease-in-out infinite;
+}
+
+@keyframes border-glow {
+  0%, 100% { border-color: rgba(var(--primary), 0.1); }
+  50% { border-color: rgba(var(--primary), 0.5); }
+}
+
+.sidebar-glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dark .sidebar-glass {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.chat-item-bg {
+  mask-image: radial-gradient(circle at center, black, transparent);
+}
+
 .ai-typing-shimmer {
   position: relative;
   overflow: hidden;
@@ -314,4 +344,53 @@ html {
 
 .modal-header-glass {
   @apply sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100/50;
+}
+/* --- Footer Sparkle Underline System --- */
+.footer-link-sparkle {
+  position: relative;
+  text-decoration: none !important;
+  transition: color 0.3s ease;
+}
+
+.footer-link-sparkle::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1.5px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    #a855f7 20%, 
+    #22d3ee 50%, 
+    #a855f7 80%, 
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  border-radius: 2px;
+  transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0);
+  opacity: 0.8;
+}
+
+.footer-link-sparkle:hover::after {
+  width: 100%;
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+  animation: sparkle-shimmer 2.5s infinite linear;
+}
+
+@keyframes sparkle-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.dark .footer-link-sparkle::after {
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    #c084fc 20%, 
+    #67e8f9 50%, 
+    #c084fc 80%, 
+    transparent 100%
+  );
+  background-size: 200% 100%;
 }
