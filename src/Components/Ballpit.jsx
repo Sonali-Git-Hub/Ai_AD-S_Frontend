@@ -485,7 +485,7 @@ const Ballpit = ({ className = '', followCursor = true, colors, ...props }) => {
         sceneControl.camera.position.set(0, 0, 15);
         sceneControl.camera.lookAt(0, 0, 0);
 
-        const spheres = new SpheresSystem(sceneControl.renderer, { followCursor, colors, ...props });
+        const spheres = new SpheresSystem(sceneControl.renderer, { followCursor, ...(colors ? { colors } : {}), ...props });
         sceneControl.scene.add(spheres);
 
         const raycaster = new THREE.Raycaster();

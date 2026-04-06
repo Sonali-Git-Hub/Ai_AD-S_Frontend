@@ -464,7 +464,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           <div className="px-5 pt-4 relative z-10">
             <div className="relative group/search">
               <div className="absolute inset-0 bg-primary/10 blur-xl opacity-0 group-focus-within/search:opacity-100 transition-opacity pointer-events-none" />
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-subtext group-focus-within/search:text-primary group-focus-within/search:scale-110 transition-all duration-300" />
+              <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${theme === 'dark' ? 'text-subtext/60' : 'text-slate-500'} group-focus-within/search:text-primary group-focus-within/search:scale-110 transition-all duration-300`} />
               <input
                 type="text"
                 placeholder="Find a session..."
@@ -473,25 +473,25 @@ const Sidebar = ({ isOpen, onClose }) => {
                 className={`w-full backdrop-blur-3xl border focus:ring-[6px] rounded-[20px] py-3 pl-11 pr-4 text-sm outline-none transition-all font-semibold shadow-sm 
                   ${theme === 'dark' 
                     ? 'bg-black/40 border-white/10 focus:border-primary/50 focus:bg-black/60 focus:ring-primary/10 placeholder:text-subtext/40 text-white' 
-                    : 'bg-white/80 border-slate-200 focus:border-primary/40 focus:bg-white focus:ring-primary/10 placeholder:text-slate-400 text-slate-900 shadow-inner'}`}
+                    : 'bg-white/80 border-slate-200 focus:border-primary/40 focus:bg-white focus:ring-primary/10 placeholder:text-slate-500 text-slate-900 shadow-inner'}`}
               />
             </div>
           </div>
 
           {/* New Chat Button */}
-          <div className="p-5 relative z-10">
+          <div className="px-5 pt-4 pb-2 relative z-10">
             <button
               onClick={handleNewChat}
-              className={`w-full relative overflow-hidden group p-[1.5px] rounded-2xl transition-all duration-500 hover:scale-[1.03] active:scale-[0.97]
+              className={`w-full relative overflow-hidden group p-[1px] rounded-[14px] transition-all duration-500 hover:scale-[1.03] active:scale-[0.97]
                 ${theme === 'dark' 
-                  ? 'bg-primary shadow-[0_10px_30px_rgba(var(--primary),0.3)] hover:shadow-[0_15px_40px_rgba(var(--primary),0.5)]' 
-                  : 'bg-primary shadow-[0_8px_20px_rgba(var(--primary),0.2)] hover:shadow-[0_12px_30px_rgba(var(--primary),0.3)]'}`}
+                  ? 'bg-primary shadow-[0_8px_20px_rgba(var(--primary),0.3)] hover:shadow-[0_12px_30px_rgba(var(--primary),0.5)]' 
+                  : 'bg-primary shadow-[0_6px_15px_rgba(var(--primary),0.2)] hover:shadow-[0_10px_20px_rgba(var(--primary),0.3)]'}`}
             >
               <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-primary to-purple-600 animate-gradient bg-[length:300%_auto]" />
-              <div className={`relative flex items-center justify-center gap-3 px-5 py-3.5 backdrop-blur-md rounded-[15px] group-hover:bg-transparent transition-all duration-500
+              <div className={`relative flex items-center justify-center gap-2 px-4 py-2.5 backdrop-blur-md rounded-[13px] group-hover:bg-transparent transition-all duration-500
                 ${theme === 'dark' ? 'bg-[#0a0c1a]/80' : 'bg-white/10'}`}>
-                <Plus className="w-4.5 h-4.5 text-white group-hover:rotate-180 transition-transform duration-700" strokeWidth={3} />
-                <span className="font-extrabold text-white text-[15px] tracking-tight">{t('newChat')}</span>
+                <Plus className="w-4 h-4 text-white group-hover:rotate-180 transition-transform duration-700" strokeWidth={3} />
+                <span className="font-extrabold text-white text-[13px] tracking-wide">{t('newChat')}</span>
               </div>
             </button>
           </div>
@@ -500,33 +500,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           {token && (
             <div className="flex flex-col">
 
-              {/* Personal Space - High End Card */}
-              <div className="px-5 pt-2 relative z-10">
-                <button
-                  onClick={() => handleSwitchProject(null)}
-                  className={`w-full flex items-center gap-4 px-5 py-4 rounded-[32px] transition-all duration-700 group border relative overflow-hidden shadow-2xl ${!currentProjectId 
-                    ? (theme === 'dark' 
-                        ? 'bg-gradient-to-br from-primary/30 to-indigo-500/20 text-white border-primary/40 shadow-[0_20px_50px_rgba(var(--primary),0.25)]' 
-                        : 'bg-gradient-to-br from-primary/10 to-indigo-500/5 text-primary border-primary/20 shadow-[0_20px_50px_rgba(var(--primary),0.1)]')
-                    : (theme === 'dark'
-                        ? 'text-subtext bg-white/[0.02] border-white/5 hover:bg-white/[0.08] hover:text-white hover:border-white/20 hover:shadow-[0_15px_40px_rgba(0,0,0,0.4)]'
-                        : 'text-slate-500 bg-slate-50 border-slate-200/60 hover:bg-white hover:text-primary hover:border-primary/20 hover:shadow-[0_15px_40px_rgba(0,0,0,0.05)]')}`}
-                >
-                  {!currentProjectId && (
-                    <motion.div 
-                      layoutId="activeGlow"
-                      className="absolute inset-0 bg-gradient-to-tr from-primary/30 via-transparent to-transparent pointer-events-none"
-                    />
-                  )}
-                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-700 ${!currentProjectId ? 'bg-primary shadow-[0_0_20px_rgba(var(--primary),0.6)] animate-pulse' : 'bg-white/5 group-hover:bg-primary group-hover:shadow-[0_0_15px_rgba(var(--primary),0.4)]'}`}>
-                    <Aperture className={`w-5 h-5 transition-all duration-700 ${!currentProjectId ? 'text-white rotate-90' : 'text-subtext group-hover:text-white group-hover:rotate-45'}`} strokeWidth={2.5} />
-                  </div>
-                  <div className="text-left">
-                    <div className="font-black text-[15px] tracking-tight leading-none mb-1">Personal Space</div>
-                    <div className={`text-[9px] font-bold uppercase tracking-widest opacity-40 ${!currentProjectId ? 'text-white' : 'text-subtext'}`}>Private Workspace</div>
-                  </div>
-                </button>
-              </div>
+              {/* Removed Personal Space Card */}
 
               {/* Projects Section Header */}
               <div 
@@ -535,9 +509,9 @@ const Sidebar = ({ isOpen, onClose }) => {
               >
                 <div className="flex items-center gap-2">
                   <h3 className={`text-[11px] font-bold uppercase tracking-[0.1em] group-hover/header:text-primary transition-colors 
-                    ${theme === 'dark' ? 'text-subtext/60' : 'text-slate-400'}`}>Projects</h3>
+                    ${theme === 'dark' ? 'text-subtext/60' : 'text-slate-600'}`}>Projects</h3>
                   <div className={`h-[1px] w-8 transition-all group-hover/header:w-12 group-hover/header:bg-primary/30 
-                    ${theme === 'dark' ? 'bg-subtext/20' : 'bg-slate-200'}`}></div>
+                    ${theme === 'dark' ? 'bg-subtext/20' : 'bg-slate-300'}`}></div>
                 </div>
                 <ChevronDown className={`w-3.5 h-3.5 text-subtext/40 transition-transform duration-300 ${isProjectsExpanded ? '' : '-rotate-90'}`} />
               </div>
@@ -554,7 +528,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                     {/* New Project Integrated Button */}
                     <button
                       onClick={(e) => { e.stopPropagation(); setIsCreatingProject(true); }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm text-subtext/70 hover:bg-white/5 hover:text-maintext transition-all group/newproj"
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-all group/newproj ${theme === 'dark' ? 'text-subtext/70 hover:bg-white/5 hover:text-maintext' : 'text-slate-600 hover:bg-black/5 hover:text-slate-900'}`}
                     >
                       <FolderPlus className="w-4 h-4 shrink-0 group-hover/newproj:scale-110 group-hover/newproj:text-primary transition-all" />
                       <span className="truncate font-medium text-[14px]">New project</span>
@@ -586,7 +560,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                               onClick={() => handleSwitchProject(p._id)}
                               className={`flex-1 flex items-center min-w-0 gap-3 px-4 py-2.5 rounded-xl text-sm transition-all duration-300 ${currentProjectId === p._id 
                                 ? 'bg-primary/10 text-primary font-bold border border-primary/20 shadow-sm shadow-primary/5' 
-                                : 'text-subtext/80 hover:bg-white/5 hover:text-maintext'}`}
+                                : (theme === 'dark' ? 'text-subtext/80 hover:bg-white/5 hover:text-maintext' : 'text-slate-600 hover:bg-black/5 hover:text-slate-900')}`}
                             >
                               <Folder className={`w-4 h-4 shrink-0 transition-transform duration-300 ${currentProjectId === p._id ? 'scale-110 text-primary ring-4 ring-primary/10 rounded-full' : 'group-hover/proj:scale-110'}`} />
                               <span className="truncate font-medium text-[14px] text-left pr-8">{p.name}</span>
@@ -614,8 +588,8 @@ const Sidebar = ({ isOpen, onClose }) => {
             {(token || (Array.isArray(sessions) && sessions.length > 0)) ? (
               <>
                 <div className="px-1 py-4 flex items-center justify-between">
-                  <h3 className="text-[10px] font-black text-subtext/40 uppercase tracking-[0.2em]">Activity Log</h3>
-                  <div className="h-[1px] flex-1 bg-gradient-to-r from-subtext/10 to-transparent ml-4"></div>
+                  <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] ${theme === 'dark' ? 'text-subtext/40' : 'text-slate-500'}`}>Activity Log</h3>
+                  <div className={`h-[1px] flex-1 ml-4 ${theme === 'dark' ? 'bg-gradient-to-r from-subtext/10 to-transparent' : 'bg-gradient-to-r from-slate-300 to-transparent'}`}></div>
                 </div>
 
                 {(Array.isArray(sessions) ? sessions : [])
@@ -657,8 +631,8 @@ const Sidebar = ({ isOpen, onClose }) => {
                             }}
                             className={`w-full text-left px-5 py-4 rounded-2xl text-sm transition-all duration-500 truncate pr-20 group-hover:shadow-[0_10px_30px_rgba(0,0,0,0.2)]
                             ${currentSessionId === session.sessionId
-                                ? 'bg-white/[0.08] text-white border border-white/10 shadow-2xl backdrop-blur-3xl'
-                                : 'text-subtext/60 hover:bg-white/[0.04] hover:text-white border border-transparent'
+                                ? (theme === 'dark' ? 'bg-white/[0.08] text-white border border-white/10 shadow-2xl backdrop-blur-3xl' : 'bg-primary/10 text-primary border border-primary/20 shadow-sm backdrop-blur-3xl')
+                                : (theme === 'dark' ? 'text-subtext/60 hover:bg-white/[0.04] hover:text-white border border-transparent' : 'text-slate-600 hover:bg-black/[0.04] hover:text-slate-900 border border-transparent')
                               }
                           `}
                           >
@@ -669,8 +643,8 @@ const Sidebar = ({ isOpen, onClose }) => {
                               />
                             )}
                             <div className="font-bold truncate text-[14px] tracking-tight mb-1">{session.title || "Untitled Intelligence"}</div>
-                            <div className="text-[10px] text-subtext/30 font-bold uppercase tracking-widest flex items-center gap-2">
-                              <span className={`w-1.5 h-1.5 rounded-full ${currentSessionId === session.sessionId ? 'bg-primary animate-pulse' : 'bg-white/20'}`}></span>
+                            <div className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 ${theme === 'dark' ? 'text-subtext/40' : 'text-slate-500'}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${currentSessionId === session.sessionId ? 'bg-primary animate-pulse' : (theme === 'dark' ? 'bg-white/20' : 'bg-slate-300')}`}></span>
                               {new Date(session.lastModified).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                             </div>
                           </button>
@@ -720,28 +694,28 @@ const Sidebar = ({ isOpen, onClose }) => {
             {/* Theme Toggle Button */}
             <button 
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className={`flex-1 h-12 rounded-2xl border transition-all duration-300 group/theme flex items-center justify-center
+              className={`flex-1 h-10 rounded-xl border transition-all duration-300 group/theme flex items-center justify-center
                 ${theme === 'dark' 
                   ? 'bg-white/5 border-white/5 text-subtext hover:text-primary hover:bg-primary/10' 
                   : 'bg-black/5 border-black/5 text-slate-800 hover:text-primary hover:bg-primary/5'}`}
               title={theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
             >
-              {theme === 'dark' ? <Sun className="w-5 h-5 group-hover/theme:rotate-90 transition-transform duration-500" /> : <Moon className="w-5 h-5 group-hover/theme:-rotate-12 transition-transform duration-500" />}
+              {theme === 'dark' ? <Sun className="w-[18px] h-[18px] group-hover/theme:rotate-90 transition-transform duration-500" /> : <Moon className="w-[18px] h-[18px] group-hover/theme:-rotate-12 transition-transform duration-500" />}
             </button>
 
             {/* Profile Action - Repositioned to bottom */}
             <div className="relative profile-menu-container flex-1">
               <button
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                className={`w-full h-12 rounded-2xl border transition-all duration-300 flex items-center justify-center
+                className={`w-full h-10 rounded-xl border transition-all duration-300 flex items-center justify-center
                   ${theme === 'dark' 
                     ? 'bg-white/5 border-white/5 text-subtext hover:text-primary hover:bg-primary/10' 
                     : 'bg-black/5 border-black/5 text-slate-800 hover:text-primary hover:bg-primary/5'}`}
               >
                 {user.avatar ? (
-                  <img src={user.avatar} alt="P" className="w-7 h-7 object-cover rounded-xl" />
+                  <img src={user.avatar} alt="P" className="w-[22px] h-[22px] object-cover rounded-md" />
                 ) : (
-                  <User className="w-5 h-5" />
+                  <User className="w-[18px] h-[18px]" />
                 )}
               </button>
               <AnimatePresence>

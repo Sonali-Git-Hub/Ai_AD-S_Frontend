@@ -79,12 +79,39 @@ const PremiumEnvironment = () => {
     );
 };
 
-// Deep cinematic shadows rotating
+// Deep cinematic shadows rotating — cool indigo/blue/violet palette
 const CinematicShadows = () => (
-    <div className="absolute inset-0 overflow-hidden rounded-[27px] pointer-events-none opacity-[0.25] mix-blend-multiply z-0">
-        <motion.div animate={{ x: ["0%", "50%", "0%"], y: ["0%", "20%", "0%"], scale: [1, 1.2, 1] }} transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }} className="absolute -top-[10%] -left-[10%] w-[80%] h-[80%] bg-indigo-800 rounded-full filter blur-[40px] md:blur-[70px]" />
-        <motion.div animate={{ x: ["0%", "-40%", "0%"], y: ["0%", "30%", "0%"], scale: [1, 1.3, 1] }} transition={{ duration: 25, repeat: Infinity, ease: "easeInOut", delay: 2 }} className="absolute top-[30%] -right-[20%] w-[90%] h-[90%] bg-blue-900 rounded-full filter blur-[40px] md:blur-[60px]" />
-        <motion.div animate={{ x: ["0%", "30%", "0%"], y: ["0%", "-40%", "0%"], scale: [1, 1.1, 1] }} transition={{ duration: 22, repeat: Infinity, ease: "easeInOut", delay: 4 }} className="absolute -bottom-[20%] left-[20%] w-[80%] h-[60%] bg-violet-900 rounded-full filter blur-[40px] md:blur-[70px]" />
+    <div className="absolute inset-0 overflow-hidden rounded-[27px] pointer-events-none opacity-[0.28] mix-blend-multiply z-0">
+        <motion.div
+            animate={{
+                x: ["0%", "50%", "0%"],
+                y: ["0%", "20%", "0%"],
+                scale: [1, 1.2, 1],
+                backgroundColor: ["#3730a3", "#4338ca", "#6366f1", "#4f46e5", "#3730a3"]
+            }}
+            transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute -top-[10%] -left-[10%] w-[80%] h-[80%] rounded-full filter blur-[40px] md:blur-[70px]"
+        />
+        <motion.div
+            animate={{
+                x: ["0%", "-40%", "0%"],
+                y: ["0%", "30%", "0%"],
+                scale: [1, 1.3, 1],
+                backgroundColor: ["#1e3a8a", "#2563eb", "#3b82f6", "#1d4ed8", "#1e3a8a"]
+            }}
+            transition={{ duration: 22, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+            className="absolute top-[30%] -right-[20%] w-[90%] h-[90%] rounded-full filter blur-[40px] md:blur-[60px]"
+        />
+        <motion.div
+            animate={{
+                x: ["0%", "30%", "0%"],
+                y: ["0%", "-40%", "0%"],
+                scale: [1, 1.1, 1],
+                backgroundColor: ["#4c1d95", "#6d28d9", "#7c3aed", "#8b5cf6", "#4c1d95"]
+            }}
+            transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 4 }}
+            className="absolute -bottom-[20%] left-[20%] w-[80%] h-[60%] rounded-full filter blur-[40px] md:blur-[70px]"
+        />
     </div>
 );
 
@@ -150,12 +177,54 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
                     }}
                     className="relative w-full max-w-[320px] sm:max-w-[340px] rounded-[28px] overflow-visible shadow-[0_20px_50px_-10px_rgba(0,0,0,0.5)] sm:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.6)] group ring-1 ring-white/30 sm:ring-white/50"
                 >
+                    {/* ── Animated Color-Cycling Outer Halo — cool blue/indigo/violet ── */}
+                    <motion.div
+                        animate={{
+                            background: [
+                                "radial-gradient(ellipse at 50% 0%,   rgba(99,102,241,0.60) 0%, transparent 65%)",
+                                "radial-gradient(ellipse at 100% 50%, rgba(59,130,246,0.60) 0%, transparent 65%)",
+                                "radial-gradient(ellipse at 50% 100%,rgba(139,92,246,0.60) 0%, transparent 65%)",
+                                "radial-gradient(ellipse at 0% 50%,   rgba(79,70,229,0.55)  0%, transparent 65%)",
+                                "radial-gradient(ellipse at 50% 0%,   rgba(99,102,241,0.60) 0%, transparent 65%)"
+                            ],
+                        }}
+                        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute -inset-[12px] rounded-[40px] pointer-events-none z-0 blur-[18px]"
+                    />
+
+                    {/* ── Animated Color-Cycling Border Gradient — indigo/blue/violet only ── */}
+                    <motion.div
+                        animate={{
+                            background: [
+                                "linear-gradient(0deg,   #6366f1, #4f46e5, #3b82f6, #8b5cf6)",
+                                "linear-gradient(90deg,  #3b82f6, #6366f1, #7c3aed, #4338ca)",
+                                "linear-gradient(180deg, #8b5cf6, #3b82f6, #4f46e5, #6366f1)",
+                                "linear-gradient(270deg, #4338ca, #7c3aed, #6366f1, #2563eb)",
+                                "linear-gradient(360deg, #6366f1, #4f46e5, #3b82f6, #8b5cf6)"
+                            ],
+                        }}
+                        transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+                        className="absolute -inset-[1.5px] rounded-[29px] pointer-events-none z-[1] opacity-80"
+                        style={{ padding: "1.5px" }}
+                    />
+
                     {/* Pulsing Backlight */}
                     <div className="absolute inset-0 rounded-[28px] overflow-hidden pointer-events-none">
-                        <motion.div 
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-                            className="absolute -inset-[60%] z-0 bg-[conic-gradient(from_0deg,transparent_0%,rgba(255,255,255,0.7)_15%,transparent_30%,rgba(0,0,0,0.1)_50%,rgba(255,255,255,0.6)_85%,transparent_100%)] sm:bg-[conic-gradient(from_0deg,transparent_0%,rgba(255,255,255,1)_15%,transparent_30%,rgba(0,0,0,0.2)_50%,rgba(255,255,255,0.8)_85%,transparent_100%)] opacity-20 blur-[8px]"
+                        <motion.div
+                            animate={{
+                                rotate: 360,
+                                filter: [
+                                    "hue-rotate(0deg) blur(8px)",
+                                    "hue-rotate(120deg) blur(10px)",
+                                    "hue-rotate(240deg) blur(8px)",
+                                    "hue-rotate(360deg) blur(8px)"
+                                ]
+                            }}
+                            transition={{
+                                rotate: { duration: 12, repeat: Infinity, ease: "linear" },
+                                filter: { duration: 8, repeat: Infinity, ease: "easeInOut" }
+                            }}
+                            className="absolute -inset-[60%] z-0 bg-[conic-gradient(from_0deg,transparent_0%,rgba(255,255,255,0.7)_15%,transparent_30%,rgba(0,0,0,0.1)_50%,rgba(255,255,255,0.6)_85%,transparent_100%)] sm:bg-[conic-gradient(from_0deg,transparent_0%,rgba(255,255,255,1)_15%,transparent_30%,rgba(0,0,0,0.2)_50%,rgba(255,255,255,0.8)_85%,transparent_100%)] opacity-25"
                         />
                     </div>
 

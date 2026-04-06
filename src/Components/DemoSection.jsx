@@ -345,25 +345,32 @@ const DemoSection = () => {
     const glow = glowRef.current;
     if (!card || !glow) return;
 
-    gsap.set(card, { scale: 0.82, opacity: 0, filter: 'blur(12px)', rotateY: 0 });
-    gsap.set(glow, { opacity: 0, scale: 0.5 });
-
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: sectionRef.current,
-        start: 'top 65%',
-        once: true,
-        onEnter: () => setTimeout(() => { setStarted(true); }, 700),
-      },
-    });
-    tl.to(glow, { opacity: 1, scale: 1, duration: 0.6, ease: 'power2.out' })
-      .to(card, { scale: 1.04, opacity: 1, filter: 'blur(0px)', duration: 0.45, ease: 'power3.out' }, '<0.1')
-      .to(card, { scale: 1, duration: 0.22, ease: 'power2.inOut' });
-    tl.to(glow, { scale: 1.1, opacity: 0.6, duration: 3, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+    let ctx = gsap.context(() => {
+      const isMobile = window.matchMedia("(max-width: 768px)").matches;
+      
+      gsap.set(card, { scale: 0.82, opacity: 0, filter: isMobile ? 'none' : 'blur(12px)', rotateY: 0 });
+      gsap.set(glow, { opacity: 0, scale: 0.5 });
+      
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: 'top 65%',
+          once: true,
+          onEnter: () => setTimeout(() => { setStarted(true); }, 700),
+        },
+      });
+      tl.to(glow, { opacity: 1, scale: 1, duration: 0.6, ease: 'power2.out' })
+        .to(card, { scale: 1.04, opacity: 1, filter: 'blur(0px)', duration: 0.45, ease: 'power3.out' }, '<0.1')
+        .to(card, { scale: 1, duration: 0.22, ease: 'power2.inOut' });
+      
+      if (!isMobile) {
+        tl.to(glow, { scale: 1.1, opacity: 0.6, duration: 3, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+      }
+    }, sectionRef);
 
     return () => {
       runRef.current = false;
-      ScrollTrigger.getAll().forEach(st => { if (st.vars?.trigger === sectionRef.current) st.kill(); });
+      ctx.revert();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -372,6 +379,49 @@ const DemoSection = () => {
     if (started) cycle();
     return () => { runRef.current = false; };
   }, [started, cycle]);
+
+  // ── 3D Magnetic Tilt Interaction ──
+  useEffect(() => {
+      const card = cardRef.current;
+      const isMobile = window.matchMedia("(max-width: 768px)").matches;
+      if (!card || isMobile) return;
+
+      const handleMove = (e) => {
+          const { left, top, width, height } = card.getBoundingClientRect();
+          const x = (e.clientX - left) / width;
+          const y = (e.clientY - top) / height;
+          
+          const tiltX = (y - 0.5) * 12; 
+          const tiltY = (x - 0.5) * -12;
+
+          gsap.to(card, {
+              rotateX: tiltX,
+              rotateY: tiltY,
+              scale: 1.015,
+              duration: 0.5,
+              ease: "power2.out",
+              overwrite: "auto"
+          });
+      };
+
+      const handleLeave = () => {
+          gsap.to(card, {
+              rotateX: 0,
+              rotateY: 0,
+              scale: 1,
+              duration: 0.7,
+              ease: "elastic.out(1, 0.75)",
+              overwrite: "auto"
+          });
+      };
+
+      card.addEventListener('mousemove', handleMove);
+      card.addEventListener('mouseleave', handleLeave);
+      return () => {
+          card.removeEventListener('mousemove', handleMove);
+          card.removeEventListener('mouseleave', handleLeave);
+      };
+  }, []);
 
   const feat = FEATURES[activeIdx];
   const FeatIcon = feat.icon;

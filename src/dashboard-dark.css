@@ -163,7 +163,7 @@
 .dark input[placeholder="Search history..."] {
   background: rgba(10,12,35,0.8) !important;
   border: 1px solid rgba(139,92,246,0.15) !important;
-  transition: all 0.3s ease !important;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1) !important;
 }
 .dark input[placeholder="Search history..."]:focus {
   border-color: rgba(139,92,246,0.6) !important;
@@ -193,7 +193,7 @@
   inset: -1px;
   background: linear-gradient(135deg, rgba(139,92,246,0) 0%, rgba(59,130,246,0) 100%);
   border-radius: inherit;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   opacity: 0;
   z-index: 0;
 }
@@ -211,39 +211,38 @@
   transition: opacity 0.1s;
 }
 
-.dark .aisa-tool-card:hover {
-  border-color: rgba(139,92,246,0.6);
-  box-shadow: 
-    0 15px 45px rgba(0,0,0,0.4),
-    0 0 0 1px rgba(139,92,246,0.3),
-    0 0 30px rgba(139,92,246,0.2);
+@media (hover: hover) {
+  .dark .aisa-tool-card:hover {
+    border-color: rgba(139,92,246,0.6);
+    box-shadow: 
+      0 15px 45px rgba(0,0,0,0.4),
+      0 0 0 1px rgba(139,92,246,0.3),
+      0 0 30px rgba(139,92,246,0.2);
+  }
+  .dark .aisa-tool-card:hover::before { opacity: 1; }
+  .dark .aisa-tool-card:hover::after {
+    animation: card-shimmer 0.6s ease-out;
+    opacity: 1;
+  }
+  /* Card icon pulse on hover */
+  .dark .aisa-tool-card:hover .aisa-card-icon {
+    animation: icon-pulse 1.2s ease-in-out infinite;
+  }
+  .dark .aisa-tool-card:hover .aisa-scan-line {
+    animation: scan-line 1.5s ease-in-out infinite;
+  }
 }
 
-.dark .aisa-tool-card:hover::before { opacity: 1; }
-.dark .aisa-tool-card:hover::after {
-  animation: card-shimmer 0.6s ease-out;
-  opacity: 1;
+/* Touch Fallbacks */
+@media (hover: none) {
+  .dark .aisa-tool-card:active {
+    border-color: rgba(139,92,246,0.6);
+    transform: scale(0.98);
+  }
+  .dark .aisa-tool-card:active::before { opacity: 1; }
 }
 
-/* Card icon pulse on hover */
-.dark .aisa-tool-card:hover .aisa-card-icon {
-  animation: icon-pulse 1.2s ease-in-out infinite;
-}
-
-/* Scan line effect on card hover */
-.dark .aisa-tool-card .aisa-scan-line {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(139,92,246,0.8), transparent);
-  pointer-events: none;
-  opacity: 0;
-  animation: none;
-}
-.dark .aisa-tool-card:hover .aisa-scan-line {
-  animation: scan-line 1.5s ease-in-out infinite;
-}
+/* Note: replaced and moved above to media queries */
 
 /* Card live preview area */
 .dark .aisa-card-preview {
@@ -252,7 +251,7 @@
   border: 1px solid rgba(139,92,246,0.15);
   overflow: hidden;
   position: relative;
-  transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* Image card canvas */
@@ -287,7 +286,7 @@
   background: linear-gradient(135deg, rgba(10,12,35,0.92) 0%, rgba(14,16,45,0.92) 100%);
   border: 1px solid rgba(139,92,246,0.2);
   border-radius: 1.25rem;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition: border-color 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   backdrop-filter: blur(20px);
 }
 
@@ -305,7 +304,7 @@
   background: linear-gradient(135deg, #7c3aed, #4f46e5);
   border: 1px solid rgba(167,139,250,0.4);
   border-radius: 0.75rem;
-  transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s ease;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
   position: relative;
   overflow: hidden;
 }
@@ -348,7 +347,7 @@
   border: 1px solid rgba(139,92,246,0.12);
   border-radius: 0 1.25rem 1.25rem 1.25rem;
   box-shadow: 0 4px 24px rgba(0,0,0,0.3);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition: border-color 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .dark .aisa-msg-ai:hover {
   border-color: rgba(139,92,246,0.28);
@@ -435,7 +434,7 @@
   color: white;
   font-weight: 700;
   overflow: hidden;
-  transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .dark .btn-neon::before {
   content: '';
@@ -443,7 +442,7 @@
   inset: 0;
   background: linear-gradient(135deg, rgba(255,255,255,0.12), transparent);
   opacity: 0;
-  transition: opacity 0.25s ease;
+  transition: opacity 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .dark .btn-neon:hover {
   transform: translateY(-2px) scale(1.02);
@@ -472,8 +471,10 @@
 .tilt-card {
   transform-style: preserve-3d;
   perspective: 800px;
-  will-change: transform;
-  transition: transform 0.08s ease-out;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  transition: transform 0.08s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .tilt-shine {
   position: absolute;

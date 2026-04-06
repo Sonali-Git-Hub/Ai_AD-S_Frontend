@@ -41,7 +41,7 @@ import { detectIntent, mapModeToToolState } from '../services/intentService';
 import LoginRequiredModal from '../Components/LoginRequiredModal';
 import FuturisticToolCards from '../Components/FuturisticToolCards';
 import AisaTypingIndicator from '../Components/AisaTypingIndicator';
-import NeuralBackground from '../Components/NeuralBackground';
+import Ballpit from '../Components/Ballpit';
 
 const SendRipple = ({ onComplete }) => {
   return (
@@ -4775,8 +4775,29 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
   return (
     <div className="flex w-full bg-secondary relative overflow-hidden aisa-scalable-text overscroll-none h-[100dvh] fixed inset-0 lg:static lg:h-full">
-      <NeuralBackground />
+      {/* 🌟 Premium Minimalist Background Wrapper 🌟 */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none bg-[#f8f9fc] dark:bg-[#0b0c15]">
+        {/* Universal Ambient Glows: Animated Blobs for Depth */}
+        <div className="absolute inset-0">
+          {/* Light Mode: Soft, elegant radial hints */}
+          <div className="absolute inset-0 dark:hidden">
+            <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-indigo-50/50 rounded-full blur-[140px]" />
+            <div className="absolute bottom-[10%] right-[-10%] w-[50%] h-[50%] bg-blue-50/40 rounded-full blur-[160px]" />
+            <div className="absolute top-[30%] right-[-5%] w-[40%] h-[40%] bg-purple-50/30 rounded-full blur-[120px]" />
+          </div>
 
+          {/* Dark Mode: Deep, matte professional depth */}
+          <div className="absolute inset-0 hidden dark:block">
+            <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/5 rounded-full blur-[140px]" />
+            <div className="absolute bottom-[10%] right-[-10%] w-[45%] h-[45%] bg-blue-500/5 rounded-full blur-[160px]" />
+          </div>
+        </div>
+
+        {/* 3D Ballpit Overlay (100% visible in light mode now) */}
+        <div className="absolute inset-0 opacity-80 dark:opacity-60 dark:mix-blend-screen mix-blend-normal">
+          <Ballpit count={60} />
+        </div>
+      </div>
 
 
       {/* Delete Confirmation Modal */}
@@ -5985,7 +6006,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
               exit={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
               className="absolute inset-0 z-0 overflow-y-auto no-scrollbar scroll-smooth pointer-events-auto bg-transparent"
             >
-              <NeuralBackground />
+              {/* Removed duplicate background component */}
               <div className="relative z-10 flex flex-col items-center w-full min-h-screen pt-12">
                 <motion.div
                   initial={{ y: 20, opacity: 0 }}
@@ -5996,12 +6017,12 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                   <img
                     src="/logo/Logo.svg"
                     alt="AISA"
-                    className="w-24 h-24 sm:w-32 sm:h-32 mx-auto drop-shadow-[0_0_30px_rgba(139,92,246,0.4)] transition-all duration-700 hover:scale-110"
+                    className="w-20 h-20 sm:w-24 sm:h-24 mx-auto drop-shadow-[0_0_30px_rgba(139,92,246,0.4)] transition-all duration-700 hover:scale-110"
                   />
                 </motion.div>
 
-                {/* 2. TOOL SECTIONS (2 ROWS) */}
-                <section className="w-full pb-32">
+                {/* 2. TOOL SECTIONS */}
+                <section className="w-full pb-32 px-1 sm:px-2 md:px-0">
                   <FuturisticToolCards 
                     onToolSelect={(id) => {
                       // Reset states
@@ -6855,8 +6876,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     {getAgentCapabilities(activeAgent.agentName, activeAgent.category).canVoice && (
                       <div className="relative">
                         <AnimatePresence>
-                          {(isMicHovered || isMicTapped || (typeof window !== 'undefined' && window.innerWidth < 768 && !inputValue.trim() && filePreviews.length === 0)) && (
-                            <MagicShowEffect isMobileIdle={!isMicHovered && !isMicTapped} />
+                          {isMicTapped && (
+                            <MagicShowEffect isMobileIdle={false} />
                           )}
                         </AnimatePresence>
                         <motion.button
@@ -6895,8 +6916,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 ) : (
                   <div className="flex items-center gap-[6px] relative">
                     <AnimatePresence>
-                      {(isSendHovered || isSendTapped || (typeof window !== 'undefined' && window.innerWidth < 768 && (inputValue.trim() || filePreviews.length > 0))) && !isLoading && (
-                        <MagicShowEffect isMobileIdle={!isSendHovered && !isSendTapped} />
+                      {isSendTapped && !isLoading && (
+                        <MagicShowEffect isMobileIdle={false} />
                       )}
                     </AnimatePresence>
                     <motion.button

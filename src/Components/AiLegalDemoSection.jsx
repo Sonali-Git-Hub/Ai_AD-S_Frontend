@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { motion } from 'framer-motion';
 import { 
   Bot, User, Scale, ShieldCheck, AlertCircle, 
   FileText, Zap, Sparkles, ChevronRight, Play, ArrowRight 
@@ -273,25 +274,32 @@ const AiLegalDemoSection = () => {
       const glow = glowRef.current;
       if (!card || !glow) return;
   
-      gsap.set(card, { scale: 0.82, opacity: 0, filter: 'blur(12px)', rotateY: 0 });
-      gsap.set(glow, { opacity: 0, scale: 0.5 });
-  
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: 'top 65%',
-          once: true,
-          onEnter: () => setTimeout(() => { setStarted(true); }, 700),
-        },
-      });
-      tl.to(glow, { opacity: 1, scale: 1, duration: 0.6, ease: 'power2.out' })
-        .to(card, { scale: 1.04, opacity: 1, filter: 'blur(0px)', duration: 0.45, ease: 'power3.out' }, '<0.1')
-        .to(card, { scale: 1, duration: 0.22, ease: 'power2.inOut' });
-      tl.to(glow, { scale: 1.1, opacity: 0.6, duration: 3, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+      let ctx = gsap.context(() => {
+        const isMobile = window.matchMedia("(max-width: 768px)").matches;
+        
+        gsap.set(card, { scale: 0.82, opacity: 0, filter: isMobile ? 'none' : 'blur(12px)', rotateY: 0 });
+        gsap.set(glow, { opacity: 0, scale: 0.5 });
+    
+        const tl = gsap.timeline({
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: 'top 65%',
+            once: true,
+            onEnter: () => setTimeout(() => { setStarted(true); }, 700),
+          },
+        });
+        tl.to(glow, { opacity: 1, scale: 1, duration: 0.6, ease: 'power2.out' })
+          .to(card, { scale: 1.04, opacity: 1, filter: 'blur(0px)', duration: 0.45, ease: 'power3.out' }, '<0.1')
+          .to(card, { scale: 1, duration: 0.22, ease: 'power2.inOut' });
+        
+        if (!isMobile) {
+          tl.to(glow, { scale: 1.1, opacity: 0.6, duration: 3, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+        }
+      }, sectionRef);
   
       return () => {
         runRef.current = false;
-        ScrollTrigger.getAll().forEach(st => { if (st.vars?.trigger === sectionRef.current) st.kill(); });
+        ctx.revert();
       };
     }, []);
   
@@ -299,6 +307,49 @@ const AiLegalDemoSection = () => {
       if (started) cycle();
       return () => { runRef.current = false; };
     }, [started, cycle]);
+
+    // ── 3D Magnetic Tilt Interaction ──
+    useEffect(() => {
+        const card = cardRef.current;
+        const isMobile = window.matchMedia("(max-width: 768px)").matches;
+        if (!card || isMobile) return;
+
+        const handleMove = (e) => {
+            const { left, top, width, height } = card.getBoundingClientRect();
+            const x = (e.clientX - left) / width;
+            const y = (e.clientY - top) / height;
+            
+            const tiltX = (y - 0.5) * 16;  // max 8 deg
+            const tiltY = (x - 0.5) * -16; // max 8 deg
+
+            gsap.to(card, {
+                rotateX: tiltX,
+                rotateY: tiltY,
+                scale: 1.02,
+                duration: 0.6,
+                ease: "power2.out",
+                overwrite: "auto"
+            });
+        };
+
+        const handleLeave = () => {
+            gsap.to(card, {
+                rotateX: 0,
+                rotateY: 0,
+                scale: 1,
+                duration: 0.8,
+                ease: "elastic.out(1, 0.75)",
+                overwrite: "auto"
+            });
+        };
+
+        card.addEventListener('mousemove', handleMove);
+        card.addEventListener('mouseleave', handleLeave);
+        return () => {
+            card.removeEventListener('mousemove', handleMove);
+            card.removeEventListener('mouseleave', handleLeave);
+        };
+    }, []);
   
     const feat = LEGAL_STEPS[activeIdx];
     const FeatIcon = feat.icon;
@@ -341,8 +392,8 @@ const AiLegalDemoSection = () => {
           <span style={{
             background: 'linear-gradient(135deg,#6366f1,#a855f7,#ec4899)',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-          }}>AILEGAL™</span>{' '}
-          in Action
+          }}>AISA</span>{' '}
+          Major Features
         </h2>
         <p style={{
           color: isDarkMode ? 'rgba(148,163,184,0.65)' : '#475569', fontSize: '1rem', textAlign: 'center',
@@ -375,106 +426,166 @@ const AiLegalDemoSection = () => {
           })}
         </div>
   
-        {/* ── CARD ── */}
-        <div
-          ref={cardRef}
-          style={{
-            position: 'relative', zIndex: 10,
-            width: '100%', maxWidth: 780,
-            borderRadius: 24,
-            background: isDarkMode 
-              ? `linear-gradient(160deg, rgba(15,15,35,0.95) 0%, ${feat.bgAccent} 100%)`
-              : `linear-gradient(160deg, rgba(255,255,255,0.85) 0%, rgba(238,242,255,0.95) 100%)`,
-            border: isDarkMode ? `1px solid ${feat.color}33` : `1px solid ${feat.color}15`,
-            backdropFilter: 'blur(40px)',
-            overflow: 'hidden',
-            boxShadow: isDarkMode 
-              ? `0 0 70px ${feat.glow}, 0 30px 80px rgba(0,0,0,0.7)`
-              : `0 20px 60px rgba(100,116,139,0.12)`,
-            transition: 'all 0.5s ease',
-            transformStyle: 'preserve-3d',
-            perspective: '1200px',
-          }}
-        >
-           {/* Chrome Bar */}
-           <div style={{
-            display: 'flex', alignItems: 'center', gap: 7,
-            padding: '12px 20px', borderBottom: isDarkMode ? `1px solid rgba(255,255,255,0.05)` : `1px solid rgba(15,23,42,0.05)`,
-            background: isDarkMode ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.6)',
-          }}>
-            {['#ff5f57','#febc2e','#28c840'].map((c,i) => (
-              <div key={i} style={{ width: 10, height: 10, borderRadius: '50%', background: c }}/>
-            ))}
-            <div style={{ flex: 1, textAlign: 'center', fontSize: '0.65rem', fontWeight: 800, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em' }}>
-                AILEGAL.AISA.LAB
-            </div>
-           </div>
-  
-          <div
-            ref={chatRef}
-            style={{
-              padding: '24px 24px',
-              minHeight: 280, maxHeight: 320,
-              overflowY: feat.type === 'title' ? 'hidden' : 'auto',
-              display: 'flex', flexDirection: 'column',
-              scrollBehavior: 'smooth',
+        {/* ── CARD — outer wrapper for animated border + halo ── */}
+        <div style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: 780 }}>
+
+          {/* Animated color-cycling outer halo */}
+          <motion.div
+            animate={{
+              background: [
+                'radial-gradient(ellipse at 50% 0%,   rgba(99,102,241,0.55) 0%, transparent 65%)',
+                'radial-gradient(ellipse at 100% 50%, rgba(59,130,246,0.55) 0%, transparent 65%)',
+                'radial-gradient(ellipse at 50% 100%,rgba(139,92,246,0.55) 0%, transparent 65%)',
+                'radial-gradient(ellipse at 0% 50%,   rgba(79,70,229,0.50)  0%, transparent 65%)',
+                'radial-gradient(ellipse at 50% 0%,   rgba(99,102,241,0.55) 0%, transparent 65%)'
+              ]
             }}
-            className="demo-scroll-thumb"
+            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+            style={{ position: 'absolute', inset: -14, borderRadius: 38, pointerEvents: 'none', zIndex: 0, filter: 'blur(20px)' }}
+          />
+
+          {/* Animated color-cycling border gradient */}
+          <motion.div
+            animate={{
+              background: [
+                'linear-gradient(0deg,   #6366f1, #4f46e5, #3b82f6, #8b5cf6)',
+                'linear-gradient(90deg,  #3b82f6, #6366f1, #7c3aed, #4338ca)',
+                'linear-gradient(180deg, #8b5cf6, #3b82f6, #4f46e5, #6366f1)',
+                'linear-gradient(270deg, #4338ca, #7c3aed, #6366f1, #2563eb)',
+                'linear-gradient(360deg, #6366f1, #4f46e5, #3b82f6, #8b5cf6)'
+              ]
+            }}
+            transition={{ duration: 5, repeat: Infinity, ease: 'linear' }}
+            style={{ position: 'absolute', inset: -1.5, borderRadius: 25.5, pointerEvents: 'none', zIndex: 1, opacity: 0.78 }}
+          />
+
+          {/* Main card */}
+          <div
+            ref={cardRef}
+            style={{
+              position: 'relative', zIndex: 2,
+              width: '100%',
+              borderRadius: 24,
+              overflow: 'hidden',
+              boxShadow: '0 40px 80px -15px rgba(79,70,229,0.30), inset 0 2px 4px rgba(255,255,255,0.85)',
+              transformStyle: 'preserve-3d',
+              perspective: '1200px',
+            }}
           >
-            {feat.type === 'title' ? (
-              <div style={{
-                flex: 1, display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center',
-                textAlign: 'center', padding: '0 40px', gap: 20
-              }}>
-                <div style={{
-                  width: 70, height: 70, borderRadius: '50%',
-                  background: `linear-gradient(135deg, ${feat.color}44, ${feat.color})`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: `0 0 50px ${feat.color}55`,
-                  animation: 'pulse 2s infinite'
-                }}>
-                   <FeatIcon size={34} color="#fff" />
-                </div>
-                <h2 style={{
-                  fontSize: 'clamp(1.5rem, 4vw, 2.8rem)',
-                  fontWeight: 900,
-                  color: isDarkMode ? '#fff' : '#0F172A',
-                  textShadow: isDarkMode ? `0 0 30px ${feat.color}66` : 'none',
-                  lineHeight: 1,
-                  letterSpacing: '-0.04em',
-                }}>
-                  {feat.text}
-                </h2>
+            {/* Frosted glass base */}
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(60px)', borderRadius: 24, zIndex: 0 }} />
+
+            {/* Color-cycling cinematic blobs */}
+            <motion.div
+              animate={{
+                backgroundColor: ['#3730a3','#4338ca','#6366f1','#4f46e5','#3730a3'],
+                x: ['0%','35%','0%'], y: ['0%','20%','0%'], scale: [1, 1.25, 1]
+              }}
+              transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
+              style={{ position: 'absolute', top: '-20%', left: '-15%', width: '65%', height: '80%', borderRadius: '50%', opacity: 0.40, mixBlendMode: 'multiply', pointerEvents: 'none', zIndex: 1, filter: 'blur(70px)' }}
+            />
+            <motion.div
+              animate={{
+                backgroundColor: ['#4c1d95','#6d28d9','#7c3aed','#8b5cf6','#4c1d95'],
+                x: ['0%','-30%','0%'], y: ['0%','25%','0%'], scale: [1, 1.3, 1]
+              }}
+              transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut', delay: 3 }}
+              style={{ position: 'absolute', bottom: '-25%', right: '-20%', width: '65%', height: '80%', borderRadius: '50%', opacity: 0.35, mixBlendMode: 'multiply', pointerEvents: 'none', zIndex: 1, filter: 'blur(70px)' }}
+            />
+            <motion.div
+              animate={{
+                backgroundColor: ['#1e3a8a','#2563eb','#3b82f6','#1d4ed8','#1e3a8a'],
+                x: ['0%','20%','0%'], y: ['0%','-20%','0%'], scale: [1, 1.15, 1]
+              }}
+              transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut', delay: 7 }}
+              style={{ position: 'absolute', top: '20%', right: '5%', width: '50%', height: '60%', borderRadius: '50%', opacity: 0.25, mixBlendMode: 'multiply', pointerEvents: 'none', zIndex: 1, filter: 'blur(60px)' }}
+            />
+
+            {/* Glass border shine */}
+            <div style={{ position: 'absolute', inset: 0, borderRadius: 24, border: '1px solid rgba(255,255,255,0.55)', zIndex: 3, pointerEvents: 'none', boxShadow: 'inset 0 1px 3px rgba(255,255,255,0.8)' }} />
+
+            {/* Chrome Bar */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 7, position: 'relative', zIndex: 8,
+              padding: '12px 20px', borderBottom: '1px solid rgba(0,0,0,0.05)',
+              background: 'rgba(255,255,255,0.40)', backdropFilter: 'blur(8px)',
+            }}>
+              {['#ff5f57','#febc2e','#28c840'].map((c,i) => (
+                <div key={i} style={{ width: 10, height: 10, borderRadius: '50%', background: c }}/>
+              ))}
+              <div style={{ flex: 1, textAlign: 'center', fontSize: '0.65rem', fontWeight: 800, color: 'rgba(79,70,229,0.45)', letterSpacing: '0.12em' }}>
+                  AILEGAL.AISA.LAB
               </div>
-            ) : (
-              <>
-                {messages.length === 0 && (
+            </div>
+
+            <div
+              ref={chatRef}
+              style={{
+                padding: '24px 24px',
+                minHeight: 280, maxHeight: 320,
+                overflowY: feat.type === 'title' ? 'hidden' : 'auto',
+                display: 'flex', flexDirection: 'column',
+                scrollBehavior: 'smooth',
+                position: 'relative', zIndex: 8,
+              }}
+              className="demo-scroll-thumb"
+            >
+              {feat.type === 'title' ? (
+                <div style={{
+                  flex: 1, display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center',
+                  textAlign: 'center', padding: '0 40px', gap: 20
+                }}>
                   <div style={{
-                    flex: 1, display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center', gap: 10,
-                    color: isDarkMode ? 'rgba(148,163,184,0.3)' : 'rgba(15,23,42,0.3)', paddingBottom: 10,
+                    width: 70, height: 70, borderRadius: '50%',
+                    background: `linear-gradient(135deg, ${feat.color}44, ${feat.color})`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: `0 0 50px ${feat.color}55`,
+                    animation: 'pulse 2s infinite'
                   }}>
-                    <FeatIcon size={26} style={{ color: feat.color, opacity: 0.35 }} />
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.05em' }}>BOOTING {feat.label.toUpperCase()}...</span>
+                     <FeatIcon size={34} color="#fff" />
                   </div>
-                )}
-                {messages.map(msg => (
-                  <Bubble key={msg.id} msg={msg} color={feat.color} isDarkMode={isDarkMode} />
-                ))}
-              </>
-            )}
-          </div>
-  
-          {/* Footer Input Area */}
-          <div style={{
-            padding: '12px 20px',
-            background: isDarkMode ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.4)',
-            borderTop: isDarkMode ? `1px solid rgba(255,255,255,0.05)` : `1px solid rgba(15,23,42,0.05)`,
-            display: 'flex', alignItems: 'center', gap: 12
-          }}>
-             <div style={{ flex: 1, height: 12, borderRadius: 6, background: isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' }} />
-             <div style={{ width: 60, height: 28, borderRadius: 8, background: `linear-gradient(135deg, ${feat.color}, ${feat.color}dd)`, boxShadow: `0 0 15px ${feat.color}44` }} />
+                  <h2 style={{
+                    fontSize: 'clamp(1.5rem, 4vw, 2.8rem)',
+                    fontWeight: 900,
+                    color: '#0F172A',
+                    lineHeight: 1,
+                    letterSpacing: '-0.04em',
+                  }}>
+                    {feat.text}
+                  </h2>
+                </div>
+              ) : (
+                <>
+                  {messages.length === 0 && (
+                    <div style={{
+                      flex: 1, display: 'flex', flexDirection: 'column',
+                      alignItems: 'center', justifyContent: 'center', gap: 10,
+                      color: 'rgba(15,23,42,0.3)', paddingBottom: 10,
+                    }}>
+                      <FeatIcon size={26} style={{ color: feat.color, opacity: 0.35 }} />
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.05em' }}>BOOTING {feat.label.toUpperCase()}...</span>
+                    </div>
+                  )}
+                  {messages.map(msg => (
+                    <Bubble key={msg.id} msg={msg} color={feat.color} isDarkMode={isDarkMode} />
+                  ))}
+                </>
+              )}
+            </div>
+
+            {/* Footer Input Area */}
+            <div style={{
+              padding: '12px 20px',
+              background: 'rgba(255,255,255,0.35)',
+              borderTop: '1px solid rgba(0,0,0,0.05)',
+              backdropFilter: 'blur(8px)',
+              display: 'flex', alignItems: 'center', gap: 12,
+              position: 'relative', zIndex: 8,
+            }}>
+               <div style={{ flex: 1, height: 12, borderRadius: 6, background: 'rgba(0,0,0,0.04)' }} />
+               <div style={{ width: 60, height: 28, borderRadius: 8, background: 'linear-gradient(135deg, #6366f1, #7c3aed)', boxShadow: '0 0 15px rgba(99,102,241,0.35)' }} />
+            </div>
           </div>
         </div>
   

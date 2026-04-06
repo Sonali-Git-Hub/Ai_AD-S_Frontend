@@ -542,7 +542,10 @@ const StackedFeatures = () => {
   const [activeSlide, setActiveSlide] = useState(-1);
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
+    let ctx = gsap.matchMedia();
+
+    ctx.add("(min-width: 769px)", () => {
+      // Desktop: Horizontal Scroll with Pinning
       gsap.to(trackRef.current, {
         xPercent: -((NUM_SLIDES - 1) * 100) / NUM_SLIDES,
         ease: 'none',
@@ -561,7 +564,34 @@ const StackedFeatures = () => {
           },
         },
       });
-    }, wrapperRef.current);
+    });
+
+    ctx.add("(max-width: 768px)", () => {
+      // Mobile: Vertical Stacking, no pin, no scrubbing
+      gsap.set(trackRef.current, { 
+        xPercent: 0, 
+        width: "100%", 
+        height: "auto", 
+        flexDirection: "column",
+        display: "flex"
+      });
+      gsap.set(wrapperRef.current, { 
+        height: "auto", 
+        overflow: "visible" 
+      });
+
+      const slides = gsap.utils.toArray(trackRef.current.children);
+      slides.forEach((slide, index) => {
+        gsap.set(slide, { width: "100%", height: "auto", minHeight: "100vh" });
+        ScrollTrigger.create({
+          trigger: slide,
+          start: "top 60%",
+          onEnter: () => setActiveSlide(index),
+          onEnterBack: () => setActiveSlide(index)
+        });
+      });
+    });
+
     return () => ctx.revert();
   }, []);
 

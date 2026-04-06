@@ -293,6 +293,116 @@
 /* Global Scaling System */
 html {
   font-size: var(--aisa-font-size) !important;
+  scroll-behavior: smooth;
+}
+
+/* ── Smooth Scroll Performance ──────────────────────────────────────────── */
+
+/* Momentum scroll on iOS + smooth on all browsers */
+body,
+.overflow-y-auto,
+.overflow-y-scroll,
+[class*="overflow-y-auto"],
+[class*="custom-scrollbar"] {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* GPU-accelerate ALL animated blobs (motion.div with mix-blend-multiply) */
+/* This promotes them to their own compositor layer, preventing main-thread jank */
+[class*="mix-blend-multiply"],
+[class*="mix-blend-screen"],
+[class*="mix-blend-soft-light"] {
+  will-change: transform, opacity;
+}
+
+/* GPU-accelerate framer-motion animated divs that use background */
+/* (the gradient border and halo wrappers) */
+[style*="background: radial-gradient"],
+[style*="background: linear-gradient"] {
+  will-change: background;
+}
+
+/* Isolate the glassmorphic card containers from the scrolling context */
+/* This prevents backdrop-blur from re-computing on every scroll tick */
+.modal-default,
+.modal-maximized {
+  contain: layout paint;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Custom scrollbar — thin + smooth */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.25) transparent;
+  scroll-behavior: smooth;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.25);
+  border-radius: 99px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.45);
+}
+
+/* Demo chat scroll thumb (AiLegalDemoSection) */
+.demo-scroll-thumb {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.20) transparent;
+  scroll-behavior: smooth;
+}
+
+.demo-scroll-thumb::-webkit-scrollbar {
+  width: 3px;
+}
+
+.demo-scroll-thumb::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.demo-scroll-thumb::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.25);
+  border-radius: 99px;
+}
+
+/* Reduce backdrop-filter cost during active scroll */
+/* (temporarily drops blur to 0 while scrolling, re-applies after) */
+/* Reduce backdrop-filter cost during active scroll - and globally cap heavy blurs */
+@media (prefers-reduced-motion: no-preference) {
+  html.is-scrolling [style*="backdrop-filter"],
+  html.is-scrolling [class*="backdrop-blur"] {
+    backdrop-filter: blur(0px) !important;
+    -webkit-backdrop-filter: blur(0px) !important;
+    transition: backdrop-filter 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+/* Global Failsafe for lower-end devices - cut blurs and heavy shadows */
+@media (max-width: 768px) {
+  [class*="backdrop-blur"] {
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+  [class*="shadow-"] {
+    box-shadow: none !important;
+  }
+}
+
+/* Prevent layout thrash from animated gradient borders */
+[style*="inset: -1.5px"],
+[style*="inset: -14px"] {
+  will-change: transform, opacity;
 }
 
 .aisa-scalable-text {

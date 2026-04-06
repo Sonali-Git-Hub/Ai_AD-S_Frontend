@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useInView, useMotionValue, useSpring, useTransform } from 'framer-motion';
-import { ImagePlus, PlaySquare, Headphones, Code, Sparkles, Zap, Search, Globe, FileText, Wand2, PlayCircle, Scale, Video, Brain } from 'lucide-react';
+import { ImagePlus, PlaySquare, Headphones, Code, Sparkles, Zap, Search, Globe, FileText, Wand2, PlayCircle, Scale, Video, Brain, TrendingUp, Megaphone, Lock } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 /* ─── Typewriter Engine ────────────────────────────────────── */
@@ -31,7 +31,12 @@ const TypewriterPrompt = ({ text, active }) => {
       <div className="bg-white/80 dark:bg-black/70 backdrop-blur-md rounded-lg p-2.5 border border-slate-200 dark:border-white/10 inline-block max-w-[90%] shadow-2xl">
         <p className="text-[10px] sm:text-[11px] font-mono font-bold text-slate-800 dark:text-white leading-tight">
           <span className="text-primary mr-1">/</span>{displayed}
-          <motion.span animate={{ opacity: [1, 0] }} transition={{ repeat: Infinity, duration: 0.6 }} className="inline-block w-1 h-3 bg-primary ml-0.5" />
+          <motion.span 
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 0 }} 
+            transition={{ repeat: Infinity, repeatType: "reverse", duration: 0.6 }} 
+            className="inline-block w-1 h-3 bg-primary ml-0.5" 
+          />
         </p>
       </div>
     </div>
@@ -39,6 +44,9 @@ const TypewriterPrompt = ({ text, active }) => {
 };
 
 const ToolPreviewContent = ({ id, prompt, active }) => {
+  const themeContext = useTheme();
+  const theme = themeContext?.theme || 'dark';
+  const isDark = theme.toLowerCase() === 'dark';
   const [phase, setPhase] = useState('typing'); // typing -> generating -> result
 
   useEffect(() => {
@@ -46,11 +54,11 @@ const ToolPreviewContent = ({ id, prompt, active }) => {
     
     const typingTimer = setTimeout(() => {
       setPhase('generating');
-    }, 2800);
+    }, 2200);
 
     const generatingTimer = setTimeout(() => {
       setPhase('result');
-    }, 4500);
+    }, 3800);
 
     return () => {
       clearTimeout(typingTimer);
@@ -109,7 +117,7 @@ const ToolPreviewContent = ({ id, prompt, active }) => {
   };
 
   return (
-    <div className="w-full h-full relative overflow-hidden flex flex-col bg-slate-50">
+    <div className={`w-full h-full relative overflow-hidden flex flex-col ${isDark ? 'bg-slate-900/40' : 'bg-slate-50'}`}>
       <AnimatePresence mode="wait">
         {phase === 'typing' && (
           <motion.div
@@ -133,13 +141,14 @@ const ToolPreviewContent = ({ id, prompt, active }) => {
           >
             <div className="relative">
               <motion.div
-                animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
+                initial={{ scale: 1, opacity: 0.5 }}
+                animate={{ scale: 1.2, opacity: 1 }}
+                transition={{ duration: 0.75, repeat: Infinity, repeatType: "reverse" }}
                 className="w-16 h-16 rounded-full border-4 border-primary/20"
               />
               <motion.div
                 animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear", repeatType: "loop" }}
                 className="absolute inset-0 border-t-4 border-primary rounded-full"
               />
             </div>
@@ -162,7 +171,7 @@ const ToolPreviewContent = ({ id, prompt, active }) => {
                 </div>
               </div>
             ) : (
-              <div className="w-full h-full bg-white rounded-xl border border-slate-200 p-2.5 flex flex-col justify-between shadow-inner">
+              <div className={`w-full h-full rounded-xl border p-2.5 flex flex-col justify-between shadow-inner ${isDark ? 'bg-slate-950/60 border-white/5' : 'bg-white border-slate-100'}`}>
                  <div className="space-y-1">
                    {getResultText().map((line, i) => (
                      <motion.div 
@@ -192,170 +201,198 @@ const ToolPreviewContent = ({ id, prompt, active }) => {
 /* ─── Tools Data ───────────────────────────────── */
 
 const ALL_TOOLS = [
-  { id: 'image', label: 'Generate Image', badge: 'IMAGE', desc: 'Create visuals from text', icon: ImagePlus, color: '#a78bfa', prompt: "Generate cinematic 8k image of a golden retriever in space..." },
-  { id: 'video', label: 'Generate Video', badge: 'VIDEO', desc: 'Text to Cinematic Video', icon: Video, color: '#fb923c', prompt: "Creating realistic drone flight over mountains at sunset..." },
-  { id: 'image_to_video', label: 'Image to Video', badge: 'ANIMATE', desc: 'Image to Video Magic', icon: PlayCircle, color: '#f97316', prompt: "Animate this static scene with dynamic lighting & motion..." },
-  { id: 'edit_image', label: 'Edit Image', badge: 'MAGIC EDIT', desc: 'Magic Image Editor', icon: Wand2, color: '#f43f5e', prompt: "Modify the sky to be a neon-lit cyberpunk sunset..." },
-  { id: 'deep_search', label: 'Deep Search', badge: 'INTELLIGENCE', desc: 'Research complex topics', icon: Search, color: '#0ea5e9', prompt: "Analyze global market trends and future tech predictions..." },
-  { id: 'web_search', label: 'Real-Time Search', badge: 'REAL-TIME', desc: 'Live web data access', icon: Globe, color: '#22d3ee', prompt: "Search for live updates on the latest SpaceX launch..." },
-  { id: 'document', label: 'Analyze Document', badge: 'DOCUMENT', desc: 'Chat with PDFs & Docs', icon: FileText, color: '#3b82f6', prompt: "Summarize this 50-page legal PDF and identify risks..." },
-  { id: 'code', label: 'Code Writer', badge: 'CODE', desc: 'Write & debug code', icon: Code, color: '#6366f1', prompt: "Write a robust Python script for a neural network..." },
-  { id: 'audio', label: 'Convert to Audio', badge: 'AUDIO', desc: 'Text/Docs to Voice', icon: Headphones, color: '#34d399', prompt: "Synthesize this report into a natural sounding male voice..." },
-  { id: 'legal', label: 'AI Legal', badge: 'LEGAL', desc: 'Specialized AI legal tools', icon: Scale, color: '#818cf8', prompt: "Analyze this employment contract for potential loopholes..." },
+  { id: 'image', label: 'Generate Image', badge: 'IMAGE', desc: 'Create visuals from text', icon: ImagePlus, color: '#a78bfa', prompt: "Generate cinematic 8k image of a golden retriever in space...", review: { rating: 5, count: "12.4k", text: "STUNNING! The clarity of the generated images is better than Midjourney V6. AISA truly understands context." } },
+  { id: 'video', label: 'Generate Video', badge: 'VIDEO', desc: 'Text to Cinematic Video', icon: Video, color: '#fb923c', prompt: "Creating realistic drone flight over mountains at sunset...", review: { rating: 4.9, count: "8.2k", text: "The temporal consistency in the videos is industry-leading. Smooth motion without any morphing artifacts." } },
+  { id: 'image_to_video', label: 'Image to Video', badge: 'ANIMATE', desc: 'Image to Video Magic', icon: PlayCircle, color: '#f97316', prompt: "Animate this static scene with dynamic lighting & motion...", review: { rating: 5, count: "5.7k", text: "Turned my product photos into cinematic ads in seconds. This is a game changer for my marketing agency." } },
+  { id: 'edit_image', label: 'Edit Image', badge: 'MAGIC EDIT', desc: 'Magic Image Editor', icon: Wand2, color: '#f43f5e', prompt: "Modify the sky to be a neon-lit cyberpunk sunset...", review: { rating: 4.8, count: "15k", text: "Perfect for quick retouching. The AI infilling is seamless—you literally can't tell where the edit starts." } },
+  { id: 'deep_search', label: 'Deep Search', badge: 'INTELLIGENCE', desc: 'Research complex topics', icon: Search, color: '#0ea5e9', prompt: "Analyze global market trends and future tech predictions...", review: { rating: 5, count: "21k", text: "Replaced my research team. It synthesizes 100+ papers into a 1-page brief perfectly. Extremely accurate indexing." } },
+  { id: 'web_search', label: 'Real-Time Search', badge: 'REAL-TIME', desc: 'Live web data access', icon: Globe, color: '#22d3ee', prompt: "Search for live updates on the latest SpaceX launch...", review: { rating: 4.9, count: "10k", text: "No more hallucinated news. AISA provides real-time citations and live feeds. Highly reliable for tech news." } },
+  { id: 'document', label: 'Analyze Document', badge: 'DOCUMENT', desc: 'Chat with PDFs & Docs', icon: FileText, color: '#3b82f6', prompt: "Summarize this 50-page legal PDF and identify risks...", review: { rating: 5, count: "7.4k", text: "I uploaded a 120-page contract and it found a hidden liability clause in seconds. Worth every credit." } },
+  { id: 'code', label: 'Code Writer', badge: 'CODE', desc: 'Write & debug code', icon: Code, color: '#6366f1', prompt: "Write a robust Python script for a neural network...", review: { rating: 4.9, count: "14.2k", text: "Writes production-ready code with tests. It actually understands modern design patterns, not just snippets." } },
+  { id: 'audio', label: 'Convert to Audio', badge: 'AUDIO', desc: 'Text/Docs to Voice', icon: Headphones, color: '#34d399', prompt: "Synthesize this report into a natural sounding male voice...", review: { rating: 4.8, count: "6k", text: "The most human-like synthesis I've heard. Even the breathing and pauses feel natural. Perfect for podcasts." } },
+  { id: 'legal', label: 'AI Legal', badge: 'LEGAL', desc: 'Specialized AI legal tools', icon: Scale, color: '#818cf8', prompt: "Analyze this employment contract for potential loopholes...", review: { rating: 5, count: "3.2k", text: "AISA's legal reasoning is spookily good. It identified risks that our junior lawyers missed twice." } },
+  { id: 'aicashflow', label: 'AICASHFLOW', badge: 'FINANCE', desc: 'Coming Soon...', icon: TrendingUp, color: '#10b981', prompt: "Analyzing cashflow...", comingSoon: true },
+  { id: 'aiadd', label: 'AIADD', badge: 'ADS', desc: 'Coming Soon...', icon: Megaphone, color: '#eab308', prompt: "Generating ad campaign...", comingSoon: true },
 ];
 
 /* ─── 3D Tilt Card ─────────────────────────────────────────── */
 
 const ToolCard = ({ tool, onToolSelect, index }) => {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-  const [isHovered, setIsHovered] = useState(false);
+  const themeContext = useTheme();
+  const theme = themeContext?.theme || 'dark';
+  const isDark = theme.toLowerCase() === 'dark';
+  const [isFlipped, setIsFlipped] = useState(false);
   const cardRef = useRef(null);
   const { icon: Icon } = tool;
 
   // Mouse-tracked 3D tilt
   const x = useMotionValue(0);
   const y = useMotionValue(0);
-  const rotX = useSpring(useTransform(y, [-65, 65], [10, -10]), { stiffness: 150, damping: 25 });
-  const rotY = useSpring(useTransform(x, [-65, 65], [-10, 10]), { stiffness: 150, damping: 25 });
+  // Using direct transform in style is better than animate for performance and stability with MotionValues
+  const tiltX = useSpring(useTransform(y, [-70, 70], [15, -15]), { stiffness: 100, damping: 20 });
+  const tiltY = useSpring(useTransform(x, [-70, 70], [-15, 15]), { stiffness: 100, damping: 20 });
 
+  // Flip rotation
   const handleMouseMove = (e) => {
-    if (!cardRef.current) return;
+    if (!cardRef.current || isFlipped) return;
     const rect = cardRef.current.getBoundingClientRect();
     x.set(e.clientX - rect.left - rect.width / 2);
     y.set(e.clientY - rect.top - rect.height / 2);
   };
+
   const handleMouseLeave = () => {
-    if (window.innerWidth >= 768) {
-      x.set(0); y.set(0);
-      setIsHovered(false);
-    }
+    x.set(0); y.set(0);
+    setIsFlipped(false);
   };
 
   const handleMouseEnter = () => {
-    if (window.innerWidth >= 768) {
-      setIsHovered(true);
-    }
+      if (tool.comingSoon) return;
+      setIsFlipped(true);
   };
 
   const handleCardClick = () => {
-    if (window.innerWidth < 768) {
-      if (!isHovered) {
-        setIsHovered(true);
-      } else {
-        onToolSelect(tool.id);
-      }
+    if (tool.comingSoon) return;
+    if (!isFlipped) {
+      setIsFlipped(true);
     } else {
       onToolSelect(tool.id);
     }
   };
 
   return (
-    <motion.div
-      ref={cardRef}
-      className="w-full h-[125px] sm:h-[135px] relative cursor-pointer"
-      style={{ perspective: '1200px', willChange: 'transform' }}
+    <div 
+      className="relative w-full h-[145px] sm:h-[155px]"
+      style={{ perspective: '1200px' }}
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      onClick={handleCardClick}
-      // Idle floating animation
-      animate={{
-        y: [0, -6, 0],
-        transition: {
-          duration: 3 + index * 0.4,
-          repeat: Infinity,
-          ease: 'easeInOut',
-          delay: index * 0.15,
-        }
-      }}
-      whileTap={{ scale: 0.96 }}
     >
       <motion.div
-        className="w-full h-full relative"
-        style={{
-          transformStyle: 'preserve-3d',
-          rotateX: isHovered ? rotX : 0,
-          rotateY: isHovered ? rotY : 0,
+        ref={cardRef}
+        className="w-full h-full relative cursor-pointer"
+        animate={{ 
+          rotateY: isFlipped ? 180 : 0,
         }}
+        transition={{ 
+          type: "spring", 
+          stiffness: 120, 
+          damping: 20,
+        }}
+        style={{ 
+          transformStyle: 'preserve-3d',
+          rotateX: isFlipped ? 0 : tiltX,
+          // tiltY is applied via external motion value if needed, but for simplicity let's rely on animate for flip
+        }}
+        onClick={handleCardClick}
       >
-        {/* ── Flip wrapper ── */}
-        <motion.div
-          animate={{ rotateY: isHovered ? 180 : 0 }}
-          transition={{ type: 'spring', stiffness: 120, damping: 20, mass: 1 }}
-          className="w-full h-full relative"
-          style={{ transformStyle: 'preserve-3d' }}
+        {/* FRONT SIDE */}
+        <div 
+          className={`absolute inset-0 w-full h-full rounded-[20px] border p-4 sm:p-5 transition-colors duration-300 flex flex-col justify-between backface-hidden ${
+            isDark 
+              ? 'bg-[#151929] border-white/5 shadow-[0_4px_20px_rgba(0,0,0,0.3)]' 
+              : 'bg-white border-slate-200/60 shadow-[0_4px_20px_rgba(0,0,0,0.05)]'
+          }`}
+          style={{ backfaceVisibility: 'hidden' }}
         >
-          {/* FRONT */}
-          <div
-            className="absolute inset-0 w-full h-full rounded-[24px] overflow-hidden flex flex-col justify-between p-4 group"
-            style={{
-              backfaceVisibility: 'hidden',
-              background: isDark ? 'rgba(20, 24, 45, 0.95)' : 'rgba(255, 255, 255, 0.9)',
-              border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.05)',
-              boxShadow: isDark ? 'none' : '0 10px 25px -5px rgba(0,0,0,0.05)',
-              transform: 'translateZ(0)',
-            }}
-          >
-            {/* Glow on hover */}
-            <div
-              className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-[24px]`}
-              style={{ boxShadow: `inset 0 0 40px ${tool.color}${isDark ? '22' : '10'}, 0 0 30px ${tool.color}${isDark ? '18' : '05'}` }}
-            />
-            {/* Shimmer sweep */}
-            <div className="absolute inset-0 overflow-hidden rounded-[24px] pointer-events-none">
-              <motion.div
-                className="absolute top-0 left-[-60%] w-[40%] h-full skew-x-[-20deg]"
-                style={{ background: isDark ? 'linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent)' : 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)' }}
-                animate={{ left: ['−60%', '140%'] }}
-                transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 2, ease: 'easeInOut' }}
+          <div className="flex items-center justify-between mb-3">
+            <div 
+              className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ 
+                background: isDark ? `${tool.color}15` : `${tool.color}10`,
+                border: isDark ? `1px solid ${tool.color}30` : `1px solid ${tool.color}20`
+              }}
+            >
+              <Icon size={18} style={{ color: tool.color }} />
+            </div>
+            <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
+              isDark ? 'bg-white/5 text-white/40' : 'bg-slate-100 text-slate-500'
+            }`}>
+              {tool.badge}
+            </span>
+          </div>
+
+          <div className="space-y-0.5">
+            <h3 className={`text-[13px] sm:text-[14px] font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              {tool.label}
+            </h3>
+            <p className={`text-[9.5px] sm:text-[10px] leading-snug line-clamp-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              {tool.desc}
+            </p>
+          </div>
+
+          {tool.comingSoon && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 dark:bg-black/40 backdrop-blur-[1px] rounded-[20px]">
+              <div className={`px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest ${
+                isDark ? 'bg-[#1a1c2e] border-white/10 text-slate-400' : 'bg-white border-slate-200 text-slate-500 shadow-sm'
+              }`}>
+                Soon
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* BACK SIDE (Review & Preview) */}
+        <div 
+          className={`absolute inset-0 w-full h-full rounded-[20px] border overflow-hidden flex flex-col backface-hidden ${
+            isDark 
+              ? 'bg-[#1a1e2e] border-primary/30 shadow-[0_10px_40px_rgba(var(--primary-rgb),0.2)]' 
+              : 'bg-white border-primary/20 shadow-[0_10px_40px_rgba(0,0,0,0.1)]'
+          }`}
+          style={{ 
+            backfaceVisibility: 'hidden',
+            transform: 'rotateY(180deg)',
+          }}
+        >
+          <div className="flex flex-col h-full relative z-10">
+            {/* Live Demo Animation Section */}
+            <div className="h-[40%] w-full overflow-hidden border-b border-black/5 dark:border-white/5 bg-slate-50 dark:bg-slate-900/50">
+              <ToolPreviewContent 
+                id={tool.id} 
+                prompt={tool.prompt} 
+                active={isFlipped} 
               />
             </div>
 
-            <div className="flex items-center justify-between relative z-10">
-              <div
-                className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-transform duration-300 group-hover:scale-110 ${isDark ? 'border-white/10' : 'border-slate-200 shadow-sm'}`}
-                style={{ background: isDark ? `${tool.color}20` : `${tool.color}10` }}
-              >
-                <Icon size={18} style={{ color: tool.color }} />
+            {/* Review Section */}
+            <div className="flex-1 p-2.5 flex flex-col justify-between bg-white/40 dark:bg-[#1a1e2e]/40 backdrop-blur-sm">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-0.5">
+                    {[...Array(5)].map((_, i) => (
+                      <Sparkles 
+                        key={i} 
+                        size={7} 
+                        className={i < Math.floor(tool.review?.rating || 0) ? "text-yellow-400 fill-yellow-400" : "text-slate-300"} 
+                      />
+                    ))}
+                    <span className={`text-[7px] font-bold ml-1 ${isDark ? 'text-white/80' : 'text-slate-600'}`}>
+                      {tool.review?.rating || '5.0'}
+                    </span>
+                  </div>
+                </div>
+                <p className={`text-[8.5px] leading-tight italic font-medium line-clamp-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  "{tool.review?.text || "Revolutionary AI tool that significantly improves my workflow efficiency."}"
+                </p>
               </div>
-              <span className={`text-[9px] font-black uppercase tracking-[0.2em] ${isDark ? 'text-white/30' : 'text-slate-400'}`}>
-                {tool.badge}
-              </span>
-            </div>
 
-            <div className="relative z-10 space-y-1">
-              <h3 className={`text-[14px] font-black leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>{tool.label}</h3>
-              <p className={`text-[10px] font-medium truncate ${isDark ? 'text-white/40' : 'text-slate-500'}`}>{tool.desc}</p>
+              <motion.div 
+                 whileHover={{ scale: 1.02 }}
+                 whileTap={{ scale: 0.98 }}
+                 className="bg-primary text-white text-[8px] font-black uppercase tracking-widest py-1.5 rounded-lg flex items-center justify-center gap-2 shadow-lg shadow-primary/20 cursor-pointer"
+              >
+                <Zap size={9} fill="white" />
+                Live Try
+              </motion.div>
             </div>
           </div>
-
-          {/* BACK */}
-          <div
-            className="absolute inset-0 w-full h-full rounded-[24px] overflow-hidden border border-black/5 flex flex-col"
-            style={{
-              backfaceVisibility: 'hidden',
-              transform: 'rotateY(180deg) translateZ(0)',
-            }}
-          >
-            <ToolPreviewContent id={tool.id} prompt={tool.prompt} active={isHovered} />
-            <div className="p-3 bg-black/[0.03] border-t border-black/[0.05] flex items-center justify-between relative z-10">
-              <div className="min-w-0 flex-1 mr-2 text-left">
-                <div className="text-[9px] font-black text-black/80 uppercase tracking-tighter truncate">{tool.label}</div>
-                <div className="text-[8px] text-black/40 truncate font-semibold">Launch AISA Agent</div>
-              </div>
-              <button
-                onClick={(e) => { e.stopPropagation(); onToolSelect(tool.id); }}
-                className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:scale-110 active:scale-95 shadow-lg"
-                style={{ background: tool.color, color: '#fff' }}
-              >
-                <Zap size={14} strokeWidth={4} fill="#fff" />
-              </button>
-            </div>
+          
+          {/* Subtle Neural Background for back side */}
+          <div className="absolute inset-0 pointer-events-none opacity-[0.03]">
+            <div className="bg-primary absolute inset-0 blur-3xl rounded-full translate-y-1/2" />
           </div>
-        </motion.div>
+        </div>
       </motion.div>
-    </motion.div>
+    </div>
   );
 };
 
@@ -381,12 +418,12 @@ const FuturisticToolCards = ({ onToolSelect }) => {
   const isInView = useInView(ref, { once: true, margin: '-60px' });
 
   return (
-    <div className="w-full py-8 sm:py-12 px-3 flex justify-center" ref={ref}>
+    <div className="w-full py-4 sm:py-12 px-2 sm:px-3 flex justify-center" ref={ref}>
       <motion.div
-        className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-6 max-w-6xl"
+        className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-6 max-w-6xl min-h-[300px]"
         variants={containerVariants}
         initial="hidden"
-        animate={isInView ? 'visible' : 'hidden'}
+        animate="visible"
       >
         {ALL_TOOLS.map((tool, index) => (
           <motion.div

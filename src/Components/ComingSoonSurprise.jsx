@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useAnimation } from 'framer-motion';
+import { motion, AnimatePresence, useAnimation, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import { 
   TrendingUp, PlusCircle, Globe, Instagram, Linkedin, Hash, 
   ArrowUpRight, Zap, Sparkles, X, ChevronLeft, ChevronRight, 
@@ -42,7 +42,7 @@ const ConfettiPiece = ({ color, index }) => {
   );
 };
 
-const SlideShow = ({ type, themeColor }) => {
+const SlideShow = ({ type, themeColor, isDarkMode }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   
   const cashflowSlides = [
@@ -256,7 +256,7 @@ const SlideShow = ({ type, themeColor }) => {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 relative overflow-hidden bg-black/20 rounded-2xl border border-white/5 mb-6">
+      <div className={`flex-1 relative overflow-hidden rounded-2xl border mb-6 shadow-inner ${isDarkMode ? 'bg-black/20 border-white/5' : 'bg-[#0f111a] border-slate-200/50'}`}>
          <AnimatePresence mode="wait">
             <motion.div
               key={currentSlide}
@@ -272,23 +272,23 @@ const SlideShow = ({ type, themeColor }) => {
       </div>
 
       <div className="space-y-2">
-         <motion.h3 
-           key={`h3-${currentSlide}`}
-           initial={{ opacity: 0, y: 10 }}
-           animate={{ opacity: 1, y: 0 }}
-           className="text-2xl font-black text-white tracking-tight"
-         >
-           {currentSlides[currentSlide].title}
-         </motion.h3>
-         <motion.p
-           key={`p-${currentSlide}`}
-           initial={{ opacity: 0, y: 10 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ delay: 0.1 }}
-           className="text-white/60 text-sm leading-relaxed"
-         >
-           {currentSlides[currentSlide].description}
-         </motion.p>
+          <motion.h3 
+            key={`h3-${currentSlide}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`text-xl sm:text-2xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-800'}`}
+          >
+            {currentSlides[currentSlide].title}
+          </motion.h3>
+          <motion.p
+            key={`p-${currentSlide}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className={`text-[11px] sm:text-sm leading-relaxed ${isDarkMode ? 'text-white/60' : 'text-slate-500'}`}
+          >
+            {currentSlides[currentSlide].description}
+          </motion.p>
       </div>
 
       <div className="flex gap-2 mt-6">
@@ -304,9 +304,29 @@ const SlideShow = ({ type, themeColor }) => {
   );
 };
 
-const GiftBox = ({ title, type, themeColor, isCashflow }) => {
+const GiftBox = ({ title, type, themeColor, isCashflow, isDarkMode }) => {
   const [state, setState] = useState('closed'); // 'closed', 'impact', 'opened'
   const [showConfetti, setShowConfetti] = useState(false);
+
+  // ── 3D Tilt Logic ──
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const rotateX = useSpring(useTransform(y, [-200, 200], [15, -15]), { stiffness: 150, damping: 25 });
+  const rotateY = useSpring(useTransform(x, [-200, 200], [-15, 15]), { stiffness: 150, damping: 25 });
+
+  const handleMouseMove = (e) => {
+    if (state !== 'closed') return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    x.set(e.clientX - centerX);
+    y.set(e.clientY - centerY);
+  };
+
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
 
   const handleOpen = () => {
     if (state === 'closed') {
@@ -336,7 +356,7 @@ const GiftBox = ({ title, type, themeColor, isCashflow }) => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleClose}
-            className="fixed inset-0 bg-[#0b0b12]/90 backdrop-blur-sm z-[100]"
+            className={`fixed inset-0 backdrop-blur-sm z-[100] ${isDarkMode ? 'bg-[#0b0b12]/90' : 'bg-slate-200/60'}`}
           />
         )}
       </AnimatePresence>
@@ -355,21 +375,27 @@ const GiftBox = ({ title, type, themeColor, isCashflow }) => {
 
         <motion.div
           layout
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
           onClick={state === 'closed' ? handleOpen : undefined}
-          transition={{ duration: 0.45, ease: cubicBezier }}
+          transition={{ duration: 0.6, ease: cubicBezier }}
           style={{
-            borderRadius: state === 'opened' ? 40 : 24,
-            width: state === 'opened' ? (window.innerWidth < 1000 ? '90vw' : '1000px') : '320px',
-            height: state === 'opened' ? (window.innerWidth < 640 ? '80vh' : '650px') : '420px',
+            borderRadius: state === 'opened' ? (window.innerWidth < 640 ? 24 : 40) : 24,
+            width: state === 'opened' ? (window.innerWidth < 1000 ? '95vw' : '1000px') : '320px',
+            height: state === 'opened' ? (window.innerWidth < 640 ? '85vh' : '650px') : '420px',
+            rotateX: state === 'closed' ? rotateX : 0,
+            rotateY: state === 'closed' ? rotateY : 0,
+            transformStyle: 'preserve-3d',
+            perspective: '1200px',
             background: state === 'opened' 
-              ? 'linear-gradient(160deg, rgba(30,30,50,0.95), rgba(10,10,20,0.98))' 
-              : `linear-gradient(160deg, ${themeColor}11, rgba(11,11,18,0.98))`,
+              ? (isDarkMode ? 'linear-gradient(160deg, rgba(30,30,50,0.98), rgba(10,10,20,1))' : 'linear-gradient(160deg, rgba(255,255,255,1), rgba(245,247,250,1))')
+              : (isDarkMode ? `linear-gradient(160deg, ${themeColor}15, rgba(11,11,18,0.98))` : `linear-gradient(160deg, rgba(255,255,255,0.95), rgba(240,245,255,0.9))`),
             boxShadow: state === 'opened' 
-              ? '0 0 100px rgba(0,0,0,0.8)' 
-              : `0 30px 100px ${themeColor}22, 0 0 40px ${themeColor}11, inset 0 0 20px ${themeColor}08`,
-            border: state === 'opened' ? '1px solid rgba(255,255,255,0.1)' : `1px solid ${themeColor}33`,
+              ? (isDarkMode ? '0 0 100px rgba(0,0,0,0.8)' : '0 20px 80px rgba(0,0,0,0.15)') 
+              : (isDarkMode ? `0 30px 100px ${themeColor}33, 0 0 40px ${themeColor}15, inset 0 0 20px ${themeColor}08` : `0 25px 50px ${themeColor}22, inset 0 0 20px rgba(255,255,255,1)`),
+            border: state === 'opened' ? (isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.05)') : (isDarkMode ? `1px solid ${themeColor}44` : `1px solid ${themeColor}55`),
           }}
-          className={`relative overflow-hidden cursor-pointer preserve-3d transition-all duration-500`}
+          className="relative overflow-hidden cursor-pointer"
         >
           {/* Intense Ambient Backdrop Glow (Closed State only) */}
           {state === 'closed' && (
@@ -381,7 +407,7 @@ const GiftBox = ({ title, type, themeColor, isCashflow }) => {
               transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
               className="absolute -inset-[50px] pointer-events-none"
               style={{ 
-                background: `radial-gradient(circle at center, ${themeColor}33 0%, transparent 60%)`,
+                background: `radial-gradient(circle at center, ${themeColor}${isDarkMode ? '33' : '15'} 0%, transparent ${isDarkMode ? '60%' : '70%'})`,
                 filter: 'blur(40px)',
                 zIndex: -1
               }}
@@ -477,11 +503,14 @@ const GiftBox = ({ title, type, themeColor, isCashflow }) => {
                 </motion.div>
 
                 <div className="text-center relative z-10">
-                  <h3 className="text-4xl font-black text-white mb-3 tracking-tighter" style={{ textShadow: `0 0 30px ${themeColor}44` }}>{title}</h3>
-                  <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl">
-                     <span className="text-[12px] font-black uppercase tracking-[0.3em] text-white/40">Tap to Open</span>
-                     <div className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ backgroundColor: themeColor, boxShadow: `0 0 10px ${themeColor}` }} />
-                  </div>
+                  <h3 className={`text-4xl font-black mb-3 tracking-tighter ${isDarkMode ? 'text-white' : 'text-slate-800'}`} style={{ textShadow: isDarkMode ? `0 0 30px ${themeColor}44` : 'none' }}>{title}</h3>
+                  <motion.div 
+                    whileHover={{ scale: 1.1 }}
+                    className={`inline-flex items-center gap-3 px-6 py-2 rounded-full border backdrop-blur-xl group/btn ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white/80 border-slate-200 shadow-sm'}`}
+                  >
+                     <span className={`text-[12px] font-black uppercase tracking-[0.3em] transition-all group-hover/btn:tracking-[0.4em] ${isDarkMode ? 'text-white/40' : 'text-slate-500'}`}>Tap to Open</span>
+                     <div className="w-2.5 h-2.5 rounded-full animate-heartbeat" style={{ backgroundColor: themeColor, boxShadow: `0 0 15px ${themeColor}` }} />
+                  </motion.div>
                 </div>
               </div>
             ) : (
@@ -490,45 +519,45 @@ const GiftBox = ({ title, type, themeColor, isCashflow }) => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                className="w-full h-full p-8 md:p-12 flex flex-col md:flex-row gap-12"
+                className="w-full h-full p-5 sm:p-8 md:p-12 flex flex-col md:flex-row gap-6 md:gap-12 overflow-y-auto no-scrollbar"
               >
                  {/* Close Button */}
                  <button 
                    onClick={handleClose} 
-                   className="absolute top-8 right-8 w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors z-[110]"
+                   className={`absolute top-4 right-4 sm:top-8 sm:right-8 w-10 h-10 sm:w-12 sm:h-12 rounded-full border flex items-center justify-center transition-colors z-[110] shadow-md ${isDarkMode ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
                  >
-                    <X size={20} className="text-white" />
+                    <X size={18} className={isDarkMode ? 'text-white' : 'text-slate-800'} />
                  </button>
 
                  {/* Left Column: Carousel Showcase */}
-                 <div className="flex-1 h-full min-h-[300px]">
-                    <SlideShow type={isCashflow ? 'cashflow' : 'aiadd'} themeColor={themeColor} />
+                 <div className="flex-1 min-h-[250px] sm:min-h-[300px]">
+                    <SlideShow type={isCashflow ? 'cashflow' : 'aiadd'} themeColor={themeColor} isDarkMode={isDarkMode} />
                  </div>
 
                  {/* Right Column: CTA & Conversion */}
-                 <div className="w-full md:w-[350px] flex flex-col justify-center items-center md:items-start text-center md:text-left pt-12 md:pt-0">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-6">
+                 <div className="w-full md:w-[350px] flex flex-col justify-center items-center md:items-start text-center md:text-left pt-4 md:pt-0 pb-6 md:pb-0">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-4 sm:mb-6">
                        <Zap size={14} className="text-primary" />
                        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">PREVIEW MODE</span>
                     </div>
 
-                    <h2 className="text-5xl font-black text-white mb-4 tracking-tight leading-[0.9]">
+                    <h2 className={`text-3xl sm:text-5xl font-black mb-2 sm:mb-4 tracking-tight leading-[1] ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
                        Launching <br/> <span className="text-primary italic">Soon 🚀</span>
                     </h2>
                     
-                    <p className="text-white/40 text-lg mb-10 font-medium leading-relaxed">
+                    <p className={`text-sm sm:text-lg mb-6 sm:mb-10 font-medium leading-relaxed ${isDarkMode ? 'text-white/40' : 'text-slate-500'}`}>
                        Be the first to experience the frontier of AI-powered financial intelligence.
                     </p>
 
-                    <div className="space-y-4 w-full">
+                    <div className="space-y-3 w-full">
                        <motion.button
                          whileHover={{ scale: 1.05, y: -5 }}
                          whileTap={{ scale: 0.95 }}
-                         className="w-full h-16 rounded-2xl bg-primary text-white font-black text-lg tracking-widest shadow-[0_20px_40px_rgba(var(--primary-rgb),0.3)] hover:shadow-primary/50 transition-all flex items-center justify-center gap-3"
+                         className="w-full h-12 sm:h-16 rounded-xl sm:rounded-2xl bg-primary text-white font-black text-sm sm:text-lg tracking-widest shadow-[0_15px_30px_rgba(var(--primary-rgb),0.3)] hover:shadow-primary/50 transition-all flex items-center justify-center gap-3"
                        >
-                          GET EARLY ACCESS <ArrowUpRight size={20} />
+                          GET EARLY ACCESS <ArrowUpRight size={16} />
                        </motion.button>
-                       <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] text-center">
+                       <p className={`text-[9px] font-black uppercase tracking-[0.3em] text-center ${isDarkMode ? 'text-white/20' : 'text-slate-400'}`}>
                           Limited early user slots remaining
                        </p>
                     </div>
@@ -558,10 +587,10 @@ const ComingSoonSurprise = () => {
     const isDarkMode = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   return (
-    <section className="relative py-32 px-6 overflow-hidden flex flex-col items-center justify-center" style={{ background: '#0b0b12' }}>
+    <section className={`relative py-32 px-6 overflow-hidden flex flex-col items-center justify-center transition-colors duration-500 ${isDarkMode ? 'bg-[#0b0b12]' : 'bg-[#f8fafc]'}`}>
       {/* Background Ambience */}
-      <div className="absolute top-1/4 left-1/4 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[180px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-[800px] h-[800px] bg-purple-500/5 rounded-full blur-[180px] pointer-events-none" />
+      <div className={`absolute top-1/4 left-1/4 w-[800px] h-[800px] rounded-full blur-[180px] pointer-events-none ${isDarkMode ? 'bg-primary/5' : 'bg-primary/10'}`} />
+      <div className={`absolute bottom-1/4 right-1/4 w-[800px] h-[800px] rounded-full blur-[180px] pointer-events-none ${isDarkMode ? 'bg-purple-500/5' : 'bg-purple-500/10'}`} />
 
       {/* Header */}
       <div className="text-center mb-24 relative z-10">
@@ -569,17 +598,17 @@ const ComingSoonSurprise = () => {
            initial={{ opacity: 0, scale: 0.8 }}
            whileInView={{ opacity: 1, scale: 1 }}
            viewport={{ once: true }}
-           className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/5 border border-white/10 mb-8"
+           className={`inline-flex items-center gap-2 px-5 py-2 rounded-full border mb-8 ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}
         >
-           <Sparkles size={16} className="text-yellow-400" />
-           <span className="text-[11px] font-black uppercase tracking-[0.3em] text-white/40">Expansion Lab 002</span>
+           <Sparkles size={16} className={`${isDarkMode ? 'text-yellow-400' : 'text-amber-500'}`} />
+           <span className={`text-[11px] font-black uppercase tracking-[0.3em] ${isDarkMode ? 'text-white/40' : 'text-slate-500'}`}>Expansion Lab 002</span>
         </motion.div>
         
         <motion.h2
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-5xl md:text-7xl lg:text-8xl font-black text-white mb-8 tracking-tighter"
+          className={`text-5xl md:text-7xl lg:text-8xl font-black mb-8 tracking-tighter ${isDarkMode ? 'text-white' : 'text-slate-800'}`}
         >
           Something Exciting is <br/> <span className="text-primary italic">Coming Soon</span> 🚀
         </motion.h2>
@@ -589,7 +618,7 @@ const ComingSoonSurprise = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.2 }}
-          className="text-xl text-white/30 max-w-2xl mx-auto font-medium"
+          className={`text-xl max-w-2xl mx-auto font-medium ${isDarkMode ? 'text-white/30' : 'text-slate-500'}`}
         >
           Unlock the blueprints of our next frontier tools. Opening these nodes reveals the future of AISA intelligence.
         </motion.p>
@@ -601,15 +630,42 @@ const ComingSoonSurprise = () => {
           title="AICASHFLOW" 
           themeColor="#4ade80" 
           isCashflow={true}
+          isDarkMode={isDarkMode}
         />
         <GiftBox 
           title="AIADD" 
           themeColor="#a855f7" 
           isCashflow={false}
+          isDarkMode={isDarkMode}
         />
       </div>
 
       <style>{`
+        @keyframes bIn {
+          from{opacity:0;transform:translateY(12px)}
+          to{opacity:1;transform:translateY(0)}
+        }
+        @keyframes pulse {
+          0%,100%{opacity:1;transform:scale(1)}
+          50%{opacity:0.4;transform:scale(0.85)}
+        }
+        @keyframes heartbeat {
+          0%, 100% { transform: scale(1); opacity: 1; filter: brightness(1); }
+          50% { transform: scale(1.4); opacity: 0.7; filter: brightness(1.5); }
+        }
+        .animate-heartbeat {
+          animation: heartbeat 1.5s ease-in-out infinite;
+        }
+        @keyframes vprog {
+          from{transform:scaleX(0);transform-origin:left}
+          to{transform:scaleX(1);transform-origin:left}
+        }
+        @keyframes scanning {
+          0%{transform: translateY(-100%)}
+          100%{transform: translateY(100%)}
+        }
+        .demo-scroll-thumb::-webkit-scrollbar { width: 3px; }
+        .demo-scroll-thumb::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
         .preserve-3d { transform-style: preserve-3d; }
         .perspective-1000 { perspective: 1000px; }
       `}</style>

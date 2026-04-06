@@ -57,7 +57,7 @@ const Landing = () => {
             // Dynamic glow interaction for the footer reveal
             if (typeof gsap !== 'undefined') {
                 gsap.fromTo(".footer-reveal-bg", 
-                    { filter: "brightness(2)" },
+                    { filter: "brightness(1.4)" },
                     { filter: "brightness(1)", duration: 2, ease: "sine.inOut" }
                 );
             }
@@ -158,11 +158,11 @@ const Landing = () => {
             <motion.footer
                 initial={{ opacity: 0, y: 150 }}
                 animate={isBloomExploded ? { opacity: 1, y: 0 } : { opacity: 0, y: 150 }}
-                transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
-                className={`w-full bg-white/60 dark:bg-[#0B0F19]/90 border-t border-black/5 dark:border-white/10 mt-16 relative z-10 backdrop-blur-3xl rounded-t-[4rem] shadow-2xl overflow-hidden footer-reveal-bg transition-shadow duration-1500 ${isBloomExploded ? 'shadow-primary/40' : ''}`}
+                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                className={`w-full bg-white/90 dark:bg-[#04060E]/98 border-t border-black/5 dark:border-white/10 mt-16 relative z-10 backdrop-blur-3xl rounded-t-[4rem] shadow-2xl overflow-hidden footer-reveal-bg transition-shadow duration-1500 ${isBloomExploded ? 'shadow-primary/20' : ''}`}
             >
                 {/* Internal Glow for Reveal Effect */}
-                <div className={`absolute inset-0 bg-gradient-to-t from-primary/10 via-transparent to-transparent transition-opacity duration-1500 ${isBloomExploded ? 'opacity-100' : 'opacity-0'}`} />
+                <div className={`absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-transparent transition-opacity duration-1500 ${isBloomExploded ? 'opacity-80' : 'opacity-0'}`} />
                 
                 <div className="max-w-7xl mx-auto px-8 lg:px-12 pt-10 pb-8 relative z-10">
                     <motion.div 
@@ -176,7 +176,7 @@ const Landing = () => {
                             <div className="flex flex-col items-start gap-4 cursor-pointer group" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
                                 <div className="relative">
                                     <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    <img src={logo} alt="AISA" className="w-20 h-20 relative transform group-hover:scale-110 transition-transform duration-500" />
+                                    <img src={logo} alt="AISA" className="w-14 h-14 relative transform group-hover:scale-110 transition-transform duration-500" />
                                 </div>
                             </div>
                             <p className="text-base text-gray-500 dark:text-gray-400 leading-relaxed font-medium">
@@ -186,12 +186,14 @@ const Landing = () => {
                                 {[
                                     { img: "/social-media-icons/Linkedin.svg", href: "https://www.linkedin.com/in/aimall-global/" },
                                     { img: "/social-media-icons/X.svg", href: "https://x.com/aimallglobal" },
+                                    { img: "/social-media-icons/Threads.svg", href: "https://www.threads.net/@aimall.global" },
+                                    { img: "/social-media-icons/YT.svg", href: "https://www.youtube.com/@AISA-Intelligence" },
                                     { img: "/social-media-icons/FB.svg", href: "https://www.facebook.com/aimallglobal/" },
                                     { img: "/social-media-icons/Insta.svg", href: "https://www.instagram.com/aimall.global/" },
                                     { img: "/social-media-icons/Whatsapp.svg", href: "https://wa.me/918358990909" },
                                 ].map((s, i) => (
-                                    <a key={i} href={s.href} target="_blank" rel="noreferrer" className="w-10 h-10 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 hover:bg-primary/20 transition-all duration-300 group">
-                                        <img src={s.img} alt="social" className="w-5 h-5 opacity-60 group-hover:opacity-100 transition-opacity dark:invert" />
+                                    <a key={i} href={s.href} target="_blank" rel="noreferrer" className="w-10 h-10 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/5 hover:bg-primary/20 hover:scale-110 shadow-sm transition-all duration-300 group">
+                                        <img src={s.img} alt="social" className="w-5 h-5 transition-transform duration-300" />
                                     </a>
                                 ))}
                             </div>
@@ -210,9 +212,16 @@ const Landing = () => {
                         <motion.div variants={itemVariants} className="space-y-8">
                             <h4 className="text-xs font-black text-primary uppercase tracking-[0.25em] pl-1 footer-link-sparkle w-fit cursor-pointer">{t('contact')}</h4>
                             <ul className="space-y-6 text-gray-600 dark:text-gray-400 text-[0.95rem] font-medium">
-                                <li className="flex items-center gap-4 group cursor-default">
+                                <li className="flex items-center gap-4 group cursor-pointer transition-all active:scale-95">
                                     <div className="p-2 rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-white"><MapPin size={18} /></div>
-                                    <span className="transition-colors group-hover:text-primary footer-link-sparkle">{t('city')}</span>
+                                    <a 
+                                        href="https://www.google.com/maps/search/?api=1&query=Jabalpur,+Madhya+Pradesh" 
+                                        target="_blank" 
+                                        rel="noreferrer" 
+                                        className="transition-colors group-hover:text-primary footer-link-sparkle"
+                                    >
+                                        {t('city')}
+                                    </a>
                                 </li>
                                 <li className="flex items-center gap-4 group cursor-pointer">
                                     <div className="p-2 rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-white"><Mail size={18} /></div>
@@ -263,7 +272,7 @@ const Landing = () => {
                                 <button onClick={() => setIsFaqOpen(false)} className="p-3 hover:bg-black/5 dark:hover:bg-white/10 rounded-2xl transition-all"><X size={20} className="dark:text-white" /></button>
                             </div>
                             <div className="flex-1 overflow-y-auto p-10 space-y-6 custom-scrollbar">
-                                {faqs.map((faq, idx) => (
+                                {faqs.flatMap(cat => cat.questions).map((faq, idx) => (
                                     <div key={idx} className="border border-black/5 dark:border-white/5 rounded-3xl bg-gray-50/50 dark:bg-white/5 p-6 hover:border-primary/30 transition-all cursor-default group">
                                         <button onClick={() => setOpenFaqIndex(openFaqIndex === idx ? null : idx)} className="w-full text-left font-black flex justify-between items-center text-gray-900 dark:text-white text-lg">
                                             {faq.question}
