@@ -197,18 +197,18 @@ export const PersonalizationProvider = ({ children }) => {
                         setNotifications(prev => {
                             if (res.data.length === 0) return prev;
                             
-                            // Detect new notification by ID instead of length (to avoid demo data issues)
-                            // We only trigger if the new first ID is different and starts with reminder_
-                            const latest = res.data[0];
-                            if (latest.id?.startsWith('reminder_') && latest.id !== prev[0]?.id) {
-                                toast.success(`🔔 Reminder: ${latest.title}`, { 
-                                    duration: 8000,
+                            // Improved notification detection mapping
+                            const newReminders = res.data.filter(n => n.id?.startsWith('reminder_') && !prev.some(p => p.id === n.id));
+                            
+                            newReminders.forEach(reminder => {
+                                toast.success(`🔔 Reminder: ${reminder.title}`, { 
+                                    duration: 10000,
                                     icon: '⏰'
                                 });
-                                if (latest.voice && latest.voice !== 'none') {
-                                    speakReminder(latest.title, latest.voice);
+                                if (reminder.voice && reminder.voice !== 'none') {
+                                    speakReminder(reminder.title, reminder.voice);
                                 }
-                            }
+                            });
                             
                             // Prevent re-rendering if content is identical
                             if (prev.length === res.data.length && prev[0]?.id === res.data[0]?.id) {
@@ -229,8 +229,8 @@ export const PersonalizationProvider = ({ children }) => {
     const speakReminder = async (text, voiceConfig) => {
         if (!user?.token) return;
         try {
-            const [lang, variant] = voiceConfig.split(/-(?=[^-]+$)/); // Splits en-US-female into en-US and female
-            const res = await axios.post(`${API}/voice/synthesize`, {
+            const [lang, variant] = voiceConfig.split(/-(?=[^-]+$)/);
+            const res = await axios.post(apis.synthesizeVoice, {
                 text: `Reminder: ${text}`,
                 languageCode: lang,
                 gender: variant?.toUpperCase() || 'FEMALE'

@@ -110,6 +110,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const handleLogout = () => {
     localStorage.clear();
+    setUserRecoil({ user: null }); // Clear Recoil state to ensure UI reacts immediately
     navigate(AppRoute.LANDING);
   };
 
@@ -703,33 +704,35 @@ const Sidebar = ({ isOpen, onClose }) => {
               {theme === 'dark' ? <Sun className="w-[18px] h-[18px] group-hover/theme:rotate-90 transition-transform duration-500" /> : <Moon className="w-[18px] h-[18px] group-hover/theme:-rotate-12 transition-transform duration-500" />}
             </button>
 
-            {/* Profile Action - Repositioned to bottom */}
-            <div className="relative profile-menu-container flex-1">
-              <button
-                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                className={`w-full h-10 rounded-xl border transition-all duration-300 flex items-center justify-center
-                  ${theme === 'dark' 
-                    ? 'bg-white/5 border-white/5 text-subtext hover:text-primary hover:bg-primary/10' 
-                    : 'bg-black/5 border-black/5 text-slate-800 hover:text-primary hover:bg-primary/5'}`}
-              >
-                {user.avatar ? (
-                  <img src={user.avatar} alt="P" className="w-[22px] h-[22px] object-cover rounded-md" />
-                ) : (
-                  <User className="w-[18px] h-[18px]" />
-                )}
-              </button>
-              <AnimatePresence>
-                {isProfileMenuOpen && (
-                  <ProfileSettingsDropdown
-                    onClose={() => setIsProfileMenuOpen(false)}
-                    onLogout={() => {
-                      handleLogout();
-                      setIsProfileMenuOpen(false);
-                    }}
-                  />
-                )}
-              </AnimatePresence>
-            </div>
+            {/* Profile Action - Repositioned to bottom - Only show if logged in */}
+            {token && (
+              <div className="relative profile-menu-container flex-1">
+                <button
+                  onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                  className={`w-full h-10 rounded-xl border transition-all duration-300 flex items-center justify-center
+                    ${theme === 'dark' 
+                      ? 'bg-white/5 border-white/5 text-subtext hover:text-primary hover:bg-primary/10' 
+                      : 'bg-black/5 border-black/5 text-slate-800 hover:text-primary hover:bg-primary/5'}`}
+                >
+                  {user.avatar ? (
+                    <img src={user.avatar} alt="P" className="w-[22px] h-[22px] object-cover rounded-md" />
+                  ) : (
+                    <User className="w-[18px] h-[18px]" />
+                  )}
+                </button>
+                <AnimatePresence>
+                  {isProfileMenuOpen && (
+                    <ProfileSettingsDropdown
+                      onClose={() => setIsProfileMenuOpen(false)}
+                      onLogout={() => {
+                        handleLogout();
+                        setIsProfileMenuOpen(false);
+                      }}
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
           </div>
 
           {!token && (

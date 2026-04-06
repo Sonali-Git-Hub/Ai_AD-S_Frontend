@@ -513,24 +513,25 @@ const Hero = () => {
               width: window.innerWidth < 640 ? '100%' : 'auto'
             }}
           >
-            Explore AISA™ <ArrowRight size={22} />
+            {user ? t('existingUser') : t('exploreAisa')} <ArrowRight size={22} />
           </motion.button>
           
           <motion.button
             whileHover={{ scale: 1.05, background: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(99, 102, 241, 0.12)' }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => navigate('/login')}
+            onClick={() => window.location.href = 'https://aimall24.com'}
             style={{
               padding: '16px 42px', borderRadius: '16px',
               background: isDarkMode ? 'rgba(255, 255, 255, 0.06)' : 'rgba(99, 102, 241, 0.06)',
               border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(99, 102, 241, 0.2)',
               color: isDarkMode ? '#fff' : '#0F172A', fontWeight: 800, fontSize: '1.1rem',
               cursor: 'pointer', backdropFilter: 'blur(20px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
               transition: 'all 0.4s ease',
               width: window.innerWidth < 640 ? '100%' : 'auto'
             }}
           >
-            Existing User
+            {t('exploreAiMall')} <Zap size={22} />
           </motion.button>
         </motion.div>
       </div>
