@@ -60,6 +60,10 @@ export const PersonalizationProvider = ({ children }) => {
         if (prefs?.personalization?.fontSize === 'Small') {
             prefs.personalization.fontSize = 'Medium';
         }
+        // FORCE UI language to English always (UI language, not chat content)
+        if (prefs?.general) {
+            prefs.general.language = 'English';
+        }
         return prefs;
     });
     const [notifications, setNotifications] = useState([]);
@@ -133,6 +137,10 @@ export const PersonalizationProvider = ({ children }) => {
                 if (merged.personalization?.fontSize === 'Small') {
                     merged.personalization.fontSize = 'Medium';
                 }
+                // FORCE UI language to English always (UI language, not chat content)
+                if (merged.general) {
+                    merged.general.language = 'English';
+                }
                 setPersonalizationsState(merged);
                 localStorage.setItem('personalizations', JSON.stringify(merged));
                 applyDynamicStyles(merged);
@@ -187,6 +195,22 @@ export const PersonalizationProvider = ({ children }) => {
             fetchChatSessions();
         }
         applyDynamicStyles();
+
+        // ONE-TIME MIGRATION: Force localStorage language to English
+        // This fixes users who had Hindi saved in their browser storage
+        try {
+            const saved = localStorage.getItem('personalizations');
+            if (saved) {
+                const prefs = JSON.parse(saved);
+                if (prefs?.general?.language && prefs.general.language !== 'English') {
+                    prefs.general.language = 'English';
+                    localStorage.setItem('personalizations', JSON.stringify(prefs));
+                    console.log('[AISA] UI language forced to English in localStorage');
+                }
+            }
+        } catch (e) {
+            // Ignore parse errors
+        }
     }, [user?.token]);
 
     const updatePersonalization = async (section, data) => {
