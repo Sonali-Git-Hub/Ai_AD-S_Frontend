@@ -78,7 +78,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   const [editingProjectId, setEditingProjectId] = useState(null);
   const [renameProjectName, setRenameProjectName] = useState('');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isProjectsExpanded, setIsProjectsExpanded] = useState(true);
+  const [isProjectsExpanded, setIsProjectsExpanded] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState(null);
   
   // Magic Glow State
