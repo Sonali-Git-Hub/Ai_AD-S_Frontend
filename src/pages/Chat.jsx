@@ -6,7 +6,7 @@ import { Send, SendHorizontal, Bot, User, Sparkles, Plus, Monitor, ChevronDown, 
 import { renderAsync } from 'docx-preview';
 import * as XLSX from 'xlsx';
 import { Menu, Transition, Dialog, Listbox, Portal } from '@headlessui/react';
-import { generateChatResponse } from '../services/geminiService';
+import { generateChatResponse, generateFollowUpPrompts } from '../services/geminiService';
 import { chatStorageService } from '../services/chatStorageService';
 import { useLanguage } from '../context/LanguageContext';
 import { useRecoilState } from 'recoil';
@@ -1739,17 +1739,38 @@ const Chat = () => {
 
         if (data && (data.imageUrl || data.data)) {
           const finalUrl = data.imageUrl || data.data; // Handle different response structures
+          
+          // --- Non-blocking Smart Prompts ---
+          const initialSuggestions = data.suggestions || [];
           const imageMessage = {
-            id: tempId, // Keep same ID
+            id: tempId,
             role: 'model',
             isGenerating: false,
-            content: `🖼️ Image generated successfully!`, // Use content
+            content: `🖼️ Image generated successfully!`,
             imageUrl: finalUrl,
+            suggestions: initialSuggestions,
             timestamp: new Date(),
             projectId: currentProjectId
           };
 
+          // 1. Show the image IMMEDIATELY
           setMessages(prev => prev.map(msg => msg.id === tempId ? imageMessage : msg));
+          scrollToBottom(true);
+
+          // 2. Fetch related prompts in background if not provided by the API
+          if (initialSuggestions.length === 0) {
+            generateFollowUpPrompts(prompt, 'image').then(smartPrompts => {
+              if (smartPrompts && smartPrompts.length > 0) {
+                setMessages(prev => prev.map(msg => 
+                  msg.id === tempId ? { ...msg, suggestions: smartPrompts } : msg
+                ));
+                // Update persistent storage with the new suggestions
+                if (activeSessionId && activeSessionId !== 'new') {
+                   chatStorageService.saveMessage(activeSessionId, { ...imageMessage, suggestions: smartPrompts }, null, currentProjectId);
+                }
+              }
+            }).catch(e => console.warn("Background suggestion fetch failed:", e));
+          }
 
           toast.success('Image generated successfully!');
           refreshSubscription();
@@ -1885,19 +1906,40 @@ const Chat = () => {
 
         if (responseData && responseData.data) {
           const finalUrl = responseData.data;
+          
+          const initialSuggestions = responseData.suggestions || [];
           const editMessage = {
             id: tempId,
             role: 'model',
             isGenerating: false,
             content: `✨ Your image has been edited!`,
             imageUrl: finalUrl,
+            suggestions: initialSuggestions,
             timestamp: new Date(),
             projectId: currentProjectId
           };
 
+          // 1. Show edited image IMMEDIATELY
           setMessages(prev => prev.map(msg => msg.id === tempId ? editMessage : msg));
+          scrollToBottom(true);
+
+          // 2. Fetch related prompts in background
+          if (initialSuggestions.length === 0) {
+             generateFollowUpPrompts(prompt, 'image edit').then(smartPrompts => {
+                if (smartPrompts && smartPrompts.length > 0) {
+                    setMessages(prev => prev.map(msg => 
+                        msg.id === tempId ? { ...msg, suggestions: smartPrompts } : msg
+                    ));
+                    if (activeSessionId && activeSessionId !== 'new') {
+                       chatStorageService.saveMessage(activeSessionId, { ...editMessage, suggestions: smartPrompts }, null, currentProjectId);
+                    }
+                }
+             }).catch(e => console.warn("Background suggestion fetch failed for edit:", e));
+          }
+
           toast.success('Image edited successfully!');
           refreshSubscription();
+
 
           // Save AI response to backend
           if (activeSessionId && activeSessionId !== 'new') {
@@ -6032,19 +6074,25 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         {(msg.role === 'model' || msg.role === 'assistant') &&
                           msg.suggestions && msg.suggestions.length > 0 &&
                           typingMessageId !== msg.id && (
-                            <div className="mt-4 flex flex-wrap gap-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                              {msg.suggestions.map((q, idx) => (
-                                <button
-                                  key={idx}
-                                  onClick={() => {
-                                    handleSendMessage(null, q);
-                                  }}
-                                  className="text-[11px] px-5 py-2.5 rounded-full border border-white/20 bg-blue-600/90 dark:bg-blue-600/70 text-white hover:bg-blue-600 hover:scale-[1.03] transition-all flex items-center gap-2.5 font-bold shadow-xl backdrop-blur-md active:scale-95 group/sug border-dashed"
-                                >
-                                  <Sparkles className="w-3.5 h-3.5 text-white/90 group-hover/sug:animate-pulse transition-all" />
-                                  {q}
-                                </button>
-                              ))}
+                            <div className="mt-5 flex flex-col gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-700">
+                               <div className="flex items-center gap-2 px-1">
+                                    <Sparkles className="w-3.5 h-3.5 text-blue-500 animate-pulse" />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600/80 dark:text-blue-400/80">AI Smart Prompts</span>
+                               </div>
+                               <div className="flex flex-wrap gap-2.5">
+                                {msg.suggestions.map((q, idx) => (
+                                  <button
+                                    key={idx}
+                                    onClick={() => {
+                                      handleSendMessage(null, q);
+                                    }}
+                                    className="text-[11px] px-5 py-2.5 rounded-full border border-blue-500/10 dark:border-white/10 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 hover:scale-[1.03] transition-all flex items-center gap-2.5 font-bold shadow-lg shadow-blue-500/20 backdrop-blur-md active:scale-95 group/sug border-dashed"
+                                  >
+                                    <Wand2 className="w-3.5 h-3.5 text-white/90 group-hover/sug:rotate-12 transition-transform" />
+                                    {q}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
                           )}
                     </div>
