@@ -38,7 +38,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         chatSessions
     } = usePersonalization();
     const { theme, setTheme, accentColor, setAccentColor, ACCENT_COLORS } = useTheme();
-    const { language, setLanguage, languages, t } = useLanguage();
+    const { language, setLanguage, region, setRegion, regions, t } = useLanguage();
     const [activeTab, setActiveTab] = useState('personalization');
     const [view, setView] = useState('sidebar'); // 'sidebar' or 'detail' for mobile
     const [accounts, setAccounts] = useState(getAccounts());
@@ -363,6 +363,17 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
             component: <MultiScheduleReminder />
         });
 
+        // Language & Region (Integrated from world-wide selection)
+        settings.push({
+            id: 'region', tab: 'personalization', label: t('region'), description: t('regionDesc'), keywords: 'country world',
+            component: renderSettingRow(t('region'), t('regionDesc'), renderDropdown(region, Object.keys(regions || {}), (e) => setRegion(e.target.value), Globe))
+        });
+
+        settings.push({
+            id: 'language', tab: 'personalization', label: t('language'), description: t('languageDesc'), keywords: 'translate speak',
+            component: renderSettingRow(t('language'), t('languageDesc'), renderDropdown(language, regions[region] || ["English"], (e) => setLanguage(e.target.value), Languages))
+        });
+
         // Data
         settings.push({
             id: 'chatHistory', tab: 'data', label: t('chatHistory'), description: t('chatHistoryDesc'), keywords: 'save toggle',
@@ -384,7 +395,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         });
 
         return settings;
-    }, [theme, accentColor, language, personalizations, nicknameInput, user, t, languages, ACCENT_COLORS]);
+    }, [theme, accentColor, language, personalizations, nicknameInput, user, t, regions, ACCENT_COLORS, region]);
 
     const renderContent = () => {
         if (searchQuery.trim()) {

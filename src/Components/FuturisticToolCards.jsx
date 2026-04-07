@@ -210,9 +210,9 @@ const ALL_TOOLS = [
   { id: 'document', label: 'Analyze Document', badge: 'DOCUMENT', desc: 'Chat with PDFs & Docs', icon: FileText, color: '#3b82f6', prompt: "Summarize this 50-page legal PDF and identify risks...", review: { rating: 5, count: "7.4k", text: "I uploaded a 120-page contract and it found a hidden liability clause in seconds. Worth every credit." } },
   { id: 'code', label: 'Code Writer', badge: 'CODE', desc: 'Write & debug code', icon: Code, color: '#6366f1', prompt: "Write a robust Python script for a neural network...", review: { rating: 4.9, count: "14.2k", text: "Writes production-ready code with tests. It actually understands modern design patterns, not just snippets." } },
   { id: 'audio', label: 'Convert to Audio', badge: 'AUDIO', desc: 'Text/Docs to Voice', icon: Headphones, color: '#34d399', prompt: "Synthesize this report into a natural sounding male voice...", review: { rating: 4.8, count: "6k", text: "The most human-like synthesis I've heard. Even the breathing and pauses feel natural. Perfect for podcasts." } },
-  { id: 'legal', label: 'AI Legal', badge: 'LEGAL', desc: 'Specialized AI legal tools', icon: Scale, color: '#818cf8', prompt: "Analyze this employment contract for potential loopholes...", review: { rating: 5, count: "3.2k", text: "AISA's legal reasoning is spookily good. It identified risks that our junior lawyers missed twice." } },
-  { id: 'aicashflow', label: 'AICASHFLOW', badge: 'FINANCE', desc: 'Coming Soon...', icon: TrendingUp, color: '#10b981', prompt: "Analyzing cashflow...", comingSoon: true },
-  { id: 'aiadd', label: 'AIADD', badge: 'ADS', desc: 'Coming Soon...', icon: Megaphone, color: '#eab308', prompt: "Generating ad campaign...", comingSoon: true },
+  { id: 'legal', label: 'AI Legal™', badge: 'LEGAL', desc: 'Specialized AI legal tools', icon: Scale, color: '#818cf8', prompt: "Analyze this employment contract for potential loopholes...", review: { rating: 5, count: "3.2k", text: "AISA's legal reasoning is spookily good. It identified risks that our junior lawyers missed twice." } },
+  { id: 'aicashflow', label: 'AICASHFLOW™', badge: 'FINANCE', desc: 'Coming Soon...', icon: TrendingUp, color: '#10b981', prompt: "Analyzing cashflow...", comingSoon: true },
+  { id: 'aiadd', label: 'AIADS™', badge: 'ADS', desc: 'Coming Soon...', icon: Megaphone, color: '#eab308', prompt: "Generating ad campaign...", comingSoon: true },
 ];
 
 /* ─── 3D Tilt Card ─────────────────────────────────────────── */
@@ -259,6 +259,8 @@ const ToolCard = ({ tool, onToolSelect, index }) => {
     }
   };
 
+  const isActive = tool.active;
+
   return (
     <div 
       className="relative w-full h-[145px] sm:h-[155px]"
@@ -267,9 +269,19 @@ const ToolCard = ({ tool, onToolSelect, index }) => {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
+      {/* Active Glow Backdrop */}
+      {isActive && (
+        <motion.div 
+          layoutId="activeGlow"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1.1 }}
+          className="absolute inset-[-10px] rounded-[30px] bg-primary/25 blur-2xl z-0 pointer-events-none"
+        />
+      )}
+      
       <motion.div
         ref={cardRef}
-        className="w-full h-full relative cursor-pointer"
+        className={`w-full h-full relative cursor-pointer z-10 ${isActive ? 'ring-2 ring-primary ring-offset-2 ring-offset-transparent' : ''} rounded-[20px]`}
         animate={{ 
           rotateY: isFlipped ? 180 : 0,
         }}
@@ -281,34 +293,49 @@ const ToolCard = ({ tool, onToolSelect, index }) => {
         style={{ 
           transformStyle: 'preserve-3d',
           rotateX: isFlipped ? 0 : tiltX,
-          // tiltY is applied via external motion value if needed, but for simplicity let's rely on animate for flip
         }}
         onClick={handleCardClick}
       >
         {/* FRONT SIDE */}
         <div 
-          className={`absolute inset-0 w-full h-full rounded-[20px] border p-4 sm:p-5 transition-colors duration-300 flex flex-col justify-between backface-hidden ${
-            isDark 
-              ? 'bg-[#151929] border-white/5 shadow-[0_4px_20px_rgba(0,0,0,0.3)]' 
-              : 'bg-white border-slate-200/60 shadow-[0_4px_20px_rgba(0,0,0,0.05)]'
+          className={`absolute inset-0 w-full h-full rounded-[20px] border p-4 sm:p-5 transition-all duration-300 flex flex-col justify-between backface-hidden ${
+            isActive 
+              ? (isDark ? 'bg-[#1a223f] border-primary shadow-[0_0_30px_rgba(var(--primary-rgb),0.3)]' : 'bg-blue-50 border-primary shadow-[0_0_25px_rgba(var(--primary-rgb),0.15)]')
+              : (isDark 
+                  ? 'bg-[#151929] border-white/5 shadow-[0_4px_20px_rgba(0,0,0,0.3)]' 
+                  : 'bg-white border-slate-200/60 shadow-[0_4px_20px_rgba(0,0,0,0.05)]')
           }`}
           style={{ backfaceVisibility: 'hidden' }}
         >
           <div className="flex items-center justify-between mb-3">
             <div 
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
+              className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500"
               style={{ 
-                background: isDark ? `${tool.color}15` : `${tool.color}10`,
-                border: isDark ? `1px solid ${tool.color}30` : `1px solid ${tool.color}20`
+                background: isActive ? 'var(--primary)' : (isDark ? `${tool.color}15` : `${tool.color}10`),
+                border: isDark ? `1px solid ${tool.color}30` : `1px solid ${tool.color}20`,
+                boxShadow: isActive ? '0 0 15px var(--primary)' : 'none'
               }}
             >
-              <Icon size={18} style={{ color: tool.color }} />
+              <Icon size={18} style={{ color: isActive ? '#fff' : tool.color }} />
             </div>
-            <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
-              isDark ? 'bg-white/5 text-white/40' : 'bg-slate-100 text-slate-500'
-            }`}>
-              {tool.badge}
-            </span>
+            
+            <div className="flex items-center gap-1.5">
+               {isActive && (
+                 <motion.span 
+                   initial={{ scale: 0 }}
+                   animate={{ scale: 1 }}
+                   className="flex items-center gap-1 bg-primary text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg animate-pulse"
+                 >
+                   <div className="w-1 h-1 rounded-full bg-white animate-ping" />
+                   ACTIVE
+                 </motion.span>
+               )}
+               <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                 isActive ? 'bg-primary/20 text-primary' : (isDark ? 'bg-white/5 text-white/40' : 'bg-slate-100 text-slate-500')
+               }`}>
+                 {tool.badge}
+               </span>
+            </div>
           </div>
 
           <div className="space-y-0.5">
@@ -333,10 +360,12 @@ const ToolCard = ({ tool, onToolSelect, index }) => {
 
         {/* BACK SIDE (Review & Preview) */}
         <div 
-          className={`absolute inset-0 w-full h-full rounded-[20px] border overflow-hidden flex flex-col backface-hidden ${
-            isDark 
-              ? 'bg-[#1a1e2e] border-primary/30 shadow-[0_10px_40px_rgba(var(--primary-rgb),0.2)]' 
-              : 'bg-white border-primary/20 shadow-[0_10px_40px_rgba(0,0,0,0.1)]'
+          className={`absolute inset-0 w-full h-full rounded-[20px] border overflow-hidden flex flex-col backface-hidden transition-all duration-300 ${
+            isActive 
+              ? (isDark ? 'bg-[#1a223f] border-primary shadow-[0_0_30px_rgba(var(--primary-rgb),0.4)]' : 'bg-blue-50 border-primary shadow-[0_0_25px_rgba(var(--primary-rgb),0.2)]')
+              : (isDark 
+                  ? 'bg-[#1a1e2e] border-primary/30 shadow-[0_10px_40px_rgba(var(--primary-rgb),0.2)]' 
+                  : 'bg-white border-primary/20 shadow-[0_10px_40px_rgba(0,0,0,0.1)]')
           }`}
           style={{ 
             backfaceVisibility: 'hidden',
@@ -413,9 +442,28 @@ const cardVariants = {
   }
 };
 
-const FuturisticToolCards = ({ onToolSelect }) => {
+const FuturisticToolCards = ({ onToolSelect, activeToolId }) => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-60px' });
+
+  // Map the visual tool IDs to the IDs used in state
+  const getToolActiveStatus = (toolId) => {
+    if (!activeToolId) return false;
+    // Map of library IDs to state IDs
+    const mapping = {
+       'image': 'isImageGeneration',
+       'video': 'isVideoGeneration',
+       'image_to_video': 'isMagicVideoModalOpen',
+       'edit_image': 'isMagicEditing',
+       'deep_search': 'isDeepSearch',
+       'web_search': 'isWebSearch',
+       'document': 'isFileAnalysis',
+       'code': 'isCodeWriter',
+       'audio': 'isAudioConvertMode',
+       'legal': 'activeLegalToolkit'
+    };
+    return activeToolId === toolId;
+  };
 
   return (
     <div className="w-full py-4 sm:py-12 px-2 sm:px-3 flex justify-center" ref={ref}>
@@ -432,7 +480,10 @@ const FuturisticToolCards = ({ onToolSelect }) => {
             style={{ transformOrigin: 'center bottom' }}
           >
             <ToolCard
-              tool={tool}
+              tool={{
+                ...tool,
+                active: getToolActiveStatus(tool.id)
+              }}
               index={index}
               onToolSelect={onToolSelect}
             />

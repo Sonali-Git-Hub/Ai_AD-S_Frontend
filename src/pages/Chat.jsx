@@ -6143,9 +6143,20 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                   />
                 </motion.div>
 
-                {/* 2. TOOL SECTIONS */}
                 <section className="w-full pb-32 px-1 sm:px-2 md:px-0">
                   <FuturisticToolCards 
+                    activeToolId={
+                      isImageGeneration ? 'image' : 
+                      isVideoGeneration ? 'video' :
+                      isDeepSearch ? 'deep_search' :
+                      isWebSearch ? 'web_search' :
+                      isCodeWriter ? 'code' :
+                      isAudioConvertMode ? 'audio' :
+                      isFileAnalysis ? 'document' :
+                      isMagicEditing ? 'edit_image' :
+                      isMagicVideoModalOpen ? 'image_to_video' :
+                      (activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') ? 'legal' : null
+                    }
                     onToolSelect={(id) => {
                       // Reset states
                       setIsImageGeneration(false);
@@ -6157,6 +6168,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       setIsFileAnalysis(false);
                       setIsMagicEditing(false);
                       setIsMagicVideoModalOpen(false);
+                      setActiveLegalToolkit(false);
 
                       if (id === 'image') {
                         if (!checkPremiumTool('Image Generation')) return;
@@ -6688,7 +6700,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
               <div className="flex-1 flex items-center min-w-0 bg-transparent border-0 ring-0 focus:ring-0">
                 <AnimatePresence>
-                  {(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || activeLegalToolkit) && (
+                  {(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') && (
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto w-[calc(100vw-24px)] max-w-5xl px-2 z-[100] justify-start sm:justify-start">
                       {isWebSearch && (
                         <motion.div 
@@ -6868,28 +6880,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           <button onClick={() => setIsCodeWriter(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
                         </motion.div>
                       )}
-                      {activeTool && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 5 }} 
-                          animate={{ opacity: 1, y: 0 }} 
-                          exit={{ opacity: 0 }} 
-                          className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-xs font-bold border border-emerald-500/20 backdrop-blur-md whitespace-nowrap shrink-0"
-                        >
-                          <Scale size={12} strokeWidth={3} />
-                          <span className="hidden sm:inline">AI Legal: {activeTool}</span>
-                          <span className="sm:hidden">{activeTool}</span>
-                          <button 
-                            onClick={() => {
-                              setActiveTool(null);
-                              if (currentMode === 'LEGAL_TOOLKIT') setCurrentMode('NORMAL_CHAT');
-                            }} 
-                            className="ml-1 hover:text-emerald-500 transition-colors"
-                          >
-                            <X size={12} />
-                          </button>
-                        </motion.div>
-                      )}
-                      {activeLegalToolkit && (
+
+                      {(activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') && (
                         <motion.div 
                           initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} 
                           className="flex items-center gap-2.5 px-3 py-1.5 bg-indigo-600/10 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-300 rounded-full text-xs font-bold border border-indigo-500/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-indigo-600/15 group shadow-lg shadow-indigo-500/10"
@@ -6900,12 +6892,21 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             </div>
                             <span className="uppercase tracking-wide text-[10px] font-black truncate max-w-[120px]">
                               AI Legal
-                              {selectedLegalTool && <span className="opacity-70 ml-1.5 font-bold border-l border-indigo-500/30 pl-1.5">{selectedLegalTool.name || selectedLegalTool}</span>}
+                              {(selectedLegalTool || activeTool) && (
+                                <span className="opacity-70 ml-1.5 font-bold border-l border-indigo-500/30 pl-1.5">
+                                  {(selectedLegalTool?.name || selectedLegalTool || activeTool)}
+                                </span>
+                              )}
                             </span>
                           </div>
                           <button 
                             type="button" 
-                            onClick={() => setActiveLegalToolkit(false)} 
+                            onClick={() => {
+                              setActiveLegalToolkit(false);
+                              setCurrentMode('NORMAL_CHAT');
+                              setSelectedLegalTool(null);
+                              setActiveTool(null);
+                            }} 
                             className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 transition-all hover:rotate-90"
                           >
                             <X size={14} strokeWidth={3} />
