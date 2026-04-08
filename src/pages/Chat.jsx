@@ -6070,7 +6070,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             <div className="mt-5 flex flex-col gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-700">
                                <div className="flex items-center gap-2 px-1">
                                     <Sparkles className="w-3.5 h-3.5 text-blue-500 animate-pulse" />
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600/80 dark:text-blue-400/80">AI Smart Prompts</span>
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600/80 dark:text-blue-400/80">AISA Smart Prompts</span>
                                </div>
                                <div className="flex flex-wrap gap-2.5">
                                 {msg.suggestions.map((q, idx) => (
