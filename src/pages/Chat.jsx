@@ -400,14 +400,6 @@ const ImageViewer = ({ src, alt }) => {
             }
           }}
         />
-        {explosions.map(exp => (
-          <NeuralExplosion 
-            key={exp.id} 
-            x={exp.x} 
-            y={exp.y} 
-            onComplete={() => setExplosions(prev => prev.filter(e => e.id !== exp.id))} 
-          />
-        ))}
       </div>
 
     </div>
@@ -1651,6 +1643,11 @@ const Chat = () => {
 
           setMessages(prev => prev.map(msg => msg.id === tempId ? imageMessage : msg));
           toast.success('Generated preview image');
+          
+          // Save AI fallback image to backend
+          if (activeSessionId && activeSessionId !== 'new') {
+            chatStorageService.saveMessage(activeSessionId, imageMessage, null, currentProjectId).catch(err => console.error("Error saving video fallback image:", err));
+          }
         }
       } catch (error) {
         const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to generate video';
@@ -1665,6 +1662,11 @@ const Chat = () => {
             timestamp: new Date(),
           };
           setMessages(prev => prev.map(msg => msg.id === tempId ? imageMessage : msg));
+          
+          // Save AI error fallback image to backend
+          if (activeSessionId && activeSessionId !== 'new') {
+            chatStorageService.saveMessage(activeSessionId, imageMessage, null, currentProjectId).catch(err => console.error("Error saving video error fallback image:", err));
+          }
           return;
         }
 
@@ -1862,33 +1864,52 @@ const Chat = () => {
       try {
         console.log("[Image Edit] Starting edit request for:", prompt);
 
-        // Efficiently get base64 from Data URL or Fetch Blob URL
-        let base64Image = null;
+        // Efficiently get Blob from Data URL or Fetch Blob URL
+        let rawImageBlob = null;
         try {
           if (imageFile.url.startsWith('data:')) {
-            base64Image = imageFile.url.split(',')[1];
-          } else {
             const res = await fetch(imageFile.url);
-            const blob = await res.blob();
-            base64Image = await new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result.split(',')[1]);
-              reader.readAsDataURL(blob);
-            });
+            rawImageBlob = await res.blob();
+          } else {
+            const matchedFile = selectedFiles.find(f => f.name === imageFile.name);
+            if (matchedFile) {
+              rawImageBlob = matchedFile;
+            } else {
+              const res = await fetch(imageFile.url);
+              rawImageBlob = await res.blob();
+            }
           }
         } catch (err) {
-          console.error("[Image Edit] Data conversion failed:", err);
+          console.error("[Image Edit] Blob conversion failed:", err);
+          throw new Error("Failed to process the reference image.");
         }
 
-        // Use apiService
-        const responseData = await apiService.editImage(prompt, null, base64Image);
+        // Use bare fetch instead of apiService to completely control the network request
+        const formData = new FormData();
+        formData.append('prompt', prompt);
+        if (rawImageBlob) {
+            formData.append('image', rawImageBlob, 'reference.png');
+        }
 
+        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
+        const fetchRes = await fetch(`${API}/edit-image`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+
+        if (!fetchRes.ok) {
+            const errorText = await fetchRes.text();
+            throw new Error(`Server returned ${fetchRes.status}: ${errorText}`);
+        }
+
+        const responseData = await fetchRes.json();
+        
         if (responseData && responseData.data) {
           const finalUrl = responseData.data;
           const editMessage = {
-            id: tempId,
-            role: 'model',
-            isGenerating: false,
             content: `✨ Your image has been edited!`,
             imageUrl: finalUrl,
             timestamp: new Date(),
@@ -3407,6 +3428,8 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
             finalAttachments = [...finalAttachments, editRefImage];
         }
 
+        const suggestedAiId = `ai-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+        
         const aiResponseData = await generateChatResponse(
           messages,
           userMsg.content,
@@ -3416,8 +3439,13 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
           abortControllerRef.current.signal,
           detectedMode,
           activeSessionId,
-          currentProjectId
+          currentProjectId,
+          userMsg.id,
+          suggestedAiId
         );
+        
+        // Store it for usage in the typewriter loop
+        const apiResponseId = suggestedAiId;
         
         // --- REAL-TIME TITLE SYNC ---
         if (aiResponseData && aiResponseData.title) {
@@ -3520,7 +3548,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
           const partContent = responseParts[i];
           if (!partContent) continue;
 
-          const msgId = (Date.now() + 1 + i).toString();
+          const msgId = (i === 0 && typeof apiResponseId !== 'undefined') ? apiResponseId : (Date.now() + 1 + i).toString();
           const modelMsg = {
             id: msgId,
             role: 'model',
