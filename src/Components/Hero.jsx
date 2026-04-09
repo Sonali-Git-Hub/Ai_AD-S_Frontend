@@ -365,7 +365,7 @@ const Hero = () => {
                 transition: '0.3s'
               }}
             >
-              Get Started
+              {t('getStarted')}
             </motion.button>
           )}
         </div>
@@ -419,7 +419,7 @@ const Hero = () => {
           >
             {/* Line 1: The Future of */}
             <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap' }}>
-              {"The Future of".split("").map((char, index) => (
+              {t('heroTitleLine1').split("").map((char, index) => (
                 <motion.span
                   key={`l1-${index}`}
                   variants={child}
@@ -432,7 +432,7 @@ const Hero = () => {
             
             {/* Line 2: Conversational AI (with Gradient across letters) */}
             <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', flexWrap: 'wrap' }}>
-              {"Conversational AI".split("").map((char, index, arr) => (
+              {t('heroTitleLine2').split("").map((char, index, arr) => (
                 <motion.span
                   key={`l2-${index}`}
                   variants={child}
@@ -481,7 +481,7 @@ const Hero = () => {
             fontWeight: 400
           }}
         >
-          Build intelligent workflows with AISA™ that learn, analyze and generate insights in real time.
+          {t('heroSubtitle')}
         </motion.p>
 
         {/* Buttons */}

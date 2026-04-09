@@ -115,3 +115,40 @@ export const generateChatResponse = async (history, currentMessage, systemInstru
         return "Sorry, I am having trouble connecting to the A-Series network right now. Please check your connection.";
     }
 };
+
+/**
+ * Generates context-aware follow-up prompts for a given user query.
+ * Useful for "Smart Suggestions" after image generation or chat.
+ * @param {string} prompt - The original prompt
+ * @param {string} type - 'image', 'video', or 'chat'
+ * @returns {Promise<string[]>} List of 3 suggested prompts
+ */
+export const generateFollowUpPrompts = async (prompt, type = 'image') => {
+    try {
+        const systemInstruction = `You are AISA™ Prompt Engineer.
+Based on this ${type} request: "${prompt}", generate exactly 3 highly relevant, creative, and varied follow-up prompts.
+- Prompts must be concise (max 10 words).
+- Format: A simple numbered or bulleted list.
+- Do NOT include any intro or outro text.
+- Match the language of the original prompt if possible.`;
+
+        const response = await generateChatResponse([], prompt, systemInstruction, [], 'English');
+        
+        // Handle both object {reply: "..."} and direct string responses
+        const replyText = response?.reply || (typeof response === 'string' ? response : null);
+        
+        if (replyText && !replyText.includes('Log In') && !replyText.includes('System Message')) {
+            // Split by newline or standard bullet patterns (1., -, *, •)
+            return replyText
+                .split(/\n|(?=\b\d+\.)|(?=\b[-*•]\s)/)
+                .map(line => line.replace(/^\s*[-*•\d+.]\s*/, '').trim())
+                .filter(line => line.length > 3 && line.length < 150)
+                .slice(0, 3);
+        }
+        return [];
+    } catch (error) {
+        console.error("Error generating suggestions:", error);
+        return [];
+    }
+};
+
