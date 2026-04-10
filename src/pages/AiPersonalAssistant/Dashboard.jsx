@@ -7,6 +7,7 @@ import { toggleState } from '../../userStore/userData';
 import DeleteConfirmModal from '../../Components/DeleteConfirmModal';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
+import { usePersonalization } from '../../context/PersonalizationContext';
 
 const Dashboard = () => {
     const { t } = useLanguage();
@@ -18,6 +19,7 @@ const Dashboard = () => {
     const [filter, setFilter] = useState('all'); // all, today, pending, completed
     const [tglState, setTglState] = useRecoilState(toggleState);
     const toggleSidebar = () => setTglState(prev => ({ ...prev, sidebarOpen: !prev.sidebarOpen }));
+    const { speakReminder } = usePersonalization();
 
     const notifiedRef = useRef(new Set());
 
@@ -94,9 +96,13 @@ const Dashboard = () => {
 
         // 3. Audio Speech (Delayed slightly to follow the chime)
         setTimeout(() => {
-            const text = `Time for your task: ${task.title}. I repeat: ${task.title}.`;
-            const utterance = new SpeechSynthesisUtterance(text);
-            window.speechSynthesis.speak(utterance);
+            if (task.voice && task.voice !== 'none') {
+                speakReminder(task.title, task.voice);
+            } else {
+                const text = `Time for your task: ${task.title}. I repeat: ${task.title}.`;
+                const utterance = new SpeechSynthesisUtterance(text);
+                window.speechSynthesis.speak(utterance);
+            }
         }, 1000);
     };
 

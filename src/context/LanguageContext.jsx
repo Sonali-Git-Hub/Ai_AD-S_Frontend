@@ -220,6 +220,8 @@ export const LanguageProvider = ({ children }) => {
             welcomeMessage: "Hello! I’m AISA™, your Artificial Intelligence Super Assistant.",
             switchedTo: "Switched to",
             heroTitle: "The Future of Conversational AI",
+            heroTitleLine1: "The Future of",
+            heroTitleLine2: "Conversational AI",
             heroSubtitle: "Experience the next generation of intelligent assistance. AISA ™ learns, adapts, and creates with you in real-time through a stunning interface.",
             startNow: "Start Now",
             privacyTitle: "Privacy First",
@@ -239,6 +241,7 @@ export const LanguageProvider = ({ children }) => {
 
             poweredByUWO: "Powered by UWO™",
             exploreAisa: "Explore AISA™",
+            exploreAiMall: "Explore AI-Mall",
             existingUser: "Existing User",
             getStarted: "Get Started",
             faqSubtitle: "Get quick answers to common questions about our platform",
@@ -589,6 +592,8 @@ export const LanguageProvider = ({ children }) => {
             welcomeMessage: "नमस्ते! मैं AISA™ हूँ, आपका आर्टिफिशियल इंटेलिजेंस सुपर असिस्टेंट।",
             switchedTo: "पर स्विच किया गया",
             heroTitle: "संवादात्मक एआई का भविष्य",
+            heroTitleLine1: "संवादात्मक",
+            heroTitleLine2: "एआई का भविष्य",
             heroSubtitle: "इंटेलिजेंट सहायता की अगली पीढ़ी का अनुभव करें। AISA™ एक शानदार इंटरफ़ेस के माध्यम से वास्तविक समय में आपके साथ सीखता है, अनुकूलित होता है और बनाता है।",
             startNow: "अभी शुरू करें",
             privacyTitle: "गोपनीयता पहले",
@@ -608,6 +613,7 @@ export const LanguageProvider = ({ children }) => {
 
             poweredByUWO: "UWO™ द्वारा संचालित",
             exploreAisa: "AISA™ एक्सप्लोर करें",
+            exploreAiMall: "AI-Mall एक्सप्लोर करें",
             existingUser: "मौजूदा उपयोगकर्ता",
             getStarted: "शुरू करें",
             faqSubtitle: "हमारे प्लेटफ़ॉर्म के बारे में सामान्य प्रश्नों के त्वरित उत्तर प्राप्त करें",
@@ -902,6 +908,7 @@ export const LanguageProvider = ({ children }) => {
             aboutAisa: "Sobre AISA",
             poweredByUWO: "Desarrollado por UWO",
 
+            exploreAiMall: "Explorar AI-Mall",
             existingUser: "Usuario existente",
             getStarted: "Empezar",
             faqSubtitle: "Obtenga respuestas rápidas a preguntas comunes sobre nuestra plataforma",
@@ -1214,6 +1221,7 @@ export const LanguageProvider = ({ children }) => {
             aboutAisa: "À propos d'AISA",
             poweredByUWO: "Propulsé par UWO",
 
+            exploreAiMall: "Explorer AI-Mall",
             existingUser: "Utilisateur existant",
             getStarted: "Commencer",
             faqSubtitle: "Réponses rapides aux questions courantes sur notre plateforme",
@@ -1526,6 +1534,7 @@ export const LanguageProvider = ({ children }) => {
             aboutAisa: "AISAについて",
             poweredByUWO: "UWOによる提供",
             exploreAisa: "AISAを探索する",
+            exploreAiMall: "AI-Mallを探索する",
             existingUser: "既存のユーザー",
             getStarted: "今すぐ始める",
             faqSubtitle: "プラットフォームに関するよくある質問にすぐにお答えします",

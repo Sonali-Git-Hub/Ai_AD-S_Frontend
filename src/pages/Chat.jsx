@@ -5,7 +5,7 @@ import { Send, SendHorizontal, Bot, User, Sparkles, Plus, Monitor, ChevronDown, 
 import { renderAsync } from 'docx-preview';
 import * as XLSX from 'xlsx';
 import { Menu, Transition, Dialog, Listbox, Portal } from '@headlessui/react';
-import { generateChatResponse } from '../services/geminiService';
+import { generateChatResponse, generateFollowUpPrompts } from '../services/geminiService';
 import { chatStorageService } from '../services/chatStorageService';
 import { useLanguage } from '../context/LanguageContext';
 import { useRecoilState } from 'recoil';
@@ -402,15 +402,8 @@ const ImageViewer = ({ src, alt }) => {
             }
           }}
         />
-        {explosions.map(exp => (
-          <NeuralExplosion 
-            key={exp.id} 
-            x={exp.x} 
-            y={exp.y} 
-            onComplete={() => setExplosions(prev => prev.filter(e => e.id !== exp.id))} 
-          />
-        ))}
       </div>
+
 
     </div>
   );
@@ -1695,6 +1688,11 @@ const Chat = () => {
 
           setMessages(prev => prev.map(msg => msg.id === tempId ? imageMessage : msg));
           toast.success('Generated preview image');
+          
+          // Save AI fallback image to backend
+          if (activeSessionId && activeSessionId !== 'new') {
+            chatStorageService.saveMessage(activeSessionId, imageMessage, null, currentProjectId).catch(err => console.error("Error saving video fallback image:", err));
+          }
         }
       } catch (error) {
         const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to generate video';
@@ -1709,6 +1707,11 @@ const Chat = () => {
             timestamp: new Date(),
           };
           setMessages(prev => prev.map(msg => msg.id === tempId ? imageMessage : msg));
+          
+          // Save AI error fallback image to backend
+          if (activeSessionId && activeSessionId !== 'new') {
+            chatStorageService.saveMessage(activeSessionId, imageMessage, null, currentProjectId).catch(err => console.error("Error saving video error fallback image:", err));
+          }
           return;
         }
 
@@ -1783,17 +1786,38 @@ const Chat = () => {
 
         if (data && (data.imageUrl || data.data)) {
           const finalUrl = data.imageUrl || data.data; // Handle different response structures
+          
+          // --- Non-blocking Smart Prompts ---
+          const initialSuggestions = data.suggestions || [];
           const imageMessage = {
-            id: tempId, // Keep same ID
+            id: tempId,
             role: 'model',
             isGenerating: false,
-            content: `🖼️ Image generated successfully!`, // Use content
+            content: `🖼️ Image generated successfully!`,
             imageUrl: finalUrl,
+            suggestions: initialSuggestions,
             timestamp: new Date(),
             projectId: currentProjectId
           };
 
+          // 1. Show the image IMMEDIATELY
           setMessages(prev => prev.map(msg => msg.id === tempId ? imageMessage : msg));
+          scrollToBottom(true);
+
+          // 2. Fetch related prompts in background if not provided by the API
+          if (initialSuggestions.length === 0) {
+            generateFollowUpPrompts(prompt, 'image').then(smartPrompts => {
+              if (smartPrompts && smartPrompts.length > 0) {
+                setMessages(prev => prev.map(msg => 
+                  msg.id === tempId ? { ...msg, suggestions: smartPrompts } : msg
+                ));
+                // Update persistent storage with the new suggestions
+                if (activeSessionId && activeSessionId !== 'new') {
+                   chatStorageService.saveMessage(activeSessionId, { ...imageMessage, suggestions: smartPrompts }, null, currentProjectId);
+                }
+              }
+            }).catch(e => console.warn("Background suggestion fetch failed:", e));
+          }
 
           toast.success('Image generated successfully!');
           refreshSubscription();
@@ -1906,42 +1930,82 @@ const Chat = () => {
       try {
         console.log("[Image Edit] Starting edit request for:", prompt);
 
-        // Efficiently get base64 from Data URL or Fetch Blob URL
-        let base64Image = null;
+        // Efficiently get Blob from Data URL or Fetch Blob URL
+        let rawImageBlob = null;
         try {
           if (imageFile.url.startsWith('data:')) {
-            base64Image = imageFile.url.split(',')[1];
-          } else {
             const res = await fetch(imageFile.url);
-            const blob = await res.blob();
-            base64Image = await new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result.split(',')[1]);
-              reader.readAsDataURL(blob);
-            });
+            rawImageBlob = await res.blob();
+          } else {
+            const matchedFile = selectedFiles.find(f => f.name === imageFile.name);
+            if (matchedFile) {
+              rawImageBlob = matchedFile;
+            } else {
+              const res = await fetch(imageFile.url);
+              rawImageBlob = await res.blob();
+            }
           }
         } catch (err) {
-          console.error("[Image Edit] Data conversion failed:", err);
+          console.error("[Image Edit] Blob conversion failed:", err);
+          throw new Error("Failed to process the reference image.");
         }
 
-        // Use apiService
-        const responseData = await apiService.editImage(prompt, null, base64Image);
+        // Use bare fetch instead of apiService to completely control the network request
+        const formData = new FormData();
+        formData.append('prompt', prompt);
+        if (rawImageBlob) {
+            formData.append('image', rawImageBlob, 'reference.png');
+        }
 
+        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
+        const fetchRes = await fetch(`${API}/edit-image`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+
+        if (!fetchRes.ok) {
+            const errorText = await fetchRes.text();
+            throw new Error(`Server returned ${fetchRes.status}: ${errorText}`);
+        }
+
+        const responseData = await fetchRes.json();
+        
         if (responseData && responseData.data) {
           const finalUrl = responseData.data;
+          
+          const initialSuggestions = responseData.suggestions || [];
           const editMessage = {
-            id: tempId,
-            role: 'model',
-            isGenerating: false,
             content: `✨ Your image has been edited!`,
             imageUrl: finalUrl,
+            suggestions: initialSuggestions,
             timestamp: new Date(),
             projectId: currentProjectId
           };
 
+          // 1. Show edited image IMMEDIATELY
           setMessages(prev => prev.map(msg => msg.id === tempId ? editMessage : msg));
+          scrollToBottom(true);
+
+          // 2. Fetch related prompts in background
+          if (initialSuggestions.length === 0) {
+             generateFollowUpPrompts(prompt, 'image edit').then(smartPrompts => {
+                if (smartPrompts && smartPrompts.length > 0) {
+                    setMessages(prev => prev.map(msg => 
+                        msg.id === tempId ? { ...msg, suggestions: smartPrompts } : msg
+                    ));
+                    if (activeSessionId && activeSessionId !== 'new') {
+                       chatStorageService.saveMessage(activeSessionId, { ...editMessage, suggestions: smartPrompts }, null, currentProjectId);
+                    }
+                }
+             }).catch(e => console.warn("Background suggestion fetch failed for edit:", e));
+          }
+
           toast.success('Image edited successfully!');
           refreshSubscription();
+
 
           // Save AI response to backend
           if (activeSessionId && activeSessionId !== 'new') {
@@ -3553,6 +3617,8 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
             finalAttachments = [...finalAttachments, editRefImage];
         }
 
+        const suggestedAiId = `ai-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+        
         const aiResponseData = await generateChatResponse(
           messages,
           userMsg.content,
@@ -3562,8 +3628,13 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
           abortControllerRef.current.signal,
           detectedMode,
           activeSessionId,
-          currentProjectId
+          currentProjectId,
+          userMsg.id,
+          suggestedAiId
         );
+        
+        // Store it for usage in the typewriter loop
+        const apiResponseId = suggestedAiId;
         
         // --- REAL-TIME TITLE SYNC ---
         if (aiResponseData && aiResponseData.title) {
@@ -3667,7 +3738,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
           const partContent = responseParts[i];
           if (!partContent) continue;
 
-          const msgId = (Date.now() + 1 + i).toString();
+          const msgId = (i === 0 && typeof apiResponseId !== 'undefined') ? apiResponseId : (Date.now() + 1 + i).toString();
           const modelMsg = {
             id: msgId,
             role: 'model',
@@ -6183,19 +6254,25 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         {(msg.role === 'model' || msg.role === 'assistant') &&
                           msg.suggestions && msg.suggestions.length > 0 &&
                           typingMessageId !== msg.id && (
-                            <div className="mt-4 flex flex-wrap gap-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                              {msg.suggestions.map((q, idx) => (
-                                <button
-                                  key={idx}
-                                  onClick={() => {
-                                    handleSendMessage(null, q);
-                                  }}
-                                  className="text-[11px] px-5 py-2.5 rounded-full border border-white/20 bg-blue-600/90 dark:bg-blue-600/70 text-white hover:bg-blue-600 hover:scale-[1.03] transition-all flex items-center gap-2.5 font-bold shadow-xl backdrop-blur-md active:scale-95 group/sug border-dashed"
-                                >
-                                  <Sparkles className="w-3.5 h-3.5 text-white/90 group-hover/sug:animate-pulse transition-all" />
-                                  {q}
-                                </button>
-                              ))}
+                            <div className="mt-5 flex flex-col gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-700">
+                               <div className="flex items-center gap-2 px-1">
+                                    <Sparkles className="w-3.5 h-3.5 text-blue-500 animate-pulse" />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600/80 dark:text-blue-400/80">AISA Smart Prompts</span>
+                               </div>
+                               <div className="flex flex-wrap gap-2.5">
+                                {msg.suggestions.map((q, idx) => (
+                                  <button
+                                    key={idx}
+                                    onClick={() => {
+                                      handleSendMessage(null, q);
+                                    }}
+                                    className="text-[11px] px-5 py-2.5 rounded-full border border-blue-500/10 dark:border-white/10 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 hover:scale-[1.03] transition-all flex items-center gap-2.5 font-bold shadow-lg shadow-blue-500/20 backdrop-blur-md active:scale-95 group/sug border-dashed"
+                                  >
+                                    <Wand2 className="w-3.5 h-3.5 text-white/90 group-hover/sug:rotate-12 transition-transform" />
+                                    {q}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
                           )}
                     </div>
@@ -6294,9 +6371,22 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                   />
                 </motion.div>
 
-                {/* 2. TOOL SECTIONS */}
                 <section className="w-full pb-32 px-1 sm:px-2 md:px-0">
-                   <FuturisticToolCards 
+                  <FuturisticToolCards 
+                    isAdmin={isAdminUser}
+                    activeToolId={
+                      isImageGeneration ? 'image' : 
+                      isVideoGeneration ? 'video' :
+                      isDeepSearch ? 'deep_search' :
+                      isWebSearch ? 'web_search' :
+                      isCodeWriter ? 'code' :
+                      isAudioConvertMode ? 'audio' :
+                      isFileAnalysis ? 'document' :
+                      isMagicEditing ? 'edit_image' :
+                      isMagicVideoModalOpen ? 'image_to_video' :
+                      isCashFlowMode ? 'ai_cashflow' :
+                      (activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') ? 'legal' : null
+                    }
                     onToolSelect={(id) => {
                       // Reset states
                       setIsImageGeneration(false);
@@ -6914,7 +7004,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
               <div className="flex-1 flex items-center min-w-0 bg-transparent border-0 ring-0 focus:ring-0">
                 <AnimatePresence>
-                  {(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || activeLegalToolkit) && (
+                  {(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') && (
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto w-[calc(100vw-24px)] max-w-5xl px-2 z-[100] justify-start sm:justify-start">
                       {isCashFlowMode && (
                         <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
@@ -7100,28 +7190,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           <button onClick={() => setIsCodeWriter(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
                         </motion.div>
                       )}
-                      {activeTool && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 5 }} 
-                          animate={{ opacity: 1, y: 0 }} 
-                          exit={{ opacity: 0 }} 
-                          className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-xs font-bold border border-emerald-500/20 backdrop-blur-md whitespace-nowrap shrink-0"
-                        >
-                          <Scale size={12} strokeWidth={3} />
-                          <span className="hidden sm:inline">AI Legal: {activeTool}</span>
-                          <span className="sm:hidden">{activeTool}</span>
-                          <button 
-                            onClick={() => {
-                              setActiveTool(null);
-                              if (currentMode === 'LEGAL_TOOLKIT') setCurrentMode('NORMAL_CHAT');
-                            }} 
-                            className="ml-1 hover:text-emerald-500 transition-colors"
-                          >
-                            <X size={12} />
-                          </button>
-                        </motion.div>
-                      )}
-                      {activeLegalToolkit && (
+
+                      {(activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') && (
                         <motion.div 
                           initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} 
                           className="flex items-center gap-2.5 px-3 py-1.5 bg-indigo-600/10 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-300 rounded-full text-xs font-bold border border-indigo-500/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-indigo-600/15 group shadow-lg shadow-indigo-500/10"
@@ -7132,12 +7202,21 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             </div>
                             <span className="uppercase tracking-wide text-[10px] font-black truncate max-w-[120px]">
                               AI Legal
-                              {selectedLegalTool && <span className="opacity-70 ml-1.5 font-bold border-l border-indigo-500/30 pl-1.5">{selectedLegalTool.name || selectedLegalTool}</span>}
+                              {(selectedLegalTool || activeTool) && (
+                                <span className="opacity-70 ml-1.5 font-bold border-l border-indigo-500/30 pl-1.5">
+                                  {(selectedLegalTool?.name || selectedLegalTool || activeTool)}
+                                </span>
+                              )}
                             </span>
                           </div>
                           <button 
                             type="button" 
-                            onClick={() => setActiveLegalToolkit(false)} 
+                            onClick={() => {
+                              setActiveLegalToolkit(false);
+                              setCurrentMode('NORMAL_CHAT');
+                              setSelectedLegalTool(null);
+                              setActiveTool(null);
+                            }} 
                             className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 transition-all hover:rotate-90"
                           >
                             <X size={14} strokeWidth={3} />

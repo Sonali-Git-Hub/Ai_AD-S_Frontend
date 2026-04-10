@@ -96,10 +96,8 @@ const DashboardLayout = () => {
   const location = useLocation();
   const isFullScreen = false;
 
-  const user = JSON.parse(
-    localStorage.getItem('user') || '{"name":"User"}'
-  );
-
+  const user = getUserData() || { name: 'Guest' };
+  const token = getUserData()?.token;
   const navigate = useNavigate();
 
   return (
@@ -171,11 +169,13 @@ const DashboardLayout = () => {
               </Link>
             </div>
 
-            <div
-              className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm uppercase cursor-default shadow-sm"
-            >
-              {user.name?.charAt(0) || 'U'}
-            </div>
+            {token && (
+              <div
+                className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm uppercase cursor-default shadow-sm"
+              >
+                {user.name?.charAt(0) || 'U'}
+              </div>
+            )}
           </div>
         )}
 

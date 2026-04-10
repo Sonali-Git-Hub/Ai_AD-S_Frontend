@@ -66,10 +66,18 @@ export const apiService = {
     }
   },
 
-  async editImage(prompt, imageUrl = null, imageBase64 = null) {
+  async editImage(prompt, imageFileOrBlob = null) {
     try {
       console.log("[Frontend] Editing image for prompt:", prompt);
-      const response = await apiClient.post('/image/edit', { prompt, imageUrl, imageBase64 }, { timeout: 60000 });
+      const formData = new FormData();
+      formData.append('prompt', prompt);
+      if (imageFileOrBlob) {
+        // Appending the blob payload to send via FormData
+        formData.append('image', imageFileOrBlob);
+      }
+      const response = await apiClient.post('/edit-image', formData, {
+        timeout: 90000 
+      });
       console.log("[Frontend] Image editing success:", response.data);
       return response.data;
     } catch (error) {

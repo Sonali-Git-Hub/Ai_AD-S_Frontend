@@ -287,8 +287,14 @@ const UsersTab = () => {
                     >
                         <div className="flex items-center justify-between flex-wrap gap-3">
                             <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
-                                    {user.name?.charAt(0)?.toUpperCase() || 'U'}
+                                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
+                                    {user.avatar ? (
+                                        <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <span className="font-bold text-primary text-sm">
+                                            {user.name?.charAt(0)?.toUpperCase() || 'U'}
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="min-w-0">
                                     <p className="font-bold text-maintext text-sm truncate">{user.name}</p>
@@ -297,8 +303,12 @@ const UsersTab = () => {
                                 {user.isBlocked && (
                                     <span className="px-2 py-0.5 rounded-md bg-red-500/10 text-red-500 text-[10px] font-bold uppercase">Blocked</span>
                                 )}
-                                <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-bold uppercase">
-                                    {user.role || 'user'}
+                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
+                                    user.planName?.toLowerCase().includes('pro') ? 'bg-amber-500/10 text-amber-500' : 
+                                    user.planName?.toLowerCase().includes('founder') ? 'bg-purple-500/10 text-purple-500' : 
+                                    'bg-primary/10 text-primary'
+                                }`}>
+                                    {user.planName || user.role || 'Free Plan'}
                                 </span>
                             </div>
 
