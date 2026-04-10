@@ -5412,16 +5412,20 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                       console.error("Attachment image load failed:", att.url);
                                       if (att.url && !e.target.dataset.retried) {
                                         e.target.dataset.retried = "true";
-                                        setTimeout(() => {
-                                          e.target.src = att.url + (att.url.includes('?') ? '&' : '?') + 'retry=' + Date.now();
-                                        }, 2000);
+                                        const isSignedUrl = att.url?.includes('X-Goog-Signature');
+                                        const retryUrl = isSignedUrl
+                                          ? att.url
+                                          : att.url + (att.url.includes('?') ? '&' : '?') + 'retry=' + Date.now();
+                                        console.log("Retrying attachment image load:", retryUrl);
+                                        e.target.src = retryUrl;
                                       } else {
                                         const errorText = att.url ? (att.url.substring(0, 30) + '...') : 'Unknown URL';
                                         e.target.src = `https://placehold.co/600x400/333/eee?text=Attachment+Unavailable%0A${encodeURIComponent(errorText)}%0AClick+to+Retry`;
                                         e.target.style.cursor = 'pointer';
                                         e.target.onclick = (event) => {
                                           event.stopPropagation();
-                                          e.target.src = att.url + (att.url.includes('?') ? '&' : '?') + 'manual=' + Date.now();
+                                          const isSignedUrl = att.url?.includes('X-Goog-Signature');
+                                          e.target.src = isSignedUrl ? att.url : att.url + (att.url.includes('?') ? '&' : '?') + 'manual=' + Date.now();
                                         };
                                       }
                                     }}
@@ -6467,7 +6471,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         toast.success("AI CashFlow Explorer Active");
                       }
                     }}
-                    isAdmin={isAdminUser}
                   />
                 </section>
               </div>
