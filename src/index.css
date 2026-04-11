@@ -501,7 +501,8 @@ body,
 }
 
 .dark .chatgpt-container {
-  background-color: transparent !important;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%) !important;
+  backdrop-filter: blur(20px);
   color: #ececec !important;
 }
 

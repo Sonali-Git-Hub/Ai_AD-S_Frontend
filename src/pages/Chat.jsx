@@ -5394,16 +5394,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
       {/* Main Area */}
       <div
-        className="flex-1 flex flex-col relative bg-gradient-to-br from-secondary via-background to-secondary/50 dark:bg-transparent w-full min-w-0"
+        className="flex-1 flex flex-col relative bg-transparent w-full min-w-0"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        {/* Atmospheric Glows optimized for Chat background depth */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-0 dark:opacity-40 transition-opacity duration-700">
-          <div className="absolute top-[15%] right-[-10%] w-[400px] h-[400px] bg-primary/10 blur-[120px] rounded-full animate-float-slow" />
-          <div className="absolute bottom-[20%] left-[-5%] w-[300px] h-[300px] bg-purple-500/10 blur-[100px] rounded-full animate-float-slow" style={{ animationDelay: '-3s' }} />
-        </div>
         {isDragging && (
           <div className="absolute inset-0 z-50 bg-primary/10 backdrop-blur-sm border-2 border-dashed border-primary flex flex-col items-center justify-center pointer-events-none">
             <Cloud className="w-16 h-16 text-primary mb-4 animate-bounce" />
@@ -5764,7 +5759,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                     const isDownloading = isDownloadingUrl === props.src;
                                     return (
                                       <div className="relative my-4 group/img-container max-w-full">
-                                        <div className="relative overflow-hidden rounded-2xl shadow-2xl aspect-auto max-w-[500px] cursor-zoom-in" onClick={() => setViewingDoc({ url: props.src, type: 'image', name: 'AI Image' })}>
+                                        <div className="relative overflow-hidden rounded-2xl shadow-2xl message-card-glass aspect-auto max-w-[500px] cursor-zoom-in" onClick={() => setViewingDoc({ url: props.src, type: 'image', name: 'AI Image' })}>
                                           {msg.role === 'model' && (
                                             <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-100 sm:opacity-0 sm:group-hover/img-container:opacity-100 transition-opacity">
                                               <div className="flex items-center gap-2">
@@ -5848,7 +5843,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             {/* Dynamic Image Rendering (if not in markdown) */}
                             {msg.imageUrl && (
                               <div
-                                className="relative group/generated mt-4 mb-2 overflow-hidden rounded-2xl shadow-2xl transition-all hover:scale-[1.01] cursor-zoom-in max-w-sm"
+                                className="relative group/generated mt-4 mb-2 overflow-hidden rounded-2xl shadow-2xl transition-all hover:scale-[1.01] message-card-glass cursor-zoom-in max-w-sm"
                                 onClick={() => {
                                   if (!viewingDoc) setViewingDoc({ url: msg.imageUrl, type: 'image', name: 'Generated Image' });
                                 }}
@@ -6526,7 +6521,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
             <form 
               onSubmit={handleSendMessage} 
-              className="relative w-full flex flex-col transition-all duration-300 backdrop-blur-3xl p-3 z-50 aisa-chat-input-wrapper bg-[#f8f9fc]/90 dark:bg-[#0E1220]/80 border border-slate-200/50 dark:border-white/10 rounded-[32px] shadow-2xl ring-1 ring-black/5 overflow-visible"
+              className="relative w-full flex flex-col transition-all duration-300 backdrop-blur-3xl p-3 z-50 aisa-chat-input-wrapper bg-[#f8f9fc]/90 dark:bg-zinc-900/95 border border-slate-200/50 dark:border-zinc-800/80 rounded-[32px] shadow-2xl ring-1 ring-black/5 overflow-visible"
             >
               {/* Internal File Preview Area */}
               {filePreviews.length > 0 && (
