@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { NavLink, useNavigate, Link } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useMotionValue, useSpring } from 'framer-motion';
 import {
   User,
   LayoutGrid,
   MessageSquare,
   Bot,
+  Calendar,
   Settings2,
   LogOut,
   Zap,
@@ -77,8 +78,20 @@ const Sidebar = ({ isOpen, onClose }) => {
   const [editingProjectId, setEditingProjectId] = useState(null);
   const [renameProjectName, setRenameProjectName] = useState('');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isProjectsExpanded, setIsProjectsExpanded] = useState(true);
+  const [isProjectsExpanded, setIsProjectsExpanded] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState(null);
+  
+  // Magic Glow State
+  const glowX = useMotionValue(0);
+  const glowY = useMotionValue(0);
+  const sidebarRef = useRef(null);
+
+  const handleSidebarMouseMove = (e) => {
+    if (!sidebarRef.current) return;
+    const rect = sidebarRef.current.getBoundingClientRect();
+    glowX.set(e.clientX - rect.left);
+    glowY.set(e.clientY - rect.top);
+  };
 
   // Check if current user is admin
   const token = getUserData()?.token;
@@ -97,6 +110,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const handleLogout = () => {
     localStorage.clear();
+    setUserRecoil({ user: null }); // Clear Recoil state to ensure UI reacts immediately
     navigate(AppRoute.LANDING);
   };
 
@@ -259,7 +273,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       setEditingProjectId(null);
       return;
     }
-    
+
     try {
       const updated = await apiService.renameProject(projectId, renameProjectName.trim());
       setProjects(prev => prev.map(p => p._id === projectId ? { ...p, name: updated.name } : p));
@@ -280,7 +294,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const confirmDeleteProject = async () => {
     if (!projectToDelete) return;
-    
+
     try {
       await apiService.deleteProject(projectToDelete);
       setProjects(prev => prev.filter(p => p._id !== projectToDelete));
@@ -339,32 +353,53 @@ const Sidebar = ({ isOpen, onClose }) => {
       )}
 
       <div
+        ref={sidebarRef}
+        onMouseMove={handleSidebarMouseMove}
         className={`
           fixed inset-y-0 left-0 z-[100] w-[280px] sm:w-72 lg:w-64 
-          bg-white/40 dark:bg-black/40 backdrop-blur-2xl 
-          flex flex-col transition-transform duration-300 ease-in-out 
+          sidebar-glass flex flex-col transition-all duration-500 ease-in-out 
           lg:relative lg:translate-x-0 
-          shadow-[0_8px_32px_0_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]
-          lg:shadow-none
-          before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/10 before:to-transparent before:pointer-events-none before:rounded-r-2xl
+          shadow-[0_8px_32px_0_rgba(0,0,0,0.2)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.5)]
+          lg:shadow-none overflow-hidden group
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
-        {/* Brand */}
-        <div className="p-4 flex items-center justify-between border-b border-transparent relative overflow-hidden">
-          <div className="absolute inset-0 bg-transparent pointer-events-none"></div>
-          <Link to="/" state={{ fromLogo: true }} className="relative z-10">
-            <h1 className="text-xl font-bold text-primary drop-shadow-sm flex items-center gap-2">
-              AISA <sup className="text-[10px] opacity-70">TM</sup>
-            </h1>
+        {/* Interactive Mouse Glow Tracker */}
+        <motion.div 
+          className="absolute w-[300px] h-[300px] bg-primary/20 rounded-full blur-[100px] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+          style={{ x: useSpring(glowX, { damping: 20, stiffness: 100 }), y: useSpring(glowY, { damping: 20, stiffness: 100 }), left: '-150px', top: '-150px' }}
+        />
+
+        {/* Animated Background Glow Spots */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-30 dark:opacity-20 transition-opacity duration-500 group-hover:opacity-40">
+          <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[40%] bg-primary/20 blur-[100px] animate-float-slow" />
+          <div className="absolute bottom-[10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/20 blur-[100px] animate-float-slow" style={{ animationDelay: '-5s' }} />
+        </div>
+        {/* Brand & Top Actions */}
+        <div className="p-6 pb-2 flex items-center justify-between relative z-10">
+          <Link to="/" state={{ fromLogo: true }} className="group/logo flex items-center gap-2">
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 animate-pulse opacity-0 group-hover/logo:opacity-100 transition-opacity" />
+              <img 
+                 src={"/logo/Logo.svg"} 
+                alt="AISA" 
+                className="h-10 w-auto relative z-10 transition-transform duration-500 group-hover/logo:scale-110 drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]" 
+              />
+            </div>
+            <span className="text-xl font-black text-maintext tracking-tighter group-hover/logo:text-primary transition-colors">AISA <span className="text-primary">™</span></span>
           </Link>
+          
           <button
             onClick={onClose}
-            className="relative z-10 lg:hidden p-2 -mr-2 text-subtext hover:text-maintext rounded-lg hover:bg-white/20 dark:hover:bg-white/10 transition-all"
+            className={`lg:hidden p-2.5 rounded-2xl transition-all border shadow-sm active:scale-95
+              ${theme === 'dark' 
+                ? 'text-subtext hover:text-white bg-white/5 hover:bg-white/10 border-white/10' 
+                : 'text-slate-500 hover:text-primary bg-slate-100 hover:bg-slate-200 border-slate-200'}`}
           >
-            <X className="w-6 h-6" />
+            <X className="w-5.5 h-5.5" />
           </button>
         </div>
+
 
         {/* Chat History Section */}
         <div className="flex-1 flex flex-col overflow-hidden">
@@ -427,28 +462,40 @@ const Sidebar = ({ isOpen, onClose }) => {
             )}
           </AnimatePresence>
 
+
           {/* Search Bar */}
-          <div className="px-3 pt-3">
-            <div className="relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-subtext group-focus-within:text-primary transition-colors" />
+          <div className="px-5 pt-4 relative z-10">
+            <div className="relative group/search">
+              <div className="absolute inset-0 bg-primary/10 blur-xl opacity-0 group-focus-within/search:opacity-100 transition-opacity pointer-events-none" />
+              <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${theme === 'dark' ? 'text-subtext/60' : 'text-slate-500'} group-focus-within/search:text-primary group-focus-within/search:scale-110 transition-all duration-300`} />
               <input
                 type="text"
-                placeholder="Search history..."
+                placeholder="Find a session..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white/30 dark:bg-black/30 backdrop-blur-xl border border-transparent focus:border-primary/50 focus:bg-white/40 dark:focus:bg-black/40 focus:ring-4 focus:ring-primary/10 rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none transition-all placeholder:text-subtext/50 font-medium shadow-inner"
+                className={`w-full backdrop-blur-3xl border focus:ring-[6px] rounded-[20px] py-3 pl-11 pr-4 text-sm outline-none transition-all font-semibold shadow-sm 
+                  ${theme === 'dark' 
+                    ? 'bg-black/40 border-white/10 focus:border-primary/50 focus:bg-black/60 focus:ring-primary/10 placeholder:text-subtext/40 text-white' 
+                    : 'bg-white/80 border-slate-200 focus:border-primary/40 focus:bg-white focus:ring-primary/10 placeholder:text-slate-500 text-slate-900 shadow-inner'}`}
               />
             </div>
           </div>
 
           {/* New Chat Button */}
-          <div className="p-3">
+          <div className="px-5 pt-4 pb-2 relative z-10">
             <button
               onClick={handleNewChat}
-              className="w-full bg-primary hover:opacity-90 hover:scale-[1.02] text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary/30 text-sm border border-transparent backdrop-blur-sm relative overflow-hidden group"
+              className={`w-full relative overflow-hidden group p-[1px] rounded-[14px] transition-all duration-500 hover:scale-[1.03] active:scale-[0.97]
+                ${theme === 'dark' 
+                  ? 'bg-primary shadow-[0_8px_20px_rgba(var(--primary),0.3)] hover:shadow-[0_12px_30px_rgba(var(--primary),0.5)]' 
+                  : 'bg-primary shadow-[0_6px_15px_rgba(var(--primary),0.2)] hover:shadow-[0_10px_20px_rgba(var(--primary),0.3)]'}`}
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              <Plus className="w-4 h-4 relative z-10" /> <span className="relative z-10">{t('newChat')}</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-primary to-purple-600 animate-gradient bg-[length:300%_auto]" />
+              <div className={`relative flex items-center justify-center gap-2 px-4 py-2.5 backdrop-blur-md rounded-[13px] group-hover:bg-transparent transition-all duration-500
+                ${theme === 'dark' ? 'bg-[#0a0c1a]/80' : 'bg-white/10'}`}>
+                <Plus className="w-4 h-4 text-white group-hover:rotate-180 transition-transform duration-700" strokeWidth={3} />
+                <span className="font-extrabold text-white text-[13px] tracking-wide">{t('newChat')}</span>
+              </div>
             </button>
           </div>
 
@@ -460,8 +507,8 @@ const Sidebar = ({ isOpen, onClose }) => {
               <div className="px-3 pt-1">
                 <button
                   onClick={() => handleSwitchProject(null)}
-                  className={`w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl transition-all border ${!currentProjectId 
-                    ? 'bg-primary/10 text-primary border-primary/20 shadow-md ring-1 ring-primary/20' 
+                  className={`w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl transition-all border ${!currentProjectId
+                    ? 'bg-primary/10 text-primary border-primary/20 shadow-md ring-1 ring-primary/20'
                     : 'bg-white/20 dark:bg-white/5 border-white/20 dark:border-white/10 hover:bg-white/30 dark:hover:bg-white/10 text-maintext'}`}
                 >
                   <MessageSquare className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
@@ -470,69 +517,79 @@ const Sidebar = ({ isOpen, onClose }) => {
               </div>
 
               {/* Projects Section Header */}
-              <div 
+              <div
                 onClick={() => setIsProjectsExpanded(!isProjectsExpanded)}
-                className="px-4 pt-3 pb-1.5 flex items-center gap-1.5 cursor-pointer group/header hover:text-primary transition-colors select-none"
+                className="px-5 pt-4 pb-2 flex items-center justify-between cursor-pointer group/header select-none relative z-10"
               >
-                <h3 className="text-sm font-medium text-subtext/80 group-hover/header:text-primary transition-colors">Projects</h3>
-                <ChevronDown className={`w-3.5 h-3.5 text-subtext/60 transition-transform duration-200 ${isProjectsExpanded ? '' : '-rotate-90'}`} />
+                <div className="flex items-center gap-2">
+                  <h3 className={`text-[11px] font-bold uppercase tracking-[0.1em] group-hover/header:text-primary transition-colors 
+                    ${theme === 'dark' ? 'text-subtext/60' : 'text-slate-600'}`}>Projects</h3>
+                  <div className={`h-[1px] w-8 transition-all group-hover/header:w-12 group-hover/header:bg-primary/30 
+                    ${theme === 'dark' ? 'bg-subtext/20' : 'bg-slate-300'}`}></div>
+                </div>
+                <ChevronDown className={`w-3.5 h-3.5 text-subtext/40 transition-transform duration-300 ${isProjectsExpanded ? '' : '-rotate-90'}`} />
               </div>
 
-              {/* Projects List */}
               <AnimatePresence>
                 {isProjectsExpanded && (
-                  <motion.div 
+                  <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="px-3 space-y-0.5 max-h-[300px] overflow-y-auto overflow-x-hidden custom-scrollbar"
+                    transition={{ duration: 0.3, ease: "circOut" }}
+                    className="space-y-1 relative z-10"
                   >
                     {/* New Project Integrated Button */}
                     <button
                       onClick={(e) => { e.stopPropagation(); setIsCreatingProject(true); }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-subtext hover:bg-white/20 dark:hover:bg-white/10 hover:text-maintext transition-all group/newproj"
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-all group/newproj ${theme === 'dark' ? 'text-subtext/70 hover:bg-white/5 hover:text-maintext' : 'text-slate-600 hover:bg-black/5 hover:text-slate-900'}`}
                     >
-                      <FolderPlus className="w-4 h-4 shrink-0" />
-                      <span className="truncate font-medium text-[15px]">New project</span>
+                      <FolderPlus className="w-4 h-4 shrink-0 group-hover/newproj:scale-110 group-hover/newproj:text-primary transition-all" />
+                      <span className="truncate font-medium text-[14px]">New project</span>
                     </button>
 
-                    {projects.length > 0 && projects.map(p => (
-                      <div key={p._id} className="relative group/proj flex items-center">
+                    {projects.length>0 && projects.map((p, idx) => (
+                      <motion.div 
+                        key={p._id} 
+                        initial={{ x: -10, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ delay: idx * 0.05 }}
+                        className="relative group/proj flex items-center"
+                      >
                         {editingProjectId === p._id ? (
-                           <div className="flex w-full items-center gap-2 px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
-                             <input 
-                               autoFocus
-                               value={renameProjectName}
-                               onChange={e => setRenameProjectName(e.target.value)}
-                               onKeyDown={e => { if(e.key==='Enter') handleRenameProject(e, p._id); if(e.key==='Escape') setEditingProjectId(null); }}
-                               className="flex-1 min-w-0 bg-transparent border-b border-primary outline-none text-xs text-maintext py-1"
-                             />
-                             <button onClick={(e) => handleRenameProject(e, p._id)} className="text-primary hover:opacity-80 shrink-0"><Check className="w-4 h-4" /></button>
-                             <button onClick={(e) => { e.stopPropagation(); setEditingProjectId(null); }} className="text-subtext hover:text-red-500 shrink-0"><X className="w-4 h-4" /></button>
-                           </div>
+                          <div className="flex w-full items-center gap-2 px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              autoFocus
+                              value={renameProjectName}
+                              onChange={e => setRenameProjectName(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') handleRenameProject(e, p._id); if (e.key === 'Escape') setEditingProjectId(null); }}
+                              className="flex-1 min-w-0 bg-transparent border-b border-primary outline-none text-xs text-maintext py-1"
+                            />
+                            <button onClick={(e) => handleRenameProject(e, p._id)} className="text-primary hover:opacity-80 shrink-0"><Check className="w-4 h-4" /></button>
+                            <button onClick={(e) => { e.stopPropagation(); setEditingProjectId(null); }} className="text-subtext hover:text-red-500 shrink-0"><X className="w-4 h-4" /></button>
+                          </div>
                         ) : (
                           <>
                             <button
                               onClick={() => handleSwitchProject(p._id)}
-                              className={`flex-1 flex items-center min-w-0 gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${currentProjectId === p._id 
-                                ? 'bg-primary/10 text-primary font-bold shadow-sm' 
+                              className={`flex-1 flex items-center min-w-0 gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${currentProjectId === p._id
+                                ? 'bg-primary/10 text-primary font-bold shadow-sm'
                                 : 'text-subtext hover:bg-white/20 dark:hover:bg-white/10 hover:text-maintext'}`}
                             >
-                              <Folder className={`w-4 h-4 shrink-0 transition-transform ${currentProjectId === p._id ? 'scale-105' : ''}`} />
-                              <span className="truncate font-medium text-[15px] text-left pr-8">{p.name}</span>
+                              <Folder className={`w-4 h-4 shrink-0 transition-transform duration-300 ${currentProjectId === p._id ? 'scale-110 text-primary ring-4 ring-primary/10 rounded-full' : 'group-hover/proj:scale-110'}`} />
+                              <span className="truncate font-medium text-[14px] text-left pr-8">{p.name}</span>
                             </button>
-                            <div className="absolute right-2 opacity-0 group-hover/proj:opacity-100 flex items-center gap-0.5 transition-opacity duration-200">
-                              <button onClick={(e) => { e.stopPropagation(); setEditingProjectId(p._id); setRenameProjectName(p.name); }} className="p-1 text-subtext hover:text-primary transition-colors bg-white/40 dark:bg-zinc-800/40 rounded-md">
+                            <div className="absolute right-2 opacity-0 group-hover/proj:opacity-100 flex items-center gap-1 transition-all duration-300 translate-x-2 group-hover/proj:translate-x-0">
+                              <button onClick={(e) => { e.stopPropagation(); setEditingProjectId(p._id); setRenameProjectName(p.name); }} className="p-1.5 text-subtext hover:text-primary transition-all bg-white/10 rounded-lg border border-white/5 shadow-sm">
                                 <Edit2 className="w-3 h-3" />
                               </button>
-                              <button onClick={(e) => handleDeleteProject(e, p._id)} className="p-1 text-subtext hover:text-red-500 transition-colors bg-white/40 dark:bg-zinc-800/40 rounded-md">
+                              <button onClick={(e) => handleDeleteProject(e, p._id)} className="p-1.5 text-subtext hover:text-red-500 transition-all bg-white/10 rounded-lg border border-white/5 shadow-sm">
                                 <Trash2 className="w-3 h-3" />
                               </button>
                             </div>
                           </>
                         )}
-                      </div>
+                      </motion.div>
                     ))}
                   </motion.div>
                 )}
@@ -541,19 +598,26 @@ const Sidebar = ({ isOpen, onClose }) => {
           )}
 
           {/* Chat Sessions List */}
-          <div className="flex-1 overflow-y-auto px-2 space-y-1">
+          <div className="flex-1 overflow-y-auto px-5 space-y-1 relative z-10 custom-scrollbar mt-2">
             {(token || (Array.isArray(sessions) && sessions.length > 0)) ? (
               <>
-                <h3 className="px-4 py-2 text-xs font-bold text-primary/70 uppercase tracking-widest">
-                  Your chats
-                </h3>
+                <div className="px-1 py-4 flex items-center justify-between">
+                  <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] ${theme === 'dark' ? 'text-subtext/40' : 'text-slate-500'}`}>Activity Log</h3>
+                  <div className={`h-[1px] flex-1 ml-4 ${theme === 'dark' ? 'bg-gradient-to-r from-subtext/10 to-transparent' : 'bg-gradient-to-r from-slate-300 to-transparent'}`}></div>
+                </div>
 
                 {(Array.isArray(sessions) ? sessions : [])
                   .filter(session => session.title?.toLowerCase().includes(searchQuery.toLowerCase()))
-                  .map((session) => (
-                    <div key={session.sessionId} className="group relative px-2">
+                  .map((session, idx) => (
+                    <motion.div 
+                      key={session.sessionId} 
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.04, duration: 0.5 }}
+                      className="group relative"
+                    >
                       {editingSessionId === session.sessionId ? (
-                        <div className="flex items-center gap-2 px-4 py-2 bg-secondary/30 rounded-lg border border-transparent">
+                        <div className="flex items-center gap-3 px-4 py-4 bg-white/5 rounded-2xl border border-primary/40 shadow-2xl">
                           <input
                             autoFocus
                             type="text"
@@ -563,53 +627,58 @@ const Sidebar = ({ isOpen, onClose }) => {
                               if (e.key === 'Enter') handleRename(e, session.sessionId);
                               if (e.key === 'Escape') setEditingSessionId(null);
                             }}
-                            className="bg-transparent text-sm text-maintext w-full outline-none"
+                            className="bg-transparent text-[14px] font-bold text-maintext w-full outline-none"
                           />
                           <button
                             onClick={(e) => handleRename(e, session.sessionId)}
-                            className="p-1 hover:text-primary transition-colors"
+                            className="text-primary hover:scale-125 transition-transform"
                           >
-                            <Check className="w-4 h-4" />
+                            <Check className="w-5 h-5" strokeWidth={3} />
                           </button>
                         </div>
                       ) : (
-                        <>
+                        <div className="relative">
                           <button
                             onClick={() => {
                               navigate(`/dashboard/chat/${session.sessionId}`);
                               onClose();
                             }}
-                            className={`w-full text-left px-4 py-3 rounded-lg text-sm transition-all truncate pr-16 backdrop-blur-sm
+                            className={`w-full text-left px-5 py-4 rounded-2xl text-sm transition-all duration-500 truncate pr-20 group-hover:shadow-[0_10px_30px_rgba(0,0,0,0.2)]
                             ${currentSessionId === session.sessionId
-                                ? 'bg-primary/20 text-primary shadow-md border border-transparent backdrop-blur-md'
-                                : 'text-subtext hover:bg-white/20 dark:hover:bg-white/10 hover:text-primary border border-transparent hover:border-transparent'
+                                ? (theme === 'dark' ? 'bg-white/[0.08] text-white border border-white/10 shadow-2xl backdrop-blur-3xl' : 'bg-primary/10 text-primary border border-primary/20 shadow-sm backdrop-blur-3xl')
+                                : (theme === 'dark' ? 'text-subtext/60 hover:bg-white/[0.04] hover:text-white border border-transparent' : 'text-slate-600 hover:bg-black/[0.04] hover:text-slate-900 border border-transparent')
                               }
                           `}
                           >
-                            <div className="font-medium truncate text-[15px]">{session.title}</div>
-                            <div className="text-[10px] text-subtext/70">
-                              {new Date(session.lastModified).toLocaleDateString()}
+                            {currentSessionId === session.sessionId && (
+                              <motion.div 
+                                layoutId="activeIndicator"
+                                className="absolute left-1 top-4 bottom-4 w-1 bg-primary rounded-full shadow-[0_0_10px_rgba(var(--primary),0.5)]"
+                              />
+                            )}
+                            <div className="font-bold truncate text-[14px] tracking-tight mb-1">{session.title || "Untitled Intelligence"}</div>
+                            <div className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 ${theme === 'dark' ? 'text-subtext/40' : 'text-slate-500'}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${currentSessionId === session.sessionId ? 'bg-primary animate-pulse' : (theme === 'dark' ? 'bg-white/20' : 'bg-slate-300')}`}></span>
+                              {new Date(session.lastModified).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                             </div>
                           </button>
-                          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-200">
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-x-4 group-hover:translate-x-0">
                             <button
                               onClick={(e) => startRename(e, session)}
-                              className="p-1.5 text-blue-500 hover:text-primary transition-all hover:bg-primary/10 rounded-lg"
-                              title="Rename Chat"
+                              className="p-2 text-subtext hover:text-primary transition-all bg-white/5 hover:bg-white/10 rounded-xl border border-white/5"
                             >
-                              <Edit2 className="w-3.5 h-3.5" />
+                              <Edit2 className="w-4 h-4" />
                             </button>
                             <button
                               onClick={(e) => handleDeleteSession(e, session.sessionId)}
-                              className="p-1.5 text-red-500 hover:text-red-600 transition-all hover:bg-red-500/10 rounded-lg"
-                              title="Delete Chat"
+                              className="p-2 text-subtext hover:text-red-500 transition-all bg-white/5 hover:bg-white/10 rounded-xl border border-white/5"
                             >
-                              <X className="w-3.5 h-3.5" />
+                              <X className="w-4 h-4" />
                             </button>
                           </div>
-                        </>
+                        </div>
                       )}
-                    </div>
+                    </motion.div>
                   ))}
 
                 {(!Array.isArray(sessions) || sessions.length === 0) && (
@@ -633,84 +702,53 @@ const Sidebar = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        {/* User Profile Footer */}
-        <div className="p-3 border-t border-transparent relative overflow-hidden">
-          <div className="absolute inset-0 bg-transparent pointer-events-none"></div>
-          {token ? (
-            <div className="relative profile-menu-container">
-              <button
-                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                className="w-full rounded-xl border border-transparent hover:bg-white/20 dark:hover:bg-white/10 transition-all flex items-center gap-2 p-2 group relative z-10"
-              >
-                <div className="flex-1 min-w-0 text-left flex items-center gap-3">
-                  <div className="w-9 h-9 flex items-center justify-center shrink-0 rounded-full overflow-hidden bg-secondary border border-white/10 relative group/avatar">
-                    {user.avatar ? (
-                      <img
-                        src={user.avatar}
-                        alt={user.name}
-                        className="w-full h-full object-cover group-hover/avatar:opacity-40 transition-opacity"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-primary text-white font-bold text-sm uppercase group-hover/avatar:opacity-40 transition-opacity">
-                        {user.name ? user.name.charAt(0) : "U"}
-                      </div>
-                    )}
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
-                      <Edit2 className="w-3.5 h-3.5 text-primary" />
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 overflow-hidden">
-                      <p className="text-sm font-bold text-maintext truncate group-hover:text-primary transition-colors">{user.name}</p>
-                      {user.provider && user.provider !== 'local' && (
-                        <div className="flex shrink-0">
-                          {user.provider === 'google' && (
-                            <svg className="w-3 h-3" viewBox="0 0 24 24">
-                              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
-                              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                            </svg>
-                          )}
-                          {user.provider === 'github' && (
-                            <svg className="w-3 h-3 fill-maintext" viewBox="0 0 24 24">
-                              <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
-                            </svg>
-                          )}
-                          {user.provider === 'facebook' && (
-                            <svg className="w-3 h-3 fill-[#1877F2]" viewBox="0 0 24 24">
-                              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                            </svg>
-                          )}
-                          {user.provider === 'discord' && (
-                            <svg className="w-3 h-3 fill-[#5865F2]" viewBox="0 0 24 24">
-                              <path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037 19.736 19.736 0 00-4.885 1.515.069.069 0 00-.032.027C.533 9.048-.32 13.572.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028 14.09 14.09 0 001.226-1.994.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128c.125-.094.252-.192.37-.294a.077.077 0 01.077-.01c3.927 1.793 8.18 1.793 12.062 0a.077.077 0 01.078.01c.12.102.246.2.373.294a.077.077 0 01-.006.127 12.298 12.298 0 01-1.873.893.077.077 0 00-.041.107 14.361 14.361 0 001.226 1.994.077.077 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03z" />
-                            </svg>
-                          )}
-                        </div>
-                      )}
-                      <span className="px-1.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-[9px] font-bold text-amber-500 uppercase tracking-wider shrink-0">
-                        {planName.replace(' Plan', '')}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-subtext truncate">{user.email}</p>
-                  </div>
-                </div>
-              </button>
+        {/* Bottom Utils */}
+        <div className="p-4 border-t border-white/5 relative z-20 space-y-3">
+          <div className="flex items-center gap-2">
+            {/* Theme Toggle Button */}
+            <button 
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className={`flex-1 h-10 rounded-xl border transition-all duration-300 group/theme flex items-center justify-center
+                ${theme === 'dark' 
+                  ? 'bg-white/5 border-white/5 text-subtext hover:text-primary hover:bg-primary/10' 
+                  : 'bg-black/5 border-black/5 text-slate-800 hover:text-primary hover:bg-primary/5'}`}
+              title={theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
+            >
+              {theme === 'dark' ? <Sun className="w-[18px] h-[18px] group-hover/theme:rotate-90 transition-transform duration-500" /> : <Moon className="w-[18px] h-[18px] group-hover/theme:-rotate-12 transition-transform duration-500" />}
+            </button>
 
-              <AnimatePresence>
-                {isProfileMenuOpen && (
-                  <ProfileSettingsDropdown
-                    onClose={() => setIsProfileMenuOpen(false)}
-                    onLogout={() => {
-                      handleLogout();
-                      setIsProfileMenuOpen(false);
-                    }}
-                  />
-                )}
-              </AnimatePresence>
-            </div>
-          ) : (
+            {/* Profile Action - Repositioned to bottom - Only show if logged in */}
+            {token && (
+              <div className="relative profile-menu-container flex-1">
+                <button
+                  onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                  className={`w-full h-10 rounded-xl border transition-all duration-300 flex items-center justify-center
+                    ${theme === 'dark' 
+                      ? 'bg-white/5 border-white/5 text-subtext hover:text-primary hover:bg-primary/10' 
+                      : 'bg-black/5 border-black/5 text-slate-800 hover:text-primary hover:bg-primary/5'}`}
+                >
+                  {user.avatar ? (
+                    <img src={user.avatar} alt="P" className="w-[22px] h-[22px] object-cover rounded-md" />
+                  ) : (
+                    <User className="w-[18px] h-[18px]" />
+                  )}
+                </button>
+                <AnimatePresence>
+                  {isProfileMenuOpen && (
+                    <ProfileSettingsDropdown
+                      onClose={() => setIsProfileMenuOpen(false)}
+                      onLogout={() => {
+                        handleLogout();
+                        setIsProfileMenuOpen(false);
+                      }}
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+          </div>
+
+          {!token && (
             <div
               onClick={() => navigate(AppRoute.LOGIN)}
               className="rounded-xl border border-transparent hover:bg-white/20 dark:hover:bg-white/10 transition-all cursor-pointer flex items-center gap-3 px-3 py-2 group relative z-10"
@@ -724,36 +762,29 @@ const Sidebar = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          <div className="mt-1 flex flex-col gap-1">
+          <div className="grid grid-cols-2 gap-2">
             {isAdmin && (
               <button
                 onClick={() => { navigate('/dashboard/admin'); onClose(); }}
-                className="w-full flex items-center justify-center gap-2 px-2 py-1.5 rounded-lg text-white bg-gradient-to-r from-primary to-primary/70 hover:opacity-90 transition-all text-xs border border-primary/30 font-semibold backdrop-blur-sm shadow-lg shadow-primary/20"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-white bg-primary hover:opacity-90 transition-all text-[10px] font-bold border border-white/10 shadow-lg shadow-primary/20"
               >
-                <Shield className="w-3.5 h-3.5" />
-                <span>Admin Dashboard</span>
+                <Shield className="w-3 h-3" />
+                <span>Admin</span>
               </button>
             )}
             <button
               onClick={() => setIsFaqOpen(true)}
-              className="w-full flex items-center justify-center gap-2 px-2 py-1.5 rounded-lg text-subtext hover:bg-white/20 dark:hover:bg-white/10 hover:text-maintext transition-all text-xs border border-transparent hover:border-white/20 dark:hover:border-white/10 backdrop-blur-sm"
+              className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl transition-all text-[10px] font-bold border ${!isAdmin ? 'col-span-2' : ''} 
+                ${theme === 'dark' 
+                  ? 'text-white bg-white/5 border-white/5 hover:bg-white/10' 
+                  : 'text-slate-800 bg-black/5 border-black/5 hover:bg-black/10'}`}
             >
-              <HelpCircle className="w-3.5 h-3.5" />
+              <HelpCircle className={`w-3 h-3 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`} />
               <span>{t('helpFaq')}</span>
             </button>
           </div>
         </div>
       </div>
-
-      <FaqModal isOpen={isFaqOpen} onClose={() => setIsFaqOpen(false)} />
-      <DeleteConfirmModal 
-        isOpen={isDeleteModalOpen} 
-        onClose={() => setIsDeleteModalOpen(false)} 
-        onConfirm={confirmDeleteProject}
-        title="Delete Project?"
-        description="Are you sure you want to delete this project? All associated chats will be kept but unlinked from the project."
-        confirmText="Delete Project"
-      />
     </>
   );
 };

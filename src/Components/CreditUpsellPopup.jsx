@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, Zap, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { getUserData } from '../userStore/userData';
 
 const CreditUpsellPopup = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -9,6 +10,8 @@ const CreditUpsellPopup = () => {
 
     useEffect(() => {
         const handleOutOfCredits = () => {
+            const user = getUserData();
+            if (user && user.email && user.email.toLowerCase() === 'admin@uwo24.com') return;
             setIsOpen(true);
         };
         window.addEventListener('out_of_credits', handleOutOfCredits);

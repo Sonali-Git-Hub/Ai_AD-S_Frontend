@@ -195,6 +195,36 @@
   animation: gradient 8s linear infinite;
 }
 
+@keyframes float-slow {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.3; }
+  33% { transform: translate(10px, -15px) scale(1.1); opacity: 0.5; }
+  66% { transform: translate(-15px, 10px) scale(0.95); opacity: 0.4; }
+}
+
+.animate-float-slow {
+  animation: float-slow 15s ease-in-out infinite;
+}
+
+@keyframes border-glow {
+  0%, 100% { border-color: rgba(var(--primary), 0.1); }
+  50% { border-color: rgba(var(--primary), 0.5); }
+}
+
+.sidebar-glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dark .sidebar-glass {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.chat-item-bg {
+  mask-image: radial-gradient(circle at center, black, transparent);
+}
+
 .ai-typing-shimmer {
   position: relative;
   overflow: hidden;
@@ -230,6 +260,19 @@
   animation: pulse-glow 2s infinite ease-in-out;
 }
 
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
 .font-serif {
   font-family: 'Playfair Display', serif !important;
 }
@@ -247,14 +290,6 @@
   font-family: 'Outfit', sans-serif !important;
 }
 
-.font-serif {
-  font-family: 'Playfair Display', serif !important;
-}
-
-.font-mono {
-  font-family: 'JetBrains Mono', monospace !important;
-}
-
 :root {
   --aisa-font-size: 16px;
   --aisa-scale: 1;
@@ -263,10 +298,116 @@
 /* Global Scaling System */
 html {
   font-size: var(--aisa-font-size) !important;
+  scroll-behavior: smooth;
 }
 
-.aisa-scalable-text {
-  /* Inherits from root html scaling */
+/* ── Smooth Scroll Performance ──────────────────────────────────────────── */
+
+/* Momentum scroll on iOS + smooth on all browsers */
+body,
+.overflow-y-auto,
+.overflow-y-scroll,
+[class*="overflow-y-auto"],
+[class*="custom-scrollbar"] {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* GPU-accelerate ALL animated blobs (motion.div with mix-blend-multiply) */
+/* This promotes them to their own compositor layer, preventing main-thread jank */
+[class*="mix-blend-multiply"],
+[class*="mix-blend-screen"],
+[class*="mix-blend-soft-light"] {
+  will-change: transform, opacity;
+}
+
+/* GPU-accelerate framer-motion animated divs that use background */
+/* (the gradient border and halo wrappers) */
+[style*="background: radial-gradient"],
+[style*="background: linear-gradient"] {
+  will-change: background;
+}
+
+/* Isolate the glassmorphic card containers from the scrolling context */
+/* This prevents backdrop-blur from re-computing on every scroll tick */
+.modal-default,
+.modal-maximized {
+  contain: layout paint;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Custom scrollbar — thin + smooth */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.25) transparent;
+  scroll-behavior: smooth;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.25);
+  border-radius: 99px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.45);
+}
+
+/* Demo chat scroll thumb (AiLegalDemoSection) */
+.demo-scroll-thumb {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.20) transparent;
+  scroll-behavior: smooth;
+}
+
+.demo-scroll-thumb::-webkit-scrollbar {
+  width: 3px;
+}
+
+.demo-scroll-thumb::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.demo-scroll-thumb::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.25);
+  border-radius: 99px;
+}
+
+/* Reduce backdrop-filter cost during active scroll */
+/* (temporarily drops blur to 0 while scrolling, re-applies after) */
+/* Reduce backdrop-filter cost during active scroll - and globally cap heavy blurs */
+@media (prefers-reduced-motion: no-preference) {
+  html.is-scrolling [style*="backdrop-filter"],
+  html.is-scrolling [class*="backdrop-blur"] {
+    backdrop-filter: blur(0px) !important;
+    -webkit-backdrop-filter: blur(0px) !important;
+    transition: backdrop-filter 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+/* Global Failsafe for lower-end devices - cut blurs and heavy shadows */
+@media (max-width: 768px) {
+  [class*="backdrop-blur"] {
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+  [class*="shadow-"] {
+    box-shadow: none !important;
+  }
+}
+
+/* Prevent layout thrash from animated gradient borders */
+[style*="inset: -1.5px"],
+[style*="inset: -14px"] {
+  will-change: transform, opacity;
 }
 
 .aisa-badge-small {
@@ -291,14 +432,168 @@ html {
   box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
 }
 
-/* Hide number input spinners */
-.no-spinner::-webkit-inner-spin-button,
-.no-spinner::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  appearance: none;
-  margin: 0;
+/* --- AISA PREMIUM DESIGN SYSTEM --- */
+
+.glass-morphism {
+  @apply bg-white/40 dark:bg-black/40 backdrop-blur-2xl border border-white/20 dark:border-white/5;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
 }
+
 .no-spinner {
   -moz-appearance: textfield;
   appearance: textfield;
+}
+
+/* AI Legal Modal States */
+.modal-default {
+  @apply w-full max-w-4xl max-h-[85vh] rounded-[2.5rem] shadow-[0_30px_90px_rgba(0,0,0,0.1)];
+}
+
+.modal-maximized {
+  @apply w-[95vw] h-[95vh] max-h-[95vh] rounded-2xl shadow-[0_40px_100px_rgba(0,0,0,0.2)];
+}
+
+.modal-header-glass {
+  @apply sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-100/50;
+}
+/* --- Footer Sparkle Underline System --- */
+.footer-link-sparkle {
+  position: relative;
+  text-decoration: none !important;
+  transition: color 0.3s ease;
+}
+
+.footer-link-sparkle::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1.5px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    #a855f7 20%, 
+    #22d3ee 50%, 
+    #a855f7 80%, 
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  border-radius: 2px;
+  transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0);
+  opacity: 0.8;
+}
+
+.footer-link-sparkle:hover::after {
+  width: 100%;
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+  animation: sparkle-shimmer 2.5s infinite linear;
+}
+
+@keyframes sparkle-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.dark .footer-link-sparkle::after {
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    #c084fc 20%, 
+    #67e8f9 50%, 
+    #c084fc 80%, 
+    transparent 100%
+  );
+  background-size: 200% 100%;
+}
+
+
+.holographic-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+  @apply backdrop-blur-xl border border-white/20;
+  position: relative;
+  overflow: hidden;
+}
+
+.holographic-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    from 0deg,
+    transparent,
+    rgba(99, 102, 241, 0.1),
+    rgba(168, 85, 247, 0.1),
+    transparent 60%
+  );
+  animation: rotate-conic 10s linear infinite;
+}
+
+@keyframes rotate-conic {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.mesh-bg {
+  background-color: #f8f9fc;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.05) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.05) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.05) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(168, 85, 247, 0.05) 0px, transparent 50%);
+}
+
+.dark .mesh-bg {
+  background-color: #050505;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.1) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.1) 0px, transparent 50%);
+}
+
+.premium-shadow {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.05);
+}
+
+.hover-lift {
+  @apply transition-all duration-500;
+}
+
+.hover-lift:hover {
+  @apply -translate-y-2;
+  box-shadow: 0 40px 80px -20px rgba(99, 102, 241, 0.15);
+}
+
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-indigo-500 to-purple-500;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-primary/20 rounded-full hover:bg-primary/40;
+}
+
+/* --- LENIS SMOOTH SCROLL --- */
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
 }

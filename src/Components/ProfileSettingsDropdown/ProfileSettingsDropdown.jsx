@@ -20,6 +20,7 @@ import toast from 'react-hot-toast';
 import axios from 'axios';
 import { API, apis } from '../../types';
 import CustomSelect from '../CustomSelect/CustomSelect';
+import MultiScheduleReminder from './MultiScheduleReminder';
 import Cropper from 'react-easy-crop';
 import { getCroppedImgBlob } from '../../utils/canvasUtils';
 
@@ -37,7 +38,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         chatSessions
     } = usePersonalization();
     const { theme, setTheme, accentColor, setAccentColor, ACCENT_COLORS } = useTheme();
-    const { language, setLanguage, languages, t } = useLanguage();
+    const { language, setLanguage, region, setRegion, regions, t } = useLanguage();
     const [activeTab, setActiveTab] = useState('personalization');
     const [view, setView] = useState('sidebar'); // 'sidebar' or 'detail' for mobile
     const [accounts, setAccounts] = useState(getAccounts());
@@ -357,6 +358,22 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
             ))
         });
 
+        settings.push({
+            id: 'multiScheduleReminder', tab: 'personalization', label: 'Multi Schedule Reminder', keywords: 'alarm scheduler calendar schedule',
+            component: <MultiScheduleReminder />
+        });
+
+        // Language & Region (Integrated from world-wide selection)
+        settings.push({
+            id: 'region', tab: 'personalization', label: t('region'), description: t('regionDesc'), keywords: 'country world',
+            component: renderSettingRow(t('region'), t('regionDesc'), renderDropdown(region, Object.keys(regions || {}), (e) => setRegion(e.target.value), Globe))
+        });
+
+        settings.push({
+            id: 'language', tab: 'personalization', label: t('language'), description: t('languageDesc'), keywords: 'translate speak',
+            component: renderSettingRow(t('language'), t('languageDesc'), renderDropdown(language, regions[region] || ["English"], (e) => setLanguage(e.target.value), Languages))
+        });
+
         // Data
         settings.push({
             id: 'chatHistory', tab: 'data', label: t('chatHistory'), description: t('chatHistoryDesc'), keywords: 'save toggle',
@@ -378,7 +395,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         });
 
         return settings;
-    }, [theme, accentColor, language, personalizations, nicknameInput, user, t, languages, ACCENT_COLORS]);
+    }, [theme, accentColor, language, personalizations, nicknameInput, user, t, regions, ACCENT_COLORS, region]);
 
     const renderContent = () => {
         if (searchQuery.trim()) {
@@ -503,7 +520,16 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
 
                             <div className="flex-1 text-center sm:text-left space-y-3">
                                 <div>
-                                    <h3 className="text-xl font-black text-gray-800 dark:text-white capitalize">{user.name}</h3>
+                                    <h3 className="text-xl font-black text-gray-800 dark:text-white capitalize flex items-center justify-center sm:justify-start gap-2">
+                                        {user.name}
+                                        <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
+                                            planName.toLowerCase().includes('pro') ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 
+                                            planName.toLowerCase().includes('founder') ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' : 
+                                            'bg-primary/10 text-primary border-primary/20'
+                                        }`}>
+                                            {planName.replace(' Plan', '')}
+                                        </span>
+                                    </h3>
                                     <p className="text-sm font-bold text-gray-500 max-w-[200px] truncate sm:max-w-none">{user.email}</p>
                                 </div>
                                 <button 

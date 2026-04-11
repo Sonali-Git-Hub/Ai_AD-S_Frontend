@@ -1,0 +1,7 @@
+46: const SendRipple = ({ onComplete }) => {
+81: const MagicShowEffect = ({ isMobileIdle = false }) => {
+6485: {isAttachHovered && <MagicShowEffect />}
+6507: {(isBrainHovered || isBrainTapped) && <MagicShowEffect isMobileIdle={!isBrainHovered && !isBrainTapped} />}
+6859: <MagicShowEffect isMobileIdle={!isMicHovered && !isMicTapped} />
+6899: <MagicShowEffect isMobileIdle={!isSendHovered && !isSendTapped} />
+6917: <SendRipple key={id} onComplete={() => setRipples(r => r.filter(i => i !== id))} />

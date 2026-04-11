@@ -60,6 +60,10 @@ export const PersonalizationProvider = ({ children }) => {
         if (prefs?.personalization?.fontSize === 'Small') {
             prefs.personalization.fontSize = 'Medium';
         }
+        // FORCE UI language to English always (UI language, not chat content)
+        if (prefs?.general) {
+            prefs.general.language = 'English';
+        }
         return prefs;
     });
     const [notifications, setNotifications] = useState([]);
@@ -83,7 +87,7 @@ export const PersonalizationProvider = ({ children }) => {
     const fetchNotifications = async () => {
         if (!user?.token) return;
         try {
-            const res = await axios.get(apis.user + '/notifications', {
+            const res = await axios.get(apis.notifications, {
                 headers: { 'Authorization': `Bearer ${user.token}` }
             });
             setNotifications(res.data);
@@ -96,7 +100,7 @@ export const PersonalizationProvider = ({ children }) => {
         setNotifications(prev => prev.filter(n => n.id !== notifId));
         try {
             if (user?.token) {
-                await axios.delete(`${apis.user}/notifications/${notifId}`, {
+                await axios.delete(`${apis.notifications}/${notifId}`, {
                     headers: { 'Authorization': `Bearer ${user.token}` }
                 });
             }
@@ -110,7 +114,7 @@ export const PersonalizationProvider = ({ children }) => {
         setNotifications([]);
         try {
             if (user?.token) {
-                await axios.delete(`${apis.user}/notifications`, {
+                await axios.delete(apis.notifications, {
                     headers: { 'Authorization': `Bearer ${user.token}` }
                 });
             }
@@ -119,6 +123,7 @@ export const PersonalizationProvider = ({ children }) => {
             fetchNotifications();
         }
     };
+
 
     const fetchPersonalizations = async () => {
         if (!user?.token) return;
@@ -132,6 +137,10 @@ export const PersonalizationProvider = ({ children }) => {
                 // Migration: Small is now Medium
                 if (merged.personalization?.fontSize === 'Small') {
                     merged.personalization.fontSize = 'Medium';
+                }
+                // FORCE UI language to English always (UI language, not chat content)
+                if (merged.general) {
+                    merged.general.language = 'English';
                 }
                 setPersonalizationsState(merged);
                 localStorage.setItem('personalizations', JSON.stringify(merged));
@@ -185,9 +194,81 @@ export const PersonalizationProvider = ({ children }) => {
             fetchPersonalizations();
             fetchNotifications();
             fetchChatSessions();
+
+            // Set up interval for polling notifications to detect new reminders/alerts
+            const interval = setInterval(() => {
+                const fetchSilently = async () => {
+                    try {
+                        const res = await axios.get(apis.user + '/notifications', {
+                            headers: { 'Authorization': `Bearer ${user.token}` }
+                        });
+                        
+                        setNotifications(prev => {
+                            if (res.data.length === 0) return prev;
+                            
+                            // Improved notification detection mapping
+                            const newReminders = res.data.filter(n => n.id?.startsWith('reminder_') && !prev.some(p => p.id === n.id));
+                            
+                            newReminders.forEach(reminder => {
+                                toast.success(`🔔 Reminder: ${reminder.title}`, { 
+                                    duration: 10000,
+                                    icon: '⏰'
+                                });
+                                if (reminder.voice && reminder.voice !== 'none') {
+                                    speakReminder(reminder.title, reminder.voice);
+                                }
+                            });
+                            
+                            // Prevent re-rendering if content is identical
+                            if (prev.length === res.data.length && prev[0]?.id === res.data[0]?.id) {
+                                return prev;
+                            }
+                            return res.data;
+                        });
+                    } catch (err) {}
+                };
+                fetchSilently();
+            }, 10000); // Poll every 10s for better responsiveness
+            
+            return () => clearInterval(interval);
         }
         applyDynamicStyles();
+        // ONE-TIME MIGRATION: Force localStorage language to English
+        // This fixes users who had Hindi saved in their browser storage
+        try {
+            const saved = localStorage.getItem('personalizations');
+            if (saved) {
+                const prefs = JSON.parse(saved);
+                if (prefs?.general?.language && prefs.general.language !== 'English') {
+                    prefs.general.language = 'English';
+                    localStorage.setItem('personalizations', JSON.stringify(prefs));
+                    console.log('[AISA] UI language forced to English in localStorage');
+                }
+            }
+        } catch (e) {
+            // Ignore parse errors
+        }
     }, [user?.token]);
+
+    const speakReminder = async (text, voiceConfig) => {
+        if (!user?.token) return;
+        try {
+            const [lang, variant] = voiceConfig.split(/-(?=[^-]+$)/); // Splits en-US-female into en-US and female
+            const res = await axios.post(apis.synthesizeVoice, {
+                text: `Reminder: ${text}`,
+                languageCode: lang,
+                gender: variant?.toUpperCase() || 'FEMALE'
+            }, {
+                headers: { 'Authorization': `Bearer ${user.token}` },
+                responseType: 'blob'
+            });
+            const url = URL.createObjectURL(res.data);
+            const audio = new Audio(url);
+            audio.play();
+        } catch (error) {
+            console.error('TTS failed for reminder', error);
+        }
+    };
 
     const updatePersonalization = async (section, data) => {
         const next = {

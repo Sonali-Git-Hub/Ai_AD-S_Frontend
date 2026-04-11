@@ -66,10 +66,18 @@ export const apiService = {
     }
   },
 
-  async editImage(prompt, imageUrl = null, imageBase64 = null) {
+  async editImage(prompt, imageFileOrBlob = null) {
     try {
       console.log("[Frontend] Editing image for prompt:", prompt);
-      const response = await apiClient.post('/image/edit', { prompt, imageUrl, imageBase64 }, { timeout: 60000 });
+      const formData = new FormData();
+      formData.append('prompt', prompt);
+      if (imageFileOrBlob) {
+        // Appending the blob payload to send via FormData
+        formData.append('image', imageFileOrBlob);
+      }
+      const response = await apiClient.post('/edit-image', formData, {
+        timeout: 90000 
+      });
       console.log("[Frontend] Image editing success:", response.data);
       return response.data;
     } catch (error) {
@@ -101,6 +109,365 @@ export const apiService = {
       throw error;
     }
   },
+
+  // --- AI Social Agent (Phase 1) ---
+  async getSocialAgentWorkspace(userId) {
+    try {
+      const response = await apiClient.get(`/social-agent/workspace/${userId || 'current'}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch social agent workspace:", error);
+      return { success: false };
+    }
+  },
+
+  async getSocialAgentWorkspaces() {
+    try {
+      const response = await apiClient.get('/social-agent/workspaces/all');
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch all workspaces:", error);
+      return { success: false, workspaces: [] };
+    }
+  },
+
+  async generateFromCalendar(workspaceId, calendarRowId) {
+    try {
+      const response = await apiClient.post(`/social-agent/content/generate/${calendarRowId}`, { workspaceId });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to generate from calendar:", error);
+      throw error;
+    }
+  },
+
+  async createSocialAgentWorkspace(data) {
+    try {
+      const response = await apiClient.post('/social-agent/workspace', data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to create social agent workspace:", error);
+      throw error;
+    }
+  },
+
+  async deleteSocialAgentWorkspace(workspaceId) {
+    try {
+      const response = await apiClient.delete(`/social-agent/workspace/${workspaceId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to delete workspace:", error);
+      throw error;
+    }
+  },
+
+
+  async uploadSocialAgentBrand(formData) {
+    try {
+      const response = await apiClient.post('/social-agent/brand/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to upload brand assets:", error);
+      throw error;
+    }
+  },
+
+  async fetchBrandAssets(url, workspaceId) {
+    try {
+      const response = await apiClient.post('/brand/fetch', { url, workspaceId });
+      return response.data;
+    } catch (error) {
+      const msg = error.response?.data?.error || error.message || 'Brand fetch failed';
+      throw new Error(msg);
+    }
+  },
+
+  async quickAnalysis(file, workspaceId = null) {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (workspaceId) formData.append('workspaceId', workspaceId);
+
+      const response = await apiClient.post('/brand/quick-analysis', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Quick Analysis failed:", error);
+      return { success: false };
+    }
+  },
+
+
+  async getSocialAgentBrand(workspaceId) {
+    try {
+      const response = await apiClient.get(`/social-agent/brand/${workspaceId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch brand profile:", error);
+      return { success: false };
+    }
+  },
+
+  async uploadSocialAgentCalendar(formData) {
+    try {
+      const response = await apiClient.post('/social-agent/calendar/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to upload content calendar:", error);
+      throw error;
+    }
+  },
+
+  async getSocialAgentCalendar(workspaceId) {
+    try {
+      const response = await apiClient.get(`/social-agent/calendar/${workspaceId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch calendar entries:", error);
+      return { success: false, entries: [] };
+    }
+  },
+
+  async getSocialAgentUsage(workspaceId) {
+    try {
+      const response = await apiClient.get(`/social-agent/usage/${workspaceId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch plan usage:", error);
+      return { success: false };
+    }
+  },
+
+  async getSocialAgentCalendarBrands() {
+    try {
+      const response = await apiClient.get('/social-agent/calendar/brands');
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch calendar brands:", error);
+      return { success: false, brands: [] };
+    }
+  },
+
+  async getSocialAgentPipelines(workspaceId) {
+    try {
+      const response = await apiClient.get(`/social-agent/calendar/pipelines/${workspaceId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch pipelines:", error);
+      return { success: false, pipelines: [] };
+    }
+  },
+
+  async getSocialAgentPipelineRows(calendarId) {
+    try {
+      const response = await apiClient.get(`/social-agent/calendar/pipeline-rows/${calendarId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch pipeline rows:", error);
+      return { success: false, rows: [] };
+    }
+  },
+
+  // --- AI Social Agent (Phase 2 & 3) ---
+  async completeSocialOnboarding(data) {
+    try {
+      const response = await apiClient.patch('/social-agent/finish-onboarding', data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to complete onboarding:", error);
+      throw error;
+    }
+  },
+
+  async uploadProfileImage(formData) {
+    try {
+      const response = await apiClient.post('/social-agent/profile/upload-image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to upload profile image:", error);
+      throw error;
+    }
+  },
+
+  async triggerSocialAgentGeneration(data) {
+    try {
+      const response = await apiClient.post('/social-agent/generate', data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to trigger generation:", error);
+      throw error;
+    }
+  },
+
+  async getSocialAgentJobStatus(jobId) {
+    try {
+      const response = await apiClient.get(`/social-agent/jobs/${jobId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch job status:", error);
+      return { success: false, status: error.response?.status };
+    }
+  },
+
+  async getSocialHashtagInsights(workspaceId, topic) {
+    try {
+      const response = await apiClient.post('/social-agent/hashtag-insights', { workspaceId, topic });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch hashtag insights:", error);
+      throw error;
+    }
+  },
+
+  async getSocialAgentPosts(workspaceId) {
+    try {
+      const response = await apiClient.get(`/social-agent/posts/${workspaceId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch posts:", error);
+      return { success: false, posts: [] };
+    }
+  },
+
+  async getSocialPostDetail(postId) {
+    try {
+      const response = await apiClient.get(`/social-agent/posts/detail/${postId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch post detail:", error);
+      return { success: false };
+    }
+  },
+
+  async getSocialAgentAssets(workspaceId) {
+    try {
+      const response = await apiClient.get(`/social-agent/assets/${workspaceId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch assets library:", error);
+      return { success: false, assets: [] };
+    }
+  },
+
+  async generateSocialAgentOneOffAsset(data) {
+    try {
+      const response = await apiClient.post('/social-agent/assets/generate', data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to generate one-off asset:", error);
+      throw error;
+    }
+  },
+
+  async regenerateSocialAgentPost(data) {
+    try {
+      const response = await apiClient.post('/social-agent/generate/regenerate', data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to regenerate post:", error);
+      throw error;
+    }
+  },
+
+  async deleteSocialAgentPost(postId) {
+    try {
+      const response = await apiClient.delete(`/social-agent/posts/${postId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to delete post:", error);
+      throw error;
+    }
+  },
+
+
+  // Phase 3: Review & Schedule
+  async submitPostForReview(postId, data) {
+    try {
+      const response = await apiClient.patch(`/social-agent-review/posts/${postId}/send-for-review`, data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to submit for review:", error);
+      throw error;
+    }
+  },
+
+  async approveSocialPost(postId, data) {
+    try {
+      const response = await apiClient.patch(`/social-agent-review/posts/${postId}/approve`, data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to approve post:", error);
+      throw error;
+    }
+  },
+
+  async rejectSocialPost(postId, data) {
+    try {
+      const response = await apiClient.patch(`/social-agent-review/posts/${postId}/reject`, data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to reject post:", error);
+      throw error;
+    }
+  },
+
+  async addSocialPostComment(postId, data) {
+    try {
+      const response = await apiClient.post(`/social-agent-review/posts/${postId}/comment`, data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to add comment:", error);
+      throw error;
+    }
+  },
+
+  async getSocialPostHistory(postId) {
+    try {
+      const response = await apiClient.get(`/social-agent-review/posts/${postId}/history`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch history:", error);
+      return { success: false, actions: [], comments: [] };
+    }
+  },
+
+  async scheduleSocialPost(postId, data) {
+    try {
+      const response = await apiClient.patch(`/social-agent-review/posts/${postId}/schedule`, data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to schedule post:", error);
+      throw error;
+    }
+  },
+
+  async getSocialReviewQueue(workspaceId) {
+    try {
+      const response = await apiClient.get(`/social-agent-review/review-queue/${workspaceId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch review queue:", error);
+      return { success: false, posts: [] };
+    }
+  },
+
+  async getSocialSchedule(workspaceId) {
+    try {
+      const response = await apiClient.get(`/social-agent-review/schedule/${workspaceId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch schedule:", error);
+      return { success: false, items: [] };
+    }
+  },
+
 
 
   // --- Auth ---
@@ -666,7 +1033,7 @@ export const apiService = {
   // --- AIBASE & Knowledge ---
   async getKnowledgeDocuments() {
     try {
-      const response = await apiClient.get('/aibase/knowledge/documents');
+      const response = await apiClient.get('aibase/knowledge/documents');
       return response.data;
     } catch (error) {
       console.error("Failed to fetch knowledge documents:", error);
@@ -676,7 +1043,7 @@ export const apiService = {
 
   async uploadKnowledgeDocument(formData, onProgress) {
     try {
-      const response = await apiClient.post('/aibase/knowledge/upload', formData, {
+      const response = await apiClient.post('aibase/knowledge/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (progressEvent) => {
           if (onProgress) {
@@ -694,7 +1061,7 @@ export const apiService = {
 
   async uploadKnowledgeUrl(payload) {
     try {
-      const response = await apiClient.post('/aibase/knowledge/upload-url', payload);
+      const response = await apiClient.post('aibase/knowledge/upload-url', payload);
       return response.data;
     } catch (error) {
       console.error("Failed to upload knowledge URL:", error);
@@ -704,7 +1071,7 @@ export const apiService = {
 
   async getKnowledgeList() {
     try {
-      const response = await apiClient.get('/aibase/knowledge/list');
+      const response = await apiClient.get('aibase/knowledge/list');
       return response.data;
     } catch (error) {
       console.error("Failed to fetch knowledge list:", error);
@@ -714,7 +1081,7 @@ export const apiService = {
 
   async reindexDocument(id) {
     try {
-      const response = await apiClient.post(`/aibase/knowledge/reindex/${id}`);
+      const response = await apiClient.post(`aibase/knowledge/reindex/${id}`);
       return response.data;
     } catch (error) {
       console.error("Failed to reindex document:", error);
@@ -725,7 +1092,7 @@ export const apiService = {
   // --- Knowledge Source (Website Crawler) Management ---
   async getKnowledgeSources() {
     try {
-      const response = await apiClient.get('/aibase/knowledge/sources');
+      const response = await apiClient.get('aibase/knowledge/sources');
       return response.data;
     } catch (error) {
       console.error("Failed to fetch knowledge sources:", error);
@@ -735,7 +1102,7 @@ export const apiService = {
 
   async recrawlSource(payload) {
     try {
-      const path = payload.id ? `/aibase/knowledge/recrawl/${payload.id}` : '/aibase/knowledge/recrawl';
+      const path = payload.id ? `aibase/knowledge/recrawl/${payload.id}` : 'aibase/knowledge/recrawl';
       const response = await apiClient.post(path, payload);
       return response.data;
     } catch (error) {
@@ -746,7 +1113,7 @@ export const apiService = {
 
   async updateKnowledgeSource(id, payload) {
     try {
-      const response = await apiClient.patch(`/aibase/knowledge/sources/${id}`, payload);
+      const response = await apiClient.patch(`aibase/knowledge/sources/${id}`, payload);
       return response.data;
     } catch (error) {
       console.error("Failed to update knowledge source:", error);
@@ -756,7 +1123,7 @@ export const apiService = {
 
   async deleteKnowledgeSource(id) {
     try {
-      const response = await apiClient.delete(`/aibase/knowledge/sources/${id}`);
+      const response = await apiClient.delete(`aibase/knowledge/sources/${id}`);
       return response.data;
     } catch (error) {
       console.error("Failed to delete knowledge source:", error);
@@ -766,7 +1133,7 @@ export const apiService = {
 
   async deleteKnowledgeDocument(id) {
     try {
-      const response = await apiClient.delete(`/aibase/knowledge/delete/${id}`);
+      const response = await apiClient.delete(`aibase/knowledge/delete/${id}`);
       return response.data;
     } catch (error) {
       console.error("Failed to delete knowledge document:", error);
@@ -776,7 +1143,7 @@ export const apiService = {
 
   async aibaseChat(payload) {
     try {
-      const response = await apiClient.post('/aibase/chat', payload);
+      const response = await apiClient.post('aibase/chat', payload);
       return response.data;
     } catch (error) {
       console.error("Failed to generate AIBASE chat response:", error);
@@ -784,36 +1151,7 @@ export const apiService = {
     }
   },
 
-  // --- AI Ad Agent ---
-  async configureAiAdAgent(configData) {
-    try {
-      const response = await apiClient.post('/ai-ad/configure', configData);
-      return response.data;
-    } catch (error) {
-      console.error("Failed to configure AI Ad Agent:", error);
-      throw error;
-    }
-  },
 
-  async getAiAdPosts() {
-    try {
-      const response = await apiClient.get('/ai-ad/posts');
-      return response.data;
-    } catch (error) {
-      console.error("Failed to fetch AI Ad posts:", error);
-      throw error;
-    }
-  },
-
-  async getAiAdStatus() {
-    try {
-      const response = await apiClient.get('/ai-ad/status');
-      return response.data;
-    } catch (error) {
-      console.error("Failed to fetch AI Ad status:", error);
-      throw error;
-    }
-  },
 
   // --- Credits & Subscription ---
   async getCreditHistory() {
@@ -914,6 +1252,69 @@ export const apiService = {
       return response.data;
     } catch (error) {
       console.error("Failed to delete project:", error);
+      throw error;
+    }
+  },
+
+  async generateSocialAgentCalendar(workspaceId) {
+    try {
+      const response = await apiClient.post('/social-agent/generate/calendar', { workspaceId }, { timeout: 300000 });
+      return response.data;
+    } catch (error) {
+      console.error("AI Calendar Generation failed:", error);
+      throw error;
+    }
+  },
+
+  async generateSocialAgentHashtags(workspaceId) {
+    try {
+      const response = await apiClient.post('/social-agent/generate/hashtags', { workspaceId });
+      return response.data;
+    } catch (error) {
+      console.error("AI Hashtag Generation failed:", error);
+      throw error;
+    }
+  },
+
+  async generateSocialAgentImagePrompt(workspaceId, userIdea = "") {
+    try {
+      const response = await apiClient.post('/social-agent/generate/image-prompt', { workspaceId, userIdea });
+      return response.data;
+    } catch (error) {
+      console.error("AI Image Prompt Generation failed:", error);
+      throw error;
+    }
+  },
+
+  async exportSocialAgentCalendar(workspaceId) {
+    try {
+      const response = await apiClient.get('/social-agent/export/calendar', {
+        params: { workspaceId },
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Calendar export failed:", error);
+      throw new Error("Unable to generate Excel. Make sure you have generated content first.");
+    }
+  },
+
+  async deleteSocialAgentCalendarEntry(entryId) {
+    try {
+      const response = await apiClient.delete(`/social-agent/calendar/entry/${entryId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to delete calendar entry:", error);
+      throw error;
+    }
+  },
+
+  async deleteSocialAgentWorkspace(workspaceId) {
+    try {
+      const response = await apiClient.delete(`/social-agent/workspace/${workspaceId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to delete brand workspace:", error);
       throw error;
     }
   }

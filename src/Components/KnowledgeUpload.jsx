@@ -7,7 +7,7 @@ const KnowledgeUpload = ({ onUploadSuccess }) => {
     const [activeTab, setActiveTab] = useState('file'); // 'file' | 'url'
     const [file, setFile] = useState(null);
     const [url, setUrl] = useState('');
-    const [category, setCategory] = useState('General');
+    const [category, setCategory] = useState('LEGAL');
     const [isDragActive, setIsDragActive] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
@@ -126,19 +126,33 @@ const KnowledgeUpload = ({ onUploadSuccess }) => {
                     </p>
                 </div>
 
-                <div className="flex bg-white/10 p-1 rounded-xl">
-                    <button
-                        onClick={() => { setActiveTab('file'); resetUpload(); }}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'file' ? 'bg-primary text-white shadow-lg' : 'text-subtext hover:text-maintext'}`}
-                    >
-                        <UploadCloud className="w-4 h-4" /> File Upload
-                    </button>
-                    <button
-                        onClick={() => { setActiveTab('url'); resetUpload(); }}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'url' ? 'bg-primary text-white shadow-lg' : 'text-subtext hover:text-maintext'}`}
-                    >
-                        <LinkIcon className="w-4 h-4" /> URL Upload
-                    </button>
+                <div className="flex flex-col items-end gap-3">
+                    <div className="flex items-center gap-3 bg-white/10 p-1.5 rounded-xl border border-white/10">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-subtext ml-2">Target Category:</span>
+                        <select
+                            value={category}
+                            onChange={(e) => setCategory(e.target.value)}
+                            className="bg-primary/20 text-primary border border-primary/30 rounded-lg px-3 py-1.5 text-xs font-bold outline-none hover:bg-primary/30 transition-all cursor-pointer"
+                        >
+                            <option value="LEGAL">LEGAL (Law/Pro)</option>
+                            <option value="GENERAL">GENERAL (Public)</option>
+                        </select>
+                    </div>
+
+                    <div className="flex bg-white/10 p-1 rounded-xl">
+                        <button
+                            onClick={() => { setActiveTab('file'); resetUpload(); }}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'file' ? 'bg-primary text-white shadow-lg' : 'text-subtext hover:text-maintext'}`}
+                        >
+                            <UploadCloud className="w-4 h-4" /> File Upload
+                        </button>
+                        <button
+                            onClick={() => { setActiveTab('url'); resetUpload(); }}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'url' ? 'bg-primary text-white shadow-lg' : 'text-subtext hover:text-maintext'}`}
+                        >
+                            <LinkIcon className="w-4 h-4" /> URL Upload
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -222,22 +236,7 @@ const KnowledgeUpload = ({ onUploadSuccess }) => {
                                         </div>
                                     )}
 
-                                    {!isUploading && (
-                                        <div className="mb-6">
-                                            <label className="block text-sm font-medium text-slate-400 mb-2">Category (Domain)</label>
-                                            <select
-                                                value={category}
-                                                onChange={(e) => setCategory(e.target.value)}
-                                                className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-slate-200 outline-none focus:border-primary transition-colors"
-                                            >
-                                                <option value="General">General</option>
-                                                <option value="HR">HR / Policies</option>
-                                                <option value="Engineering">Engineering</option>
-                                                <option value="Sales">Sales & Marketing</option>
-                                                <option value="Support">Customer Support</option>
-                                            </select>
-                                        </div>
-                                    )}
+
 
                                     <button
                                         onClick={handleUpload}
@@ -288,19 +287,7 @@ const KnowledgeUpload = ({ onUploadSuccess }) => {
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                                    <div>
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Category</label>
-                                        <select
-                                            value={category}
-                                            onChange={(e) => setCategory(e.target.value)}
-                                            className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-slate-200 outline-none focus:border-primary transition-colors text-sm"
-                                        >
-                                            <option value="General">General</option>
-                                            <option value="Research">Web Research</option>
-                                            <option value="Documentation">Documentation</option>
-                                            <option value="Blog">Articles / Blogs</option>
-                                        </select>
-                                    </div>
+
                                     <div>
                                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Update Frequency</label>
                                         <select

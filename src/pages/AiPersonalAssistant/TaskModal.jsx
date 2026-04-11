@@ -9,7 +9,8 @@ const TaskModal = ({ isOpen, onClose, onSave, task = null }) => {
         date: '',
         time: '',
         recurring: 'none',
-        isUrgent: false
+        isUrgent: false,
+        voice: 'en-US-Standard-A' // Default voice
     });
 
     const { t } = useLanguage();
@@ -23,7 +24,8 @@ const TaskModal = ({ isOpen, onClose, onSave, task = null }) => {
                 date: dt.toISOString().split('T')[0],
                 time: dt.toTimeString().slice(0, 5),
                 recurring: task.recurring || 'none',
-                isUrgent: task.isUrgent || false
+                isUrgent: task.isUrgent || false,
+                voice: task.voice || 'en-US-Standard-A'
             });
         } else {
             // Reset or Default
@@ -34,7 +36,8 @@ const TaskModal = ({ isOpen, onClose, onSave, task = null }) => {
                 date: new Date().toISOString().split('T')[0],
                 time: '12:00',
                 recurring: 'none',
-                isUrgent: false
+                isUrgent: false,
+                voice: 'en-US-Standard-A'
             });
         }
     }, [task, isOpen]);
@@ -240,6 +243,24 @@ const TaskModal = ({ isOpen, onClose, onSave, task = null }) => {
                             className="w-4 h-4 rounded border-gray-300 text-red-500 focus:ring-red-500"
                         />
                         <label htmlFor="urgent" className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('urgentMode')}</label>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">🎙️ {t('voiceReminder') || 'Voice Reminder'}</label>
+                        <select
+                            value={formData.voice}
+                            onChange={e => setFormData({ ...formData, voice: e.target.value })}
+                            className="w-full p-2 rounded-lg bg-gray-50 dark:bg-[#2A2A2A] border border-gray-200 dark:border-gray-700 outline-none"
+                        >
+                            <option value="none">{t('noVoice') || 'No Voice'}</option>
+                            <option value="en-US-Standard-A">Sarah (US English)</option>
+                            <option value="en-US-Standard-B">John (US English)</option>
+                            <option value="hi-IN-Standard-A">Ananya (Hindi)</option>
+                            <option value="hi-IN-Standard-B">Aditya (Hindi)</option>
+                            <option value="en-GB-Standard-A">Emily (UK English)</option>
+                            <option value="fr-FR-Standard-A">Léa (French)</option>
+                            <option value="ja-JP-Standard-A">Sakura (Japanese)</option>
+                        </select>
                     </div>
 
                     <button type="submit" className="w-full py-3 bg-primary text-white rounded-xl font-semibold hover:bg-primary/90 transition-colors mt-2">

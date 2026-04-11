@@ -163,6 +163,7 @@ export const mapModeToToolState = (frontendMode) => {
         'CODING_HELP': { activeCodeWriter: true, mode: 'CODING_HELP' },
         'FILE_ANALYSIS': { activeFileAnalysis: true, mode: 'FILE_ANALYSIS' },
         'FILE_CONVERSION': { activeFileAnalysis: true, mode: 'FILE_CONVERSION' },
+        'LEGAL_TOOLKIT': { activeLegalToolkit: true, mode: 'LEGAL_TOOLKIT' },
         'NORMAL_CHAT': {}
     };
     return modeMap[frontendMode] || {};

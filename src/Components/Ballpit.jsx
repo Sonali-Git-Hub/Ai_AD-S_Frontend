@@ -355,7 +355,7 @@ class ScatteringMaterial extends THREE.MeshPhysicalMaterial {
                     vec3 scatteringHalf = normalize(directLight.direction + (geometryNormal * thicknessDistortion));
                     float scatteringDot = pow(saturate(dot(geometryViewDir, -scatteringHalf)), thicknessPower) * thicknessScale;
                     #ifdef USE_COLOR
-                        vec3 scatteringIllu = (scatteringDot + thicknessAmbient) * vColor;
+                        vec3 scatteringIllu = (scatteringDot + thicknessAmbient) * vColor.rgb;
                     #else
                         vec3 scatteringIllu = (scatteringDot + thicknessAmbient) * diffuse;
                     #endif
@@ -485,7 +485,7 @@ const Ballpit = ({ className = '', followCursor = true, colors, ...props }) => {
         sceneControl.camera.position.set(0, 0, 15);
         sceneControl.camera.lookAt(0, 0, 0);
 
-        const spheres = new SpheresSystem(sceneControl.renderer, { followCursor, colors, ...props });
+        const spheres = new SpheresSystem(sceneControl.renderer, { followCursor, ...(colors ? { colors } : {}), ...props });
         sceneControl.scene.add(spheres);
 
         const raycaster = new THREE.Raycaster();

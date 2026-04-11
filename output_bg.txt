@@ -1,0 +1,3 @@
+44: import NeuralBackground from '../Components/NeuralBackground';
+4778: <NeuralBackground />
+5988: <NeuralBackground />

@@ -7,10 +7,12 @@ export const LanguageProvider = ({ children }) => {
     const { personalizations, updatePersonalization } = usePersonalization();
 
     // Single Source of Truth from PersonalizationContext
-    const language = personalizations?.general?.language || 'English';
+    // ALWAYS force English for UI - chat content language is separate
+    const rawLanguage = personalizations?.general?.language || 'English';
+    const language = 'English'; // UI language is always English
     const region = personalizations?.general?.region || 'India';
 
-    const setLanguage = (lang) => updatePersonalization('general', { language: lang });
+    const setLanguage = (lang) => updatePersonalization('general', { language: 'English' }); // Always English
     const setRegion = (reg) => updatePersonalization('general', { region: reg });
 
     const regions = {
@@ -218,6 +220,8 @@ export const LanguageProvider = ({ children }) => {
             welcomeMessage: "Hello! I’m AISA™, your Artificial Intelligence Super Assistant.",
             switchedTo: "Switched to",
             heroTitle: "The Future of Conversational AI",
+            heroTitleLine1: "The Future of",
+            heroTitleLine2: "Conversational AI",
             heroSubtitle: "Experience the next generation of intelligent assistance. AISA ™ learns, adapts, and creates with you in real-time through a stunning interface.",
             startNow: "Start Now",
             privacyTitle: "Privacy First",
@@ -237,6 +241,7 @@ export const LanguageProvider = ({ children }) => {
 
             poweredByUWO: "Powered by UWO™",
             exploreAisa: "Explore AISA™",
+            exploreAiMall: "Explore AI-Mall",
             existingUser: "Existing User",
             getStarted: "Get Started",
             faqSubtitle: "Get quick answers to common questions about our platform",
@@ -423,10 +428,10 @@ export const LanguageProvider = ({ children }) => {
             createAccount: "Create Account",
             backToHome: "Back to Home",
             fullName: "Full Name",
-            joinAISA: "Join AI Super Assistant to unlock full access",
+            joinAISA: "Join AI Super Assistant™ to unlock full access",
             alreadyHaveAccount: "Already have an account?",
             signingUp: "Creating Account...",
-            successLogin: "Successfully Logged in AISA",
+            successLogin: "Successfully Logged in AISA™",
             serverError: "Unable to connect to the server. Please check your internet connection and try again.",
             passwordValidation: "Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character.",
 
@@ -587,6 +592,8 @@ export const LanguageProvider = ({ children }) => {
             welcomeMessage: "नमस्ते! मैं AISA™ हूँ, आपका आर्टिफिशियल इंटेलिजेंस सुपर असिस्टेंट।",
             switchedTo: "पर स्विच किया गया",
             heroTitle: "संवादात्मक एआई का भविष्य",
+            heroTitleLine1: "संवादात्मक",
+            heroTitleLine2: "एआई का भविष्य",
             heroSubtitle: "इंटेलिजेंट सहायता की अगली पीढ़ी का अनुभव करें। AISA™ एक शानदार इंटरफ़ेस के माध्यम से वास्तविक समय में आपके साथ सीखता है, अनुकूलित होता है और बनाता है।",
             startNow: "अभी शुरू करें",
             privacyTitle: "गोपनीयता पहले",
@@ -606,6 +613,7 @@ export const LanguageProvider = ({ children }) => {
 
             poweredByUWO: "UWO™ द्वारा संचालित",
             exploreAisa: "AISA™ एक्सप्लोर करें",
+            exploreAiMall: "AI-Mall एक्सप्लोर करें",
             existingUser: "मौजूदा उपयोगकर्ता",
             getStarted: "शुरू करें",
             faqSubtitle: "हमारे प्लेटफ़ॉर्म के बारे में सामान्य प्रश्नों के त्वरित उत्तर प्राप्त करें",
@@ -615,15 +623,15 @@ export const LanguageProvider = ({ children }) => {
             faq: "एफएक्यू",
             faqList: [
                 {
-                    question: "AISA क्या है?",
-                    answer: "AISA एक बुद्धिमान एआई चैट सहायक है जो आपको लेखन, विश्लेषण, कोडिंग और बहुत कुछ करने में मदद करता है। रचनात्मक और तकनीकी कार्यों के लिए यह आपका व्यक्तिगत एआई साथी है।"
+                    question: "AISA™ क्या है?",
+                    answer: "AISA™ एक बुद्धिमान एआई चैट सहायक है जो आपको लेखन, विश्लेषण, कोडिंग और बहुत कुछ करने में मदद करता है। रचनात्मक और तकनीकी कार्यों के लिए यह आपका व्यक्तिगत एआई साथी है।"
                 },
                 {
-                    question: "मैं AISA का उपयोग कैसे करूँ?",
+                    question: "मैं AISA™ का उपयोग कैसे करूँ?",
                     answer: "बस चैट इंटरफ़ेस में अपना संदेश या प्रश्न टाइप करें। आप चित्र भी बना सकते हैं, गहरी खोज कर सकते हैं और दस्तावेज़ों को परिवर्तित कर सकते हैं।"
                 },
                 {
-                    question: "AISA को कौन से एआई मॉडल पावर देते हैं?",
+                    question: "AISA™ को कौन से एआई मॉडल पावर देते हैं?",
                     answer: "हम उच्च-गुणवत्ता वाली प्रतिक्रियाएं, तेज़ प्रसंस्करण और उत्कृष्ट तर्क क्षमता सुनिश्चित करने के लिए उन्नत एआई मॉडल का उपयोग करते हैं।"
                 },
                 {
@@ -631,20 +639,20 @@ export const LanguageProvider = ({ children }) => {
                     answer: "हाँ, आपका डेटा हमारे लिए महत्वपूर्ण है। हम आपकी जानकारी की सुरक्षा के लिए एंटरप्राइज़-ग्रेड सुरक्षा का उपयोग करते हैं और सख्त डेटा गोपनीयता प्रोटोकॉल का पालन करते हैं।"
                 },
                 {
-                    question: "AISA में कौन सी सुविधाएँ हैं?",
-                    answer: "AISA में शामिल हैं: बुद्धिमान चैट, छवि निर्माण, गहरी वेब खोज, फ़ाइल रूपांतरण (DOCX से PDF), और बहुत कुछ। सभी उपलब्ध सुविधाओं के लिए चैट मेनू देखें।"
+                    question: "AISA™ में कौन सी सुविधाएँ हैं?",
+                    answer: "AISA™ में शामिल हैं: बुद्धिमान चैट, छवि निर्माण, गहरी वेब खोज, फ़ाइल रूपांतरण (DOCX से PDF), और बहुत कुछ। सभी उपलब्ध सुविधाओं के लिए चैट मेनू देखें।"
                 },
                 {
-                    question: "क्या मैं AISA के साथ चित्र बना सकता हूँ?",
+                    question: "क्या मैं AISA™ के साथ चित्र बना सकता हूँ?",
                     answer: "हाँ! टेक्स्ट विवरण से चित्र बनाने के लिए चैट में मेनू बटन पर क्लिक करें और 'इमेज जेनरेट करें' चुनें।"
                 },
                 {
-                    question: "AISA को क्या अलग बनाता है?",
-                    answer: "AISA शक्तिशाली एआई सुविधाओं के साथ एक सहज, एकीकृत इंटरफ़ेस प्रदान करता है जो सीधे आपके चैट अनुभव में एकीकृत है - किसी जटिल सेटअप की आवश्यकता नहीं है।"
+                    question: "AISA™ को क्या अलग बनाता है?",
+                    answer: "AISA™ शक्तिशाली एआई सुविधाओं के साथ एक सहज, एकीकृत इंटरफ़ेस प्रदान करता है जो सीधे आपके चैट अनुभव में एकीकृत है - किसी जटिल सेटअप की आवश्यकता नहीं है।"
                 },
                 {
                     question: "क्या यह मोबाइल के अनुकूल है?",
-                    answer: "हाँ, AISA पूरी तरह से उत्तरदायी इंटरफ़ेस के साथ डेस्कटॉप, टैबलेट और मोबाइल उपकरणों पर सुचारू रूप से काम करता है।"
+                    answer: "हाँ, AISA™ पूरी तरह से उत्तरदायी इंटरफ़ेस के साथ डेस्कटॉप, टैबलेट और मोबाइल उपकरणों पर सुचारू रूप से काम करता है।"
                 },
                 {
                     question: "मैं शुरुआत कैसे करूँ?",
@@ -657,7 +665,7 @@ export const LanguageProvider = ({ children }) => {
             aboutIntro: "एक सहज, बुद्धिमान कार्यक्षेत्र जिसे आपके साथ सोचने, बात करने और बनाने के लिए डिज़ाइन किया गया है। ऐप्स के बीच जुगलिंग बंद करें—एक ही इंटरफ़ेस में बातचीत, निर्माण, विश्लेषण और गहरी खोज का अनुभव करें।",
             coreIntelligence: "कोर इंटेलिजेंस",
             coreIntelligenceDesc: "AISA™ उन्नत एआई सिस्टम द्वारा संचालित है जो संदर्भ-जागरूक बातचीत, मल्टी-मोडल समझ, बुद्धिमान दस्तावेज़ प्रसंस्करण और वास्तविक समय दृश्य और आवाज बातचीत को सक्षम बनाता है।",
-            whyAisaExists: "AISA क्यों मौजूद है",
+            whyAisaExists: "AISA™ क्यों मौजूद है",
             whyAisaExistsDesc: "आधुनिक उपयोगकर्ता बहुत सारे टूल का उपयोग करते हैं। AISA™ सभी कार्यों के लिए एक एआई की पेशकश करके इसे हल करता है: तेज़ कार्यप्रवाह, समझदार समझ और वास्तविक दुनिया की उपयोगिता।",
             powerhouseFeatures: "पावरहाउस फीचर्स",
             builtForEveryone: "सभी के लिए बनाया गया",
@@ -792,10 +800,10 @@ export const LanguageProvider = ({ children }) => {
             createAccount: "खाता बनाएं",
             backToHome: "मुखपृष्ठ पर वापस जाएं",
             fullName: "पूरा नाम",
-            joinAISA: "पूर्ण पहुंच के लिए एआई सुपर असिस्टेंट से जुड़ें",
+            joinAISA: "पूर्ण पहुंच के लिए एआई सुपर असिस्टेंट™ से जुड़ें",
             alreadyHaveAccount: "क्या आपके पास पहले से खाता है?",
             signingUp: "खाता बनाया जा रहा है...",
-            successLogin: "AISA में सफलतापूर्वक लॉग इन किया गया",
+            successLogin: "AISA™ में सफलतापूर्वक लॉग इन किया गया",
             serverError: "सर्वर से कनेक्ट करने में असमर्थ। कृपया अपना इंटरनेट कनेक्शन जांचें और पुन: प्रयास करें।",
             passwordValidation: "पासवर्ड कम से कम 8 वर्ण लंबा होना चाहिए और इसमें एक बड़ा अक्षर, एक छोटा अक्षर, एक संख्या और एक विशेष वर्ण शामिल होना चाहिए।",
             dbDemoModeMessage: "एआई वर्तमान में डेमो मोड में चल रहा है क्योंकि डेटाबेस दुर्गम है। आपके संदेश सहेजे नहीं जा सकते हैं।",
@@ -900,6 +908,7 @@ export const LanguageProvider = ({ children }) => {
             aboutAisa: "Sobre AISA",
             poweredByUWO: "Desarrollado por UWO",
 
+            exploreAiMall: "Explorar AI-Mall",
             existingUser: "Usuario existente",
             getStarted: "Empezar",
             faqSubtitle: "Obtenga respuestas rápidas a preguntas comunes sobre nuestra plataforma",
@@ -1212,6 +1221,7 @@ export const LanguageProvider = ({ children }) => {
             aboutAisa: "À propos d'AISA",
             poweredByUWO: "Propulsé par UWO",
 
+            exploreAiMall: "Explorer AI-Mall",
             existingUser: "Utilisateur existant",
             getStarted: "Commencer",
             faqSubtitle: "Réponses rapides aux questions courantes sur notre plateforme",
@@ -1524,6 +1534,7 @@ export const LanguageProvider = ({ children }) => {
             aboutAisa: "AISAについて",
             poweredByUWO: "UWOによる提供",
             exploreAisa: "AISAを探索する",
+            exploreAiMall: "AI-Mallを探索する",
             existingUser: "既存のユーザー",
             getStarted: "今すぐ始める",
             faqSubtitle: "プラットフォームに関するよくある質問にすぐにお答えします",

@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect, Fragment } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Send, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe, Sliders, PlayCircle, Brain, ImagePlus, PlaySquare, RefreshCcw } from 'lucide-react';
+import { Send, SendHorizontal, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe, Sliders, PlayCircle, Brain, ImagePlus, PlaySquare, RefreshCcw, TrendingUp, Zap, Scale, Navigation, Rocket } from 'lucide-react';
 import { renderAsync } from 'docx-preview';
 import * as XLSX from 'xlsx';
 import { Menu, Transition, Dialog, Listbox, Portal } from '@headlessui/react';
-import { generateChatResponse } from '../services/geminiService';
+import { generateChatResponse, generateFollowUpPrompts } from '../services/geminiService';
 import { chatStorageService } from '../services/chatStorageService';
 import { useLanguage } from '../context/LanguageContext';
 import { useRecoilState } from 'recoil';
@@ -22,8 +22,11 @@ import ImageEditor from '../Components/ImageEditor';
 import CustomVideoPlayer from '../Components/CustomVideoPlayer';
 import ModelSelector from '../Components/ModelSelector';
 import MagicToolSettingsCard from '../Components/MagicToolSettingsCard';
+import CashFlowStockModal from '../Components/CashFlowStockModal';
+import CashFlowChartWidget from '../Components/CashFlowChartWidget';
+import LegalToolkitCard from '../Components/LegalToolkitCard';
 import axios from 'axios';
-import { apis } from '../types';
+import { apis, API } from '../types';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { detectMode, getModeName, getModeIcon, getModeColor, MODES } from '../utils/modeDetection';
@@ -37,7 +40,162 @@ import { getSubscriptionDetails } from '../services/pricingService';
 import IntentSuggestionBanner from '../Components/IntentSuggestionBanner';
 import { detectIntent, mapModeToToolState } from '../services/intentService';
 import LoginRequiredModal from '../Components/LoginRequiredModal';
-import AiAdDashboard from '../Components/AiAdDashboard';
+import AiSocialMediaDashboard from '../Components/AiSocialMediaDashboard';
+import FuturisticToolCards from '../Components/FuturisticToolCards';
+import AisaTypingIndicator from '../Components/AisaTypingIndicator';
+import AISnapshot from '../Components/AISnapshot';
+
+
+const SendRipple = ({ onComplete }) => {
+  return (
+    <div className="absolute inset-0 pointer-events-none z-0">
+      <motion.div
+        initial={{ scale: 1, opacity: 0.8 }}
+        animate={{ scale: 3.5, opacity: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        onAnimationComplete={onComplete}
+        className="absolute inset-0 rounded-full border-2 border-primary/40 bg-primary/5"
+      />
+      {/* Mini Sparkle Burst for Send */}
+      {[...Array(12)].map((_, i) => {
+        const angle = (i / 12) * Math.PI * 2;
+        const dist = 60 + Math.random() * 40;
+        return (
+          <motion.div
+            key={i}
+            initial={{ x: 0, y: 0, scale: 0, opacity: 0 }}
+            animate={{ 
+              x: Math.cos(angle) * dist, 
+              y: Math.sin(angle) * dist, 
+              scale: [0, 1.5, 0], 
+              opacity: [0, 1, 0] 
+            }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+          >
+            <Sparkles size={10} className="text-primary fill-current" />
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+};
+
+const MagicShowEffect = ({ isMobileIdle = false }) => {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const particleCount = isMobileIdle ? 4 : (isMobile ? 8 : 28);
+
+  return (
+    <div className={`absolute inset-0 pointer-events-none overflow-visible z-0 ${isMobileIdle ? 'opacity-40' : 'opacity-100'}`}>
+      {/* 1. Pulsing Expansion Halos */}
+      <motion.div
+        animate={{ scale: [1, 2.2], opacity: [0.5, 0] }}
+        transition={{ duration: isMobileIdle ? 3 : 1.5, repeat: Infinity, ease: "easeOut" }}
+        className="absolute inset-[-4px] border-[1.5px] border-primary/40 rounded-full blur-[1px]"
+      />
+      
+      {!isMobileIdle && (
+        <motion.div
+          animate={{ scale: [0.8, 1.8], opacity: [0.3, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeOut", delay: 0.5 }}
+          className="absolute inset-[-4px] border-[1px] border-blue-400/20 rounded-full blur-[2px]"
+        />
+      )}
+
+      {/* 2. Sweeping Lens Glint across the button */}
+      <div className="absolute inset-0 rounded-full overflow-hidden z-20">
+        <motion.div
+          animate={{ x: [-60, 60], opacity: [0, 0.8, 0] }}
+          transition={{ duration: isMobileIdle ? 3 : 1.2, repeat: Infinity, repeatDelay: isMobileIdle ? 2 : 0.8 }}
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent skew-x-[-30deg]"
+        />
+      </div>
+
+      {/* 3. Theatrical Magic Sparkles */}
+      {[...Array(particleCount)].map((_, i) => {
+        const randomX = (Math.random() - 0.5) * (isMobileIdle ? 100 : 280); 
+        const randomY = (Math.random() - 0.5) * (isMobileIdle ? 100 : 240) - (isMobileIdle ? 0 : 50); 
+        const randomScale = Math.random() * 1.4 + 0.5;
+        const randomRotation = Math.random() * 360;
+        const randomDuration = isMobileIdle ? 1.5 + Math.random() * 2 : 0.5 + Math.random() * 1.0;
+        const randomDelay = Math.random() * (isMobileIdle ? 1.5 : 0.15);
+
+        return (
+          <motion.div
+            key={i}
+            initial={{ x: 0, y: 0, opacity: 0, scale: 0 }}
+            animate={{
+              x: randomX,
+              y: randomY,
+              opacity: [0, 1, 0.8, 0],
+              scale: [0, randomScale, 1.2, 0],
+              rotate: [0, randomRotation],
+            }}
+            transition={{
+              duration: randomDuration,
+              repeat: Infinity,
+              delay: randomDelay,
+              ease: [0.23, 1, 0.32, 1] 
+            }}
+            className="absolute flex items-center justify-center top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+          >
+            <Sparkles 
+              size={Math.random() * 14 + 10} 
+              className={i % 3 === 0 ? "text-indigo-400" : (i % 2 === 0 ? "text-primary" : "text-white")} 
+              fill="currentColor"
+              style={isMobile ? {} : { filter: `drop-shadow(0 0 12px ${i % 2 === 0 ? '#8b5cf6' : '#fff'})` }}
+            />
+          </motion.div>
+        );
+      })}
+
+      {/* 4. Underlying Glow Bloom (Hidden on mobile to heavily save GPU rendering) */}
+      {!isMobile && (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 0.7, scale: 1.25 }}
+          className="absolute inset-[-40px] rounded-full blur-[50px] mix-blend-screen pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(139, 92, 246, 0.6) 0%, transparent 70%)' }}
+        />
+      )}
+    </div>
+  );
+};
+
+const NeuralExplosion = ({ x, y, onComplete }) => {
+  const particles = Array.from({ length: 24 });
+  return (
+    <div className="fixed inset-0 pointer-events-none z-[9999]">
+      {particles.map((_, i) => (
+        <motion.div
+          key={i}
+          initial={{ x, y, opacity: 1, scale: 0.2 }}
+          animate={{
+            x: x + (Math.random() - 0.5) * 250,
+            y: y + (Math.random() - 0.5) * 250,
+            opacity: 0.8,
+            scale: 1,
+            transition: { 
+              duration: 0.4, 
+              ease: "easeOut" 
+            }
+          }}
+          onAnimationComplete={i === 0 ? onComplete : undefined}
+        >
+          <motion.div
+            animate={{ opacity: 0, scale: 0 }}
+            transition={{ delay: 0.4, duration: 0.4 }}
+            className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full"
+            style={{ 
+              background: i % 2 === 0 ? '#8b5cf6' : '#3b82f6',
+              boxShadow: `0 0 15px ${i % 2 === 0 ? '#8b5cf6' : '#3b82f6'}`
+            }}
+          />
+        </motion.div>
+      ))}
+    </div>
+  );
+};
 
 
 
@@ -72,31 +230,31 @@ const FEEDBACK_PROMPTS = {
 const TOOL_PRICING = {
   chat: {
     models: [
-      { id: 'gemini-flash', name: 'AISA Flash', price: 0, speed: 'Fast', description: 'Free chat model' }
+      { id: 'gemini-flash', name: 'AI Ads Flash', price: 0, speed: 'Fast', description: 'Free chat model' }
     ]
   },
   image: {
     models: [
-      { id: 'imagen-3.0-generate-001', name: 'AISA Imagen 3', price: 45, speed: 'Fast', description: 'Advanced image generation & editing' },
-      { id: 'imagen-4.0-ultra-generate-001', name: 'AISA Imagen 4 Ultra', price: 90, speed: 'Premium', description: 'Next-generation hyper-realistic image generation' }
+      { id: 'imagen-3.0-generate-001', name: 'AI Ads Imagen 3', price: 45, speed: 'Fast', description: 'Advanced image generation & editing' },
+      { id: 'imagen-4.0-ultra-generate-001', name: 'AI Ads Imagen 4 Ultra', price: 90, speed: 'Premium', description: 'Next-generation hyper-realistic image generation' }
     ]
   },
   video: {
     models: [
-      { id: 'veo-3.1-fast-generate-001', name: 'AISA Video Fast', price: '225/5s', speed: 'Fast', description: 'Quick high-quality video generation' },
-      { id: 'veo-3.1-generate-001', name: 'AISA Video Pro', price: '600/5s', speed: 'Cinema', description: 'Next-gen cinematic video synthesis' }
+      { id: 'veo-3.1-fast-generate-001', name: 'AI Ads Video Fast', price: '225/5s', speed: 'Fast', description: 'Quick high-quality video generation' },
+      { id: 'veo-3.1-generate-001', name: 'AI Ads Video Pro', price: '600/5s', speed: 'Cinema', description: 'Next-gen cinematic video synthesis' }
     ]
   },
   document: {
     models: [
-      { id: 'gemini-flash', name: 'AISA Flash', price: 0, speed: 'Fast', description: 'Basic document analysis' },
-      { id: 'gemini-pro', name: 'AISA Pro', price: 20, speed: 'Medium', description: 'Advanced document processing' },
-      { id: 'gpt4', name: 'AISA Premium', price: 30, speed: 'Medium', description: 'Premium document analysis' }
+      { id: 'gemini-flash', name: 'AI Ads Flash', price: 0, speed: 'Fast', description: 'Basic document analysis' },
+      { id: 'gemini-pro', name: 'AI Ads Pro', price: 20, speed: 'Medium', description: 'Advanced document processing' },
+      { id: 'gpt4', name: 'AI Ads Premium', price: 30, speed: 'Medium', description: 'Premium document analysis' }
     ]
   },
   voice: {
     models: [
-      { id: 'gemini-flash', name: 'AISA Flash', price: 0, speed: 'Fast', description: 'Standard voice recognition' }
+      { id: 'gemini-flash', name: 'AI Ads Flash', price: 0, speed: 'Fast', description: 'Standard voice recognition' }
     ]
   }
 };
@@ -230,7 +388,10 @@ const ImageViewer = ({ src, alt }) => {
             console.error("Viewer image load failed:", src);
             if (src && !e.target.dataset.retried) {
               e.target.dataset.retried = "true";
-              const retryUrl = src + (src.includes('?') ? '&' : '?') + 'retry=' + Date.now();
+              const isSignedUrl = src?.includes('X-Goog-Signature');
+              const retryUrl = isSignedUrl
+                ? src
+                : src + (src.includes('?') ? '&' : '?') + 'retry=' + Date.now();
               console.log("Retrying viewer image:", retryUrl);
               e.target.src = retryUrl;
             } else {
@@ -238,12 +399,15 @@ const ImageViewer = ({ src, alt }) => {
               e.target.style.cursor = 'pointer';
               e.target.onclick = (event) => {
                 event.stopPropagation();
-                e.target.src = src + (src.includes('?') ? '&' : '?') + 'reload=' + Date.now();
+                const isSignedUrl = src?.includes('X-Goog-Signature');
+                e.target.src = isSignedUrl ? src : src + (src.includes('?') ? '&' : '?') + 'reload=' + Date.now();
               };
             }
           }}
         />
       </div>
+
+
     </div>
   );
 };
@@ -259,9 +423,24 @@ const Chat = () => {
   // Premium access check: fires event for upsell modal if user is on free plan
   const [isPremiumUser, setIsPremiumUser] = React.useState(null);
   const [userPlanName, setUserPlanName] = React.useState('');
+  const [isAdminUser, setIsAdminUser] = React.useState(false);
+  
   useEffect(() => {
     const user = getUserData();
-    if (!user?.token) { setIsPremiumUser(false); return; }
+    if (!user?.token) { 
+      setIsPremiumUser(false); 
+      setIsAdminUser(false);
+      return; 
+    }
+
+    // Admin Access Rule
+    if ((user.email && user.email.toLowerCase() === 'admin@uwo24.com') || (user.role === 'admin')) {
+      setIsAdminUser(true);
+      setIsPremiumUser(true);
+      setUserPlanName('AISA Admin');
+      return; // Skip server subscription check for admin
+    }
+
     getSubscriptionDetails()
       .then(data => {
         const hasSub = data?.subscription && data.subscription?.planId;
@@ -272,12 +451,21 @@ const Chat = () => {
       .catch(() => setIsPremiumUser(false));
   }, []);
 
+  const user = getUserData();
+  const isAdmin = user?.token && (user?.role === 'admin' || user?.email === 'admin@uwo24.com');
+
   const checkPremiumTool = (toolName) => {
-    const user = getUserData();
+    // Whitelist AI Legal and AI CashFlow for all users
+    if (toolName === 'AI Legal' || toolName === 'AI CashFlow') return true;
+
     if (!user?.token) {
       window.dispatchEvent(new CustomEvent('login_required', { detail: { toolName } }));
       return false;
     }
+
+    // Admin Access Rule: Treat all tools as unlocked
+    if (user.email === 'admin@uwo24.com' || isAdminUser) return true;
+
     if (isPremiumUser === null) return true; // still loading, allow optimistically
 
     // Check if tool is video and plan is starter/founder
@@ -333,12 +521,72 @@ const Chat = () => {
   const [isMagicEditing, setIsMagicEditing] = useState(false);
   const [editRefImage, setEditRefImage] = useState(null);
   const [isMagicVideoModalOpen, setIsMagicVideoModalOpen] = useState(false);
-  const [isAiAdDashboardOpen, setIsAiAdDashboardOpen] = useState(false);
+  const [isSocialMediaDashboardOpen, setIsSocialMediaDashboardOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
+  const [explosions, setExplosions] = useState([]);
+  const [isBrainHovered, setIsBrainHovered] = useState(false);
+  const [isMicHovered, setIsMicHovered] = useState(false);
+  const [isSendHovered, setIsSendHovered] = useState(false);
+  const [isAttachHovered, setIsAttachHovered] = useState(false);
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+  const [isHoveredMenu, setIsHoveredMenu] = useState(false);
+  const [isBrainTapped, setIsBrainTapped] = useState(false);
+  const [isMicTapped, setIsMicTapped] = useState(false);
+  const [isSendTapped, setIsSendTapped] = useState(false);
+  const [isLaunching, setIsLaunching] = useState(false);
+  const [ripples, setRipples] = useState([]);
+  const DISCOVERY_PROMPTS = [
+    "Analyze complex legal documents...",
+    "Generate cinematic 8k images in space...",
+    "Search for real-time market updates...",
+    "Animate static scenes into cinematic video...",
+    "Summarize 50-page PDF reports...",
+    "Write production-ready Python code...",
+    "Convert documents into human-like audio..."
+  ];
+  const [typedPlaceholder, setTypedPlaceholder] = useState("");
+  const [discoveryIndex, setDiscoveryIndex] = useState(0);
+
+  useEffect(() => {
+    let charIndex = 0;
+    let isDeleting = false;
+    let timeoutId;
+    
+    const type = () => {
+      const currentPrompt = DISCOVERY_PROMPTS[discoveryIndex];
+      
+      if (isDeleting) {
+        setTypedPlaceholder(currentPrompt.substring(0, charIndex - 1));
+        charIndex--;
+      } else {
+        setTypedPlaceholder(currentPrompt.substring(0, charIndex + 1));
+        charIndex++;
+      }
+
+      let typingSpeed = isDeleting ? 30 : 50;
+
+      if (!isDeleting && charIndex === currentPrompt.length) {
+        isDeleting = true;
+        typingSpeed = 3000; // Pause at end before deleting
+      } else if (isDeleting && charIndex === 0) {
+        isDeleting = false;
+        setDiscoveryIndex((prev) => (prev + 1) % DISCOVERY_PROMPTS.length);
+        return; // Hand over to the next effect run
+      }
+
+      timeoutId = setTimeout(type, typingSpeed);
+    };
+
+    timeoutId = setTimeout(type, 500); // Initial pause before typing starts for this word
+    return () => clearTimeout(timeoutId);
+  }, [discoveryIndex]);
+  const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false);
+
   const [isLiveMode, setIsLiveMode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLimitReached, setIsLimitReached] = useState(false);
   const [filePreviews, setFilePreviews] = useState([]);
-  const [activeAgent, setActiveAgent] = useState({ agentName: 'AISA', category: 'General' });
+  const [activeAgent, setActiveAgent] = useState({ agentName: 'AI Ads', category: 'General' });
   const [userAgents, setUserAgents] = useState([]);
   const [toolModels, setToolModels] = useState({
     chat: 'gemini-flash',
@@ -371,7 +619,16 @@ const Chat = () => {
   const [isDocumentConvert, setIsDocumentConvert] = useState(false);
   const [isCodeWriter, setIsCodeWriter] = useState(false);
   const [isFileAnalysis, setIsFileAnalysis] = useState(false);
+  const [isCashFlowMode, setIsCashFlowMode] = useState(false);
+  const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+  const [selectedStock, setSelectedStock] = useState(null);
+  const [stockSearchResults, setStockSearchResults] = useState([]);
+  const [isSearchingStocks, setIsSearchingStocks] = useState(false);
   const [isVideoGeneration, setIsVideoGeneration] = useState(false);
+  const [activeLegalToolkit, setActiveLegalToolkit] = useState(false);
+  const [activeTool, setActiveTool] = useState(null);
+  const [unlockedTools, setUnlockedTools] = useState([]);
+  const [selectedLegalTool, setSelectedLegalTool] = useState(null);
   const [videoAspectRatio, setVideoAspectRatio] = useState('');
   const [videoModelId, setVideoModelId] = useState('veo-3.1-fast-generate-001');
   const [videoResolution, setVideoResolution] = useState('1080p');
@@ -387,7 +644,59 @@ const Chat = () => {
   const [isMagicSettingsOpen, setIsMagicSettingsOpen] = useState(false);
   const abortControllerRef = useRef(null);
   const voiceUsedRef = useRef(false); // Track if voice input was used
+
+  // ─── Direct Feature Link Handling ───
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const modeParam = params.get('mode')?.toLowerCase();
+    const toolParam = params.get('tool')?.toLowerCase();
+
+    if (modeParam || toolParam) {
+      // Deactivate all first
+      setIsDeepSearch(false); setIsWebSearch(false); setIsImageGeneration(false);
+      setIsVideoGeneration(false); setIsCodeWriter(false); setIsFileAnalysis(false);
+      setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsMagicEditing(false);
+      setActiveLegalToolkit(false);
+
+      // Map params to states
+      if (modeParam === 'deepsearch' || toolParam === 'deepsearch') setIsDeepSearch(true);
+      else if (modeParam === 'websearch' || modeParam === 'webbrowse' || toolParam === 'websearch') setIsWebSearch(true);
+      else if (modeParam === 'imagegen' || modeParam === 'image' || toolParam === 'imagegen') { setIsImageGeneration(true); setIsMagicSettingsOpen(true); }
+      else if (modeParam === 'videogen' || modeParam === 'video' || toolParam === 'videogen') { setIsVideoGeneration(true); setIsMagicSettingsOpen(true); }
+      else if (modeParam === 'coding' || modeParam === 'code' || toolParam === 'coding') setIsCodeWriter(true);
+      else if (modeParam === 'ailegal' || modeParam === 'legal' || toolParam === 'ailegal') { setActiveLegalToolkit(true); setCurrentMode('LEGAL_TOOLKIT'); }
+      else if (modeParam === 'aicashflow' || modeParam === 'finance' || toolParam === 'aicashflow') { setIsFileAnalysis(true); alert("AICASHFLOW analysis mode active. Please upload your ledger/data file."); } // Heuristic for now
+      
+      // Clear params to avoid re-triggering if user refreshes but wants to keep state manually? 
+      // Actually usually better to keep them or clear them. 
+      // navigate(location.pathname, { replace: true });
+    }
+  }, [location.search]);
+
+  // Tool Persistence
+  useEffect(() => {
+    const savedTool = localStorage.getItem('aisa_active_legal_tool');
+    if (savedTool && currentMode === 'LEGAL_TOOLKIT') {
+      setActiveTool(savedTool);
+    }
+  }, [currentMode]);
+
+  useEffect(() => {
+    if (activeTool) {
+      localStorage.setItem('aisa_active_legal_tool', activeTool);
+    } else {
+      localStorage.removeItem('aisa_active_legal_tool');
+    }
+  }, [activeTool]);
+
+  useEffect(() => {
+    if (currentMode !== 'LEGAL_TOOLKIT') {
+      setActiveTool(null);
+    }
+  }, [currentMode]);
   const inputRef = useRef(null); // Ref for textarea input
+  const welcomeSearchRef = useRef(null); // Ref for welcome screen search bar
+  const [welcomeInputValue, setWelcomeInputValue] = useState('');
   const transcriptRef = useRef(''); // Ref for speech transcript
   const isManualStopRef = useRef(false); // Track manual stop to avoid recursive loops
   const isDetectionPausedRef = useRef(false); // Pause detection after explicit dismissal
@@ -451,8 +760,14 @@ const Chat = () => {
     if (isFileAnalysis) { setIsImageGeneration(false); setIsDeepSearch(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsVideoGeneration(false); setIsMagicEditing(false); setIsMagicVideoModalOpen(false); }
   }, [isFileAnalysis]);
   useEffect(() => {
-    if (isMagicVideoModalOpen) { setIsImageGeneration(false); setIsDeepSearch(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsVideoGeneration(false); setIsMagicEditing(false); setIsFileAnalysis(false); }
+    if (isMagicVideoModalOpen) { setIsImageGeneration(false); setIsDeepSearch(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsVideoGeneration(false); setIsMagicEditing(false); setIsFileAnalysis(false); setIsCashFlowMode(false); setActiveLegalToolkit(false); }
   }, [isMagicVideoModalOpen]);
+  useEffect(() => {
+    if (isCashFlowMode) { setIsImageGeneration(false); setIsDeepSearch(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsVideoGeneration(false); setIsMagicEditing(false); setIsFileAnalysis(false); setIsMagicVideoModalOpen(false); setActiveLegalToolkit(false); }
+  }, [isCashFlowMode]);
+  useEffect(() => {
+    if (activeLegalToolkit) { setIsImageGeneration(false); setIsDeepSearch(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsVideoGeneration(false); setIsMagicEditing(false); setIsFileAnalysis(false); setIsMagicVideoModalOpen(false); setIsCashFlowMode(false); }
+  }, [activeLegalToolkit]);
 
   // ─── Intent Detection Logic (Routing System) ──────────────────────────────
   useEffect(() => {
@@ -506,23 +821,104 @@ const Chat = () => {
     setIsImageGeneration(false); setIsVideoGeneration(false); setIsDeepSearch(false); 
     setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); 
     setIsCodeWriter(false); setIsMagicEditing(false); setIsFileAnalysis(false);
+    setIsCashFlowMode(false);
+    setActiveLegalToolkit(false);
 
     // Dynamic activation based on map
-    if (toolUpdates.activeImageGen) setIsImageGeneration(true);
-    if (toolUpdates.activeVideoGen) setIsVideoGeneration(true);
-    if (toolUpdates.activeMagicEdit) setIsMagicEditing(true);
-    if (toolUpdates.activeAudioTalk) {
-      setIsAudioConvertMode(true);
+    if (toolUpdates.activeImageGen) { setIsImageGeneration(true); setIsMagicSettingsOpen(true); }
+    if (toolUpdates.activeVideoGen) { 
+      if (toolUpdates.videoMode === 'image_to_video') {
+        setIsMagicVideoModalOpen(true);
+      } else {
+        setIsVideoGeneration(true); 
+        setIsMagicSettingsOpen(true); 
+      }
     }
+    if (toolUpdates.activeMagicEdit) setIsMagicEditing(true);
+    if (toolUpdates.activeAudioTalk) setIsAudioConvertMode(true);
     if (toolUpdates.webSearchMode) setIsWebSearch(true);
     if (toolUpdates.deepSearchMode) setIsDeepSearch(true);
     if (toolUpdates.activeFileAnalysis) setIsFileAnalysis(true);
     if (toolUpdates.activeCodeWriter) setIsCodeWriter(true);
+    
+    if (toolUpdates.activeLegalToolkit) {
+      setActiveLegalToolkit(true);
+      // Auto-select tool if intent matches a specific legal tool
+      if (suggestion.intent && suggestion.intent.startsWith('legal_')) {
+        const toolId = suggestion.intent;
+        const toolMap = {
+          'legal_free_chat': 'Legal Assistant',
+          'legal_draft_maker': 'Draft Maker',
+          'legal_nda_generator': 'NDA Generator',
+          'legal_contract_analyzer': 'Contract Analyzer',
+          'legal_case_predictor': 'Case Predictor',
+          'legal_evidence_checker': 'Evidence Checker',
+          'legal_notice_generator': 'Legal Notice',
+          'legal_affidavit_generator': 'Affidavit Gen',
+          'legal_clause_scanner': 'Clause Scanner',
+          'legal_clause_rewriter': 'Clause Rewriter',
+          'legal_strategy_engine': 'Strategy Engine',
+          'legal_research_assistant': 'Research Assistant',
+          'legal_timeline_generator': 'Timeline Generator',
+          'legal_compliance_checker': 'Compliance Checker',
+          'legal_law_comparator': 'Law Comparator'
+        };
+        const activeToolName = toolMap[toolId] || toolId;
+        setSelectedLegalTool({ id: toolId, name: activeToolName });
+        setActiveTool(activeToolName);
+      }
+    }
+    
     if (toolUpdates.mode) setCurrentMode(toolUpdates.mode);
 
-    toast.success(`AISA switched to ${suggestion.intent.replace('_', ' ')}! ✨`);
+    toast.success(`AISA switched to ${suggestion.intent.replace('legal_', '').replace('_', ' ')}! ✨`);
+
     setIntentSuggestion(null);
     isDetectionPausedRef.current = true; // Don't re-detect immediately after switch
+  };
+
+  const handleSelectLegalSuggestion = (toolId, toolName) => {
+    const user = getUserData();
+    if (!user?.token) {
+      window.dispatchEvent(new CustomEvent('login_required', { detail: { toolName } }));
+      return;
+    }
+
+    // AI Legal is now available for ALL users (Free Tier)
+    const isUnlocked = true; // isAdminUser || unlockedTools.includes(toolId);
+    
+    if (!isUnlocked) {
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        role: 'user',
+        content: `Use ${toolName}`,
+        timestamp: Date.now()
+      }, {
+        id: (Date.now() + 1).toString(),
+        role: 'model',
+        content: `**Premium Mode Restricted**\n\nThe **${toolName}** tool is part of our Premium AI Legal archive.\n\n**To access this tool:**\n1. Select "Unlock All" to get full access.\n2. Or upgrade your subscription to the **FOUNDER PLAN**.`,
+        isPremiumRestricted: true,
+        timestamp: Date.now()
+      }]);
+      return;
+    }
+
+    setSelectedLegalTool({ id: toolId, name: toolName });
+    setActiveTool(toolName); // Set dynamic tool name
+    setActiveLegalToolkit(false); // Close toolkit if open
+    setCurrentMode('LEGAL_TOOLKIT');
+    
+    if (inputRef.current) inputRef.current.focus();
+    
+    toast.success(`✅ AI Legal Activated: ${toolName} ✨`, {
+      style: {
+        background: '#F0FDF4',
+        color: '#166534',
+        borderRadius: '16px',
+        fontWeight: 'bold',
+        border: '1px solid #BBF7D0',
+      }
+    });
   };
 
   const handleDismissSuggestion = () => {
@@ -530,6 +926,34 @@ const Chat = () => {
     isDetectionPausedRef.current = true;
     setTimeout(() => { isDetectionPausedRef.current = false; }, 30000); // 30s pause
   };
+
+  // ─── AI CashFlow Search Logic ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!isCashFlowMode || inputValue.length < 2) {
+      setStockSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearchingStocks(true);
+      try {
+        const user = getUserData();
+        const baseURL = window._env_?.VITE_AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || "http://localhost:8080/api";
+        const response = await axios.get(`${baseURL}/cashflow/search`, {
+          params: { keywords: inputValue },
+          headers: { Authorization: `Bearer ${user.token}` }
+        });
+        const data = response.data;
+        setStockSearchResults(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Stock search failed:", err);
+      } finally {
+        setIsSearchingStocks(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [inputValue, isCashFlowMode]);
 
 
   // Close menu on click outside
@@ -622,7 +1046,7 @@ const Chat = () => {
     const isAllowed = validMimes.some(mime => fileType?.startsWith(mime) || fileType === mime);
 
     // Even if not in list, let's allow it but maybe warn? 
-    // Actually, AISA can handle most text/data files.
+    // Actually, AI Ads can handle most text/data files.
 
     const fileWithMetadata = new File([file], fileName, { type: fileType || 'application/octet-stream' });
     setSelectedFiles(prev => [...prev, fileWithMetadata]);
@@ -761,7 +1185,7 @@ const Chat = () => {
       setMessages(prev => [...prev, userMsg]);
       chatStorageService.saveMessage(activeSessionId, userMsg, `Audio: ${file.name}`, currentProjectId).catch(e => console.error(e));
 
-      // 2. Add Processing Message from AISA
+      // 2. Add Processing Message from AI Ads
       const aiMsgId = (Date.now() + 1).toString();
       const processingMsg = {
         id: aiMsgId,
@@ -1068,7 +1492,7 @@ const Chat = () => {
           conversion: {
             file: mp3Base64,
             blobUrl: audioUrl,
-            fileName: `AISA_Voice_${Date.now()}.mp3`,
+            fileName: `AI Ads_Voice_${Date.now()}.mp3`,
             mimeType: 'audio/mpeg',
             fileSize: formattedSize,
             rawSize: rawBytes,
@@ -1268,6 +1692,11 @@ const Chat = () => {
 
           setMessages(prev => prev.map(msg => msg.id === tempId ? imageMessage : msg));
           toast.success('Generated preview image');
+          
+          // Save AI fallback image to backend
+          if (activeSessionId && activeSessionId !== 'new') {
+            chatStorageService.saveMessage(activeSessionId, imageMessage, null, currentProjectId).catch(err => console.error("Error saving video fallback image:", err));
+          }
         }
       } catch (error) {
         const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to generate video';
@@ -1282,6 +1711,11 @@ const Chat = () => {
             timestamp: new Date(),
           };
           setMessages(prev => prev.map(msg => msg.id === tempId ? imageMessage : msg));
+          
+          // Save AI error fallback image to backend
+          if (activeSessionId && activeSessionId !== 'new') {
+            chatStorageService.saveMessage(activeSessionId, imageMessage, null, currentProjectId).catch(err => console.error("Error saving video error fallback image:", err));
+          }
           return;
         }
 
@@ -1356,17 +1790,38 @@ const Chat = () => {
 
         if (data && (data.imageUrl || data.data)) {
           const finalUrl = data.imageUrl || data.data; // Handle different response structures
+          
+          // --- Non-blocking Smart Prompts ---
+          const initialSuggestions = data.suggestions || [];
           const imageMessage = {
-            id: tempId, // Keep same ID
+            id: tempId,
             role: 'model',
             isGenerating: false,
-            content: `🖼️ Image generated successfully!`, // Use content
+            content: `🖼️ Image generated successfully!`,
             imageUrl: finalUrl,
+            suggestions: initialSuggestions,
             timestamp: new Date(),
             projectId: currentProjectId
           };
 
+          // 1. Show the image IMMEDIATELY
           setMessages(prev => prev.map(msg => msg.id === tempId ? imageMessage : msg));
+          scrollToBottom(true);
+
+          // 2. Fetch related prompts in background if not provided by the API
+          if (initialSuggestions.length === 0) {
+            generateFollowUpPrompts(prompt, 'image').then(smartPrompts => {
+              if (smartPrompts && smartPrompts.length > 0) {
+                setMessages(prev => prev.map(msg => 
+                  msg.id === tempId ? { ...msg, suggestions: smartPrompts } : msg
+                ));
+                // Update persistent storage with the new suggestions
+                if (activeSessionId && activeSessionId !== 'new') {
+                   chatStorageService.saveMessage(activeSessionId, { ...imageMessage, suggestions: smartPrompts }, null, currentProjectId);
+                }
+              }
+            }).catch(e => console.warn("Background suggestion fetch failed:", e));
+          }
 
           toast.success('Image generated successfully!');
           refreshSubscription();
@@ -1479,42 +1934,84 @@ const Chat = () => {
       try {
         console.log("[Image Edit] Starting edit request for:", prompt);
 
-        // Efficiently get base64 from Data URL or Fetch Blob URL
-        let base64Image = null;
+        // Efficiently get Blob from Data URL or Fetch Blob URL
+        let rawImageBlob = null;
         try {
           if (imageFile.url.startsWith('data:')) {
-            base64Image = imageFile.url.split(',')[1];
-          } else {
             const res = await fetch(imageFile.url);
-            const blob = await res.blob();
-            base64Image = await new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result.split(',')[1]);
-              reader.readAsDataURL(blob);
-            });
+            rawImageBlob = await res.blob();
+          } else {
+            const matchedFile = selectedFiles.find(f => f.name === imageFile.name);
+            if (matchedFile) {
+              rawImageBlob = matchedFile;
+            } else {
+              const res = await fetch(imageFile.url);
+              rawImageBlob = await res.blob();
+            }
           }
         } catch (err) {
-          console.error("[Image Edit] Data conversion failed:", err);
+          console.error("[Image Edit] Blob conversion failed:", err);
+          throw new Error("Failed to process the reference image.");
         }
 
-        // Use apiService
-        const responseData = await apiService.editImage(prompt, null, base64Image);
+        // Use bare fetch instead of apiService to completely control the network request
+        const formData = new FormData();
+        formData.append('prompt', prompt);
+        if (rawImageBlob) {
+            formData.append('image', rawImageBlob, 'reference.png');
+        }
 
+        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
+        const fetchRes = await fetch(`${API}/edit-image`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+
+        if (!fetchRes.ok) {
+            const errorText = await fetchRes.text();
+            throw new Error(`Server returned ${fetchRes.status}: ${errorText}`);
+        }
+
+        const responseData = await fetchRes.json();
+        
         if (responseData && responseData.data) {
           const finalUrl = responseData.data;
+          
+          const initialSuggestions = responseData.suggestions || [];
           const editMessage = {
             id: tempId,
             role: 'model',
-            isGenerating: false,
             content: `✨ Your image has been edited!`,
             imageUrl: finalUrl,
+            suggestions: initialSuggestions,
             timestamp: new Date(),
             projectId: currentProjectId
           };
 
+          // 1. Show edited image IMMEDIATELY
           setMessages(prev => prev.map(msg => msg.id === tempId ? editMessage : msg));
+          scrollToBottom(true);
+
+          // 2. Fetch related prompts in background
+          if (initialSuggestions.length === 0) {
+             generateFollowUpPrompts(prompt, 'image edit').then(smartPrompts => {
+                if (smartPrompts && smartPrompts.length > 0) {
+                    setMessages(prev => prev.map(msg => 
+                        msg.id === tempId ? { ...msg, suggestions: smartPrompts } : msg
+                    ));
+                    if (activeSessionId && activeSessionId !== 'new') {
+                       chatStorageService.saveMessage(activeSessionId, { ...editMessage, suggestions: smartPrompts }, null, currentProjectId);
+                    }
+                }
+             }).catch(e => console.warn("Background suggestion fetch failed for edit:", e));
+          }
+
           toast.success('Image edited successfully!');
           refreshSubscription();
+
 
           // Save AI response to backend
           if (activeSessionId && activeSessionId !== 'new') {
@@ -1609,6 +2106,95 @@ const Chat = () => {
     } catch (error) {
       console.error('Deep search error:', error);
       toast.error('Error initiating deep search');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleStockAnalysis = async (stock, activeSessionId = currentSessionId) => {
+    try {
+      if (!stock) {
+        toast.error('Please select a stock first');
+        return;
+      }
+
+      setIsLoading(true);
+      const user = getUserData();
+
+      // 1. Add User Message to UI
+      const userMsgId = Date.now().toString();
+      const userMsg = {
+        id: userMsgId,
+        role: 'user',
+        content: `Analyze stock performance and potential for: ${stock.name || stock.symbol}`,
+        timestamp: new Date(),
+        projectId: currentProjectId
+      };
+
+      // Show a message that analysis is in progress
+      const tempId = (Date.now() + 1).toString();
+      const readingMsg = {
+        id: tempId,
+        role: 'model',
+        isGenerating: true,
+        content: `📉 Fetching real-time market data for **${stock.symbol}**...\n\nAggregating the latest news and historical trends for AI depth analysis...`,
+        timestamp: new Date(),
+        projectId: currentProjectId
+      };
+
+      setMessages(prev => [...prev, userMsg, readingMsg]);
+      setInputValue('');
+      setStockSearchResults([]);
+      setSelectedStock(null);
+
+      // Save user message to backend
+      if (activeSessionId && activeSessionId !== 'new') {
+        chatStorageService.saveMessage(activeSessionId, userMsg, null, currentProjectId).catch(e => console.error(e));
+      }
+
+      try {
+        const baseURL = window._env_?.VITE_AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || "http://localhost:8080/api";
+        const response = await axios.post(`${baseURL}/cashflow/analyze`, {
+          symbol: stock.symbol,
+          name: stock.name
+        }, {
+          headers: { Authorization: `Bearer ${user.token}` }
+        });
+
+        const { summary, emailSent } = response.data;
+
+        // 2. Add AI full report to UI
+        const finalMsg = {
+          id: tempId,
+          role: 'model',
+          isGenerating: false,
+          content: summary.fullAnalysis,
+          cashflowData: summary,
+          timestamp: new Date(),
+          projectId: currentProjectId
+        };
+
+        setMessages(prev => prev.map(m => m.id === tempId ? finalMsg : m));
+        toast.success(`Research Report for ${summary.symbol} complete!`);
+        
+        // Save AI response
+        if (activeSessionId && activeSessionId !== 'new') {
+          chatStorageService.saveMessage(activeSessionId, finalMsg, null, currentProjectId).catch(e => console.error(e));
+        }
+
+        setIsCashFlowMode(false); // Return to normal chat
+        refreshSubscription();
+
+      } catch (err) {
+        console.error("Stock analysis request failed:", err);
+        const errorMsg = err.response?.data?.error || "Failed to complete financial analysis";
+        setMessages(prev => prev.map(m => m.id === tempId ? { ...m, isGenerating: false, content: `❌ ${errorMsg}` } : m));
+        toast.error(errorMsg);
+      }
+
+    } catch (err) {
+      console.error("handleStockAnalysis error:", err);
+      toast.error("Error initiating analysis");
     } finally {
       setIsLoading(false);
     }
@@ -2285,20 +2871,20 @@ const Chat = () => {
               headers: { 'Authorization': `Bearer ${token}` }
             });
             const agents = res.data?.agents || [];
-            // Add default AISA agent if not present
-            const processedAgents = [{ agentName: 'AISA', category: 'General', avatar: '/AGENTS_IMG/AISA_BRAIN_LOGO.png' }, ...agents];
+            // Add default AI Ads agent if not present
+            const processedAgents = [{ agentName: 'AI Ads', category: 'General', avatar: '/AGENTS_IMG/AI Ads_BRAIN_LOGO.png' }, ...agents];
             setUserAgents(processedAgents);
           } catch (agentErr) {
             // Silently use defaults if fetch fails (no console warning)
-            setUserAgents([{ agentName: 'AISA', category: 'General', avatar: '/AGENTS_IMG/AISA_BRAIN_LOGO.png' }]);
+            setUserAgents([{ agentName: 'AI Ads', category: 'General', avatar: '/AGENTS_IMG/AI Ads_BRAIN_LOGO.png' }]);
           }
         } else {
           // No user logged in, use default
-          setUserAgents([{ agentName: 'AISA', category: 'General', avatar: '/AGENTS_IMG/AISA_BRAIN_LOGO.png' }]);
+          setUserAgents([{ agentName: 'AI Ads', category: 'General', avatar: '/AGENTS_IMG/AI Ads_BRAIN_LOGO.png' }]);
         }
       } catch (err) {
         // Silently handle errors
-        setUserAgents([{ agentName: 'AISA', category: 'General', avatar: '/AGENTS_IMG/AISA_BRAIN_LOGO.png' }]);
+        setUserAgents([{ agentName: 'AI Ads', category: 'General', avatar: '/AGENTS_IMG/AI Ads_BRAIN_LOGO.png' }]);
       }
     };
     loadSessions();
@@ -2459,7 +3045,7 @@ const Chat = () => {
     // GLOBAL LOCK & DEBOUNCE (Combined with isSendingRef for maximum protection)
     const now = Date.now();
     if (isGlobalSending || (now - lastMessageSentTime < 800) || isSendingRef.current) {
-        console.warn("[AISA] Message sending blocked by global lock, debounce, or active send.");
+        console.warn("[AI Ads] Message sending blocked by global lock, debounce, or active send.");
         return;
     }
     if (isLoading) return;
@@ -2596,6 +3182,66 @@ const Chat = () => {
         }
       }
 
+      // Handle AI Legal Mode (Specific Tool Execution)
+      if (currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool) {
+        setLoadingText(`${selectedLegalTool.name}... ⚖️`);
+        try {
+          const userMsgId = Date.now().toString();
+          const newUserMsg = {
+            id: userMsgId,
+            role: 'user',
+            content: contentToSend,
+            timestamp: new Date(),
+            attachments: filePreviews.map(fp => ({
+              url: fp.url,
+              name: fp.name,
+              type: fp.type.startsWith('image/') ? 'image' :
+                fp.type.includes('pdf') ? 'pdf' :
+                  fp.type.includes('word') || fp.type.includes('document') ? 'docx' : 'file'
+            }))
+          };
+          setMessages(prev => [...prev, newUserMsg]);
+          setInputValue('');
+          handleRemoveFile();
+
+          const res = await axios.post(`${API}/legal-toolkit/execute`, {
+            message: contentToSend,
+            toolName: selectedLegalTool.id,
+            sessionId: activeSessionId,
+            attachments: newUserMsg.attachments,
+            conversationHistory: messages
+          }, {
+            headers: { Authorization: `Bearer ${getUserData()?.token}` }
+          });
+
+          if (res.data.success) {
+            const aiMsgId = (Date.now() + 1).toString();
+            const aiMsg = {
+              id: aiMsgId,
+              role: 'model',
+              content: res.data.reply,
+              timestamp: new Date(),
+              toolUsed: res.data.toolUsed || selectedLegalTool.name
+            };
+            if (res.data.toolUsed) setActiveTool(res.data.toolUsed);
+            setMessages(prev => [...prev, aiMsg]);
+            await chatStorageService.saveMessage(activeSessionId, newUserMsg);
+            await chatStorageService.saveMessage(activeSessionId, aiMsg);
+            refreshSubscription();
+          } else {
+            throw new Error(res.data.error || 'Execution failed');
+          }
+          return;
+        } catch (err) {
+          console.error('[LegalToolkit Error]:', err);
+          toast.error(err.message || 'Failed to execute legal tool');
+          setIsLoading(false);
+          isSendingRef.current = false;
+          isGlobalSending = false;
+          return;
+        }
+      }
+
       // Handle Image Generation Mode
       if (isImageGeneration || toolOverride === 'text_to_image') {
         await handleGenerateImage(contentToSend, activeSessionId);
@@ -2611,6 +3257,19 @@ const Chat = () => {
       // Handle Image Editing Mode
       if (isMagicEditing || toolOverride === 'image_edit') {
         await handleEditImage(contentToSend, activeSessionId);
+        return;
+      }
+
+      // Handle AI CashFlow Mode
+      if (isCashFlowMode || toolOverride === 'cashflow') {
+        if (!selectedStock) {
+          toast.error("Please select a stock from the search results first.");
+          isSendingRef.current = false;
+          setIsLoading(false);
+          isGlobalSending = false;
+          return;
+        }
+        await handleStockAnalysis(selectedStock, activeSessionId);
         return;
       }
 
@@ -2660,7 +3319,7 @@ const Chat = () => {
                               (/function\s*\(|const\s+\w+\s*=|class\s+\w+|import\s+.*from|<\w+>|{\s*\w+:|\/\/|\/\*/.test(contentToSend));
       
       if (hasCodeStructure && contentToSend && !contentToSend.trim().startsWith('```')) {
-         let detectedLang = 'javascript'; // Default for web-centric AISA
+         let detectedLang = 'javascript'; // Default for web-centric AI Ads
          const low = contentToSend.toLowerCase();
          if (low.includes('def ') || low.includes('import os') || low.includes('np.') || low.includes('pd.')) detectedLang = 'python';
          else if (low.includes('<html>') || low.includes('<!doctype html>')) detectedLang = 'html';
@@ -2713,7 +3372,9 @@ const Chat = () => {
             (documentConvertActive ? MODES.DOCUMENT_CONVERT :
               (webSearchActive ? MODES.WEB_SEARCH :
                 (codeWriterActive ? MODES.CODING_HELP :
-                  detectMode(contentToSend, userMsg.attachments))))));
+                  (currentMode === 'LEGAL_TOOLKIT' ? MODES.LEGAL_TOOLKIT :
+                    detectMode(contentToSend, userMsg.attachments)))))));
+      
       setCurrentMode(detectedMode);
 
       // Update user message with the detected mode
@@ -2873,7 +3534,7 @@ ${PERSONA_INSTRUCTION}
 
 ### RESPONSE BEHAVIOR:
 - Answer the user's question directly without greeting messages
-- Do NOT say "Hello... welcome to AISA" or similar greetings
+- Do NOT say "Hello... welcome to AI Ads" or similar greetings
 - Focus ONLY on providing the answer to what user asked
 - Be helpful, clear, and concise
 
@@ -2962,6 +3623,8 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
             finalAttachments = [...finalAttachments, editRefImage];
         }
 
+        const suggestedAiId = `ai-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+        
         const aiResponseData = await generateChatResponse(
           messages,
           userMsg.content,
@@ -2971,8 +3634,13 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
           abortControllerRef.current.signal,
           detectedMode,
           activeSessionId,
-          currentProjectId
+          currentProjectId,
+          userMsg.id,
+          suggestedAiId
         );
+        
+        // Store it for usage in the typewriter loop
+        const apiResponseId = suggestedAiId;
         
         // --- REAL-TIME TITLE SYNC ---
         if (aiResponseData && aiResponseData.title) {
@@ -3039,10 +3707,11 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
           // Extract media URLs if present
           aiVideoUrl = aiResponseData.videoUrl || null;
           aiImageUrl = aiResponseData.imageUrl || null;
+          const aiSnapshotData = aiResponseData.snapshot || null;
 
           // If backend provided specific error details, show them to help user understand why 'brain' is failing
           if (aiResponseData.error && aiResponseData.details) {
-             console.error("[AISA Backend Error]", aiResponseData.details);
+             console.error("[AI Ads Backend Error]", aiResponseData.details);
              // Append a small subtle hint for the developer/user
              aiResponseText += `\n\n*(Debug: ${aiResponseData.details})*`;
           }
@@ -3075,7 +3744,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
           const partContent = responseParts[i];
           if (!partContent) continue;
 
-          const msgId = (Date.now() + 1 + i).toString();
+          const msgId = (i === 0 && typeof apiResponseId !== 'undefined') ? apiResponseId : (Date.now() + 1 + i).toString();
           const modelMsg = {
             id: msgId,
             role: 'model',
@@ -3135,6 +3804,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
             finalModelMsg.isRealTime = isRealTimeResponse;
             finalModelMsg.sources = responseSources;
             if (aiResponseData.suggestions) finalModelMsg.suggestions = aiResponseData.suggestions;
+            if (aiResponseData.snapshot) finalModelMsg.snapshot = aiResponseData.snapshot;
           } else if (i === responseParts.length - 1) {
             // For multi-part responses, add suggestions to the last part
             if (aiResponseData.suggestions) finalModelMsg.suggestions = aiResponseData.suggestions;
@@ -3209,8 +3879,8 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
     const name = (agentName || '').toLowerCase();
     const cat = (category || '').toLowerCase();
 
-    // Default: Everything enabled for AISA
-    if (name === 'aisa' || !name) {
+    // Default: Everything enabled for AI Ads
+    if (name === 'AI Ads' || !name) {
       return {
         canUploadImages: true,
         canUploadDocs: true,
@@ -3262,7 +3932,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
 
       const link = document.createElement('a');
       link.href = blobUrl;
-      link.download = filename || 'aisa-download.png';
+      link.download = filename || 'AI Ads-download.png';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -3393,8 +4063,8 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         try {
           await navigator.share({
             files: [file],
-            title: file.name || 'AISA Document',
-            text: 'Converted Document from AISA'
+            title: file.name || 'AI Ads Document',
+            text: 'Converted Document from AI Ads'
           });
           return;
         } catch (err) {
@@ -3424,7 +4094,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         }
         const byteArray = new Uint8Array(byteNumbers);
         const blob = new Blob([byteArray], { type: 'application/pdf' });
-        const filename = msg.conversion.fileName || 'AISA.pdf';
+        const filename = msg.conversion.fileName || 'AI Ads.pdf';
         const file = new window.File([blob], filename, { type: 'application/pdf' });
 
         if (isPregeneration) {
@@ -3461,8 +4131,8 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
             try {
               await navigator.share({
                 files: [file],
-                title: 'AISA AI Response',
-                text: msg && msg.content ? `${msg.content.substring(0, 150)}...` : 'AISA Document output'
+                title: 'AI Ads AI Response',
+                text: msg && msg.content ? `${msg.content.substring(0, 150)}...` : 'AI Ads Document output'
               });
               toast.success("PDF sent to share menu!", { id: shareToastId });
             } catch (shareErr) {
@@ -3523,7 +4193,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         header.style.fontSize = '12px';
         header.style.color = '#888';
         header.style.fontWeight = 'bold';
-        header.innerText = 'AISA AI RESPONSE';
+        header.innerText = 'AI Ads AI RESPONSE';
 
         tempWrapper.appendChild(header);
 
@@ -3605,7 +4275,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
               // Sampling check every 5th pixel for better accuracy than every 10th
               for (let col = 0; col < canvas.width; col += 5) {
                 const idx = (row * canvas.width + col) * 4;
-                // Check if color is near white (AISA bg or transparent)
+                // Check if color is near white (AI Ads bg or transparent)
                 if (scanData[idx] < 245 || scanData[idx + 1] < 245 || scanData[idx + 2] < 245) {
                   isWhiteRow = false;
                   break;
@@ -3655,7 +4325,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
       }
       // ===== END SMART SLICING =====
 
-      const filename = `AISA.pdf`;
+      const filename = `AI Ads.pdf`;
       const blob = pdf.output('blob');
       const file = new File([blob], filename, { type: 'application/pdf', lastModified: new Date().getTime() });
 
@@ -3712,8 +4382,8 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
           try {
             await navigator.share({
               files: [file],
-              title: 'AISA AI Response',
-              text: msg && msg.content ? `${msg.content.substring(0, 150)}...` : 'AISA Document output'
+              title: 'AI Ads AI Response',
+              text: msg && msg.content ? `${msg.content.substring(0, 150)}...` : 'AI Ads Document output'
             });
             if (processToastId) toast.success("PDF sent to share menu!", { id: processToastId });
           } catch (shareErr) {
@@ -3808,6 +4478,126 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
     }
   };
 
+  const handleDownloadPdf = async (msg) => {
+    const toastId = toast.loading("Generating PDF Report...");
+    try {
+      const element = document.getElementById(`msg-text-${msg.id}`);
+      if (!element) { toast.error("Content not found", { id: toastId }); return; }
+
+      const tempWrapper = document.createElement('div');
+      tempWrapper.style.position = 'absolute';
+      tempWrapper.style.left = '-9999px';
+      tempWrapper.style.top = '-9999px';
+      tempWrapper.style.width = '800px'; 
+      tempWrapper.style.backgroundColor = '#ffffff';
+
+      const clonedContent = element.cloneNode(true);
+      const header = document.createElement('div');
+      header.style.marginBottom = '30px';
+      header.style.paddingBottom = '15px';
+      header.style.borderBottom = '2px solid #000000';
+      header.style.display = 'flex';
+      header.style.justifyContent = 'space-between';
+      header.style.alignItems = 'center';
+      header.innerHTML = `
+        <div style="font-weight: 900; font-size: 24px; color: #000000;">AISA <span style="font-weight: 400; font-size: 14px; color: #888;">AI LEGAL ASSISTANT</span></div>
+        <div style="font-size: 10px; color: #aaa; text-align: right;">DOC-ID: ${msg.id}<br/>DATE: ${new Date().toLocaleDateString()}</div>
+      `;
+
+      tempWrapper.appendChild(header);
+      clonedContent.style.padding = '10px';
+      clonedContent.style.color = '#000000';
+      clonedContent.style.backgroundColor = '#ffffff';
+      clonedContent.style.width = '100%';
+      clonedContent.style.lineHeight = '1.6';
+
+      const all = clonedContent.querySelectorAll('*');
+      Array.from(all).forEach(el => {
+        el.style.color = '#111827';
+        if (el.tagName === 'H1' || el.tagName === 'H2' || el.tagName === 'H3') {
+           el.style.color = '#000000';
+           el.style.marginTop = '24px';
+           el.style.marginBottom = '12px';
+        }
+        if (el.tagName === 'P') el.style.marginBottom = '10px';
+        if (el.tagName === 'LI') el.style.marginBottom = '8px';
+      });
+
+      tempWrapper.appendChild(clonedContent);
+      
+      const footer = document.createElement('div');
+      footer.style.marginTop = '40px';
+      footer.style.paddingTop = '15px';
+      footer.style.borderTop = '1px solid #eee';
+      footer.style.fontSize = '10px';
+      footer.style.color = '#999';
+      footer.innerHTML = `AISA AI Legal Report - Generated on ${new Date().toLocaleString()}. Always consult with a licensed legal professional.`;
+      tempWrapper.appendChild(footer);
+
+      document.body.appendChild(tempWrapper);
+      await new Promise(r => setTimeout(r, 200));
+
+      const canvas = await html2canvas(tempWrapper, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        windowWidth: 800
+      });
+      document.body.removeChild(tempWrapper);
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const margin = 15;
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const printW = pageW - margin * 2;
+      const printH = pageH - margin * 2;
+      const pxPerMm = canvas.width / printW;
+      const pageHeightPx = Math.floor(printH * pxPerMm);
+      const mainCtx = canvas.getContext('2d');
+
+      let curY = 0;
+      let pageIdx = 0;
+      while (curY < canvas.height) {
+        if (pageIdx > 0) pdf.addPage();
+        let targetH = pageHeightPx;
+        if (curY + targetH < canvas.height) {
+          const scanRange = 150;
+          try {
+            const scanData = mainCtx.getImageData(0, curY + targetH - scanRange, canvas.width, scanRange).data;
+            let bestRow = -1;
+            for (let r = scanRange - 1; r >= 0; r--) {
+              let isWhite = true;
+              for (let c = 0; c < canvas.width; c += 10) {
+                const i = (r * canvas.width + c) * 4;
+                if (scanData[i] < 250 || scanData[i + 1] < 250 || scanData[i + 2] < 250) { isWhite = false; break; }
+              }
+              if (isWhite) { bestRow = r; break; }
+            }
+            if (bestRow !== -1) targetH = (targetH - scanRange) + bestRow + 5;
+          } catch (e) {}
+        } else { targetH = canvas.height - curY; }
+
+        const pCanvas = document.createElement('canvas');
+        pCanvas.width = canvas.width;
+        pCanvas.height = targetH;
+        const pCtx = pCanvas.getContext('2d');
+        pCtx.fillStyle = '#ffffff';
+        pCtx.fillRect(0, 0, pCanvas.width, pCanvas.height);
+        pCtx.drawImage(canvas, 0, curY, canvas.width, targetH, 0, 0, canvas.width, targetH);
+        
+        pdf.addImage(pCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', margin, margin, printW, targetH / pxPerMm);
+        curY += targetH;
+        pageIdx++;
+      }
+
+      pdf.save(`AISA_Legal_Report_${msg.id.substring(0,6)}.pdf`);
+      toast.success("PDF Downloaded! 📄", { id: toastId });
+    } catch (err) {
+      console.error("PDF Generate error:", err);
+      toast.error("Download failed.", { id: toastId });
+    }
+  };
+
   // WhatsApp In-App PDF Share — uploads PDF to cloud, then lets user pick contact IN-APP
   const handleWhatsAppPdfShare = async (msg) => {
     const toastId = toast.loading("Preparing PDF for WhatsApp...");
@@ -3836,7 +4626,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
       header.style.fontSize = '12px';
       header.style.color = '#888';
       header.style.fontWeight = 'bold';
-      header.innerText = 'AISA AI RESPONSE';
+      header.innerText = 'AI Ads AI RESPONSE';
 
       tempWrapper.appendChild(header);
 
@@ -3925,7 +4715,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
       toast.loading("Uploading PDF...", { id: toastId });
       const blob = pdf.output('blob');
       const formData = new FormData();
-      formData.append('pdf', blob, 'AISA.pdf');
+      formData.append('pdf', blob, 'AI Ads.pdf');
 
       const { BASE_URL } = await import('../types');
       const uploadRes = await axios.post(`${BASE_URL}/api/chat/upload-pdf`, formData, {
@@ -3940,7 +4730,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
 
       // 3. Show in-app WhatsApp contact picker modal
       setWaPdfUrl(pdfUrl);
-      setWaMsgContent(`🤖 *AISA AI Response*\n\nYeh dekho meri AISA se baat: ${pdfUrl}`);
+      setWaMsgContent(`🤖 *AI Ads AI Response*\n\nYeh dekho meri AI Ads se baat: ${pdfUrl}`);
       setWaPhone('');
       setWaShareModal(true);
 
@@ -4115,7 +4905,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
 
       // Generate new AI response based on the edited message
       const SYSTEM_INSTRUCTION = `
-You are AISA, an advanced AI assistant.
+You are AI Ads, an advanced AI assistant.
 IMAGE GENERATION CAPABILITIES:
 If the user asks for an image (e.g., "generate", "create", "draw", "show me a pic", "image dikhao", "photo bhejo", "pic do"), tell them to use the Image Generation mode via the Magic Tools button. Do NOT attempt to generate images inline.
 `;
@@ -4334,6 +5124,26 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
   return (
     <div className="flex w-full bg-secondary relative overflow-hidden aisa-scalable-text overscroll-none h-[100dvh] fixed inset-0 lg:static lg:h-full">
+      {/* 🌟 Premium Minimalist Background Wrapper 🌟 */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none bg-[#f8f9fc] dark:bg-[#0b0c15]">
+        {/* Universal Ambient Glows: Animated Blobs for Depth */}
+        <div className="absolute inset-0">
+          {/* Light Mode: Soft, elegant radial hints */}
+          <div className="absolute inset-0 dark:hidden">
+            <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-indigo-50/50 rounded-full blur-[140px]" />
+            <div className="absolute bottom-[10%] right-[-10%] w-[50%] h-[50%] bg-blue-50/40 rounded-full blur-[160px]" />
+            <div className="absolute top-[30%] right-[-5%] w-[40%] h-[40%] bg-purple-50/30 rounded-full blur-[120px]" />
+          </div>
+
+          {/* Dark Mode: Deep, matte professional depth */}
+          <div className="absolute inset-0 hidden dark:block">
+            <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/5 rounded-full blur-[140px]" />
+            <div className="absolute bottom-[10%] right-[-10%] w-[45%] h-[45%] bg-blue-500/5 rounded-full blur-[160px]" />
+          </div>
+        </div>
+
+      </div>
+
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmModal
@@ -4518,29 +5328,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
           </div>
         )}
 
-        {/* Header */}
-        <div className="h-12 md:h-14 flex items-center justify-between px-3 md:px-4 bg-transparent backdrop-blur-xl z-20 shrink-0 gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <button
-              onClick={() => setTglState(prev => ({ ...prev, sidebarOpen: true }))}
-              className="lg:hidden p-2 -ml-2 text-subtext hover:text-maintext rounded-lg hover:bg-surface/50 transition-colors"
-            >
-              <MenuIcon className="w-6 h-6" />
-            </button>
-          </div>
+        {/* Header - Removed for minimalist cinematic aesthetic */}
 
-          {/* Mode Indicator */}
-          <div
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-300"
-            style={{
-              backgroundColor: `${getModeColor(isDeepSearch ? 'DEEP_SEARCH' : currentMode)}15`,
-              color: getModeColor(isDeepSearch ? 'DEEP_SEARCH' : currentMode)
-            }}
-          >
-            <span>{getModeIcon(isDeepSearch ? 'DEEP_SEARCH' : currentMode)}</span>
-            <span className="hidden sm:inline">{getModeName(isDeepSearch ? 'DEEP_SEARCH' : currentMode)}</span>
-          </div>
-        </div>
+
 
 
 
@@ -4580,7 +5370,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     {msg.role === 'user' ? (
                       <User className="w-4 h-4 text-slate-800 dark:text-slate-200" />
                     ) : (
-                      <img src="/logo/Logo.svg" alt="AISA" className="w-5 h-5 object-contain" />
+                      <img src="/logo/Logo.svg" alt="AI Ads" className="w-5 h-5 object-contain" />
                     )}
                   </div>
 
@@ -4621,16 +5411,20 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                       console.error("Attachment image load failed:", att.url);
                                       if (att.url && !e.target.dataset.retried) {
                                         e.target.dataset.retried = "true";
-                                        setTimeout(() => {
-                                          e.target.src = att.url + (att.url.includes('?') ? '&' : '?') + 'retry=' + Date.now();
-                                        }, 2000);
+                                        const isSignedUrl = att.url?.includes('X-Goog-Signature');
+                                        const retryUrl = isSignedUrl
+                                          ? att.url
+                                          : att.url + (att.url.includes('?') ? '&' : '?') + 'retry=' + Date.now();
+                                        console.log("Retrying attachment image load:", retryUrl);
+                                        e.target.src = retryUrl;
                                       } else {
                                         const errorText = att.url ? (att.url.substring(0, 30) + '...') : 'Unknown URL';
                                         e.target.src = `https://placehold.co/600x400/333/eee?text=Attachment+Unavailable%0A${encodeURIComponent(errorText)}%0AClick+to+Retry`;
                                         e.target.style.cursor = 'pointer';
                                         e.target.onclick = (event) => {
                                           event.stopPropagation();
-                                          e.target.src = att.url + (att.url.includes('?') ? '&' : '?') + 'manual=' + Date.now();
+                                          const isSignedUrl = att.url?.includes('X-Goog-Signature');
+                                          e.target.src = isSignedUrl ? att.url : att.url + (att.url.includes('?') ? '&' : '?') + 'manual=' + Date.now();
                                         };
                                       }
                                     }}
@@ -4757,7 +5551,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 </div>
                                 <div className="flex flex-col">
                                   <div className="flex items-center gap-1.5">
-                                    <span className="text-[10px] font-black uppercase tracking-[0.15em] text-blue-500 leading-none">AISA Search</span>
+                                    <span className="text-[10px] font-black uppercase tracking-[0.15em] text-blue-500 leading-none">AI Ads Search</span>
                                     <div className="w-1 h-1 rounded-full bg-blue-400 animate-pulse" />
                                   </div>
                                   <span className="text-[9px] font-bold text-blue-500/60 uppercase tracking-widest mt-0.5">Real-Time Grounding Active</span>
@@ -4772,7 +5566,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 </div>
                                 <div className="flex flex-col">
                                   <div className="flex items-center gap-1.5">
-                                    <span className="text-[10px] font-black uppercase tracking-[0.15em] text-emerald-500 leading-none">AISA Knowledge</span>
+                                    <span className="text-[10px] font-black uppercase tracking-[0.15em] text-emerald-500 leading-none">AI Ads Knowledge</span>
                                     <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
                                   </div>
                                   <span className="text-[9px] font-bold text-emerald-500/60 uppercase tracking-widest mt-0.5">Verified Documents Grounding</span>
@@ -4905,7 +5699,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                             <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-100 sm:opacity-0 sm:group-hover/img-container:opacity-100 transition-opacity">
                                               <div className="flex items-center gap-2">
                                                 <Sparkles className="w-4 h-4 text-primary animate-pulse" />
-                                                <span className="text-[10px] font-bold text-white uppercase tracking-widest">AISA Generated Asset</span>
+                                                <span className="text-[10px] font-bold text-white uppercase tracking-widest">AI Ads Generated Asset</span>
                                               </div>
                                             </div>
                                           )}
@@ -4916,7 +5710,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover/img-container:opacity-100 transition-opacity pointer-events-none" />
                                         </div>
                                         <button
-                                          onClick={() => handleDownload(props.src, `aisa_gen_${Date.now()}.png`)}
+                                          onClick={() => handleDownload(props.src, `AI Ads_gen_${Date.now()}.png`)}
                                           disabled={isDownloading}
                                           className="absolute bottom-4 right-4 z-20 flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl border border-white/20 text-white shadow-lg transition-all active:scale-95 disabled:opacity-50"
                                         >
@@ -4938,6 +5732,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               >
                                 {msg.content || msg.text || ""}
                               </ReactMarkdown>
+                              {msg.cashflowData && (
+                                <CashFlowChartWidget data={msg.cashflowData} />
+                              )}
                             </div>
                             {/* Sources List (ONLY for Web Search, HIDE for RAG as requested) */}
                             {msg.role === 'model' && msg.isRealTime && msg.sources && msg.sources.length > 0 && (
@@ -4989,7 +5786,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-100 sm:opacity-0 sm:group-hover/generated:opacity-100 transition-opacity">
                                   <div className="flex items-center gap-2">
                                     <Sparkles className="w-4 h-4 text-primary animate-pulse" />
-                                    <span className="text-[10px] font-bold text-white uppercase tracking-widest">AISA Generated Asset</span>
+                                    <span className="text-[10px] font-bold text-white uppercase tracking-widest">AI Ads Generated Asset</span>
                                   </div>
                                 </div>
                                 <img
@@ -5006,7 +5803,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                     if (!e.target.dataset.retried) {
                                       e.target.dataset.retried = "true";
                                       setTimeout(() => {
-                                        const retryUrl = msg.imageUrl + (msg.imageUrl.includes('?') ? '&' : '?') + 'retry=' + Date.now();
+                                        // ⚠️ Never append extra query params to signed URLs — it breaks the signature
+                                        const isSignedUrl = msg.imageUrl?.includes('X-Goog-Signature');
+                                        const retryUrl = isSignedUrl
+                                          ? msg.imageUrl  // Use exact URL for signed URLs
+                                          : msg.imageUrl + (msg.imageUrl.includes('?') ? '&' : '?') + 'retry=' + Date.now();
                                         console.log("Retrying image load:", retryUrl);
                                         e.target.src = retryUrl;
                                       }, 2000);
@@ -5016,7 +5817,10 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                       e.target.style.cursor = 'pointer';
                                       e.target.onclick = (event) => {
                                         event.stopPropagation();
-                                        e.target.src = msg.imageUrl + (msg.imageUrl.includes('?') ? '&' : '?') + 'manual=' + Date.now();
+                                        const isSignedUrl = msg.imageUrl?.includes('X-Goog-Signature');
+                                        e.target.src = isSignedUrl
+                                          ? msg.imageUrl
+                                          : msg.imageUrl + (msg.imageUrl.includes('?') ? '&' : '?') + 'manual=' + Date.now();
                                       };
                                     }
                                   }}
@@ -5073,7 +5877,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                     disabled={isDownloadingUrl === msg.imageUrl}
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleDownload(msg.imageUrl, 'aisa-generated.png');
+                                      handleDownload(msg.imageUrl, 'AI Ads-generated.png');
                                     }}
                                     className={`p-2.5 rounded-xl shadow-lg border border-white/20 flex items-center gap-2 ${isDownloadingUrl === msg.imageUrl ? 'bg-zinc-600 cursor-wait' : 'bg-primary text-white hover:bg-primary/90'}`}
                                     title="Download High-Res"
@@ -5092,6 +5896,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 </div>
                               </div>
                             )}
+                            {msg.snapshot && <AISnapshot data={msg.snapshot} />}
                           </div>
                         )
                       )}
@@ -5311,7 +6116,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                         {({ active }) => (
                                           <button
                                             onClick={() => {
-                                              const text = `I've converted "${msg.conversion.fileName}" into voice audio using AISA! ${window.location.href}`;
+                                              const text = `I've converted "${msg.conversion.fileName}" into voice audio using AI Ads! ${window.location.href}`;
                                               const url = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
                                                 ? `whatsapp://send?text=${encodeURIComponent(text)}`
                                                 : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
@@ -5328,7 +6133,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                         {({ active }) => (
                                           <button
                                             onClick={() => {
-                                              const text = `AISA Audio Conversion: ${msg.conversion.fileName}`;
+                                              const text = `AI Ads Audio Conversion: ${msg.conversion.fileName}`;
                                               const url = `https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(text)}`;
                                               window.open(url, '_blank');
                                             }}
@@ -5438,20 +6243,18 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                     <Share className="w-3.5 h-3.5" />
                                   </button>
 
-                                  {/* PDF Tools — Only show when fully ready (no pulsing dots) */}
-                                  {pregeneratedPdfs[msg.id] && (
-                                    <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 ml-2 pl-2 animate-in fade-in zoom-in duration-300">
-                                      {/* PDF Share — Direct 1-click */}
-                                      <button
-                                        onClick={() => handlePdfAction('share', msg)}
-                                        className="text-red-500 hover:text-red-600 transition-all p-1.5 hover:bg-red-50/10 rounded-lg flex items-center gap-1 active:scale-95"
-                                        title="Share / Download PDF ✓ Ready"
-                                      >
-                                        <FileText className="w-4 h-4" />
-                                        <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                                      </button>
-                                    </div>
-                                  )}
+                                  {/* PDF Tools — Always show Download, plus Share logic */}
+                                  <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 ml-2 pl-2">
+                                    {/* Direct PDF Download Button */}
+                                    <button
+                                      onClick={() => handleDownloadPdf(msg)}
+                                      className="text-red-500 hover:text-red-600 transition-all p-1.5 hover:bg-red-50/10 rounded-lg flex items-center gap-1 active:scale-95 group/pdf"
+                                      title="Download Ready-Made PDF Report"
+                                    >
+                                      <FileText className="w-3.5 h-3.5 group-hover/pdf:scale-110 transition-transform" />
+                                      <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                                    </button>
+                                  </div>
                                 </div>
 
 
@@ -5464,19 +6267,25 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         {(msg.role === 'model' || msg.role === 'assistant') &&
                           msg.suggestions && msg.suggestions.length > 0 &&
                           typingMessageId !== msg.id && (
-                            <div className="mt-4 flex flex-wrap gap-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                              {msg.suggestions.map((q, idx) => (
-                                <button
-                                  key={idx}
-                                  onClick={() => {
-                                    handleSendMessage(null, q);
-                                  }}
-                                  className="text-xs px-3.5 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-primary hover:bg-primary hover:text-white transition-all flex items-center gap-1.5 font-medium shadow-sm active:scale-95"
-                                >
-                                  <Sparkles className="w-3 h-3" />
-                                  {q}
-                                </button>
-                              ))}
+                            <div className="mt-5 flex flex-col gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-700">
+                               <div className="flex items-center gap-2 px-1">
+                                    <Sparkles className="w-3.5 h-3.5 text-blue-500 animate-pulse" />
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600/80 dark:text-blue-400/80">AISA Smart Prompts</span>
+                               </div>
+                               <div className="flex flex-wrap gap-2.5">
+                                {msg.suggestions.map((q, idx) => (
+                                  <button
+                                    key={idx}
+                                    onClick={() => {
+                                      handleSendMessage(null, q);
+                                    }}
+                                    className="text-[11px] px-5 py-2.5 rounded-full border border-blue-500/10 dark:border-white/10 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 hover:scale-[1.03] transition-all flex items-center gap-2.5 font-bold shadow-lg shadow-blue-500/20 backdrop-blur-md active:scale-95 group/sug border-dashed"
+                                  >
+                                    <Wand2 className="w-3.5 h-3.5 text-white/90 group-hover/sug:rotate-12 transition-transform" />
+                                    {q}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
                           )}
                     </div>
@@ -5542,31 +6351,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
               ))}
 
               {isLoading && !typingMessageId && (
-                <div className="flex items-start gap-4 max-w-4xl mx-auto">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0">
-                    <img src="/logo/Logo.svg" alt="AISA" className="w-5 h-5 object-contain" />
-
-                  </div>
-                  <div className="p-1 flex items-center gap-3">
-                    <span className="text-sm font-medium text-subtext animate-pulse">
-                      {loadingText}
-                    </span>
-                    <div className="flex gap-1">
-                      <span
-                        className="w-1.5 h-1.5 bg-subtext/50 rounded-full animate-bounce"
-                        style={{ animationDelay: '0ms' }}
-                      ></span>
-                      <span
-                        className="w-1.5 h-1.5 bg-subtext/50 rounded-full animate-bounce"
-                        style={{ animationDelay: '150ms' }}
-                      ></span>
-                      <span
-                        className="w-1.5 h-1.5 bg-subtext/50 rounded-full animate-bounce"
-                        style={{ animationDelay: '300ms' }}
-                      ></span>
-                    </div>
-                  </div>
-                </div>
+                <AisaTypingIndicator visible={true} />
               )}
             </>
           )}
@@ -5575,343 +6360,208 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         </div>
 
         {/* Welcome Screen - Absolute Overlay */}
-        {
-          messages.length === 0 && (
-            <div className="absolute inset-0 z-0 overflow-y-auto overflow-x-hidden pointer-events-auto scroll-smooth custom-scrollbar"
-              style={{ WebkitOverflowScrolling: 'touch' }}
+        <AnimatePresence>
+          {messages.length === 0 && (
+            <motion.div
+              key="welcome-screen"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
+              className="absolute inset-0 z-0 overflow-y-auto no-scrollbar scroll-smooth pointer-events-auto bg-transparent"
             >
-              {/* min-h-full ensures justify-center works correctly on desktop */}
-              <div className="min-h-full flex flex-col items-center justify-start sm:justify-center px-4 pb-[200px] sm:pb-8"
-                style={{ paddingTop: 'calc(70px + env(safe-area-inset-top))' }}
-              >
-              <div className="flex flex-col items-center w-full max-w-4xl text-center shrink-0">
-                <div className="select-none flex items-center justify-center w-full mb-2 sm:mb-4">
+              {/* Removed duplicate background component */}
+              <div className="relative z-10 flex flex-col items-center w-full min-h-screen pt-12">
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.1 }}
+                  className="mb-12"
+                >
                   <img
                     src="/logo/Logo.svg"
-                    alt="AISA Icon"
-                    className="object-contain drop-shadow-2xl pointer-events-none shrink-0"
-                    style={{ width: 'clamp(2.5rem, 8vw, 3.5rem)', height: 'clamp(2.5rem, 8vw, 3.5rem)' }}
-                    draggable={false}
+                    alt="AISA"
+                    className="w-20 h-20 sm:w-24 sm:h-24 mx-auto drop-shadow-[0_0_30px_rgba(139,92,246,0.4)] transition-all duration-700 hover:scale-110"
+
                   />
-                </div>
+                </motion.div>
 
+                <section className="w-full pb-32 px-1 sm:px-2 md:px-0">
+                  <FuturisticToolCards 
+                    isAdmin={isAdminUser}
+                    activeToolId={
+                      isImageGeneration ? 'image' : 
+                      isVideoGeneration ? 'video' :
+                      isDeepSearch ? 'deep_search' :
+                      isWebSearch ? 'web_search' :
+                      isCodeWriter ? 'code' :
+                      isAudioConvertMode ? 'audio' :
+                      isFileAnalysis ? 'document' :
+                      isMagicEditing ? 'edit_image' :
+                      isMagicVideoModalOpen ? 'image_to_video' :
+                      isCashFlowMode ? 'ai_cashflow' :
+                      (activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') ? 'legal' : null
+                    }
+                    onToolSelect={(id) => {
+                      // Reset states
+                      setIsImageGeneration(false);
+                      setIsVideoGeneration(false);
+                      setIsAudioConvertMode(false);
+                      setIsCodeWriter(false);
+                      setIsDeepSearch(false);
+                      setIsWebSearch(false);
+                      setIsFileAnalysis(false);
+                      setIsMagicEditing(false);
+                      setIsMagicVideoModalOpen(false);
+                      setIsCashFlowMode(false);
+                      setActiveLegalToolkit(false);
 
-                <div className="relative w-full max-w-5xl mx-auto">
-                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 justify-items-stretch animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                    {[
-                      {
-                        icon: <ImagePlus className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />,
-                        title: "Generate Image",
-                        desc: "Create visuals from text",
-                        active: isImageGeneration,
-                        color: "from-purple-500/20 to-pink-500/20",
-                        action: () => {
-                          if (!checkPremiumTool('Image Generation')) return;
-                          setIsImageGeneration(true);
-                          setIsVideoGeneration(false);
-                          setIsMagicSettingsOpen(true);
-                          if (inputRef.current) {
-                            inputRef.current.value = "Generate an image of ";
-                            inputRef.current.focus();
-                          }
-                        }
-                      },
-                      {
-                        icon: <Video className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />,
-                        title: "Generate Video",
-                        desc: "Text to Cinematic Video",
-                        active: isVideoGeneration,
-                        color: "from-red-500/20 to-orange-500/20",
-                        action: () => {
-                          if (!checkPremiumTool('Generate Video')) return;
-                          setIsVideoGeneration(true);
-                          setIsImageGeneration(false);
-                          setIsMagicSettingsOpen(true);
-                          if (inputRef.current) inputRef.current.focus();
-                          toast.success("Video Generation Mode Active");
-                        }
-                      },
-                      {
-                        icon: <Search className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />,
-                        title: "Deep Search",
-                        desc: "Research complex topics",
-                        active: isDeepSearch,
-                        color: "from-blue-500/20 to-sky-500/20",
-                        action: () => {
-                          if (!checkPremiumTool('Deep Search')) return;
-                          setIsDeepSearch(true);
-                          setIsWebSearch(false);
-                          if (inputRef.current) inputRef.current.focus();
-                          toast.success("Deep Search Mode Enabled");
-                        }
-                      },
-                      {
-                        icon: <Globe className="w-5 h-5 sm:w-6 sm:h-6 text-sky-600" />,
-                        title: "Real-Time Search",
-                        desc: "Live web data access",
-                        active: isWebSearch,
-                        color: "from-sky-500/20 to-emerald-500/20",
-                        action: () => {
-                          if (!checkPremiumTool('Web Search')) return;
-                          setIsWebSearch(true);
-                          setIsDeepSearch(false);
-                          if (inputRef.current) inputRef.current.focus();
-                          toast.success("Real-Time Web Search Enabled");
-                        }
-                      },
-                      {
-                        icon: <Headphones className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />,
-                        title: "Convert to Audio",
-                        desc: "Text/Docs to Voice",
-                        active: isAudioConvertMode,
-                        color: "from-emerald-500/20 to-teal-500/20",
-                        action: () => {
-                          if (!checkPremiumTool('Convert to Audio')) return;
-                          setIsAudioConvertMode(true);
-                          if (inputRef.current) inputRef.current.focus();
-                          toast.success("Audio Conversion Active");
-                        }
-                      },
-                      {
-                        icon: <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />,
-                        title: "Analyze Document",
-                        desc: "Chat with PDFs & Docs",
-                        active: isFileAnalysis,
-                        color: "from-blue-500/20 to-indigo-500/20",
-                        action: () => {
-                          if (!checkPremiumTool('Analyze Document')) return;
-                          setIsFileAnalysis(true);
-                          if (inputRef.current) inputRef.current.focus();
-                          toast.success("Document Analysis Active. Use the + button to upload files.");
-                        }
-                      },
-                      {
-                        icon: <Code className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />,
-                        title: "Code Writer",
-                        desc: "Write & debug code",
-                        active: isCodeWriter,
-                        color: "from-indigo-500/20 to-violet-500/20",
-                        action: () => {
-                          if (!checkPremiumTool('Code Writer')) return;
-                          setIsCodeWriter(true);
-                          if (inputRef.current) inputRef.current.focus();
-                          toast.success("Code Writer Mode Enabled");
-                        }
-                      },
-                      {
-                        icon: <Wand2 className="w-5 h-5 sm:w-6 sm:h-6 text-pink-600" />,
-                        title: "Edit Image",
-                        desc: "Magic Image Editor",
-                        active: isMagicEditing,
-                        color: "from-pink-500/20 to-rose-500/20",
-                        action: () => {
-                          if (!checkPremiumTool('Edit Image')) return;
-                          setIsMagicEditing(true);
-                          if (inputRef.current) inputRef.current.focus();
-                          if (!editRefImage && messages.length > 0) {
-                            const lastImg = [...messages].reverse().find(m => m.imageUrl);
-                            if (lastImg) setEditRefImage({ url: lastImg.imageUrl, name: 'Last Generated', type: 'image' });
-                          }
-                          toast.success("Image Editing Enabled");
-                        }
-                      },
-                      {
-                        icon: (
-                          <div className="relative">
-                            <PlaySquare className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" />
-                            <Sparkles className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                          </div>
-                        ),
-                        title: "Image to Video",
-                        desc: "Image to Video Magic",
-                        active: false,
-                        color: "from-amber-500/20 to-orange-500/20",
-                        action: () => {
-                          if (!checkPremiumTool('Image to Video')) return;
-                          setIsMagicVideoModalOpen(true);
-                        }
-                      },
-                      {
-                        icon: <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />,
-                        title: "AI Ad Agent",
-                        desc: "Automate 30-Day Campaign",
-                        active: isAiAdDashboardOpen,
-                        color: "from-primary/20 to-purple-500/20",
-                        action: () => {
-                          if (!checkPremiumTool('AI Ad Agent')) return;
-                          setIsAiAdDashboardOpen(true);
-                        }
+                      if (id === 'image') {
+                        if (!checkPremiumTool('Image Generation')) return;
+                        setIsImageGeneration(true);
+                        setIsMagicSettingsOpen(true);
+                        if (inputRef.current) { inputRef.current.value = "Generate an image of "; inputRef.current.focus(); }
+                        toast.success("Image Mode Active");
+                      } else if (id === 'video') {
+                        if (!checkPremiumTool('Generate Video')) return;
+                        setIsVideoGeneration(true);
+                        setIsMagicSettingsOpen(true);
+                        if (inputRef.current) { inputRef.current.value = "Generate a video of "; inputRef.current.focus(); }
+                        toast.success("Video Mode Active");
+                      } else if (id === 'audio') {
+                        if (!checkPremiumTool('Convert to Audio')) return;
+                        setIsAudioConvertMode(true);
+                        if (inputRef.current) { inputRef.current.value = "Convert this text to audio: "; inputRef.current.focus(); }
+                        toast.success("Audio Mode Active");
+                      } else if (id === 'code') {
+                        if (!checkPremiumTool('Code Writer')) return;
+                        setIsCodeWriter(true);
+                        if (inputRef.current) { inputRef.current.value = "Write a function to "; inputRef.current.focus(); }
+                        toast.success("Code Mode Active");
+                      } else if (id === 'deep_search') {
+                        setIsDeepSearch(true);
+                        if (inputRef.current) { inputRef.current.value = "Research in-depth about "; inputRef.current.focus(); }
+                        toast.success("Deep Intelligence Active");
+                      } else if (id === 'web_search') {
+                        setIsWebSearch(true);
+                        if (inputRef.current) { inputRef.current.value = "Search for live updates on "; inputRef.current.focus(); }
+                        toast.success("Real-Time Search Active");
+                      } else if (id === 'document') {
+                        setIsFileAnalysis(true);
+                        uploadInputRef.current?.click();
+                        toast.success("Upload document for analysis");
+                      } else if (id === 'edit_image') {
+                        if (!checkPremiumTool('Edit Image')) return;
+                        setIsMagicEditing(true);
+                        toast.success("Image Editor Active");
+                      } else if (id === 'image_to_video') {
+                        if (!checkPremiumTool('Image to Video')) return;
+                        setIsMagicVideoModalOpen(true);
+                        toast.success("Image to Video Active");
+                      } else if (id === 'legal') {
+                        if (!checkPremiumTool('AI Legal')) return;
+                        setActiveLegalToolkit(true);
+                        toast.success("AI Legal Enabled ⚖️");
+                      } else if (id === 'ai_cashflow') {
+                        if (!checkPremiumTool('AI CashFlow')) return;
+                        setIsCashFlowMode(true);
+                        toast.success("AI CashFlow Active 📈");
+                      } else if (id === 'stock_analyst') {
+                        if (!checkPremiumTool('Stock Analysis')) return;
+                        setIsStockModalOpen(true);
+                        toast.success("Stock Analyst Active 📉");
+                      } else if (id === 'aiad_agent') {
+                        if (!checkPremiumTool('AI Ad Agent')) return;
+                        setIsSocialMediaDashboardOpen(true);
+                        toast.success("AIAD™ Agent Active");
                       }
-                    ].map((item, index) => (
-                      <button
-                        key={index}
-                        onClick={item.action}
-                        className={`group relative flex flex-row items-center gap-2 sm:gap-3.5 p-1.5 sm:p-3.5 min-h-[56px] sm:min-h-[95px] rounded-[16px] sm:rounded-[28px] text-left transition-all duration-500 active:scale-[0.98] w-full mx-auto overflow-hidden border ${item.active
-                            ? "bg-primary/10 border-primary/40 shadow-[0_20px_50px_rgba(var(--primary-rgb),0.15)] ring-2 ring-primary/20"
-                            : "bg-white dark:bg-zinc-900/60 border-slate-200/50 dark:border-white/[0.05] hover:border-primary/30"
-                          } shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)]`}
-                      >
-                        <div className={`w-9 h-9 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center shrink-0 transition-all duration-500 group-hover:scale-110 shadow-inner overflow-hidden relative bg-gradient-to-br ${item.color} border border-white/40 dark:border-white/5`}>
-                          <div className="relative z-10 transition-transform duration-500 group-hover:scale-110">
-                            {item.icon}
-                          </div>
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1 sm:gap-1.5 mb-0 sm:mb-1">
-                            <span className={`px-1 sm:px-1.5 py-0.5 rounded-md text-[6px] sm:text-[8px] font-black uppercase tracking-widest border bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-zinc-500 border-slate-200/50 dark:border-white/5`}>AISA ™</span>
-                          </div>
-                          <h3 className={`font-black text-[11px] sm:text-[15px] leading-tight mb-0 sm:mb-0.5 tracking-tight text-slate-800 dark:text-white group-hover:text-primary transition-colors truncate`}>{item.title}</h3>
-                          <p className={`text-[10px] sm:text-[12px] font-medium line-clamp-1 opacity-70 text-slate-500 dark:text-zinc-400 hidden sm:block`}>{item.desc}</p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                    }}
+                  />
+                </section>
               </div>
-              </div>
-            </div>
-          )
-        }
 
-        {/* Input */}
-        <div className="absolute bottom-0 left-0 right-0 bg-transparent z-20" style={{ padding: 'max(0.375rem, env(safe-area-inset-bottom, 0.375rem)) max(0.5rem, env(safe-area-inset-right, 0.5rem)) max(0.375rem, 0.375rem) max(0.5rem, env(safe-area-inset-left, 0.5rem))' }}>
-          <div className="max-w-5xl mx-auto relative px-1 sm:px-2">
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-            {/* File Preview Area */}
-            {filePreviews.length > 0 && (
-              <div className={`absolute bottom-full left-0 right-0 ${ (isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing) ? 'mb-[38px]' : 'mb-2' } px-2 overflow-x-auto custom-scrollbar no-scrollbar flex gap-3 pb-1 z-20 pointer-events-auto`}>
-                {filePreviews.map((preview) => (
-                  <div
-                    key={preview.id}
-                    className="relative shrink-0 w-64 md:w-72 bg-surface/95 dark:bg-zinc-900/95 border border-transparent rounded-2xl p-2.5 flex items-center gap-3 shadow-xl backdrop-blur-xl animate-in slide-in-from-bottom-2 duration-300 ring-1 ring-black/5"
-                  >
-                    <div className="relative group shrink-0">
+
+        {/* Unified Chat Input Container */}
+        <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none" style={{ padding: 'max(0.375rem, env(safe-area-inset-bottom, 0.375rem)) 0.5rem max(0.375rem, 0.375rem) 0.5rem' }}>
+          <div className="max-w-5xl mx-auto w-full pointer-events-auto">
+
+            <form 
+              onSubmit={handleSendMessage} 
+              className="relative w-full flex flex-col transition-all duration-300 backdrop-blur-3xl p-3 z-50 aisa-chat-input-wrapper bg-[#f8f9fc]/90 dark:bg-zinc-900/95 border border-slate-200/50 dark:border-zinc-800/80 rounded-[32px] shadow-2xl ring-1 ring-black/5 overflow-visible"
+            >
+              {/* Internal File Preview Area */}
+              {filePreviews.length > 0 && (
+                <div className="flex flex-wrap gap-4 px-2 py-2 mb-2">
+                  {filePreviews.map((preview) => (
+                    <div key={preview.id} className="relative group shrink-0 w-[68px] sm:w-[76px] aspect-square bg-slate-100 dark:bg-zinc-800 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-700 overflow-visible">
                       {preview.type.startsWith('image/') ? (
-                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border border-transparent bg-black/5">
-                          <img src={preview.url} alt="Preview" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                        <div className="w-full h-full rounded-2xl overflow-hidden">
+                          <img src={preview.url} alt="Preview" className="w-full h-full object-cover" />
                         </div>
                       ) : (
-                        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-primary/10 rounded-xl flex items-center justify-center border border-transparent shadow-sm">
-                          <FileText className="w-7 h-7 text-primary" />
+                        <div className="w-full h-full flex flex-col items-center justify-center p-1">
+                          <FileText className="w-7 h-7 text-primary/60" />
+                          <span className="text-[7px] font-black uppercase text-primary/70 mt-1 truncate px-1">{preview.type.split('/')[1]?.split('-')[0] || 'FILE'}</span>
                         </div>
                       )}
-
-                      <div className="absolute -top-2 -right-2">
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveFile(preview.id)}
-                          className="p-1 w-6 h-6 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg hover:scale-110 active:scale-95 flex items-center justify-center border-2 border-surface"
-                          title="Remove file"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
+                      <div className="absolute -top-1.5 -right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-[101]">
+                        <button type="button" className="w-6 h-6 bg-white dark:bg-zinc-700 text-slate-800 dark:text-white rounded-full flex items-center justify-center shadow-lg border border-slate-100 dark:border-zinc-600 hover:scale-110"><Edit2 size={12} /></button>
+                        <button type="button" onClick={() => handleRemoveFile(preview.id)} className="w-6 h-6 bg-white dark:bg-zinc-700 text-red-500 rounded-full flex items-center justify-center shadow-lg border border-slate-100 dark:border-zinc-600 hover:scale-110"><X size={12} /></button>
                       </div>
                     </div>
+                  ))}
+                </div>
+              )}
 
-                    <div className="min-w-0 flex-1 py-1">
-                      <p className="text-sm font-semibold text-maintext truncate pr-1">{preview.name}</p>
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <span className="text-[10px] text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-lg uppercase tracking-wider font-bold">
-                          {preview.type.split('/')[1]?.split('-')[0] || 'FILE'}
-                        </span>
-                        <span className="text-[10px] text-subtext font-medium">
-                          {(preview.size / 1024 / 1024).toFixed(2)} MB
-                        </span>
+              {/* Reference Image Preview */}
+              {isMagicEditing && editRefImage && filePreviews.length === 0 && (
+                <div className="flex p-2 mb-1">
+                  <div className="relative group shrink-0 w-16 h-16 bg-white dark:bg-zinc-800 border border-primary/20 rounded-xl shadow-md overflow-visible">
+                    <img src={editRefImage.url} alt="Reference" className="w-full h-full object-cover rounded-xl" />
+                    <button type="button" onClick={() => setEditRefImage(null)} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-zinc-900 text-white rounded-full flex items-center justify-center shadow-lg border border-white/20"><X size={12} /></button>
+                  </div>
+                </div>
+              )}
+
+              <input id="file-upload" type="file" ref={uploadInputRef} onChange={handleFileSelect} multiple className="hidden" />
+              <input id="drive-upload" type="file" ref={driveInputRef} onChange={handleFileSelect} multiple className="hidden" />
+              <input id="doc-voice-upload" type="file" onChange={handleDocToVoiceSelect} className="hidden" accept=".pdf,.doc,.docx,.txt" />
+              <input id="photos-upload" type="file" ref={photosInputRef} onChange={handleFileSelect} multiple className="hidden" accept="image/*" />
+              <input id="camera-upload" type="file" onChange={handleFileSelect} className="hidden" accept="image/*" capture="environment" />
+              
+              <div className="flex items-end gap-2 w-full">
+
+
+            {/* AI CashFlow Search Results Dropdown */}
+            {isCashFlowMode && Array.isArray(stockSearchResults) && stockSearchResults.length > 0 && (
+              <div className="absolute bottom-full left-0 right-0 mb-3 px-2 z-30 pointer-events-auto max-h-[300px] overflow-y-auto custom-scrollbar">
+                <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden">
+                  {stockSearchResults.map((stock) => (
+                    <button
+                      key={stock.symbol}
+                      type="button"
+                      onClick={() => {
+                        setSelectedStock(stock);
+                        setInputValue(stock.name);
+                        setStockSearchResults([]);
+                      }}
+                      className="w-full text-left px-4 py-3 hover:bg-primary/10 border-b border-slate-100 dark:border-zinc-800 last:border-0 flex items-center justify-between group transition-colors"
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-bold text-slate-800 dark:text-white group-hover:text-primary transition-colors">{stock.symbol}</span>
+                        <span className="text-xs text-slate-500 dark:text-zinc-400 line-clamp-1">{stock.name}</span>
                       </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Reference Image Preview (for Magic Editing) */}
-            {isMagicEditing && editRefImage && filePreviews.length === 0 && (
-              <div className={`absolute bottom-full left-0 right-0 ${ (isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing) ? 'mb-[60px]' : 'mb-4' } px-2 overflow-x-auto custom-scrollbar no-scrollbar flex gap-3 pb-2 z-20 pointer-events-auto`}>
-                <div
-                  className="relative shrink-0 w-64 md:w-72 bg-primary/5 dark:bg-primary/10 border border-primary/30 rounded-2xl p-2.5 flex items-center gap-3 shadow-xl backdrop-blur-xl animate-in slide-in-from-bottom-2 duration-300 ring-1 ring-primary/20"
-                >
-                  <div className="relative group shrink-0">
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border border-primary/20 bg-black/5">
-                      <img src={editRefImage.url} alt="Reference" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
-                    </div>
-
-                    <div className="absolute -top-2 -right-2">
-                      <button
-                        type="button"
-                        onClick={() => setEditRefImage(null)}
-                        className="p-1 w-6 h-6 bg-zinc-500 text-white rounded-full hover:bg-zinc-600 transition-colors shadow-lg hover:scale-110 active:scale-95 flex items-center justify-center border-2 border-surface"
-                        title="Remove reference"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="min-w-0 flex-1 py-1">
-                    <p className="text-sm font-semibold text-maintext truncate pr-1">Using Chat Image</p>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <span className="text-[10px] text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded-lg uppercase tracking-wider font-bold">
-                        REFERENCE
-                      </span>
-                    </div>
-                  </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-[10px] px-2 py-0.5 bg-slate-100 dark:bg-white/5 rounded text-slate-500 dark:text-zinc-400 font-bold uppercase">{stock.region}</span>
+                      </div>
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
-
-            {intentSuggestion && (
-              <div className="absolute bottom-full left-0 right-0 mb-3 px-2 z-30 pointer-events-auto">
-                <IntentSuggestionBanner
-                  suggestion={intentSuggestion}
-                  onAccept={handleAcceptSuggestion}
-                  onDismiss={handleDismissSuggestion}
-                  isDarkMode={true} 
-                />
-              </div>
-            )}
-
-            <form onSubmit={handleSendMessage} className="relative w-full max-w-5xl mx-auto flex items-center gap-[6px] bg-white dark:bg-[#0a0a0a] border border-transparent rounded-[16px] p-[6px] shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.15)] transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.1)] hover:border-primary/20 backdrop-blur-3xl px-[10px] z-50">
-              <input
-                id="file-upload"
-                type="file"
-                ref={uploadInputRef}
-                onChange={handleFileSelect}
-                multiple
-                className="hidden"
-              />
-              <input
-                id="drive-upload"
-                type="file"
-                ref={driveInputRef}
-                onChange={handleFileSelect}
-                multiple
-                className="hidden"
-              />
-              <input
-                id="doc-voice-upload"
-                type="file"
-                onChange={handleDocToVoiceSelect}
-                className="hidden"
-                accept=".pdf,.doc,.docx,.txt"
-              />
-              <input
-                id="photos-upload"
-                type="file"
-                ref={photosInputRef}
-                onChange={handleFileSelect}
-                multiple
-                className="hidden"
-                accept="image/*"
-              />
-              <input
-                id="camera-upload"
-                type="file"
-                onChange={handleFileSelect}
-                className="hidden"
-                accept="image/*"
-                capture="environment"
-              />
 
               {/* Left Actions Group */}
               <div className="flex items-center gap-[2px] pl-[2px] shrink-0">
@@ -6188,14 +6838,17 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               const lastImg = [...messages].reverse().find(m => m.imageUrl);
                               if (lastImg) setEditRefImage({ url: lastImg.imageUrl, name: 'Last Generated', type: 'image' });
                             }
-
-                            setIsDeepSearch(false);
+                            
                             setIsImageGeneration(false);
                             setIsVideoGeneration(false);
+                            setIsDeepSearch(false);
+                            setIsWebSearch(false);
                             setIsAudioConvertMode(false);
                             setIsDocumentConvert(false);
                             setIsCodeWriter(false);
-                            if (newMode) toast.success("Image Editing Mode Enabled");
+                            setIsCashFlowMode(false);
+                            setIsFileAnalysis(false);
+                            if (newMode) toast.success("Image Editing Enabled");
                           }}
                           className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isMagicEditing ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
                         >
@@ -6207,7 +6860,75 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
                               <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Edit Image</span>
                             </div>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Enhance and modify existing visuals.</p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Magic Image Editor.</p>
+                          </div>
+                        </button>
+
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!checkPremiumTool('AI CashFlow')) return;
+                              setIsToolsMenuOpen(false);
+                              const newMode = !isCashFlowMode;
+                              setIsCashFlowMode(newMode);
+                              
+                              setIsImageGeneration(false);
+                              setIsVideoGeneration(false);
+                              setIsDeepSearch(false);
+                              setIsWebSearch(false);
+                              setIsAudioConvertMode(false);
+                              setIsDocumentConvert(false);
+                              setIsCodeWriter(false);
+                              setIsMagicEditing(false);
+                              setIsFileAnalysis(false);
+                              if (newMode) {
+                                setIsStockModalOpen(true);
+                                toast.success("AI CashFlow Explorer Active");
+                              }
+                            }}
+                            className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isCashFlowMode ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
+                          >
+                            <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isCashFlowMode ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
+                              <TrendingUp className="w-5.5 h-5.5" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
+                                <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">AI CashFlow</span>
+                              </div>
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Live Analysis & Reports.</p>
+                            </div>
+                          </button>
+
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!checkPremiumTool('AI Legal')) return;
+                            setIsToolsMenuOpen(false);
+                            const newMode = !activeLegalToolkit;
+                            setActiveLegalToolkit(newMode);
+                            setIsImageGeneration(false);
+                            setIsVideoGeneration(false);
+                            setIsDeepSearch(false);
+                            setIsAudioConvertMode(false);
+                            setIsDocumentConvert(false);
+                            setIsCodeWriter(false);
+                            setIsMagicEditing(false);
+                            if (newMode) toast.success("AI Legal Enabled ⚖️");
+                          }}
+                          className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${activeLegalToolkit ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
+                        >
+                          <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${activeLegalToolkit ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
+                            <Scale className="w-5.5 h-5.5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
+                              <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">AI Legal</span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">6 specialized AI legal tools.</p>
                           </div>
                         </button>
 
@@ -6220,24 +6941,23 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           }}
                           className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md`}
                         >
-                          <div className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300`}>
-                            <Wand2 className="w-7 h-7" />
+                          <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300`}>
+                            <PlaySquare className="w-5.5 h-5.5" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
                               <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
-                              <span className="text-[16px] font-extrabold text-slate-800 dark:text-white leading-none">Image {'->'} Video</span>
+                              <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Image to Video</span>
                             </div>
                             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Animate your images with AI magic.</p>
                           </div>
                         </button>
-
                         <button
                           type="button"
                           onClick={() => {
                             if (!checkPremiumTool('AI Ad Agent')) return;
                             setIsToolsMenuOpen(false);
-                            setIsAiAdDashboardOpen(true);
+                            setIsSocialMediaDashboardOpen(true);
                           }}
                           className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md`}
                         >
@@ -6247,7 +6967,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
                               <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
-                              <span className="text-[16px] font-extrabold text-slate-800 dark:text-white leading-none">AI Ad Agent</span>
+                              <span className="text-[16px] font-extrabold text-slate-800 dark:text-white leading-none">AIAD™ Agent</span>
+
                             </div>
                             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Automate 30 days of social media content.</p>
                           </div>
@@ -6258,96 +6979,245 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                   )}
                 </AnimatePresence>
 
-                <button
-                  type="button"
-                  ref={attachBtnRef}
-                  onClick={() => {
-                    setIsAttachMenuOpen(!isAttachMenuOpen);
-                    setIsToolsMenuOpen(false);
-                  }}
-                  className="w-[40px] h-[40px] rounded-full flex items-center justify-center text-subtext hover:text-primary hover:bg-secondary transition-all active:scale-95 shadow-sm hover:shadow-md"
-                  title="Attachments"
-                >
-                  <Plus className={`w-[20px] h-[20px] transition-transform duration-300 ${isAttachMenuOpen ? 'rotate-45' : ''}`} />
-                </button>
+                <div className="relative">
+                  <AnimatePresence>
+                    {isAttachHovered && <MagicShowEffect />}
+                  </AnimatePresence>
+                  <motion.button
+                    type="button"
+                    ref={attachBtnRef}
+                    onMouseEnter={() => setIsAttachHovered(true)}
+                    onMouseLeave={() => setIsAttachHovered(false)}
+                    whileHover={{ scale: 1.15, rotate: 90 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      setIsAttachMenuOpen(!isAttachMenuOpen);
+                      setIsToolsMenuOpen(false);
+                    }}
+                    className="w-[40px] h-[40px] rounded-full flex items-center justify-center text-subtext hover:text-primary hover:bg-secondary transition-all shadow-sm hover:shadow-md relative overflow-visible z-20"
+                    title="Attachments"
+                  >
+                    <Plus className={`w-[22px] h-[22px] transition-transform duration-300 ${isAttachMenuOpen ? 'rotate-45' : ''}`} />
+                  </motion.button>
+                </div>
 
-                <button
-                  type="button"
-                  ref={toolsBtnRef}
-                  onClick={() => {
-                    setIsToolsMenuOpen(!isToolsMenuOpen);
-                    setIsAttachMenuOpen(false);
-                  }}
-                  className="w-[40px] h-[40px] rounded-full flex items-center justify-center text-subtext hover:text-primary hover:bg-secondary transition-all active:scale-95 shadow-sm hover:shadow-md"
-                  title="AISA ™ Magic Tools"
-                >
-                  <Brain className="w-[20px] h-[20px]" />
-                </button>
+                <div className="relative">
+                  <AnimatePresence>
+                    {(isBrainHovered || isBrainTapped) && <MagicShowEffect isMobileIdle={!isBrainHovered && !isBrainTapped} />}
+                  </AnimatePresence>
+                  <motion.button
+                    type="button"
+                    ref={toolsBtnRef}
+                    onMouseEnter={() => setIsBrainHovered(true)}
+                    onMouseLeave={() => setIsBrainHovered(false)}
+                    whileHover={{ scale: 1.15, rotate: [0, -5, 5, 0] }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setExplosions(prev => [...prev, { 
+                        id: Date.now(), 
+                        x: rect.left + rect.width / 2, 
+                        y: rect.top + rect.height / 2 
+                      }]);
+                      setIsBrainTapped(true);
+                      setTimeout(() => setIsBrainTapped(false), 2000);
+                      setIsToolsMenuOpen(!isToolsMenuOpen);
+                      setIsAttachMenuOpen(false);
+                    }}
+                    className="w-[40px] h-[40px] rounded-full flex items-center justify-center bg-secondary/80 text-subtext hover:text-primary transition-colors shadow-lg hover:shadow-primary/40 relative overflow-visible z-20"
+                    title="AISA ™ Magic Tools"
+                  >
+                    <Brain className={`w-[22px] h-[22px] relative z-10 transition-colors ${isBrainHovered ? 'text-primary' : ''}`} />
+                    <AnimatePresence>
+                      {isBrainHovered && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.5 }}
+                          animate={{ opacity: 1, scale: 1.1 }}
+                          exit={{ opacity: 0, scale: 0.5 }}
+                          className="absolute inset-0 rounded-full bg-primary/20 blur-md pointer-events-none"
+                        />
+                      )}
+                    </AnimatePresence>
+                  </motion.button>
+                </div>
+
               </div>
 
               <div className="flex-1 flex items-center min-w-0 bg-transparent border-0 ring-0 focus:ring-0">
                 <AnimatePresence>
-                  {(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis) && (
+                  {(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') && (
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto w-[calc(100vw-24px)] max-w-5xl px-2 z-[100] justify-start sm:justify-start">
-                      {isWebSearch && (
+                      {isCashFlowMode && (
                         <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
-                          <Globe size={12} strokeWidth={3} /> <span className="hidden sm:inline">Web Search</span>
-                          <button onClick={() => setIsWebSearch(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
+                          <TrendingUp size={12} strokeWidth={3} /> <span className="hidden sm:inline">AI CashFlow</span>
+                          <button onClick={() => setIsCashFlowMode(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
+                        </motion.div>
+                      )}
+                      {isWebSearch && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }} 
+                          animate={{ opacity: 1, y: 0, scale: 1 }} 
+                          exit={{ opacity: 0, scale: 0.95 }} 
+                          className="flex items-center gap-3 px-3.5 py-1.5 bg-blue-600/20 dark:bg-blue-500/25 text-blue-700 dark:text-blue-400 rounded-full text-xs font-bold border border-blue-400/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-blue-600/30 group shadow-[0_8px_32px_-4px_rgba(37,99,235,0.3)] relative overflow-hidden ring-1 ring-white/10"
+                        >
+                          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
+                          <div className="flex items-center gap-2 relative z-10">
+                            <div className="w-5 h-5 rounded-lg bg-blue-600 dark:bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/40 text-white">
+                              <Globe size={14} strokeWidth={3} />
+                            </div>
+                            <span className="uppercase tracking-widest text-[9px] font-black hidden xs:inline">Web Search</span>
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={() => setIsWebSearch(false)} 
+                            className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-blue-600 dark:text-blue-400 transition-all hover:rotate-90 relative z-10"
+                          >
+                            <X size={14} strokeWidth={3} />
+                          </button>
                         </motion.div>
                       )}
                       {isDeepSearch && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
-                          <Search size={12} strokeWidth={3} /> <span className="hidden sm:inline">Deep Search</span>
-                          <button onClick={() => setIsDeepSearch(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }} 
+                          animate={{ opacity: 1, y: 0, scale: 1 }} 
+                          exit={{ opacity: 0, scale: 0.95 }} 
+                          className="flex items-center gap-3 px-3.5 py-1.5 bg-emerald-600/20 dark:bg-emerald-500/25 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-bold border border-emerald-400/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-emerald-600/30 group shadow-[0_8px_32px_-4px_rgba(16,185,129,0.3)] relative overflow-hidden ring-1 ring-white/10"
+                        >
+                          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
+                          <div className="flex items-center gap-2 relative z-10">
+                            <div className="w-5 h-5 rounded-lg bg-emerald-600 dark:bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/40 text-white">
+                              <Search size={14} strokeWidth={3} />
+                            </div>
+                            <span className="uppercase tracking-widest text-[9px] font-black hidden xs:inline">Deep Search</span>
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={() => setIsDeepSearch(false)} 
+                            className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-emerald-600 dark:text-emerald-400 transition-all hover:rotate-90 relative z-10"
+                          >
+                            <X size={14} strokeWidth={3} />
+                          </button>
                         </motion.div>
                       )}
                       {isImageGeneration && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0 group">
-                          <ImageIcon size={12} strokeWidth={3} />
-                          <span className="text-[10px] font-black uppercase tracking-tight hidden xs:inline">Image Gen</span>
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }} 
+                          animate={{ opacity: 1, y: 0, scale: 1 }} 
+                          exit={{ opacity: 0, scale: 0.95 }} 
+                          className="flex items-center gap-3 px-3.5 py-1.5 bg-indigo-600/20 dark:bg-indigo-500/25 text-indigo-700 dark:text-indigo-400 rounded-full text-xs font-bold border border-indigo-400/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-indigo-600/30 group shadow-[0_8px_32px_-4px_rgba(79,70,229,0.3)] relative overflow-hidden ring-1 ring-white/10"
+                        >
+                          {/* Glossy Reflection Effect */}
+                          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
+                          
+                          <div className="flex items-center gap-2 relative z-10">
+                            <div className="w-5 h-5 rounded-lg bg-indigo-600 dark:bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/40 text-white">
+                              <ImageIcon size={14} strokeWidth={3} />
+                            </div>
+                            <span className="uppercase tracking-widest text-[9px] font-black hidden xs:inline">Image Gen</span>
+                          </div>
+
+                          <div className="w-[1px] h-3 bg-indigo-500/40 mx-0.5 relative z-10" />
+
                           <button 
                             type="button"
                             onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
-                            className="flex items-center gap-1 hover:text-primary/80 transition-colors"
+                            className="flex items-center gap-1.5 hover:text-indigo-900 dark:hover:text-indigo-200 transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
                           >
-                            <span className="text-[10px] font-bold">{imageAspectRatio}</span>
-                            <span className="text-[10px] font-bold truncate max-w-[60px] sm:max-w-[100px] ml-1">
+                            <span className="text-[10px] font-extrabold opacity-90">{imageAspectRatio}</span>
+                            <span className="text-[10px] font-black truncate max-w-[60px] sm:max-w-[100px] tracking-tight">
                               {TOOL_PRICING.image.models.find(m => m.id === imageModelId)?.name.replace('AISA ', '') || 'Model'}
+
                             </span>
-                            <ChevronDown size={10} className={`transition-transform duration-200 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
+                            <ChevronDown size={11} className={`transition-transform duration-300 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
                           </button>
-                          <button type="button" onClick={() => setIsImageGeneration(false)} className="ml-1 hover:text-primary/80 border-transparent pl-1.5"><X size={12} /></button>
+
+                          <button 
+                            type="button" 
+                            onClick={() => setIsImageGeneration(false)} 
+                            className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-indigo-600 dark:text-indigo-400 transition-all hover:rotate-90 relative z-10"
+                          >
+                            <X size={14} strokeWidth={3} />
+                          </button>
                         </motion.div>
                       )}
                       {isVideoGeneration && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20 backdrop-blur-md whitespace-nowrap shrink-0 group">
-                          <Video size={12} strokeWidth={3} />
-                          <span className="text-[10px] font-black uppercase tracking-tight hidden xs:inline">Video Gen</span>
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }} 
+                          animate={{ opacity: 1, y: 0, scale: 1 }} 
+                          exit={{ opacity: 0, scale: 0.95 }} 
+                          className="flex items-center gap-3 px-3.5 py-1.5 bg-violet-600/20 dark:bg-violet-500/25 text-violet-700 dark:text-violet-400 rounded-full text-xs font-bold border border-violet-400/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-violet-600/30 group shadow-[0_8px_32px_-4px_rgba(139,92,246,0.3)] relative overflow-hidden ring-1 ring-white/10"
+                        >
+                          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
+                          
+                          <div className="flex items-center gap-2 relative z-10">
+                            <div className="w-5 h-5 rounded-lg bg-violet-600 dark:bg-violet-500 flex items-center justify-center shadow-lg shadow-violet-500/40 text-white">
+                              <Video size={14} strokeWidth={3} />
+                            </div>
+                            <span className="uppercase tracking-widest text-[9px] font-black hidden xs:inline">Video Gen</span>
+                          </div>
+
+                          <div className="w-[1px] h-3 bg-violet-500/40 mx-0.5 relative z-10" />
+
                           <button 
                             type="button"
                             onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
-                            className="flex items-center gap-1 hover:text-primary/80 transition-colors"
+                            className="flex items-center gap-1.5 hover:text-violet-900 dark:hover:text-violet-200 transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
                           >
-                            <span className="text-[10px] font-bold">{videoAspectRatio || 'D'}</span>
-                            <span className="text-[10px] font-bold ml-1">{videoResolution}</span>
-                            <ChevronDown size={10} className={`transition-transform duration-200 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
+                            <span className="text-[10px] font-extrabold opacity-90">{videoAspectRatio || 'D'}</span>
+                            <span className="text-[10px] font-black tracking-tight ml-1">{videoResolution}</span>
+                            <ChevronDown size={11} className={`transition-transform duration-300 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
                           </button>
-                          <button type="button" onClick={() => setIsVideoGeneration(false)} className="ml-1 hover:text-primary/80 border-transparent pl-1.5"><X size={12} /></button>
+
+                          <button 
+                            type="button" 
+                            onClick={() => setIsVideoGeneration(false)} 
+                            className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-violet-600 dark:text-violet-400 transition-all hover:rotate-90 relative z-10"
+                          >
+                            <X size={14} strokeWidth={3} />
+                          </button>
                         </motion.div>
                       )}
                       {isVoiceMode && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
-                          <Volume2 size={12} strokeWidth={3} /> <span className="hidden sm:inline">Voice Mode</span>
-                          <button onClick={() => setIsVoiceMode(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
+                        <motion.div 
+                          initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} 
+                          className="flex items-center gap-2.5 px-3 py-1.5 bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-full text-xs font-bold border border-rose-500/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-rose-500/15 group shadow-lg shadow-rose-500/10"
+                        >
+                          <div className="flex items-center gap-2">
+                             <div className="w-5 h-5 rounded-lg bg-rose-500/20 flex items-center justify-center">
+                              <Volume2 size={14} strokeWidth={2.5} />
+                            </div>
+                            <span className="uppercase tracking-wide text-[10px] font-black hidden sm:inline">Voice Mode</span>
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={() => setIsVoiceMode(false)} 
+                            className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 transition-all hover:rotate-90"
+                          >
+                            <X size={14} strokeWidth={3} />
+                          </button>
                         </motion.div>
                       )}
                       {isAudioConvertMode && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
-                          <Headphones size={12} strokeWidth={3} /> <span className="hidden sm:inline">Audio Convert</span>
-                          <button type="button" onClick={() => setIsVoiceSettingsOpen(true)} className="ml-1 hover:text-indigo-800" title="Voice Settings">
-                            <Sliders size={12} />
+                        <motion.div 
+                          initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} 
+                          className="flex items-center gap-2.5 px-3 py-1.5 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-full text-xs font-bold border border-indigo-500/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-indigo-500/15 group shadow-lg shadow-indigo-500/10"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+                              <Headphones size={14} strokeWidth={2.5} />
+                            </div>
+                            <span className="uppercase tracking-wide text-[10px] font-black hidden sm:inline">Audio Convert</span>
+                          </div>
+                          <button type="button" onClick={() => setIsVoiceSettingsOpen(true)} className="ml-1 w-5 h-5 rounded-lg flex items-center justify-center hover:bg-indigo-500/20 text-subtext hover:text-indigo-600 transition-colors" title="Voice Settings">
+                            <Sliders size={13} />
                           </button>
-                          <button type="button" onClick={() => setIsAudioConvertMode(false)} className="ml-1 hover:text-indigo-800"><X size={12} /></button>
+                          <button 
+                            type="button" 
+                            onClick={() => setIsAudioConvertMode(false)} 
+                            className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-indigo-500/20 text-rose-600 transition-all hover:rotate-90"
+                          >
+                            <X size={14} strokeWidth={3} />
+                          </button>
                         </motion.div>
                       )}
                       {isDocumentConvert && (
@@ -6362,16 +7232,77 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           <button onClick={() => setIsCodeWriter(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
                         </motion.div>
                       )}
+
+                      {(activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} 
+                          className="flex items-center gap-2.5 px-3 py-1.5 bg-indigo-600/10 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-300 rounded-full text-xs font-bold border border-indigo-500/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-indigo-600/15 group shadow-lg shadow-indigo-500/10"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+                              <Scale size={14} strokeWidth={2.5} />
+                            </div>
+                            <span className="uppercase tracking-wide text-[10px] font-black truncate max-w-[120px]">
+                              AI Legal
+                              {(selectedLegalTool || activeTool) && (
+                                <span className="opacity-70 ml-1.5 font-bold border-l border-indigo-500/30 pl-1.5">
+                                  {(selectedLegalTool?.name || selectedLegalTool || activeTool)}
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={() => {
+                              setActiveLegalToolkit(false);
+                              setCurrentMode('NORMAL_CHAT');
+                              setSelectedLegalTool(null);
+                              setActiveTool(null);
+                            }} 
+                            className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 transition-all hover:rotate-90"
+                          >
+                            <X size={14} strokeWidth={3} />
+                          </button>
+                        </motion.div>
+                      )}
                       {isMagicEditing && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
-                          <Wand2 size={12} strokeWidth={3} /> <span className="hidden sm:inline">Image Edit</span>
-                          <button onClick={() => setIsMagicEditing(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
+                        <motion.div 
+                          initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} 
+                          className="flex items-center gap-2.5 px-3 py-1.5 bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-full text-xs font-bold border border-amber-500/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-amber-500/15 group shadow-lg shadow-amber-500/10"
+                        >
+                          <div className="flex items-center gap-2">
+                             <div className="w-5 h-5 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                              <Wand2 size={14} strokeWidth={2.5} />
+                            </div>
+                            <span className="uppercase tracking-wide text-[10px] font-black hidden sm:inline">Image Edit</span>
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={() => setIsMagicEditing(false)} 
+                            className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 transition-all hover:rotate-90"
+                          >
+                            <X size={14} strokeWidth={3} />
+                          </button>
                         </motion.div>
                       )}
                       {isFileAnalysis && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
-                          <FileText size={12} strokeWidth={3} /> <span className="hidden sm:inline">Analyze Document</span>
-                          <button onClick={() => setIsFileAnalysis(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
+                        <motion.div 
+                          initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} 
+                          className="flex items-center gap-2.5 px-3 py-1.5 bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-full text-xs font-bold border border-blue-500/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-blue-500/15 group shadow-lg shadow-blue-500/10"
+                        >
+                          <div className="flex items-center gap-2">
+                             <div className="w-5 h-5 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                              <FileText size={14} strokeWidth={2.5} />
+                            </div>
+                            <span className="uppercase tracking-wide text-[10px] font-black hidden sm:inline">Analyze Document</span>
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={() => setIsFileAnalysis(false)} 
+                            className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition-all hover:rotate-90"
+                          >
+                            <X size={14} strokeWidth={3} />
+                          </button>
                         </motion.div>
                       )}
                     </div>
@@ -6381,7 +7312,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
 
                 <textarea
-
                   ref={inputRef}
                   value={inputValue}
                   disabled={isLoading || isLimitReached}
@@ -6393,17 +7323,17 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
-                      e.stopPropagation(); // Stop propagation to prevent form onSubmit if possible
-                      if (isGlobalSending || isLoading) return; // Immediate UI-level block
+                      e.stopPropagation(); 
+                      if (isGlobalSending || isLoading) return; 
                       if (inputValue.trim() || selectedFiles.length > 0) {
                         handleSendMessage(e);
                       }
                     }
                   }}
-                  placeholder={isLimitReached ? "Chat limit reached. Sign in to continue." : (isVideoGeneration ? "Describe the video you want to generate..." : isAudioConvertMode ? "Enter text to convert..." : isDocumentConvert ? "Upload file & ask to convert..." : "Ask anything...")}
+                  placeholder={isLimitReached ? "Chat limit reached. Sign in to continue." : (isVideoGeneration ? "Describe the video you want to generate..." : isAudioConvertMode ? "Enter text to convert..." : isDocumentConvert ? "Upload file & ask to convert..." : typedPlaceholder)}
                   rows={1}
-                  className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none p-0 py-2 text-maintext text-left placeholder-subtext/40 resize-none overflow-y-auto custom-scrollbar leading-relaxed text-[15px] ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
-                  style={{ minHeight: '24px', height: 'auto', maxHeight: '150px', lineHeight: '1.5' }}
+                  className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none px-2 py-2 text-slate-800 dark:text-zinc-100 text-left placeholder-slate-400 dark:placeholder-zinc-500 resize-none overflow-y-auto custom-scrollbar font-medium leading-relaxed text-[16px] ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
+                  style={{ minHeight: '32px', height: 'auto', maxHeight: '180px', lineHeight: '1.5' }}
                 />
               </div>
 
@@ -6419,14 +7349,29 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 {!isListening && (
                   <>
                     {getAgentCapabilities(activeAgent.agentName, activeAgent.category).canVoice && (
-                      <button
-                        type="button"
-                        onClick={handleVoiceInput}
-                        className={`w-[36px] h-[36px] rounded-full flex items-center justify-center transition-colors shrink-0 ${isListening ? 'bg-red-500 text-white' : 'text-subtext hover:text-primary hover:bg-secondary'}`}
-                        title="Voice Input"
-                      >
-                        <Mic className="w-[20px] h-[20px] shrink-0" />
-                      </button>
+                      <div className="relative">
+                        <AnimatePresence>
+                          {isMicTapped && (
+                            <MagicShowEffect isMobileIdle={false} />
+                          )}
+                        </AnimatePresence>
+                        <motion.button
+                          type="button"
+                          onMouseEnter={() => setIsMicHovered(true)}
+                          onMouseLeave={() => setIsMicHovered(false)}
+                          whileHover={{ scale: 1.15, rotate: [0, -10, 10, 0] }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => {
+                            setIsMicTapped(true);
+                            setTimeout(() => setIsMicTapped(false), 2000);
+                            handleVoiceInput();
+                          }}
+                          className={`w-[40px] h-[40px] rounded-full flex items-center justify-center transition-colors shrink-0 relative z-20 ${isListening ? 'bg-red-500 text-white' : 'text-subtext hover:text-primary hover:bg-secondary shadow-sm hover:shadow-md'}`}
+                          title="Voice Input"
+                        >
+                          <Mic className={`w-[22px] h-[22px] shrink-0 transition-colors ${isMicHovered && !isListening ? 'text-primary' : ''}`} />
+                        </motion.button>
+                      </div>
                     )}
                   </>
                 )}
@@ -6444,21 +7389,64 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     <div className="w-[12px] h-[12px] bg-white rounded-sm" />
                   </button>
                 ) : (
-                  <div className="flex items-center gap-[6px]">
-
-                    <button
+                  <div className="flex items-center gap-[6px] relative">
+                    <AnimatePresence>
+                      {isSendTapped && !isLoading && (
+                        <MagicShowEffect isMobileIdle={false} />
+                      )}
+                    </AnimatePresence>
+                    <motion.button
                       type="submit"
-                      disabled={(!inputValue.trim() && filePreviews.length === 0) || isLoading}
-                      className={`w-[40px] h-[40px] rounded-full flex items-center justify-center transition-all shadow-lg ${(!inputValue.trim() && filePreviews.length === 0) ? 'bg-secondary text-subtext/50 shadow-none' : 'bg-gradient-to-tr from-primary to-indigo-600 text-white shadow-primary/30 hover:scale-105 hover:shadow-primary/40'}`}
+                      disabled={!inputValue.trim() && filePreviews.length === 0}
+                      onMouseEnter={() => setIsSendHovered(true)}
+                      onMouseLeave={() => setIsSendHovered(false)}
+                      whileHover={{ scale: 1.15, rotate: 2 }}
+                      whileTap={{ scale: 0.88 }}
+                      onClick={() => {
+                        setIsSendTapped(true);
+                        setTimeout(() => setIsSendTapped(false), 2000);
+                      }}
+                      className={`w-[42px] h-[42px] rounded-full flex items-center justify-center transition-all shadow-lg relative overflow-visible z-20 ${(!inputValue.trim() && filePreviews.length === 0) ? 'opacity-30 cursor-not-allowed bg-secondary border border-border/10' : 'bg-gradient-to-br from-primary to-indigo-600 text-white shadow-primary/30 hover:shadow-primary/50'}`}
                     >
-                      <Send className="w-[20px] h-[20px] ml-[2px]" />
-                    </button>
+                      <AnimatePresence>
+                        {ripples.map(id => (
+                          <SendRipple key={id} onComplete={() => setRipples(r => r.filter(i => i !== id))} />
+                        ))}
+                        {isLaunching && (
+                          <motion.div
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: [1, 2.5], opacity: [0.6, 0] }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 rounded-full bg-white/20 blur-xl pointer-events-none"
+                          />
+                        )}
+                      </AnimatePresence>
+                     <motion.div
+                        animate={isLaunching ? { 
+                          y: [0, -120], 
+                          scale: [1, 2.8, 0],
+                          opacity: [1, 0.4, 0],
+                          rotate: [0, 720],
+                          filter: ["blur(0px)", "blur(30px)"]
+                        } : { y: 0, scale: 1, opacity: 1, filter: "blur(0px)" }}
+                        transition={{ duration: 0.8, ease: "anticipate" }}
+                        className="relative z-10"
+                      >
+                        <Zap 
+                          className={`w-[22px] h-[22px] transition-all duration-300 ${!inputValue.trim() && filePreviews.length === 0 ? 'text-subtext/20' : 'text-white hover:scale-110'}`} 
+                          strokeWidth={2.5} 
+                          fill="currentColor"
+                        />
+                      </motion.div>
+                    </motion.button>
                   </div>
                 )}
               </div>
-            </form>
-          </div>
+            </div>
+          </form>
         </div>
+      </div>
+    </div>
 
         {/* Live AI Modal */}
         <AnimatePresence>
@@ -6616,13 +7604,12 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
             </div>
           </Dialog>
         </Transition>
-      </div >
       <OnboardingModal
         isOpen={showOnboarding}
         onClose={() => setShowOnboarding(false)}
         onComplete={() => {
-          // Re-init chat to show correct greeting
-          setTimeout(() => window.location.reload(), 500);
+          // Onboarding finished, just close the modal
+          setShowOnboarding(false);
         }}
       />
 
@@ -6863,7 +7850,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             { name: 'Achernar', style: 'Bright, clear' },
                             { name: 'Achird', style: 'Warm, friendly' },
                             { name: 'Algenib', style: 'Smooth, graceful' },
-                            { name: 'Algieba', style: 'Bold, expressive' },
                             { name: 'Aoede', style: 'Natural, balanced' },
                             { name: 'Autonoe', style: 'Soft, gentle · Default' },
                             { name: 'Callirrhoe', style: 'Rich, elegant' },
@@ -6881,6 +7867,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         },
                         {
                           group: '♂ Male Voices', color: 'blue', items: [
+                            { name: 'Algieba', style: 'Bold, expressive' },
                             { name: 'Alnilam', style: 'Deep, authoritative' },
                             { name: 'Charon', style: 'Dark, dramatic' },
                             { name: 'Enceladus', style: 'Crisp, powerful' },
@@ -7060,11 +8047,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         onCreditDeduction={(credits) => console.log('deducted', credits)}
       />
 
-      <AiAdDashboard 
-        isOpen={isAiAdDashboardOpen}
-        onClose={() => setIsAiAdDashboardOpen(false)}
-        userPlan={userPlanName}
-      />
 
       <MagicToolSettingsCard 
         isOpen={isMagicSettingsOpen}
@@ -7089,8 +8071,87 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         }}
         pricing={TOOL_PRICING}
       />
-    </div >
+      <AiSocialMediaDashboard 
+        isOpen={isSocialMediaDashboardOpen}
+        onClose={() => setIsSocialMediaDashboardOpen(false)}
+        userPlan={userPlanName}
+      />
+      <CashFlowStockModal 
+        isOpen={isStockModalOpen}
+        onClose={() => setIsStockModalOpen(false)}
+        onSelect={(stock) => handleStockAnalysis(stock)}
+      />
+      {explosions && explosions.map(exp => (
+        <NeuralExplosion 
+          key={exp.id} 
+          x={exp.x} 
+          y={exp.y} 
+          onComplete={() => setExplosions(prev => prev.filter(e => e.id !== exp.id))} 
+        />
+      ))}
+
+      <LegalToolkitCard 
+        isOpen={activeLegalToolkit}
+        onClose={() => setActiveLegalToolkit(false)}
+        isAdmin={isAdminUser}
+        unlockedTools={unlockedTools}
+        onSelect={(tool, isUnlocked) => {
+          if (tool.id === 'legal_chat') {
+            setSelectedLegalTool(null); // Clear specific tool to go to general chat
+            setCurrentMode('LEGAL_TOOLKIT');
+            setActiveLegalToolkit(false);
+            toast.success("Legal Chat Activated ⚖️", {
+              icon: '⚖️',
+              style: {
+                background: '#eff6ff',
+                color: '#1d4ed8',
+                borderRadius: '16px',
+                border: '1px solid #bfdbfe',
+                fontWeight: 'bold'
+              }
+            });
+            if (inputRef.current) inputRef.current.focus();
+            return;
+          }
+
+          if (!isUnlocked) {
+            setMessages(prev => [...prev, {
+              id: Date.now().toString(),
+              role: 'user',
+              content: `Use ${tool.name}`,
+              timestamp: Date.now()
+            }, {
+              id: (Date.now() + 1).toString(),
+              role: 'assistant',
+              content: `**Premium Mode Restricted**\n\nThe **${tool.name}** tool is part of our Premium AI Legal Toolkit.\n\n**To access this tool:**\n1. Select "Unlock All" to get full toolkit access.\n2. Or upgrade your subscription to the **FOUNDER PLAN**.\n\n*Would you like to see pricing for the AI Legal Archive?*`,
+              isPremiumRestricted: true,
+              timestamp: Date.now()
+            }]);
+            setActiveLegalToolkit(false);
+            return;
+          }
+
+          setSelectedLegalTool({ id: tool.id, name: tool.name });
+          setCurrentMode('LEGAL_TOOLKIT');
+          setActiveLegalToolkit(false);
+          if (inputRef.current) inputRef.current.focus();
+          toast.success(`✅ AI Legal Activated: ${tool.name} ✨`, {
+            position: 'top-right',
+            style: {
+              background: '#F0FDF4',
+              color: '#166534',
+              borderRadius: '16px',
+              padding: '16px 24px',
+              fontWeight: 'bold',
+              border: '1px solid #BBF7D0',
+              boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
+            }
+          });
+        }}
+      />
+    </div>
+
   );
 };
 
-export default Chat;
+export default Chat; 

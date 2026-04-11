@@ -1,0 +1,505 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence, useInView, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { ImagePlus, PlaySquare, Headphones, Code, Sparkles, Zap, Search, Globe, FileText, Wand2, PlayCircle, Scale, Video, Brain, TrendingUp, Megaphone, Lock } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+
+/* ─── Typewriter Engine ────────────────────────────────────── */
+
+const TypewriterPrompt = ({ text, active }) => {
+  const [displayed, setDisplayed] = useState('');
+  useEffect(() => {
+    if (!active) { setDisplayed(''); return; }
+    
+    let intervalId;
+    let timeoutId = setTimeout(() => {
+      let i = 0;
+      intervalId = setInterval(() => {
+        setDisplayed(text.slice(0, i));
+        i++;
+        if (i > text.length) clearInterval(intervalId);
+      }, 35);
+    }, 400);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [active, text]);
+
+  return (
+    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full px-4 text-center z-20">
+      <div className="bg-white/80 dark:bg-black/70 backdrop-blur-md rounded-lg p-2.5 border border-slate-200 dark:border-white/10 inline-block max-w-[90%] shadow-2xl">
+        <p className="text-[10px] sm:text-[11px] font-mono font-bold text-slate-800 dark:text-white leading-tight">
+          <span className="text-primary mr-1">/</span>{displayed}
+          <motion.span 
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 0 }} 
+            transition={{ repeat: Infinity, repeatType: "reverse", duration: 0.6 }} 
+            className="inline-block w-1 h-3 bg-primary ml-0.5" 
+          />
+        </p>
+      </div>
+    </div>
+  );
+};
+
+const ToolPreviewContent = ({ id, prompt, active }) => {
+  const themeContext = useTheme();
+  const theme = themeContext?.theme || 'dark';
+  const isDark = theme.toLowerCase() === 'dark';
+  const [phase, setPhase] = useState('typing'); // typing -> generating -> result
+
+  useEffect(() => {
+    if (!active) { setPhase('typing'); return; }
+    
+    const typingTimer = setTimeout(() => {
+      setPhase('generating');
+    }, 2200);
+
+    const generatingTimer = setTimeout(() => {
+      setPhase('result');
+    }, 3800);
+
+    return () => {
+      clearTimeout(typingTimer);
+      clearTimeout(generatingTimer);
+    };
+  }, [active]);
+
+  const getResultImage = () => {
+    const images = {
+      image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=400&h=250&auto=format&fit=crop",
+      video: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=400&h=250&auto=format&fit=crop",
+      edit_image: "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=400&h=250&auto=format&fit=crop",
+      image_to_video: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=400&h=250&auto=format&fit=crop"
+    };
+    return images[id] || null;
+  };
+
+  const getResultText = () => {
+    const responses = {
+      deep_search: [
+        "Analysis Complete: 247 global datasets indexed.",
+        "Trend identified: 18.2% growth in AI infrastructure.",
+        "Conclusion: Sustainable tech is the leading sector for 2026."
+      ],
+      web_search: [
+        "Live Feed [CNBC]: Market indices hit record highs today.",
+        "SpaceX Update: Starship successfully reached orbit.",
+        "Weather: Global temperatures stabilize near arctic regions."
+      ],
+      document: [
+        "Financial Report 2025.pdf analyzed.",
+        "Revenue: $12.4M (Up 14% YoY)",
+        "Top Risk: Supply chain volatility in Southeast Asia.",
+        "Action: Redundancy in logistics suggested."
+      ],
+      code: [
+        "import torch",
+        "import torch.nn as nn",
+        "class AisaModel(nn.Module):",
+        "   def forward(self, x):",
+        "      return self.model(x)"
+      ],
+      audio: [
+        "Processing Audio Track 04...",
+        "Voice: Natural Male (British)",
+        "Clarity: 99.8% High Fidelity",
+        "Duration: 00:04:12"
+      ],
+      legal: [
+        "Section 4.2 - Identified Liability Breach.",
+        "Risk Factor: Moderate (72% probability code check).",
+        "Recommendation: Amend clause 12 for compliance."
+      ],
+      aiad_agent: [
+        "Orchestrating 30-day Campaign...",
+        "Brand Voice calibrated: Premium",
+        "Target Platforms: Instagram, LinkedIn, X",
+        "Status: 90 Content Pieces Ready"
+      ]
+    };
+    return responses[id] || ["AI Task Successfully Completed.", "Verified by AISA Engine V4.2", "Runtime: 0.8s Total Latency."];
+  };
+
+  return (
+    <div className={`w-full h-full relative overflow-hidden flex flex-col ${isDark ? 'bg-slate-900/40' : 'bg-slate-50'}`}>
+      <AnimatePresence mode="wait">
+        {phase === 'typing' && (
+          <motion.div
+            key="typing"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex-1 flex items-center justify-center p-4"
+          >
+            <TypewriterPrompt text={prompt} active={active} />
+          </motion.div>
+        )}
+
+        {phase === 'generating' && (
+          <motion.div
+            key="generating"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex-1 flex flex-col items-center justify-center gap-3 p-4"
+          >
+            <div className="relative">
+              <motion.div
+                initial={{ scale: 1, opacity: 0.5 }}
+                animate={{ scale: 1.2, opacity: 1 }}
+                transition={{ duration: 0.75, repeat: Infinity, repeatType: "reverse" }}
+                className="w-16 h-16 rounded-full border-4 border-primary/20"
+              />
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear", repeatType: "loop" }}
+                className="absolute inset-0 border-t-4 border-primary rounded-full"
+              />
+            </div>
+            <p className="text-[12px] font-black text-primary uppercase tracking-widest animate-pulse">AISA AI is Generating...</p>
+          </motion.div>
+        )}
+
+        {phase === 'result' && (
+          <motion.div
+            key="result"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex-1 w-full h-full p-2"
+          >
+            {getResultImage() ? (
+              <div className="w-full h-full rounded-xl overflow-hidden relative group">
+                <img src={getResultImage()} className="w-full h-full object-cover" alt="Preview" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-3">
+                  <p className="text-[10px] text-white font-bold truncate">{prompt}</p>
+                </div>
+              </div>
+            ) : (
+              <div className={`w-full h-full rounded-xl border p-2.5 flex flex-col justify-between shadow-inner ${isDark ? 'bg-slate-950/60 border-white/5' : 'bg-white border-slate-100'}`}>
+                 <div className="space-y-1">
+                   {getResultText().map((line, i) => (
+                     <motion.div 
+                        key={i}
+                        initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}
+                        className={`text-[9px] font-mono p-1 rounded-md ${id === 'code' ? 'bg-slate-900 text-blue-300' : 'bg-slate-50 text-slate-600 border border-slate-100'}`}
+                     >
+                       {line}
+                     </motion.div>
+                   ))}
+                 </div>
+                 <div className="flex items-center gap-2 border-t border-slate-100 pt-1.5 mt-auto">
+                   <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
+                     <Brain size={10} className="text-primary" />
+                   </div>
+                   <p className="text-[9px] font-black text-primary uppercase tracking-tight">AI Result Confirmed</p>
+                 </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+/* ─── Tools Data ───────────────────────────────── */
+
+const ALL_TOOLS = [
+  { id: 'aiad_agent', label: 'AIAD™ Agent', badge: 'AD AGENT', desc: 'Social Media Orchestration', icon: Sparkles, color: '#8b5cf6', prompt: "Generate a 30-day social media campaign for AISA...", review: { rating: 5, count: "18k", text: "Automated my entire month's content in under 5 minutes. The hashtags are perfectly optimized for trends." } },
+  { id: 'image', label: 'Generate Image', badge: 'IMAGE', desc: 'Create visuals from text', icon: ImagePlus, color: '#a78bfa', prompt: "Generate cinematic 8k image of a golden retriever in space...", review: { rating: 5, count: "12.4k", text: "STUNNING! The clarity of the generated images is better than Midjourney V6. AISA truly understands context." } },
+  { id: 'video', label: 'Generate Video', badge: 'VIDEO', desc: 'Text to Cinematic Video', icon: Video, color: '#fb923c', prompt: "Creating realistic drone flight over mountains at sunset...", review: { rating: 4.9, count: "8.2k", text: "The temporal consistency in the videos is industry-leading. Smooth motion without any morphing artifacts." } },
+  { id: 'image_to_video', label: 'Image to Video', badge: 'ANIMATE', desc: 'Image to Video Magic', icon: PlayCircle, color: '#f97316', prompt: "Animate this static scene with dynamic lighting & motion...", review: { rating: 5, count: "5.7k", text: "Turned my product photos into cinematic ads in seconds. This is a game changer for my marketing agency." } },
+  { id: 'edit_image', label: 'Edit Image', badge: 'MAGIC EDIT', desc: 'Magic Image Editor', icon: Wand2, color: '#f43f5e', prompt: "Modify the sky to be a neon-lit cyberpunk sunset...", review: { rating: 4.8, count: "15k", text: "Perfect for quick retouching. The AI infilling is seamless—you literally can't tell where the edit starts." } },
+  { id: 'deep_search', label: 'Deep Search', badge: 'INTELLIGENCE', desc: 'Research complex topics', icon: Search, color: '#0ea5e9', prompt: "Analyze global market trends and future tech predictions...", review: { rating: 5, count: "21k", text: "Replaced my research team. It synthesizes 100+ papers into a 1-page brief perfectly. Extremely accurate indexing." } },
+  { id: 'web_search', label: 'Real-Time Search', badge: 'REAL-TIME', desc: 'Live web data access', icon: Globe, color: '#22d3ee', prompt: "Search for live updates on the latest SpaceX launch...", review: { rating: 4.9, count: "10k", text: "No more hallucinated news. AISA provides real-time citations and live feeds. Highly reliable for tech news." } },
+  { id: 'document', label: 'Analyze Document', badge: 'DOCUMENT', desc: 'Chat with PDFs & Docs', icon: FileText, color: '#3b82f6', prompt: "Summarize this 50-page legal PDF and identify risks...", review: { rating: 5, count: "7.4k", text: "I uploaded a 120-page contract and it found a hidden liability clause in seconds. Worth every credit." } },
+  { id: 'code', label: 'Code Writer', badge: 'CODE', desc: 'Write & debug code', icon: Code, color: '#6366f1', prompt: "Write a robust Python script for a neural network...", review: { rating: 4.9, count: "14.2k", text: "Writes production-ready code with tests. It actually understands modern design patterns, not just snippets." } },
+  { id: 'audio', label: 'Convert to Audio', badge: 'AUDIO', desc: 'Text/Docs to Voice', icon: Headphones, color: '#34d399', prompt: "Synthesize this report into a natural sounding male voice...", review: { rating: 4.8, count: "6k", text: "The most human-like synthesis I've heard. Even the breathing and pauses feel natural. Perfect for podcasts." } },
+  { id: 'legal', label: 'AI Legal™', badge: 'LEGAL', desc: 'Specialized AI legal tools', icon: Scale, color: '#818cf8', prompt: "Analyze this employment contract for potential loopholes...", review: { rating: 5, count: "3.2k", text: "AISA's legal reasoning is spookily good. It identified risks that our junior lawyers missed twice." } },
+  { id: 'ai_cashflow', label: 'AI CashFlow™', badge: 'FINANCE', desc: 'Live Analysis & Reports', icon: TrendingUp, color: '#10b981', prompt: "Analyzing cashflow...", review: { rating: 5, count: "4.2k", text: "Incredible financial insights. The real-time analysis saved us thousands." } },
+  { id: 'stock_analyst', label: 'AI Stock Analyst™', badge: 'STOCKS', desc: 'Market Trends & Analysis', icon: TrendingUp, color: '#f59e0b', prompt: "Analyzing stock market performance for tech sector...", review: { rating: 4.9, count: "2.8k", text: "The stock analysis is spot on. It correctly predicted the quarterly dip of major tech stocks." } },
+];
+
+/* ─── 3D Tilt Card ─────────────────────────────────────────── */
+
+const ToolCard = ({ tool, onToolSelect, index }) => {
+  const themeContext = useTheme();
+  const theme = themeContext?.theme || 'dark';
+  const isDark = theme.toLowerCase() === 'dark';
+  const [isFlipped, setIsFlipped] = useState(false);
+  const cardRef = useRef(null);
+  const { icon: Icon } = tool;
+
+  // Mouse-tracked 3D tilt
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  // Using direct transform in style is better than animate for performance and stability with MotionValues
+  const tiltX = useSpring(useTransform(y, [-70, 70], [15, -15]), { stiffness: 100, damping: 20 });
+  const tiltY = useSpring(useTransform(x, [-70, 70], [-15, 15]), { stiffness: 100, damping: 20 });
+
+  // Flip rotation
+  const handleMouseMove = (e) => {
+    if (!cardRef.current || isFlipped) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    x.set(e.clientX - rect.left - rect.width / 2);
+    y.set(e.clientY - rect.top - rect.height / 2);
+  };
+
+  const handleMouseLeave = () => {
+    x.set(0); y.set(0);
+    setIsFlipped(false);
+  };
+
+  const handleMouseEnter = () => {
+      if (tool.comingSoon) return;
+      setIsFlipped(true);
+  };
+
+  const handleCardClick = () => {
+    if (tool.comingSoon) return;
+    if (!isFlipped) {
+      setIsFlipped(true);
+    } else {
+      onToolSelect(tool.id);
+    }
+  };
+
+  const isActive = tool.active;
+
+  return (
+    <div 
+      className="relative w-full h-[145px] sm:h-[155px]"
+      style={{ perspective: '1200px' }}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      {/* Active Glow Backdrop */}
+      {isActive && (
+        <motion.div 
+          layoutId="activeGlow"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1.1 }}
+          className="absolute inset-[-10px] rounded-[30px] bg-primary/25 blur-2xl z-0 pointer-events-none"
+        />
+      )}
+      
+      <motion.div
+        ref={cardRef}
+        className={`w-full h-full relative cursor-pointer z-10 ${isActive ? 'ring-2 ring-primary ring-offset-2 ring-offset-transparent' : ''} rounded-[20px]`}
+        animate={{ 
+          rotateY: isFlipped ? 180 : 0,
+        }}
+        transition={{ 
+          type: "spring", 
+          stiffness: 120, 
+          damping: 20,
+        }}
+        style={{ 
+          transformStyle: 'preserve-3d',
+          rotateX: isFlipped ? 0 : tiltX,
+        }}
+        onClick={handleCardClick}
+      >
+        {/* FRONT SIDE */}
+        <div 
+          className={`absolute inset-0 w-full h-full rounded-[20px] border p-4 sm:p-5 transition-all duration-300 flex flex-col justify-between backface-hidden ${
+            isActive 
+              ? (isDark ? 'bg-[#1a223f] border-primary shadow-[0_0_30px_rgba(var(--primary-rgb),0.3)]' : 'bg-blue-50 border-primary shadow-[0_0_25px_rgba(var(--primary-rgb),0.15)]')
+              : (isDark 
+                  ? 'bg-[#151929] border-white/5 shadow-[0_4px_20px_rgba(0,0,0,0.3)]' 
+                  : 'bg-white border-slate-200/60 shadow-[0_4px_20px_rgba(0,0,0,0.05)]')
+          }`}
+          style={{ backfaceVisibility: 'hidden' }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div 
+              className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500"
+              style={{ 
+                background: isActive ? 'var(--primary)' : (isDark ? `${tool.color}15` : `${tool.color}10`),
+                border: isDark ? `1px solid ${tool.color}30` : `1px solid ${tool.color}20`,
+                boxShadow: isActive ? '0 0 15px var(--primary)' : 'none'
+              }}
+            >
+              <Icon size={18} style={{ color: isActive ? '#fff' : tool.color }} />
+            </div>
+            
+            <div className="flex items-center gap-1.5">
+               {isActive && (
+                 <motion.span 
+                   initial={{ scale: 0 }}
+                   animate={{ scale: 1 }}
+                   className="flex items-center gap-1 bg-primary text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg animate-pulse"
+                 >
+                   <div className="w-1 h-1 rounded-full bg-white animate-ping" />
+                   ACTIVE
+                 </motion.span>
+               )}
+               <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                 isActive ? 'bg-primary/20 text-primary' : (isDark ? 'bg-white/5 text-white/40' : 'bg-slate-100 text-slate-500')
+               }`}>
+                 {tool.badge}
+               </span>
+            </div>
+          </div>
+
+          <div className="space-y-0.5">
+            <h3 className={`text-[13px] sm:text-[14px] font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              {tool.label}
+            </h3>
+            <p className={`text-[9.5px] sm:text-[10px] leading-snug line-clamp-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              {tool.desc}
+            </p>
+          </div>
+
+          {tool.comingSoon && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 dark:bg-black/40 backdrop-blur-[1px] rounded-[20px]">
+              <div className={`px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest ${
+                isDark ? 'bg-[#1a1c2e] border-white/10 text-slate-400' : 'bg-white border-slate-200 text-slate-500 shadow-sm'
+              }`}>
+                Soon
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* BACK SIDE (Review & Preview) */}
+        <div 
+          className={`absolute inset-0 w-full h-full rounded-[20px] border overflow-hidden flex flex-col backface-hidden transition-all duration-300 ${
+            isActive 
+              ? (isDark ? 'bg-[#1a223f] border-primary shadow-[0_0_30px_rgba(var(--primary-rgb),0.4)]' : 'bg-blue-50 border-primary shadow-[0_0_25px_rgba(var(--primary-rgb),0.2)]')
+              : (isDark 
+                  ? 'bg-[#1a1e2e] border-primary/30 shadow-[0_10px_40px_rgba(var(--primary-rgb),0.2)]' 
+                  : 'bg-white border-primary/20 shadow-[0_10px_40px_rgba(0,0,0,0.1)]')
+          }`}
+          style={{ 
+            backfaceVisibility: 'hidden',
+            transform: 'rotateY(180deg)',
+          }}
+        >
+          <div className="flex flex-col h-full relative z-10">
+            {/* Live Demo Animation Section */}
+            <div className="h-[40%] w-full overflow-hidden border-b border-black/5 dark:border-white/5 bg-slate-50 dark:bg-slate-900/50">
+              <ToolPreviewContent 
+                id={tool.id} 
+                prompt={tool.prompt} 
+                active={isFlipped} 
+              />
+            </div>
+
+            {/* Review Section */}
+            <div className="flex-1 p-2.5 flex flex-col justify-between bg-white/40 dark:bg-[#1a1e2e]/40 backdrop-blur-sm">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-0.5">
+                    {[...Array(5)].map((_, i) => (
+                      <Sparkles 
+                        key={i} 
+                        size={7} 
+                        className={i < Math.floor(tool.review?.rating || 0) ? "text-yellow-400 fill-yellow-400" : "text-slate-300"} 
+                      />
+                    ))}
+                    <span className={`text-[7px] font-bold ml-1 ${isDark ? 'text-white/80' : 'text-slate-600'}`}>
+                      {tool.review?.rating || '5.0'}
+                    </span>
+                  </div>
+                </div>
+                <p className={`text-[8.5px] leading-tight italic font-medium line-clamp-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  "{tool.review?.text || "Revolutionary AI tool that significantly improves my workflow efficiency."}"
+                </p>
+              </div>
+
+              <motion.div 
+                 whileHover={{ scale: 1.02 }}
+                 whileTap={{ scale: 0.98 }}
+                 className="bg-primary text-white text-[8px] font-black uppercase tracking-widest py-1.5 rounded-lg flex items-center justify-center gap-2 shadow-lg shadow-primary/20 cursor-pointer"
+              >
+                <Zap size={9} fill="white" />
+                Live Try
+              </motion.div>
+            </div>
+          </div>
+          
+          {/* Subtle Neural Background for back side */}
+          <div className="absolute inset-0 pointer-events-none opacity-[0.03]">
+            <div className="bg-primary absolute inset-0 blur-3xl rounded-full translate-y-1/2" />
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+/* ─── Main Grid Component ────────────────────────────────────────── */
+
+const containerVariants = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.1, delayChildren: 0.15 }
+  }
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 50, scale: 0.88, rotateX: 12 },
+  visible: {
+    opacity: 1, y: 0, scale: 1, rotateX: 0,
+    transition: { type: 'spring', stiffness: 160, damping: 20 }
+  }
+};
+
+const FuturisticToolCards = ({ onToolSelect, activeToolId, isAdmin = false }) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: '-60px' });
+
+  // Map the visual tool IDs to the IDs used in state
+  const getToolActiveStatus = (toolId) => {
+    if (!activeToolId) return false;
+    // Map of library IDs to state IDs
+    const mapping = {
+       'image': 'isImageGeneration',
+       'video': 'isVideoGeneration',
+       'image_to_video': 'isMagicVideoModalOpen',
+       'edit_image': 'isMagicEditing',
+       'deep_search': 'isDeepSearch',
+       'web_search': 'isWebSearch',
+       'document': 'isFileAnalysis',
+       'code': 'isCodeWriter',
+       'audio': 'isAudioConvertMode',
+       'legal': 'activeLegalToolkit'
+    };
+    return activeToolId === toolId;
+  };
+
+  return (
+    <div className="w-full py-4 sm:py-12 px-2 sm:px-3 flex justify-center" ref={ref}>
+      <motion.div
+        className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-6 max-w-6xl min-h-[300px]"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        {ALL_TOOLS.map((tool, index) => (
+          <motion.div
+            key={tool.id}
+            variants={cardVariants}
+            style={{ transformOrigin: 'center bottom' }}
+          >
+            <ToolCard
+              tool={{
+                ...tool,
+                active: getToolActiveStatus(tool.id)
+              }}
+              index={index}
+              onToolSelect={onToolSelect}
+            />
+          </motion.div>
+        ))}
+      </motion.div>
+    </div>
+  );
+};
+
+export default FuturisticToolCards;
+export { ToolCard };
