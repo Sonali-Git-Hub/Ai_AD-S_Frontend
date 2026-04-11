@@ -221,6 +221,18 @@
   border-right: 1px solid rgba(255, 255, 255, 0.03);
 }
 
+/* Glass aesthetic for message cards and other surfaces to match sidebar */
+.message-card-glass {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dark .message-card-glass {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
 .chat-item-bg {
   mask-image: radial-gradient(circle at center, black, transparent);
 }

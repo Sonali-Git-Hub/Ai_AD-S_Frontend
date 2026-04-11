@@ -1826,7 +1826,7 @@ const Chat = () => {
         id: tempId,
         role: 'model',
         isGenerating: true,
-        content: `✨ **Advanced Controller Active**\n🎨 Generating high-quality poster from your prompt: "${prompt}"\n\nIntelligently refining text detection, placement, and cinematic styling...`, // Use content
+        content: `✨ **AISA generating...**\n🎨 Generating high-quality poster from your prompt: "${prompt}"\n\nIntelligently refining text detection, placement, and cinematic styling...`, // Use content
         timestamp: new Date(),
         projectId: currentProjectId
       };
@@ -5455,6 +5455,13 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                     <div className="flex-1 chatgpt-text">
 
+                      {msg.isGenerating && (
+                        <div className="flex items-center gap-3 mb-3 p-3 bg-primary/5 rounded-xl border border-primary/10 animate-pulse">
+                          <img src="/logo/Logo.svg" alt="AISA" className="w-5 h-5 object-contain" />
+                          <span className="text-xs font-semibold text-primary uppercase tracking-tighter">AISA generating...</span>
+                        </div>
+                      )}
+
                       {msg.isProcessing && (
                         <div className="flex items-center gap-3 mb-3 p-3 bg-primary/5 rounded-xl border border-primary/10 animate-pulse">
                           <Loader size="sm" />
@@ -5752,7 +5759,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                     const isDownloading = isDownloadingUrl === props.src;
                                     return (
                                       <div className="relative my-4 group/img-container max-w-full">
-                                        <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl bg-black/5 aspect-auto max-w-[500px] cursor-zoom-in" onClick={() => setViewingDoc({ url: props.src, type: 'image', name: 'AI Image' })}>
+                                        <div className="relative overflow-hidden rounded-2xl shadow-2xl message-card-glass aspect-auto max-w-[500px] cursor-zoom-in" onClick={() => setViewingDoc({ url: props.src, type: 'image', name: 'AI Image' })}>
                                           {msg.role === 'model' && (
                                             <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-100 sm:opacity-0 sm:group-hover/img-container:opacity-100 transition-opacity">
                                               <div className="flex items-center gap-2">
@@ -5836,7 +5843,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             {/* Dynamic Image Rendering (if not in markdown) */}
                             {msg.imageUrl && (
                               <div
-                                className="relative group/generated mt-4 mb-2 overflow-hidden rounded-2xl border border-white/10 shadow-2xl transition-all hover:scale-[1.01] bg-surface/50 backdrop-blur-sm cursor-zoom-in max-w-sm"
+                                className="relative group/generated mt-4 mb-2 overflow-hidden rounded-2xl shadow-2xl transition-all hover:scale-[1.01] message-card-glass cursor-zoom-in max-w-sm"
                                 onClick={() => {
                                   if (!viewingDoc) setViewingDoc({ url: msg.imageUrl, type: 'image', name: 'Generated Image' });
                                 }}

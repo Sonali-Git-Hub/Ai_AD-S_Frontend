@@ -163,7 +163,7 @@ const PromptLibraryModal = ({ isOpen, onClose, onSelect }) => {
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
                                 <div className="p-3 rounded-2xl bg-gradient-to-br from-primary to-indigo-600 shadow-xl shadow-primary/20">
-                                    <Brain className="w-6 h-6 text-white animate-pulse" />
+                                    <img src="/logo/Logo.svg" alt="AISA" className="w-6 h-6 object-contain brightness-0 invert" />
                                 </div>
                                 <div>
                                     <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-none mb-1.5 flex items-center gap-2">

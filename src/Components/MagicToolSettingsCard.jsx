@@ -285,7 +285,7 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
                                             className="px-3 py-1.5 rounded-xl bg-primary/5 border border-primary/20 flex items-center gap-1.5 text-primary transition-all hover:shadow-lg hover:shadow-primary/10"
                                             title="Prompt Library"
                                         >
-                                            <Brain size={14} className="animate-spin-slow" />
+                                            <img src="/logo/Logo.svg" alt="AISA" className="w-3.5 h-3.5 object-contain" />
                                             <span className="text-[10px] font-black uppercase tracking-wider">Prompt Library</span>
                                         </motion.button>
                                     )}
