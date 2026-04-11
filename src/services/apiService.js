@@ -378,7 +378,7 @@ export const apiService = {
 
   async generateSocialAgentOneOffAsset(data) {
     try {
-      const response = await apiClient.post('/social-agent/assets/generate', data);
+      const response = await apiClient.post('/social-agent/assets/generate', data, { timeout: 120000 });
       return response.data;
     } catch (error) {
       console.error("Failed to generate one-off asset:", error);

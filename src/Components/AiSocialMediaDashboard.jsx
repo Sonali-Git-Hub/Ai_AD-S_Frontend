@@ -3199,39 +3199,6 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
     return (
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 h-full flex flex-col space-y-10 pb-20">
         
-        {/* ── Neural Workstation Header ─────────────────── */}
-        <div className="bg-white dark:bg-[#080808] p-10 rounded-[50px] border border-slate-100 dark:border-white/5 shadow-2xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/5 blur-[100px] rounded-full -mr-20 -mt-20 group-hover:bg-primary/10 transition-all duration-1000" />
-          
-          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm border border-primary/20">
-                  <Monitor className="w-5 h-5" />
-                </div>
-                <h2 className="text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Creative Studio</h2>
-              </div>
-              <p className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-widest max-w-md leading-relaxed">
-                Your brand's visual engine. orchestrate, generate, and refine high-fidelity media assets in real-time.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-4">
-              <div className="px-6 py-4 rounded-[32px] bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 flex flex-col">
-                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Active Sessions</span>
-                <span className="text-xl font-black text-primary">02</span>
-              </div>
-              <div className="px-6 py-4 rounded-[32px] bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 flex flex-col">
-                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Neural Artifacts</span>
-                <span className="text-xl font-black text-slate-800 dark:text-white">{generatedAssets.length}</span>
-              </div>
-              <div className="px-6 py-4 rounded-[32px] bg-indigo-500/10 border border-indigo-500/20 flex flex-col">
-                <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest mb-1">Cloud Storage</span>
-                <span className="text-xl font-black text-indigo-600">88%</span>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* ── Studio Toolbox ────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
