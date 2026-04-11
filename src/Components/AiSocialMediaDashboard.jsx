@@ -289,6 +289,24 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
   }, [isOpen, activeJob?._id, activeJob?.status]); // Stable dependencies
 
 
+  // --- 3. Background Data Refresh (Real-time Overview) ---
+  useEffect(() => {
+    let statsInterval;
+    if (isOpen) {
+      // Poll overview stats less aggressively than active jobs
+      statsInterval = setInterval(() => {
+        // Only refresh if not already loading and tab is visible
+        if (!loading && activeTab === 'overview') {
+          initWorkspace(true); // Background refresh
+        }
+      }, 10000); // 10 seconds refresh
+    }
+    return () => {
+      if (statsInterval) clearInterval(statsInterval);
+    };
+  }, [isOpen, activeTab, loading]);
+
+
   const handleDownloadMedia = (url) => {
     if (!url) return;
 
@@ -326,14 +344,13 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
     }
   }, [activeGenerationRowId, activeTab]);
 
-  const fetchWorkspaceData = async (wsId) => {
+  const fetchWorkspaceData = async (wsId, isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground) setLoading(true);
       // 3. Fetch Brand Profile
       const brandData = await apiService.getSocialAgentBrand(wsId);
       if (brandData.success && brandData.brandProfile) {
         setActiveProfile(brandData.brandProfile);
-        // We no longer auto-fill brandProfile form state here to keep it initially empty for the user.
       } else {
         setActiveProfile(null);
       }
@@ -363,13 +380,13 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
     } catch (err) {
       console.error("Fetch WS Data Error:", err);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
-  const initWorkspace = async () => {
+  const initWorkspace = async (isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground) setLoading(true);
       // 1. Get All Workspaces
       const wsList = await apiService.getSocialAgentWorkspaces();
       if (wsList.success) setAllWorkspaces(wsList.workspaces);
@@ -390,24 +407,19 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
         setWorkspace(wsData.workspace);
         const wsId = wsData.workspace._id;
 
-        // NEW: Check if ANY workspace has completed onboarding.
-        // Onboarding should only appear ONCE for the user across their entire brand agency.
         const anyOnboarded = (wsList.workspaces || []).some(w => w.onboarding?.completed);
 
         if (!anyOnboarded && !wsData.workspace.onboarding?.completed) {
           setShowOnboarding(true);
-          // Also show the guide automatically for new users
           setShowOnboardingGuide(true);
         }
 
-        await fetchWorkspaceData(wsId.toString());
+        await fetchWorkspaceData(wsId.toString(), isBackground);
       }
-      
-      // Removed redundant fetch as allWorkspaces now contains calendarEntryCount
     } catch (error) {
       console.error("Dashboard Init Error:", error);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
