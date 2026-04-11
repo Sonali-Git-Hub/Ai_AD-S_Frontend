@@ -6372,7 +6372,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 <AisaTypingIndicator 
                   visible={true} 
                   message={
-                    isImageGeneration ? "Generating masterpiece..." : 
+                    isImageGeneration ? "AISA Generating..." : 
                     isVideoGeneration ? "Generating cinematic video..." :
                     isMagicEditing ? "Processing image edit..." :
                     isDeepSearch ? "Deep searching..." :
