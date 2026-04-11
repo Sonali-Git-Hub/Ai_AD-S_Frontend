@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Search, Sparkles, Wand2, Star, Clock, Image as ImageIcon, Camera, Palette, Zap, Globe, Heart, ChevronRight, TrendingUp, Shield, Rocket, Flame, Layout } from 'lucide-react';
+import { X, Search, Sparkles, Wand2, Star, Clock, Image as ImageIcon, Camera, Palette, Zap, Globe, Heart, ChevronRight, TrendingUp, Shield, Rocket, Flame, Layout, Brain } from 'lucide-react';
 
 const CATEGORIES = [
     { id: 'All', icon: Globe },
@@ -163,7 +163,7 @@ const PromptLibraryModal = ({ isOpen, onClose, onSelect }) => {
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
                                 <div className="p-3 rounded-2xl bg-gradient-to-br from-primary to-indigo-600 shadow-xl shadow-primary/20">
-                                    <Sparkles className="w-6 h-6 text-white animate-pulse" />
+                                    <Brain className="w-6 h-6 text-white animate-pulse" />
                                 </div>
                                 <div>
                                     <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-none mb-1.5 flex items-center gap-2">
