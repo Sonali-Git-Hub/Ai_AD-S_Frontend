@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Bot, Sparkles } from 'lucide-react';
 
-const AisaTypingIndicator = ({ visible = true }) => {
+const AisaTypingIndicator = ({ visible = true, message = "AISA is thinking" }) => {
   if (!visible) return null;
 
   return (
@@ -35,7 +35,7 @@ const AisaTypingIndicator = ({ visible = true }) => {
       <div className="aisa-typing-indicator">
         <Sparkles style={{ width: 10, height: 10, color: 'rgba(167,139,250,0.7)', flexShrink: 0 }} />
         <span style={{ fontSize: '11px', color: 'rgba(167,139,250,0.7)', fontWeight: 600 }}>
-          AISA is thinking
+          {message}
         </span>
         <div className="aisa-typing-dot" />
         <div className="aisa-typing-dot" />

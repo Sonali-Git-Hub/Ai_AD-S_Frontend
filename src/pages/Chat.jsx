@@ -6372,7 +6372,16 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
             ))}
 
               {isLoading && !typingMessageId && (
-                <AisaTypingIndicator visible={true} />
+                <AisaTypingIndicator 
+                  visible={true} 
+                  message={
+                    isImageGeneration ? "AISA Generating..." : 
+                    isVideoGeneration ? "Generating cinematic video..." :
+                    isMagicEditing ? "Processing image edit..." :
+                    isDeepSearch ? "Deep searching..." :
+                    "AISA is thinking"
+                  }
+                />
               )}
             </>
           )}
