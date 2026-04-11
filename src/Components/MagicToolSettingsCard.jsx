@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, LayoutGroup, useMotionTemplate, useMotionValue } from 'framer-motion';
 import { X, Layout, Monitor, Smartphone, Check, Zap, Shield, Rocket, Sparkles, Wand2 } from 'lucide-react';
+import PromptLibraryModal from './PromptLibraryModal';
 
 // Wave fill animation for Active Aspect Ratio
 const WaveFill = () => (
@@ -115,9 +116,10 @@ const CinematicShadows = () => (
     </div>
 );
 
-const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pricing }) => {
+const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pricing, onContentSelect }) => {
     const [hoveredModel, setHoveredModel] = useState(null);
     const [isHovered, setIsHovered] = useState(false);
+    const [isLibraryOpen, setIsLibraryOpen] = useState(false);
     
     // Spotlight Effect logic
     let mouseX = useMotionValue(0);
@@ -273,14 +275,29 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
                                         </p>
                                     </div>
                                 </div>
-                                <motion.button 
-                                    whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.7)", rotate: 90 }}
-                                    whileTap={{ scale: 0.9 }}
-                                    onClick={onClose} 
-                                    className="w-7 h-7 rounded-full bg-white/50 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:shadow-md transition-all shadow-sm border border-white/50 relative z-10"
-                                >
-                                    <X size={16} strokeWidth={2.5} />
-                                </motion.button>
+                                
+                                <div className="flex items-center gap-2 relative z-10">
+                                    {toolType === 'image' && (
+                                        <motion.button
+                                            whileHover={{ scale: 1.1, backgroundColor: "rgba(var(--primary-rgb), 0.1)" }}
+                                            whileTap={{ scale: 0.9 }}
+                                            onClick={() => setIsLibraryOpen(true)}
+                                            className="px-3 py-1.5 rounded-xl bg-primary/5 border border-primary/20 flex items-center gap-1.5 text-primary transition-all hover:shadow-lg hover:shadow-primary/10"
+                                            title="Prompt Library"
+                                        >
+                                            <Sparkles size={14} className="animate-spin-slow" />
+                                            <span className="text-[10px] font-black uppercase tracking-wider">Library</span>
+                                        </motion.button>
+                                    )}
+                                    <motion.button 
+                                        whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.7)", rotate: 90 }}
+                                        whileTap={{ scale: 0.9 }}
+                                        onClick={onClose} 
+                                        className="w-7 h-7 rounded-full bg-white/50 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:shadow-md transition-all shadow-sm border border-white/50 relative z-10"
+                                    >
+                                        <X size={16} strokeWidth={2.5} />
+                                    </motion.button>
+                                </div>
                             </div>
                         </div>
 
@@ -452,6 +469,19 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
                 </motion.div>
             </div>
             
+            {/* Prompt Library Modal Integration */}
+            <PromptLibraryModal 
+                isOpen={isLibraryOpen}
+                onClose={() => setIsLibraryOpen(false)}
+                onSelect={(prompt) => {
+                    if (onContentSelect) {
+                        onContentSelect(prompt);
+                    }
+                    setIsLibraryOpen(false);
+                    onClose(); // Close the settings card too for seamless UX
+                }}
+            />
+
             <style jsx>{`
                 @keyframes shine {
                     100% { background-position: -200% 0, 0 0; }

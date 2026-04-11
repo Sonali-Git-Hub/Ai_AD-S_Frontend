@@ -107,6 +107,7 @@ const apis = {
   },
   uploadAvatar: `${API}/user/avatar`,
   removeAvatar: `${API}/user/avatar`,
+  imageProxy: `${API}/image/proxy`,
 };
 
 export { API, apis };

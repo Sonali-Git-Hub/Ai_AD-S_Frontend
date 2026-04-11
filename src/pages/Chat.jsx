@@ -487,6 +487,65 @@ const Chat = () => {
     window.dispatchEvent(new CustomEvent('premium_required', { detail: { toolName } }));
     return false;
   };
+
+  const handleCopyImage = async (imageUrl) => {
+    if (!imageUrl) return;
+    const t = toast.loading('Attempting to copy...');
+    
+    // Use our backend proxy to bypass CORS
+    const proxiedUrl = `${apis.imageProxy}?url=${encodeURIComponent(imageUrl)}`;
+
+    try {
+      const imagePromise = (async () => {
+        try {
+          // Use proxied URL for canvas method
+          return await new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+              try {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.naturalWidth;
+                canvas.height = img.naturalHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                canvas.toBlob((b) => b ? resolve(b) : reject(new Error('Canvas failed')), 'image/png');
+              } catch (e) { reject(e); }
+            };
+            img.onerror = () => reject(new Error('Load failed'));
+            img.src = proxiedUrl;
+          });
+        } catch (err) {
+          // Fallback to direct fetch via proxy
+          const response = await fetch(proxiedUrl);
+          const blob = await response.blob();
+          if (blob.type === 'image/png') return blob;
+          
+          // If fetched but not PNG, we must use canvas (redundant but safe)
+          throw new Error('Conversion required but proxy-canvas failed');
+        }
+      })();
+
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': imagePromise })
+      ]);
+      
+      toast.dismiss(t);
+      toast.success('Image copied! ✨');
+    } catch (err) {
+      console.error('Copy failure (even with proxy):', err);
+      toast.dismiss(t);
+      toast.error(
+        (t) => (
+          <span className="flex flex-col gap-1">
+            <span className="font-bold text-xs">Copy failed (System)</span>
+            <span className="text-[10px] opacity-80 leading-tight">Your browser security blocked the action even through the master proxy. Please **right-click** and **"Copy Image"** instead.</span>
+          </span>
+        ),
+        { duration: 6000 }
+      );
+    }
+  };
   const { sessionId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -717,6 +776,7 @@ const Chat = () => {
   const [projects, setProjects] = useState([]);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
+  const [isDownloadingUrl, setIsDownloadingUrl] = useState(null);
   const [expandedMessages, setExpandedMessages] = useState({}); // { [msgId]: true/false }
   const USER_MSG_COLLAPSE_CHARS = 200; // Collapse threshold
 
@@ -2294,7 +2354,6 @@ const Chat = () => {
   // Helper to clean markdown for TTS
   const [speakingMessageId, setSpeakingMessageId] = useState(null);
   const [isPaused, setIsPaused] = useState(false);
-  const [isDownloadingUrl, setIsDownloadingUrl] = useState(null);
   const audioRef = useRef(null);
   const audioCacheRef = useRef({});
 
@@ -3922,8 +3981,11 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
     setIsDownloadingUrl(url);
     const downloadToast = toast.loading("Preparing download...");
 
+    // Use proxy for download as well to avoid "No-CORS" blocks during fetch
+    const downloadUrl = `${apis.imageProxy}?url=${encodeURIComponent(url)}`;
+
     try {
-      const response = await fetch(url);
+      const response = await fetch(downloadUrl);
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
 
@@ -3936,13 +3998,10 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
       window.URL.revokeObjectURL(blobUrl);
       toast.success("Download started!", { id: downloadToast });
     } catch (error) {
-      console.error('Download failed:', error);
+      console.error('Download failed even with proxy:', error);
       toast.error("Download failed", { id: downloadToast });
-      // Fallback to direct link if fetch fails
-      const link = document.createElement('a');
-      link.href = url;
-      link.target = '_blank';
-      link.click();
+      // Ultimate Fallback: Try opening in new tab
+      window.open(url, '_blank');
     } finally {
       setIsDownloadingUrl(null);
     }
@@ -5227,28 +5286,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 <div className="flex items-center gap-2">
                   {(viewingDoc.type === 'image' || viewingDoc.name?.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i) || viewingDoc.url?.startsWith('data:image/')) && (
                     <button
-                      onClick={async () => {
-                        try {
-                          const response = await fetch(viewingDoc.url);
-                          const blob = await response.blob();
-                          const pngBlob = blob.type === 'image/png' ? blob : await new Promise((resolve) => {
-                            const img = new Image();
-                            img.crossOrigin = 'anonymous';
-                            img.onload = () => {
-                              const canvas = document.createElement('canvas');
-                              canvas.width = img.naturalWidth;
-                              canvas.height = img.naturalHeight;
-                              canvas.getContext('2d').drawImage(img, 0, 0);
-                              canvas.toBlob(resolve, 'image/png');
-                            };
-                            img.src = viewingDoc.url;
-                          });
-                          await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
-                          toast.success('Image copied!');
-                        } catch (err) {
-                          toast.error('Could not copy image');
-                        }
-                      }}
+                      onClick={() => handleCopyImage(viewingDoc.url)}
                       className="p-2 hover:bg-primary/10 hover:text-primary rounded-lg transition-colors text-subtext"
                       title="Copy Image"
                     >
@@ -5862,28 +5900,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                   </button>
 
                                   <button
-                                    onClick={async (e) => {
+                                    onClick={(e) => {
                                       e.stopPropagation();
-                                      try {
-                                        const response = await fetch(msg.imageUrl);
-                                        const blob = await response.blob();
-                                        const pngBlob = blob.type === 'image/png' ? blob : await new Promise((resolve) => {
-                                          const img = new Image();
-                                          img.crossOrigin = 'anonymous';
-                                          img.onload = () => {
-                                            const canvas = document.createElement('canvas');
-                                            canvas.width = img.naturalWidth;
-                                            canvas.height = img.naturalHeight;
-                                            canvas.getContext('2d').drawImage(img, 0, 0);
-                                            canvas.toBlob(resolve, 'image/png');
-                                          };
-                                          img.src = msg.imageUrl;
-                                        });
-                                        await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
-                                        toast.success('Image copied!');
-                                      } catch (err) {
-                                        toast.error('Could not copy image');
-                                      }
+                                      handleCopyImage(msg.imageUrl);
                                     }}
                                     className="p-2.5 bg-white/20 backdrop-blur-sm text-white rounded-xl hover:bg-white/30 shadow-lg border border-white/20"
                                     title="Copy Image"
@@ -7290,7 +7309,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     e.target.style.height = `${e.target.scrollHeight}px`;
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
+                    if (e.key === 'Enter' && !e.shiftKey && window.innerWidth > 768) {
                       e.preventDefault();
                       e.stopPropagation(); 
                       if (isGlobalSending || isLoading) return; 
@@ -8036,6 +8055,12 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
             if (key === 'modelId') setVideoModelId(value);
             if (key === 'resolution') setVideoResolution(value);
           }
+        }}
+        onContentSelect={(content) => {
+          setInputValue(content);
+          // Auto-focus input if possible for immediate refinement
+          const inputEl = document.querySelector('textarea');
+          if (inputEl) inputEl.focus();
         }}
         pricing={TOOL_PRICING}
       />
