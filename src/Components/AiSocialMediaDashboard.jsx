@@ -1140,7 +1140,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
         {/* ── SECTION 2: Hero & Resource Quota ───────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Banner Section */}
-          <div className="lg:col-span-2 p-8 md:p-10 rounded-[48px] bg-gradient-to-br from-[#0A2342] via-[#123C69] to-[#0A2342] text-white relative overflow-hidden group shadow-2xl shadow-blue-900/40 flex flex-col justify-center min-h-[320px] border border-white/10">
+          <div className="lg:col-span-3 p-8 md:p-10 rounded-[48px] bg-gradient-to-br from-[#0A2342] via-[#123C69] to-[#0A2342] text-white relative overflow-hidden group shadow-2xl shadow-blue-900/40 flex flex-col justify-center min-h-[320px] border border-white/10">
             <div className="absolute top-0 right-0 w-1/2 h-full bg-white opacity-[0.03] rotate-12 translate-x-1/2 translate-y-1/2 pointer-events-none" />
             <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute top-8 right-8 opacity-10 group-hover:opacity-20 transition-opacity duration-1000 pointer-events-none">
@@ -1193,41 +1193,6 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                     <Sparkles className="w-4 h-4 fill-white" /> Run AI
                   </button>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Quota Management Card */}
-          <div className="p-6 md:p-8 rounded-[48px] bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 flex flex-col justify-between shadow-sm">
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-[3px] text-slate-400 mb-6 block">Resource Status</span>
-              <div className="space-y-5">
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Image Pipeline</span>
-                    <span className="text-xs font-black text-primary">{Math.round(((usage?.imageUsed || 0) / (usage?.imageLimit || 1)) * 100)}%</span>
-                  </div>
-                  <div className="h-1.5 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full bg-primary" style={{ width: `${Math.min(100, Math.round(((usage?.imageUsed || 0) / (usage?.imageLimit || 1)) * 100))}%` }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Video Quota</span>
-                    <span className="text-xs font-black text-indigo-500">{usage?.videoUsed || 0} / {usage?.videoLimit || 0}</span>
-                  </div>
-                  <div className="h-1.5 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full bg-indigo-500" style={{ width: (usage?.videoLimit > 0) ? `${Math.min(100, Math.round(((usage?.videoUsed || 0) / (usage?.videoLimit || 1)) * 100))}%` : '0%' }} />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-8 pt-6 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Plan Auto-Sync: <span className="text-green-500">ACTIVE</span></p>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 rounded-full border border-primary/20">
-                <span className="text-[8px] font-black text-primary uppercase tracking-widest leading-none">Healthy</span>
               </div>
             </div>
           </div>
