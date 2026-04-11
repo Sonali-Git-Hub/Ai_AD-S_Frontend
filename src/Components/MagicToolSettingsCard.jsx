@@ -286,7 +286,7 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
                                             title="Prompt Library"
                                         >
                                             <Sparkles size={14} className="animate-spin-slow" />
-                                            <span className="text-[10px] font-black uppercase tracking-wider">Library</span>
+                                            <span className="text-[10px] font-black uppercase tracking-wider">Prompt Library</span>
                                         </motion.button>
                                     )}
                                     <motion.button 
