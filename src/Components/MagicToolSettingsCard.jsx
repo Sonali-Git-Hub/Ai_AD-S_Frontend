@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, LayoutGroup, useMotionTemplate, useMotionValue } from 'framer-motion';
-import { X, Layout, Monitor, Smartphone, Check, Zap, Shield, Rocket, Sparkles, Wand2 } from 'lucide-react';
+import { X, Layout, Monitor, Smartphone, Check, Zap, Shield, Rocket, Sparkles, Wand2, Brain } from 'lucide-react';
 import PromptLibraryModal from './PromptLibraryModal';
 
 // Wave fill animation for Active Aspect Ratio
@@ -285,8 +285,8 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
                                             className="px-3 py-1.5 rounded-xl bg-primary/5 border border-primary/20 flex items-center gap-1.5 text-primary transition-all hover:shadow-lg hover:shadow-primary/10"
                                             title="Prompt Library"
                                         >
-                                            <Sparkles size={14} className="animate-spin-slow" />
-                                            <span className="text-[10px] font-black uppercase tracking-wider">Library</span>
+                                            <Brain size={14} className="animate-spin-slow" />
+                                            <span className="text-[10px] font-black uppercase tracking-wider">Prompt Library</span>
                                         </motion.button>
                                     )}
                                     <motion.button 
