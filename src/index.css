@@ -501,7 +501,7 @@ body,
 }
 
 .dark .chatgpt-container {
-  background-color: #212121 !important;
+  background-color: transparent !important;
   color: #ececec !important;
 }
 

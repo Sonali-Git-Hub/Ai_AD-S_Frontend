@@ -5394,11 +5394,16 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
       {/* Main Area */}
       <div
-        className="flex-1 flex flex-col relative bg-gradient-to-br from-secondary via-background to-secondary/50 w-full min-w-0"
+        className="flex-1 flex flex-col relative bg-gradient-to-br from-secondary via-background to-secondary/50 dark:bg-transparent w-full min-w-0"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
+        {/* Atmospheric Glows optimized for Chat background depth */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-0 dark:opacity-40 transition-opacity duration-700">
+          <div className="absolute top-[15%] right-[-10%] w-[400px] h-[400px] bg-primary/10 blur-[120px] rounded-full animate-float-slow" />
+          <div className="absolute bottom-[20%] left-[-5%] w-[300px] h-[300px] bg-purple-500/10 blur-[100px] rounded-full animate-float-slow" style={{ animationDelay: '-3s' }} />
+        </div>
         {isDragging && (
           <div className="absolute inset-0 z-50 bg-primary/10 backdrop-blur-sm border-2 border-dashed border-primary flex flex-col items-center justify-center pointer-events-none">
             <Cloud className="w-16 h-16 text-primary mb-4 animate-bounce" />
@@ -6521,7 +6526,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
             <form 
               onSubmit={handleSendMessage} 
-              className="relative w-full flex flex-col transition-all duration-300 backdrop-blur-3xl p-3 z-50 aisa-chat-input-wrapper bg-[#f8f9fc]/90 dark:bg-zinc-900/95 border border-slate-200/50 dark:border-zinc-800/80 rounded-[32px] shadow-2xl ring-1 ring-black/5 overflow-visible"
+              className="relative w-full flex flex-col transition-all duration-300 backdrop-blur-3xl p-3 z-50 aisa-chat-input-wrapper bg-[#f8f9fc]/90 dark:bg-[#0E1220]/80 border border-slate-200/50 dark:border-white/10 rounded-[32px] shadow-2xl ring-1 ring-black/5 overflow-visible"
             >
               {/* Internal File Preview Area */}
               {filePreviews.length > 0 && (
