@@ -106,7 +106,7 @@ const Pricing = () => {
         key: orderRes.key,
         amount: orderRes.order.amount,
         currency: "INR",
-        name: "AISA",
+        name: "AISA™",
         description: `Upgrade to ${plan.planName}`,
         order_id: orderRes.order.id,
         handler: async function (response) {
@@ -167,7 +167,7 @@ const Pricing = () => {
         key: orderRes.key,
         amount: orderRes.order.amount,
         currency: "INR",
-        name: "AISA",
+        name: "AISA™",
         description: `Buy ${pkg.credits} Credits`,
         order_id: orderRes.order.id,
         handler: async function (response) {
@@ -314,7 +314,7 @@ const Pricing = () => {
               {comparisonData.map((row, idx) => (
                 <tr key={idx}>
                   <td className="font-bold flex items-center gap-2">
-                    <span className="aisa-badge-small">AISA</span>
+                    <span className="aisa-badge-small">AISA™</span>
                     {row.feature.replace('AISA ', '')}
                   </td>
                   {plans.map(plan => (
@@ -437,7 +437,7 @@ const Pricing = () => {
                   <li key={i}>
                     <Check size={16} />
                     <span className="flex items-center gap-1.5">
-                      <span className="aisa-badge-small" style={{ fontSize: '0.6rem', padding: '1px 4px', minWidth: '30px' }}>AISA</span>
+                      <span className="aisa-badge-small" style={{ fontSize: '0.6rem', padding: '1px 4px', minWidth: '30px' }}>AISA™</span>
                       {feature.replace(/^AISA\s+/i, '')}
                     </span>
                   </li>

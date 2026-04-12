@@ -165,7 +165,7 @@ const DashboardLayout = () => {
                 <Menu className="w-6 h-6" />
               </button>
               <Link to="/" state={{ fromLogo: true }} className="font-bold text-lg text-primary hover:opacity-80 transition-opacity">
-                AISA <sup className="text-[10px]">TM</sup>
+                AISA™
               </Link>
             </div>
 

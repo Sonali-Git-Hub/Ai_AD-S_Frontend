@@ -382,7 +382,7 @@ const Sidebar = ({ isOpen, onClose }) => {
               <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 animate-pulse opacity-0 group-hover/logo:opacity-100 transition-opacity" />
               <img 
                  src={"/logo/Logo.svg"} 
-                alt="AISA" 
+                alt="AISA™" 
                 className="h-10 w-auto relative z-10 transition-transform duration-500 group-hover/logo:scale-110 drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]" 
               />
             </div>

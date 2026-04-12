@@ -157,7 +157,7 @@ const Login = () => {
         <div className="w-full flex justify-center mb-1 shrink-0">
           <img
             src={loginBg}
-            alt="AISA Logo"
+            alt="AISA™ Logo"
             className="w-[120px] sm:w-[150px] h-auto object-contain opacity-[1] brightness-110 drop-shadow-2xl"
           />
         </div>

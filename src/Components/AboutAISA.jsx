@@ -75,7 +75,7 @@ const AboutAISA = ({ isOpen, onClose }) => {
                             <span className="text-xs font-bold tracking-wider uppercase">{t('nextGenPlatform')}</span>
                         </div>
                         <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-2">
-                            AISA <sup className="text-lg font-bold">TM</sup>
+                            AISA™
                         </h2>
                         <p className="text-blue-100 text-lg font-medium max-w-xl mx-auto">
                             {t('aiSmartAssistant')}

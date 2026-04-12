@@ -319,7 +319,7 @@ const Hero = () => {
         >
           <div className="relative">
             <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full scale-150 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <img src={logo} alt="AISA" 
+              <img src={logo} alt="AISA™" 
               style={{ 
                 height: window.innerWidth < 640 ? '48px' : '80px', 
                 width: 'auto' 

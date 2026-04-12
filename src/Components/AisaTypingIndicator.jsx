@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Bot, Sparkles } from 'lucide-react';
 
-const AisaTypingIndicator = ({ visible = true, message = "AISA is thinking" }) => {
+const AisaTypingIndicator = ({ visible = true, message = "AISA™ is thinking" }) => {
   if (!visible) return null;
 
   return (
@@ -21,7 +21,7 @@ const AisaTypingIndicator = ({ visible = true, message = "AISA is thinking" }) =
             border: '1px solid rgba(139,92,246,0.3)',
             boxShadow: '0 0 12px rgba(139,92,246,0.2)',
           }}>
-          <img src="/logo/Logo.svg" alt="AISA" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+          <img src="/logo/Logo.svg" alt="AISA™" style={{ width: 22, height: 22, objectFit: 'contain' }} />
         </div>
         {/* Pulse ring */}
         <div className="absolute inset-0 rounded-xl"

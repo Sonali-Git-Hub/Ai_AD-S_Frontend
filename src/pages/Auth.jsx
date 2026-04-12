@@ -40,7 +40,7 @@ const Auth = () => {
           </h2>
 
           <p className="text-gray-400">
-            {isSignup ? <>Join AISA<sup>TM</sup> to unlock full access</> : <>Sign in to continue to AISA<sup>TM</sup></>}
+            {isSignup ? <>Join AISA™ to unlock full access</> : <>Sign in to continue to AISA™</>}
           </p>
         </div>
 
