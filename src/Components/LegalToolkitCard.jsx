@@ -370,7 +370,7 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
                     </div>
                     <div className="flex-1 text-center sm:text-left space-y-1.5">
                       <div className="flex items-center justify-center sm:justify-start gap-2">
-                        <span className="px-2.5 py-1 bg-white/15 backdrop-blur-md border border-white/20 rounded-full text-[8px] font-black text-white uppercase tracking-widest">Always Free</span>
+                        <span className="px-2.5 py-1 bg-white/15 backdrop-blur-md border border-white/20 rounded-full text-[8px] font-black text-white uppercase tracking-widest">Basic</span>
                         <Zap className="w-3 h-3 text-yellow-400 fill-yellow-400" />
                       </div>
                       <h2 className="text-2xl font-extrabold text-white tracking-tight">💬 General Legal Chat</h2>
