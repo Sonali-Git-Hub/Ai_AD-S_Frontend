@@ -116,7 +116,7 @@ const CinematicShadows = () => (
     </div>
 );
 
-const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pricing, onContentSelect }) => {
+const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pricing, onContentSelect, referenceImage }) => {
     const [hoveredModel, setHoveredModel] = useState(null);
     const [isHovered, setIsHovered] = useState(false);
     const [isLibraryOpen, setIsLibraryOpen] = useState(false);
@@ -140,7 +140,7 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
 
     if (!isOpen) return null;
 
-    const toolPricing = pricing[toolType] || { models: [] };
+    const toolPricing = pricing[toolType === 'edit' ? 'image' : toolType] || { models: [] };
     
     const aspectRatios = toolType === 'video' ? [
         { id: '16:9', label: '16:9', icon: Monitor, w: 14, h: 8 },
@@ -267,7 +267,7 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
                                     </div>
                                     <div>
                                         <h3 className="text-[15px] sm:text-[16px] font-black text-slate-900 tracking-tight leading-none mb-1 shadow-sm">
-                                            {toolType === 'video' ? 'Video Settings' : 'Image Settings'}
+                                            {toolType === 'video' ? 'Video Settings' : toolType === 'edit' ? 'Image Editing' : 'Image Generation'}
                                         </h3>
                                         <p className="text-[8.5px] sm:text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em] flex items-center gap-1 opacity-90">
                                             <Sparkles className="w-2.5 h-2.5 text-primary animate-pulse" />
@@ -277,7 +277,7 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
                                 </div>
                                 
                                 <div className="flex items-center gap-2 relative z-10">
-                                    {toolType === 'image' && (
+                                    {(toolType === 'image' || toolType === 'edit' || toolType === 'video') && (
                                         <motion.button
                                             whileHover={{ scale: 1.1, backgroundColor: "rgba(var(--primary-rgb), 0.1)" }}
                                             whileTap={{ scale: 0.9 }}
@@ -472,6 +472,8 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
             {/* Prompt Library Modal Integration */}
             <PromptLibraryModal 
                 isOpen={isLibraryOpen}
+                mode={toolType === 'edit' ? 'edit' : toolType === 'video' ? 'video' : 'generate'}
+                referenceImage={referenceImage}
                 onClose={() => setIsLibraryOpen(false)}
                 onSelect={(prompt) => {
                     if (onContentSelect) {

@@ -503,7 +503,7 @@ const PanelChrome = ({ color, label }) => (
       padding: '3px 10px', fontSize: '0.62rem',
       color: 'rgba(148,163,184,0.4)', maxWidth: 180, margin: '0 auto',
     }}>
-      aisa.ai — {label}
+      AISA™ — {label}
     </div>
     <div style={{
       display: 'flex', alignItems: 'center', gap: 3,
@@ -522,7 +522,7 @@ const PanelChrome = ({ color, label }) => (
    ════════════════════════════════════════════ */
 const features = [
   { id:0, title:'Deep Search',      description:'AI-powered deep internet research, going beyond simple results with comprehensive cited analysis.',  icon:Search,   bgFrom:'rgba(0,24,60,1)',   bgTo:'rgba(0,10,30,1)',  accentColor:'#60a5fa', accentGlow:'rgba(59,130,246,0.35)',  Demo:DeepSearchDemo  },
-  { id:1, title:'Image Generation', description:"Transform text prompts into stunning visuals instantly with AISA's image generation engine.",          icon:ImageIcon, bgFrom:'rgba(30,0,60,1)',  bgTo:'rgba(15,0,35,1)', accentColor:'#a78bfa', accentGlow:'rgba(139,92,246,0.35)', Demo:ImageGenDemo    },
+  { id:1, title:'Image Generation', description:"Transform text prompts into stunning visuals instantly with AISA™'s image generation engine.",          icon:ImageIcon, bgFrom:'rgba(30,0,60,1)',  bgTo:'rgba(15,0,35,1)', accentColor:'#a78bfa', accentGlow:'rgba(139,92,246,0.35)', Demo:ImageGenDemo    },
   { id:2, title:'Video Generation', description:'Create cinematic AI videos from text or images. The future of content creation is here.',              icon:Video,    bgFrom:'rgba(60,0,30,1)',  bgTo:'rgba(30,0,15,1)', accentColor:'#f472b6', accentGlow:'rgba(236,72,153,0.35)', Demo:VideoGenDemo    },
   { id:3, title:'Web Search',       description:'Smart AI web browsing that surfaces the most relevant real-time information instantly.',               icon:Globe,    bgFrom:'rgba(0,50,40,1)',  bgTo:'rgba(0,25,20,1)', accentColor:'#2dd4bf', accentGlow:'rgba(45,212,191,0.3)',   Demo:WebBrowseDemo   },
   { id:4, title:'Code Builder',     description:'Generate, explain, and debug code across any language with a powerful AI coding assistant.',           icon:Code2,    bgFrom:'rgba(10,10,60,1)', bgTo:'rgba(5,5,30,1)',  accentColor:'#818cf8', accentGlow:'rgba(99,102,241,0.35)', Demo:CodeBuilderDemo },

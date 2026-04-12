@@ -428,7 +428,7 @@ export const LanguageProvider = ({ children }) => {
             createAccount: "Create Account",
             backToHome: "Back to Home",
             fullName: "Full Name",
-            joinAISA: "Join AI Super Assistant™ to unlock full access",
+            joinAISA: "Join AISA™ to unlock full access",
             alreadyHaveAccount: "Already have an account?",
             signingUp: "Creating Account...",
             successLogin: "Successfully Logged in AISA™",

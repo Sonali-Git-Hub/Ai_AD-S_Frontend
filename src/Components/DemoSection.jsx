@@ -538,7 +538,7 @@ const DemoSection = () => {
             color: isDarkMode ? 'rgba(148,163,184,0.5)' : '#475569', maxWidth: 220, margin: '0 auto',
             fontWeight: 500
           }}>
-            aisa.ai — AI Workspace
+            AISA™ — AI Workspace
           </div>
           {/* Live badge */}
           <div style={{
@@ -650,7 +650,7 @@ const DemoSection = () => {
             color: isDarkMode ? 'rgba(148,163,184,0.3)' : '#475569', fontSize: '0.78rem',
             fontWeight: 500,
           }}>
-            Message AISA…
+            Message AISA™…
           </div>
           <button style={{
             padding: '8px 16px', borderRadius: 10, border: 'none',

@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionTemplate, useMotionValue } from 'framer-motion';
-import { X, Upload, Wand2, Download, Video as VideoIcon, Loader2, History, ArrowLeft, RotateCw, ChevronDown, Check } from 'lucide-react';
+import { X, Upload, Wand2, Download, Video as VideoIcon, Loader2, History, ArrowLeft, RotateCw, ChevronDown, Check, Sparkles } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import CustomVideoPlayer from './CustomVideoPlayer';
+import PromptLibraryModal from './PromptLibraryModal';
 
 const baseURL = window._env_?.VITE_AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || "http://localhost:8080/api";
 
@@ -116,6 +117,7 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
     const [historyVideos, setHistoryVideos] = useState([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
+    const [isLibraryOpen, setIsLibraryOpen] = useState(false);
     const fileInputRef = useRef(null);
 
     // Spotlight Logic
@@ -588,21 +590,32 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
                                     <div className="w-1 h-1 rounded-full bg-slate-800 shadow-[0_0_6px_rgba(0,0,0,0.4)]" />
                                     <label className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-700">Animation Prompt</label>
                                 </div>
-                                <div className="relative flex items-center">
-                                    <input
-                                        type="text"
-                                        value={prompt}
-                                        onChange={e => setPrompt(e.target.value)}
+                                <div className="relative flex items-center gap-2">
+                                    <div className="relative flex-1">
+                                        <input
+                                            type="text"
+                                            value={prompt}
+                                            onChange={e => setPrompt(e.target.value)}
+                                            disabled={!selectedImage || isGenerating}
+                                            placeholder="e.g. A cluster of vibrant wildflowers swaying gently in a sun-drenched meadow"
+                                            className="w-full bg-white/60 border border-white/70 rounded-2xl py-3.5 pl-4 pr-12 text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:border-primary focus:ring-1 focus:ring-primary/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter' && !isGenerating && selectedImage && prompt.trim()) {
+                                                    e.preventDefault();
+                                                    handleGenerate();
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={() => setIsLibraryOpen(true)}
                                         disabled={!selectedImage || isGenerating}
-                                        placeholder="e.g. A cluster of vibrant wildflowers swaying gently in a sun-drenched meadow"
-                                        className="w-full bg-white/60 border border-white/70 rounded-2xl py-3.5 pl-4 pr-12 text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:border-primary focus:ring-1 focus:ring-primary/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                                        onKeyDown={e => {
-                                            if (e.key === 'Enter' && !isGenerating && selectedImage && prompt.trim()) {
-                                                e.preventDefault();
-                                                handleGenerate();
-                                            }
-                                        }}
-                                    />
+                                        className="h-[50px] px-4 rounded-2xl bg-white/60 border border-white/70 hover:bg-white/90 text-slate-500 hover:text-primary transition-all flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                                        title="Open Prompt Library"
+                                    >
+                                        <Wand2 className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Prompt Library</span>
+                                    </button>
                                 </div>
                                 <p className="text-[11px] text-slate-400 ml-1">Be descriptive. Use phrases like "swaying gently", "camera pans left", "zooms in slowly".</p>
                             </div>
@@ -677,6 +690,18 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
                 </div>
             </div>
             )}
+
+            {/* Prompt Library Modal Integration */}
+            <PromptLibraryModal 
+                isOpen={isLibraryOpen}
+                mode="i2v"
+                referenceImage={previewUrl}
+                onClose={() => setIsLibraryOpen(false)}
+                onSelect={(selectedPrompt) => {
+                    setPrompt(selectedPrompt);
+                    setIsLibraryOpen(false);
+                }}
+            />
         </AnimatePresence>
     );
 };

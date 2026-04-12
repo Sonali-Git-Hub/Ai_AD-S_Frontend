@@ -100,7 +100,7 @@ const SecurityAndGuidelines = () => {
                     </div>
                     <div className="bg-surface/50 p-3 rounded-lg border border-border">
                         <h4 className="font-semibold text-maintext text-sm mb-1">4.3 AI Usage Policy</h4>
-                        <p className="text-xs text-subtext">AISA AI tools must not be used for illegal activities. Users must not generate harmful, misleading, abusive, or discriminatory content using AI features.</p>
+                        <p className="text-xs text-subtext">AISA™ AI tools must not be used for illegal activities. Users must not generate harmful, misleading, abusive, or discriminatory content using AI features.</p>
                     </div>
                     <div className="bg-surface/50 p-3 rounded-lg border border-border">
                         <h4 className="font-semibold text-maintext text-sm mb-1">4.4 Review Before Public Use</h4>

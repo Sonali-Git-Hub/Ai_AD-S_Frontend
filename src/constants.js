@@ -24,11 +24,11 @@ export const faqs = [
         questions: [
             {
                 question: "How does AISA™ Image Generation work?",
-                answer: "Our 'AISA Magic Tools' use state-of-the-art diffusion models. Just describe what you want to see—down to the lighting and art style—and AISA™ will generate a high-resolution image in seconds."
+                answer: "Our 'AISA™ Magic Tools' use state-of-the-art diffusion models. Just describe what you want to see—down to the lighting and art style—and AISA™ will generate a high-resolution image in seconds."
             },
             {
                 question: "Can I edit images after they are generated?",
-                answer: "Yes, AISA™ features 'Magic Image Editor'. You can reference a previously generated image and ask AISA to change specific elements, like 'make the sky purple' or 'add a cat to the couch'."
+                answer: "Yes, AISA™ features 'Magic Image Editor'. You can reference a previously generated image and ask AISA™ to change specific elements, like 'make the sky purple' or 'add a cat to the couch'."
             },
             {
                 question: "What is 'AI Video Magic'?",
@@ -49,7 +49,7 @@ export const faqs = [
             },
             {
                 question: "Can AISA™ read text from images?",
-                answer: "Yes, 'Smart Scan' and 'Image Understanding' allow AISA to perform OCR (Optical Character Recognition) on photos, screenshots, and scanned documents, converting them into editable digital text."
+                answer: "Yes, 'Smart Scan' and 'Image Understanding' allow AISA™ to perform OCR (Optical Character Recognition) on photos, screenshots, and scanned documents, converting them into editable digital text."
             },
             {
                 question: "How do I convert a PDF to a Word document?",

@@ -8,7 +8,7 @@ export const COOKIE_POLICY_DEFAULTS = [
             },
             {
                 subtitle: "How We Use Them",
-                text: "We use cookies and similar technologies to maintain your login session, remember your language and theme preferences, and analyze how you interact with our platform to improve our services."
+                text: "We use cookies and similar technologies to maintain your login session, remember your language and theme preferences, and analyze how you interact with our platform to improve our services on AISA™."
             },
             {
                 subtitle: "Cookie Duration",
@@ -154,7 +154,7 @@ export const TERMS_OF_SERVICE_DEFAULTS = [
             },
             {
                 subtitle: "Multimodal Features",
-                text: "You may interact with AISA™ via text, voice, and vision inputs. By using these features, you grant us the right to process your inputs to generate AI responses. Content is processed securely and in accordance with our Privacy Policy."
+                text: "You may interact with AISA™ via text, voice, and vision inputs. By using these features, you grant us the right to process your inputs to generate AI responses. Content is processed securely on AISA™ and in accordance with our Privacy Policy."
             },
             {
                 subtitle: "Prohibited Activities",
@@ -217,7 +217,7 @@ export const TERMS_OF_SERVICE_DEFAULTS = [
             },
             {
                 subtitle: "AI Accuracy",
-                text: "While our AI models are advanced and continually improving, we do not guarantee the accuracy, completeness, or reliability of AI-generated responses. You should verify important information independently."
+                text: "While our AISA™ AI models are advanced and continually improving, we do not guarantee the accuracy, completeness, or reliability of AI-generated responses. You should verify important information independently."
             },
             {
                 subtitle: "No Professional Advice",
@@ -262,7 +262,7 @@ export const PRIVACY_POLICY_DEFAULTS = [
             },
             {
                 subtitle: "Usage Data",
-                text: "We collect information about your interactions with our AI agents, including chat sessions, queries, and preferences to improve your experience and our services."
+                text: "We collect information about your interactions with our AISA™ AI agents, including chat sessions, queries, and preferences to improve your experience and our services."
             },
             {
                 subtitle: "Multimodal Content",
@@ -283,7 +283,7 @@ export const PRIVACY_POLICY_DEFAULTS = [
             },
             {
                 subtitle: "Product Improvement",
-                text: "Your interactions help us enhance our AI models, develop new features, and ensure high-quality reasoning and contextual understanding."
+                text: "Your interactions help us enhance our AISA™ AI models, develop new features, and ensure high-quality reasoning and contextual understanding."
             },
             {
                 subtitle: "Communication",
@@ -308,7 +308,7 @@ export const PRIVACY_POLICY_DEFAULTS = [
             },
             {
                 subtitle: "Secure Storage",
-                text: "Your data is stored on enterprise-grade servers with strict access controls, regular security audits, and automated backup systems."
+                text: "Your data is stored on enterprise-grade AISA™ servers with strict access controls, regular security audits, and automated backup systems."
             },
             {
                 subtitle: "Data Retention",
@@ -371,7 +371,7 @@ export const PRIVACY_POLICY_DEFAULTS = [
             },
             {
                 subtitle: "Local Storage",
-                text: "Chat sessions and preferences are stored in your browser's local storage for quick access and offline capabilities."
+                text: "Chat sessions and preferences are stored in your browser's local storage for quick access and AISA™ offline capabilities."
             },
             {
                 subtitle: "Cookie Management",

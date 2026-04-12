@@ -54,11 +54,30 @@ class ThreeScene {
         }
 
         this.canvas.style.display = 'block';
+
+        // Detect if HIGH_FLOAT is supported to prevent crashes on some mobile devices
+        let precision = 'highp';
+        try {
+            const gl = this.canvas.getContext('webgl2') || 
+                      this.canvas.getContext('webgl') || 
+                      this.canvas.getContext('experimental-webgl');
+            
+            if (gl) {
+                const highp = gl.getShaderPrecisionFormat(gl.VERTEX_SHADER, gl.HIGH_FLOAT);
+                if (!highp || highp.precision === 0) {
+                    precision = 'mediump';
+                }
+            }
+        } catch (e) {
+            precision = 'mediump';
+        }
+
         const options = {
             canvas: this.canvas,
             powerPreference: 'high-performance',
             antialias: true,
             alpha: true,
+            precision: precision, // Set detected precision
             ...(this.#config.rendererOptions ?? {})
         };
         this.renderer = new THREE.WebGLRenderer(options);
@@ -481,47 +500,58 @@ const Ballpit = ({ className = '', followCursor = true, colors, ...props }) => {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        const sceneControl = new ThreeScene({ canvas, size: 'parent' });
-        sceneControl.camera.position.set(0, 0, 15);
-        sceneControl.camera.lookAt(0, 0, 0);
+        let sceneControl;
+        let spheres;
 
-        const spheres = new SpheresSystem(sceneControl.renderer, { followCursor, ...(colors ? { colors } : {}), ...props });
-        sceneControl.scene.add(spheres);
+        try {
+            sceneControl = new ThreeScene({ canvas, size: 'parent' });
+            sceneControl.camera.position.set(0, 0, 15);
+            sceneControl.camera.lookAt(0, 0, 0);
 
-        const raycaster = new THREE.Raycaster();
-        const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-        const mousePos = new THREE.Vector3();
+            spheres = new SpheresSystem(sceneControl.renderer, { followCursor, ...(colors ? { colors } : {}), ...props });
+            sceneControl.scene.add(spheres);
 
-        const interactionData = {
-            position: new THREE.Vector2(),
-            nPosition: new THREE.Vector2(),
-            hover: false,
-            onMove: () => {
-                raycaster.setFromCamera(interactionData.nPosition, sceneControl.camera);
-                raycaster.ray.intersectPlane(plane, mousePos);
-                spheres.physics.center.copy(mousePos);
-                spheres.config.controlSphere0 = true;
-            },
-            onLeave: () => {
-                spheres.config.controlSphere0 = false;
-            }
-        };
+            const raycaster = new THREE.Raycaster();
+            const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+            const mousePos = new THREE.Vector3();
 
-        setupInteractions(canvas, interactionData);
+            const interactionData = {
+                position: new THREE.Vector2(),
+                nPosition: new THREE.Vector2(),
+                hover: false,
+                onMove: () => {
+                    if (!spheres) return;
+                    raycaster.setFromCamera(interactionData.nPosition, sceneControl.camera);
+                    raycaster.ray.intersectPlane(plane, mousePos);
+                    spheres.physics.center.copy(mousePos);
+                    spheres.config.controlSphere0 = true;
+                },
+                onLeave: () => {
+                    if (!spheres) return;
+                    spheres.config.controlSphere0 = false;
+                }
+            };
 
-        sceneControl.onBeforeRender = (time) => {
-            spheres.update(time);
-        };
+            setupInteractions(canvas, interactionData);
 
-        sceneControl.onAfterResize = (size) => {
-            spheres.config.maxX = size.wWidth / 2;
-            spheres.config.maxY = size.wHeight / 2;
-        };
+            sceneControl.onBeforeRender = (time) => {
+                if (spheres) spheres.update(time);
+            };
 
-        instanceRef.current = { sceneControl, spheres };
+            sceneControl.onAfterResize = (size) => {
+                if (spheres) {
+                    spheres.config.maxX = size.wWidth / 2;
+                    spheres.config.maxY = size.wHeight / 2;
+                }
+            };
+
+            instanceRef.current = { sceneControl, spheres };
+        } catch (error) {
+            console.error("Ballpit: Failed to initialize WebGL scene", error);
+        }
 
         return () => {
-            sceneControl.dispose();
+            if (sceneControl) sceneControl.dispose();
             interactions.delete(canvas);
         };
     }, []);

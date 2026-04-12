@@ -187,7 +187,7 @@ const Landing = () => {
                                     { img: "/social-media-icons/Linkedin.svg", href: "https://www.linkedin.com/in/aimall-global/" },
                                     { img: "/social-media-icons/X.svg", href: "https://x.com/aimallglobal" },
                                     { img: "/social-media-icons/Threads.svg", href: "https://www.threads.net/@aimall.global" },
-                                    { img: "/social-media-icons/YT.svg", href: "https://www.youtube.com/@AISA-Intelligence" },
+                                    { img: "/social-media-icons/YT.svg", href: "https://www.youtube.com/@aimallglobal" },
                                     { img: "/social-media-icons/FB.svg", href: "https://www.facebook.com/aimallglobal/" },
                                     { img: "/social-media-icons/Insta.svg", href: "https://www.instagram.com/aimall.global/" },
                                     { img: "/social-media-icons/Whatsapp.svg", href: "https://wa.me/918358990909" },

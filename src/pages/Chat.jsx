@@ -232,19 +232,19 @@ const FEEDBACK_PROMPTS = {
 const TOOL_PRICING = {
   chat: {
     models: [
-      { id: 'gemini-flash', name: 'AISA Flash', price: 0, speed: 'Fast', description: 'Free chat model' }
+      { id: 'gemini-flash', name: 'AISA™ Flash', price: 0, speed: 'Fast', description: 'Free chat model' }
     ]
   },
   image: {
     models: [
-      { id: 'imagen-3.0-generate-001', name: 'AISA Imagen 3', price: 45, speed: 'Fast', description: 'Advanced image generation & editing' },
-      { id: 'imagen-4.0-ultra-generate-001', name: 'AISA Imagen 4 Ultra', price: 90, speed: 'Premium', description: 'Next-generation hyper-realistic image generation' }
+      { id: 'imagen-3.0-generate-001', name: 'AISA™ Imagen 3', price: 45, speed: 'Fast', description: 'Advanced image generation & editing' },
+      { id: 'imagen-4.0-ultra-generate-001', name: 'AISA™ Imagen 4 Ultra', price: 90, speed: 'Premium', description: 'Next-generation hyper-realistic image generation' }
     ]
   },
   video: {
     models: [
-      { id: 'veo-3.1-fast-generate-001', name: 'AISA Video Fast', price: '225/5s', speed: 'Fast', description: 'Quick high-quality video generation' },
-      { id: 'veo-3.1-generate-001', name: 'AISA Video Pro', price: '600/5s', speed: 'Cinema', description: 'Next-gen cinematic video synthesis' }
+      { id: 'veo-3.1-fast-generate-001', name: 'AISA™ Video Fast', price: '225/5s', speed: 'Fast', description: 'Quick high-quality video generation' },
+      { id: 'veo-3.1-generate-001', name: 'AISA™ Video Pro', price: '600/5s', speed: 'Cinema', description: 'Next-gen cinematic video synthesis' }
     ]
   },
   document: {
@@ -3833,6 +3833,9 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
             error: !!aiResponseData?.error, // Track if this is an error bubble
             timestamp: Date.now() + i * 100,
             projectId: currentProjectId,
+            conversion: conversionData,
+            imageUrl: aiImageUrl,
+            videoUrl: aiVideoUrl
           };
 
           // Add the empty message structure to UI
@@ -5458,7 +5461,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 >
                   {/* Actions Menu (Always visible for discoverability) */}
 
-                  <div className={`chatgpt-message-content ${msg.role === 'model' ? 'w-fit' : ''}`}>
+                  <div className={`chatgpt-message-content ${msg.role === 'model' ? 'w-full' : ''}`}>
                     {/* Avatar */}
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user'
@@ -5722,7 +5725,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                                     if (!inline) {
                                       return (
-                                        <div className={`rounded-xl overflow-hidden my-3 border ${isUser ? 'border-white/10 bg-black/20' : 'border-zinc-700/50 bg-[#1e1e1e]'} shadow-2xl w-full max-w-full group/code`}>
+                                        <div className={`rounded-xl overflow-hidden my-3 border ${isUser ? 'border-white/10 bg-black/20' : 'border-[#1a1a1a] bg-[#0d0d0d]'} shadow-2xl w-full max-w-full group/code`}>
                                           {!isUser && (
                                             <div className="flex items-center justify-between px-4 py-2.5 bg-[#2d2d2d]/80 backdrop-blur-sm border-b border-zinc-800">
                                               <div className="flex items-center gap-2">
@@ -5740,32 +5743,34 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                               </button>
                                             </div>
                                           )}
-                                          <div className={`${isUser ? 'max-h-[500px]' : 'max-h-[600px]'} overflow-auto custom-scrollbar-thin ${isUser ? 'bg-transparent' : 'bg-[#1e1e1e]'}`}>
-                                            <SyntaxHighlighter
-                                              language={lang || 'text'}
-                                              style={highlighterTheme}
-                                              PreTag="div"
-                                              customStyle={{
-                                                margin: 0,
-                                                padding: isUser ? '16px' : '20px',
-                                                fontSize: isUser ? '12.5px' : '13.5px',
-                                                lineHeight: '1.6',
-                                                background: 'transparent',
-                                                borderRadius: 0,
-                                                border: 'none',
-                                                fontFamily: '"Fira Code", "JetBrains Mono", source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace'
-                                              }}
-                                              codeTagProps={{
-                                                style: {
-                                                  fontFamily: 'inherit',
-                                                  background: 'transparent'
-                                                }
-                                              }}
-                                              {...props}
-                                            >
-                                              {codeValue}
-                                            </SyntaxHighlighter>
-                                          </div>
+                                            <div className={`${isUser ? 'max-h-[500px]' : 'max-h-[600px]'} overflow-auto custom-scrollbar-thin ${isUser ? 'bg-transparent' : 'bg-[#0d0d0d]'}`}>
+                                              <SyntaxHighlighter
+                                                language={lang || 'text'}
+                                                style={highlighterTheme}
+                                                PreTag="div"
+                                                customStyle={{
+                                                  margin: 0,
+                                                  padding: isUser ? '16px' : '20px',
+                                                  fontSize: isUser ? '13px' : '14px',
+                                                  lineHeight: '1.7',
+                                                  background: 'transparent',
+                                                  borderRadius: 0,
+                                                  border: 'none',
+                                                  color: '#e5e7eb', // Ensure visibility for plain text
+                                                  fontFamily: '"Fira Code", "JetBrains Mono", source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace'
+                                                }}
+                                                codeTagProps={{
+                                                  style: {
+                                                    fontFamily: 'inherit',
+                                                    background: 'transparent',
+                                                    color: 'inherit'
+                                                  }
+                                                }}
+                                                {...props}
+                                              >
+                                                {codeValue}
+                                              </SyntaxHighlighter>
+                                            </div>
                                         </div>
                                       );
                                     }
@@ -5915,6 +5920,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setIsMagicEditing(true);
+                                      setIsMagicSettingsOpen(true);
                                       setEditRefImage({
                                         url: msg.imageUrl,
                                         name: 'Generated Asset',
@@ -6899,7 +6905,10 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             setIsCodeWriter(false);
                             setIsCashFlowMode(false);
                             setIsFileAnalysis(false);
-                            if (newMode) toast.success("Image Editing Enabled");
+                            if (newMode) {
+                              setIsMagicSettingsOpen(true);
+                              toast.success("Image Editing Enabled");
+                            }
                           }}
                           className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isMagicEditing ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
                         >
@@ -7294,19 +7303,38 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       )}
                       {isMagicEditing && (
                         <motion.div 
-                          initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} 
-                          className="flex items-center gap-2.5 px-3 py-1.5 bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-full text-xs font-bold border border-amber-500/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-amber-500/15 group shadow-lg shadow-amber-500/10"
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }} 
+                          animate={{ opacity: 1, y: 0, scale: 1 }} 
+                          exit={{ opacity: 0, scale: 0.95 }} 
+                          className="flex items-center gap-3 px-3.5 py-1.5 bg-amber-500/20 dark:bg-amber-500/25 text-amber-700 dark:text-amber-400 rounded-full text-xs font-bold border border-amber-400/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-amber-500/30 group shadow-[0_8px_32px_-4px_rgba(245,158,11,0.3)] relative overflow-hidden ring-1 ring-white/10"
                         >
-                          <div className="flex items-center gap-2">
-                             <div className="w-5 h-5 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                              <Wand2 size={14} strokeWidth={2.5} />
+                          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
+                          
+                          <div className="flex items-center gap-2 relative z-10">
+                             <div className="w-5 h-5 rounded-lg bg-amber-500 dark:bg-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/40 text-white">
+                              <Wand2 size={14} strokeWidth={3} />
                             </div>
-                            <span className="uppercase tracking-wide text-[10px] font-black hidden sm:inline">Image Edit</span>
+                            <span className="uppercase tracking-widest text-[9px] font-black hidden xs:inline">Image Edit</span>
                           </div>
+
+                          <div className="w-[1px] h-3 bg-amber-500/40 mx-0.5 relative z-10" />
+
+                          <button 
+                            type="button"
+                            onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
+                            className="flex items-center gap-1.5 hover:text-amber-900 dark:hover:text-amber-200 transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
+                          >
+                            <span className="text-[10px] font-extrabold opacity-90">{imageAspectRatio}</span>
+                            <span className="text-[10px] font-black truncate max-w-[60px] sm:max-w-[100px] tracking-tight">
+                              {TOOL_PRICING.image.models.find(m => m.id === imageModelId)?.name.replace('AISA ', '') || 'Model'}
+                            </span>
+                            <ChevronDown size={11} className={`transition-transform duration-300 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
+                          </button>
+
                           <button 
                             type="button" 
                             onClick={() => setIsMagicEditing(false)} 
-                            className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 transition-all hover:rotate-90"
+                            className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-amber-600 dark:text-amber-400 transition-all hover:rotate-90 relative z-10"
                           >
                             <X size={14} strokeWidth={3} />
                           </button>
@@ -8077,16 +8105,17 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
       <MagicToolSettingsCard 
         isOpen={isMagicSettingsOpen}
         onClose={() => setIsMagicSettingsOpen(false)}
-        toolType={isImageGeneration ? 'image' : isVideoGeneration ? 'video' : ''}
+        referenceImage={editRefImage}
+        toolType={isMagicEditing ? 'edit' : isImageGeneration ? 'image' : isVideoGeneration ? 'video' : ''}
         config={
-          isImageGeneration 
+          (isImageGeneration || isMagicEditing)
             ? { aspectRatio: imageAspectRatio, modelId: imageModelId }
             : isVideoGeneration
               ? { aspectRatio: videoAspectRatio, resolution: videoResolution, modelId: videoModelId }
               : {}
         }
         onChange={(key, value) => {
-          if (isImageGeneration) {
+          if (isImageGeneration || isMagicEditing) {
             if (key === 'aspectRatio') setImageAspectRatio(value);
             if (key === 'modelId') setImageModelId(value);
           } else if (isVideoGeneration) {
