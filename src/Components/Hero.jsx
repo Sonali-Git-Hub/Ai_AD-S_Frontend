@@ -418,37 +418,36 @@ const Hero = () => {
             }}
           >
             {/* Line 1: The Future of */}
-            <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap' }}>
-              {t('heroTitleLine1').split("").map((char, index) => (
+            <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '0.25em' }}>
+              {t('heroTitleLine1').split(" ").map((word, index) => (
                 <motion.span
                   key={`l1-${index}`}
                   variants={child}
-                  style={{ display: 'inline-block', whiteSpace: 'pre' }}
+                  style={{ display: 'inline-block' }}
                 >
-                  {char === " " ? "\u00A0" : char}
+                  {word}
                 </motion.span>
               ))}
             </div>
             
-            {/* Line 2: Conversational AI (with Gradient across letters) */}
-            <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', flexWrap: 'wrap' }}>
-              {t('heroTitleLine2').split("").map((char, index, arr) => (
+            {/* Line 2: Conversational AI (with Gradient across words) */}
+            <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', flexWrap: 'wrap', gap: '0.25em' }}>
+              {t('heroTitleLine2').split(" ").map((word, index, arr) => (
                 <motion.span
                   key={`l2-${index}`}
                   variants={child}
                   style={{ 
                     display: 'inline-block', 
-                    whiteSpace: 'pre',
-                    // Gradient technique: each character shows a slice of a larger gradient
+                    // Gradient technique: each word shows a slice of a larger gradient
                     background: 'linear-gradient(90deg, #60a5fa 0%, #a78bfa 50%, #e879f9 100%)',
                     backgroundSize: `${arr.length * 100}% 100%`,
-                    backgroundPosition: `${(index / (arr.length - 1)) * 100}% center`,
+                    backgroundPosition: `${arr.length > 1 ? (index / (arr.length - 1)) * 100 : 50}% center`,
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
                     backgroundClip: 'text',
                   }}
                 >
-                  {char === " " ? "\u00A0" : char}
+                  {word}
                 </motion.span>
               ))}
               
