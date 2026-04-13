@@ -42,6 +42,7 @@ import { detectIntent, mapModeToToolState } from '../services/intentService';
 import LoginRequiredModal from '../Components/LoginRequiredModal';
 import FuturisticToolCards from '../Components/FuturisticToolCards';
 import AisaTypingIndicator from '../Components/AisaTypingIndicator';
+import GmailConnectedModal from '../Components/GmailConnectedModal';
 import AISnapshot from '../Components/AISnapshot';
 import Ballpit from '../Components/Ballpit';
 
@@ -704,6 +705,25 @@ const Chat = () => {
   const [isMagicSettingsOpen, setIsMagicSettingsOpen] = useState(false);
   const abortControllerRef = useRef(null);
   const voiceUsedRef = useRef(false); // Track if voice input was used
+
+  const [showGmailModal, setShowGmailModal] = useState(false);
+
+  // ─── Connector OAuth Callback Handler ───
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const connectorSuccess = params.get('connector_success');
+    const connectorError = params.get('connector_error');
+
+    if (connectorSuccess === 'true') {
+      // Show the feature showcase modal
+      setShowGmailModal(true);
+      // Clean the URL so modal doesn't re-fire on refresh
+      navigate(location.pathname, { replace: true });
+    } else if (connectorError) {
+      toast.error('Failed to connect Gmail. Please try again from Settings > Connectors.', { duration: 5000 });
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.search]);
 
   // ─── Direct Feature Link Handling ───
   useEffect(() => {
@@ -8183,6 +8203,19 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
               boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
             }
           });
+        }}
+      />
+
+      {/* Gmail Connected Feature Showcase Modal */}
+      <GmailConnectedModal
+        isOpen={showGmailModal}
+        onClose={() => setShowGmailModal(false)}
+        onTryPrompt={(prompt) => {
+          setInputValue(prompt);
+          setShowGmailModal(false);
+          setTimeout(() => {
+            if (inputRef.current) inputRef.current.focus();
+          }, 100);
         }}
       />
     </div>
