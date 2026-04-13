@@ -4,6 +4,7 @@ import { ChevronDown, Check } from 'lucide-react';
 
 const CustomSelect = ({ value, options, onChange, label, icon: Icon }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [direction, setDirection] = useState('down');
     const containerRef = useRef(null);
 
     useEffect(() => {
@@ -15,6 +16,18 @@ const CustomSelect = ({ value, options, onChange, label, icon: Icon }) => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    useEffect(() => {
+        if (isOpen && containerRef.current) {
+            const rect = containerRef.current.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom;
+            if (spaceBelow < 260) {
+                setDirection('up');
+            } else {
+                setDirection('down');
+            }
+        }
+    }, [isOpen]);
 
     return (
         <div className={`relative w-full ${isOpen ? 'z-[50]' : 'z-[1]'}`} ref={containerRef}>
@@ -34,17 +47,17 @@ const CustomSelect = ({ value, options, onChange, label, icon: Icon }) => {
                         {value}
                     </span>
                 </div>
-                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-180 text-primary' : ''}`} />
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${isOpen && direction === 'down' ? 'rotate-180 text-primary' : isOpen && direction === 'up' ? 'rotate-0 text-primary' : direction === 'up' ? 'rotate-180' : ''}`} />
             </button>
 
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 5, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        initial={{ opacity: 0, y: direction === 'up' ? 10 : -10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: direction === 'up' ? 10 : -10, scale: 0.95 }}
                         transition={{ duration: 0.2, ease: "easeOut" }}
-                        className="absolute z-[99999] left-0 right-0 p-1 bg-white dark:bg-zinc-800 rounded-xl border border-gray-100 dark:border-white/10 shadow-2xl backdrop-blur-xl origin-top"
+                        className={`absolute z-[99999] left-0 right-0 p-1 bg-white dark:bg-zinc-800 rounded-xl border border-gray-100 dark:border-white/10 shadow-2xl backdrop-blur-xl ${direction === 'up' ? 'bottom-full mb-2 origin-bottom' : 'top-full mt-2 origin-top'}`}
                     >
                         <div className="max-h-[240px] overflow-y-auto custom-scrollbar-light">
                             {options.map((opt) => (
