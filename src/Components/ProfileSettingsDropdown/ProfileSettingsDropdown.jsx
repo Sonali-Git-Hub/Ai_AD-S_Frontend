@@ -172,9 +172,9 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                         headers: { 'Authorization': `Bearer ${user.token}` }
                     });
                 }
-                toast.success('Profile updated successfully');
+                toast.success(t('profileUpdatedSuccess') || 'Profile updated successfully');
             } catch (error) {
-                toast.success('Profile updated locally');
+                toast.success(t('profileUpdatedLocally') || 'Profile updated locally');
             }
         }
     };
@@ -433,7 +433,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                     <label className="text-xs font-bold text-gray-500 uppercase">{t('displayName')}</label>
                     <div className="relative">
                         <input type="text" value={nicknameInput} onChange={e => setNicknameInput(e.target.value)} className="w-full bg-gray-50 dark:bg-zinc-800 border rounded-xl p-3 text-sm outline-none focus:border-primary transition-all" />
-                        <button onClick={handleSaveNickname} className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-primary text-white text-[10px] rounded-lg hover:opacity-90 transition-all font-bold">Save</button>
+                        <button onClick={handleSaveNickname} className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-primary text-white text-[10px] rounded-lg hover:opacity-90 transition-all font-bold">{t('saveLabel')}</button>
                     </div>
                 </div>
             )
@@ -461,8 +461,8 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                 return (
                     <div className="space-y-4">
                         <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-white/5">
-                            <h3 className="text-xs font-bold text-gray-400">Inbox ({notifications.length})</h3>
-                            {notifications.length > 0 && <button onClick={clearAllNotifications} className="text-xs font-bold text-primary">Clear All</button>}
+                            <h3 className="text-xs font-bold text-gray-400">{t('notifications')} ({notifications.length})</h3>
+                            {notifications.length > 0 && <button onClick={clearAllNotifications} className="text-xs font-bold text-primary">{t('clearAll')}</button>}
                         </div>
                         <div className="space-y-3 mt-4">
                             {notifications.length > 0 ? notifications.map(n => (
@@ -473,7 +473,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                     </div>
                                     <button onClick={() => deleteNotification(n.id)} className="text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
                                 </div>
-                            )) : <div className="py-20 text-center opacity-40"><p>No notifications</p></div>}
+                            )) : <div className="py-20 text-center opacity-40"><p>{t('noNotifications')}</p></div>}
                         </div>
                     </div>
                 );
@@ -482,7 +482,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                     <div className="space-y-4">
                         {allSettings.filter(s => s.tab === 'data').map(s => <div key={s.id}>{s.component}</div>)}
                         <div className="pt-4 mt-4 border-t border-gray-100 dark:border-white/5">
-                            <h4 className="text-xs font-bold text-gray-400 uppercase mb-4">Chat History</h4>
+                            <h4 className="text-xs font-bold text-gray-400 uppercase mb-4">{t('chatHistory')}</h4>
                             <div className="space-y-2 pr-2 max-h-[300px] overflow-y-auto custom-scrollbar">
                                 {Object.keys(groupedSessions).length > 0 ? Object.keys(groupedSessions).sort((a, b) => new Date(b) - new Date(a)).map(date => (
                                     <div key={date} className="border border-border rounded-xl bg-gray-50/50 dark:bg-zinc-800/30">
@@ -494,8 +494,8 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                             <div className="p-2 pt-0 space-y-1">
                                                 {groupedSessions[date].map(s => (
                                                     <div key={s.sessionId} className="flex items-center justify-between p-2 hover:bg-white dark:hover:bg-zinc-800 rounded-lg text-xs group">
-                                                        <span className="truncate flex-1">{s.title || "New Chat"}</span>
-                                                        <button onClick={() => { window.location.href = `/dashboard/chat/${s.sessionId}`; onClose(); }} className="ml-2 px-2 py-1 bg-primary text-white rounded font-bold opacity-0 group-hover:opacity-100 transition-opacity">View</button>
+                                                        <span className="truncate flex-1">{s.title || t('newChat')}</span>
+                                                        <button onClick={() => { window.location.href = `/dashboard/chat/${s.sessionId}`; onClose(); }} className="ml-2 px-2 py-1 bg-primary text-white rounded font-bold opacity-0 group-hover:opacity-100 transition-opacity">{t('viewLabel')}</button>
                                                     </div>
                                                 ))}
                                             </div>
@@ -521,7 +521,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
-                                        {acc.email !== user?.email && <button onClick={() => handleSwitchAccount(acc)} className="px-3 py-1 bg-primary/10 text-primary text-[10px] rounded-lg font-bold">Switch</button>}
+                                        {acc.email !== user?.email && <button onClick={() => handleSwitchAccount(acc)} className="px-3 py-1 bg-primary/10 text-primary text-[10px] rounded-lg font-bold">{t('switchLabel')}</button>}
                                         <button onClick={() => handleAccountLogout(acc.email)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><LogOut size={14} /></button>
                                     </div>
                                 </div>
@@ -577,12 +577,12 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                     </h3>
                                     <p className="text-sm font-bold text-gray-500 max-w-[200px] truncate sm:max-w-none">{user.email}</p>
                                 </div>
-                                <button 
+                                    <button 
                                     onClick={() => window._aisa_sync_profile && window._aisa_sync_profile()}
                                     className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl transition-all group/sync"
                                 >
                                     <RefreshCcw className="w-3.5 h-3.5 group-hover/sync:rotate-180 transition-transform duration-500" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">Sync from Social</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest">{t('syncFromSocial')}</span>
                                 </button>
 
                                 {user.avatar && (
@@ -591,7 +591,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                         className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl transition-all group/remove"
                                     >
                                         <Trash2 className="w-3.5 h-3.5 group-hover/remove:scale-110 transition-transform" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest">Remove Photo</span>
+                                        <span className="text-[10px] font-black uppercase tracking-widest">{t('removePhoto')}</span>
                                     </button>
                                 )}
                             </div>
@@ -600,10 +600,10 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                         {allSettings.filter(s => s.tab === 'account').map(s => <div key={s.id}>{s.component}</div>)}
                         <div className="py-4 flex justify-between items-center text-sm">
                             <div>
-                                <p className="font-bold">Password</p>
-                                <p className="text-xs text-subtext">Manage your account security</p>
+                                <p className="font-bold">{t('password')}</p>
+                                <p className="text-xs text-subtext">{t('manageAccountSecurity') || 'Manage your account security'}</p>
                             </div>
-                            <button onClick={() => setShowResetModal(true)} className="text-primary font-bold hover:underline">Change Password</button>
+                            <button onClick={() => setShowResetModal(true)} className="text-primary font-bold hover:underline">{t('changePassword')}</button>
                         </div>
                     </div>
                 );
@@ -616,18 +616,18 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                 <Zap className="w-12 h-12 text-primary opacity-20" />
                             </div>
                             <div className="relative z-10">
-                                <h3 className="text-xs font-bold text-primary uppercase tracking-widest mb-1">Current Plan</h3>
+                                <h3 className="text-xs font-bold text-primary uppercase tracking-widest mb-1">{t('currentPlan')}</h3>
                                 <div className="flex items-baseline gap-2 mb-4">
                                     <h2 className="text-3xl font-black text-maintext">{planName.replace(' Plan', '')}</h2>
-                                    <span className="text-xs text-subtext font-medium">/ 1 Month</span>
+                                    <span className="text-xs text-subtext font-medium">/ 1 {t('month')}</span>
                                 </div>
 
                                 <div className="flex items-center justify-between bg-white/40 dark:bg-black/40 backdrop-blur-md rounded-xl p-4 border border-white/20">
                                     <div>
-                                        <p className="text-[10px] font-bold text-subtext uppercase tracking-wider">Available Credits</p>
+                                        <p className="text-[10px] font-bold text-subtext uppercase tracking-wider">{t('availableCredits')}</p>
                                         <p className="text-2xl font-black text-primary">{user?.credits || 0}</p>
                                     </div>
-                                    <button onClick={() => { window.location.href = '/pricing'; onClose(); }} className="px-4 py-2 bg-primary text-white rounded-lg text-xs font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all">Buy More</button>
+                                    <button onClick={() => { window.location.href = '/pricing'; onClose(); }} className="px-4 py-2 bg-primary text-white rounded-lg text-xs font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all">{t('buyMore')}</button>
                                 </div>
                             </div>
                         </div>
@@ -635,7 +635,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                         {/* Recent Usage */}
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
-                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Recent Credit Usage</h4>
+                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('recentCreditUsage')}</h4>
                                 {loadingHistory && <RefreshCcw className="w-3 h-3 animate-spin text-primary" />}
                             </div>
 
@@ -660,7 +660,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                     </div>
                                 )) : (
                                     <div className="py-10 text-center opacity-40">
-                                        <p className="text-sm">No credit history found yet.</p>
+                                        <p className="text-sm">{t('noCreditHistory')}</p>
                                     </div>
                                 )}
                             </div>
@@ -673,8 +673,8 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                         {/* Header */}
                         <div className="flex flex-col gap-1 pb-4 border-b border-gray-100 dark:border-white/5">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Apps & Connectors</h3>
-                            <p className="text-sm text-subtext">Connect external services to unlock powerful AI capabilities</p>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t('appsConnectors')}</h3>
+                            <p className="text-sm text-subtext">{t('connectExternalServices')}</p>
                         </div>
 
                         {/* Gmail Connector Card */}
@@ -727,7 +727,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                             onClick={handleDisconnectGmail}
                                             className="shrink-0 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-black rounded-xl border border-primary/20 transition-all duration-200 hover:scale-105"
                                         >
-                                            Disconnect
+                                            {t('disconnect')}
                                         </button>
                                     ) : (
                                         <button
@@ -735,7 +735,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                             className="shrink-0 px-5 py-2 bg-primary hover:opacity-90 text-white text-xs font-black rounded-xl shadow-lg shadow-primary/30 transition-all duration-200 hover:scale-105 flex items-center gap-2"
                                         >
                                             <Zap className="w-3 h-3" />
-                                            Connect
+                                            {t('connectLabel')}
                                         </button>
                                     )}
                                 </div>
@@ -776,7 +776,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
 
                         {/* Coming Soon placeholder */}
                         <div className="rounded-2xl border border-dashed border-primary/20 dark:border-primary/10 p-5 text-center opacity-60">
-                            <p className="text-xs font-bold text-primary/60 uppercase tracking-widest">More Connectors Coming Soon</p>
+                            <p className="text-xs font-bold text-primary/60 uppercase tracking-widest">{t('moreConnectorsComingSoon')}</p>
                             <p className="text-[10px] text-gray-400 mt-1">Google Drive · Notion · Slack · Calendar</p>
                         </div>
                     </div>

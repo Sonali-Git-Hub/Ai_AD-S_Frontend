@@ -11,6 +11,7 @@ import { useTheme } from '../context/ThemeContext';
 gsap.registerPlugin(ScrollTrigger);
 
 const NUM_SLIDES = 5;
+import { useLanguage } from '../context/LanguageContext';
 
 /* ════════════════════════════════════════════
    FEATURE-SPECIFIC DEMO PANELS
@@ -18,6 +19,7 @@ const NUM_SLIDES = 5;
 
 /* ── 1. Deep Search Panel ── */
 const DeepSearchDemo = ({ active }) => {
+  const { t } = useLanguage();
   const [step, setStep] = useState(0); // 0=idle 1=scanning 2=results
   const [dots, setDots] = useState(0);
   useEffect(() => {
@@ -43,18 +45,18 @@ const DeepSearchDemo = ({ active }) => {
 
   return (
     <div style={panelStyle('#60a5fa')}>
-      <PanelChrome color={color} label="Deep Search" />
+      <PanelChrome color={color} label={t('chat')} />
       <div style={{ flex: 1, padding: '14px 14px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {/* Query bar */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 10, background: 'rgba(96,165,250,0.08)', border: `1px solid ${color}30` }}>
           <Search size={13} style={{ color }} />
-          <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)' }}>Latest LLM breakthroughs 2025</span>
+          <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)' }}>{t('latestLLMBreakthroughs')}</span>
         </div>
 
         {step === 1 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'rgba(148,163,184,0.7)', fontSize: '0.75rem', padding: '4px 0' }}>
             <div style={{ width: 14, height: 14, border: `2px solid ${color}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'sfSpin 0.8s linear infinite' }} />
-            Scanning {200 + dots * 3}+ sources{'.'.repeat(dots + 1)}
+            {t('scanningSources')}
           </div>
         )}
 
@@ -75,7 +77,7 @@ const DeepSearchDemo = ({ active }) => {
 
         {step === 2 && (
           <div style={{ marginTop: 4, padding: '8px 12px', borderRadius: 9, background: 'rgba(96,165,250,0.04)', border: `1px solid ${color}15`, animation: 'sfBIn 0.3s ease 0.5s both' }}>
-            <div style={{ fontSize: '0.68rem', color: 'rgba(148,163,184,0.5)', marginBottom: 4 }}>AI Summary</div>
+            <div style={{ fontSize: '0.68rem', color: 'rgba(148,163,184,0.5)', marginBottom: 4 }}>{t('aiSummary')}</div>
             <p style={{ margin: 0, fontSize: '0.72rem', color: 'rgba(203,213,225,0.8)', lineHeight: 1.5 }}>
               GPT-5 chain-of-thought self-verification reduces hallucination by <span style={{ color, fontWeight: 700 }}>47%</span>. MoE scaling laws show efficiency gains.
             </p>
@@ -88,6 +90,7 @@ const DeepSearchDemo = ({ active }) => {
 
 /* ── 2. Image Generation Panel ── */
 const ImageGenDemo = ({ active }) => {
+  const { t } = useLanguage();
   const canvasRef = useRef(null);
   const animRef = useRef(null);
   const color = '#a78bfa';
@@ -170,12 +173,12 @@ const ImageGenDemo = ({ active }) => {
 
   return (
     <div style={panelStyle('#a78bfa')}>
-      <PanelChrome color={color} label="Image Generation" />
+      <PanelChrome color={color} label={t('imageGen')} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '12px', gap: 10 }}>
         {/* Prompt bar */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', borderRadius: 10, background: 'rgba(167,139,250,0.08)', border: `1px solid ${color}30` }}>
           <Sparkles size={12} style={{ color }} />
-          <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.65)' }}>Cyberpunk city at night, neon lights</span>
+          <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.65)' }}>{t('cyberpunkCityNight')}</span>
         </div>
 
         {/* Canvas */}
@@ -193,7 +196,7 @@ const ImageGenDemo = ({ active }) => {
               background: 'rgba(0,0,0,0.6)', border: `1px solid ${color}40`,
             }}>
               <div style={{ width: 5, height: 5, borderRadius: '50%', background: color, animation: 'sfPulse 1s infinite' }} />
-              <span style={{ fontSize: '0.6rem', color, fontWeight: 700 }}>GENERATING</span>
+              <span style={{ fontSize: '0.6rem', color, fontWeight: 700 }}>{t('generating')}</span>
             </div>
           )}
         </div>
@@ -204,6 +207,7 @@ const ImageGenDemo = ({ active }) => {
 
 /* ── 3. Video Generation Panel ── */
 const VideoGenDemo = ({ active }) => {
+  const { t } = useLanguage();
   const [progress, setProgress] = useState(0);
   const [phase, setPhase] = useState('idle'); // idle | rendering | done
   const color = '#f472b6';
@@ -232,12 +236,12 @@ const VideoGenDemo = ({ active }) => {
   const frames = [0,1,2,3,4,5];
   return (
     <div style={panelStyle('#f472b6')}>
-      <PanelChrome color={color} label="Video Generation" />
+      <PanelChrome color={color} label={t('videoGen')} />
       <div style={{ flex: 1, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {/* Prompt */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', borderRadius: 10, background: 'rgba(244,114,182,0.08)', border: `1px solid ${color}30` }}>
           <Video size={12} style={{ color }} />
-          <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.65)' }}>Cinematic AI robot exploring space · 5s · 4K</span>
+          <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.65)' }}>{t('cinematicAiRobot')}</span>
         </div>
 
         {/* Video preview frames */}
@@ -266,7 +270,7 @@ const VideoGenDemo = ({ active }) => {
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
             <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)' }}>
-              {phase === 'done' ? '✅ Render Complete' : phase === 'rendering' ? `Rendering frames…` : 'Awaiting prompt'}
+              {phase === 'done' ? `✅ ${t('renderComplete')}` : phase === 'rendering' ? t('renderingFrames') : t('awaitingPrompt')}
             </span>
             <span style={{ fontSize: '0.68rem', color, fontWeight: 700 }}>{Math.round(progress)}%</span>
           </div>
@@ -282,7 +286,7 @@ const VideoGenDemo = ({ active }) => {
 
         {phase === 'done' && (
           <div style={{ padding: '8px 12px', borderRadius: 9, background: 'rgba(244,114,182,0.06)', border: `1px solid ${color}20`, animation: 'sfBIn 0.3s ease both' }}>
-            <div style={{ fontSize: '0.7rem', color, fontWeight: 700, marginBottom: 2 }}>🎬 Video Ready</div>
+            <div style={{ fontSize: '0.7rem', color, fontWeight: 700, marginBottom: 2 }}>🎬 {t('videoReady')}</div>
             <div style={{ fontSize: '0.68rem', color: 'rgba(203,213,225,0.6)' }}>5s · 4K · 24fps · Orchestral Audio ✓</div>
           </div>
         )}
@@ -293,6 +297,7 @@ const VideoGenDemo = ({ active }) => {
 
 /* ── 4. Web Browse Panel ── */
 const WebBrowseDemo = ({ active }) => {
+  const { t } = useLanguage();
   const [price, setPrice] = useState(67000);
   const [change, setChange] = useState(3.2);
   const [news, setNews] = useState([]);
@@ -321,19 +326,19 @@ const WebBrowseDemo = ({ active }) => {
 
   return (
     <div style={panelStyle('#2dd4bf')}>
-      <PanelChrome color={color} label="Web Browse" />
+      <PanelChrome color={color} label={t('webSearch')} />
       <div style={{ flex: 1, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto' }}>
         {/* Price card */}
         <div style={{ padding: '12px 14px', borderRadius: 12, background: 'rgba(45,212,191,0.07)', border: `1px solid ${color}25` }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>BTC / USD — LIVE</span>
+            <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>{t('btcLive')}</span>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#34d399', animation: 'sfPulse 1s infinite' }} />
           </div>
           <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#f0fdf4', letterSpacing: '-0.02em' }}>
             ${Math.round(price).toLocaleString()}
           </div>
           <div style={{ fontSize: '0.75rem', fontWeight: 700, color: change >= 0 ? '#34d399' : '#f87171', marginTop: 2 }}>
-            {change >= 0 ? '▲' : '▼'} {Math.abs(change).toFixed(2)}% today
+            {change >= 0 ? '▲' : '▼'} {Math.abs(change).toFixed(2)}% {t('todayLabel')}
           </div>
           {/* Mini chart bars */}
           <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', marginTop: 10, height: 30 }}>
@@ -348,7 +353,7 @@ const WebBrowseDemo = ({ active }) => {
         </div>
 
         {/* News */}
-        <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: '0.08em' }}>LATEST NEWS</div>
+        <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: '0.08em' }}>{t('latestNews')}</div>
         {news.map((item, i) => (
           <div key={i} style={{
             padding: '7px 10px', borderRadius: 8,
@@ -366,6 +371,7 @@ const WebBrowseDemo = ({ active }) => {
 
 /* ── 5. Code Builder Panel ── */
 const CodeBuilderDemo = ({ active }) => {
+  const { t } = useLanguage();
   const [typed, setTyped] = useState('');
   const color = '#818cf8';
   const fullCode = `import requests, time
@@ -415,12 +421,12 @@ def google_search(query, n=10):
 
   return (
     <div style={panelStyle('#818cf8')}>
-      <PanelChrome color={color} label="Code Builder" />
+      <PanelChrome color={color} label={t('codeBuilder')} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '10px 12px', gap: 8 }}>
         {/* User query */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', borderRadius: 10, background: 'rgba(129,140,248,0.08)', border: `1px solid ${color}30` }}>
           <Code2 size={12} style={{ color }} />
-          <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.65)' }}>Python Google scraper with rate limiting</span>
+          <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.65)' }}>{t('pythonScraper')}</span>
         </div>
 
         {/* Code editor pane */}
@@ -532,6 +538,7 @@ const features = [
    Main StackedFeatures
    ════════════════════════════════════════════ */
 const StackedFeatures = () => {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const { theme } = useTheme();
   const normalizedTheme = typeof theme === 'string' ? theme.toLowerCase() : 'system';
@@ -604,9 +611,18 @@ const StackedFeatures = () => {
           style={{ display: 'flex', width: `${NUM_SLIDES * 100}vw`, height: '100vh', willChange: 'transform' }}
         >
           {features.map((feat, index) => {
+            const featTranslateKeys = {
+              'Deep Search': { title: 'deepSearch', desc: 'deepSearchDesc' },
+              'Image Generation': { title: 'imageGenTitle', desc: 'imageGenLongDesc' },
+              'Video Generation': { title: 'videoGenTitle', desc: 'videoGenLongDesc' },
+              'Web Search': { title: 'webSearchTitle', desc: 'webSearchLongDesc' },
+              'Code Builder': { title: 'codeBuilderTitle', desc: 'codeBuilderLongDesc' }
+            };
             const Icon = feat.icon;
             const { Demo } = feat;
             const isActive = activeSlide === index;
+            const translatedTitle = t(featTranslateKeys[feat.title]?.title || feat.title);
+            const translatedDesc = t(featTranslateKeys[feat.title]?.desc || feat.description);
 
             return (
               <div
@@ -649,7 +665,7 @@ const StackedFeatures = () => {
                       margin:0,
                       maxWidth: '12ch'
                     }}>
-                      {feat.title}
+                      {translatedTitle}
                     </h2>
                     <p className="sf-description" style={{ 
                       fontSize:'clamp(1rem, 1.1vw, 1.15rem)', 
@@ -659,7 +675,7 @@ const StackedFeatures = () => {
                       margin:0,
                       fontWeight: 450
                     }}>
-                      {feat.description}
+                      {translatedDesc}
                     </p>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', marginTop: '1rem' }}>
                       <button 
@@ -682,7 +698,7 @@ const StackedFeatures = () => {
                         boxShadow: `0 15px 35px ${feat.accentColor}40`,
                         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                       }}>
-                        Try {feat.title} <ArrowRight size={16} />
+                        {t('tryFeature')} {translatedTitle} <ArrowRight size={16} />
                       </button>
                     </div>
                   </div>

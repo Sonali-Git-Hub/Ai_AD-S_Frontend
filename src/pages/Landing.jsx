@@ -120,10 +120,10 @@ const Landing = () => {
                 {/* Secondary CTA Area */}
                 <motion.div variants={itemVariants} className="max-w-4xl w-full">
                     <h2 className="text-4xl md:text-7xl font-black mb-6 text-[#0F172A] dark:text-white tracking-tight leading-[1.05]">
-                        Choose Your <br/> <span className="text-primary italic">Power Level</span>
+                        {t('choosePowerLevel').split(' ').slice(0, 2).join(' ')} <br/> <span className="text-primary italic">{t('choosePowerLevel').split(' ').slice(2).join(' ')}</span>
                     </h2>
                     <p className="text-xl text-[#64748B] dark:text-gray-400 mb-16 max-w-2xl mx-auto opacity-80">
-                        Unlock frontier AI capabilities with precision plans designed for visionary individuals and rapidly scaling teams.
+                        {t('unlockFrontierAI')}
                     </p>
                     
                     <motion.div
@@ -142,13 +142,13 @@ const Landing = () => {
                     >
                         <div className="inline-flex items-center gap-2 mb-8 px-5 py-2 rounded-full bg-primary/10 text-primary text-[0.65rem] font-black uppercase tracking-[0.2em] border border-primary/20">
                             <Sparkles size={14} />
-                            pricing
+                            {t('pricing')}
                         </div>
                         <h3 className="text-4xl font-black text-[#0F172A] dark:text-white mb-6 group-hover:text-primary transition-colors">
-                            Explore Pricing Plans
+                            {t('explorePricingPlans')}
                         </h3>
                         <div className="flex items-center justify-center gap-3 text-primary font-black text-xl">
-                            See All Options <ArrowRight className="group-hover:translate-x-3 transition-all duration-500" />
+                            {t('seeAllOptions')} <ArrowRight className="group-hover:translate-x-3 transition-all duration-500" />
                         </div>
                     </motion.div>
                 </motion.div>
@@ -180,7 +180,7 @@ const Landing = () => {
                                 </div>
                             </div>
                             <p className="text-base text-gray-500 dark:text-gray-400 leading-relaxed font-medium">
-                                We are defining the next generation of human-AI collaboration through immersive, frontier conversational intelligence.
+                                {t('aboutIntroText')}
                             </p>
                             <div className="flex items-center gap-3">
                                 {[
@@ -201,7 +201,7 @@ const Landing = () => {
 
                         {/* Resource Pillar */}
                         <motion.div variants={itemVariants} className="space-y-8">
-                            <h4 className="text-xs font-black text-primary uppercase tracking-[0.25em] pl-1 footer-link-sparkle w-fit cursor-pointer">Knowledge Hub</h4>
+                            <h4 className="text-xs font-black text-primary uppercase tracking-[0.25em] pl-1 footer-link-sparkle w-fit cursor-pointer">{t('knowledgeHub')}</h4>
                             <ul className="space-y-5">
                                 <li><button onClick={() => setIsFaqOpen(true)} className="text-gray-600 dark:text-gray-400 hover:text-primary transition-all font-bold text-sm tracking-wide footer-link-sparkle">{t('helpCenter')}</button></li>
                                 <li><button onClick={() => setIsAboutModalOpen(true)} className="text-gray-600 dark:text-gray-400 hover:text-primary transition-all font-bold text-sm tracking-wide footer-link-sparkle">{t('aboutAisa')}</button></li>
@@ -236,11 +236,11 @@ const Landing = () => {
 
                         {/* Governance Pillar */}
                         <motion.div variants={itemVariants} className="space-y-8">
-                            <h4 className="text-xs font-black text-primary uppercase tracking-[0.25em] pl-1 footer-link-sparkle w-fit cursor-pointer">Governance</h4>
+                            <h4 className="text-xs font-black text-primary uppercase tracking-[0.25em] pl-1 footer-link-sparkle w-fit cursor-pointer">{t('governance')}</h4>
                             <ul className="space-y-5">
                                 <li><button onClick={() => setIsPrivacyModalOpen(true)} className="text-gray-600 dark:text-gray-400 hover:text-primary transition-all font-bold text-sm tracking-wide footer-link-sparkle">{t('privacyPolicy')}</button></li>
                                 <li><button onClick={() => setIsTermsModalOpen(true)} className="text-gray-600 dark:text-gray-400 hover:text-primary transition-all font-bold text-sm tracking-wide footer-link-sparkle">{t('termsOfService')}</button></li>
-                                <li><button onClick={() => setIsCookieModalOpen(true)} className="text-gray-600 dark:text-gray-400 hover:text-primary transition-all font-bold text-sm tracking-wide footer-link-sparkle">Cookie Policy</button></li>
+                                <li><button onClick={() => setIsCookieModalOpen(true)} className="text-gray-600 dark:text-gray-400 hover:text-primary transition-all font-bold text-sm tracking-wide footer-link-sparkle">{t('cookiePolicy')}</button></li>
                             </ul>
                         </motion.div>
                     </motion.div>
@@ -267,7 +267,7 @@ const Landing = () => {
                             <div className="px-10 py-8 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-gray-50/50 dark:bg-white/5">
                                 <div>
                                     <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{t('faq')}</h2>
-                                    <p className="text-xs font-bold text-primary tracking-widest uppercase mt-1">Resource Center</p>
+                                    <p className="text-xs font-bold text-primary tracking-widest uppercase mt-1">{t('resourceCenter')}</p>
                                 </div>
                                 <button onClick={() => setIsFaqOpen(false)} className="p-3 hover:bg-black/5 dark:hover:bg-white/10 rounded-2xl transition-all"><X size={20} className="dark:text-white" /></button>
                             </div>

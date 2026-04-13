@@ -9,6 +9,16 @@ import toast from 'react-hot-toast';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+const CATEGORIES = [
+    { id: 'Meeting', icon: '📅', label: 'Meeting' },
+    { id: 'Travel', icon: '✈️', label: 'Travel' },
+    { id: 'Shopping', icon: '🛒', label: 'Shopping' },
+    { id: 'Work', icon: '💼', label: 'Work' },
+    { id: 'Personal', icon: '👤', label: 'Personal' },
+    { id: 'Health', icon: '❤️', label: 'Health' },
+    { id: 'Others', icon: '📝', label: 'Others' }
+];
+
 const MultiScheduleReminder = () => {
     const { personalizations, updatePersonalization } = usePersonalization();
     const user = getUserData();
@@ -30,7 +40,8 @@ const MultiScheduleReminder = () => {
         repeat: 'none',
         customDays: [],
         notificationType: 'in-app',
-        voice: 'none'
+        voice: 'none',
+        category: 'Others'
     });
 
     useEffect(() => {
@@ -103,7 +114,8 @@ const MultiScheduleReminder = () => {
                 repeat: reminder.repeat || 'none',
                 customDays: reminder.customDays || [],
                 notificationType: reminder.notificationType || 'in-app',
-                voice: reminder.voice || 'none'
+                voice: reminder.voice || 'none',
+                category: reminder.category || 'Others'
             });
         } else {
             setEditingId(null);
@@ -115,7 +127,8 @@ const MultiScheduleReminder = () => {
                 repeat: 'none',
                 customDays: [],
                 notificationType: 'in-app',
-                voice: 'none'
+                voice: 'none',
+                category: 'Others'
             });
         }
         setIsModalOpen(true);
@@ -137,6 +150,7 @@ const MultiScheduleReminder = () => {
                 customDays: formData.repeat === 'custom' ? formData.customDays : [],
                 notificationType: formData.notificationType,
                 voice: formData.voice,
+                category: formData.category,
                 isActive: true
             };
 
@@ -307,9 +321,42 @@ const MultiScheduleReminder = () => {
                             </div>
 
                             <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                                <div>
-                                    <label className="text-xs font-bold text-gray-500 uppercase">Title</label>
-                                    <input type="text" value={formData.title} onChange={e => setFormData(prev => ({...prev, title: e.target.value}))} className="w-full mt-1 bg-gray-50 dark:bg-black/20 border border-border rounded-xl p-3 text-sm outline-none focus:border-primary transition-all" placeholder="E.g., Standup Meeting" />
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Category</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {CATEGORIES.map(cat => (
+                                                <button
+                                                    key={cat.id}
+                                                    type="button"
+                                                    onClick={() => setFormData(prev => ({ ...prev, category: cat.id }))}
+                                                    className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all duration-200 border
+                                                        ${formData.category === cat.id 
+                                                            ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20 scale-105' 
+                                                            : 'bg-white dark:bg-black/20 border-gray-200 dark:border-white/5 text-gray-500 hover:border-primary/50 hover:bg-primary/5'}`}
+                                                >
+                                                    <span>{cat.icon}</span>
+                                                    {cat.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Title</label>
+                                        <div className="relative group">
+                                            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xl pointer-events-none group-focus-within:scale-110 transition-transform">
+                                                {CATEGORIES.find(c => c.id === formData.category)?.icon || '✨'}
+                                            </div>
+                                            <input 
+                                                type="text" 
+                                                value={formData.title} 
+                                                onChange={e => setFormData(prev => ({...prev, title: e.target.value}))} 
+                                                className="w-full pl-12 bg-gray-50 dark:bg-black/20 border border-border rounded-xl p-3 text-sm outline-none focus:border-primary transition-all font-bold placeholder:font-normal" 
+                                                placeholder="E.g., Standup Meeting" 
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                                 
                                 <div>

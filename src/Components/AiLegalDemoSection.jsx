@@ -7,6 +7,7 @@ import {
   FileText, Zap, Sparkles, ChevronRight, Play, ArrowRight 
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -78,6 +79,7 @@ const LEGAL_STEPS = [
 
 /* ── Result cards ── */
 const ActionCard = ({ type, isDarkMode }) => {
+  const { t } = useLanguage();
   if (type === 'upload') return (
     <div style={{
       marginTop: 10, width: '100%', borderRadius: 12, padding: 16,
@@ -92,7 +94,7 @@ const ActionCard = ({ type, isDarkMode }) => {
             <div style={{ width: '100%', height: '100%', borderRadius: 999, background: 'linear-gradient(90deg, #6366f1, #a855f7)', animation: 'vprog 2s forwards' }} />
          </div>
       </div>
-      <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em' }}>CONTRACT_004.PDF — SECURING...</span>
+      <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em' }}>CONTRACT_004.PDF — {t('ailegalNodeActivated').includes('processing') ? 'SECURING...' : 'सुरक्षित किया जा रहा है...'}</span>
     </div>
   );
 
@@ -110,7 +112,7 @@ const ActionCard = ({ type, isDarkMode }) => {
        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent, rgba(99,102,241,0.1), transparent)', animation: 'scanning 2s infinite linear' }} />
        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
           <Zap size={20} color="#6366f1" />
-          <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#6366f1', letterSpacing: '0.2em' }}>NEURAL ANALYSIS</span>
+          <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#6366f1', letterSpacing: '0.2em' }}>{t('neuralAnalysis')}</span>
        </div>
     </div>
   );
@@ -120,16 +122,16 @@ const ActionCard = ({ type, isDarkMode }) => {
        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 10, background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.2)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
              <AlertCircle size={14} color="#f43f5e" />
-             <span style={{ fontSize: '0.72rem', color: '#f43f5e', fontWeight: 600 }}>Section 4.2 Liability Cap</span>
+             <span style={{ fontSize: '0.72rem', color: '#f43f5e', fontWeight: 600 }}>{t('sectionLiabilityCap')}</span>
           </div>
-          <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#f43f5e', opacity: 0.6 }}>HIGH RISK</span>
+          <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#f43f5e', opacity: 0.6 }}>{t('highRisk')}</span>
        </div>
        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 10, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
              <ShieldCheck size={14} color="#10b981" />
-             <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 600 }}>Termination Rights Mapped</span>
+             <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 600 }}>{t('terminationRightsMapped')}</span>
           </div>
-          <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#10b981', opacity: 0.6 }}>SAFE</span>
+          <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#10b981', opacity: 0.6 }}>{t('safe')}</span>
        </div>
     </div>
   );
@@ -144,8 +146,8 @@ const ActionCard = ({ type, isDarkMode }) => {
           <ShieldCheck size={24} color="#10b981" />
        </div>
        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '0.8rem', fontWeight: 900, color: '#10b981' }}>COMPLIANCE: 84%</div>
-          <div style={{ fontSize: '0.65rem', color: 'rgba(16,185,129,0.8)', marginTop: 2 }}>Ready for negotiation optimization.</div>
+          <div style={{ fontSize: '0.8rem', fontWeight: 900, color: '#10b981' }}>{t('complianceScore')}</div>
+          <div style={{ fontSize: '0.65rem', color: 'rgba(16,185,129,0.8)', marginTop: 2 }}>{t('readyForNegotiation')}</div>
        </div>
     </div>
   );
@@ -198,8 +200,75 @@ const Bubble = ({ msg, color, isDarkMode }) => {
 };
 
 const AiLegalDemoSection = () => {
+    const { t } = useLanguage();
     const { theme } = useTheme();
     const isDarkMode = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+    /* ─── AILEGAL Showcase Steps ─── */
+    const LEGAL_STEPS = [
+      {
+        id: 'intro',
+        label: t('howAiLegalWorks'),
+        icon: Sparkles,
+        color: '#6366f1',
+        glow: 'rgba(99,102,241,0.5)',
+        bgAccent: 'rgba(30,27,75,0.4)',
+        type: 'title',
+        text: t('legalComplexityClarity'),
+        steps: [],
+      },
+      {
+        id: 'upload',
+        label: t('upload'),
+        icon: FileText,
+        color: '#818cf8',
+        glow: 'rgba(129,140,248,0.4)',
+        bgAccent: 'rgba(30,58,138,0.3)',
+        steps: [
+          { from: 'user', text: t('analyzeServiceAgreement') },
+          { from: 'ai',   text: t('ailegalNodeActivated'), typing: true, ms: 1000 },
+          { from: 'ai',   text: t('uploadSuccessful'), card: 'upload', ms: 1200 },
+        ],
+      },
+      {
+        id: 'analysis',
+        label: t('analysis'),
+        icon: Scale,
+        color: '#6366f1',
+        glow: 'rgba(99,102,241,0.45)',
+        bgAccent: 'rgba(76,29,149,0.3)',
+        steps: [
+          { from: 'ai',   text: t('analyzingClauses'), typing: true, ms: 1100 },
+          { from: 'ai',   text: t('crossReferencingCaseLaws'), typing: true, ms: 1000 },
+          { from: 'ai',   text: t('detectingIndemnityMismatches'), card: 'analysis', ms: 1300 },
+        ],
+      },
+      {
+        id: 'results',
+        label: t('riskProfiling'),
+        icon: AlertCircle,
+        color: '#f43f5e',
+        glow: 'rgba(244,63,94,0.45)',
+        bgAccent: 'rgba(80,10,50,0.35)',
+        steps: [
+          { from: 'ai',   text: t('criticalClauseMismatch'), typing: true, ms: 900 },
+          { from: 'ai',   text: t('mutualLiabilityConfirmed'), typing: true, ms: 800 },
+          { from: 'ai',   text: t('strategicRiskReportGenerated'), card: 'results', ms: 1200 },
+        ],
+      },
+      {
+        id: 'insight',
+        label: t('legalInsight'),
+        icon: ShieldCheck,
+        color: '#10b981',
+        glow: 'rgba(16,185,129,0.45)',
+        bgAccent: 'rgba(6,50,40,0.35)',
+        steps: [
+          { from: 'ai',   text: t('recommendationLiabilityCap'), typing: true, ms: 1200 },
+          { from: 'ai',   text: t('documentScoreInsights'), card: 'insight', ms: 300 },
+        ],
+      },
+    ];
   
     const sectionRef = useRef(null);
     const cardRef    = useRef(null);
@@ -379,7 +448,7 @@ const AiLegalDemoSection = () => {
           marginBottom: '1.25rem', zIndex: 10, position: 'relative',
         }}>
           <Scale size={11} style={{ color: '#818cf8' }} />
-          <span style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.12em', color: '#818cf8' }}>LEGAL AI NODE</span>
+          <span style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.12em', color: '#818cf8' }}>{t('legalAiNode')}</span>
         </div>
   
         {/* Heading */}
@@ -388,18 +457,18 @@ const AiLegalDemoSection = () => {
           textAlign: 'center', marginBottom: '0.6rem',
           letterSpacing: '-0.03em', lineHeight: 1.1, zIndex: 10, position: 'relative',
         }}>
-          See{' '}
+          {t('seeAisaMajorFeatures').split(' ')[0]}{' '}
           <span style={{
             background: 'linear-gradient(135deg,#6366f1,#a855f7,#ec4899)',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-          }}>AISA</span>{' '}
-          Major Features
+          }}>AISA™</span>{' '}
+          {t('seeAisaMajorFeatures').split(' ').slice(1).join(' ')}
         </h2>
         <p style={{
           color: isDarkMode ? 'rgba(148,163,184,0.65)' : '#475569', fontSize: '1rem', textAlign: 'center',
           maxWidth: 500, lineHeight: 1.6, marginBottom: '3.5rem', position: 'relative', zIndex: 10,
         }}>
-          AI-powered legal document analysis and risk profiling in seconds.
+          {t('legalDocAnalysisSeconds')}
         </p>
   
         {/* Pipeline Steps Indicator */}
@@ -564,7 +633,7 @@ const AiLegalDemoSection = () => {
                       color: 'rgba(15,23,42,0.3)', paddingBottom: 10,
                     }}>
                       <FeatIcon size={26} style={{ color: feat.color, opacity: 0.35 }} />
-                      <span style={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.05em' }}>BOOTING {feat.label.toUpperCase()}...</span>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.05em' }}>{t('booting')} {feat.label.toUpperCase()}...</span>
                     </div>
                   )}
                   {messages.map(msg => (

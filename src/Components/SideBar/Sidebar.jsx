@@ -237,13 +237,13 @@ const Sidebar = ({ isOpen, onClose }) => {
     try {
       const success = await chatStorageService.updateSessionTitle(sessionId, renamedTitle);
       if (success) {
-        toast.success("Chat renamed");
+        toast.success(t('chatRenamed'));
       } else {
         throw new Error("Failed to sync rename to server");
       }
     } catch (err) {
       console.error("Rename failed:", err);
-      toast.error("Could not rename chat on server");
+      toast.error(t('couldNotRenameChat'));
       setSessions(oldSessions);
     } finally {
       setEditingSessionId(null);
@@ -259,11 +259,11 @@ const Sidebar = ({ isOpen, onClose }) => {
       setCurrentProjectId(project._id);
       setNewProjectName('');
       setIsCreatingProject(false);
-      toast.success(`Project "${project.name}" created!`);
+      toast.success(t('projectCreated'));
       navigate('/dashboard/chat/new');
     } catch (err) {
       console.error("Failed to create project:", err);
-      toast.error("Failed to create project");
+      toast.error(t('failedToCreateProject'));
     }
   };
 
@@ -277,10 +277,10 @@ const Sidebar = ({ isOpen, onClose }) => {
     try {
       const updated = await apiService.renameProject(projectId, renameProjectName.trim());
       setProjects(prev => prev.map(p => p._id === projectId ? { ...p, name: updated.name } : p));
-      toast.success("Project renamed successfully");
+      toast.success(t('projectRenamedSuccessfully'));
     } catch (error) {
       console.error("Failed to rename project:", error);
-      toast.error("Failed to rename project");
+      toast.error(t('failedToRenameProject'));
     } finally {
       setEditingProjectId(null);
     }
@@ -301,10 +301,10 @@ const Sidebar = ({ isOpen, onClose }) => {
       if (currentProjectId === projectToDelete) {
         handleSwitchProject(null);
       }
-      toast.success("Project deleted successfully");
+      toast.success(t('projectDeletedSuccessfully'));
     } catch (error) {
       console.error("Failed to delete project:", error);
-      toast.error("Failed to delete project");
+      toast.error(t('failedToDeleteProject'));
     } finally {
       setIsDeleteModalOpen(false);
       setProjectToDelete(null);
@@ -425,14 +425,14 @@ const Sidebar = ({ isOpen, onClose }) => {
                       <FolderPlus className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-lg text-maintext">New Project</h3>
-                      <p className="text-xs text-subtext">Organize your chats by project</p>
+                      <h3 className="font-bold text-lg text-maintext">{t('newProject')}</h3>
+                      <p className="text-xs text-subtext">{t('organizeChatsByProject')}</p>
                     </div>
                   </div>
                   <input
                     type="text"
                     autoFocus
-                    placeholder="Project name..."
+                    placeholder={t('projectName')}
                     value={newProjectName}
                     onChange={(e) => setNewProjectName(e.target.value)}
                     onKeyDown={(e) => {
@@ -446,14 +446,14 @@ const Sidebar = ({ isOpen, onClose }) => {
                       onClick={() => setIsCreatingProject(false)}
                       className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-subtext hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                     >
-                      Cancel
+                      {t('cancel')}
                     </button>
                     <button
                       onClick={handleCreateProject}
                       disabled={!newProjectName.trim()}
                       className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-primary hover:opacity-90 transition-all shadow-lg shadow-primary/20 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      Create
+                      {t('create')}
                     </button>
                   </div>
                 </motion.div>
@@ -468,7 +468,7 @@ const Sidebar = ({ isOpen, onClose }) => {
               <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${theme === 'dark' ? 'text-subtext/60' : 'text-slate-500'} group-focus-within/search:text-primary group-focus-within/search:scale-110 transition-all duration-300`} />
               <input
                 type="text"
-                placeholder="Find a session..."
+                placeholder={t('findASession')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className={`w-full backdrop-blur-3xl border focus:ring-[6px] rounded-[20px] py-3 pl-11 pr-4 text-sm outline-none transition-all font-semibold shadow-sm 
@@ -510,7 +510,7 @@ const Sidebar = ({ isOpen, onClose }) => {
               >
                 <div className="flex items-center gap-2">
                   <h3 className={`text-[11px] font-bold uppercase tracking-[0.1em] group-hover/header:text-primary transition-colors 
-                    ${theme === 'dark' ? 'text-subtext/60' : 'text-slate-600'}`}>Projects</h3>
+                    ${theme === 'dark' ? 'text-subtext/60' : 'text-slate-600'}`}>{t('projects')}</h3>
                   <div className={`h-[1px] w-8 transition-all group-hover/header:w-12 group-hover/header:bg-primary/30 
                     ${theme === 'dark' ? 'bg-subtext/20' : 'bg-slate-300'}`}></div>
                 </div>
@@ -532,7 +532,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                       className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-all group/newproj ${theme === 'dark' ? 'text-subtext/70 hover:bg-white/5 hover:text-maintext' : 'text-slate-600 hover:bg-black/5 hover:text-slate-900'}`}
                     >
                       <FolderPlus className="w-4 h-4 shrink-0 group-hover/newproj:scale-110 group-hover/newproj:text-primary transition-all" />
-                      <span className="truncate font-medium text-[14px]">New project</span>
+                      <span className="truncate font-medium text-[14px]">{t('newProject')}</span>
                     </button>
 
                     {projects.length>0 && projects.map((p, idx) => (
@@ -589,7 +589,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             {(token || (Array.isArray(sessions) && sessions.length > 0)) ? (
               <>
                 <div className="px-1 py-4 flex items-center justify-between">
-                  <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] ${theme === 'dark' ? 'text-subtext/40' : 'text-slate-500'}`}>Activity Log</h3>
+                  <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] ${theme === 'dark' ? 'text-subtext/40' : 'text-slate-500'}`}>{t('activityLog')}</h3>
                   <div className={`h-[1px] flex-1 ml-4 ${theme === 'dark' ? 'bg-gradient-to-r from-subtext/10 to-transparent' : 'bg-gradient-to-r from-slate-300 to-transparent'}`}></div>
                 </div>
 
@@ -677,12 +677,12 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-3">
                   <User className="w-6 h-6 text-primary" />
                 </div>
-                <p className="text-xs text-subtext mb-2">Login to save your chat history</p>
+                <p className="text-xs text-subtext mb-2">{t('loginToSaveHistory')}</p>
                 <button
                   onClick={() => navigate('/login')}
                   className="text-xs font-bold text-primary hover:underline"
                 >
-                  Log In Now
+                  {t('logInNow')}
                 </button>
               </div>
             )}
@@ -756,7 +756,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-white bg-primary hover:opacity-90 transition-all text-[10px] font-bold border border-white/10 shadow-lg shadow-primary/20"
               >
                 <Shield className="w-3 h-3" />
-                <span>Admin</span>
+                <span>{t('admin')}</span>
               </button>
             )}
             <button
@@ -778,9 +778,9 @@ const Sidebar = ({ isOpen, onClose }) => {
         isOpen={isDeleteModalOpen} 
         onClose={() => setIsDeleteModalOpen(false)} 
         onConfirm={confirmDeleteProject}
-        title="Delete Project?"
-        description="Are you sure you want to delete this project? All associated chats will be kept but unlinked from the project."
-        confirmText="Delete Project"
+        title={t('deleteProjectTitle')}
+        description={t('deleteProjectDesc')}
+        confirmText={t('deleteProjectLabel')}
       />
     </>
   );

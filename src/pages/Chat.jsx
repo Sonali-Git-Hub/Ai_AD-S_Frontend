@@ -693,10 +693,11 @@ const Chat = () => {
   const [videoAspectRatio, setVideoAspectRatio] = useState('');
   const [videoModelId, setVideoModelId] = useState('veo-3.1-fast-generate-001');
   const [videoResolution, setVideoResolution] = useState('1080p');
-  const [audioLangCode, setAudioLangCode] = useState('en-US');
-  const [audioVoiceName, setAudioVoiceName] = useState('en-US-Chirp3-HD-Autonoe');
-  const [audioPitch, setAudioPitch] = useState(0);
-  const [audioSpeed, setAudioSpeed] = useState(1.0);
+  const v = personalizations?.voice || { languageCode: 'en-US', voiceName: 'en-US-Chirp3-HD-Autonoe', pitch: 0, speed: 1.0 };
+  const [audioLangCode, setAudioLangCode] = useState(v.languageCode);
+  const [audioVoiceName, setAudioVoiceName] = useState(v.voiceName);
+  const [audioPitch, setAudioPitch] = useState(v.pitch);
+  const [audioSpeed, setAudioSpeed] = useState(v.speed);
   const [isVoiceSettingsOpen, setIsVoiceSettingsOpen] = useState(false);
   const [isPlayingSample, setIsPlayingSample] = useState(false);
   const sampleAudioRef = useRef(null);
@@ -1683,7 +1684,7 @@ const Chat = () => {
           }
 
           setTimeout(() => {
-            speakResponse(prompt, 'en-US', aiMsgId, newUserMsg.attachments);
+            speakResponse(prompt, audioLangCode, aiMsgId, newUserMsg.attachments);
             setIsLoading(false);
           }, 500);
 
@@ -2739,16 +2740,17 @@ const Chat = () => {
               'vi-VN': 'Vietnamese', 'id-ID': 'Indonesian', 'ms-MY': 'Malay',
               'fil-PH': 'Filipino', 'yue-HK': 'Cantonese',
             };
-            toast.loading(`🌐 Speaking in ${langLabels[targetLang] || targetLang}...`, { id: 'voice-loading' });
+            // ── Integrated Voice Engine ──────────────────────────────────────────
+            // Use the user's selected persona (e.g., Autonoe, Charon) but adapt to detected language
+            const selectedVoicePersona = audioVoiceName.split('-Chirp3-HD-')[1] || 'Autonoe';
+            const finalVoice = `${targetLang}-Chirp3-HD-${selectedVoicePersona}`;
 
-            // Use Chirp 3 HD Autonoe — soft, gentle voice with natural pauses
-            const chirpVoice = `${targetLang}-Chirp3-HD-Autonoe`;
             const response = await axios.post(apis.synthesizeFile, {
               introText: cleanText,
               languageCode: targetLang,
-              voiceName: chirpVoice,
-              pitch: 0,
-              speakingRate: 1.0
+              voiceName: finalVoice,
+              pitch: audioPitch,
+              speakingRate: audioSpeed
             }, {
               responseType: 'arraybuffer',
               timeout: 60000,
@@ -3380,7 +3382,7 @@ const Chat = () => {
           // 3. Trigger voice reading directly (no AI response)
           setTimeout(() => {
             console.log('[Voice Mode] Reading content with attachments:', newUserMsg.attachments);
-            speakResponse(contentToSend, 'en-US', userMsgId, newUserMsg.attachments);
+            speakResponse(contentToSend, audioLangCode, userMsgId, newUserMsg.attachments);
           }, 300);
 
           return; // STOP - Don't call AI API
@@ -4582,7 +4584,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
       header.style.justifyContent = 'space-between';
       header.style.alignItems = 'center';
       header.innerHTML = `
-        <div style="font-weight: 900; font-size: 24px; color: #000000;">AISA <span style="font-weight: 400; font-size: 14px; color: #888;">AI LEGAL ASSISTANT</span></div>
+        <div style="font-weight: 900; font-size: 24px; color: #000000;">AISA</div>
         <div style="font-size: 10px; color: #aaa; text-align: right;">DOC-ID: ${msg.id}<br/>DATE: ${new Date().toLocaleDateString()}</div>
       `;
 
@@ -4613,7 +4615,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
       footer.style.borderTop = '1px solid #eee';
       footer.style.fontSize = '10px';
       footer.style.color = '#999';
-      footer.innerHTML = `AISA AI Legal Report - Generated on ${new Date().toLocaleString()}. Always consult with a licensed legal professional.`;
+      footer.innerHTML = `AISA Report - Generated on ${new Date().toLocaleString()}. Always consult with a licensed professional.`;
       tempWrapper.appendChild(footer);
 
       document.body.appendChild(tempWrapper);
@@ -4672,7 +4674,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         pageIdx++;
       }
 
-      pdf.save(`AISA_Legal_Report_${msg.id.substring(0,6)}.pdf`);
+      pdf.save(`AISA.pdf`);
       toast.success("PDF Downloaded! 📄", { id: toastId });
     } catch (err) {
       console.error("PDF Generate error:", err);
@@ -7314,7 +7316,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                              <div className="w-5 h-5 rounded-lg bg-amber-500 dark:bg-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/40 text-white">
                               <Wand2 size={14} strokeWidth={3} />
                             </div>
-                            <span className="uppercase tracking-widest text-[9px] font-black hidden xs:inline">Image Edit</span>
+                            <span className="uppercase tracking-widest text-[9px] font-black hidden xs:inline">{t('imageEdit')}</span>
                           </div>
 
                           <div className="w-[1px] h-3 bg-amber-500/40 mx-0.5 relative z-10" />
@@ -7349,7 +7351,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                              <div className="w-5 h-5 rounded-lg bg-blue-500/20 flex items-center justify-center">
                               <FileText size={14} strokeWidth={2.5} />
                             </div>
-                            <span className="uppercase tracking-wide text-[10px] font-black hidden sm:inline">Analyze Document</span>
+                            <span className="uppercase tracking-wide text-[10px] font-black hidden sm:inline">{t('analyzeDocument')}</span>
                           </div>
                           <button 
                             type="button" 
@@ -7385,7 +7387,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       }
                     }
                   }}
-                  placeholder={isLimitReached ? "Chat limit reached. Sign in to continue." : (isVideoGeneration ? "Describe the video you want to generate..." : isAudioConvertMode ? "Enter text to convert..." : isDocumentConvert ? "Upload file & ask to convert..." : typedPlaceholder)}
+                  placeholder={isLimitReached ? t('limitReached') || "Chat limit reached. Sign in to continue." : (isVideoGeneration ? t('describeVideo') || "Describe the video you want to generate..." : isAudioConvertMode ? t('enterTextToConvert') || "Enter text to convert..." : isDocumentConvert ? t('uploadFileToConvert') || "Upload file & ask to convert..." : typedPlaceholder)}
                   rows={1}
                   className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none px-2 py-2 text-slate-800 dark:text-zinc-100 text-left placeholder-slate-400 dark:placeholder-zinc-500 resize-none overflow-y-auto custom-scrollbar font-medium leading-relaxed text-[16px] ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
                   style={{ minHeight: '32px', height: 'auto', maxHeight: '180px', lineHeight: '1.5' }}
@@ -7397,7 +7399,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 {isListening && (
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 rounded-full border border-red-500/20 mr-2">
                     <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
-                    <span className="text-[10px] font-bold text-red-600 uppercase">REC</span>
+                    <span className="text-[10px] font-bold text-red-600 uppercase">{t('rec')}</span>
                   </div>
                 )}
 
@@ -7421,8 +7423,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             setTimeout(() => setIsMicTapped(false), 2000);
                             handleVoiceInput();
                           }}
-                          className={`w-[40px] h-[40px] rounded-full flex items-center justify-center transition-colors shrink-0 relative z-20 ${isListening ? 'bg-red-500 text-white' : 'text-subtext hover:text-primary hover:bg-secondary shadow-sm hover:shadow-md'}`}
-                          title="Voice Input"
+                           title={t('voiceInput')}
                         >
                           <Mic className={`w-[22px] h-[22px] shrink-0 transition-colors ${isMicHovered && !isListening ? 'text-primary' : ''}`} />
                         </motion.button>
@@ -7457,6 +7458,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       onMouseLeave={() => setIsSendHovered(false)}
                       whileHover={{ scale: 1.15, rotate: 2 }}
                       whileTap={{ scale: 0.88 }}
+                      title={t('send')}
                       onClick={() => {
                         setIsSendTapped(true);
                         setTimeout(() => setIsSendTapped(false), 2000);
@@ -7546,7 +7548,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       as="h3"
                       className="text-lg font-medium leading-6 text-maintext flex justify-between items-center"
                     >
-                      Share feedback
+                      {t('shareFeedback')}
                       <button onClick={() => setFeedbackOpen(false)} className="text-subtext hover:text-maintext">
                         <X className="w-5 h-5" />
                       </button>
@@ -7577,7 +7579,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     </div>
 
                     <div className="mt-4 text-[10px] text-subtext leading-tight">
-                      Your conversation will be included with your feedback to help improve the AI.
+                      {t('conversationIncludedFeedback')}
                     </div>
 
                     <div className="mt-6 flex justify-end">
@@ -7589,7 +7591,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         onClick={submitFeedback}
                       >
                         {isSubmittingFeedback && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                        {isSubmittingFeedback ? 'Submitting...' : 'Submit'}
+                        {isSubmittingFeedback ? t('submitting') : t('submit')}
                       </button>
                     </div>
                   </Dialog.Panel>
@@ -7681,8 +7683,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-white font-bold text-sm">WhatsApp pe Share Karo</h3>
-                  <p className="text-white/70 text-xs">PDF link bhejein — bina app chhode</p>
+                  <h3 className="text-white font-bold text-sm">{t('shareOnWhatsApp')}</h3>
+                  <p className="text-white/70 text-xs">{t('pdfLinkSendNoApp')}</p>
                 </div>
                 <button onClick={() => setWaShareModal(false)} className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -7693,7 +7695,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
               <div className="p-5 space-y-4">
                 {/* Phone Input */}
                 <div>
-                  <label className="text-xs font-semibold text-subtext mb-1.5 block">📱 Phone Number (Country Code ke saath)</label>
+                  <label className="text-xs font-semibold text-subtext mb-1.5 block">📱 {t('phoneNumberWithCode')}</label>
                   <div className="flex gap-2">
                     <div className="flex items-center bg-surface-hover rounded-xl px-3 border border-border/50 text-sm text-maintext font-mono">+</div>
                     <input
@@ -7705,12 +7707,12 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       autoFocus
                     />
                   </div>
-                  <p className="text-[10px] text-subtext mt-1">Example: 91 9876543210 (India), 1 2025551234 (USA)</p>
+                  <p className="text-[10px] text-subtext mt-1">{t('phoneNumberExample')}</p>
                 </div>
 
                 {/* Message Preview */}
                 <div>
-                  <label className="text-xs font-semibold text-subtext mb-1.5 block">💬 Message Preview</label>
+                  <label className="text-xs font-semibold text-subtext mb-1.5 block">💬 {t('messagePreview')}</label>
                   <textarea
                     value={waMsgContent}
                     onChange={e => setWaMsgContent(e.target.value)}
@@ -7745,7 +7747,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
                   </svg>
-                  WhatsApp pe Bhejo
+                  {t('sendOnWhatsApp')}
                 </button>
               </div>
             </div>
@@ -7772,8 +7774,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           <Sliders className="w-4 h-4 text-white" />
                         </div>
                         <div>
-                          <Dialog.Title as="h3" className="text-sm font-bold text-maintext leading-none">Voice Settings</Dialog.Title>
-                          <p className="text-[10px] text-indigo-500 dark:text-indigo-400 font-semibold mt-0.5">Chirp 3 HD · 30 voices · 35+ languages</p>
+                          <Dialog.Title as="h3" className="text-sm font-bold text-maintext leading-none">{t('voiceSettings')}</Dialog.Title>
+                          <p className="text-[10px] text-indigo-500 dark:text-indigo-400 font-semibold mt-0.5">{t('chirp3HD')}</p>
                         </div>
                       </div>
                       <button onClick={() => setIsVoiceSettingsOpen(false)} className="w-7 h-7 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center text-subtext hover:text-maintext transition-all border border-black/5 dark:border-white/10">
@@ -7860,8 +7862,17 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       const selLang = allLangItems.find(l => l.value === audioLangCode) || allLangItems[0];
                       return (
                         <div>
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-subtext mb-2">Language</p>
-                          <Listbox value={audioLangCode} onChange={(val) => { setAudioLangCode(val); setAudioVoiceName(`${val}-Chirp3-HD-Autonoe`); }}>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-subtext mb-2">{t('language')}</p>
+                          <Listbox value={audioLangCode} onChange={(val) => { 
+                            setAudioLangCode(val); 
+                            setAudioVoiceName(`${val}-Chirp3-HD-Autonoe`);
+                            // Sync with UI Language context
+                            const item = allLangItems.find(l => l.value === val);
+                            if (item) {
+                              const baseLang = item.label.split(' (')[0].split(' —')[0];
+                              setLanguage(baseLang); 
+                            }
+                          }}>
                             <div className="relative">
                               <Listbox.Button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 hover:border-indigo-500/40 transition-all group text-left">
                                 <span className="text-xl leading-none">{selLang.flag}</span>
@@ -7945,7 +7956,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       const isFemale = VOICES[0].items.some(v => v.name === voiceKey);
                       return (
                         <div>
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-subtext mb-2">Voice</p>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-subtext mb-2">{t('voice')}</p>
                           <Listbox value={audioVoiceName} onChange={setAudioVoiceName}>
                             <div className="relative">
                               <Listbox.Button className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 hover:border-indigo-500/40 transition-all group text-left">
@@ -8001,7 +8012,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     {/* ── Pitch Slider ── */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-subtext">Pitch</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-subtext">{t('pitch')}</p>
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs font-mono font-bold text-indigo-500 dark:text-indigo-300">{audioPitch > 0 ? '+' : ''}{audioPitch.toFixed(1)}</span>
                           {audioPitch !== 0 && (
@@ -8024,7 +8035,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     {/* ── Speed Slider ── */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-subtext">Speed</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-subtext">{t('speed')}</p>
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs font-mono font-bold text-indigo-500 dark:text-indigo-300">{audioSpeed.toFixed(2)}×</span>
                           {audioSpeed !== 1.0 && (
@@ -8078,13 +8089,22 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           toast.dismiss(t); toast.success('Playing sample ▶');
                         } catch (e) { toast.dismiss(t); toast.error('Sample failed — check voice/language combo.'); setIsPlayingSample(false); }
                       }} className={`flex-1 flex items-center justify-center gap-2 h-11 rounded-2xl border border-black/5 dark:border-white/10 text-sm font-bold transition-all ${isPlayingSample ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-500 dark:text-indigo-300 cursor-not-allowed opacity-70' : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-subtext hover:text-maintext'}`}>
-                        <PlayCircle className={`w-4 h-4 ${isPlayingSample ? 'animate-pulse' : ''} text-indigo-500 dark:text-indigo-400`} /> {isPlayingSample ? 'Playing...' : 'Play Sample'}
+                        <PlayCircle className={`w-4 h-4 ${isPlayingSample ? 'animate-pulse' : ''} text-indigo-500 dark:text-indigo-400`} /> {isPlayingSample ? t('playing') : t('playSample')}
                       </button>
-                      <button type="button" onClick={() => setIsVoiceSettingsOpen(false)}
+                      <button type="button" onClick={() => {
+                        updatePersonalization('voice', {
+                          languageCode: audioLangCode,
+                          voiceName: audioVoiceName,
+                          pitch: audioPitch,
+                          speed: audioSpeed
+                        });
+                        setIsVoiceSettingsOpen(false);
+                        toast.success(t('settingsPersisted') || 'Voice Settings Applied ✨', { icon: '🎙️' });
+                      }}
                         className="flex-[2] h-11 rounded-2xl text-sm font-bold text-white transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40"
                         style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
                       >
-                        Apply Settings
+                        {t('applySettings')}
                       </button>
                     </div>
                   </div>

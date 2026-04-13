@@ -19,7 +19,7 @@ const Dashboard = () => {
     const [filter, setFilter] = useState('all'); // all, today, pending, completed
     const [tglState, setTglState] = useRecoilState(toggleState);
     const toggleSidebar = () => setTglState(prev => ({ ...prev, sidebarOpen: !prev.sidebarOpen }));
-    const { speakReminder } = usePersonalization();
+    const { speakReminder, stopReminderVoice } = usePersonalization();
 
     const notifiedRef = useRef(new Set());
 
@@ -72,38 +72,47 @@ const Dashboard = () => {
         audio.volume = 0.5;
         audio.play().catch(e => console.error("Audio play failed", e));
 
-        // 2. Visual Toast
-        toast.custom((t) => (
-            <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white dark:bg-[#1E1E1E] shadow-2xl rounded-2xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 border border-primary/20`}>
+        // 2. Visual Toast with Stop Button
+        toast.custom((toastObj) => (
+            <div className={`${toastObj.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white dark:bg-[#1E1E1E] shadow-2xl rounded-2xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 border border-primary/20 overflow-hidden`}>
                 <div className="flex-1 w-0 p-4">
                     <div className="flex items-start">
                         <div className="flex-shrink-0 pt-0.5">
                             <Clock className="h-10 w-10 text-primary animate-pulse" />
                         </div>
-                        <div className="ml-3 flex-1">
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                Reminder: {task.title}
+                        <div className="ml-3 flex-1 min-w-0">
+                            <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                {t('reminder')}: {task.title}
                             </p>
-                            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                {task.description || "It's time for your scheduled task."}
+                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                                {task.description || t('timeForScheduledTask')}
                             </p>
-                            {task.isUrgent && <span className="mt-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">URGENT</span>}
+                            {task.isUrgent && <span className="mt-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-red-500 text-white shadow-sm">{t('urgent')}</span>}
                         </div>
                     </div>
                 </div>
+                <div className="flex border-l border-gray-100 dark:border-white/5">
+                    <button
+                        onClick={() => {
+                            stopReminderVoice();
+                            toast.dismiss(toastObj.id);
+                        }}
+                        className="w-full border border-transparent rounded-none rounded-r-2xl p-4 flex items-center justify-center text-xs font-black uppercase tracking-widest text-primary hover:bg-primary/5 active:bg-primary/10 transition-all focus:outline-none"
+                    >
+                        {t('stopAlert') || 'Stop Alert'}
+                    </button>
+                </div>
             </div>
-        ), { duration: 10000 });
+        ), { duration: 60000 }); // Longer duration for looping alert
 
-        // 3. Audio Speech (Delayed slightly to follow the chime)
-        setTimeout(() => {
-            if (task.voice && task.voice !== 'none') {
-                speakReminder(task.title, task.voice);
-            } else {
-                const text = `Time for your task: ${task.title}. I repeat: ${task.title}.`;
-                const utterance = new SpeechSynthesisUtterance(text);
-                window.speechSynthesis.speak(utterance);
-            }
-        }, 1000);
+        // 3. Audio Speech immediately
+        if (task.voice && task.voice !== 'none') {
+            speakReminder(task.title, task.voice, task._id);
+        } else {
+            const text = `Time for your task: ${task.title}.`;
+            const utterance = new SpeechSynthesisUtterance(text);
+            window.speechSynthesis.speak(utterance);
+        }
     };
 
     const fetchTasks = async () => {
@@ -112,7 +121,7 @@ const Dashboard = () => {
             const data = await apiService.getPersonalTasks({});
             setTasks(data);
         } catch (err) {
-            toast.error("Failed to load tasks");
+            toast.error(t('failedToLoadTasks'));
         } finally {
             setLoading(false);
         }
@@ -122,16 +131,16 @@ const Dashboard = () => {
         try {
             if (editingTask) {
                 await apiService.updatePersonalTask(editingTask._id, taskData);
-                toast.success("Task updated");
+                toast.success(t('taskUpdated'));
             } else {
                 await apiService.createPersonalTask(taskData);
-                toast.success("Task created");
+                toast.success(t('taskCreated'));
             }
             setIsModalOpen(false);
             setEditingTask(null);
             fetchTasks();
         } catch (err) {
-            toast.error("Failed to save task");
+            toast.error(t('failedToSaveTask'));
         }
     };
 
@@ -140,10 +149,10 @@ const Dashboard = () => {
         try {
             await apiService.deletePersonalTask(deleteModal.taskId);
             setTasks(prev => prev.filter(t => t._id !== deleteModal.taskId));
-            toast.success("Task deleted");
+            toast.success(t('taskDeleted'));
             setDeleteModal({ isOpen: false, taskId: null });
         } catch (err) {
-            toast.error("Error deleting task");
+            toast.error(t('errorDeletingTask'));
             setDeleteModal({ isOpen: false, taskId: null });
         }
     };
@@ -154,7 +163,7 @@ const Dashboard = () => {
             await apiService.updatePersonalTask(task._id, { status: newStatus });
             setTasks(prev => prev.map(t => t._id === task._id ? { ...t, status: newStatus } : t));
         } catch (err) {
-            toast.error("Update failed");
+            toast.error(t('updateFailed'));
         }
     };
 
@@ -259,7 +268,7 @@ const Dashboard = () => {
                                 : 'bg-white dark:bg-[#1A1A1A] text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-white/5'
                                 }`}
                         >
-                            {t(f) || f.charAt(0).toUpperCase() + f.slice(1)}
+                            {t(f)}
                         </button>
                     ))}
                 </div>
@@ -267,7 +276,7 @@ const Dashboard = () => {
                 {/* Task List */}
                 <div className="grid gap-4">
                     {loading ? (
-                        <div className="text-center py-20 text-gray-500">Loading your assistant...</div>
+                        <div className="text-center py-20 text-gray-500">{t('loadingAssistant')}</div>
                     ) : filteredTasks.length === 0 ? (
                         <div className="text-center py-20 bg-white dark:bg-[#1A1A1A] rounded-3xl border border-dashed border-gray-200 dark:border-gray-800">
                             <CalendarIcon className="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-4" />
@@ -299,7 +308,7 @@ const Dashboard = () => {
                                     <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">
                                         {category}
                                         <span className="ml-3 text-xs font-normal text-gray-400 bg-gray-100 dark:bg-[#1E1E1E] px-2 py-1 rounded-md border border-gray-200 dark:border-gray-800">
-                                            {items.length} Tasks
+                                            {items.length} {t('tasks')}
                                         </span>
                                     </h3>
                                 </div>
@@ -324,7 +333,7 @@ const Dashboard = () => {
                                                     </h3>
                                                     {task.isUrgent && <AlertTriangle className="w-4 h-4 text-red-500" />}
                                                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${getStatusColor(task.status)}`}>
-                                                        {task.status}
+                                                        {t(task.status)}
                                                     </span>
                                                 </div>
                                                 <p className="text-gray-500 dark:text-gray-400 text-sm line-clamp-2">
@@ -382,8 +391,8 @@ const Dashboard = () => {
                 isOpen={deleteModal.isOpen}
                 onClose={() => setDeleteModal({ isOpen: false, taskId: null })}
                 onConfirm={handleDelete}
-                title="Delete Task?"
-                description="Are you sure you want to delete this task? This cannot be undone."
+                title={t('deleteTaskTitle')}
+                description={t('deleteTaskDesc')}
             />
         </div>
     );

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { apis } from '../types';
 import { getUserData } from '../userStore/userData';
@@ -49,6 +49,12 @@ const DEFAULT_PREFERENCES = {
     },
     account: {
         nickname: ''
+    },
+    voice: {
+        languageCode: 'en-US',
+        voiceName: 'en-US-Chirp3-HD-Autonoe',
+        pitch: 0,
+        speed: 1.0
     }
 };
 
@@ -65,6 +71,8 @@ export const PersonalizationProvider = ({ children }) => {
     const [notifications, setNotifications] = useState([]);
     const [chatSessions, setChatSessions] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const reminderAudioRef = useRef(null);
+    const recentNotificationsRef = useRef(new Set());
 
     const user = getUserData();
 
@@ -201,12 +209,37 @@ export const PersonalizationProvider = ({ children }) => {
                             const newReminders = res.data.filter(n => n.id?.startsWith('reminder_') && !prev.some(p => p.id === n.id));
                             
                             newReminders.forEach(reminder => {
-                                toast.success(`🔔 Reminder: ${reminder.title}`, { 
-                                    duration: 10000,
-                                    icon: '⏰'
-                                });
+                                // Extract the core task ID from something like "reminder_6619a9..."
+                                const taskId = reminder.id.replace('reminder_', '');
+
+                                // Background Notification Toast with Stop Button
+                                toast.custom((tObj) => (
+                                    <div className={`${tObj.visible ? 'animate-enter' : 'animate-leave'} max-w-sm w-full bg-white dark:bg-[#1E1E1E] shadow-2xl rounded-2xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 border border-primary/20 overflow-hidden`}>
+                                        <div className="flex-1 w-0 p-4">
+                                            <div className="flex items-start">
+                                                <div className="ml-0 flex-1">
+                                                    <p className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                                        <span>⏰</span> Reminder: {reminder.title}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex border-l border-gray-100 dark:border-white/5">
+                                            <button
+                                                onClick={() => {
+                                                    stopReminderVoice();
+                                                    toast.dismiss(tObj.id);
+                                                }}
+                                                className="w-full border border-transparent rounded-none rounded-r-2xl px-4 flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/5 focus:outline-none"
+                                            >
+                                                Stop
+                                            </button>
+                                        </div>
+                                    </div>
+                                ), { duration: 60000 });
+
                                 if (reminder.voice && reminder.voice !== 'none') {
-                                    speakReminder(reminder.title, reminder.voice);
+                                    speakReminder(reminder.title, reminder.voice, taskId);
                                 }
                             });
                             
@@ -224,25 +257,83 @@ export const PersonalizationProvider = ({ children }) => {
             return () => clearInterval(interval);
         }
         applyDynamicStyles();
+        /* Migration check removed to allow localization */
     }, [user?.token]);
 
-    const speakReminder = async (text, voiceConfig) => {
+    const stopReminderVoice = () => {
+        // 1. Stop Browser Native Speech (Crucial for fallback)
+        if (window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+        }
+
+        // 2. Stop Chirp-3 HD Looping Audio
+        if (reminderAudioRef.current) {
+            reminderAudioRef.current.pause();
+            reminderAudioRef.current.currentTime = 0;
+            if (reminderAudioRef.current.src) {
+                URL.revokeObjectURL(reminderAudioRef.current.src);
+            }
+            reminderAudioRef.current = null;
+        }
+    };
+
+    const speakReminder = async (text, voiceConfig, taskId) => {
         if (!user?.token) return;
+
+        // Throttling: Prevent the same task from shouting multiple times within a minute
+        if (taskId) {
+            if (recentNotificationsRef.current.has(taskId)) return;
+            recentNotificationsRef.current.add(taskId);
+            setTimeout(() => {
+                recentNotificationsRef.current.delete(taskId);
+            }, 60000); // 1 minute cooldown per task
+        }
+
         try {
-            const [lang, variant] = voiceConfig.split(/-(?=[^-]+$)/); // Splits en-US-female into en-US and female
-            const res = await axios.post(apis.synthesizeVoice, {
-                text: `Reminder: ${text}`,
-                languageCode: lang,
-                gender: variant?.toUpperCase() || 'FEMALE'
+            // Priority: Explicit voiceConfig (from task) > Global voice setting
+            const v = personalizations?.voice || DEFAULT_PREFERENCES.voice;
+            
+            let finalVoice = v.voiceName;
+            let langCode = v.languageCode;
+            let pitch = v.pitch;
+            let speed = v.speed;
+
+            if (voiceConfig && voiceConfig !== 'none') {
+                if (voiceConfig.includes('-Chirp3-HD-')) {
+                    finalVoice = voiceConfig;
+                    langCode = voiceConfig.split('-Chirp3-HD-')[0];
+                } else {
+                    const parts = voiceConfig.split('-');
+                    langCode = parts.slice(0, 2).join('-');
+                    const persona = parts[2] === 'male' ? 'Algieba' : 'Autonoe';
+                    finalVoice = `${langCode}-Chirp3-HD-${persona}`;
+                }
+            }
+
+            stopReminderVoice(); // Stop any overlapping audio
+
+            const res = await axios.post(apis.synthesizeFile, {
+                introText: `🔔 ${text}`,
+                languageCode: langCode,
+                voiceName: finalVoice,
+                pitch: pitch,
+                speakingRate: speed
             }, {
                 headers: { 'Authorization': `Bearer ${user.token}` },
                 responseType: 'blob'
             });
+
             const url = URL.createObjectURL(res.data);
             const audio = new Audio(url);
+            audio.loop = true;
+            reminderAudioRef.current = audio;
             audio.play();
         } catch (error) {
-            console.error('TTS failed for reminder', error);
+            console.error('Premium TTS failed, falling back...', error);
+            try {
+                const utterance = new SpeechSynthesisUtterance(text);
+                window.speechSynthesis.speak(utterance);
+            } catch (inner) {}
         }
     };
 
@@ -251,11 +342,7 @@ export const PersonalizationProvider = ({ children }) => {
             ...personalizations,
             [section]: { ...(personalizations?.[section] || {}), ...data }
         };
-
-        // Update state
         setPersonalizationsState(next);
-
-        // Side effects
         localStorage.setItem('personalizations', JSON.stringify(next));
         applyDynamicStyles(next);
         syncWithBackend(section, next[section]);
@@ -270,18 +357,7 @@ export const PersonalizationProvider = ({ children }) => {
                 );
             }
         } catch (error) {
-            console.warn('Failed to sync personalization to cloud:', section, error.message);
-
-            // Only show toast if it's a real connection error (not auth/404/500 which we handle gracefully)
-            const status = error.response?.status;
-            if (status && status !== 401 && status !== 404 && status !== 500) {
-                toast.error('Settings sync delayed', { id: 'sync-error' });
-            }
-
-            // If it's a 404, it might mean the backend is restarting. We'll just rely on LocalStorage for now.
-            if (status === 404) {
-                console.info('Backend route not found. Settings saved locally.');
-            }
+            console.warn('Sync failed:', error.message);
         }
     };
 
@@ -294,39 +370,19 @@ export const PersonalizationProvider = ({ children }) => {
                 setPersonalizationsState(DEFAULT_PREFERENCES);
                 localStorage.setItem('personalizations', JSON.stringify(DEFAULT_PREFERENCES));
                 applyDynamicStyles(DEFAULT_PREFERENCES);
-                toast.success('Settings reset to defaults');
+                toast.success('Settings reset');
             }
-        } catch (error) {
-            console.error('Failed to reset personalizations', error);
-            toast.error('Failed to reset settings');
-        }
+        } catch (error) {}
     };
 
     const getSystemPromptExtensions = () => {
         const p = personalizations?.personalization || {};
         let prompt = "";
-
-        // Emoji Usage
         if (p.emojiUsage) {
-            const map = {
-                'None': "Do NOT use emojis.",
-                'Minimal': "Use emojis very sparingly.",
-                'Moderate': "Use emojis moderately to be friendly.",
-                'Expressive': "Use emojis frequently and expressively."
-            };
-            prompt += `\nEmoji Usage Guideline: ${map[p.emojiUsage] || map['Moderate']}`;
+            const map = { 'None': "Do NOT use emojis.", 'Minimal': "Use emojis sparingly.", 'Moderate': "Use emojis moderately.", 'Expressive': "Use emojis frequently." };
+            prompt += `\nEmoji Guideline: ${map[p.emojiUsage] || map['Moderate']}`;
         }
-
-        // Formality/Tone (Future proofing)
-        if (p.formality) {
-            const map = { 'Casual': 'Use a casual, conversational tone.', 'Formal': 'Use a formal, professional tone.', 'Medium': 'Use a balanced, professional yet friendly tone.' };
-            prompt += `\nTone: ${map[p.formality] || map['Medium']}`;
-        }
-
-        if (p.customInstructions) {
-            prompt += `\nCustom Instructions: ${p.customInstructions}`;
-        }
-
+        if (p.customInstructions) prompt += `\nCustom Instructions: ${p.customInstructions}`;
         return prompt;
     };
 
@@ -341,7 +397,9 @@ export const PersonalizationProvider = ({ children }) => {
             clearAllNotifications,
             chatSessions,
             refreshChatSessions: fetchChatSessions,
-            getSystemPromptExtensions
+            getSystemPromptExtensions,
+            speakReminder,
+            stopReminderVoice
         }}>
             {children}
         </PersonalizationContext.Provider>
@@ -350,8 +408,6 @@ export const PersonalizationProvider = ({ children }) => {
 
 export const usePersonalization = () => {
     const context = useContext(PersonalizationContext);
-    if (!context) {
-        throw new Error('usePersonalization must be used within a PersonalizationProvider');
-    }
+    if (!context) throw new Error('usePersonalization must be used within a PersonalizationProvider');
     return context;
 };
