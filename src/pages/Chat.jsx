@@ -237,8 +237,14 @@ const TOOL_PRICING = {
   },
   image: {
     models: [
-      { id: 'imagen-3.0-generate-001', name: 'AISA™ Imagen 3', price: 45, speed: 'Fast', description: 'Advanced image generation & editing' },
-      { id: 'imagen-4.0-ultra-generate-001', name: 'AISA™ Imagen 4 Ultra', price: 90, speed: 'Premium', description: 'Next-generation hyper-realistic image generation' }
+      { id: 'gemini-3.1-flash-image-preview', name: 'AISA™ Gemini 3.1 Flash', price: 45, speed: 'Fast', description: 'Latest preview — fastest Gemini image generation' },
+      { id: 'gemini-3-pro-image-preview', name: 'AISA™ Gemini 3 Pro', price: 75, speed: 'Pro', description: 'Pro-grade scene understanding & generation' },
+      { id: 'gemini-2.5-flash-image', name: 'AISA™ Gemini 2.5 Flash', price: 30, speed: 'Stable', description: 'Stable & reliable production image generation' }
+    ],
+    editModels: [
+      { id: 'gemini-3.1-flash-image-preview', name: 'Gemini 3.1 Flash Image', price: 45, speed: 'Fast', description: 'Latest preview model — fastest AI image editing' },
+      { id: 'gemini-3-pro-image-preview', name: 'Gemini 3 Pro Image', price: 75, speed: 'Pro', description: 'Pro-grade image editing with rich scene understanding' },
+      { id: 'gemini-2.5-flash-image', name: 'Gemini 2.5 Flash Image', price: 30, speed: 'Stable', description: 'Stable & reliable — production-ready image edits' }
     ]
   },
   video: {
@@ -249,14 +255,14 @@ const TOOL_PRICING = {
   },
   document: {
     models: [
-      { id: 'gemini-flash', name: 'AISA Flash', price: 0, speed: 'Fast', description: 'Basic document analysis' },
-      { id: 'gemini-pro', name: 'AISA Pro', price: 20, speed: 'Medium', description: 'Advanced document processing' },
-      { id: 'gpt4', name: 'AISA Premium', price: 30, speed: 'Medium', description: 'Premium document analysis' }
+      { id: 'gemini-flash', name: 'AISA™ Flash', price: 0, speed: 'Fast', description: 'Basic document analysis' },
+      { id: 'gemini-pro', name: 'AISA™ Pro', price: 20, speed: 'Medium', description: 'Advanced document processing' },
+      { id: 'gpt4', name: 'AISA™ Premium', price: 30, speed: 'Medium', description: 'Premium document analysis' }
     ]
   },
   voice: {
     models: [
-      { id: 'gemini-flash', name: 'AISA Flash', price: 0, speed: 'Fast', description: 'Standard voice recognition' }
+      { id: 'gemini-flash', name: 'AISA™ Flash', price: 0, speed: 'Fast', description: 'Standard voice recognition' }
     ]
   }
 };
@@ -692,6 +698,7 @@ const Chat = () => {
   const [selectedLegalTool, setSelectedLegalTool] = useState(null);
   const [videoAspectRatio, setVideoAspectRatio] = useState('');
   const [videoModelId, setVideoModelId] = useState('veo-3.1-fast-generate-001');
+  const [editModelId, setEditModelId] = useState('gemini-3.1-flash-image-preview');
   const [videoResolution, setVideoResolution] = useState('1080p');
   const [audioLangCode, setAudioLangCode] = useState('en-US');
   const [audioVoiceName, setAudioVoiceName] = useState('en-US-Chirp3-HD-Autonoe');
@@ -701,7 +708,7 @@ const Chat = () => {
   const [isPlayingSample, setIsPlayingSample] = useState(false);
   const sampleAudioRef = useRef(null);
   const [imageAspectRatio, setImageAspectRatio] = useState('1:1');
-  const [imageModelId, setImageModelId] = useState('imagen-3.0-generate-001');
+  const [imageModelId, setImageModelId] = useState('gemini-3.1-flash-image-preview');
   const [isMagicSettingsOpen, setIsMagicSettingsOpen] = useState(false);
   const abortControllerRef = useRef(null);
   const voiceUsedRef = useRef(false); // Track if voice input was used
@@ -2014,8 +2021,8 @@ const Chat = () => {
       try {
         console.log("[Image Edit] Starting edit request for:", prompt);
 
-        // Efficiently get Blob from Data URL or Fetch Blob URL
         let rawImageBlob = null;
+        
         try {
           if (imageFile.url.startsWith('data:')) {
             const res = await fetch(imageFile.url);
@@ -2024,8 +2031,13 @@ const Chat = () => {
             const matchedFile = selectedFiles.find(f => f.name === imageFile.name);
             if (matchedFile) {
               rawImageBlob = matchedFile;
-            } else {
+            } else if (imageFile.url.startsWith('blob:')) {
               const res = await fetch(imageFile.url);
+              rawImageBlob = await res.blob();
+            } else {
+              // Remote URLs: securely fetch through backend proxy to bypass browser CORS blocks
+              const proxiedUrl = `${apis.imageProxy}?url=${encodeURIComponent(imageFile.url)}`;
+              const res = await fetch(proxiedUrl);
               rawImageBlob = await res.blob();
             }
           }
@@ -2034,9 +2046,9 @@ const Chat = () => {
           throw new Error("Failed to process the reference image.");
         }
 
-        // Use bare fetch instead of apiService to completely control the network request
         const formData = new FormData();
         formData.append('prompt', prompt);
+        formData.append('model', editModelId);
         if (rawImageBlob) {
             formData.append('image', rawImageBlob, 'reference.png');
         }
@@ -8108,14 +8120,18 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         referenceImage={editRefImage}
         toolType={isMagicEditing ? 'edit' : isImageGeneration ? 'image' : isVideoGeneration ? 'video' : ''}
         config={
-          (isImageGeneration || isMagicEditing)
-            ? { aspectRatio: imageAspectRatio, modelId: imageModelId }
-            : isVideoGeneration
-              ? { aspectRatio: videoAspectRatio, resolution: videoResolution, modelId: videoModelId }
-              : {}
+          isMagicEditing
+            ? { modelId: editModelId }
+            : isImageGeneration
+              ? { aspectRatio: imageAspectRatio, modelId: imageModelId }
+              : isVideoGeneration
+                ? { aspectRatio: videoAspectRatio, resolution: videoResolution, modelId: videoModelId }
+                : {}
         }
         onChange={(key, value) => {
-          if (isImageGeneration || isMagicEditing) {
+          if (isMagicEditing) {
+            if (key === 'modelId') setEditModelId(value);
+          } else if (isImageGeneration) {
             if (key === 'aspectRatio') setImageAspectRatio(value);
             if (key === 'modelId') setImageModelId(value);
           } else if (isVideoGeneration) {

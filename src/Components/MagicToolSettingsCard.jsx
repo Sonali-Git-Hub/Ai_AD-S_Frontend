@@ -140,7 +140,8 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
 
     if (!isOpen) return null;
 
-    const toolPricing = pricing[toolType === 'edit' ? 'image' : toolType] || { models: [] };
+    const toolPricingBase = pricing[toolType === 'edit' ? 'image' : toolType] || { models: [], editModels: [] };
+    const toolPricing = { models: toolType === 'edit' ? (toolPricingBase.editModels || []) : (toolPricingBase.models || []) };
     
     const aspectRatios = toolType === 'video' ? [
         { id: '16:9', label: '16:9', icon: Monitor, w: 14, h: 8 },
@@ -304,8 +305,8 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
                         {/* ── Body ── */}
                         <div className="relative z-20 px-5 sm:px-6 py-5 space-y-5 sm:space-y-6 max-h-[60vh] sm:max-h-[55vh] overflow-y-auto custom-scrollbar">
                             
-                            {/* Segmented Aspect Control */}
-                            {config.aspectRatio !== undefined && (
+                            {/* Segmented Aspect Control — hidden for edit mode */}
+                            {config.aspectRatio !== undefined && toolType !== 'edit' && (
                                 <div>
                                     <div className="flex items-center gap-2 mb-3 ml-1">
                                         <div className="w-1 h-1 rounded-full bg-slate-800 shadow-[0_0_6px_rgba(0,0,0,0.5)]" />

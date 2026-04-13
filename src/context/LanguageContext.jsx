@@ -241,7 +241,7 @@ export const LanguageProvider = ({ children }) => {
 
             poweredByUWO: "Powered by UWO™",
             exploreAisa: "Explore AISA™",
-            exploreAiMall: "Explore AI-Mall",
+            exploreAiMall: "Explore AI-Mall™",
             existingUser: "Existing User",
             getStarted: "Get Started",
             faqSubtitle: "Get quick answers to common questions about our platform",
@@ -613,7 +613,7 @@ export const LanguageProvider = ({ children }) => {
 
             poweredByUWO: "UWO™ द्वारा संचालित",
             exploreAisa: "AISA™ एक्सप्लोर करें",
-            exploreAiMall: "AI-Mall एक्सप्लोर करें",
+            exploreAiMall: "AI-Mall™ एक्सप्लोर करें",
             existingUser: "मौजूदा उपयोगकर्ता",
             getStarted: "शुरू करें",
             faqSubtitle: "हमारे प्लेटफ़ॉर्म के बारे में सामान्य प्रश्नों के त्वरित उत्तर प्राप्त करें",
@@ -908,7 +908,7 @@ export const LanguageProvider = ({ children }) => {
             aboutAisa: "Sobre AISA",
             poweredByUWO: "Desarrollado por UWO",
 
-            exploreAiMall: "Explorar AI-Mall",
+            exploreAiMall: "Explorar AI-Mall™",
             existingUser: "Usuario existente",
             getStarted: "Empezar",
             faqSubtitle: "Obtenga respuestas rápidas a preguntas comunes sobre nuestra plataforma",
@@ -1221,7 +1221,7 @@ export const LanguageProvider = ({ children }) => {
             aboutAisa: "À propos d'AISA",
             poweredByUWO: "Propulsé par UWO",
 
-            exploreAiMall: "Explorer AI-Mall",
+            exploreAiMall: "Explorer AI-Mall™",
             existingUser: "Utilisateur existant",
             getStarted: "Commencer",
             faqSubtitle: "Réponses rapides aux questions courantes sur notre plateforme",
@@ -1534,7 +1534,7 @@ export const LanguageProvider = ({ children }) => {
             aboutAisa: "AISAについて",
             poweredByUWO: "UWOによる提供",
             exploreAisa: "AISAを探索する",
-            exploreAiMall: "AI-Mallを探索する",
+            exploreAiMall: "AI-Mall™を探索する",
             existingUser: "既存のユーザー",
             getStarted: "今すぐ始める",
             faqSubtitle: "プラットフォームに関するよくある質問にすぐにお答えします",
