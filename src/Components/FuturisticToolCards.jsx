@@ -29,7 +29,7 @@ const TypewriterPrompt = ({ text, active }) => {
   return (
     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full px-4 text-center z-20">
       <div className="bg-white/80 dark:bg-black/70 backdrop-blur-md rounded-lg p-2.5 border border-slate-200 dark:border-white/10 inline-block max-w-[90%] shadow-2xl">
-        <p className="text-[10px] sm:text-[11px] font-mono font-bold text-slate-800 dark:text-white leading-tight">
+        <p className="notranslate text-[10px] sm:text-[11px] font-mono font-bold text-slate-800 dark:text-white leading-tight">
           <span className="text-primary mr-1">/</span>{displayed}
           <motion.span 
             initial={{ opacity: 1 }}
@@ -152,7 +152,7 @@ const ToolPreviewContent = ({ id, prompt, active }) => {
                 className="absolute inset-0 border-t-4 border-primary rounded-full"
               />
             </div>
-            <p className="text-[12px] font-black text-primary uppercase tracking-widest animate-pulse">AISA AI is Generating...</p>
+            <p className="notranslate text-[12px] font-black text-primary uppercase tracking-widest animate-pulse">AISA AI is Generating...</p>
           </motion.div>
         )}
 
@@ -167,12 +167,12 @@ const ToolPreviewContent = ({ id, prompt, active }) => {
               <div className="w-full h-full rounded-xl overflow-hidden relative group">
                 <img src={getResultImage()} className="w-full h-full object-cover" alt="Preview" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-3">
-                  <p className="text-[10px] text-white font-bold truncate">{prompt}</p>
+                  <p className="notranslate text-[10px] text-white font-bold truncate">{prompt}</p>
                 </div>
               </div>
             ) : (
               <div className={`w-full h-full rounded-xl border p-2.5 flex flex-col justify-between shadow-inner ${isDark ? 'bg-slate-950/60 border-white/5' : 'bg-white border-slate-100'}`}>
-                 <div className="space-y-1">
+                 <div className="space-y-1 notranslate">
                    {getResultText().map((line, i) => (
                      <motion.div 
                         key={i}
