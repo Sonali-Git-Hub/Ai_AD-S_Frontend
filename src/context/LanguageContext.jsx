@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { createContext, useContext } from 'react';
 import { usePersonalization } from './PersonalizationContext';
 
 const LanguageContext = createContext();
@@ -7,78 +7,10 @@ export const LanguageProvider = ({ children }) => {
     const { personalizations, updatePersonalization } = usePersonalization();
 
     // Single Source of Truth from PersonalizationContext
+    // Language selection will apply A to Z across the UI
     const rawLanguage = personalizations?.general?.language || 'English';
     const language = rawLanguage; 
     const region = personalizations?.general?.region || 'India';
-
-    const languageCodeMap = {
-        "English": "en", "Hindi": "hi", "Bengali": "bn", "Marathi": "mr",
-        "Telugu": "te", "Tamil": "ta", "Kannada": "kn", "Malayalam": "ml",
-        "Urdu": "ur", "Spanish": "es", "French": "fr", "Mandarin Chinese": "zh-CN",
-        "Japanese": "ja", "German": "de", "Portuguese": "pt", "Arabic": "ar",
-        "Korean": "ko", "Italian": "it", "Russian": "ru", "Dutch": "nl",
-        "Turkish": "tr", "Swedish": "sv", "Norwegian": "no", "Danish": "da",
-        "Finnish": "fi", "Afrikaans": "af", "Zulu": "zu", "Xhosa": "xh"
-    };
-
-    useEffect(() => {
-        // Prepare global styles to hide the Google Translate widget and banner
-        if (!document.getElementById("google-translate-style")) {
-            const style = document.createElement('style');
-            style.id = "google-translate-style";
-            style.innerHTML = `
-                .goog-te-banner-frame.skiptranslate { display: none !important; }
-                body { top: 0px !important; }
-                #goog-gt-tt { display: none !important; top: 0px !important; }
-                .goog-tooltip { display: none !important; top: 0px !important; }
-                .goog-text-highlight { background-color: transparent !important; box-shadow: none !important; }
-                .goog-te-combo { display: none; }
-            `;
-            document.head.appendChild(style);
-        }
-
-        // Add Google Translate script if not present
-        if (!window.googleTranslateElementInit && !document.getElementById("google-translate-script")) {
-            window.googleTranslateElementInit = () => {
-                new window.google.translate.TranslateElement(
-                    { pageLanguage: 'en', autoDisplay: false },
-                    'google_translate_element'
-                );
-            };
-
-            const div = document.createElement("div");
-            div.id = "google_translate_element";
-            div.style.display = "none";
-            document.body.appendChild(div);
-
-            const script = document.createElement("script");
-            script.id = "google-translate-script";
-            script.type = "text/javascript";
-            script.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
-            document.body.appendChild(script);
-        }
-
-        // Trigger translation
-        const doTranslate = () => {
-            const selectField = document.querySelector(".goog-te-combo");
-            if (selectField) {
-                const targetCode = languageCodeMap[language] || 'en';
-                if (selectField.value !== targetCode) {
-                    selectField.value = targetCode;
-                    selectField.dispatchEvent(new Event("change"));
-                }
-            } else {
-                setTimeout(doTranslate, 500);
-            }
-        };
-
-        // Don't trigger if it's default English when page load, to avoid initial flash, 
-        // but if language is changed or is different, translate it.
-        const targetCode = languageCodeMap[language] || 'en';
-        if (targetCode !== 'en' || document.documentElement.lang !== 'en') {
-            doTranslate();
-        }
-    }, [language]);
 
     const setLanguage = (lang) => updatePersonalization('general', { language: lang });
     const setRegion = (reg) => updatePersonalization('general', { region: reg });
