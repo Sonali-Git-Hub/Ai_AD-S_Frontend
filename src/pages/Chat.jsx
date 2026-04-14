@@ -7884,7 +7884,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             const item = allLangItems.find(l => l.value === val);
                             if (item) {
                               const baseLang = item.label.split(' (')[0].split(' —')[0];
-                              setLanguage(baseLang); 
+                              setTimeout(() => {
+                                setLanguage(baseLang); 
+                              }, 0);
                             }
                           }}>
                             <div className="relative">
