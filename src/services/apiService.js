@@ -53,7 +53,7 @@ export const apiService = {
     try {
       console.log("[Frontend] Generating image for prompt:", prompt, "Ratio:", aspectRatio, "Model:", modelId);
       // Increased timeout to 60s for image generation
-      const response = await apiClient.post('/image/generate', { prompt, aspectRatio, modelId }, { timeout: 60000 });
+      const response = await apiClient.post('/image/generate', { prompt, aspectRatio, modelId }, { timeout: 180000 });
       console.log("[Frontend] Image generation success:", response.data);
       return response.data;
     } catch (error) {

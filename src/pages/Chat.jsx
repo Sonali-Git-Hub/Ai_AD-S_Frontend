@@ -3727,7 +3727,9 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
           activeSessionId,
           currentProjectId,
           userMsg.id,
-          suggestedAiId
+          suggestedAiId,
+          imageAspectRatio,
+          imageModelId
         );
         
         // Store it for usage in the typewriter loop
