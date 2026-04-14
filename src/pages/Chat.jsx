@@ -559,7 +559,7 @@ const Chat = () => {
   const { sessionId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { personalizations, getSystemPromptExtensions } = usePersonalization();
+  const { personalizations, getSystemPromptExtensions, updatePersonalization } = usePersonalization();
   const isDarkMode = personalizations?.general?.theme === 'Dark' || 
                     (personalizations?.general?.theme !== 'Light' && 
                      window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -3729,7 +3729,9 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
           activeSessionId,
           currentProjectId,
           userMsg.id,
-          suggestedAiId
+          suggestedAiId,
+          imageAspectRatio,
+          imageModelId
         );
         
         // Store it for usage in the typewriter loop
@@ -7882,7 +7884,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             const item = allLangItems.find(l => l.value === val);
                             if (item) {
                               const baseLang = item.label.split(' (')[0].split(' —')[0];
-                              setLanguage(baseLang); 
+                              setTimeout(() => {
+                                setLanguage(baseLang); 
+                              }, 0);
                             }
                           }}>
                             <div className="relative">

@@ -1284,6 +1284,7 @@ const LoadingSpinner = () => (
 // KNOWLEDGE BASE TAB
 // ═══════════════════════════════
 const KnowledgeBaseTab = () => {
+    const { t } = useLanguage();
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     const handleUploadSuccess = () => {

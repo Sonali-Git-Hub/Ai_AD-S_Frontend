@@ -3,7 +3,7 @@ import { apis } from "../types";
 import { getUserData } from "../userStore/userData";
 import { getDeviceFingerprint } from "../utils/fingerprint";
 
-export const generateChatResponse = async (history, currentMessage, systemInstruction, attachments, language, abortSignal = null, mode = null, sessionId = null, projectId = null, userMsgId = null, aiMsgId = null) => {
+export const generateChatResponse = async (history, currentMessage, systemInstruction, attachments, language, abortSignal = null, mode = null, sessionId = null, projectId = null, userMsgId = null, aiMsgId = null, aspectRatio = null, modelId = null) => {
     try {
         const token = getUserData()?.token;
         const headers = {
@@ -60,7 +60,9 @@ export const generateChatResponse = async (history, currentMessage, systemInstru
             sessionId: sessionId,
             projectId: projectId,
             userMsgId: userMsgId,
-            aiMsgId: aiMsgId
+            aiMsgId: aiMsgId,
+            ...(aspectRatio && { aspectRatio }),
+            ...(modelId && { modelId }),
         };
 
         const result = await axios.post(apis.chatAgent, payload, {
