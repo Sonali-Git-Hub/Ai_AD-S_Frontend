@@ -559,7 +559,7 @@ const Chat = () => {
   const { sessionId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { personalizations, getSystemPromptExtensions } = usePersonalization();
+  const { personalizations, getSystemPromptExtensions, updatePersonalization } = usePersonalization();
   const isDarkMode = personalizations?.general?.theme === 'Dark' || 
                     (personalizations?.general?.theme !== 'Light' && 
                      window.matchMedia('(prefers-color-scheme: dark)').matches);
