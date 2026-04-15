@@ -4908,7 +4908,43 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
   };
 
   const handleCopyMessage = (content) => {
-    navigator.clipboard.writeText(content);
+    if (!content) return;
+    // Convert markdown to clean plain text for clipboard
+    let clean = content;
+    // Remove [ACTIVE TOOL: ...] tags
+    clean = clean.replace(/\*?\*?\[ACTIVE TOOL:.*?\]\*?\*?/gi, '');
+    // Convert markdown headings (##, ###) to plain uppercase text
+    clean = clean.replace(/^#{1,6}\s+(.+)$/gm, (_, heading) => heading.trim().toUpperCase());
+    // Remove bold/italic markers (**text**, *text*, __text__, _text_)
+    clean = clean.replace(/\*\*(.+?)\*\*/g, '$1');
+    clean = clean.replace(/\*(.+?)\*/g, '$1');
+    clean = clean.replace(/__(.+?)__/g, '$1');
+    clean = clean.replace(/_(.+?)_/g, '$1');
+    // Remove strikethrough (~~text~~)
+    clean = clean.replace(/~~(.+?)~~/g, '$1');
+    // Remove inline code backticks
+    clean = clean.replace(/`([^`]+)`/g, '$1');
+    // Remove code block markers (```language ... ```)
+    clean = clean.replace(/```[\s\S]*?```/g, (match) => {
+      return match.replace(/```\w*\n?/g, '').replace(/```/g, '').trim();
+    });
+    // Clean up horizontal rules (---, ***, ___)
+    clean = clean.replace(/^[-*_]{3,}\s*$/gm, '─'.repeat(40));
+    // Clean up list markers (- item -> • item, * item -> • item)
+    clean = clean.replace(/^\s*[-*]\s+/gm, '• ');
+    // Clean ordered list markers (1. item -> 1. item) — keep as-is for readability
+    // Remove link syntax [text](url) -> text
+    clean = clean.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+    // Remove image syntax ![alt](url) -> alt
+    clean = clean.replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1');
+    // Remove blockquote markers
+    clean = clean.replace(/^\s*>\s?/gm, '');
+    // Collapse excessive blank lines (3+ newlines -> 2)
+    clean = clean.replace(/\n{3,}/g, '\n\n');
+    // Trim
+    clean = clean.trim();
+
+    navigator.clipboard.writeText(clean);
     toast.success("Copied to clipboard!");
   };
 
