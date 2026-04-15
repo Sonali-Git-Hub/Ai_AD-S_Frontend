@@ -505,7 +505,36 @@ export const apiService = {
     }
   },
 
+  // --- AI Ad Agent (Specific) ---
+  async configureAiAdAgent(data) {
+    try {
+      const response = await apiClient.post('/ai-ad/configure', data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to configure AI Ad Agent:", error);
+      throw error;
+    }
+  },
 
+  async getAiAdPosts() {
+    try {
+      const response = await apiClient.get('/ai-ad/posts');
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch AI Ad Agent posts:", error);
+      return { success: false, posts: [] };
+    }
+  },
+
+  async getAiAdStatus() {
+    try {
+      const response = await apiClient.get('/ai-ad/status');
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch AI Ad Agent status:", error);
+      return { success: false, status: "none" };
+    }
+  },
 
   // --- Auth ---
   async login(credentials) {

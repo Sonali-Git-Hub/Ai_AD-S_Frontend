@@ -215,10 +215,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
       !ws.isPersonalProfile && (
         (ws.calendarEntryCount > 0) || 
         (ws.onboarding?.calendarCount > 0) || 
-        (ws._id === workspace?._id && calendarEntries.length > 0)
+        (ws._id === workspace?._id && (calendarEntries.length > 0 || (pipelineRows && pipelineRows.length > 0)))
       )
     );
-  }, [allWorkspaces, workspace?._id, calendarEntries.length]);
+  }, [allWorkspaces, workspace?._id, calendarEntries.length, pipelineRows?.length]);
 
   // Real-time synchronization is now handled via the calendarWorkspaces memo which reacts to allWorkspaces changes.
 
@@ -482,16 +482,21 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
         const wsId = wsData.workspace._id;
 
         const anyOnboarded = (wsList.workspaces || []).some(w => w.onboarding?.completed);
+        const guideShownSession = localStorage.getItem('aisa_onboarding_guide_shown');
 
-        if (!anyOnboarded && !wsData.workspace.onboarding?.completed) {
+        if (!anyOnboarded && !wsData.workspace.onboarding?.completed && !guideShownSession) {
           setShowOnboarding(true);
           setShowOnboardingGuide(true);
+          localStorage.setItem('aisa_onboarding_guide_shown', 'true');
         }
 
         await fetchWorkspaceData(wsId.toString(), isBackground);
+        return wsData.workspace; // Return for reuse
       }
+      return null;
     } catch (error) {
       console.error("Dashboard Init Error:", error);
+      return null;
     } finally {
       if (!isBackground) setLoading(false);
     }
@@ -613,6 +618,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
   }, [workspace]);
 
   const switchWorkspace = (ws) => {
+    setActiveProfile(null); // Reset profile state to trigger re-load visibility
     setWorkspace(ws);
     setCurrentEditingBrandId(ws._id);
     setIsWorkspaceMenuOpen(false);
@@ -652,22 +658,38 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
 
   const handleCompleteOnboarding = async (e) => {
-    e.preventDefault();
-    if (!workspace) return;
+    if (e && e.preventDefault) e.preventDefault();
+    
+    let targetWs = workspace;
+    if (!targetWs) {
+      setIsOnboardingSaving(true);
+      targetWs = await initWorkspace();
+    }
+
+    if (!targetWs) {
+      toast.error("Cloud synchronization pending. Please wait 3 seconds and click Launch again.");
+      setIsOnboardingSaving(false);
+      return;
+    }
+
     setIsOnboardingSaving(true);
     try {
       const res = await apiService.completeSocialOnboarding({
-        workspaceId: workspace._id,
+        workspaceId: targetWs._id,
         ...onboardingData,
         logoUrl: onboardingData.brandLogoPreview
       });
       if (res.success) {
         setWorkspace(res.workspace);
         setShowOnboarding(false);
-        toast.success("Workspace setup complete!");
+        toast.success("Workspace setup complete! Launching Strategy Engine...");
+        
+        // Final Sync: Trigger workspace refresh to ensure all stats/UI are grounded
+        fetchWorkspaceData(res.workspace._id);
+        initWorkspace(true);
       }
     } catch (error) {
-      toast.error("Failed to complete setup");
+      toast.error("Setup sync failed. Please click Launch once more.");
     } finally {
       setIsOnboardingSaving(false);
     }
@@ -786,8 +808,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
   };
 
   const handleExportExcel = async (specificWsId = null) => {
-    const wsId = specificWsId || workspace?._id;
-    if (!wsId) return toast.error("Select a brand first");
+    // If called from onClick directly, specificWsId might be an Event object - ignore it
+    const inputId = (specificWsId && typeof specificWsId === 'string') ? specificWsId : (specificWsId && typeof specificWsId === 'object' && specificWsId._id) ? specificWsId._id : null;
+    const wsId = inputId || workspace?._id;
+    if (!wsId || typeof wsId !== 'string') return toast.error("Select a brand first");
 
     setIsDownloadingExcel(true);
     const toastId = toast.loading("📊 Generating your Excel strategy...");
@@ -822,6 +846,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
         setGeneratedPosts(prev => [res.post, ...prev]);
         // Update calendar entry status locally
         setCalendarEntries(prev => prev.map(e => e._id === entryId ? { ...e, status: 'generated' } : e));
+        
+        // Refresh library and artifacts to sync content everywhere
+        await fetchWorkspaceData(workspace?._id, true);
+        
         toast.success("Content Synthesized! Find it in your feed.", { id: toastId });
       } else {
         toast.error(res.error || "Generation failed", { id: toastId });
@@ -910,7 +938,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
         try {
           // Pulse effect for normalization
           setTimeout(() => {
-            toast.loading("🧠 Phase 2/3: AI Strategist is building your 30-day roadmap...", { id: activeToast });
+            toast.loading("🧠 Phase 2/3: AI Strategist is building your monthly roadmap...", { id: activeToast });
           }, 2500);
 
           const genRes = await apiService.generateSocialAgentCalendar(wsId);
@@ -1165,8 +1193,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
       // Step 3: Success — refresh assets and navigate to Post Generation
       toast.success('✨ Visual post created! Redirecting to Creative Studio...', { id: toastId, duration: 4000 });
 
-      // Update local calendar status to instantly show "View Post" instead of "Gen Post"
-      setCalendarEntries(prev => prev.map(r => r._id === entryId ? { ...r, status: 'generated' } : r));
+      // Visual generation no longer marks entry as 'generated' locally to keep workflows isolated
+      // setCalendarEntries(prev => prev.map(r => r._id === entryId ? { ...r, status: 'generated' } : r));
 
       // Refresh assets in background
       if (workspace?._id) {
@@ -2271,7 +2299,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
                       <div className="space-y-4 mb-8">
                         <div className="flex items-center justify-between text-xs font-medium text-slate-500 px-1">
-                          <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[2px] text-slate-400"><Calendar className="w-3.5 h-3.5 opacity-50" /> 30-Day Plan</span>
+                          <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[2px] text-slate-400"><Calendar className="w-3.5 h-3.5 opacity-50" /> Monthly Plan</span>
                           <span className={`px-2 py-0.5 font-black rounded-lg text-[9px] ${isCurrent ? 'bg-primary/20 text-primary' : 'bg-slate-100 dark:bg-white/10 text-slate-400'}`}>
                             {entriesCount} Slots
                           </span>
@@ -2294,7 +2322,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
                         {isCurrent && (
                           <button
-                            onClick={handleExportExcel}
+                            onClick={() => handleExportExcel(ws._id)}
                             title="Download Excel"
                             className="h-11 w-11 bg-slate-50 dark:bg-white/5 hover:bg-green-500/10 text-slate-400 hover:text-green-500 rounded-xl flex items-center justify-center transition-all border border-slate-100 dark:border-white/5 hover:border-green-500/20"
                           >
@@ -2332,13 +2360,6 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                   <p className="text-xs text-slate-500 font-medium lowercase italic">Total of {calendarEntries.length} potential posts detected across platforms.</p>
                 </div>
                 <div className="flex gap-3">
-                  <button
-                    onClick={handleExportExcel}
-                    disabled={isDownloadingExcel}
-                    className="px-6 h-12 bg-emerald-500 text-white rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-emerald-600 transition-all hover:scale-105 shadow-xl shadow-emerald-500/20 active:scale-95 disabled:opacity-50"
-                  >
-                    {isDownloadingExcel ? <RefreshCw className="w-4 h-4 animate-spin" /> : <><Download className="w-4 h-4" /> GENERATE EXCEL</>}
-                  </button>
                   <button onClick={() => setShowPreviewModal(false)} className="px-6 h-12 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-slate-600 dark:text-slate-300">
                     <X className="w-4 h-4" /> Exit Preview
                   </button>
@@ -2485,7 +2506,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                         </div>
 
                         <div className="grid grid-cols-2 gap-3 mt-auto pt-6 border-t border-slate-100 dark:border-white/5">
-                          {(entry.status === 'generated' || (assets && assets.some(a => a.calendarEntryId === entry._id))) ? (
+                          {/* DYNAMIC ISOLATION: Check for visual artifacts separately from content status */}
+                          {(assets && assets.some(a => a.calendarEntryId === entry._id)) ? (
                             <button
                               onClick={() => {
                                 const generatedAsset = assets?.find(a => a.calendarEntryId === entry._id);
@@ -2893,9 +2915,9 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
     const finalRows = (pipelineRows?.length || 0) > 0 ? pipelineRows : calendarEntries;
 
     return (
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 h-full flex flex-col space-y-10 pb-20">
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 h-auto flex flex-col space-y-6 pb-32">
         {/* Step 1: Strategy Context Selector */}
-        <div className="bg-white dark:bg-[#080808] p-10 rounded-[50px] border border-slate-100 dark:border-white/5 shadow-2xl">
+        <div className="bg-white dark:bg-[#080808] p-6 lg:p-8 rounded-[32px] border border-slate-100 dark:border-white/5 shadow-xl">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
             <div className="max-w-md w-full">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-[3px] block mb-4">Select Target Brand Strategy</label>
@@ -2909,11 +2931,13 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                       fetchPipelines(ws._id);
                     }
                   }}
-                  className="w-full h-16 pl-6 pr-12 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-black uppercase outline-none focus:ring-4 focus:ring-primary/10 appearance-none transition-all cursor-pointer group-hover:border-primary/30"
+                  className="w-full h-16 pl-6 pr-12 bg-white dark:bg-[#1a1a1a] border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-black uppercase outline-none focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer text-slate-900 dark:text-white"
                 >
                   {calendarWorkspaces.length === 0 && <option disabled>Discovery: No Strategy Maps Found</option>}
                   {calendarWorkspaces.map(b => (
-                    <option key={b._id} value={b._id}>{b.workspaceName}</option>
+                    <option key={b._id} value={b._id} className="text-black bg-white py-2">
+                      {b.workspaceName || b.brandProfile?.companyName || "Untitled Brand"}
+                    </option>
                   ))}
                 </select>
                 <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none group-hover:text-primary transition-colors" />
@@ -2923,15 +2947,15 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
             {workspace && (
               <div className="flex items-center gap-6 p-4 bg-slate-50 dark:bg-white/5 rounded-[32px] border border-slate-100 dark:border-white/5">
                 <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 flex items-center justify-center p-2">
-                  {workspace.brandProfile?.logoUrl || workspace.onboarding?.profileImageUrl ? (
+                  {(activeProfile?.logoUrl || workspace?.brandProfile?.logoUrl || workspace?.onboarding?.profileImageUrl) ? (
                     <img 
-                      src={toProxyUrl(workspace.brandProfile?.logoUrl || workspace.onboarding?.profileImageUrl)} 
+                      src={toProxyUrl(activeProfile?.logoUrl || workspace?.brandProfile?.logoUrl || workspace?.onboarding?.profileImageUrl)} 
                       className="w-full h-full object-contain" 
                       alt="Logo" 
                     />
                   ) : (
                     <div className="w-full h-full bg-primary text-white flex items-center justify-center text-xl font-black">
-                      {workspace.workspaceName?.charAt(0)}
+                      {(activeProfile?.companyName || workspace?.workspaceName || 'B').charAt(0)}
                     </div>
                   )}
                 </div>
@@ -3021,7 +3045,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[4px] animate-pulse">Establishing Secure Brand Connection...</p>
           </div>
         ) : finalRows.length > 0 ? (
-          <div className="bg-white dark:bg-[#080808]/50 rounded-[40px] border border-slate-100 dark:border-white/5 shadow-2xl animate-in slide-in-from-bottom-8 duration-700 min-h-[500px] flex flex-col">
+          <div className="bg-white dark:bg-[#080808]/50 rounded-[32px] border border-slate-100 dark:border-white/5 shadow-xl animate-in slide-in-from-bottom-8 duration-700 min-h-[500px] flex flex-col">
             <div className="p-8 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] flex items-center justify-between shrink-0">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
@@ -3068,65 +3092,64 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
               </div>
             </div>
 
-            <div className="flex-1 overflow-x-auto custom-scrollbar">
+            <div className="flex-1 w-full overflow-y-auto custom-scrollbar">
               <table className="w-full text-left border-collapse table-auto">
                 <thead>
                   <tr className="border-b border-slate-100 dark:border-white/5 bg-slate-50/30 dark:bg-white/[0.01]">
-                    <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Schedule</th>
-                    <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Platform</th>
-                    <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Phase</th>
-                    <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Strategy / Hook</th>
-                    <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Asset Type</th>
-                    <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                    <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
+                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Schedule</th>
+                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Platform</th>
+                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Phase</th>
+                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Strategy / Hook</th>
+                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Asset Type</th>
+                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                   {finalRows.map((row, idx) => (
                     <tr key={row._id || idx} className="group hover:bg-slate-50 dark:hover:bg-white/[0.01] transition-colors">
-                      <td className="p-6">
+                      <td className="p-4">
                         <div className="flex items-center gap-3 whitespace-nowrap">
-                          <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 flex flex-col items-center justify-center border border-slate-200 dark:border-white/10 group-hover:border-primary/30 transition-colors">
-                            <span className="text-[10px] font-black text-primary leading-none">{new Date(row.scheduledDate).getDate()}</span>
-                            <span className="text-[7px] font-black text-slate-400 uppercase tracking-tighter">{new Date(row.scheduledDate).toLocaleString('default', { month: 'short' })}</span>
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/5 flex flex-col items-center justify-center border border-slate-200 dark:border-white/10 group-hover:border-primary/30 transition-colors">
+                            <span className="text-[9px] font-black text-primary leading-none">{new Date(row.scheduledDate).getDate()}</span>
+                            <span className="text-[6px] font-black text-slate-400 uppercase tracking-tighter">{new Date(row.scheduledDate).toLocaleString('default', { month: 'short' })}</span>
                           </div>
-                          <span className="text-[10px] font-bold text-slate-400">{new Date(row.scheduledDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
                       </td>
-                      <td className="p-6">
-                        <div className="flex gap-1.5">
+                      <td className="p-4">
+                        <div className="flex gap-1">
                           {['instagram', 'linkedin', 'twitter', 'facebook', 'youtube'].map(p => {
                             const active = (row.platform || row.rawData?.Platform || '').toLowerCase().includes(p);
                             if (!active) return null;
                             return (
-                              <div key={p} className="p-2 rounded-lg bg-primary/5 text-primary border border-primary/10 group-hover:border-primary/30 transition-all">
-                                {p === 'instagram' && <Instagram className="w-3.5 h-3.5" />}
-                                {p === 'linkedin' && <Linkedin className="w-3.5 h-3.5" />}
-                                {p === 'twitter' && <Twitter className="w-3.5 h-3.5" />}
-                                {p === 'facebook' && <Facebook className="w-3.5 h-3.5" />}
-                                {p === 'youtube' && <Youtube className="w-3.5 h-3.5" />}
+                              <div key={p} className="p-1.5 rounded-lg bg-primary/5 text-primary border border-primary/10 group-hover:border-primary/30 transition-all">
+                                {p === 'instagram' && <Instagram className="w-3 h-3" />}
+                                {p === 'linkedin' && <Linkedin className="w-3 h-3" />}
+                                {p === 'twitter' && <Twitter className="w-3 h-3" />}
+                                {p === 'facebook' && <Facebook className="w-3 h-3" />}
+                                {p === 'youtube' && <Youtube className="w-3 h-3" />}
                               </div>
                             );
                           })}
                         </div>
                       </td>
-                      <td className="p-6">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-white/5 px-2 py-1 rounded border border-slate-200 dark:border-white/10">
+                      <td className="p-4">
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-white/5 px-1.5 py-0.5 rounded border border-slate-200 dark:border-white/10">
                           {row.phase || row.rawData?.Phase || "Awareness"}
                         </span>
                       </td>
-                      <td className="p-6">
-                        <div className="max-w-[300px]">
-                          <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight mb-1 truncate group-hover:text-primary transition-colors">
+                      <td className="p-4">
+                        <div className="max-w-[200px] xl:max-w-[350px]">
+                          <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight mb-0.5 truncate group-hover:text-primary transition-colors">
                             {row.heading_hook || row.title || row.rawData?.Title}
                           </p>
-                          <p className="text-[10px] text-slate-400 font-medium truncate italic opacity-60">
+                          <p className="text-[9px] text-slate-400 font-medium truncate italic opacity-60">
                             {row.sub_heading || row.hook || row.rawData?.Hook || "Defining direction..."}
                           </p>
                         </div>
                       </td>
-                      <td className="p-6">
-                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border ${
+                      <td className="p-4">
+                        <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase border ${
                           (row.postType || row.format || row.rawData?.Format) === 'Video' ? 'bg-amber-100 dark:bg-amber-500/10 text-amber-600 border-amber-200/50' :
                           (row.postType || row.format || row.rawData?.Format) === 'Carousel' ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 border-indigo-200/50' :
                           'bg-blue-100 dark:bg-primary/10 text-primary border-blue-200/50'
@@ -3134,31 +3157,35 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                           {row.postType || row.format || row.rawData?.Format}
                         </span>
                       </td>
-                      <td className="p-6">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-1.5 h-1.5 rounded-full ${row.status === 'generated' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-300'}`} />
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                            {row.status === 'generated' ? 'Asset Ready' : 'Pending AI'}
+                      <td className="p-4">
+                        <div className="flex items-center gap-1.5">
+                          <div className={`w-1 h-1 rounded-full ${row.status === 'generated' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-300'}`} />
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                            {row.status === 'generated' ? 'Ready' : 'Pending'}
                           </span>
                         </div>
                       </td>
-                      <td className="p-6 text-right">
+                      <td className="p-4 text-right">
                         {row.status === 'generated' ? (
                           <button 
                             onClick={() => {
                               const post = generatedPosts.find(p => ensureStringId(p.calendarEntryId) === ensureStringId(row._id));
-                              if (post) {
-                                const asset = assets.find(a => 
-                                  ensureStringId(a.postId) === ensureStringId(post._id) || 
-                                  ensureStringId(a._id) === ensureStringId(post.primaryAssetId)
-                                );
-                                if (asset) {
-                                  setSelectedAsset(asset);
-                                } else {
-                                  toast.error("Visual asset final sync in progress...");
-                                }
+                              const asset = assets.find(a => 
+                                (post && ensureStringId(a.postId) === ensureStringId(post._id)) || 
+                                ensureStringId(a.calendarEntryId) === ensureStringId(row._id)
+                              );
+                              
+                              if (asset) {
+                                setSelectedAsset(asset);
                               } else {
-                                toast.error("Finalizing AI data synchronization...");
+                                // Dynamic Isolation: Allow viewing content even if visual post isn't generated
+                                setSelectedAsset({
+                                  _id: `virtual-${row._id}`,
+                                  calendarEntryId: row._id,
+                                  calendarEntry: row,
+                                  isVirtual: true,
+                                  originalName: row.title || row.heading_hook || "Neural Content Artifact"
+                                });
                               }
                             }}
                             className="h-10 px-5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white transition-all shadow-lg shadow-emerald-500/10"
@@ -3343,7 +3370,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
     const generatedAssets = (assets || []).filter(a => a.assetSource === 'generated');
 
     return (
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 h-full flex flex-col space-y-10 pb-20">
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 h-full flex flex-col space-y-6 pb-20">
         
 
         {/* ── Studio Toolbox ────────────────────────────── */}
@@ -3425,9 +3452,18 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                     </button>
                   </div>
 
+                  {/* Magic Create Label Badge (Top Left) */}
+                  {asset.metadata?.isMagicCreate && (
+                    <div className="absolute top-4 left-4 z-20 px-3 py-1 bg-primary text-white text-[8px] font-black uppercase tracking-[2px] rounded-lg shadow-lg shadow-primary/30">
+                      Magic Create
+                    </div>
+                  )}
+
                   <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-500 flex flex-col z-20">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] font-black text-white uppercase tracking-widest">{asset.assetType?.replace('_', ' ') || 'AI ART'}</span>
+                      <span className="text-[10px] font-black text-white uppercase tracking-widest">
+                        {asset.metadata?.isMagicCreate ? 'Neural Masterpiece' : (asset.assetType?.replace('_', ' ') || 'AI ART')}
+                      </span>
                       {asset.dateString && <span className="text-[8px] font-bold text-primary bg-white/90 px-2 py-0.5 rounded-md uppercase tracking-widest">{asset.dateString}</span>}
                     </div>
                     <p className="text-[8px] font-bold text-white/60 uppercase tracking-wider truncate">{asset.originalName || 'Visual Synthesis'}</p>
@@ -3573,15 +3609,31 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                   </div>
                 ) : (
                   <div className="relative group/hero rounded-[40px] overflow-hidden border-4 border-white shadow-2xl aspect-[16/10] bg-zinc-900 flex items-center justify-center">
-                    <img 
-                      src={toProxyUrl(selectedAsset.gcsUrl)} 
-                      className="w-full h-full object-contain cursor-zoom-in transition-transform duration-700 group-hover/hero:scale-[1.02]" 
-                      alt="Artifact Full Preview"
-                      onClick={() => window.open(toProxyUrl(selectedAsset.gcsUrl), '_blank')}
-                    />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/hero:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                      <div className="px-6 py-3 bg-white/20 backdrop-blur-md rounded-2xl border border-white/30 text-white font-black text-xs uppercase tracking-[4px]">Click for Full Dimension</div>
-                    </div>
+                    {selectedAsset.gcsUrl ? (
+                      <>
+                        <img 
+                          src={toProxyUrl(selectedAsset.gcsUrl)} 
+                          className="w-full h-full object-contain cursor-zoom-in transition-transform duration-700 group-hover/hero:scale-[1.02]" 
+                          alt="Artifact Full Preview"
+                          onClick={() => window.open(toProxyUrl(selectedAsset.gcsUrl), '_blank')}
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/hero:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                          <div className="px-6 py-3 bg-white/20 backdrop-blur-md rounded-2xl border border-white/30 text-white font-black text-xs uppercase tracking-[4px]">Click for Full Dimension</div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center gap-6 text-center p-12">
+                         <div className="w-24 h-24 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center animate-pulse">
+                            <Layers className="w-10 h-10 text-slate-500" />
+                         </div>
+                         <div>
+                            <h4 className="text-xl font-black text-white uppercase tracking-tighter mb-2">Visual Core Pending</h4>
+                            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest max-w-xs">
+                               Textual content has been synthesized. Generate a Post Visual to activate the primary artifact layer.
+                            </p>
+                         </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -3589,14 +3641,20 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
                 {/* ── GENERATED CONTENT PANEL ──────────────────────────── */}
                 {(() => {
-                  const ce = selectedAsset?.calendarEntry;
+                  const ce = selectedAsset?.calendarEntry || calendarEntries.find(e => ensureStringId(e._id) === ensureStringId(selectedAsset?.calendarEntryId));
+                  // Dynamic Content Visibility: Ensure space is empty if content isn't yet synthesized
+                  const isGenerated = ce?.status === 'generated' || post; 
+                  
                   if (!ce) return null;
-                  const hook = ce.hook || ce.heading_hook || ce.title || '';
+                  if (!isGenerated) return null; // Empty as requested
+
+                  // Priority Data Binding: Check post (fresh state) first, fallback to ce (db sync)
+                  const hook = post?.hook || ce.hook || ce.heading_hook || ce.title || '';
                   const subHeading = ce.sub_heading || ce.subHeading || '';
-                  const shortCaption = ce.short_caption || ce.captionShort || '';
-                  const longCaption = ce.long_caption || ce.captionLong || ce.postContent || '';
-                  const hashtags = Array.isArray(ce.hashtags) ? ce.hashtags : (ce.hashtags ? ce.hashtags.split(/[\s,#]+/).filter(Boolean) : []);
-                  const breakdown = ce.breakdown || '';
+                  const shortCaption = post?.captionShort || ce.short_caption || ce.captionShort || '';
+                  const longCaption = post?.captionLong || ce.long_caption || ce.captionLong || ce.postContent || '';
+                  const hashtags = post?.hashtags || (Array.isArray(ce.hashtags) ? ce.hashtags : (ce.hashtags ? ce.hashtags.split(/[\s,#]+/).filter(Boolean) : []));
+                  const breakdown = post?.onAssetText || ce.breakdown || '';
                   const platform = ce.platform || '';
                   const phase = ce.phase || '';
                   const format = ce.format || ce.postType || ce.post_type || '';
@@ -4234,7 +4292,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                 </div>
               </div>
               <button
-                onClick={() => setShowOnboardingGuide(false)}
+                onClick={() => {
+                  setShowOnboardingGuide(false);
+                  localStorage.setItem('aisa_onboarding_guide_shown', 'true');
+                }}
                 className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-red-500 transition-all shadow-sm"
               >
                 <X className="w-5 h-5" />
@@ -4266,7 +4327,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
             <div className="p-8 bg-slate-50 border-t border-slate-100">
               <button
-                onClick={() => setShowOnboardingGuide(false)}
+                onClick={() => {
+                  setShowOnboardingGuide(false);
+                  localStorage.setItem('aisa_onboarding_guide_shown', 'true');
+                }}
                 className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
               >
                 I Understand, Let's Start
@@ -5501,7 +5565,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                   </header>
 
                   {/* Scrollable Content */}
-                  <main className="flex-1 overflow-y-auto p-12 custom-scrollbar relative mesh-bg" data-lenis-prevent>
+                  <main className={`flex-1 overflow-y-auto ${activeTab === 'generation' ? 'p-4 lg:p-10' : 'p-12'} custom-scrollbar relative mesh-bg`} data-lenis-prevent>
                     {renderContent()}
                   </main>
                 </div>
