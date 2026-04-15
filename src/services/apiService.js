@@ -8,7 +8,7 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 60000, // 60 second timeout for AI responses
+  timeout: 180000, // 180 second timeout for complex AI/multi-doc processing
 });
 
 // Request interceptor for adding auth token
@@ -184,10 +184,16 @@ export const apiService = {
     }
   },
 
-  async quickAnalysis(file, workspaceId = null) {
+  async quickAnalysis(files, workspaceId = null) {
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      // 'files' because backend now uses upload.array('files', 5)
+      if (Array.isArray(files)) {
+        files.forEach(file => formData.append('files', file));
+      } else {
+        formData.append('files', files);
+      }
+      
       if (workspaceId) formData.append('workspaceId', workspaceId);
 
       const response = await apiClient.post('/brand/quick-analysis', formData, {
@@ -374,6 +380,16 @@ export const apiService = {
     } catch (error) {
       console.error("Failed to fetch assets library:", error);
       return { success: false, assets: [] };
+    }
+  },
+
+  async deleteAllBrandAssets(workspaceId) {
+    try {
+      const response = await apiClient.delete(`/social-agent/assets/${workspaceId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to delete all brand assets:", error);
+      return { success: false, error: error.message };
     }
   },
 

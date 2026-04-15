@@ -17,6 +17,20 @@ import { apiService } from '../services/apiService';
 import { API } from '../types.js';
 import { getUserData, updateUser } from '../userStore/userData';
 
+/**
+ * Safely wraps a URL through the backend media proxy.
+ * If the URL is already a proxy URL (contains /api/media/proxy?url=), it is returned as-is
+ * to prevent double-proxying which causes "Cannot read properties of undefined (reading 'split')" errors.
+ */
+const toProxyUrl = (url) => {
+  if (!url || typeof url !== 'string') return url;
+  // Already routed through the proxy — don't wrap again
+  if (url.includes('/api/media/proxy')) return url;
+  // Only proxy absolute http(s) URLs
+  if (!url.startsWith('http')) return url;
+  return `${API}/media/proxy?url=${encodeURIComponent(url)}`;
+};
+
 // Mock/Initial state for usage
 const INITIAL_USAGE = {
   imageUsed: 0,
@@ -149,7 +163,13 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
   const [calendarFile, setCalendarFile] = useState(null);
   const [brandLogo, setBrandLogo] = useState(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState(null);
-  const [overviewFile, setOverviewFile] = useState(null);
+  const [overviewFiles, setOverviewFiles] = useState([]); // Support multiple docs
+  const [syncedLogos, setSyncedLogos] = useState([]); 
+  
+  // Defensive fallbacks for legacy/hidden references
+  if (typeof window !== 'undefined' && !window.overviewFile) {
+    window.overviewFile = null;
+  }
 
   const [showUserProfileModal, setShowUserProfileModal] = useState(false);
   const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(false);
@@ -192,9 +212,11 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
   // Derived state for the "Content Calendar" brands - Used in both Calendar tab and Generation tab
   const calendarWorkspaces = React.useMemo(() => {
     return allWorkspaces.filter(ws => 
-      (ws.calendarEntryCount > 0) || 
-      (ws.onboarding?.calendarCount > 0) || 
-      (ws._id === workspace?._id && calendarEntries.length > 0)
+      !ws.isPersonalProfile && (
+        (ws.calendarEntryCount > 0) || 
+        (ws.onboarding?.calendarCount > 0) || 
+        (ws._id === workspace?._id && calendarEntries.length > 0)
+      )
     );
   }, [allWorkspaces, workspace?._id, calendarEntries.length]);
 
@@ -222,31 +244,38 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
     }
   }, [brandLogo, workspace?._id]);
 
-  // REAL MAGIC: Auto-extract DNA from PDF
+  // REAL MAGIC: Auto-extract DNA from ALL PDFs/Docs
   useEffect(() => {
-    if (overviewFile) {
-      const analyzeDoc = async () => {
-        const toastId = toast.loading("AI Synthesis: Distilling brand DNA...");
+    if (overviewFiles.length > 0) {
+      const analyzeDocs = async () => {
+        setIsSyncing(true);
+        const toastId = toast.loading(`AI Synthesis: Distilling brand DNA from ${overviewFiles.length} files...`);
         try {
-          const res = await apiService.quickAnalysis(overviewFile, workspace?._id);
+          const res = await apiService.quickAnalysis(overviewFiles, workspace?._id);
           if (res.success) {
             setBrandProfile(prev => ({
               ...prev,
               companyName: res.brandName || prev.companyName,
-              extractedBrandSummary: res.extractedBrandSummary || prev.extractedBrandSummary,
-              toneOfVoice: res.toneOfVoice || prev.toneOfVoice
+              extractedBrandSummary: [
+                prev.extractedBrandSummary,
+                res.extractedBrandSummary
+              ].filter(Boolean).join('\n\n---\n\n ANALYSIS: [Documents] \n'),
+              toneOfVoice: res.toneOfVoice || prev.toneOfVoice,
+              brandColors: Array.from(new Set([...(prev.brandColors || []), ...(res.brandColors || [])]))
             }));
             toast.success("AI Synthesis: Identity synchronized!", { id: toastId });
           } else {
-            toast.error(res.error || "AI could not read this document format.", { id: toastId });
+            toast.error(res.error || "AI could not read these document formats.", { id: toastId });
           }
         } catch (e) {
           toast.error("AI engine is currently busy. Please try manual entry.", { id: toastId });
+        } finally {
+          setIsSyncing(false);
         }
       };
-      analyzeDoc();
+      analyzeDocs();
     }
-  }, [overviewFile, workspace?._id]);
+  }, [overviewFiles, workspace?._id]);
 
 
   // --- 1. Dashboard Initialization & Splash ---
@@ -313,25 +342,61 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
   }, [isOpen, activeTab, loading]);
 
 
-  const handleDownloadMedia = (url) => {
+  const handleDownloadMedia = async (url, filename) => {
     if (!url) return;
+    const downloadToast = toast.loading("Preparing download...");
 
-    // Safety check: if the URL is already a proxy URL, extract the inner destination
-    let target = url;
-    if (url.includes('/api/media/proxy')) {
-      try {
-        const urlObj = new URL(url);
-        const extracted = urlObj.searchParams.get('url');
-        if (extracted) target = extracted;
-      } catch (e) {
-        // Fallback for relative paths or malformed URLs
-        const match = url.match(/url=([^&]+)/);
-        if (match && match[1]) target = decodeURIComponent(match[1]);
-      }
+    try {
+      // Use proxy to avoid CORS when fetching for blob
+      const proxyUrl = toProxyUrl(url);
+      const response = await fetch(proxyUrl);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename || `AISA_Gen_${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+      toast.success("Download started!", { id: downloadToast });
+    } catch (error) {
+      console.error('Download failed:', error);
+      toast.error("Download failed. Opening in new tab...", { id: downloadToast });
+      window.open(url, '_blank');
     }
+  };
 
-    const proxyUrl = `${API}/media/proxy?url=${encodeURIComponent(target)}&download=true`;
-    window.location.href = proxyUrl;
+  const handleCopyImageToClipboard = async (url) => {
+    try {
+      const proxyUrl = toProxyUrl(url);
+      const response = await fetch(proxyUrl);
+      const blob = await response.blob();
+      
+      // AISA standard: Convert to PNG if not already, for clipboard compatibility
+      const pngBlob = blob.type === 'image/png' ? blob : await new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          canvas.getContext('2d').drawImage(img, 0, 0);
+          canvas.toBlob(resolve, 'image/png');
+        };
+        img.src = proxyUrl;
+      });
+
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': pngBlob })
+      ]);
+      toast.success("Image copied to clipboard!");
+    } catch (err) {
+      console.error("[CopyImage] Error:", err);
+      navigator.clipboard.writeText(url);
+      toast.info("Link copied (Image copy restricted)");
+    }
   };
 
   useEffect(() => {
@@ -432,6 +497,29 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
     }
   };
 
+  const renderModuleGuard = (title, description) => {
+    if (workspace?.isPersonalProfile) {
+      return (
+        <div className="flex flex-col items-center justify-center p-20 bg-slate-50 dark:bg-white/5 rounded-[40px] border-2 border-dashed border-slate-200 dark:border-white/10 text-center space-y-8 min-h-[500px]">
+          <div className="w-24 h-24 rounded-full bg-indigo-500/10 flex items-center justify-center">
+            <ShieldAlert className="w-12 h-12 text-indigo-500" />
+          </div>
+          <div className="space-y-4 max-w-lg">
+            <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">{title} Restricted</h2>
+            <p className="text-slate-500 dark:text-slate-400 leading-relaxed">{description || "This module is only accessible for active Brand Workspaces. Please connect a business or create a brand identity using the Brand Setup tab first."}</p>
+          </div>
+          <button 
+            onClick={() => setActiveTab('brand')}
+            className="px-10 py-5 bg-indigo-600 text-white rounded-[24px] font-black text-xs uppercase tracking-[3px] shadow-2xl shadow-indigo-600/30 hover:scale-105 transition-all"
+          >
+            Start Brand Setup
+          </button>
+        </div>
+      );
+    }
+    return null;
+  };
+
   const handleAiFetch = async (url, target = 'brandProfile') => {
     if (!url) return;
     let targetUrl = url.trim();
@@ -450,9 +538,15 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
       const newProfile = {
         companyName: json.brandName || (target === 'brandProfile' ? brandProfile.companyName : ''),
         logoUrl: json.logoUrl || (target === 'brandProfile' ? brandProfile.logoUrl : null),
-        brandColors: (json.brandColors && json.brandColors.length > 0) ? json.brandColors : (target === 'brandProfile' ? brandProfile.brandColors : []),
+        brandColors: Array.from(new Set([
+          ...(target === 'brandProfile' ? brandProfile.brandColors : []),
+          ...(json.brandColors || [])
+        ])),
         faviconUrl: json.faviconUrl || (target === 'brandProfile' ? brandProfile.faviconUrl : null),
-        extractedBrandSummary: json.description || (target === 'brandProfile' ? brandProfile.extractedBrandSummary : ''),
+        extractedBrandSummary: [
+          (target === 'brandProfile' ? brandProfile.extractedBrandSummary : ''),
+          json.description
+        ].filter(Boolean).join('\n\n---\n\n ANALYSIS: [Website Data] \n'),
         toneOfVoice: json.toneOfVoice || (target === 'brandProfile' ? brandProfile.toneOfVoice : 'Professional'),
         ctaStyle: json.ctaStyle || (target === 'brandProfile' ? brandProfile.ctaStyle : 'Direct'),
         targetEthnicity: json.targetRegion || (target === 'brandProfile' ? brandProfile.targetEthnicity : 'Global'),
@@ -797,7 +891,11 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
         formData.append('logoUrl', brandProfile.logoUrl);
       }
       
-      if (overviewFile) formData.append('overview', overviewFile);
+      if (overviewFiles && overviewFiles.length > 0) {
+        overviewFiles.forEach(file => {
+          formData.append('overview', file);
+        });
+      }
 
       const res = await apiService.uploadSocialAgentBrand(formData);
 
@@ -841,7 +939,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
         // Clear inputs AFTER re-fetching to ensure the form is blank for new entry
         setCurrentEditingBrandId(null);
         setBrandLogo(null);
-        setOverviewFile(null);
+        setOverviewFiles([]);
         setCalendarFile(null);
         setStagedCalendarCount(0);
         setBrandProfile({
@@ -1715,7 +1813,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                          {(logoPreviewUrl || brandProfile.logoUrl) ? (
                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-4">
                               <img 
-                                src={logoPreviewUrl || (brandProfile.logoUrl?.startsWith('http') ? `${API}/media/proxy?url=${encodeURIComponent(brandProfile.logoUrl)}` : brandProfile.logoUrl)} 
+                                src={logoPreviewUrl || toProxyUrl(brandProfile.logoUrl)} 
                                 className="w-full h-full object-contain p-6 group-hover/logo:scale-105 transition-transform duration-700" 
                               />
                            </motion.div>
@@ -1829,7 +1927,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                          <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent rounded-[40px]" />
                          {logoPreviewUrl || brandProfile.logoUrl ? (
                            <img 
-                             src={logoPreviewUrl || (brandProfile.logoUrl?.startsWith('http') ? `${API}/media/proxy?url=${encodeURIComponent(brandProfile.logoUrl)}` : brandProfile.logoUrl)} 
+                             src={logoPreviewUrl || toProxyUrl(brandProfile.logoUrl)} 
                              className="w-full h-full object-contain relative z-10" 
                            />
                          ) : (
@@ -1882,24 +1980,49 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                    </div>
                    
                    {/* Action Hub */}
-                   <div className="flex items-center gap-3">
-                      <button 
-                        onClick={() => document.getElementById('overview-upload-core').click()}
-                        className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-[9px] font-black uppercase tracking-[2px] text-slate-600 dark:text-slate-300 hover:border-primary/40 hover:text-primary transition-all shadow-sm active:scale-95"
-                      >
-                         <Upload className="w-3.5 h-3.5" />
-                         {overviewFile ? `Ready: ${overviewFile.name.substring(0, 10)}...` : 'Upload Doc'}
-                      </button>
-                      <input type="file" id="overview-upload-core" className="hidden" onChange={(e) => setOverviewFile(e.target.files[0])} accept=".pdf,.doc,.docx" />
-                      
-                      <button 
-                        onClick={() => handleAiFetch(brandProfile.website)}
-                        disabled={isSyncing || !brandProfile.website}
-                        className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-primary text-white text-[9px] font-black uppercase tracking-[2px] transition-all shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 disabled:opacity-50"
-                      >
-                         <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-                         {isSyncing ? 'Syncing...' : 'Fetch Web'}
-                      </button>
+                   <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-3">
+                         <button 
+                           onClick={() => document.getElementById('overview-upload-core').click()}
+                           className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-[9px] font-black uppercase tracking-[2px] text-slate-600 dark:text-slate-300 hover:border-primary/40 hover:text-primary transition-all shadow-sm active:scale-95"
+                         >
+                            <Upload className="w-3.5 h-3.5" />
+                            {overviewFiles.length > 0 ? `${overviewFiles.length} Docs Ready` : 'Upload Docs'}
+                         </button>
+                         <input 
+                           type="file" 
+                           id="overview-upload-core" 
+                           className="hidden" 
+                           multiple
+                           onChange={(e) => setOverviewFiles(prev => [...prev, ...Array.from(e.target.files)])} 
+                           accept=".pdf,.doc,.docx" 
+                         />
+                         
+                         <button 
+                           onClick={() => handleAiFetch(brandProfile.website)}
+                           disabled={isSyncing || !brandProfile.website}
+                           className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-primary text-white text-[9px] font-black uppercase tracking-[2px] transition-all shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+                         >
+                            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                            {isSyncing ? 'Syncing...' : 'Fetch Web'}
+                         </button>
+                      </div>
+
+                      {/* File List for Visual Feedback */}
+                      {overviewFiles.length > 0 && (
+                        <div className="flex flex-wrap gap-2 pt-2">
+                           {overviewFiles.map((f, i) => (
+                             <div key={i} className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                                <FileText className="w-3 h-3 text-emerald-500" />
+                                <span className="text-[8px] font-black text-emerald-600 dark:text-emerald-400 truncate max-w-[80px]">{f.name}</span>
+                                <X 
+                                  className="w-3 h-3 text-emerald-500 cursor-pointer hover:scale-120" 
+                                  onClick={() => setOverviewFiles(prev => prev.filter((_, idx) => idx !== i))}
+                                />
+                             </div>
+                           ))}
+                        </div>
+                      )}
                    </div>
                 </div>
 
@@ -1997,7 +2120,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
               <div className="p-10 md:p-16 flex-1 space-y-10">
                 <div className="flex items-center gap-6">
                   <div className="w-24 h-24 rounded-[32px] bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 flex items-center justify-center p-4">
-                    {selectedBrandView.logoUrl ? <img src={selectedBrandView.logoUrl.startsWith('http') ? `${API}/media/proxy?url=${encodeURIComponent(selectedBrandView.logoUrl)}` : selectedBrandView.logoUrl} className="w-full h-full object-contain" alt="Logo" /> : <Globe className="w-10 h-10 text-slate-300" />}
+                    {selectedBrandView.logoUrl ? <img src={toProxyUrl(selectedBrandView.logoUrl)} className="w-full h-full object-contain" alt="Logo" /> : <Globe className="w-10 h-10 text-slate-300" />}
                   </div>
                   <div>
                     <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter uppercase">{selectedBrandView.companyName || 'Brand'}</h2>
@@ -2073,6 +2196,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
 
   const renderContentCalendar = () => {
+    const guard = renderModuleGuard("Content Calendar");
+    if (guard) return guard;
     return (
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 h-full flex flex-col">
         {(() => {
@@ -2112,9 +2237,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                               );
                             }
 
-                            const finalUrl = (typeof rawUrl === 'string' && rawUrl.startsWith('http'))
-                              ? `${API}/media/proxy?url=${encodeURIComponent(rawUrl)}`
-                              : rawUrl;
+                            const finalUrl = toProxyUrl(rawUrl);
 
                             return (
                               <img
@@ -2765,6 +2888,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
   };
 
   const renderContentOrchestration = () => {
+    const guard = renderModuleGuard("Content Generation");
+    if (guard) return guard;
     const finalRows = (pipelineRows?.length || 0) > 0 ? pipelineRows : calendarEntries;
 
     return (
@@ -2800,7 +2925,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                 <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 flex items-center justify-center p-2">
                   {workspace.brandProfile?.logoUrl || workspace.onboarding?.profileImageUrl ? (
                     <img 
-                      src={workspace.brandProfile?.logoUrl || workspace.onboarding?.profileImageUrl} 
+                      src={toProxyUrl(workspace.brandProfile?.logoUrl || workspace.onboarding?.profileImageUrl)} 
                       className="w-full h-full object-contain" 
                       alt="Logo" 
                     />
@@ -3277,20 +3402,34 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                   <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity z-10" />
                   <img src={asset.gcsUrl} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt="Generated Asset" />
                   
-                  <div className="absolute top-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0 duration-500">
+                  <div className="absolute top-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 duration-500 flex flex-col gap-2">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDownloadMedia(asset.gcsUrl);
                       }}
+                      title="Download Artifact"
                       className="w-10 h-10 rounded-2xl bg-white/90 dark:bg-black/90 text-primary flex items-center justify-center shadow-2xl hover:bg-primary hover:text-white transition-all transform hover:rotate-6 active:scale-90"
                     >
                       <Download className="w-5 h-5" />
                     </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopyImageToClipboard(asset.gcsUrl);
+                      }}
+                      title="Copy Image to Clipboard"
+                      className="w-10 h-10 rounded-2xl bg-white/90 dark:bg-black/90 text-indigo-600 flex items-center justify-center shadow-2xl hover:bg-indigo-600 hover:text-white transition-all transform hover:-rotate-6 active:scale-90"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
                   </div>
 
                   <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-500 flex flex-col z-20">
-                    <span className="text-[10px] font-black text-white uppercase tracking-widest mb-1">{asset.assetType?.replace('_', ' ') || 'AI ART'}</span>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-black text-white uppercase tracking-widest">{asset.assetType?.replace('_', ' ') || 'AI ART'}</span>
+                      {asset.dateString && <span className="text-[8px] font-bold text-primary bg-white/90 px-2 py-0.5 rounded-md uppercase tracking-widest">{asset.dateString}</span>}
+                    </div>
                     <p className="text-[8px] font-bold text-white/60 uppercase tracking-wider truncate">{asset.originalName || 'Visual Synthesis'}</p>
                   </div>
                 </div>
@@ -3321,7 +3460,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
     const rowId = ensureStringId(selectedAsset.calendarEntryId);
     const currentInsights = Array.isArray(hashtagInsights[rowId]) ? hashtagInsights[rowId] : (hashtagInsights[rowId]?.hashtags || []);
     const suggestedTags = [...new Set([...(post?.hashtags || []), ...currentInsights])];
-    const brandTags = hashtagInsights[rowId]?.brandSpecific || [workspace?.workspaceName?.toLowerCase().replace(/\s+/g, '')];
+    const brandTags = hashtagInsights[rowId]?.brandSpecific || [workspace?.workspaceName?.toLowerCase()?.replace(/\s+/g, '') || 'brand'];
 
     return (
       <Dialog open={!!selectedAsset} onClose={() => setSelectedAsset(null)} className="relative z-[200]">
@@ -3334,7 +3473,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                 <div className="w-14 h-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border border-primary/10 shadow-sm overflow-hidden">
                   {activeProfile?.logoUrl ? (
                     <img 
-                      src={`${API}/media/proxy?url=${encodeURIComponent(activeProfile.logoUrl)}`} 
+                      src={toProxyUrl(activeProfile.logoUrl)} 
                       className="w-full h-full object-contain p-2" 
                       alt="Brand Logo" 
                     />
@@ -3363,8 +3502,211 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
             {/* Neural Content Hub Body */}
             <div className="flex-1 overflow-y-auto bg-slate-50/30 p-12 custom-scrollbar">
-              <div className="max-w-6xl mx-auto space-y-12">
-                
+                {/* Visual Identity Hero */}
+                {selectedAsset?.assetType === 'carousel' && selectedAsset?.metadata?.slides?.length ? (
+                  <div className="w-full relative py-4">
+                    <div className="flex items-center justify-between mb-4 px-4">
+                      <h4 className="text-xl font-black text-slate-800 uppercase tracking-tight">Carousel Sequence</h4>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{selectedAsset.metadata.slides.length} Slides</span>
+                    </div>
+                    <div className="flex gap-6 overflow-x-auto snap-x custom-scrollbar pb-6 px-4">
+                      {selectedAsset.metadata.slides.map((url, i) => (
+                        <div key={i} className="snap-center relative shrink-0 w-80 group/slide rounded-[32px] overflow-hidden border-4 border-white shadow-xl aspect-square bg-zinc-900 flex items-center justify-center">
+                          <img 
+                            src={toProxyUrl(url)} 
+                            className="w-full h-full object-contain cursor-zoom-in transition-transform duration-700 group-hover/slide:scale-[1.05]" 
+                            alt={`Slide ${i + 1}`}
+                            onClick={() => window.open(toProxyUrl(url), '_blank')}
+                          />
+                          {/* Slide number badge */}
+                          <div className="absolute top-4 left-4 w-8 h-8 rounded-full bg-black/60 text-white font-black flex items-center justify-center text-xs backdrop-blur-md">
+                            {i+1}
+                          </div>
+                          {/* Per-slide action buttons — visible on hover */}
+                          <div className="absolute bottom-4 right-4 flex flex-col gap-2 opacity-0 group-hover/slide:opacity-100 transition-all duration-300 translate-y-2 group-hover/slide:translate-y-0">
+                            {/* Download */}
+                            <button
+                              title="Download Slide"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  const response = await fetch(toProxyUrl(url));
+                                  const blob = await response.blob();
+                                  const blobUrl = URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = blobUrl;
+                                  a.download = `carousel_slide_${i+1}.png`;
+                                  a.click();
+                                  URL.revokeObjectURL(blobUrl);
+                                  toast.success(`Slide ${i+1} downloaded!`);
+                                } catch { toast.error('Download failed'); }
+                              }}
+                              className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 text-white flex items-center justify-center hover:bg-white hover:text-slate-800 transition-all shadow-lg"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                            {/* Copy image to clipboard */}
+                            <button
+                              title="Copy Image to Clipboard"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  const response = await fetch(toProxyUrl(url));
+                                  const blob = await response.blob();
+                                  await navigator.clipboard.write([
+                                    new ClipboardItem({ 'image/png': blob })
+                                  ]);
+                                  toast.success(`Slide ${i+1} copied to clipboard!`);
+                                } catch { 
+                                  navigator.clipboard.writeText(url);
+                                  toast.success(`Slide ${i+1} URL copied!`); 
+                                }
+                              }}
+                              className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 text-white flex items-center justify-center hover:bg-primary hover:border-primary transition-all shadow-lg"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative group/hero rounded-[40px] overflow-hidden border-4 border-white shadow-2xl aspect-[16/10] bg-zinc-900 flex items-center justify-center">
+                    <img 
+                      src={toProxyUrl(selectedAsset.gcsUrl)} 
+                      className="w-full h-full object-contain cursor-zoom-in transition-transform duration-700 group-hover/hero:scale-[1.02]" 
+                      alt="Artifact Full Preview"
+                      onClick={() => window.open(toProxyUrl(selectedAsset.gcsUrl), '_blank')}
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/hero:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                      <div className="px-6 py-3 bg-white/20 backdrop-blur-md rounded-2xl border border-white/30 text-white font-black text-xs uppercase tracking-[4px]">Click for Full Dimension</div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="max-w-6xl mx-auto space-y-12">
+
+                {/* ── GENERATED CONTENT PANEL ──────────────────────────── */}
+                {(() => {
+                  const ce = selectedAsset?.calendarEntry;
+                  if (!ce) return null;
+                  const hook = ce.hook || ce.heading_hook || ce.title || '';
+                  const subHeading = ce.sub_heading || ce.subHeading || '';
+                  const shortCaption = ce.short_caption || ce.captionShort || '';
+                  const longCaption = ce.long_caption || ce.captionLong || ce.postContent || '';
+                  const hashtags = Array.isArray(ce.hashtags) ? ce.hashtags : (ce.hashtags ? ce.hashtags.split(/[\s,#]+/).filter(Boolean) : []);
+                  const breakdown = ce.breakdown || '';
+                  const platform = ce.platform || '';
+                  const phase = ce.phase || '';
+                  const format = ce.format || ce.postType || ce.post_type || '';
+
+                  return (
+                    <div className="bg-white rounded-[40px] border border-slate-100 shadow-xl overflow-hidden">
+                      {/* Header */}
+                      <div className="p-8 border-b border-slate-100 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center border border-indigo-500/20">
+                            <FileText className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <h4 className="text-xl font-black text-slate-800 uppercase tracking-tight">Generated Content</h4>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Hook · Captions · Hashtags · Breakdown</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {platform && <span className="px-3 py-1 rounded-full bg-primary/5 border border-primary/10 text-[9px] font-black text-primary uppercase tracking-widest">{platform}</span>}
+                          {phase && <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[9px] font-black text-amber-600 uppercase tracking-widest">{phase}</span>}
+                          {format && <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-black text-emerald-600 uppercase tracking-widest">{format}</span>}
+                        </div>
+                      </div>
+
+                      <div className="p-8 space-y-8">
+                        {/* Hook */}
+                        {hook && (
+                          <div className="group">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-[4px]">✦ Hook / Headline</span>
+                              <button onClick={() => { navigator.clipboard.writeText(hook); toast.success('Hook copied!'); }} className="opacity-0 group-hover:opacity-100 w-8 h-8 rounded-xl bg-slate-50 text-slate-400 hover:bg-primary hover:text-white transition-all flex items-center justify-center">
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                            <p className="text-2xl font-black text-slate-800 leading-snug select-all">{hook}</p>
+                            {subHeading && <p className="text-base font-semibold text-slate-500 mt-2 select-all">{subHeading}</p>}
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* Short Caption */}
+                          {shortCaption && (
+                            <div className="group bg-slate-50 p-6 rounded-[24px] border border-slate-100">
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-[3px]">Short Caption</span>
+                                <button onClick={() => { navigator.clipboard.writeText(shortCaption); toast.success('Short caption copied!'); }} className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-lg bg-white text-slate-400 hover:bg-primary hover:text-white transition-all flex items-center justify-center shadow-sm">
+                                  <Copy className="w-3 h-3" />
+                                </button>
+                              </div>
+                              <p className="text-sm text-slate-600 font-medium leading-relaxed select-all">{shortCaption}</p>
+                            </div>
+                          )}
+
+                          {/* Long Caption */}
+                          {longCaption && (
+                            <div className="group bg-slate-50 p-6 rounded-[24px] border border-slate-100">
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-[3px]">Long Caption</span>
+                                <button onClick={() => { navigator.clipboard.writeText(longCaption); toast.success('Long caption copied!'); }} className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-lg bg-white text-slate-400 hover:bg-primary hover:text-white transition-all flex items-center justify-center shadow-sm">
+                                  <Copy className="w-3 h-3" />
+                                </button>
+                              </div>
+                              <p className="text-sm text-slate-600 font-medium leading-relaxed select-all line-clamp-6">{longCaption}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Carousel Breakdown */}
+                        {breakdown && selectedAsset?.assetType === 'carousel' && (
+                          <div className="group bg-indigo-50/60 p-6 rounded-[24px] border border-indigo-100">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="text-[9px] font-black text-indigo-400 uppercase tracking-[3px]">Slide Breakdown</span>
+                              <button onClick={() => { navigator.clipboard.writeText(String(breakdown)); toast.success('Breakdown copied!'); }} className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-lg bg-white text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all flex items-center justify-center shadow-sm">
+                                <Copy className="w-3 h-3" />
+                              </button>
+                            </div>
+                            <p className="text-sm text-indigo-700 font-medium leading-relaxed select-all whitespace-pre-line">{String(breakdown)}</p>
+                          </div>
+                        )}
+
+                        {/* Hashtags */}
+                        {hashtags.length > 0 && (
+                          <div>
+                            <div className="flex items-center justify-between mb-4">
+                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-[4px]">Hashtags</span>
+                              <button
+                                onClick={() => { navigator.clipboard.writeText(hashtags.map(h => `#${h.replace('#','')}`).join(' ')); toast.success('All hashtags copied!'); }}
+                                className="px-4 h-8 bg-primary text-white text-[9px] font-black uppercase tracking-widest rounded-xl hover:scale-105 transition-all shadow-sm flex items-center gap-2"
+                              >
+                                <Copy className="w-3 h-3" /> Copy All
+                              </button>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {hashtags.map((tag, i) => (
+                                <button
+                                  key={i}
+                                  onClick={() => { navigator.clipboard.writeText(`#${String(tag).replace('#','')}`); toast.success(`Copied!`); }}
+                                  className="px-4 py-2 bg-slate-50 hover:bg-primary/5 border border-slate-100 hover:border-primary/30 rounded-xl text-[10px] font-bold text-slate-500 hover:text-primary transition-all"
+                                >
+                                  #{String(tag).replace('#', '')}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Variant Orchestration Header */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
@@ -3458,7 +3800,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                         }}
                         className="px-5 py-3 bg-slate-50 hover:bg-white border border-slate-100 hover:border-primary/30 rounded-2xl text-[10px] font-bold text-slate-500 hover:text-primary transition-all shadow-sm"
                       >
-                        #{tag.replace('#', '')}
+                        #{typeof tag === 'string' ? tag.replace('#', '') : (tag?.name || tag?.hashtag || 'viral')}
                       </button>
                     ))}
                   </div>
@@ -4114,7 +4456,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                   <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest mb-3">✅ Brand Data Detected</p>
                   <div className="flex items-center gap-4">
                     {onboardingData.brandLogoPreview && (
-                      <img src={onboardingData.brandLogoPreview} className="w-12 h-12 object-contain rounded-xl border border-emerald-200 bg-white p-1" alt="Logo" onError={e => e.target.style.display = 'none'} />
+                      <img src={toProxyUrl(onboardingData.brandLogoPreview)} className="w-12 h-12 object-contain rounded-xl border border-emerald-200 bg-white p-1" alt="Logo" onError={e => e.target.style.display = 'none'} />
                     )}
                     <div className="flex-1 min-w-0">
                       {onboardingData.brandName && <p className="text-sm font-black text-slate-800 truncate">{onboardingData.brandName}</p>}
@@ -4132,19 +4474,64 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          {/* ── STEP 3: Brand Description ── */}
+          {/* ── STEP 3: Brand Description & Strategy Documents ── */}
           {onboardingStep === 3 && (
-            <div className="space-y-4">
-              <label htmlFor="businessDescription" className="sr-only">Business Description</label>
-              <textarea
-                id="businessDescription"
-                rows={6}
-                placeholder={`Describe what ${onboardingData.brandName || 'your company'} does, who you serve, and what makes you unique...\n\ne.g. We are a health supplement brand focused on Indian athletes and fitness enthusiasts...`}
-                value={onboardingData.businessDescription || ''}
-                onChange={e => setOnboardingData({ ...onboardingData, businessDescription: e.target.value })}
-                className="w-full p-5 rounded-2xl border-2 border-slate-200 focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none text-sm font-semibold text-slate-800 transition-all bg-white shadow-sm resize-none leading-relaxed"
-              />
-              <p className="text-xs text-slate-400">AI Ads uses this to generate contextually relevant posts, captions, and creatives for your brand.</p>
+            <div className="space-y-6">
+              <div className="space-y-2">
+                 <label htmlFor="businessDescription" className="text-xs font-black uppercase tracking-widest text-slate-500">Business Description</label>
+                 <textarea
+                   id="businessDescription"
+                   rows={5}
+                   placeholder={`Describe what ${onboardingData.brandName || 'your company'} does, who you serve, and what makes you unique...\n\ne.g. We are a health supplement brand focused on Indian athletes and fitness enthusiasts...`}
+                   value={onboardingData.businessDescription || ''}
+                   onChange={e => setOnboardingData({ ...onboardingData, businessDescription: e.target.value })}
+                   className="w-full p-5 rounded-2xl border-2 border-slate-200 focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none text-sm font-semibold text-slate-800 transition-all bg-white shadow-sm resize-none leading-relaxed"
+                 />
+              </div>
+
+              <div className="p-6 rounded-3xl bg-slate-50 border-2 border-dashed border-slate-200 space-y-4">
+                 <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-800 uppercase tracking-widest">Brand Guidelines / Documents</p>
+                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">PDF or Word (More docs = Better AI)</p>
+                    </div>
+                    <button 
+                      onClick={() => document.getElementById('onboarding-docs').click()}
+                      className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-[9px] font-black uppercase tracking-widest text-primary hover:bg-primary/5 transition-all shadow-sm"
+                    >
+                      + Add Documents
+                    </button>
+                    <input 
+                      type="file" 
+                      id="onboarding-docs" 
+                      className="hidden" 
+                      multiple 
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files);
+                        setOverviewFiles(prev => [...prev, ...files]);
+                        // This triggers the useEffect global scan
+                      }} 
+                      accept=".pdf,.doc,.docx" 
+                    />
+                 </div>
+
+                 {overviewFiles.length > 0 && (
+                   <div className="flex flex-wrap gap-2 pt-2">
+                     {overviewFiles.map((f, i) => (
+                        <div key={i} className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-xl">
+                          <FileText className="w-3 h-3 text-primary" />
+                          <span className="text-[8px] font-black text-primary truncate max-w-[100px]">{f.name}</span>
+                          <X 
+                            className="w-3 h-3 text-primary cursor-pointer hover:scale-120" 
+                            onClick={() => setOverviewFiles(prev => prev.filter((_, idx) => idx !== i))}
+                          />
+                        </div>
+                     ))}
+                   </div>
+                 )}
+              </div>
+              
+              <p className="text-[10px] text-slate-400 font-medium italic">AISA™ uses these documents to extract your brand's unique voice, unique selling points, and target demographics automatically.</p>
             </div>
           )}
 
@@ -4157,17 +4544,13 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                 <div className="flex items-center gap-4">
                   <div className="w-20 h-20 border-2 border-dashed border-slate-300 rounded-2xl flex items-center justify-center hover:border-primary hover:bg-indigo-50/50 transition-all cursor-pointer group shadow-sm bg-white overflow-hidden relative shrink-0">
                     {onboardingData.brandLogoPreview ? (
-                      <>
-                        <img src={onboardingData.brandLogoPreview} alt="Logo Preview" className="w-full h-full object-contain p-2" onError={e => e.target.style.display = 'none'} />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <span className="text-white text-[10px] font-bold">Change</span>
-                        </div>
-                      </>
+                      <img 
+                        src={toProxyUrl(onboardingData.brandLogoPreview)} 
+                        className="w-full h-full object-contain p-2" 
+                        alt="Logo" 
+                      />
                     ) : (
-                      <div className="flex flex-col items-center justify-center text-slate-400 group-hover:text-primary">
-                        <Upload className="w-5 h-5 mb-1" />
-                        <span className="text-[9px] font-bold">Upload</span>
-                      </div>
+                      <Upload className="w-6 h-6 text-slate-300 group-hover:text-primary transition-colors" />
                     )}
                     <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={e => {
                       if (e.target.files?.[0]) {
@@ -4177,9 +4560,9 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                     }} />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-slate-700">Upload your logo</p>
-                    <p className="text-xs text-slate-400 mt-1">PNG, JPG or SVG · Used in all AI-generated posts</p>
-                    {onboardingData.brandLogoPreview && <p className="text-[10px] font-bold text-emerald-600 mt-2">✓ Logo ready</p>}
+                    <p className="text-sm font-bold text-slate-700">Brand identity symbol</p>
+                    <p className="text-xs text-slate-400 mt-1">Found on your site or manual upload · Used in AI Creatives</p>
+                    {onboardingData.brandLogoPreview && <p className="text-[10px] font-bold text-emerald-600 mt-2 flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Identity Synced</p>}
                   </div>
                 </div>
               </div>
@@ -4270,31 +4653,26 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
   };
 
   const renderUserProfileModal = () => {
+    const personalWs = allWorkspaces.find(w => w.isPersonalProfile) || workspace;
+    
     const handleEditProfileClick = () => {
       setEditableProfileData({
-        customName: workspace?.onboarding?.customName || '',
-        role: workspace?.onboarding?.role || '',
-        industry: workspace?.onboarding?.industry || '',
-        postingFrequency: workspace?.onboarding?.postingFrequency || '',
-        website: workspace?.onboarding?.website || '',
-        biggestChallenge: workspace?.onboarding?.biggestChallenge || '',
-        contentCreationTime: workspace?.onboarding?.contentCreationTime || '',
-        adsComfortLevel: workspace?.onboarding?.adsComfortLevel || '',
-        selectedPlatforms: workspace?.selectedPlatforms || [],
+        fullName: personalWs?.onboarding?.customName || (user?.name) || '',
+        role: personalWs?.onboarding?.role || '',
+        industry: personalWs?.onboarding?.industry || '',
+        selectedPlatforms: personalWs?.selectedPlatforms || [],
+        avatarPreview: user?.avatar || ''
       });
       setIsEditingProfile(true);
     };
 
     const calculateProfileCompleteness = () => {
       const fields = [
-        workspace?.onboarding?.customName,
-        workspace?.onboarding?.role,
-        workspace?.onboarding?.industry,
-        workspace?.onboarding?.postingFrequency,
-        workspace?.onboarding?.website,
-        workspace?.onboarding?.biggestChallenge,
-        workspace?.onboarding?.contentCreationTime,
-        workspace?.onboarding?.adsComfortLevel,
+        personalWs?.onboarding?.customName,
+        personalWs?.onboarding?.role,
+        personalWs?.onboarding?.industry,
+        personalWs?.onboarding?.postingFrequency,
+        personalWs?.onboarding?.website,
       ];
       const filled = fields.filter(f => f && f !== '' && f !== 'Setup Required').length;
       return Math.round((filled / fields.length) * 100);
@@ -4304,11 +4682,19 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
       try {
         setIsSaving(true);
         const res = await apiService.completeSocialOnboarding({
-          workspaceId: workspace._id,
+          workspaceId: personalWs?._id || workspace?._id,
           ...editableProfileData
         });
         if (res.success) {
-          setWorkspace(res.workspace);
+          // If the updated workspace was the active one, update it.
+          // In reality, this always updates the personal profile which isn't usually the brand view.
+          if (workspace?._id === res.workspace._id) {
+            setWorkspace(res.workspace);
+          }
+          // Refresh workspaces list
+          const allRes = await apiService.getSocialAgentWorkspaces();
+          if (allRes.success) setAllWorkspaces(allRes.workspaces);
+          
           setIsEditingProfile(false);
           toast.success("Profile updated successfully!");
         }
@@ -4362,9 +4748,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                 // Priority for User Profile: 1. User Avatar -> 2. Saved Multi-brand Onboarding Image -> 3. Brand Logo (Fallback)
                 const rawUrl = currentUser?.avatar || workspace?.onboarding?.profileImageUrl || activeProfile?.logoUrl;
                 if (rawUrl) {
-                  const finalUrl = (typeof rawUrl === 'string' && rawUrl.startsWith('http'))
-                    ? `${API}/media/proxy?url=${encodeURIComponent(rawUrl)}`
-                    : rawUrl;
+                  const finalUrl = toProxyUrl(rawUrl);
                   return <img src={finalUrl} alt="User Profile" className="w-full h-full object-cover" onError={e => e.target.src = "/social_media_3d_logo.png"} />;
                 }
                 const nameToUse = workspace?.onboarding?.customName || currentUser?.name || activeProfile?.companyName || 'U';
@@ -4480,9 +4864,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                               {(() => {
                                 const ow = allWorkspaces.find(w => w.onboarding?.completed) || workspace;
                                 if (field.key === 'website' && ow?.onboarding?.[field.key]) {
-                                  return <a href={ow.onboarding[field.key]} target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">{ow.onboarding[field.key].replace(/^https?:\/\//, '')}</a>;
+                                  const val = ow?.onboarding?.[field.key];
+                                  return (typeof val === 'string') ? <a href={val} target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">{val.replace(/^https?:\/\//, '') || 'Website'}</a> : 'N/A';
                                 }
-                                return ow?.onboarding?.[field.key]?.replace(/_/g, ' ') || 'Awaiting Definition';
+                                return ow?.onboarding?.[field.key]?.toString()?.replace(/_/g, ' ') || 'Awaiting Definition';
                               })()}
                             </p>
                           )}
@@ -4945,9 +5330,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                         const nameToUse = activeProfile?.companyName || (isEditingActive ? brandProfile?.companyName : null) || workspace?.workspaceName || currentUser?.name || 'B';
 
                         if (rawUrl) {
-                          const finalUrl = (typeof rawUrl === 'string' && rawUrl.startsWith('http'))
-                            ? `${API}/media/proxy?url=${encodeURIComponent(rawUrl)}`
-                            : rawUrl;
+                          const finalUrl = toProxyUrl(rawUrl);
                           return (
                             <img
                               src={finalUrl}
