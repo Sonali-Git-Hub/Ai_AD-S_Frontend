@@ -235,7 +235,9 @@ const CustomVideoPlayer = ({ src, compact = false }) => {
             ref={containerRef}
             className={`relative overflow-hidden bg-black/95 rounded-2xl border border-white/5 shadow-2xl group flex flex-col justify-center ${isFullscreen 
                 ? 'w-full h-full rounded-none border-none' 
-                : `${aspectRatio} ${aspectRatio.includes('video') ? 'w-full' : 'w-auto mx-auto max-h-[550px] px-2'}`
+                : compact
+                    ? `w-full max-w-[500px] max-h-[400px] ${aspectRatio}`
+                    : `${aspectRatio} ${aspectRatio.includes('video') ? 'w-full max-h-[70vh]' : 'w-auto mx-auto max-h-[550px] px-2'}`
             }`}
             onMouseMove={handleInteraction}
             onMouseLeave={handleMouseLeave}
