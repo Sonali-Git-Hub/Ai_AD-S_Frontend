@@ -565,6 +565,7 @@ const Chat = () => {
       window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   const [messages, setMessages] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
   const [excelHTML, setExcelHTML] = useState(null);
   const [textPreview, setTextPreview] = useState(null);
   const [sessions, setSessions] = useRecoilState(sessionsData);
@@ -3042,6 +3043,14 @@ const Chat = () => {
           console.log(`[DEBUG] First message role: ${processedHistory[0].role}, content preview: ${processedHistory[0].content?.substring(0, 20)}`);
         }
         setMessages(processedHistory);
+
+        // Populate suggestions from the last AI message if available
+        if (processedHistory.length > 0) {
+          const lastMsg = processedHistory[processedHistory.length - 1];
+          if ((lastMsg.role === 'model' || lastMsg.role === 'assistant') && lastMsg.suggestions) {
+            setSuggestions(lastMsg.suggestions);
+          }
+        }
       } else {
         setCurrentSessionId('new');
 
@@ -3148,8 +3157,13 @@ const Chat = () => {
 
   const isSendingRef = useRef(false);
 
+  const handleSuggestionClick = (text) => {
+    handleSendMessage(null, text);
+  };
+
   const handleSendMessage = async (e, overrideContent, toolOverride = null) => {
     if (e) e.preventDefault();
+    setSuggestions([]);
 
     // GLOBAL LOCK & DEBOUNCE (Combined with isSendingRef for maximum protection)
     const now = Date.now();
@@ -3917,11 +3931,20 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
             if (aiImageUrl) finalModelMsg.imageUrl = aiImageUrl;
             finalModelMsg.isRealTime = isRealTimeResponse;
             finalModelMsg.sources = responseSources;
-            if (aiResponseData.suggestions) finalModelMsg.suggestions = aiResponseData.suggestions;
             if (aiResponseData.snapshot) finalModelMsg.snapshot = aiResponseData.snapshot;
-          } else if (i === responseParts.length - 1) {
-            // For multi-part responses, add suggestions to the last part
-            if (aiResponseData.suggestions) finalModelMsg.suggestions = aiResponseData.suggestions;
+          }
+
+          // Set Smart Suggestions for the last response part
+          if (i === responseParts.length - 1) {
+            const hasSmartSuggestions = aiResponseData?.suggestions && Array.isArray(aiResponseData.suggestions) && aiResponseData.suggestions.length > 0;
+            const finalSuggestions = hasSmartSuggestions ? aiResponseData.suggestions : [
+              "Explain in simple terms",
+              "Give examples",
+              "Summarize this"
+            ];
+            const trimmedSuggestions = finalSuggestions.slice(0, 3);
+            finalModelMsg.suggestions = trimmedSuggestions;
+            setSuggestions(trimmedSuggestions);
           }
 
           // After typing is complete, save the full message to history
@@ -3930,7 +3953,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
           // Refresh usage counts after successful generation
           refreshSubscription();
 
-          // CRITICAL: Update the state with the final message including conversion data
+          // CRITICAL: Update the state with the final message including suggestion data
           setMessages((prev) =>
             prev.map(m => m.id === msgId ? finalModelMsg : m)
           );
@@ -4991,7 +5014,12 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         }
 
         // Optimistic update
-        setMessages(prev => prev.filter(m => !msgsToDelete.includes(m.id)));
+        setMessages(prev => {
+          const newMessages = prev.filter(m => !msgsToDelete.includes(m.id));
+          // If the last message in history was deleted or affected, reset suggestions
+          setSuggestions([]);
+          return newMessages;
+        });
 
         // Delete from storage
         for (const id of msgsToDelete) {
@@ -5522,7 +5550,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
             <>
               {/* Extra large Top Spacer for premium starting position */}
               <div className="h-[5vh] w-full shrink-0" />
-              {messages.map((msg) => (
+              {messages.map((msg, idx) => (
                 <div
                   key={msg.id}
                   className={`chatgpt-message-row group ${msg.role === 'user' ? 'user-row' : 'ai-row'}`}
@@ -6407,29 +6435,23 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             </div>
                           </div>
                         )}
+                      
+                      {/* Integrated Smart Suggestions (Only for the latest AI response) */}
+                      {idx === messages.length - 1 && (msg.role === 'model' || msg.role === 'assistant') && 
+                       suggestions.length > 0 && !isLoading && !typingMessageId && (
+                        <div className="suggestions-container animate-in fade-in slide-in-from-bottom-3 duration-500">
+                          {suggestions.map((item, index) => (
+                            <button
+                              key={index}
+                              onClick={() => handleSuggestionClick(item)}
+                              className="suggestion-btn"
+                            >
+                              {item}
+                            </button>
+                          ))}
+                        </div>
+                      )}
 
-                      {/* Related Questions Suggestions */}
-                      {(msg.role === 'model' || msg.role === 'assistant') &&
-                        msg.suggestions && msg.suggestions.length > 0 &&
-                        typingMessageId !== msg.id && (
-                          <div className="mt-6 flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2 duration-700">
-                            <div className="flex items-center gap-2 px-1">
-                              <Sparkles className="w-3.5 h-3.5 text-blue-500/60" />
-                              <span className="text-[10px] font-bold uppercase tracking-widest text-subtext/60">Suggestions</span>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {msg.suggestions.map((q, idx) => (
-                                <button
-                                  key={idx}
-                                  onClick={() => handleSendMessage(null, q)}
-                                  className="text-[13px] px-4 py-2 rounded-2xl border border-border bg-white dark:bg-white/5 text-maintext hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95 text-left shadow-sm"
-                                >
-                                  {q}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
 
                       {/* Timestamp & User Actions */}
                       <div className="mt-4 flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -6491,6 +6513,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             "AISA is thinking"
                   }
                 />
+              )}
               )}
             </>
           )}

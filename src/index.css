@@ -898,3 +898,35 @@ html.lenis, html.lenis body {
   width: 14px !important;
   height: 14px !important;
 }
+
+/* Chat Suggestions */
+.suggestions-container {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.suggestion-btn {
+  background: linear-gradient(135deg, #6b5cff, #8f7cff);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(107, 92, 255, 0.2);
+}
+
+.suggestion-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 6px 16px rgba(107, 92, 255, 0.3);
+  filter: brightness(1.1);
+}
+
+.suggestion-btn:active {
+  transform: scale(0.98);
+}
