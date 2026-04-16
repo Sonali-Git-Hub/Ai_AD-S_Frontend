@@ -4,7 +4,6 @@ import { RecoilRoot } from 'recoil'
 import { useEffect } from 'react'
 import AOS from 'aos'
 import 'aos/dist/aos.css'
-import { ReactLenis } from '@studio-freight/react-lenis'
 
 function App() {
   useEffect(() => {
@@ -16,12 +15,11 @@ function App() {
   }, [])
 
   return (
-    <ReactLenis root>
-      <RecoilRoot>
-        <NavigationProvider />
-      </RecoilRoot>
-    </ReactLenis>
+    <RecoilRoot>
+      <NavigationProvider />
+    </RecoilRoot>
   )
 }
 
 export default App
+
