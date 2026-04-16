@@ -11,6 +11,7 @@ import AiPersonalAssistantDashboard from './pages/AiPersonalAssistant/Dashboard'
 import Pricing from './pages/Pricing';
 import SocialAgentPage from './pages/SocialAgentPage.jsx';
 import CreditUpsellPopup from './Components/CreditUpsellPopup';
+import SharedChat from './pages/SharedChat';
 
 
 
@@ -231,6 +232,7 @@ const NavigateProvider = () => {
         <Route path={AppRoute.TERMS_OF_SERVICE} element={<TermsOfService />} />
         <Route path={AppRoute.COOKIE_POLICY} element={<CookiePolicy />} />
         <Route path="/pricing" element={<Pricing />} />
+        <Route path="/share/:shareId" element={<SharedChat />} />
 
         {/* Dashboard (Protected) */}
         <Route

@@ -28,9 +28,11 @@ import {
   Check,
   FolderPlus,
   Folder,
-  FolderOpen
+  FolderOpen,
+  Share2
 } from 'lucide-react';
 import { apis, AppRoute } from '../../types';
+import ShareModal from '../ShareModal';
 import { faqs } from '../../constants';
 import NotificationBar from '../NotificationBar/NotificationBar.jsx';
 import { useRecoilState } from 'recoil';
@@ -80,6 +82,9 @@ const Sidebar = ({ isOpen, onClose }) => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isProjectsExpanded, setIsProjectsExpanded] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [currentShareId, setCurrentShareId] = useState('');
+  const [sessionToShare, setSessionToShare] = useState(null);
   
   // Magic Glow State
   const glowX = useMotionValue(0);
@@ -274,6 +279,25 @@ const Sidebar = ({ isOpen, onClose }) => {
       setSessions(oldSessions);
     } finally {
       setEditingSessionId(null);
+    }
+  };
+
+  const handleShareSession = async (e, session) => {
+    e.stopPropagation();
+    const shareToast = toast.loading("Generating share link...");
+    try {
+      const response = await chatStorageService.shareSession(session.sessionId);
+      if (response.success) {
+        setCurrentShareId(response.shareId);
+        setSessionToShare(session);
+        setIsShareModalOpen(true);
+        toast.dismiss(shareToast);
+      } else {
+        throw new Error("Failed to generate share link");
+      }
+    } catch (err) {
+      console.error("Share error:", err);
+      toast.error("Could not generate share link. Please try again.", { id: shareToast });
     }
   };
 
@@ -657,13 +681,13 @@ const Sidebar = ({ isOpen, onClose }) => {
                           </button>
                         </div>
                       ) : (
-                        <div className="relative">
+                        <div className="sidebar-chat-container relative">
                           <button
                             onClick={() => {
                               navigate(`/dashboard/chat/${session.sessionId}`);
                               onClose();
                             }}
-                            className={`w-full text-left px-5 py-4 rounded-2xl text-sm transition-all duration-500 truncate pr-20 group-hover:shadow-[0_10px_30px_rgba(0,0,0,0.2)]
+                            className={`sidebar-chat-item group/item transition-all duration-500
                             ${currentSessionId === session.sessionId
                                 ? (theme === 'dark' ? 'bg-white/[0.08] text-white border border-white/10 shadow-2xl backdrop-blur-3xl' : 'bg-primary/10 text-primary border border-primary/20 shadow-sm backdrop-blur-3xl')
                                 : (theme === 'dark' ? 'text-subtext/60 hover:bg-white/[0.04] hover:text-white border border-transparent' : 'text-slate-600 hover:bg-black/[0.04] hover:text-slate-900 border border-transparent')
@@ -676,36 +700,44 @@ const Sidebar = ({ isOpen, onClose }) => {
                                 className="absolute left-1 top-4 bottom-4 w-1 bg-primary rounded-full shadow-[0_0_10px_rgba(var(--primary),0.5)]"
                               />
                             )}
-                            <div className="font-bold truncate text-[14px] tracking-tight mb-1">{highlightMatch(session.title || "Untitled Intelligence", searchQuery)}</div>
-                            <div className="flex items-center gap-2">
-                              <div className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 ${theme === 'dark' ? 'text-subtext/40' : 'text-slate-500'}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${currentSessionId === session.sessionId ? 'bg-primary animate-pulse' : (theme === 'dark' ? 'bg-white/20' : 'bg-slate-300')}`}></span>
-                                {new Date(session.lastModified).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                            
+                            <div className="sidebar-chat-title-group text-left">
+                              <div className="sidebar-chat-title mb-1">
+                                {highlightMatch(session.title || "Untitled Intelligence", searchQuery)}
                               </div>
-                              {searchQuery && session.projectId && (
-                                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/10 border border-primary/20">
-                                  <Folder className="w-2.5 h-2.5 text-primary" />
-                                  <span className="text-[9px] font-bold text-primary truncate max-w-[60px]">
-                                    {highlightMatch(projects.find(p => p._id === session.projectId)?.name || "Personal", searchQuery)}
-                                  </span>
+                              <div className="flex items-center gap-2">
+                                <div className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 ${theme === 'dark' ? 'text-subtext/40' : 'text-slate-500'}`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${currentSessionId === session.sessionId ? 'bg-primary animate-pulse' : (theme === 'dark' ? 'bg-white/20' : 'bg-slate-300')}`}></span>
+                                  {new Date(session.lastModified).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                 </div>
-                              )}
+                                {searchQuery && session.projectId && (
+                                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/10 border border-primary/20">
+                                    <Folder className="w-2.5 h-2.5 text-primary" />
+                                    <span className="text-[9px] font-bold text-primary truncate max-w-[60px]">
+                                      {highlightMatch(projects.find(p => p._id === session.projectId)?.name || "Personal", searchQuery)}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div className="sidebar-chat-actions">
+                              <button
+                                onClick={(e) => startRename(e, session)}
+                                className="sidebar-chat-action-btn"
+                                title="Rename Chat"
+                              >
+                                <Edit2 />
+                              </button>
+                              <button
+                                onClick={(e) => handleDeleteSession(e, session.sessionId)}
+                                className="sidebar-chat-action-btn delete"
+                                title="Delete Chat"
+                              >
+                                <X />
+                              </button>
                             </div>
                           </button>
-                          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-x-4 group-hover:translate-x-0">
-                            <button
-                              onClick={(e) => startRename(e, session)}
-                              className="p-2 text-subtext hover:text-primary transition-all bg-white/5 hover:bg-white/10 rounded-xl border border-white/5"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={(e) => handleDeleteSession(e, session.sessionId)}
-                              className="p-2 text-subtext hover:text-red-500 transition-all bg-white/5 hover:bg-white/10 rounded-xl border border-white/5"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
                         </div>
                       )}
                     </motion.div>
@@ -824,6 +856,13 @@ const Sidebar = ({ isOpen, onClose }) => {
         title={t('deleteProjectTitle')}
         description={t('deleteProjectDesc')}
         confirmText={t('deleteProjectLabel')}
+      />
+      
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        shareId={currentShareId}
+        sessionTitle={sessionToShare?.title || "Shared Chat"}
       />
     </>
   );

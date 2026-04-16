@@ -816,3 +816,69 @@ html.lenis, html.lenis body {
   flex-direction: column;
   align-items: flex-end;
 }
+
+/* Sidebar Chat Item Fixes */
+.sidebar-chat-item {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  width: 100% !important;
+  padding: 12px 16px !important;
+  gap: 12px !important;
+  border-radius: 16px !important;
+}
+
+.sidebar-chat-title-group {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-chat-title {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.sidebar-chat-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+  transition: all 0.3s ease;
+  transform: translateX(10px);
+}
+
+.sidebar-chat-container:hover .sidebar-chat-actions {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.sidebar-chat-action-btn {
+  padding: 6px !important;
+  border-radius: 8px !important;
+  color: var(--muted-foreground) !important;
+  transition: all 0.2s ease !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.sidebar-chat-action-btn:hover {
+  color: var(--primary) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  transform: translateY(-1px);
+}
+
+.sidebar-chat-action-btn.delete:hover {
+  color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.1) !important;
+}
+
+.sidebar-chat-action-btn svg {
+  width: 14px !important;
+  height: 14px !important;
+}

@@ -272,6 +272,40 @@ export const chatStorageService = {
        console.error("Concurrent title generation failed:", error);
        return null;
     }
+  },
+
+  async shareSession(sessionId) {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/chat/${sessionId}/share`, {}, {
+        headers: getAuthHeaders(),
+        withCredentials: true
+      });
+      return response.data; // { success: true, shareId: '...' }
+    } catch (error) {
+      console.error("Failed to share session:", error);
+      throw error;
+    }
+  },
+
+  async getSharedSession(shareId) {
+    try {
+      // Note: Backend is now configured to handle /api/public/share/:shareId
+      const response = await axios.get(`${API_BASE_URL}/public/share/${shareId}`);
+      return response.data; // { title, messages, lastModified, detectedMode }
+    } catch (error) {
+      console.error("Failed to fetch shared session:", error);
+      throw error;
+    }
+  },
+
+  async duplicateSharedSession(shareId, userId = null) {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/chat/duplicate`, { shareId, userId });
+      return response.data; // { success, sessionId }
+    } catch (error) {
+      console.error("Failed to duplicate shared session:", error);
+      throw error;
+    }
   }
 };
 
