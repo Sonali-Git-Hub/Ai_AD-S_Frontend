@@ -6514,7 +6514,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                   }
                 />
               )}
-              )}
             </>
           )}
 
