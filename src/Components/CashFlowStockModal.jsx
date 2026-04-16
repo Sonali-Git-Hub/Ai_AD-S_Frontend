@@ -342,42 +342,42 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect }) => {
 
    return (
       <AnimatePresence>
-         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-1 sm:p-4 bg-black/40 backdrop-blur-sm">
             <motion.div
                initial={{ opacity: 0, scale: 0.98 }}
                animate={{ opacity: 1, scale: 1 }}
                exit={{ opacity: 0, scale: 0.98 }}
-               className="relative w-full w-[95vw] max-w-7xl bg-[#fdfaf5] rounded-[14px] shadow-[0_30px_70px_-20px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col h-[94vh] border border-white/10"
+               className="relative w-full w-[99vw] sm:w-[95vw] max-w-7xl bg-[#fdfaf5] rounded-[10px] sm:rounded-[14px] shadow-[0_30px_70px_-20px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col h-[98vh] sm:h-[94vh] border border-white/10"
             >
                {/* Header */}
-               <div className="px-6 py-5 bg-[#5154ff] flex items-center justify-between shrink-0">
-                  <div className="flex items-center gap-4">
-                     <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white border border-white/5 shadow-inner">
-                        <TrendingUp className="w-6 h-6 shadow-sm" />
+               <div className="px-3 py-3 sm:px-6 sm:py-5 bg-[#5154ff] flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-white/10 flex items-center justify-center text-white border border-white/5 shadow-inner shrink-0">
+                        <TrendingUp className="w-4 h-4 sm:w-6 sm:h-6 shadow-sm" />
                      </div>
-                     <div>
-                        <h2 className="text-2xl font-black text-white leading-tight font-sans tracking-tight">AI CashFlow Explorer</h2>
-                        <p className="text-[10px] text-white/60 font-black uppercase tracking-[0.2em] mt-0.5">Market Intelligence · Real-time Analytics · Strategy</p>
+                     <div className="min-w-0">
+                        <h2 className="text-base sm:text-2xl font-black text-white leading-tight font-sans tracking-tight truncate">AI CashFlow Explorer</h2>
+                        <p className="text-[8px] sm:text-[10px] text-white/60 font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] mt-0.5 truncate">Market Intelligence · Real-time Analytics · Strategy</p>
                      </div>
                   </div>
-                  <button onClick={onClose} className="w-10 h-10 flex items-center justify-center text-white/90 hover:text-white group">
-                     <X className="w-8 h-8 group-hover:rotate-90 transition-transform" />
+                  <button onClick={onClose} className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-white/90 hover:text-white group shrink-0">
+                     <X className="w-6 h-6 sm:w-8 sm:h-8 group-hover:rotate-90 transition-transform" />
                   </button>
                </div>
 
                {/* Stock Selection Section */}
-               <div className="px-8 py-8 border-b border-gray-100 flex gap-6 bg-[#fdfaf5] shrink-0">
-                  <div className="flex-1 max-w-[320px] relative">
-                     <label className="block text-[11px] font-black text-[#999] uppercase tracking-[0.1em] mb-2.5 ml-1">Country</label>
+               <div className="px-3 py-3 sm:px-8 sm:py-8 border-b border-gray-100 flex flex-col sm:flex-row gap-3 sm:gap-6 bg-[#fdfaf5] shrink-0">
+                  <div className="flex-1 sm:max-w-[320px] relative">
+                     <label className="block text-[10px] sm:text-[11px] font-black text-[#999] uppercase tracking-[0.1em] mb-1.5 sm:mb-2.5 ml-1">Country</label>
                      <div
                         onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
                         className={`bg-white border ${isCountryDropdownOpen ? 'border-[#5154ff] ring-4 ring-[#5154ff]/10' : 'border-gray-200'
-                           } rounded-[14px] px-5 py-4 text-[14px] font-bold flex items-center gap-3 shadow-sm cursor-pointer group transition-all min-h-[54px] select-none`}
+                           } rounded-[10px] sm:rounded-[14px] px-3 py-2.5 sm:px-5 sm:py-4 text-[13px] sm:text-[14px] font-bold flex items-center gap-2 sm:gap-3 shadow-sm cursor-pointer group transition-all min-h-[44px] sm:min-h-[54px] select-none`}
                      >
-                        <span className="text-[22px] leading-none">{COUNTRIES.find(c => c.code === selectedCountry)?.flag || '🌐'}</span>
-                        <span className="text-[#888] font-extrabold text-[13px]">{selectedCountry}</span>
-                        <span className="text-[#111] flex-1">{COUNTRIES.find(c => c.code === selectedCountry)?.name || 'Unknown'}</span>
-                        <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${isCountryDropdownOpen ? 'rotate-180 text-[#5154ff]' : 'text-[#ccc] group-hover:text-[#5154ff]'
+                        <span className="text-[18px] sm:text-[22px] leading-none">{COUNTRIES.find(c => c.code === selectedCountry)?.flag || '🌐'}</span>
+                        <span className="text-[#888] font-extrabold text-[12px] sm:text-[13px]">{selectedCountry}</span>
+                        <span className="text-[#111] flex-1 text-[13px] sm:text-[14px] truncate">{COUNTRIES.find(c => c.code === selectedCountry)?.name || 'Unknown'}</span>
+                        <ChevronDown className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 ${isCountryDropdownOpen ? 'rotate-180 text-[#5154ff]' : 'text-[#ccc] group-hover:text-[#5154ff]'
                            }`} />
                      </div>
 
@@ -418,15 +418,15 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect }) => {
                   </div>
 
                   <div className="flex-1 relative">
-                     <label className="block text-[11px] font-black text-[#999] uppercase tracking-[0.1em] mb-2.5 ml-1">Stock</label>
+                     <label className="block text-[10px] sm:text-[11px] font-black text-[#999] uppercase tracking-[0.1em] mb-1.5 sm:mb-2.5 ml-1">Stock</label>
                      <div
                         onClick={() => setIsStockSelectOpen(!isStockSelectOpen)}
-                        className={`bg-white border ${isStockSelectOpen ? 'border-[#5154ff] ring-4 ring-[#5154ff]/10' : 'border-gray-200'} rounded-[14px] px-5 py-4 text-[14px] font-bold flex items-center justify-between shadow-sm cursor-pointer group transition-all min-h-[54px]`}
+                        className={`bg-white border ${isStockSelectOpen ? 'border-[#5154ff] ring-4 ring-[#5154ff]/10' : 'border-gray-200'} rounded-[10px] sm:rounded-[14px] px-3 py-2.5 sm:px-5 sm:py-4 text-[13px] sm:text-[14px] font-bold flex items-center justify-between shadow-sm cursor-pointer group transition-all min-h-[44px] sm:min-h-[54px]`}
                      >
-                        <span className="text-[#111] truncate">{selectedStock?.symbol} - {selectedStock?.name}</span>
-                        <div className="flex items-center gap-3">
+                        <span className="text-[#111] truncate text-[12px] sm:text-[14px]">{selectedStock?.symbol} - {selectedStock?.name}</span>
+                        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                            {isSearching && <Loader2 className="w-4 h-4 animate-spin text-[#5154ff]" />}
-                           <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${isStockSelectOpen ? 'rotate-180 text-[#5154ff]' : 'text-[#ccc] group-hover:text-[#5154ff]'}`} />
+                           <ChevronDown className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 ${isStockSelectOpen ? 'rotate-180 text-[#5154ff]' : 'text-[#ccc] group-hover:text-[#5154ff]'}`} />
                         </div>
                      </div>
 
@@ -475,12 +475,12 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect }) => {
                </div>
 
                {/* Tab Navigation */}
-               <div className="px-8 border-b border-gray-100 flex items-center gap-10 overflow-x-auto no-scrollbar bg-white shrink-0">
+               <div className="px-2 sm:px-8 border-b border-gray-100 flex items-center gap-3 sm:gap-10 overflow-x-auto no-scrollbar bg-white shrink-0">
                   {['Realtime chart', 'News', 'Historical chart', 'Advisory', 'Research and recommendation'].map(tab => (
                      <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        className={`py-5 text-[14px] font-black whitespace-nowrap transition-all border-b-2 tracking-wide uppercase ${activeTab === tab ? 'text-[#5154ff] border-[#5154ff]' : 'text-gray-400 border-transparent hover:text-gray-600'}`}
+                        className={`py-3 sm:py-5 text-[10px] sm:text-[14px] font-black whitespace-nowrap transition-all border-b-2 tracking-wide uppercase ${activeTab === tab ? 'text-[#5154ff] border-[#5154ff]' : 'text-gray-400 border-transparent hover:text-gray-600'}`}
                      >
                         {tab}
                      </button>
@@ -488,7 +488,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect }) => {
                </div>
 
                {/* Main Content Area */}
-               <div className="flex-1 overflow-y-auto px-8 py-8 bg-white custom-scrollbar">
+               <div className="flex-1 overflow-y-auto px-3 py-4 sm:px-8 sm:py-8 bg-white custom-scrollbar">
                   {isLoadingTab ? (
                      <div className="h-full flex flex-col items-center justify-center gap-6 text-[#999]">
                         <div className="relative">
@@ -514,53 +514,53 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect }) => {
                      <div className="animate-in fade-in slide-in-from-bottom-3 duration-700">
                         {/* Realtime Chart Tab */}
                         {activeTab === 'Realtime chart' && tabData['Realtime chart'] && (
-                           <div className="space-y-8">
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                 <div className="bg-[#fcf8f0] rounded-[20px] p-6 border border-[#f0ebe0] shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
-                                    <p className="text-[11px] font-black text-[#aaa] uppercase tracking-widest mb-2 flex items-center gap-2">
-                                       Live Price <Activity className="w-3 h-3 text-emerald-500 animate-pulse" />
+                           <div className="space-y-4 sm:space-y-8">
+                              <div className="grid grid-cols-3 gap-2 sm:grid-cols-3 sm:gap-6">
+                                 <div className="bg-[#fcf8f0] rounded-[12px] sm:rounded-[20px] p-3 sm:p-6 border border-[#f0ebe0] shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+                                    <p className="text-[8px] sm:text-[11px] font-black text-[#aaa] uppercase tracking-widest mb-1 sm:mb-2 flex items-center gap-1 sm:gap-2">
+                                       Live Price <Activity className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-500 animate-pulse" />
                                     </p>
-                                    <p className="text-4xl font-black text-[#111] tracking-tight">
+                                    <p className="text-lg sm:text-4xl font-black text-[#111] tracking-tight">
                                        {tabData['Realtime chart'].quote?.price ? `${currencySymbol}${parseFloat(tabData['Realtime chart'].quote.price).toLocaleString()}` : currencySymbol + '---'}
                                     </p>
-                                    <div className={`flex items-center gap-1.5 mt-3 text-[13px] font-bold ${parseFloat(tabData['Realtime chart'].quote?.change) >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                       <TrendingUp className={`w-4 h-4 ${parseFloat(tabData['Realtime chart'].quote?.change) < 0 ? 'rotate-180' : ''}`} />
+                                    <div className={`flex items-center gap-1 sm:gap-1.5 mt-1 sm:mt-3 text-[10px] sm:text-[13px] font-bold ${parseFloat(tabData['Realtime chart'].quote?.change) >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                       <TrendingUp className={`w-3 h-3 sm:w-4 sm:h-4 ${parseFloat(tabData['Realtime chart'].quote?.change) < 0 ? 'rotate-180' : ''}`} />
                                        {tabData['Realtime chart'].quote?.changePercent || '0.00%'}
                                     </div>
                                  </div>
-                                 <div className="bg-[#fcf8f0] rounded-[20px] p-6 border border-[#f0ebe0] shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
-                                    <p className="text-[11px] font-black text-[#aaa] uppercase tracking-widest mb-2">Day high</p>
-                                    <p className="text-4xl font-black text-[#111] tracking-tight">
+                                 <div className="bg-[#fcf8f0] rounded-[12px] sm:rounded-[20px] p-3 sm:p-6 border border-[#f0ebe0] shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+                                    <p className="text-[8px] sm:text-[11px] font-black text-[#aaa] uppercase tracking-widest mb-1 sm:mb-2">Day high</p>
+                                    <p className="text-lg sm:text-4xl font-black text-[#111] tracking-tight">
                                        {tabData['Realtime chart'].quote?.high ? `${currencySymbol}${parseFloat(tabData['Realtime chart'].quote.high).toLocaleString()}` : currencySymbol + '---'}
                                     </p>
-                                    <div className="mt-3 w-full bg-black/5 h-1 rounded-full overflow-hidden">
+                                    <div className="mt-1 sm:mt-3 w-full bg-black/5 h-1 rounded-full overflow-hidden">
                                        <motion.div initial={{ width: 0 }} animate={{ width: '85%' }} className="h-full bg-[#5154ff]" />
                                     </div>
                                  </div>
-                                 <div className="bg-[#fcf8f0] rounded-[20px] p-6 border border-[#f0ebe0] shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
-                                    <p className="text-[11px] font-black text-[#aaa] uppercase tracking-widest mb-2">Volume (24h)</p>
-                                    <p className="text-4xl font-black text-[#111] tracking-tight">
+                                 <div className="bg-[#fcf8f0] rounded-[12px] sm:rounded-[20px] p-3 sm:p-6 border border-[#f0ebe0] shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+                                    <p className="text-[8px] sm:text-[11px] font-black text-[#aaa] uppercase tracking-widest mb-1 sm:mb-2">Volume (24h)</p>
+                                    <p className="text-lg sm:text-4xl font-black text-[#111] tracking-tight">
                                        {tabData['Realtime chart'].quote?.volume ? (parseFloat(tabData['Realtime chart'].quote.volume) / 1000).toFixed(1) + 'k' : '---'}
                                     </p>
-                                    <div className="mt-4 flex items-center gap-2 text-[11px] font-black text-[#5154ff] uppercase tracking-wider">
-                                       AngelOne Live Data <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />
+                                    <div className="mt-2 sm:mt-4 flex items-center gap-1 sm:gap-2 text-[8px] sm:text-[11px] font-black text-[#5154ff] uppercase tracking-wider">
+                                       <span className="hidden sm:inline">AngelOne Live Data</span><span className="sm:hidden">Live</span> <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />
                                     </div>
                                  </div>
                               </div>
 
-                              <div className="bg-white rounded-[24px] p-8 border border-gray-100 shadow-sm min-h-[700px]">
-                                 <div className="flex items-center justify-between mb-8">
+                              <div className="bg-white rounded-[16px] sm:rounded-[24px] p-3 sm:p-8 border border-gray-100 shadow-sm min-h-[350px] sm:min-h-[700px]">
+                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-8 gap-3">
                                     <div>
-                                       <h3 className="text-lg font-black text-[#111] flex items-center gap-2.5">
-                                          Advanced Market Dynamics <Sparkles className="w-5 h-5 text-[#5154ff]" />
+                                       <h3 className="text-sm sm:text-lg font-black text-[#111] flex items-center gap-2">
+                                          Advanced Market Dynamics <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#5154ff]" />
                                        </h3>
-                                       <p className="text-[11px] font-bold text-[#aaa] uppercase tracking-[0.15em] mt-1 mb-3">Professional Dynamic Chart</p>
-                                       <div className="flex bg-gray-100/80 p-1 rounded-xl gap-1 w-fit border border-black/5">
+                                       <p className="text-[9px] sm:text-[11px] font-bold text-[#aaa] uppercase tracking-[0.15em] mt-1 mb-2 sm:mb-3">Professional Dynamic Chart</p>
+                                       <div className="flex bg-gray-100/80 p-0.5 sm:p-1 rounded-lg sm:rounded-xl gap-0.5 sm:gap-1 w-fit border border-black/5">
                                           {[{ label: '15m', val: '15' }, { label: '1H', val: '60' }, { label: '1D', val: 'D' }, { label: '1W', val: 'W' }, { label: '1M', val: 'M' }].map(intv => (
                                              <button
                                                 key={intv.val}
                                                 onClick={() => setChartInterval(intv.val)}
-                                                className={`px-3 py-1.5 text-[11px] font-black uppercase tracking-wider rounded-lg transition-all 
+                                                className={`px-2 py-1 sm:px-3 sm:py-1.5 text-[9px] sm:text-[11px] font-black uppercase tracking-wider rounded-md sm:rounded-lg transition-all 
                                                ${chartInterval === intv.val ? 'bg-white text-[#5154ff] shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)] border border-black/5' : 'text-[#888] hover:text-[#555] hover:bg-black/5 border border-transparent'}`}
                                              >
                                                 {intv.label}
@@ -569,27 +569,27 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect }) => {
                                        </div>
                                     </div>
                                     {tabData['Realtime chart'].quote?.price && (
-                                       <div className="flex items-center gap-3">
-                                          <button onClick={() => setFullScreenChart('realtime')} className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-[11px] font-black uppercase tracking-wider rounded-lg transition-colors mr-4 border border-gray-200 shadow-sm">
-                                             <Maximize className="w-3.5 h-3.5" /> Pro View
+                                       <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                                          <button onClick={() => setFullScreenChart('realtime')} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 sm:px-4 sm:py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-[9px] sm:text-[11px] font-black uppercase tracking-wider rounded-lg transition-colors sm:mr-4 border border-gray-200 shadow-sm">
+                                             <Maximize className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Pro View
                                           </button>
-                                          <div className="flex flex-col items-center justify-center px-5 py-1.5 bg-[#fffafb] border border-[#f23645] rounded-[6px] min-w-[100px] shadow-sm cursor-pointer hover:bg-red-50 transition-colors">
-                                             <span className="text-[18px] font-semibold text-[#f23645] leading-tight">
+                                          <div className="flex flex-col items-center justify-center px-3 py-1 sm:px-5 sm:py-1.5 bg-[#fffafb] border border-[#f23645] rounded-[6px] min-w-[70px] sm:min-w-[100px] shadow-sm cursor-pointer hover:bg-red-50 transition-colors">
+                                             <span className="text-[14px] sm:text-[18px] font-semibold text-[#f23645] leading-tight">
                                                 {parseFloat(tabData['Realtime chart'].quote.price - 0.25).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                              </span>
-                                             <span className="text-[12px] font-medium text-[#f23645] uppercase tracking-wide">SELL</span>
+                                             <span className="text-[10px] sm:text-[12px] font-medium text-[#f23645] uppercase tracking-wide">SELL</span>
                                           </div>
-                                          <span className="text-[13px] font-medium text-[#333]">0.50</span>
-                                          <div className="flex flex-col items-center justify-center px-5 py-1.5 bg-[#f8fbff] border border-[#2962ff] rounded-[6px] min-w-[100px] shadow-sm cursor-pointer hover:bg-blue-50 transition-colors">
-                                             <span className="text-[18px] font-semibold text-[#2962ff] leading-tight">
+                                          <span className="text-[11px] sm:text-[13px] font-medium text-[#333]">0.50</span>
+                                          <div className="flex flex-col items-center justify-center px-3 py-1 sm:px-5 sm:py-1.5 bg-[#f8fbff] border border-[#2962ff] rounded-[6px] min-w-[70px] sm:min-w-[100px] shadow-sm cursor-pointer hover:bg-blue-50 transition-colors">
+                                             <span className="text-[14px] sm:text-[18px] font-semibold text-[#2962ff] leading-tight">
                                                 {parseFloat(tabData['Realtime chart'].quote.price + 0.25).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                              </span>
-                                             <span className="text-[12px] font-medium text-[#2962ff] uppercase tracking-wide">BUY</span>
+                                             <span className="text-[10px] sm:text-[12px] font-medium text-[#2962ff] uppercase tracking-wide">BUY</span>
                                           </div>
                                        </div>
                                     )}
                                  </div>
-                                 <div className="h-[550px] w-full pt-4 relative rounded-xl overflow-hidden shadow-inner border border-black/5">
+                                 <div className="h-[280px] sm:h-[550px] w-full pt-2 sm:pt-4 relative rounded-xl overflow-hidden shadow-inner border border-black/5">
                                     <TradingViewWidget symbol={selectedStock?.symbol} interval={chartInterval} containerId="tv_chart_realtime" />
                                  </div>
                               </div>
@@ -598,9 +598,9 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect }) => {
 
                         {/* News Tab */}
                         {activeTab === 'News' && tabData['News'] && (
-                           <div className="space-y-6">
+                           <div className="space-y-3 sm:space-y-6">
                               {tabData['News'].news?.length === 0 ? (
-                                 <div className="p-12 text-center text-[#aaa] font-bold uppercase tracking-widest bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                                 <div className="p-8 sm:p-12 text-center text-[#aaa] font-bold uppercase tracking-widest bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-xs sm:text-sm">
                                     No news detected
                                  </div>
                               ) : (
@@ -610,20 +610,20 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect }) => {
                                        animate={{ opacity: 1, x: 0 }}
                                        transition={{ delay: idx * 0.1 }}
                                        key={idx}
-                                       className="bg-[#fcf8f0] rounded-[20px] p-6 border border-[#f0ebe0] group hover:border-[#5154ff]/30 transition-all cursor-pointer shadow-sm"
+                                       className="bg-[#fcf8f0] rounded-[14px] sm:rounded-[20px] p-3 sm:p-6 border border-[#f0ebe0] group hover:border-[#5154ff]/30 transition-all cursor-pointer shadow-sm"
                                     >
-                                       <div className="flex items-center gap-3 mb-3">
-                                          <span className="text-[10px] font-black text-[#5154ff] bg-white border border-[#5154ff]/10 px-2.5 py-1 rounded-lg uppercase tracking-wider">{item.source || 'Finance'}</span>
-                                          <span className="text-[10px] font-bold text-[#888] uppercase tracking-wider">{getRelativeTime(item.time_published)}</span>
+                                       <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                                          <span className="text-[9px] sm:text-[10px] font-black text-[#5154ff] bg-white border border-[#5154ff]/10 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg uppercase tracking-wider">{item.source || 'Finance'}</span>
+                                          <span className="text-[9px] sm:text-[10px] font-bold text-[#888] uppercase tracking-wider">{getRelativeTime(item.time_published)}</span>
                                        </div>
-                                       <h4 className="text-[17px] font-black text-[#111] mb-3 group-hover:text-[#5154ff] transition-colors">{item.title}</h4>
-                                       <p className="text-[13px] text-[#777] mb-4 line-clamp-2 leading-relaxed">{item.summary}</p>
+                                       <h4 className="text-[14px] sm:text-[17px] font-black text-[#111] mb-2 sm:mb-3 group-hover:text-[#5154ff] transition-colors leading-snug">{item.title}</h4>
+                                       <p className="text-[11px] sm:text-[13px] text-[#777] mb-3 sm:mb-4 line-clamp-2 leading-relaxed">{item.summary}</p>
                                        <div className="flex items-center justify-between">
-                                          <span className={`text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-[0.05em] ${(item.overall_sentiment_label || 'Neutral').includes('Bullish') ? 'bg-emerald-50 text-emerald-600' : (item.overall_sentiment_label || 'Neutral').includes('Bearish') ? 'bg-rose-50 text-rose-600' : 'bg-white border border-gray-200 text-[#999]'}`}>
+                                          <span className={`text-[8px] sm:text-[10px] font-black px-2 py-1 sm:px-3 sm:py-1.5 rounded-full uppercase tracking-[0.05em] ${(item.overall_sentiment_label || 'Neutral').includes('Bullish') ? 'bg-emerald-50 text-emerald-600' : (item.overall_sentiment_label || 'Neutral').includes('Bearish') ? 'bg-rose-50 text-rose-600' : 'bg-white border border-gray-200 text-[#999]'}`}>
                                              Sentiment: {item.overall_sentiment_label || 'Neutral'}
                                           </span>
-                                          <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-white rounded-xl text-[#5154ff] hover:bg-[#5154ff] hover:text-white transition-all shadow-sm">
-                                             <ExternalLink className="w-4 h-4" />
+                                          <a href={item.url} target="_blank" rel="noopener noreferrer" className="p-2 sm:p-2.5 bg-white rounded-xl text-[#5154ff] hover:bg-[#5154ff] hover:text-white transition-all shadow-sm">
+                                             <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                           </a>
                                        </div>
                                     </motion.div>
@@ -634,24 +634,24 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect }) => {
 
                         {/* Historical Chart Tab */}
                         {activeTab === 'Historical chart' && tabData['Historical chart'] && (
-                           <div className="bg-white rounded-[24px] p-8 border border-gray-100 shadow-sm min-h-[700px]">
-                              <div className="flex items-center justify-between mb-8">
+                           <div className="bg-white rounded-[16px] sm:rounded-[24px] p-3 sm:p-8 border border-gray-100 shadow-sm min-h-[350px] sm:min-h-[700px]">
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-8 gap-3">
                                  <div>
-                                    <h3 className="text-xl font-black text-[#111] flex items-center gap-3">
-                                       Advanced Historical Chart <BarChart3 className="w-6 h-6 text-[#5154ff]" />
+                                    <h3 className="text-sm sm:text-xl font-black text-[#111] flex items-center gap-2 sm:gap-3">
+                                       Advanced Historical Chart <BarChart3 className="w-4 h-4 sm:w-6 sm:h-6 text-[#5154ff]" />
                                     </h3>
-                                    <p className="text-[12px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1.5">Interactive TradingView Historical Record</p>
+                                    <p className="text-[9px] sm:text-[12px] font-bold text-gray-400 uppercase tracking-[0.15em] sm:tracking-[0.2em] mt-1">Interactive TradingView Historical Record</p>
                                  </div>
-                                 <div className="flex items-center gap-4">
-                                    <div className="flex items-center gap-4 text-[10px] font-black text-[#5154ff] uppercase tracking-widest bg-[#5154ff]/10 px-4 py-2 rounded-lg">
-                                       <Activity className="w-3 h-3 animate-pulse" /> TradingView Visualizer
+                                 <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+                                    <div className="flex items-center gap-2 sm:gap-4 text-[8px] sm:text-[10px] font-black text-[#5154ff] uppercase tracking-widest bg-[#5154ff]/10 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-lg">
+                                       <Activity className="w-2.5 h-2.5 sm:w-3 sm:h-3 animate-pulse" /> TradingView
                                     </div>
-                                    <button onClick={() => setFullScreenChart('historical')} className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-[11px] font-black uppercase tracking-wider rounded-lg transition-colors border border-gray-200 shadow-sm">
-                                       <Maximize className="w-3.5 h-3.5" /> Pro View
+                                    <button onClick={() => setFullScreenChart('historical')} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 sm:px-4 sm:py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-[9px] sm:text-[11px] font-black uppercase tracking-wider rounded-lg transition-colors border border-gray-200 shadow-sm">
+                                       <Maximize className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Pro View
                                     </button>
                                  </div>
                               </div>
-                              <div className="h-[550px] w-full pt-4 relative rounded-xl overflow-hidden shadow-inner border border-black/5">
+                              <div className="h-[280px] sm:h-[550px] w-full pt-2 sm:pt-4 relative rounded-xl overflow-hidden shadow-inner border border-black/5">
                                  <TradingViewWidget symbol={selectedStock?.symbol} interval="D" containerId="tv_chart_historical" />
                               </div>
                            </div>
@@ -663,24 +663,24 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect }) => {
                               <motion.div
                                  initial={{ opacity: 0, scale: 0.96 }}
                                  animate={{ opacity: 1, scale: 1 }}
-                                 className={`w-full max-w-3xl border border-black/5 rounded-[28px] p-6 shadow-lg relative overflow-hidden flex flex-col md:flex-row items-center gap-6
+                                 className={`w-full max-w-3xl border border-black/5 rounded-[18px] sm:rounded-[28px] p-4 sm:p-6 shadow-lg relative overflow-hidden flex flex-col md:flex-row items-center gap-4 sm:gap-6
                                      ${tabData['Advisory'].advisory.verdict === 'BUY' ? 'bg-gradient-to-br from-emerald-50/70 to-teal-50/70' :
                                        tabData['Advisory'].advisory.verdict === 'SELL' ? 'bg-gradient-to-br from-rose-50/70 to-orange-50/70' :
                                           'bg-gradient-to-br from-[#fcf8f0] to-[#f5f0e1]'}
                                  `}
                               >
                                  {/* Left: Verdict Card */}
-                                 <div className="flex-1 flex flex-col items-center justify-center text-center space-y-2">
-                                    <div className={`p-4 rounded-full bg-white/60 shadow-sm 
+                                 <div className="flex-1 flex flex-col items-center justify-center text-center space-y-1 sm:space-y-2">
+                                    <div className={`p-3 sm:p-4 rounded-full bg-white/60 shadow-sm 
                                         ${tabData['Advisory'].advisory.verdict === 'BUY' ? 'text-emerald-500' :
                                           tabData['Advisory'].advisory.verdict === 'SELL' ? 'text-rose-500' :
                                              'text-yellow-500'}
                                     `}>
-                                       <Zap fill="currentColor" className="w-12 h-12" />
+                                       <Zap fill="currentColor" className="w-8 h-8 sm:w-12 sm:h-12" />
                                     </div>
                                     <div>
-                                       <h3 className="text-[12px] font-black text-[#888] uppercase tracking-[0.3em] mb-0.5">System Signal</h3>
-                                       <p className={`text-6xl font-black uppercase tracking-tighter
+                                       <h3 className="text-[10px] sm:text-[12px] font-black text-[#888] uppercase tracking-[0.2em] sm:tracking-[0.3em] mb-0.5">System Signal</h3>
+                                       <p className={`text-4xl sm:text-6xl font-black uppercase tracking-tighter
                                              ${tabData['Advisory'].advisory.verdict === 'BUY' ? 'text-emerald-600' :
                                              tabData['Advisory'].advisory.verdict === 'SELL' ? 'text-rose-600' :
                                                 'text-yellow-600'}
@@ -691,28 +691,28 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect }) => {
                                  </div>
 
                                  {/* Right: Indicators Grid */}
-                                 <div className="w-full md:w-[320px] grid grid-cols-2 gap-3">
-                                    <div className="bg-white/80 p-3.5 rounded-[20px] border border-white shadow-sm hover:shadow-md transition-shadow">
-                                       <p className="text-[10px] font-black uppercase tracking-widest text-[#aaa] mb-0.5">RSI</p>
-                                       <p className="text-xl font-black text-[#111]">{tabData['Advisory'].advisory.indicators?.RSI}</p>
+                                 <div className="w-full md:w-[320px] grid grid-cols-2 gap-2 sm:gap-3">
+                                    <div className="bg-white/80 p-2.5 sm:p-3.5 rounded-[14px] sm:rounded-[20px] border border-white shadow-sm hover:shadow-md transition-shadow">
+                                       <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-[#aaa] mb-0.5">RSI</p>
+                                       <p className="text-base sm:text-xl font-black text-[#111]">{tabData['Advisory'].advisory.indicators?.RSI}</p>
                                     </div>
-                                    <div className="bg-white/80 p-3.5 rounded-[20px] border border-white shadow-sm hover:shadow-md transition-shadow">
-                                       <p className="text-[10px] font-black uppercase tracking-widest text-[#aaa] mb-0.5">MACD</p>
-                                       <p className="text-xl font-black text-[#111]">{tabData['Advisory'].advisory.indicators?.MACD}</p>
+                                    <div className="bg-white/80 p-2.5 sm:p-3.5 rounded-[14px] sm:rounded-[20px] border border-white shadow-sm hover:shadow-md transition-shadow">
+                                       <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-[#aaa] mb-0.5">MACD</p>
+                                       <p className="text-base sm:text-xl font-black text-[#111]">{tabData['Advisory'].advisory.indicators?.MACD}</p>
                                     </div>
-                                    <div className="bg-white/80 p-3.5 rounded-[20px] border border-white shadow-sm hover:shadow-md transition-shadow">
-                                       <p className="text-[10px] font-black uppercase tracking-widest text-[#aaa] mb-0.5">Ichimoku</p>
-                                       <p className={`text-sm font-black ${tabData['Advisory'].advisory.indicators?.Ichimoku === 'Bullish' ? 'text-emerald-600' : tabData['Advisory'].advisory.indicators?.Ichimoku === 'Bearish' ? 'text-rose-600' : 'text-[#111]'}`}>
+                                    <div className="bg-white/80 p-2.5 sm:p-3.5 rounded-[14px] sm:rounded-[20px] border border-white shadow-sm hover:shadow-md transition-shadow">
+                                       <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-[#aaa] mb-0.5">Ichimoku</p>
+                                       <p className={`text-xs sm:text-sm font-black ${tabData['Advisory'].advisory.indicators?.Ichimoku === 'Bullish' ? 'text-emerald-600' : tabData['Advisory'].advisory.indicators?.Ichimoku === 'Bearish' ? 'text-rose-600' : 'text-[#111]'}`}>
                                           {tabData['Advisory'].advisory.indicators?.Ichimoku || 'Neutral'}
                                        </p>
                                     </div>
-                                    <div className="bg-white/80 p-3.5 rounded-[20px] border border-white shadow-sm hover:shadow-md transition-shadow">
-                                       <p className="text-[10px] font-black uppercase tracking-widest text-[#aaa] mb-0.5">SMA20</p>
-                                       <p className="text-xl font-black text-[#111]">{tabData['Advisory'].advisory.indicators?.SMA}</p>
+                                    <div className="bg-white/80 p-2.5 sm:p-3.5 rounded-[14px] sm:rounded-[20px] border border-white shadow-sm hover:shadow-md transition-shadow">
+                                       <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-[#aaa] mb-0.5">SMA20</p>
+                                       <p className="text-base sm:text-xl font-black text-[#111]">{tabData['Advisory'].advisory.indicators?.SMA}</p>
                                     </div>
-                                    <div className="col-span-2 bg-white/80 p-3 rounded-[20px] border border-white shadow-sm flex justify-between items-center px-6">
-                                       <p className="text-[10px] font-black uppercase tracking-widest text-[#aaa]">Fibonacci Level</p>
-                                       <p className="text-xl font-black text-[#5154ff]">₹{tabData['Advisory'].advisory.indicators?.Fibonacci || '---'}</p>
+                                    <div className="col-span-2 bg-white/80 p-2.5 sm:p-3 rounded-[14px] sm:rounded-[20px] border border-white shadow-sm flex justify-between items-center px-4 sm:px-6">
+                                       <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-[#aaa]">Fibonacci Level</p>
+                                       <p className="text-base sm:text-xl font-black text-[#5154ff]">₹{tabData['Advisory'].advisory.indicators?.Fibonacci || '---'}</p>
                                     </div>
                                  </div>
                               </motion.div>
@@ -732,26 +732,26 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect }) => {
                                  <button
                                     id="graham-analysis-btn"
                                     onClick={() => showGrahamPanel ? setShowGrahamPanel(false) : fetchGrahamAnalysis()}
-                                    className={`group relative w-full flex items-center justify-between px-8 py-5 rounded-[20px] border-2 transition-all duration-300 overflow-hidden
+                                    className={`group relative w-full flex items-center justify-between px-4 py-3 sm:px-8 sm:py-5 rounded-[14px] sm:rounded-[20px] border-2 transition-all duration-300 overflow-hidden
                                        ${showGrahamPanel
                                           ? 'bg-amber-950 border-amber-800'
                                           : 'bg-gradient-to-r from-amber-950 to-stone-900 border-amber-800/60 hover:border-amber-600 hover:shadow-xl hover:shadow-amber-900/30'
                                        }`}
                                  >
-                                    <div className="flex items-center gap-4">
-                                       <div className="w-12 h-12 rounded-xl bg-amber-700/40 border border-amber-600/30 flex items-center justify-center shadow-inner">
-                                          <BookOpen className="w-6 h-6 text-amber-300" />
+                                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                                       <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-amber-700/40 border border-amber-600/30 flex items-center justify-center shadow-inner shrink-0">
+                                          <BookOpen className="w-4 h-4 sm:w-6 sm:h-6 text-amber-300" />
                                        </div>
-                                       <div className="text-left">
-                                          <p className="text-[11px] font-black uppercase tracking-[0.25em] text-amber-400/70 mb-0.5">Value Investing Analysis</p>
-                                          <p className="text-lg font-black text-amber-100">Benjamin Graham <span className="text-amber-400">Perspective</span></p>
-                                          <p className="text-[11px] text-amber-300/60 font-semibold mt-0.5">Based on &quot;The Intelligent Investor&quot;</p>
+                                       <div className="text-left min-w-0">
+                                          <p className="text-[9px] sm:text-[11px] font-black uppercase tracking-[0.15em] sm:tracking-[0.25em] text-amber-400/70 mb-0.5 truncate">Value Investing Analysis</p>
+                                          <p className="text-sm sm:text-lg font-black text-amber-100 truncate">Benjamin Graham <span className="text-amber-400">Perspective</span></p>
+                                          <p className="text-[9px] sm:text-[11px] text-amber-300/60 font-semibold mt-0.5 truncate">Based on &quot;The Intelligent Investor&quot;</p>
                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                                        {isGrahamLoading
-                                          ? <Loader2 className="w-5 h-5 animate-spin text-amber-400" />
-                                          : <ChevronRight className={`w-5 h-5 text-amber-400 transition-transform duration-300 group-hover:translate-x-1 ${showGrahamPanel ? 'rotate-90' : ''}`} />
+                                          ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-amber-400" />
+                                          : <ChevronRight className={`w-4 h-4 sm:w-5 sm:h-5 text-amber-400 transition-transform duration-300 group-hover:translate-x-1 ${showGrahamPanel ? 'rotate-90' : ''}`} />
                                        }
                                     </div>
                                  </button>
@@ -772,19 +772,19 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect }) => {
                                                 <p className="text-sm font-black text-amber-400 uppercase tracking-widest animate-pulse">Consulting The Intelligent Investor...</p>
                                              </div>
                                           ) : grahamData ? (
-                                             <div className="mt-4 bg-gradient-to-br from-amber-950/20 to-stone-900/10 border border-amber-900/30 rounded-[24px] p-8 space-y-6">
+                                             <div className="mt-4 bg-gradient-to-br from-amber-950/20 to-stone-900/10 border border-amber-900/30 rounded-[16px] sm:rounded-[24px] p-4 sm:p-8 space-y-4 sm:space-y-6">
                                                 {/* Header */}
-                                                <div className="flex items-center justify-between pb-5 border-b border-amber-900/30">
-                                                   <div className="flex items-center gap-3">
-                                                      <div className="w-10 h-10 rounded-xl bg-amber-700/30 flex items-center justify-center">
-                                                         <Award className="w-5 h-5 text-amber-400" />
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 sm:pb-5 border-b border-amber-900/30 gap-3">
+                                                   <div className="flex items-center gap-2 sm:gap-3">
+                                                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-amber-700/30 flex items-center justify-center shrink-0">
+                                                         <Award className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
                                                       </div>
                                                       <div>
-                                                         <h3 className="text-lg font-black text-stone-800">Graham&apos;s Verdict</h3>
-                                                         <p className="text-[11px] text-stone-500 font-bold uppercase tracking-wider">{grahamData.source}</p>
+                                                         <h3 className="text-sm sm:text-lg font-black text-stone-800">Graham&apos;s Verdict</h3>
+                                                         <p className="text-[9px] sm:text-[11px] text-stone-500 font-bold uppercase tracking-wider">{grahamData.source}</p>
                                                       </div>
                                                    </div>
-                                                   <div className={`px-5 py-2 rounded-xl text-sm font-black uppercase tracking-widest
+                                                   <div className={`px-3 py-1.5 sm:px-5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black uppercase tracking-widest w-fit
                                                       ${grahamData.graham_verdict === 'BUY' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' :
                                                          grahamData.graham_verdict === 'AVOID' ? 'bg-rose-100 text-rose-700 border border-rose-200' :
                                                             'bg-amber-100 text-amber-700 border border-amber-200'}
@@ -794,8 +794,8 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect }) => {
                                                 </div>
 
                                                 {/* Quote */}
-                                                <blockquote className="relative pl-6 border-l-4 border-amber-400 italic text-stone-700 text-[15px] font-semibold leading-relaxed">
-                                                   <span className="absolute -left-3 -top-2 text-5xl text-amber-300/50 font-serif leading-none">&ldquo;</span>
+                                                <blockquote className="relative pl-6 border-l-4 border-amber-400 italic text-stone-700 text-[13px] sm:text-[15px] font-semibold leading-relaxed">
+                                                   <span className="absolute -left-3 -top-2 text-4xl sm:text-5xl text-amber-300/50 font-serif leading-none">&ldquo;</span>
                                                    {grahamData.graham_quote}
                                                 </blockquote>
 
@@ -816,7 +816,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect }) => {
                                                       { label: 'For Defensive Investor', value: grahamData.defensive_investor, color: 'text-violet-600 bg-violet-50 border-violet-100' },
                                                       { label: 'For Enterprising Investor', value: grahamData.enterprising_investor, color: 'text-rose-600 bg-rose-50 border-rose-100' },
                                                    ].map((item, i) => (
-                                                      <div key={i} className={`rounded-[16px] border p-5 ${item.color.split(' ').slice(1).join(' ')}`}>
+                                                      <div key={i} className={`rounded-[16px] border p-4 sm:p-5 ${item.color.split(' ').slice(1).join(' ')}`}>
                                                          <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${item.color.split(' ')[0]}`}>{item.label}</p>
                                                          <p className="text-sm font-semibold text-stone-700 leading-relaxed">{item.value}</p>
                                                       </div>
@@ -856,26 +856,26 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect }) => {
                                   <button
                                      id="kiyosaki-analysis-btn"
                                      onClick={() => showKiyosakiPanel ? setShowKiyosakiPanel(false) : fetchKiyosakiAnalysis()}
-                                     className={`group relative w-full flex items-center justify-between px-8 py-5 rounded-[20px] border-2 transition-all duration-300 overflow-hidden
+                                     className={`group relative w-full flex items-center justify-between px-4 py-3 sm:px-8 sm:py-5 rounded-[14px] sm:rounded-[20px] border-2 transition-all duration-300 overflow-hidden
                                         ${showKiyosakiPanel
                                            ? 'bg-blue-950 border-blue-800'
                                            : 'bg-gradient-to-r from-blue-950 to-indigo-950 border-blue-800/60 hover:border-blue-600 hover:shadow-xl hover:shadow-blue-900/30'
                                         }`}
                                   >
-                                     <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 rounded-xl bg-blue-700/40 border border-blue-600/30 flex items-center justify-center shadow-inner">
-                                           <Globe className="w-6 h-6 text-blue-300" />
+                                     <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                                        <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-blue-700/40 border border-blue-600/30 flex items-center justify-center shadow-inner shrink-0">
+                                           <Globe className="w-4 h-4 sm:w-6 sm:h-6 text-blue-300" />
                                         </div>
-                                        <div className="text-left">
-                                           <p className="text-[11px] font-black uppercase tracking-[0.25em] text-blue-400/70 mb-0.5">Finance IQ & Cashflow</p>
-                                           <p className="text-lg font-black text-blue-100">Robert Kiyosaki <span className="text-blue-400">Perspective</span></p>
-                                           <p className="text-[11px] text-blue-300/60 font-semibold mt-0.5">Based on &quot;Rich Dad Poor Dad&quot;</p>
+                                        <div className="text-left min-w-0">
+                                           <p className="text-[9px] sm:text-[11px] font-black uppercase tracking-[0.15em] sm:tracking-[0.25em] text-blue-400/70 mb-0.5 truncate">Finance IQ & Cashflow</p>
+                                           <p className="text-sm sm:text-lg font-black text-blue-100 truncate">Robert Kiyosaki <span className="text-blue-400">Perspective</span></p>
+                                           <p className="text-[9px] sm:text-[11px] text-blue-300/60 font-semibold mt-0.5 truncate">Based on &quot;Rich Dad Poor Dad&quot;</p>
                                         </div>
                                      </div>
-                                     <div className="flex items-center gap-3">
+                                     <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                                         {isKiyosakiLoading
-                                           ? <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
-                                           : <ChevronRight className={`w-5 h-5 text-blue-400 transition-transform duration-300 group-hover:translate-x-1 ${showKiyosakiPanel ? 'rotate-90' : ''}`} />
+                                           ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-blue-400" />
+                                           : <ChevronRight className={`w-4 h-4 sm:w-5 sm:h-5 text-blue-400 transition-transform duration-300 group-hover:translate-x-1 ${showKiyosakiPanel ? 'rotate-90' : ''}`} />
                                         }
                                      </div>
                                   </button>
@@ -896,19 +896,19 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect }) => {
                                                  <p className="text-sm font-black text-blue-400 uppercase tracking-widest animate-pulse">Building Financial IQ with Rich Dad...</p>
                                               </div>
                                            ) : kiyosakiData ? (
-                                              <div className="mt-4 bg-gradient-to-br from-blue-950/20 to-indigo-900/10 border border-blue-900/30 rounded-[24px] p-8 space-y-6">
+                                              <div className="mt-4 bg-gradient-to-br from-blue-950/20 to-indigo-900/10 border border-blue-900/30 rounded-[16px] sm:rounded-[24px] p-4 sm:p-8 space-y-4 sm:space-y-6">
                                                  {/* Header */}
-                                                 <div className="flex items-center justify-between pb-5 border-b border-blue-900/30">
-                                                    <div className="flex items-center gap-3">
-                                                       <div className="w-10 h-10 rounded-xl bg-blue-700/30 flex items-center justify-center">
-                                                          <TrendingUp className="w-5 h-5 text-blue-400" />
+                                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 sm:pb-5 border-b border-blue-900/30 gap-3">
+                                                    <div className="flex items-center gap-2 sm:gap-3">
+                                                       <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-blue-700/30 flex items-center justify-center shrink-0">
+                                                          <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
                                                        </div>
                                                        <div>
-                                                          <h3 className="text-lg font-black text-stone-800">Rich Dad&apos;s Verdict</h3>
-                                                          <p className="text-[11px] text-stone-500 font-bold uppercase tracking-wider">{kiyosakiData.source}</p>
+                                                          <h3 className="text-sm sm:text-lg font-black text-stone-800">Rich Dad&apos;s Verdict</h3>
+                                                          <p className="text-[9px] sm:text-[11px] text-stone-500 font-bold uppercase tracking-wider">{kiyosakiData.source}</p>
                                                        </div>
                                                     </div>
-                                                    <div className={`px-5 py-2 rounded-xl text-sm font-black uppercase tracking-widest
+                                                    <div className={`px-3 py-1.5 sm:px-5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black uppercase tracking-widest w-fit
                                                        ${kiyosakiData.kiyosaki_verdict === 'BUY' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' :
                                                           kiyosakiData.kiyosaki_verdict === 'AVOID' ? 'bg-rose-100 text-rose-700 border border-rose-200' :
                                                              'bg-blue-100 text-blue-700 border border-blue-200'}
@@ -918,8 +918,8 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect }) => {
                                                  </div>
 
                                                  {/* Quote */}
-                                                 <blockquote className="relative pl-6 border-l-4 border-blue-400 italic text-stone-700 text-[15px] font-semibold leading-relaxed">
-                                                    <span className="absolute -left-3 -top-2 text-5xl text-blue-300/50 font-serif leading-none">&ldquo;</span>
+                                                 <blockquote className="relative pl-6 border-l-4 border-blue-400 italic text-stone-700 text-[13px] sm:text-[15px] font-semibold leading-relaxed">
+                                                    <span className="absolute -left-3 -top-2 text-4xl sm:text-5xl text-blue-300/50 font-serif leading-none">&ldquo;</span>
                                                     {kiyosakiData.kiyosaki_quote}
                                                  </blockquote>
 
@@ -970,17 +970,17 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect }) => {
                                  <motion.div
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="bg-white border-2 border-[#5154ff]/5 rounded-[32px] p-8 shadow-sm"
+                                    className="bg-white border-2 border-[#5154ff]/5 rounded-[20px] sm:rounded-[32px] p-4 sm:p-8 shadow-sm"
                                  >
-                                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
-                                       <h3 className="text-xl font-black text-[#111] flex items-center gap-3">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-gray-100 gap-2">
+                                       <h3 className="text-sm sm:text-xl font-black text-[#111] flex items-center gap-2 sm:gap-3">
                                           Analyst Estimates & Target Price
                                        </h3>
-                                       <div className="flex items-center gap-2 px-3 py-1 bg-black/5 rounded-lg text-[10px] font-bold text-[#555] uppercase tracking-wider">
-                                          <Activity className="w-3 h-3" /> Live Analysis <span className="bg-[#5154ff] text-white px-1.5 py-0.5 rounded-[4px] ml-1">+4</span>
+                                       <div className="flex items-center gap-2 px-2 py-0.5 sm:px-3 sm:py-1 bg-black/5 rounded-lg text-[8px] sm:text-[10px] font-bold text-[#555] uppercase tracking-wider w-fit">
+                                          <Activity className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> Live Analysis <span className="bg-[#5154ff] text-white px-1 py-0.5 sm:px-1.5 rounded-[4px] ml-1">+4</span>
                                        </div>
                                     </div>
-                                    <ul className="space-y-4">
+                                    <ul className="space-y-3 sm:space-y-4">
                                        {[
                                           { label: 'Average Target Price', value: tabData['Research and recommendation'].research.analyst_estimates.average_target_price },
                                           { label: 'High Estimate', value: tabData['Research and recommendation'].research.analyst_estimates.high_estimate },
@@ -988,7 +988,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect }) => {
                                           { label: 'Analyst Sentiment', value: tabData['Research and recommendation'].research.analyst_estimates.analyst_sentiment },
                                           { label: 'Context', value: tabData['Research and recommendation'].research.analyst_estimates.context }
                                        ].map((item, idx) => (
-                                          <li key={idx} className="text-[15px] sm:text-[16px] text-[#333] leading-relaxed relative pl-6 before:content-[''] before:absolute before:left-0 before:top-[10px] before:w-1.5 before:h-1.5 before:bg-[#111] before:rounded-full">
+                                          <li key={idx} className="text-[12px] sm:text-[16px] text-[#333] leading-relaxed relative pl-5 sm:pl-6 before:content-[''] before:absolute before:left-0 before:top-[8px] sm:before:top-[10px] before:w-1.5 before:h-1.5 before:bg-[#111] before:rounded-full">
                                              <span className="font-bold text-[#111]">{item.label}:</span> {item.value}
                                           </li>
                                        ))}
@@ -1001,16 +1001,16 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect }) => {
                                  <motion.div
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="bg-white border-2 border-[#5154ff]/5 rounded-[32px] p-8 shadow-sm"
+                                    className="bg-white border-2 border-[#5154ff]/5 rounded-[20px] sm:rounded-[32px] p-4 sm:p-8 shadow-sm"
                                  >
-                                    <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-100">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-8 pb-3 sm:pb-4 border-b border-gray-100 gap-3">
                                        <div>
-                                          <h3 className="text-2xl font-black text-[#111] flex items-center gap-3">
-                                             Detailed Stock Analysis <Activity className="w-6 h-6 text-[#5154ff]" />
+                                          <h3 className="text-base sm:text-2xl font-black text-[#111] flex items-center gap-2 sm:gap-3">
+                                             Detailed Stock Analysis <Activity className="w-4 h-4 sm:w-6 sm:h-6 text-[#5154ff]" />
                                           </h3>
-                                          <p className="text-[12px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">AI-Powered Research &amp; Recommendation for {selectedStock?.name}</p>
+                                          <p className="text-[9px] sm:text-[12px] font-bold text-gray-400 uppercase tracking-[0.15em] sm:tracking-[0.2em] mt-1">AI-Powered Research &amp; Recommendation for {selectedStock?.name}</p>
                                        </div>
-                                       <div className={`px-5 py-2 rounded-xl text-sm font-black uppercase tracking-widest
+                                       <div className={`px-3 py-1.5 sm:px-5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black uppercase tracking-widest w-fit
                                            ${tabData['Advisory'].advisory.verdict === 'BUY' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}
                                        `}>
                                           Signal: {tabData['Advisory'].advisory.verdict}
@@ -1018,8 +1018,8 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect }) => {
                                     </div>
                                     <div className="prose prose-slate max-w-none">
                                        <ReactMarkdown components={{
-                                          p: ({ node, ...props }) => <p className="text-[16px] text-[#333] font-semibold mb-4 leading-relaxed" {...props} />,
-                                          li: ({ node, ...props }) => <li className="text-[16px] font-bold text-[#111] mb-3 list-none pl-8 relative before:content-[''] before:absolute before:left-0 before:top-[12px] before:w-2.5 before:h-2.5 before:bg-[#5154ff] before:rounded-full before:opacity-20" {...props} />
+                                          p: ({ node, ...props }) => <p className="text-[13px] sm:text-[16px] text-[#333] font-semibold mb-3 sm:mb-4 leading-relaxed" {...props} />,
+                                          li: ({ node, ...props }) => <li className="text-[13px] sm:text-[16px] font-bold text-[#111] mb-2 sm:mb-3 list-none pl-6 sm:pl-8 relative before:content-[''] before:absolute before:left-0 before:top-[10px] sm:before:top-[12px] before:w-2 before:h-2 sm:before:w-2.5 sm:before:h-2.5 before:bg-[#5154ff] before:rounded-full before:opacity-20" {...props} />
                                        }}>
                                           {tabData['Advisory'].advisory.report}
                                        </ReactMarkdown>
@@ -1045,20 +1045,20 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect }) => {
                      transition={{ type: "spring", stiffness: 300, damping: 25 }}
                      className="fixed inset-0 z-[2000] bg-[#fdfaf5] flex flex-col"
                   >
-                     <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-100 shadow-sm shrink-0">
-                        <h2 className="text-xl font-black text-[#111] flex items-center gap-3">
-                           <Activity className="w-5 h-5 text-[#5154ff] animate-pulse" />
-                           {selectedStock?.symbol} - {selectedStock?.name}
-                           <span className="text-[12px] text-[#5154ff] font-black uppercase tracking-widest bg-[#5154ff]/10 px-3 py-1.5 rounded-lg border border-[#5154ff]/20 ml-4 shadow-inner">
+                     <div className="flex items-center justify-between px-3 py-2 sm:px-6 sm:py-4 bg-white border-b border-gray-100 shadow-sm shrink-0">
+                        <h2 className="text-sm sm:text-xl font-black text-[#111] flex items-center gap-2 sm:gap-3 min-w-0">
+                           <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-[#5154ff] animate-pulse shrink-0" />
+                           <span className="truncate">{selectedStock?.symbol} - {selectedStock?.name}</span>
+                           <span className="text-[9px] sm:text-[12px] text-[#5154ff] font-black uppercase tracking-widest bg-[#5154ff]/10 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg border border-[#5154ff]/20 ml-1 sm:ml-4 shadow-inner whitespace-nowrap shrink-0 hidden xs:inline">
                               {fullScreenChart === 'realtime' ? 'Realtime Pro View' : 'Historical Pro View'}
                            </span>
                         </h2>
-                        <button onClick={() => setFullScreenChart(null)} className="p-2.5 bg-gray-100 rounded-full hover:bg-rose-500 hover:text-white text-gray-500 transition-all shadow-sm active:scale-95">
-                           <X className="w-6 h-6" />
+                        <button onClick={() => setFullScreenChart(null)} className="p-2 sm:p-2.5 bg-gray-100 rounded-full hover:bg-rose-500 hover:text-white text-gray-500 transition-all shadow-sm active:scale-95 shrink-0">
+                           <X className="w-5 h-5 sm:w-6 sm:h-6" />
                         </button>
                      </div>
-                     <div className="flex-1 bg-white relative p-6">
-                        <div className="w-full h-full rounded-2xl overflow-hidden shadow-inner border border-black/5 relative">
+                     <div className="flex-1 bg-white relative p-2 sm:p-6">
+                        <div className="w-full h-full rounded-xl sm:rounded-2xl overflow-hidden shadow-inner border border-black/5 relative">
                            <TradingViewWidget
                               symbol={selectedStock?.symbol}
                               interval={fullScreenChart === 'realtime' ? chartInterval : 'D'}

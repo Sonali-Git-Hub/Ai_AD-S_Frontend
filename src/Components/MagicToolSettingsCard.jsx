@@ -303,7 +303,7 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
                         </div>
 
                         {/* ── Body ── */}
-                        <div className="relative z-20 px-5 sm:px-6 py-5 space-y-5 sm:space-y-6 max-h-[60vh] sm:max-h-[55vh] overflow-y-auto custom-scrollbar">
+                        <div className="relative z-20 px-5 sm:px-6 py-5 space-y-5 sm:space-y-6 max-h-[60vh] sm:max-h-[55vh] overflow-y-auto scrollbar-hide">
                             
                             {/* Segmented Aspect Control — hidden for edit mode */}
                             {config.aspectRatio !== undefined && toolType !== 'edit' && (

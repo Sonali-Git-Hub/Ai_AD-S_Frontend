@@ -5487,7 +5487,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
       {/* Main Area */}
       <div
-        className="flex-1 flex flex-col relative bg-transparent w-full min-w-0"
+        className="flex-1 flex flex-col relative bg-transparent w-full min-w-0 pt-[5vh]"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -5516,16 +5516,22 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         <div
           ref={chatContainerRef}
           onScroll={handleScroll}
-          className="relative flex-1 overflow-y-auto chatgpt-container pb-48 md:pb-56 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent aisa-scalable-text"
+          className="relative flex-1 overflow-y-auto chatgpt-container pt-[20vh] pb-64 md:pb-72 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent aisa-scalable-text"
         >
           {messages.length > 0 && (
             <>
+              {/* Extra large Top Spacer for premium starting position */}
+              <div className="h-[5vh] w-full shrink-0" />
               {messages.map((msg) => (
                 <div
                   key={msg.id}
                   className={`chatgpt-message-row group ${msg.role === 'user' ? 'user-row' : 'ai-row'}`}
-                  onClick={() => {
-                    if (window.getSelection().toString()) return;
+                  onMouseUp={(e) => {
+                    // Only toggle active message on clean click (no text selection)
+                    const selection = window.getSelection();
+                    if (selection && selection.toString().trim().length > 0) return;
+                    // Don't toggle if clicked on a button, link, or interactive element
+                    if (e.target.closest('button, a, input, textarea, [role="button"]')) return;
                     setActiveMessageId(activeMessageId === msg.id ? null : msg.id);
                   }}
                 >
@@ -6615,6 +6621,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
         {/* Unified Chat Input Container */}
         <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none" style={{ padding: 'max(0.375rem, env(safe-area-inset-bottom, 0.375rem)) 0.5rem max(0.375rem, 0.375rem) 0.5rem' }}>
+          {/* Bottom Mask to prevent text showing behind input area */}
+          <div className="absolute inset-0 bg-gradient-to-t from-secondary via-secondary/90 to-transparent -z-10 h-full w-full pointer-events-none" />
           <div className="max-w-5xl mx-auto w-full pointer-events-auto">
 
             <form
