@@ -1575,10 +1575,6 @@ export const LanguageProvider = ({ children }) => {
             speed: "गति",
             lower: "धीमा",
             normal: "सामान्य",
-            higher: "तेज़",
-            playSample: "नमूना बजाएं",
-            playing: "बज रहा है...",
-            applySettings: "सेटिंग्स लागू करें"
         },
         "Spanish": {
             displayLanguage: "Idioma de pantalla",

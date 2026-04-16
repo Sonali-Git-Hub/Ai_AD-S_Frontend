@@ -6,7 +6,7 @@ import {
   LayoutGrid,
   MessageSquare,
   Bot,
-  Aperture,
+  Calendar,
   Settings2,
   LogOut,
   Zap,
@@ -273,7 +273,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       setEditingProjectId(null);
       return;
     }
-    
+
     try {
       const updated = await apiService.renameProject(projectId, renameProjectName.trim());
       setProjects(prev => prev.map(p => p._id === projectId ? { ...p, name: updated.name } : p));
@@ -294,7 +294,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const confirmDeleteProject = async () => {
     if (!projectToDelete) return;
-    
+
     try {
       await apiService.deleteProject(projectToDelete);
       setProjects(prev => prev.filter(p => p._id !== projectToDelete));
@@ -377,7 +377,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         </div>
         {/* Brand & Top Actions */}
         <div className="p-6 pb-2 flex items-center justify-between relative z-10">
-          <Link to="/" state={{ fromLogo: true }} className="group/logo">
+          <Link to="/" state={{ fromLogo: true }} className="group/logo flex items-center gap-2">
             <div className="relative">
               <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 animate-pulse opacity-0 group-hover/logo:opacity-100 transition-opacity" />
               <img 
@@ -386,6 +386,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 className="h-10 w-auto relative z-10 transition-transform duration-500 group-hover/logo:scale-110 drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]" 
               />
             </div>
+            <span className="text-xl font-black text-maintext tracking-tighter group-hover/logo:text-primary transition-colors">AISA<sup className="text-[0.6em] ml-0.5">™</sup></span>
           </Link>
           
           <button
@@ -461,6 +462,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             )}
           </AnimatePresence>
 
+
           {/* Search Bar */}
           <div className="px-5 pt-4 relative z-10">
             <div className="relative group/search">
@@ -478,6 +480,25 @@ const Sidebar = ({ isOpen, onClose }) => {
               />
             </div>
           </div>
+
+          {/* Main Navigation Links */}
+          <nav className="px-3 pt-4 space-y-1 relative z-10">
+            <NavLink to="/dashboard/chat" className={navItemClass}>
+              <MessageSquare className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
+              <span className="truncate font-semibold text-sm">{t('chat') || 'Chat'}</span>
+            </NavLink>
+
+            <NavLink to="/dashboard/social-agent" className={navItemClass}>
+              <LayoutGrid className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
+              <span className="truncate font-semibold text-sm">Content Generation</span>
+              <span className="ml-auto px-1.5 py-0.5 rounded-lg bg-primary/10 text-[9px] font-black uppercase text-primary border border-primary/10">Gen</span>
+            </NavLink>
+
+            <NavLink to="/dashboard/ai-personal-assistant" className={navItemClass}>
+              <Bot className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
+              <span className="truncate font-semibold text-sm">AI Personal Assistant</span>
+            </NavLink>
+          </nav>
 
           {/* New Chat Button */}
           <div className="px-5 pt-4 pb-2 relative z-10">
@@ -501,10 +522,21 @@ const Sidebar = ({ isOpen, onClose }) => {
           {token && (
             <div className="flex flex-col">
 
-              {/* Removed Personal Space Card */}
+              {/* Personal Chat - Standalone Top Space */}
+              <div className="px-3 pt-1">
+                <button
+                  onClick={() => handleSwitchProject(null)}
+                  className={`w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl transition-all border ${!currentProjectId
+                    ? 'bg-primary/10 text-primary border-primary/20 shadow-md ring-1 ring-primary/20'
+                    : 'bg-white/20 dark:bg-white/5 border-white/20 dark:border-white/10 hover:bg-white/30 dark:hover:bg-white/10 text-maintext'}`}
+                >
+                  <MessageSquare className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
+                  <span className="truncate font-semibold text-sm">Personal Chat</span>
+                </button>
+              </div>
 
               {/* Projects Section Header */}
-              <div 
+              <div
                 onClick={() => setIsProjectsExpanded(!isProjectsExpanded)}
                 className="px-5 pt-4 pb-2 flex items-center justify-between cursor-pointer group/header select-none relative z-10"
               >
@@ -519,7 +551,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
               <AnimatePresence>
                 {isProjectsExpanded && (
-                  <motion.div 
+                  <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
@@ -544,24 +576,24 @@ const Sidebar = ({ isOpen, onClose }) => {
                         className="relative group/proj flex items-center"
                       >
                         {editingProjectId === p._id ? (
-                           <div className="flex w-full items-center gap-2 px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
-                             <input 
-                               autoFocus
-                               value={renameProjectName}
-                               onChange={e => setRenameProjectName(e.target.value)}
-                               onKeyDown={e => { if(e.key==='Enter') handleRenameProject(e, p._id); if(e.key==='Escape') setEditingProjectId(null); }}
-                               className="flex-1 min-w-0 bg-transparent border-b border-primary outline-none text-xs text-maintext py-1"
-                             />
-                             <button onClick={(e) => handleRenameProject(e, p._id)} className="text-primary hover:opacity-80 shrink-0"><Check className="w-4 h-4" /></button>
-                             <button onClick={(e) => { e.stopPropagation(); setEditingProjectId(null); }} className="text-subtext hover:text-red-500 shrink-0"><X className="w-4 h-4" /></button>
-                           </div>
+                          <div className="flex w-full items-center gap-2 px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              autoFocus
+                              value={renameProjectName}
+                              onChange={e => setRenameProjectName(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') handleRenameProject(e, p._id); if (e.key === 'Escape') setEditingProjectId(null); }}
+                              className="flex-1 min-w-0 bg-transparent border-b border-primary outline-none text-xs text-maintext py-1"
+                            />
+                            <button onClick={(e) => handleRenameProject(e, p._id)} className="text-primary hover:opacity-80 shrink-0"><Check className="w-4 h-4" /></button>
+                            <button onClick={(e) => { e.stopPropagation(); setEditingProjectId(null); }} className="text-subtext hover:text-red-500 shrink-0"><X className="w-4 h-4" /></button>
+                          </div>
                         ) : (
                           <>
                             <button
                               onClick={() => handleSwitchProject(p._id)}
-                              className={`flex-1 flex items-center min-w-0 gap-3 px-4 py-2.5 rounded-xl text-sm transition-all duration-300 ${currentProjectId === p._id 
-                                ? 'bg-primary/10 text-primary font-bold border border-primary/20 shadow-sm shadow-primary/5' 
-                                : (theme === 'dark' ? 'text-subtext/80 hover:bg-white/5 hover:text-maintext' : 'text-slate-600 hover:bg-black/5 hover:text-slate-900')}`}
+                              className={`flex-1 flex items-center min-w-0 gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${currentProjectId === p._id
+                                ? 'bg-primary/10 text-primary font-bold shadow-sm'
+                                : 'text-subtext hover:bg-white/20 dark:hover:bg-white/10 hover:text-maintext'}`}
                             >
                               <Folder className={`w-4 h-4 shrink-0 transition-transform duration-300 ${currentProjectId === p._id ? 'scale-110 text-primary ring-4 ring-primary/10 rounded-full' : 'group-hover/proj:scale-110'}`} />
                               <span className="truncate font-medium text-[14px] text-left pr-8">{p.name}</span>

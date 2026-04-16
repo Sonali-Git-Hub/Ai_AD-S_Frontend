@@ -21,7 +21,7 @@ import { MotionConfig } from 'framer-motion';
 
 const AppTree = (
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <ErrorBoundary>
         <MotionConfig transition={{ ease: [0.22, 1, 0.36, 1] }} reducedMotion="user">
           <ToastProvider>

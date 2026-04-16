@@ -113,6 +113,12 @@ const ToolPreviewContent = ({ id, prompt, active }) => {
         "Section 4.2 - Identified Liability Breach.",
         "Risk Factor: Moderate (72% probability code check).",
         "Recommendation: Amend clause 12 for compliance."
+      ],
+      aiad_agent: [
+        "Orchestrating 30-day Campaign...",
+        "Brand Voice calibrated: Premium",
+        "Target Platforms: Instagram, LinkedIn, X",
+        "Status: 90 Content Pieces Ready"
       ]
     };
     return responses[id] || ["AI Task Successfully Completed.", "Verified by AISA Engine V4.2", "Runtime: 0.8s Total Latency."];
@@ -199,6 +205,7 @@ const ToolPreviewContent = ({ id, prompt, active }) => {
     </div>
   );
 };
+
 
 
 /* ─── 3D Tilt Card ─────────────────────────────────────────── */
@@ -448,7 +455,7 @@ const FuturisticToolCards = ({ onToolSelect, activeToolId, isAdmin = false }) =>
     { id: 'audio', label: t('convertToAudio'), badge: t('badgeAudio'), desc: t('textDocsToVoice'), icon: Headphones, color: '#34d399', prompt: "Synthesize this report into a natural sounding male voice...", review: { rating: 4.8, count: "6k", text: "The most human-like synthesis I've heard. Even the breathing and pauses feel natural. Perfect for podcasts." } },
     { id: 'legal', label: t('aiLegal'), badge: t('badgeLegal'), desc: t('specializedAiLegalTools'), icon: Scale, color: '#818cf8', prompt: "Analyze this employment contract for potential loopholes...", review: { rating: 5, count: "3.2k", text: "AISA's legal reasoning is spookily good. It identified risks that our junior lawyers missed twice." } },
     { id: 'ai_cashflow', label: t('aiCashFlow'), badge: t('badgeFinance'), desc: t('liveAnalysisReports'), icon: TrendingUp, color: '#10b981', prompt: "Analyzing cashflow...", review: { rating: 5, count: "4.2k", text: "Incredible financial insights. The real-time analysis saved us thousands." } },
-    { id: 'aiadd', label: t('aiAds'), badge: t('badgeAds'), desc: t('comingSoon'), icon: Megaphone, color: '#eab308', prompt: "Generating ad campaign...", comingSoon: true },
+    { id: 'aiad_agent', label: t('aiAds') || 'AIADS™', badge: t('badgeAds') || 'ADS', desc: 'Social Media Orchestration', icon: Megaphone, color: '#eab308', prompt: "Generate a 30-day social media campaign for AISA...", review: { rating: 5, count: "18k", text: "Automated my entire month's content in under 5 minutes. The hashtags are perfectly optimized for trends." } },
   ];
 
   // Map the visual tool IDs to the IDs used in state

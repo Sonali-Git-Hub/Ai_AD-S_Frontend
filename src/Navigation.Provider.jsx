@@ -9,6 +9,7 @@ import Chat from './pages/Chat';
 import Sidebar from './Components/SideBar/Sidebar.jsx';
 import AiPersonalAssistantDashboard from './pages/AiPersonalAssistant/Dashboard';
 import Pricing from './pages/Pricing';
+import SocialAgentPage from './pages/SocialAgentPage.jsx';
 import CreditUpsellPopup from './Components/CreditUpsellPopup';
 
 
@@ -238,6 +239,7 @@ const NavigateProvider = () => {
         >
           <Route index element={<Navigate to="chat" replace />} />
           <Route path="chat/:sessionId?" element={<Chat />} />
+          <Route path="social-agent" element={<ProtectedRoute><SocialAgentPage /></ProtectedRoute>} />
           <Route path="ai-personal-assistant" element={<ProtectedRoute><AiPersonalAssistantDashboard /></ProtectedRoute>} />
 
           <Route path="admin" element={

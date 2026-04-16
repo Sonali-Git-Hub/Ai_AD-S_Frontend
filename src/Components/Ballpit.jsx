@@ -374,7 +374,7 @@ class ScatteringMaterial extends THREE.MeshPhysicalMaterial {
                     vec3 scatteringHalf = normalize(directLight.direction + (geometryNormal * thicknessDistortion));
                     float scatteringDot = pow(saturate(dot(geometryViewDir, -scatteringHalf)), thicknessPower) * thicknessScale;
                     #ifdef USE_COLOR
-                        vec3 scatteringIllu = (scatteringDot + thicknessAmbient) * vColor;
+                        vec3 scatteringIllu = (scatteringDot + thicknessAmbient) * vColor.rgb;
                     #else
                         vec3 scatteringIllu = (scatteringDot + thicknessAmbient) * diffuse;
                     #endif

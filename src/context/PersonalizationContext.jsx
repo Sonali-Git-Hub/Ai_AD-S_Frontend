@@ -3,6 +3,9 @@ import axios from 'axios';
 import { apis } from '../types';
 import { getUserData } from '../userStore/userData';
 import toast from 'react-hot-toast';
+import { io } from 'socket.io-client';
+import { API } from '../types';
+
 
 const PersonalizationContext = createContext();
 
@@ -91,7 +94,7 @@ export const PersonalizationProvider = ({ children }) => {
     const fetchNotifications = async () => {
         if (!user?.token) return;
         try {
-            const res = await axios.get(apis.user + '/notifications', {
+            const res = await axios.get(apis.notifications, {
                 headers: { 'Authorization': `Bearer ${user.token}` }
             });
             setNotifications(res.data);
@@ -104,7 +107,7 @@ export const PersonalizationProvider = ({ children }) => {
         setNotifications(prev => prev.filter(n => n.id !== notifId));
         try {
             if (user?.token) {
-                await axios.delete(`${apis.user}/notifications/${notifId}`, {
+                await axios.delete(`${apis.notifications}/${notifId}`, {
                     headers: { 'Authorization': `Bearer ${user.token}` }
                 });
             }
@@ -118,7 +121,7 @@ export const PersonalizationProvider = ({ children }) => {
         setNotifications([]);
         try {
             if (user?.token) {
-                await axios.delete(`${apis.user}/notifications`, {
+                await axios.delete(apis.notifications, {
                     headers: { 'Authorization': `Bearer ${user.token}` }
                 });
             }
@@ -127,6 +130,7 @@ export const PersonalizationProvider = ({ children }) => {
             fetchNotifications();
         }
     };
+
 
     const fetchPersonalizations = async () => {
         if (!user?.token) return;
@@ -189,76 +193,79 @@ export const PersonalizationProvider = ({ children }) => {
     };
 
     useEffect(() => {
+        let socket;
         if (user?.token) {
             fetchPersonalizations();
             fetchNotifications();
             fetchChatSessions();
 
-            // Set up interval for polling notifications to detect new reminders/alerts
-            const interval = setInterval(() => {
-                const fetchSilently = async () => {
-                    try {
-                        const res = await axios.get(apis.user + '/notifications', {
-                            headers: { 'Authorization': `Bearer ${user.token}` }
-                        });
-                        
-                        setNotifications(prev => {
-                            if (res.data.length === 0) return prev;
-                            
-                            // Improved notification detection mapping
-                            const newReminders = res.data.filter(n => n.id?.startsWith('reminder_') && !prev.some(p => p.id === n.id));
-                            
-                            newReminders.forEach(reminder => {
-                                // Extract the core task ID from something like "reminder_6619a9..."
-                                const taskId = reminder.id.replace('reminder_', '');
+            // Initialize Socket.io for Real-time Notifications
+            socket = io(API, {
+                auth: { token: user.token },
+                transports: ['websocket']
+            });
 
-                                // Background Notification Toast with Stop Button
-                                toast.custom((tObj) => (
-                                    <div className={`${tObj.visible ? 'animate-enter' : 'animate-leave'} max-w-sm w-full bg-white dark:bg-[#1E1E1E] shadow-2xl rounded-2xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 border border-primary/20 overflow-hidden`}>
-                                        <div className="flex-1 w-0 p-4">
-                                            <div className="flex items-start">
-                                                <div className="ml-0 flex-1">
-                                                    <p className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                                        <span>⏰</span> Reminder: {reminder.title}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="flex border-l border-gray-100 dark:border-white/5">
-                                            <button
-                                                onClick={() => {
-                                                    stopReminderVoice();
-                                                    toast.dismiss(tObj.id);
-                                                }}
-                                                className="w-full border border-transparent rounded-none rounded-r-2xl px-4 flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/5 focus:outline-none"
-                                            >
-                                                Stop
-                                            </button>
-                                        </div>
-                                    </div>
-                                ), { duration: 60000 });
+            socket.on('connect', () => {
+                console.log('[Socket] Connected to server');
+                // Join user-specific room
+                const userId = user.id || user._id;
+                if (userId) {
+                    socket.emit('join', userId);
+                }
+            });
 
-                                if (reminder.voice && reminder.voice !== 'none') {
-                                    speakReminder(reminder.title, reminder.voice, taskId);
-                                }
-                            });
-                            
-                            // Prevent re-rendering if content is identical
-                            if (prev.length === res.data.length && prev[0]?.id === res.data[0]?.id) {
-                                return prev;
-                            }
-                            return res.data;
-                        });
-                    } catch (err) {}
-                };
-                fetchSilently();
-            }, 10000); // Poll every 10s for better responsiveness
-            
-            return () => clearInterval(interval);
+            socket.on('new_notification', (notification) => {
+                console.log('[Socket] New notification received:', notification);
+                
+                setNotifications(prev => [notification, ...prev]);
+
+                // Show Toast
+                toast.custom((tObj) => (
+                    <div className={`${tObj.visible ? 'animate-enter' : 'animate-leave'} max-w-sm w-full bg-white dark:bg-[#1E1E1E] shadow-2xl rounded-2xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 border border-primary/20 overflow-hidden`}>
+                        <div className="flex-1 w-0 p-4">
+                            <div className="flex items-start">
+                                <div className="ml-0 flex-1">
+                                    <p className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                        <span>{notification.type === 'alert' ? '⚠️' : '🔔'}</span> {notification.title}
+                                    </p>
+                                    <p className="mt-1 text-[10px] text-gray-500 dark:text-gray-400">
+                                        {notification.desc}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex border-l border-gray-100 dark:border-white/5">
+                            <button
+                                onClick={() => {
+                                    if (notification.voice) stopReminderVoice();
+                                    toast.dismiss(tObj.id);
+                                }}
+                                className="w-full border border-transparent rounded-none rounded-r-2xl px-4 flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/5 focus:outline-none"
+                            >
+                                {notification.voice && notification.voice !== 'none' ? 'Stop' : 'Close'}
+                            </button>
+                        </div>
+                    </div>
+                ), { duration: notification.voice && notification.voice !== 'none' ? 60000 : 5000 });
+
+                // Voice Reminder if applicable
+                if (notification.voice && notification.voice !== 'none') {
+                    const taskId = notification.id.replace('reminder_', '');
+                    speakReminder(notification.title, notification.voice, taskId);
+                }
+            });
+
+            socket.on('disconnect', () => {
+                console.log('[Socket] Disconnected');
+            });
+
+            return () => {
+                if (socket) socket.disconnect();
+            };
         }
         applyDynamicStyles();
-        /* Migration check removed to allow localization */
     }, [user?.token]);
+
 
     const stopReminderVoice = () => {
         // 1. Stop Browser Native Speech (Crucial for fallback)

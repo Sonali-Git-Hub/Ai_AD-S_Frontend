@@ -308,11 +308,14 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
                             {/* Segmented Aspect Control — hidden for edit mode */}
                             {config.aspectRatio !== undefined && toolType !== 'edit' && (
                                 <div>
-                                    <div className="flex items-center gap-2 mb-3 ml-1">
-                                        <div className="w-1 h-1 rounded-full bg-slate-800 shadow-[0_0_6px_rgba(0,0,0,0.5)]" />
-                                        <p className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-800/80 drop-shadow-sm">Aspect Ratio</p>
-                                    </div>
-                                    <div className="relative grid grid-cols-4 gap-1.5 bg-white/50 p-1.5 rounded-[16px] border border-white/60 shadow-[inset_0_2px_12px_rgba(0,0,0,0.03)] backdrop-blur-xl">
+                                    {toolType === 'video' && (
+                                        <div className="flex items-center gap-2 mb-3 ml-1">
+                                            <div className="w-1 h-1 rounded-full bg-slate-800 shadow-[0_0_6px_rgba(0,0,0,0.5)]" />
+                                            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-800/80 drop-shadow-sm">Aspect Ratio</p>
+                                        </div>
+                                    )}
+
+                                    <div className={`relative grid ${toolType === 'video' ? 'grid-cols-3' : 'grid-cols-4'} gap-1.5 bg-white/50 p-1.5 rounded-[16px] border border-white/60 shadow-[inset_0_2px_12px_rgba(0,0,0,0.03)] backdrop-blur-xl`}>
                                         <LayoutGroup id="aspectSwitch">
                                             {aspectRatios.map((ar) => {
                                                 const isActive = config.aspectRatio === ar.id;
@@ -366,7 +369,7 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
 
                                                 return (
                                                     <motion.div
-                                                        key={model.id}
+                                                        key={model.id || model.name || idx}
                                                         initial={{ opacity: 0, x: -10 }}
                                                         animate={{ opacity: 1, x: 0 }}
                                                         transition={{ delay: idx * 0.08, type: "spring", stiffness: 300, damping: 25 }}

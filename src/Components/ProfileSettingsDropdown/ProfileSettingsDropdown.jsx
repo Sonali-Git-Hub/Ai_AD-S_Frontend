@@ -388,7 +388,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
     const allSettings = useMemo(() => {
         const settings = [];
 
-        // Personalization
+        // Appearance merged into Personalization
         settings.push({
             id: 'theme', tab: 'personalization', label: t('appearance'), description: t('appearanceDesc'), keywords: 'dark mode light mode',
             component: renderSettingRow(t('appearance'), t('appearanceDesc'), renderDropdown(t(theme), [t('system'), t('dark'), t('light')], (e) => setTheme(e.target.value === t('system') ? 'system' : e.target.value === t('dark') ? 'dark' : 'light'), Monitor))
@@ -403,15 +403,19 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
             ))
         });
 
+        // Personalization
         settings.push({
             id: 'multiScheduleReminder', tab: 'personalization', label: 'Multi Schedule Reminder', keywords: 'alarm scheduler calendar schedule',
             component: <MultiScheduleReminder />
         });
 
-        // Language & Region (Integrated from world-wide selection)
         settings.push({
             id: 'region', tab: 'personalization', label: t('region'), description: t('regionDesc'), keywords: 'country world',
-            component: renderSettingRow(t('region'), t('regionDesc'), renderDropdown(region, Object.keys(regions || {}), (e) => setRegion(e.target.value), Globe))
+            component: (
+                <div className="pt-6 mt-6 border-t border-gray-100 dark:border-white/5">
+                    {renderSettingRow(t('region'), t('regionDesc'), renderDropdown(region, Object.keys(regions || {}), (e) => setRegion(e.target.value), Globe))}
+                </div>
+            )
         });
 
         settings.push({
@@ -445,18 +449,25 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
     const renderContent = () => {
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
-            const results = allSettings.filter(item => item.label.toLowerCase().includes(query) || (item.keywords && item.keywords.toLowerCase().includes(query)));
+            const results = allSettings.filter(item => 
+                item.label.toLowerCase().includes(query) || 
+                (item.keywords && item.keywords.toLowerCase().includes(query))
+            );
             return (
                 <div className="space-y-4">
                     {results.map(item => <div key={item.id}>{item.component}</div>)}
-                    {results.length === 0 && <div className="py-20 text-center opacity-50"><p>No results found for "{searchQuery}"</p></div>}
+                    {results.length === 0 && (
+                        <div className="py-20 text-center opacity-50">
+                            <p>No results found for "{searchQuery}"</p>
+                        </div>
+                    )}
                 </div>
             );
         }
 
         switch (activeTab) {
             case 'personalization':
-                return <div className="space-y-2">{allSettings.filter(s => s.tab === 'personalization').map(s => <div key={s.id}>{s.component}</div>)}</div>;
+                return <div className="space-y-0">{allSettings.filter(s => s.tab === 'personalization').map(s => <div key={s.id}>{s.component}</div>)}</div>;
             case 'notifications':
                 return (
                     <div className="space-y-4">

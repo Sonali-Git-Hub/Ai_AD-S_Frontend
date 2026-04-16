@@ -408,8 +408,8 @@ const MultiScheduleReminder = () => {
 
                                 <div>
                                     <label className="text-xs font-bold text-gray-500 uppercase">Notification Type</label>
-                                    <div className="grid grid-cols-3 gap-2 mt-1">
-                                        {['in-app', 'email', 'both'].map(type => (
+                                    <div className="grid grid-cols-1 gap-2 mt-1">
+                                        {['in-app'].map(type => (
                                             <button 
                                                 key={type} 
                                                 onClick={() => setFormData(prev => ({...prev, notificationType: type}))}
@@ -421,6 +421,7 @@ const MultiScheduleReminder = () => {
                                         ))}
                                     </div>
                                 </div>
+
 
                                 <div>
                                     <label className="text-xs font-bold text-gray-500 uppercase">Reminder Voice (AISA)</label>

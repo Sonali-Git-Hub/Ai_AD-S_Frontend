@@ -29,6 +29,10 @@ import FlowingAICreature from '../Components/FlowingAICreature';
 import { useLanguage } from '../context/LanguageContext';
 import ErrorBoundary from '../Components/ErrorBoundary';
 
+import ProfileSettingsDropdown from '../Components/ProfileSettingsDropdown/ProfileSettingsDropdown';
+import ThemeToggle from '../Components/ThemeToggle';
+import FaqModal from '../Components/FaqModal';
+
 /**
  * Landing Page - Principal entry point for AISA.
  * Manages the immersive 3D creature journey, section transitions, 
@@ -89,8 +93,10 @@ const Landing = () => {
                 </Suspense>
             </ErrorBoundary>
 
+
             {/* ── Hero / Entry Points ── */}
             <Hero />
+
 
             {/* ── Functional Feature Blocks ── */}
             <StackedFeatures />
@@ -178,6 +184,7 @@ const Landing = () => {
                                     <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 opacity-0 group-hover:opacity-100 transition-opacity" />
                                     <img src={logo} alt="AISA™" className="w-14 h-14 relative transform group-hover:scale-110 transition-transform duration-500" />
                                 </div>
+                                <span className="text-xl font-black text-maintext tracking-tighter group-hover:text-primary transition-colors">AISA <span className="text-primary">™</span></span>
                             </div>
                             <p className="text-base text-gray-500 dark:text-gray-400 leading-relaxed font-medium">
                                 {t('aboutIntroText')}
