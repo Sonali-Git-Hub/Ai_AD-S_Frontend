@@ -109,18 +109,23 @@ export const chatStorageService = {
   },
 
   async getHistory(sessionId) {
-    if (sessionId === "new") return [];
+    if (sessionId === "new") return { messages: [] };
     try {
       const response = await axios.get(`${API_BASE_URL}/chat/${sessionId}`, {
         headers: getAuthHeaders(),
         withCredentials: true
       });
       console.log(`[STORAGE] Fetched data for ${sessionId}:`, response.data);
-      return response.data.messages || [];
+      return response.data; // Return full session object
     } catch (error) {
       console.warn("Backend history fetch failed, using local:", error);
       const local = await idbGet(`chat_history_${sessionId}`);
-      return local || [];
+      const meta = await idbGet(`chat_meta_${sessionId}`) || {};
+      return { 
+        messages: local || [],
+        projectId: meta.projectId || null,
+        title: meta.title || "New Chat"
+      };
     }
   },
 

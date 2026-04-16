@@ -167,18 +167,45 @@ const Sidebar = ({ isOpen, onClose }) => {
     }
   }, [token]);
 
-  // Fetch chat sessions — re-fetch when projectId changes
+  // Fetch chat sessions — re-fetch when projectId or searchQuery changes
   useEffect(() => {
     const fetchSessions = async () => {
       try {
-        const data = await chatStorageService.getSessions(currentProjectId);
+        // If searching, we fetch all sessions to allow "any chat" search as requested
+        // otherwise, we only fetch for the current project
+        const data = await chatStorageService.getSessions(searchQuery ? null : currentProjectId);
         setSessions(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Failed to fetch sessions:", err);
       }
     };
-    fetchSessions();
-  }, [token, sessionId, setSessions, currentProjectId]);
+
+    if (searchQuery) {
+      const timer = setTimeout(fetchSessions, 400); // 400ms debounce
+      return () => clearTimeout(timer);
+    } else {
+      fetchSessions();
+    }
+  }, [token, sessionId, setSessions, currentProjectId, searchQuery]);
+
+  // Auto-expand projects if search matches a project name
+  useEffect(() => {
+    if (searchQuery && projects.some(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))) {
+      setIsProjectsExpanded(true);
+    }
+  }, [searchQuery, projects]);
+
+  const highlightMatch = (text, query) => {
+    if (!query || !text) return text;
+    const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
+    return parts.map((part, i) =>
+      part.toLowerCase() === query.toLowerCase() ? (
+        <mark key={i} className="bg-primary/20 text-primary border-b border-primary/50 rounded-sm px-0.5">{part}</mark>
+      ) : (
+        part
+      )
+    );
+  };
 
   useEffect(() => {
     setCurrentSessionId(sessionId || 'new');
@@ -481,24 +508,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             </div>
           </div>
 
-          {/* Main Navigation Links */}
-          <nav className="px-3 pt-4 space-y-1 relative z-10">
-            <NavLink to="/dashboard/chat" className={navItemClass}>
-              <MessageSquare className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
-              <span className="truncate font-semibold text-sm">{t('chat') || 'Chat'}</span>
-            </NavLink>
 
-            <NavLink to="/dashboard/social-agent" className={navItemClass}>
-              <LayoutGrid className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
-              <span className="truncate font-semibold text-sm">Content Generation</span>
-              <span className="ml-auto px-1.5 py-0.5 rounded-lg bg-primary/10 text-[9px] font-black uppercase text-primary border border-primary/10">Gen</span>
-            </NavLink>
-
-            <NavLink to="/dashboard/ai-personal-assistant" className={navItemClass}>
-              <Bot className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
-              <span className="truncate font-semibold text-sm">AI Personal Assistant</span>
-            </NavLink>
-          </nav>
 
           {/* New Chat Button */}
           <div className="px-5 pt-4 pb-2 relative z-10">
@@ -522,18 +532,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           {token && (
             <div className="flex flex-col">
 
-              {/* Personal Chat - Standalone Top Space */}
-              <div className="px-3 pt-1">
-                <button
-                  onClick={() => handleSwitchProject(null)}
-                  className={`w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl transition-all border ${!currentProjectId
-                    ? 'bg-primary/10 text-primary border-primary/20 shadow-md ring-1 ring-primary/20'
-                    : 'bg-white/20 dark:bg-white/5 border-white/20 dark:border-white/10 hover:bg-white/30 dark:hover:bg-white/10 text-maintext'}`}
-                >
-                  <MessageSquare className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
-                  <span className="truncate font-semibold text-sm">Personal Chat</span>
-                </button>
-              </div>
+
 
               {/* Projects Section Header */}
               <div
@@ -567,7 +566,9 @@ const Sidebar = ({ isOpen, onClose }) => {
                       <span className="truncate font-medium text-[14px]">{t('newProject')}</span>
                     </button>
 
-                    {projects.length>0 && projects.map((p, idx) => (
+                    {projects.length>0 && projects
+                      .filter(p => !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                      .map((p, idx) => (
                       <motion.div 
                         key={p._id} 
                         initial={{ x: -10, opacity: 0 }}
@@ -596,7 +597,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                                 : 'text-subtext hover:bg-white/20 dark:hover:bg-white/10 hover:text-maintext'}`}
                             >
                               <Folder className={`w-4 h-4 shrink-0 transition-transform duration-300 ${currentProjectId === p._id ? 'scale-110 text-primary ring-4 ring-primary/10 rounded-full' : 'group-hover/proj:scale-110'}`} />
-                              <span className="truncate font-medium text-[14px] text-left pr-8">{p.name}</span>
+                              <span className="truncate font-medium text-[14px] text-left pr-8">{highlightMatch(p.name, searchQuery)}</span>
                             </button>
                             <div className="absolute right-2 opacity-0 group-hover/proj:opacity-100 flex items-center gap-1 transition-all duration-300 translate-x-2 group-hover/proj:translate-x-0">
                               <button onClick={(e) => { e.stopPropagation(); setEditingProjectId(p._id); setRenameProjectName(p.name); }} className="p-1.5 text-subtext hover:text-primary transition-all bg-white/10 rounded-lg border border-white/5 shadow-sm">
@@ -675,10 +676,20 @@ const Sidebar = ({ isOpen, onClose }) => {
                                 className="absolute left-1 top-4 bottom-4 w-1 bg-primary rounded-full shadow-[0_0_10px_rgba(var(--primary),0.5)]"
                               />
                             )}
-                            <div className="font-bold truncate text-[14px] tracking-tight mb-1">{session.title || "Untitled Intelligence"}</div>
-                            <div className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 ${theme === 'dark' ? 'text-subtext/40' : 'text-slate-500'}`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${currentSessionId === session.sessionId ? 'bg-primary animate-pulse' : (theme === 'dark' ? 'bg-white/20' : 'bg-slate-300')}`}></span>
-                              {new Date(session.lastModified).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                            <div className="font-bold truncate text-[14px] tracking-tight mb-1">{highlightMatch(session.title || "Untitled Intelligence", searchQuery)}</div>
+                            <div className="flex items-center gap-2">
+                              <div className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 ${theme === 'dark' ? 'text-subtext/40' : 'text-slate-500'}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${currentSessionId === session.sessionId ? 'bg-primary animate-pulse' : (theme === 'dark' ? 'bg-white/20' : 'bg-slate-300')}`}></span>
+                                {new Date(session.lastModified).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                              </div>
+                              {searchQuery && session.projectId && (
+                                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/10 border border-primary/20">
+                                  <Folder className="w-2.5 h-2.5 text-primary" />
+                                  <span className="text-[9px] font-bold text-primary truncate max-w-[60px]">
+                                    {highlightMatch(projects.find(p => p._id === session.projectId)?.name || "Personal", searchQuery)}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           </button>
                           <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-x-4 group-hover:translate-x-0">
