@@ -134,54 +134,27 @@ const DashboardLayout = () => {
 
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-      {/* Persistent Floating Mobile Menu Button */}
-      <AnimatePresence>
-        {!isSidebarOpen && (
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            className="fixed top-5 left-5 z-[1000] lg:hidden"
-          >
-            <button
-              onClick={() => setIsSidebarOpen(true)}
-              className="w-12 h-12 flex items-center justify-center bg-white/20 dark:bg-black/40 backdrop-blur-xl rounded-2xl border border-amber-500/40 dark:border-amber-400/30 shadow-2xl text-amber-500 dark:text-amber-400 active:scale-95 transition-all"
-            >
-              <Menu className="w-6 h-6 stroke-[2.5]" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       <div className="flex-1 flex flex-col min-w-0 bg-transparent h-full relative">
 
-        {/* Mobile Header - Hide on Chat/Assistant if they provide their own toggle */}
-        {!isFullScreen && !location.pathname.includes('/chat') && !location.pathname.includes('/ai-personal-assistant') && (
-          <div className="lg:hidden flex items-center justify-between p-4 bg-secondary shrink-0 z-50 shadow-sm">
-            <div className="flex items-center gap-3">
-              <button
+        {/* Unified Mobile Header (Hides when sidebar is open to prevent overlap) */}
+        {!isFullScreen && !isSidebarOpen && (
+          <div className="lg:hidden flex items-center justify-between px-6 py-4 bg-white/40 dark:bg-black/40 backdrop-blur-xl border-b border-white/20 dark:border-white/5 shrink-0 z-[1001] shadow-xl">
+            <div className="flex items-center gap-4">
+              <motion.button
+                whileTap={{ scale: 0.9 }}
                 onClick={() => setIsSidebarOpen(true)}
-                className="p-2 -ml-2 rounded-lg hover:bg-surface text-maintext active:bg-surface/80 transition-colors"
+                className="w-10 h-10 flex items-center justify-center bg-amber-500/10 rounded-xl border border-amber-500/30 text-amber-600 dark:text-amber-400"
               >
-                <Menu className="w-6 h-6" />
-              </button>
-              <Link to="/" state={{ fromLogo: true }} className="font-bold text-lg text-primary hover:opacity-80 transition-opacity">
-                AISA<sup className="text-[0.6em] ml-0.5">™</sup>
+                <Menu className="w-6 h-6 stroke-[2.5]" />
+              </motion.button>
+              <Link to="/" state={{ fromLogo: true }} className="flex items-center gap-2">
+                <img src="/logo/Logo.svg" alt="AISA" className="w-7 h-7" />
+                <span className="font- black text-[17px] text-zinc-900 dark:text-white tracking-tight">AISA<sup className="text-[0.6em] ml-0.5">™</sup></span>
               </Link>
             </div>
 
-            {token && (
-              <div
-                className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm uppercase cursor-default shadow-sm"
-              >
-                {user.name?.charAt(0) || 'U'}
-              </div>
-            )}
           </div>
         )}
-
-        {/* Menu Button for Mobile if needed can be kept, but Sidebar is usually toggled by header */}
-
         {/* Outlet for pages */}
         <main className={`flex-1 overflow-y-auto relative w-full scroll-smooth p-0`}>
           <Outlet />

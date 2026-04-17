@@ -5306,7 +5306,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
   }, [isAudioConvertMode]);
 
   return (
-    <div className="flex w-full bg-secondary relative overflow-hidden aisa-scalable-text overscroll-none h-[100dvh] fixed inset-0 lg:static lg:h-full">
+    <div className="flex w-full bg-secondary relative overflow-hidden aisa-scalable-text overscroll-none h-full lg:static">
       {/* 🌟 Premium Minimalist Background Wrapper 🌟 */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none bg-[#f8f9fc] dark:bg-[#0b0c15]">
         {/* Universal Ambient Glows: Animated Blobs for Depth */}
@@ -5507,12 +5507,10 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         <div
           ref={chatContainerRef}
           onScroll={handleScroll}
-          className="relative flex-1 overflow-y-auto chatgpt-container pt-[20vh] pb-64 md:pb-72 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent aisa-scalable-text"
+          className="relative flex-1 overflow-y-auto chatgpt-container pt-4 sm:pt-6 pb-64 md:pb-72 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent aisa-scalable-text"
         >
           {messages.length > 0 && (
             <>
-              {/* Extra large Top Spacer for premium starting position */}
-              <div className="h-[5vh] w-full shrink-0" />
               {messages.map((msg) => (
                 <div
                   key={msg.id}
@@ -6472,16 +6470,20 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
             ))}
 
               {isLoading && !typingMessageId && (
-                <AisaTypingIndicator 
-                  visible={true} 
-                  message={
-                    isImageGeneration ? "AISA Generating..." : 
-                    isVideoGeneration ? "Generating cinematic video..." :
-                    isMagicEditing ? "Processing image edit..." :
-                    isDeepSearch ? "Deep searching..." :
-                    "AISA is thinking"
-                  }
-                />
+                <div className="chatgpt-message-row ai-row !py-0 -mt-2">
+                  <div className="chatgpt-message-content">
+                    <AisaTypingIndicator 
+                      visible={true} 
+                      message={
+                        isImageGeneration ? "AISA Generating..." : 
+                        isVideoGeneration ? "Generating cinematic video..." :
+                        isMagicEditing ? "Processing image edit..." :
+                        isDeepSearch ? "Deep searching..." :
+                        "AISA is thinking"
+                      }
+                    />
+                  </div>
+                </div>
               )}
             </>
           )}
@@ -6618,8 +6620,92 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
             <form 
               onSubmit={handleSendMessage} 
-              className="relative w-full flex flex-col transition-all duration-300 backdrop-blur-3xl p-3 z-50 aisa-chat-input-wrapper bg-[#f8f9fc]/90 dark:bg-zinc-900/95 border border-slate-200/50 dark:border-zinc-800/80 rounded-[32px] shadow-2xl ring-1 ring-black/5 overflow-visible"
+              className="relative w-full flex flex-col transition-all duration-300 backdrop-blur-3xl p-1.5 z-50 aisa-chat-input-wrapper bg-[#f8f9fc]/90 dark:bg-zinc-900/95 border border-slate-200/50 dark:border-zinc-800/80 rounded-[28px] shadow-2xl ring-1 ring-black/5 overflow-visible"
             >
+              {/* Floating Active Tool Indicators (Left-Aligned) */}
+              <AnimatePresence>
+                {(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') && (
+                  <div className="absolute bottom-full left-0 mb-4 flex flex-wrap gap-2 pointer-events-auto px-1 z-[100] justify-start w-full">
+                    {/* Tool Pill list here (restored for clarity) */}
+                    {isCashFlowMode && (
+                      <motion.div initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2 px-3 py-1.5 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl text-primary rounded-2xl text-[12px] font-bold border border-primary/20 shadow-xl shadow-primary/5 whitespace-nowrap">
+                        <TrendingUp size={13} strokeWidth={3} /> <span className="hidden sm:inline">AI CashFlow</span>
+                        <button onClick={() => setIsCashFlowMode(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
+                      </motion.div>
+                    )}
+                    {isWebSearch && (
+                      <motion.div initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2 px-3 py-1.5 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl text-blue-600 dark:text-blue-400 rounded-2xl text-[12px] font-bold border border-blue-500/20 shadow-xl shadow-blue-500/5 whitespace-nowrap">
+                        <Globe size={13} strokeWidth={3} /> <span className="hidden sm:inline">Web Search</span>
+                        <button onClick={() => setIsWebSearch(false)} className="ml-1 hover:text-red-500"><X size={14} /></button>
+                      </motion.div>
+                    )}
+                    {isDeepSearch && (
+                      <motion.div initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2 px-3 py-1.5 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl text-emerald-600 dark:emerald-400 rounded-2xl text-[12px] font-bold border border-emerald-500/20 shadow-xl shadow-emerald-500/5 whitespace-nowrap">
+                        <Search size={13} strokeWidth={3} /> <span className="hidden sm:inline">Deep Search</span>
+                        <button onClick={() => setIsDeepSearch(false)} className="ml-1 hover:text-red-500"><X size={14} /></button>
+                      </motion.div>
+                    )}
+                    {isImageGeneration && (
+                      <motion.div initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2 px-3 py-1.5 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl text-indigo-600 dark:text-indigo-400 rounded-2xl text-[12px] font-bold border border-indigo-500/20 shadow-xl shadow-indigo-500/5 whitespace-nowrap">
+                        <ImageIcon size={13} strokeWidth={3} /> <span className="hidden sm:inline">Image Gen</span>
+                        <button onClick={() => setIsImageGeneration(false)} className="ml-1 hover:text-red-500"><X size={14} /></button>
+                      </motion.div>
+                    )}
+                    {isVideoGeneration && (
+                      <motion.div initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2 px-3 py-1.5 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl text-violet-600 dark:text-violet-400 rounded-2xl text-[12px] font-bold border border-violet-500/20 shadow-xl shadow-violet-500/5 whitespace-nowrap">
+                        <Video size={13} strokeWidth={3} /> <span className="hidden sm:inline">Video Gen</span>
+                        <button onClick={() => setIsVideoGeneration(false)} className="ml-1 hover:text-red-500"><X size={14} /></button>
+                      </motion.div>
+                    )}
+                    {isVoiceMode && (
+                      <motion.div initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2 px-3 py-1.5 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl text-rose-600 dark:text-rose-400 rounded-2xl text-[12px] font-bold border border-rose-500/20 shadow-xl shadow-rose-500/5 whitespace-nowrap">
+                        <Volume2 size={13} strokeWidth={3} /> <span className="hidden sm:inline">Voice Mode</span>
+                        <button onClick={() => setIsVoiceMode(false)} className="ml-1 hover:text-red-500"><X size={14} /></button>
+                      </motion.div>
+                    )}
+                    {isAudioConvertMode && (
+                      <motion.div initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2 px-3 py-1.5 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl text-indigo-600 dark:text-indigo-400 rounded-2xl text-[12px] font-bold border border-indigo-500/20 shadow-xl shadow-indigo-500/5 whitespace-nowrap">
+                        <Headphones size={13} strokeWidth={3} /> <span className="hidden sm:inline">Audio Convert</span>
+                        <button onClick={() => setIsAudioConvertMode(false)} className="ml-1 hover:text-red-500"><X size={14} /></button>
+                      </motion.div>
+                    )}
+                    {isDocumentConvert && (
+                      <motion.div initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2 px-3 py-1.5 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl text-primary rounded-2xl text-[12px] font-bold border border-primary/20 shadow-xl shadow-primary/5 whitespace-nowrap">
+                        <FileText size={13} strokeWidth={3} /> <span className="hidden sm:inline">Doc Convert</span>
+                        <button onClick={() => setIsDocumentConvert(false)} className="ml-1 hover:text-red-500"><X size={14} /></button>
+                      </motion.div>
+                    )}
+                    {isCodeWriter && (
+                      <motion.div initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2 px-3 py-1.5 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl text-primary rounded-2xl text-[12px] font-bold border border-primary/20 shadow-xl shadow-primary/5 whitespace-nowrap">
+                        <Code size={13} strokeWidth={3} /> <span className="hidden sm:inline">Code Writer</span>
+                        <button onClick={() => setIsCodeWriter(false)} className="ml-1 hover:text-red-500"><X size={14} /></button>
+                      </motion.div>
+                    )}
+                    {(activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') && (
+                      <motion.div initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2 px-3 py-1.5 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl text-indigo-600 dark:text-indigo-400 rounded-2xl text-[12px] font-bold border border-indigo-500/20 shadow-xl shadow-indigo-500/5 whitespace-nowrap">
+                        <Scale size={13} strokeWidth={3} /> <span className="hidden sm:inline">AI Legal</span>
+                        <button onClick={() => { setActiveLegalToolkit(false); setCurrentMode('NORMAL_CHAT'); }} className="ml-1 hover:text-red-500"><X size={14} /></button>
+                      </motion.div>
+                    )}
+                    {isMagicEditing && (
+                      <motion.div initial={{ opacity: 0, scale: 0.9, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2 px-3 py-1.5 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl text-amber-600 dark:text-amber-400 rounded-2xl text-[12px] font-bold border border-amber-500/20 shadow-xl shadow-amber-500/5 whitespace-nowrap">
+                        <Wand2 size={13} strokeWidth={3} /> <span className="hidden sm:inline">Magic Edit</span>
+                        <button onClick={() => setIsMagicEditing(false)} className="ml-1 hover:text-red-500"><X size={14} /></button>
+                      </motion.div>
+                    )}
+                    {isFileAnalysis && (
+                      <motion.div initial={{ opacity: 0, y: 10, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10 }} className="flex items-center gap-2 px-3 py-1.5 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl text-blue-600 dark:text-blue-400 rounded-2xl text-[12px] font-bold border border-blue-500/20 shadow-xl shadow-blue-500/5 whitespace-nowrap">
+                        <FileText size={13} strokeWidth={3} />
+                        <span className="hidden sm:inline">Analysis</span>
+                        <button onClick={() => setIsFileAnalysis(false)} className="ml-1 hover:text-red-500"><X size={14} /></button>
+                      </motion.div>
+                    )}
+                  </div>
+                )}
+              </AnimatePresence>
+
+
+
               {/* Internal File Preview Area */}
               {filePreviews.length > 0 && (
                 <div className="flex flex-wrap gap-4 px-2 py-2 mb-2">
@@ -6662,34 +6748,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
               
               <div className="flex items-end gap-2 w-full">
 
-
-            {/* AI CashFlow Search Results Dropdown */}
-            {isCashFlowMode && Array.isArray(stockSearchResults) && stockSearchResults.length > 0 && (
-              <div className="absolute bottom-full left-0 right-0 mb-3 px-2 z-[110] pointer-events-auto max-h-[300px] overflow-y-auto custom-scrollbar">
-                <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden">
-                  {stockSearchResults.map((stock) => (
-                    <button
-                      key={stock.symbol}
-                      type="button"
-                      onClick={() => {
-                        setSelectedStock(stock);
-                        setInputValue(stock.name);
-                        setStockSearchResults([]);
-                      }}
-                      className="w-full text-left px-4 py-3 hover:bg-primary/10 border-b border-slate-100 dark:border-zinc-800 last:border-0 flex items-center justify-between group transition-colors"
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-bold text-slate-800 dark:text-white group-hover:text-primary transition-colors">{stock.symbol}</span>
-                        <span className="text-xs text-slate-500 dark:text-zinc-400 line-clamp-1">{stock.name}</span>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <span className="text-[10px] px-2 py-0.5 bg-slate-100 dark:bg-white/5 rounded text-slate-500 dark:text-zinc-400 font-bold uppercase">{stock.region}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
 
               {/* Left Actions Group */}
               <div className="flex items-center gap-[2px] pl-[2px] shrink-0">
@@ -7104,364 +7162,59 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Animate your images with AI magic.</p>
                           </div>
                         </button>
-
-
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
 
                 <div className="relative">
-                  <AnimatePresence>
-                    {isAttachHovered && <MagicShowEffect />}
-                  </AnimatePresence>
                   <motion.button
                     type="button"
                     ref={attachBtnRef}
                     onMouseEnter={() => setIsAttachHovered(true)}
                     onMouseLeave={() => setIsAttachHovered(false)}
-                    whileHover={{ scale: 1.15, rotate: 90 }}
-                    whileTap={{ scale: 0.9 }}
+                    whileHover={{ scale: 1.12 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => {
                       setIsAttachMenuOpen(!isAttachMenuOpen);
                       setIsToolsMenuOpen(false);
                     }}
-                    className="w-[40px] h-[40px] rounded-full flex items-center justify-center text-subtext hover:text-primary hover:bg-secondary transition-all shadow-sm hover:shadow-md relative overflow-visible z-20"
+                    className="w-[36px] h-[36px] rounded-full flex items-center justify-center text-subtext hover:text-primary transition-all relative z-20"
                     title="Attachments"
                   >
-                    <Plus className={`w-[22px] h-[22px] transition-transform duration-300 ${isAttachMenuOpen ? 'rotate-45' : ''}`} />
+                    <Plus className={`w-[20px] h-[20px] transition-transform duration-300 ${isAttachMenuOpen ? 'rotate-45' : ''}`} />
                   </motion.button>
                 </div>
 
                 <div className="relative">
-                  <AnimatePresence>
-                    {(isBrainHovered || isBrainTapped) && <MagicShowEffect isMobileIdle={!isBrainHovered && !isBrainTapped} />}
-                  </AnimatePresence>
                   <motion.button
                     type="button"
                     ref={toolsBtnRef}
                     onMouseEnter={() => setIsBrainHovered(true)}
                     onMouseLeave={() => setIsBrainHovered(false)}
-                    whileHover={{ scale: 1.15, rotate: [0, -5, 5, 0] }}
-                    whileTap={{ scale: 0.9 }}
+                    whileHover={{ scale: 1.12 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={(e) => {
                       const rect = e.currentTarget.getBoundingClientRect();
                       setExplosions(prev => [...prev, { 
-                        id: Date.now(), 
-                        x: rect.left + rect.width / 2, 
-                        y: rect.top + rect.height / 2 
+                         id: Date.now(), 
+                         x: rect.left + rect.width / 2, 
+                         y: rect.top + rect.height / 2 
                       }]);
                       setIsBrainTapped(true);
                       setTimeout(() => setIsBrainTapped(false), 2000);
                       setIsToolsMenuOpen(!isToolsMenuOpen);
                       setIsAttachMenuOpen(false);
                     }}
-                    className="w-[40px] h-[40px] rounded-full flex items-center justify-center bg-secondary/80 text-subtext hover:text-primary transition-colors shadow-lg hover:shadow-primary/40 relative overflow-visible z-20"
+                    className="w-[36px] h-[36px] rounded-full flex items-center justify-center bg-secondary/80 text-subtext hover:text-primary transition-colors relative z-20"
                     title="AISA ™ Magic Tools"
                   >
-                    <Brain className={`w-[22px] h-[22px] relative z-10 transition-colors ${isBrainHovered ? 'text-primary' : ''}`} />
-                    <AnimatePresence>
-                      {isBrainHovered && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.5 }}
-                          animate={{ opacity: 1, scale: 1.1 }}
-                          exit={{ opacity: 0, scale: 0.5 }}
-                          className="absolute inset-0 rounded-full bg-primary/20 blur-md pointer-events-none"
-                        />
-                      )}
-                    </AnimatePresence>
+                    <Brain className={`w-[20px] h-[20px] relative z-10 transition-colors ${isBrainHovered ? 'text-primary' : ''}`} />
                   </motion.button>
                 </div>
-
               </div>
 
-              <div className="flex-1 flex items-center min-w-0 bg-transparent border-0 ring-0 focus:ring-0">
-                <AnimatePresence>
-                  {(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') && (
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto w-[calc(100vw-24px)] max-w-5xl px-2 z-[100] justify-start sm:justify-start">
-                      {isCashFlowMode && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
-                          <TrendingUp size={12} strokeWidth={3} /> <span className="hidden sm:inline">AI CashFlow</span>
-                          <button onClick={() => setIsCashFlowMode(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
-                        </motion.div>
-                      )}
-                      {isWebSearch && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10, scale: 0.95 }} 
-                          animate={{ opacity: 1, y: 0, scale: 1 }} 
-                          exit={{ opacity: 0, scale: 0.95 }} 
-                          className="flex items-center gap-3 px-3.5 py-1.5 bg-blue-600/20 dark:bg-blue-500/25 text-blue-700 dark:text-blue-400 rounded-full text-xs font-bold border border-blue-400/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-blue-600/30 group shadow-[0_8px_32px_-4px_rgba(37,99,235,0.3)] relative overflow-hidden ring-1 ring-white/10"
-                        >
-                          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
-                          <div className="flex items-center gap-2 relative z-10">
-                            <div className="w-5 h-5 rounded-lg bg-blue-600 dark:bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/40 text-white">
-                              <Globe size={14} strokeWidth={3} />
-                            </div>
-                            <span className="uppercase tracking-widest text-[9px] font-black hidden xs:inline">Web Search</span>
-                          </div>
-                          <button 
-                            type="button" 
-                            onClick={() => setIsWebSearch(false)} 
-                            className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-blue-600 dark:text-blue-400 transition-all hover:rotate-90 relative z-10"
-                          >
-                            <X size={14} strokeWidth={3} />
-                          </button>
-                        </motion.div>
-                      )}
-                      {isDeepSearch && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10, scale: 0.95 }} 
-                          animate={{ opacity: 1, y: 0, scale: 1 }} 
-                          exit={{ opacity: 0, scale: 0.95 }} 
-                          className="flex items-center gap-3 px-3.5 py-1.5 bg-emerald-600/20 dark:bg-emerald-500/25 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-bold border border-emerald-400/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-emerald-600/30 group shadow-[0_8px_32px_-4px_rgba(16,185,129,0.3)] relative overflow-hidden ring-1 ring-white/10"
-                        >
-                          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
-                          <div className="flex items-center gap-2 relative z-10">
-                            <div className="w-5 h-5 rounded-lg bg-emerald-600 dark:bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/40 text-white">
-                              <Search size={14} strokeWidth={3} />
-                            </div>
-                            <span className="uppercase tracking-widest text-[9px] font-black hidden xs:inline">Deep Search</span>
-                          </div>
-                          <button 
-                            type="button" 
-                            onClick={() => setIsDeepSearch(false)} 
-                            className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-emerald-600 dark:text-emerald-400 transition-all hover:rotate-90 relative z-10"
-                          >
-                            <X size={14} strokeWidth={3} />
-                          </button>
-                        </motion.div>
-                      )}
-                      {isImageGeneration && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10, scale: 0.95 }} 
-                          animate={{ opacity: 1, y: 0, scale: 1 }} 
-                          exit={{ opacity: 0, scale: 0.95 }} 
-                          className="flex items-center gap-3 px-3.5 py-1.5 bg-indigo-600/20 dark:bg-indigo-500/25 text-indigo-700 dark:text-indigo-400 rounded-full text-xs font-bold border border-indigo-400/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-indigo-600/30 group shadow-[0_8px_32px_-4px_rgba(79,70,229,0.3)] relative overflow-hidden ring-1 ring-white/10"
-                        >
-                          {/* Glossy Reflection Effect */}
-                          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
-                          
-                          <div className="flex items-center gap-2 relative z-10">
-                            <div className="w-5 h-5 rounded-lg bg-indigo-600 dark:bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/40 text-white">
-                              <ImageIcon size={14} strokeWidth={3} />
-                            </div>
-                            <span className="uppercase tracking-widest text-[9px] font-black hidden xs:inline">Image Gen</span>
-                          </div>
-
-                          <div className="w-[1px] h-3 bg-indigo-500/40 mx-0.5 relative z-10" />
-
-                          <button 
-                            type="button"
-                            onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
-                            className="flex items-center gap-1.5 hover:text-indigo-900 dark:hover:text-indigo-200 transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
-                          >
-                            <span className="text-[10px] font-extrabold opacity-90">{imageAspectRatio}</span>
-                            <span className="text-[10px] font-black truncate max-w-[60px] sm:max-w-[100px] tracking-tight">
-                              {TOOL_PRICING.image.models.find(m => m.id === imageModelId)?.name.replace('AISA ', '') || 'Model'}
-
-                            </span>
-                            <ChevronDown size={11} className={`transition-transform duration-300 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
-                          </button>
-
-                          <button 
-                            type="button" 
-                            onClick={() => setIsImageGeneration(false)} 
-                            className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-indigo-600 dark:text-indigo-400 transition-all hover:rotate-90 relative z-10"
-                          >
-                            <X size={14} strokeWidth={3} />
-                          </button>
-                        </motion.div>
-                      )}
-                      {isVideoGeneration && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10, scale: 0.95 }} 
-                          animate={{ opacity: 1, y: 0, scale: 1 }} 
-                          exit={{ opacity: 0, scale: 0.95 }} 
-                          className="flex items-center gap-3 px-3.5 py-1.5 bg-violet-600/20 dark:bg-violet-500/25 text-violet-700 dark:text-violet-400 rounded-full text-xs font-bold border border-violet-400/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-violet-600/30 group shadow-[0_8px_32px_-4px_rgba(139,92,246,0.3)] relative overflow-hidden ring-1 ring-white/10"
-                        >
-                          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
-                          
-                          <div className="flex items-center gap-2 relative z-10">
-                            <div className="w-5 h-5 rounded-lg bg-violet-600 dark:bg-violet-500 flex items-center justify-center shadow-lg shadow-violet-500/40 text-white">
-                              <Video size={14} strokeWidth={3} />
-                            </div>
-                            <span className="uppercase tracking-widest text-[9px] font-black hidden xs:inline">Video Gen</span>
-                          </div>
-
-                          <div className="w-[1px] h-3 bg-violet-500/40 mx-0.5 relative z-10" />
-
-                          <button 
-                            type="button"
-                            onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
-                            className="flex items-center gap-1.5 hover:text-violet-900 dark:hover:text-violet-200 transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
-                          >
-                            <span className="text-[10px] font-extrabold opacity-90">{videoAspectRatio || 'D'}</span>
-                            <span className="text-[10px] font-black tracking-tight ml-1">{videoResolution}</span>
-                            <ChevronDown size={11} className={`transition-transform duration-300 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
-                          </button>
-
-                          <button 
-                            type="button" 
-                            onClick={() => setIsVideoGeneration(false)} 
-                            className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-violet-600 dark:text-violet-400 transition-all hover:rotate-90 relative z-10"
-                          >
-                            <X size={14} strokeWidth={3} />
-                          </button>
-                        </motion.div>
-                      )}
-                      {isVoiceMode && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} 
-                          className="flex items-center gap-2.5 px-3 py-1.5 bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-full text-xs font-bold border border-rose-500/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-rose-500/15 group shadow-lg shadow-rose-500/10"
-                        >
-                          <div className="flex items-center gap-2">
-                             <div className="w-5 h-5 rounded-lg bg-rose-500/20 flex items-center justify-center">
-                              <Volume2 size={14} strokeWidth={2.5} />
-                            </div>
-                            <span className="uppercase tracking-wide text-[10px] font-black hidden sm:inline">Voice Mode</span>
-                          </div>
-                          <button 
-                            type="button" 
-                            onClick={() => setIsVoiceMode(false)} 
-                            className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 transition-all hover:rotate-90"
-                          >
-                            <X size={14} strokeWidth={3} />
-                          </button>
-                        </motion.div>
-                      )}
-                      {isAudioConvertMode && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} 
-                          className="flex items-center gap-2.5 px-3 py-1.5 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-full text-xs font-bold border border-indigo-500/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-indigo-500/15 group shadow-lg shadow-indigo-500/10"
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className="w-5 h-5 rounded-lg bg-indigo-500/20 flex items-center justify-center">
-                              <Headphones size={14} strokeWidth={2.5} />
-                            </div>
-                            <span className="uppercase tracking-wide text-[10px] font-black hidden sm:inline">Audio Convert</span>
-                          </div>
-                          <button type="button" onClick={() => setIsVoiceSettingsOpen(true)} className="ml-1 w-5 h-5 rounded-lg flex items-center justify-center hover:bg-indigo-500/20 text-subtext hover:text-indigo-600 transition-colors" title="Voice Settings">
-                            <Sliders size={13} />
-                          </button>
-                          <button 
-                            type="button" 
-                            onClick={() => setIsAudioConvertMode(false)} 
-                            className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-indigo-500/20 text-rose-600 transition-all hover:rotate-90"
-                          >
-                            <X size={14} strokeWidth={3} />
-                          </button>
-                        </motion.div>
-                      )}
-                      {isDocumentConvert && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
-                          <FileText size={12} strokeWidth={3} /> <span className="hidden sm:inline">Doc Convert</span>
-                          <button onClick={() => setIsDocumentConvert(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
-                        </motion.div>
-                      )}
-                      {isCodeWriter && (
-                        <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
-                          <Code size={12} strokeWidth={3} /> <span className="hidden sm:inline">Code Writer</span>
-                          <button onClick={() => setIsCodeWriter(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
-                        </motion.div>
-                      )}
-
-                      {(activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} 
-                          className="flex items-center gap-2.5 px-3 py-1.5 bg-indigo-600/10 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-300 rounded-full text-xs font-bold border border-indigo-500/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-indigo-600/15 group shadow-lg shadow-indigo-500/10"
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className="w-5 h-5 rounded-lg bg-indigo-500/20 flex items-center justify-center">
-                              <Scale size={14} strokeWidth={2.5} />
-                            </div>
-                            <span className="uppercase tracking-wide text-[10px] font-black truncate max-w-[120px]">
-                              AI Legal
-                              {(selectedLegalTool || activeTool) && (
-                                <span className="opacity-70 ml-1.5 font-bold border-l border-indigo-500/30 pl-1.5">
-                                  {(selectedLegalTool?.name || selectedLegalTool || activeTool)}
-                                </span>
-                              )}
-                            </span>
-                          </div>
-                          <button 
-                            type="button" 
-                            onClick={() => {
-                              setActiveLegalToolkit(false);
-                              setCurrentMode('NORMAL_CHAT');
-                              setSelectedLegalTool(null);
-                              setActiveTool(null);
-                            }} 
-                            className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 transition-all hover:rotate-90"
-                          >
-                            <X size={14} strokeWidth={3} />
-                          </button>
-                        </motion.div>
-                      )}
-                      {isMagicEditing && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 10, scale: 0.95 }} 
-                          animate={{ opacity: 1, y: 0, scale: 1 }} 
-                          exit={{ opacity: 0, scale: 0.95 }} 
-                          className="flex items-center gap-3 px-3.5 py-1.5 bg-amber-500/20 dark:bg-amber-500/25 text-amber-700 dark:text-amber-400 rounded-full text-xs font-bold border border-amber-400/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-amber-500/30 group shadow-[0_8px_32px_-4px_rgba(245,158,11,0.3)] relative overflow-hidden ring-1 ring-white/10"
-                        >
-                          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
-                          
-                          <div className="flex items-center gap-2 relative z-10">
-                             <div className="w-5 h-5 rounded-lg bg-amber-500 dark:bg-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/40 text-white">
-                              <Wand2 size={14} strokeWidth={3} />
-                            </div>
-                            <span className="uppercase tracking-widest text-[9px] font-black hidden xs:inline">{t('imageEdit')}</span>
-                          </div>
-
-                          <div className="w-[1px] h-3 bg-amber-500/40 mx-0.5 relative z-10" />
-
-                          <button 
-                            type="button"
-                            onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
-                            className="flex items-center gap-1.5 hover:text-amber-900 dark:hover:text-amber-200 transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
-                          >
-                            <span className="text-[10px] font-extrabold opacity-90">{imageAspectRatio}</span>
-                            <span className="text-[10px] font-black truncate max-w-[60px] sm:max-w-[100px] tracking-tight">
-                              {TOOL_PRICING.image.models.find(m => m.id === imageModelId)?.name.replace('AISA ', '') || 'Model'}
-                            </span>
-                            <ChevronDown size={11} className={`transition-transform duration-300 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
-                          </button>
-
-                          <button 
-                            type="button" 
-                            onClick={() => setIsMagicEditing(false)} 
-                            className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-amber-600 dark:text-amber-400 transition-all hover:rotate-90 relative z-10"
-                          >
-                            <X size={14} strokeWidth={3} />
-                          </button>
-                        </motion.div>
-                      )}
-                      {isFileAnalysis && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} 
-                          className="flex items-center gap-2.5 px-3 py-1.5 bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-full text-xs font-bold border border-blue-500/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-blue-500/15 group shadow-lg shadow-blue-500/10"
-                        >
-                          <div className="flex items-center gap-2">
-                             <div className="w-5 h-5 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                              <FileText size={14} strokeWidth={2.5} />
-                            </div>
-                            <span className="uppercase tracking-wide text-[10px] font-black hidden sm:inline">{t('analyzeDocument')}</span>
-                          </div>
-                          <button 
-                            type="button" 
-                            onClick={() => setIsFileAnalysis(false)} 
-                            className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition-all hover:rotate-90"
-                          >
-                            <X size={14} strokeWidth={3} />
-                          </button>
-                        </motion.div>
-                      )}
-                    </div>
-                  )}
-                </AnimatePresence>
-
-
-
+              <div className="flex-1 flex items-center min-w-0 bg-transparent py-1 ml-1 relative">
                 <textarea
                   ref={inputRef}
                   value={inputValue}
@@ -7483,8 +7236,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                   }}
                   placeholder={isLimitReached ? t('limitReached') || "Chat limit reached. Sign in to continue." : (isVideoGeneration ? t('describeVideo') || "Describe the video you want to generate..." : isAudioConvertMode ? t('enterTextToConvert') || "Enter text to convert..." : isDocumentConvert ? t('uploadFileToConvert') || "Upload file & ask to convert..." : typedPlaceholder)}
                   rows={1}
-                  className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none px-2 py-2 text-slate-800 dark:text-zinc-100 text-left placeholder-slate-400 dark:placeholder-zinc-500 resize-none overflow-y-auto custom-scrollbar font-medium leading-relaxed text-[16px] ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
-                  style={{ minHeight: '32px', height: 'auto', maxHeight: '180px', lineHeight: '1.5' }}
+                  className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none px-2 py-1.5 text-slate-800 dark:text-zinc-100 text-left placeholder-slate-400 dark:placeholder-zinc-500 resize-none overflow-y-auto custom-scrollbar font-medium leading-relaxed text-[15px] ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
+                  style={{ minHeight: '28px', height: 'auto', maxHeight: '180px', lineHeight: '1.4' }}
                 />
               </div>
 
@@ -7499,7 +7252,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                 {!isListening && (
                   <>
-                    {getAgentCapabilities(activeAgent.agentName, activeAgent.category).canVoice && (
+                    {activeAgent && getAgentCapabilities && getAgentCapabilities(activeAgent.agentName, activeAgent.category).canVoice && (
                       <div className="relative">
                         <AnimatePresence>
                           {isMicTapped && (
