@@ -45,6 +45,7 @@ import FuturisticToolCards from '../Components/FuturisticToolCards';
 import AisaTypingIndicator from '../Components/AisaTypingIndicator';
 import GmailConnectedModal from '../Components/GmailConnectedModal';
 import AISnapshot from '../Components/AISnapshot';
+import ShareModal from '../Components/ShareModal';
 
 
 const SendRipple = ({ onComplete }) => {
@@ -577,6 +578,8 @@ const Chat = () => {
   const [memory, setMemoryRecoil] = useRecoilState(memoryData);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [typingMessageId, setTypingMessageId] = useState(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [currentShareId, setCurrentShareId] = useState(null);
 
   // File Upload State
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -4588,18 +4591,38 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
   };
 
   const handleShare = async (content) => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'AI Assistant Response',
-          text: content,
-        });
-      } catch (err) {
-        console.log('Error sharing:', err);
+    if (!sessionId || sessionId === 'new') {
+      toast.error("Please send a message first to share this chat.");
+      return;
+    }
+
+    const shareToast = toast.loading("Generating share link...");
+    try {
+      const response = await chatStorageService.shareSession(sessionId);
+      if (response && response.success) {
+        setCurrentShareId(response.shareId);
+        setIsShareModalOpen(true);
+        toast.dismiss(shareToast);
+      } else {
+        throw new Error("Failed to generate share link");
       }
-    } else {
-      handleCopyMessage(content);
-      toast("Content copied to clipboard", { icon: '📋' });
+    } catch (err) {
+      toast.dismiss(shareToast);
+      console.error("[SHARE ERROR]", err);
+      // Fallback to simple share if backend fails
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: 'AI Assistant Response',
+            text: content,
+          });
+        } catch (shareErr) {
+          console.log('Error sharing:', shareErr);
+        }
+      } else {
+        handleCopyMessage(content);
+        toast.error("Enhanced sharing unavailable. Content copied to clipboard.");
+      }
     }
   };
 
@@ -8372,6 +8395,13 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
             if (inputRef.current) inputRef.current.focus();
           }, 100);
         }}
+      />
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        shareId={currentShareId}
+        sessionTitle={messages[0]?.content || "Shared Chat"}
+        sessionId={currentSessionId}
       />
     </div>
 
