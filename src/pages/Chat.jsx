@@ -5703,9 +5703,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         msg.content && (
                           <div id={`msg-text-${msg.id}`} className={`max-w-full break-words leading-relaxed whitespace-normal ${msg.role === 'user' ? 'text-slate-900 dark:text-white' : 'text-maintext'}`}>
                             {msg.role === 'user' && (msg.mode === MODES.DEEP_SEARCH || (msg.role === 'user' && msg.content && (msg.content.toLowerCase().includes('search') || msg.mode === 'web_search'))) && (
-                              <div className="flex items-center gap-1.5 mb-2 px-2.5 py-1 bg-white/20 backdrop-blur-md rounded-full w-fit border border-white/10 shadow-sm">
-                                <Search size={10} className="text-white animate-pulse" />
-                                <span className="text-[9px] font-black uppercase tracking-[0.1em] text-white">
+                              <div className={`flex items-center gap-1.5 mb-2 px-2.5 py-1 backdrop-blur-md rounded-full w-fit border shadow-sm ${msg.mode === MODES.DEEP_SEARCH ? 'bg-emerald-600/10 dark:bg-white/20 border-emerald-600/20 dark:border-white/10' : 'bg-blue-600/10 dark:bg-white/20 border-blue-600/20 dark:border-white/10'}`}>
+                                <Search size={10} className={`${msg.mode === MODES.DEEP_SEARCH ? 'text-emerald-600 dark:text-white' : 'text-blue-600 dark:text-white'} animate-pulse`} />
+                                <span className={`text-[9px] font-black uppercase tracking-[0.1em] ${msg.mode === MODES.DEEP_SEARCH ? 'text-emerald-600 dark:text-white' : 'text-blue-600 dark:text-white'}`}>
                                   {msg.mode === MODES.DEEP_SEARCH ? 'Deep Intelligence Search' : 'Web Intelligence Search'}
                                 </span>
                               </div>

@@ -33,14 +33,14 @@ export const generateChatResponse = async (history, currentMessage, systemInstru
                     }
                 } else if (attachment.url) {
                     // Include URL in images array if it's an image type
-                    const isImage = attachment.type === 'image' || 
-                                   (attachment.name && /\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(attachment.name)) ||
-                                   (attachment.mimeType && attachment.mimeType.startsWith('image/'));
-                    
+                    const isImage = attachment.type === 'image' ||
+                        (attachment.name && /\.(jpg|jpeg|png|webp|gif|bmp)$/i.test(attachment.name)) ||
+                        (attachment.mimeType && attachment.mimeType.startsWith('image/'));
+
                     if (isImage) {
                         images.push({ url: attachment.url, name: attachment.name, mimeType: attachment.mimeType });
                     }
-                    
+
                     finalMessage += `\n[Shared File: ${attachment.name || 'Link'} - ${attachment.url}]`;
                 }
             });
@@ -135,10 +135,10 @@ Based on this ${type} request: "${prompt}", generate exactly 3 highly relevant, 
 - Match the language of the original prompt if possible.`;
 
         const response = await generateChatResponse([], prompt, systemInstruction, [], 'English');
-        
+
         // Handle both object {reply: "..."} and direct string responses
         const replyText = response?.reply || (typeof response === 'string' ? response : null);
-        
+
         if (replyText && !replyText.includes('Log In') && !replyText.includes('System Message')) {
             // Split by newline or standard bullet patterns (1., -, *, •)
             return replyText
