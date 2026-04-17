@@ -5515,7 +5515,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
       {/* Main Area */}
       <div
-        className="flex-1 flex flex-col relative bg-transparent w-full min-w-0 pt-[5vh]"
+        className="flex-1 flex flex-col relative bg-transparent w-full min-w-0 pt-0"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -5544,12 +5544,12 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         <div
           ref={chatContainerRef}
           onScroll={handleScroll}
-          className="relative flex-1 overflow-y-auto chatgpt-container pt-[20vh] pb-64 md:pb-72 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent aisa-scalable-text"
+          className="relative flex-1 overflow-y-auto chatgpt-container pt-0 pb-64 md:pb-72 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent aisa-scalable-text"
         >
           {messages.length > 0 && (
             <>
               {/* Extra large Top Spacer for premium starting position */}
-              <div className="h-[5vh] w-full shrink-0" />
+              {/* Removed spacer to keep messages at top */}
               {messages.map((msg) => (
                 <div
                   key={msg.id}
