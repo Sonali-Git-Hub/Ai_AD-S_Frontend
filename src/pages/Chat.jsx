@@ -8390,6 +8390,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         onClose={() => setIsShareModalOpen(false)}
         shareId={currentShareId}
         sessionTitle={messages[0]?.content || "Shared Chat"}
+        sessionId={currentSessionId}
       />
     </div>
 
