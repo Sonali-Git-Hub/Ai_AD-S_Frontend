@@ -28,7 +28,7 @@ import LegalToolkitCard from '../Components/LegalToolkitCard';
 import axios from 'axios';
 import { apis, API } from '../types';
 import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
+import { toCanvas } from 'html-to-image';
 import { detectMode, getModeName, getModeIcon, getModeColor, MODES } from '../utils/modeDetection';
 import { userData, getUserData, sessionsData, toggleState, memoryData, activeProjectIdData } from '../userStore/userData';
 import { usePersonalization } from '../context/PersonalizationContext';
@@ -3881,7 +3881,8 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
             projectId: currentProjectId,
             conversion: conversionData,
             imageUrl: aiImageUrl,
-            videoUrl: aiVideoUrl
+            videoUrl: aiVideoUrl,
+            detectedMode: detectedMode // ✅ Store detected mode so download button shows correctly (ZIP vs PDF)
           };
 
           // Add the empty message structure to UI
@@ -3932,6 +3933,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
             finalModelMsg.isRealTime = isRealTimeResponse;
             finalModelMsg.sources = responseSources;
             if (aiResponseData.snapshot) finalModelMsg.snapshot = aiResponseData.snapshot;
+            finalModelMsg.detectedMode = detectedMode; // ✅ Ensure detectedMode persists to storage
           }
 
           // Set Smart Suggestions for the last response part
@@ -4072,7 +4074,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
 
       const link = document.createElement('a');
       link.href = blobUrl;
-      link.download = filename || 'AI Ads-download.png';
+      link.download = filename || 'AISA-download.png';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -4200,8 +4202,8 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         try {
           await navigator.share({
             files: [file],
-            title: file.name || 'AI Ads Document',
-            text: 'Converted Document from AI Ads'
+            title: file.name || 'AISA Document',
+            text: 'Converted Document from AISA'
           });
           return;
         } catch (err) {
@@ -4231,7 +4233,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         }
         const byteArray = new Uint8Array(byteNumbers);
         const blob = new Blob([byteArray], { type: 'application/pdf' });
-        const filename = msg.conversion.fileName || 'AI Ads.pdf';
+        const filename = msg.conversion.fileName || 'AISA Document.pdf';
         const file = new window.File([blob], filename, { type: 'application/pdf' });
 
         if (isPregeneration) {
@@ -4268,8 +4270,8 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
             try {
               await navigator.share({
                 files: [file],
-                title: 'AI Ads AI Response',
-                text: msg && msg.content ? `${msg.content.substring(0, 150)}...` : 'AI Ads Document output'
+                title: 'AISA AI Response',
+                text: msg && msg.content ? `${msg.content.substring(0, 150)}...` : 'AISA Document output'
               });
               toast.success("PDF sent to share menu!", { id: shareToastId });
             } catch (shareErr) {
@@ -4330,7 +4332,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         header.style.fontSize = '12px';
         header.style.color = '#888';
         header.style.fontWeight = 'bold';
-        header.innerText = 'AI Ads AI RESPONSE';
+        header.innerText = 'AISA AI RESPONSE';
 
         tempWrapper.appendChild(header);
 
@@ -4343,9 +4345,39 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
 
         const all = clonedContent.querySelectorAll('*');
         Array.from(all).forEach(el => {
-          el.style.color = '#000000';
+          const computedBg = el.style.backgroundColor;
+          const isCodeEl = el.closest('pre') || el.closest('code') || el.closest('[class*="group/code"]') ||
+                           el.tagName === 'PRE' || el.tagName === 'CODE';
+
+          if (isCodeEl) {
+            // Force ALL code block elements to be readable in PDF
+            el.style.backgroundColor = '#f5f5f5';
+            el.style.color = '#1a1a1a';
+            el.style.textShadow = 'none';
+            el.style.borderColor = '#ddd';
+          } else {
+            // Force normal text elements to be black
+            if (el.tagName !== 'SPAN') {
+              el.style.color = '#000000';
+            }
+          }
           if (el.tagName === 'P') el.style.marginBottom = '6px';
           if (el.tagName === 'A') el.style.color = '#0000ff';
+        });
+
+        // Force dark wrapper divs of code blocks to be light
+        const codeDivs = clonedContent.querySelectorAll('[class*="bg-[#0d0d0d]"], [class*="bg-[#2d2d2d]"], pre, code');
+        Array.from(codeDivs).forEach(el => {
+          el.style.backgroundColor = '#f5f5f5';
+          el.style.color = '#1a1a1a';
+        });
+
+        // Expand scrollable areas like code blocks so they don't clip
+        const scrollers = clonedContent.querySelectorAll('.overflow-auto, [class*="overflow-"], [class*="max-h-"], pre, code');
+        Array.from(scrollers).forEach(el => {
+          el.style.maxHeight = 'none';
+          el.style.overflow = 'visible';
+          el.style.height = 'auto';
         });
 
         tempWrapper.appendChild(clonedContent);
@@ -4355,12 +4387,10 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         await new Promise(r => setTimeout(r, 100));
 
         // Generate canvas from the unconstrained clone
-        canvas = await html2canvas(tempWrapper, {
-          scale: 2,
-          useCORS: true,
+        canvas = await toCanvas(tempWrapper, {
+          pixelRatio: 2,
           backgroundColor: '#ffffff',
-          windowWidth: 800, // Force window width awareness
-          logging: false
+          width: 800
         });
 
         // Cleanup
@@ -4462,7 +4492,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
       }
       // ===== END SMART SLICING =====
 
-      const filename = `AI Ads.pdf`;
+      const filename = `AISA Document.pdf`;
       const blob = pdf.output('blob');
       const file = new File([blob], filename, { type: 'application/pdf', lastModified: new Date().getTime() });
 
@@ -4519,8 +4549,8 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
           try {
             await navigator.share({
               files: [file],
-              title: 'AI Ads AI Response',
-              text: msg && msg.content ? `${msg.content.substring(0, 150)}...` : 'AI Ads Document output'
+              title: 'AISA AI Response',
+              text: msg && msg.content ? `${msg.content.substring(0, 150)}...` : 'AISA Document output'
             });
             if (processToastId) toast.success("PDF sent to share menu!", { id: processToastId });
           } catch (shareErr) {
@@ -4621,125 +4651,61 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
     }
   };
 
-  const handleDownloadPdf = async (msg) => {
-    const toastId = toast.loading("Generating PDF Report...");
+  const handleDownloadCodeProject = async (msg) => {
+    const toastId = toast.loading("Generating Project ZIP...");
     try {
-      const element = document.getElementById(`msg-text-${msg.id}`);
-      if (!element) { toast.error("Content not found", { id: toastId }); return; }
+      const JSZipModule = await import('jszip');
+      const JSZip = JSZipModule.default || JSZipModule;
+      
+      const zip = new JSZip();
+      
+      const content = msg.content || "";
+      // Updated regex to catch bold filenames followed by codeblocks with possible language tags
+      const regex = /\*\*(.+?)\*\*[\s\n]*```(?:[a-zA-Z]*)\n([\s\S]*?)```/g;
+      let match;
+      let fileCount = 0;
 
-      const tempWrapper = document.createElement('div');
-      tempWrapper.style.position = 'absolute';
-      tempWrapper.style.left = '-9999px';
-      tempWrapper.style.top = '-9999px';
-      tempWrapper.style.width = '800px';
-      tempWrapper.style.backgroundColor = '#ffffff';
-
-      const clonedContent = element.cloneNode(true);
-      const header = document.createElement('div');
-      header.style.marginBottom = '30px';
-      header.style.paddingBottom = '15px';
-      header.style.borderBottom = '2px solid #000000';
-      header.style.display = 'flex';
-      header.style.justifyContent = 'space-between';
-      header.style.alignItems = 'center';
-      header.innerHTML = `
-        <div style="font-weight: 900; font-size: 24px; color: #000000;">AISA</div>
-        <div style="font-size: 10px; color: #aaa; text-align: right;">DOC-ID: ${msg.id}<br/>DATE: ${new Date().toLocaleDateString()}</div>
-      `;
-
-      tempWrapper.appendChild(header);
-      clonedContent.style.padding = '10px';
-      clonedContent.style.color = '#000000';
-      clonedContent.style.backgroundColor = '#ffffff';
-      clonedContent.style.width = '100%';
-      clonedContent.style.lineHeight = '1.6';
-
-      const all = clonedContent.querySelectorAll('*');
-      Array.from(all).forEach(el => {
-        el.style.color = '#111827';
-        if (el.tagName === 'H1' || el.tagName === 'H2' || el.tagName === 'H3') {
-          el.style.color = '#000000';
-          el.style.marginTop = '24px';
-          el.style.marginBottom = '12px';
+      while ((match = regex.exec(content)) !== null) {
+        let filename = match[1].trim();
+        let code = match[2];
+        if (filename && code) {
+           // Ensure filename doesn't have invalid path characters
+           filename = filename.replace(/[\/\\]/g, '_');
+           zip.file(filename, code);
+           fileCount++;
         }
-        if (el.tagName === 'P') el.style.marginBottom = '10px';
-        if (el.tagName === 'LI') el.style.marginBottom = '8px';
-      });
-
-      tempWrapper.appendChild(clonedContent);
-
-      const footer = document.createElement('div');
-      footer.style.marginTop = '40px';
-      footer.style.paddingTop = '15px';
-      footer.style.borderTop = '1px solid #eee';
-      footer.style.fontSize = '10px';
-      footer.style.color = '#999';
-      footer.innerHTML = `AISA Report - Generated on ${new Date().toLocaleString()}. Always consult with a licensed professional.`;
-      tempWrapper.appendChild(footer);
-
-      document.body.appendChild(tempWrapper);
-      await new Promise(r => setTimeout(r, 200));
-
-      const canvas = await html2canvas(tempWrapper, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        windowWidth: 800
-      });
-      document.body.removeChild(tempWrapper);
-
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const margin = 15;
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const printW = pageW - margin * 2;
-      const printH = pageH - margin * 2;
-      const pxPerMm = canvas.width / printW;
-      const pageHeightPx = Math.floor(printH * pxPerMm);
-      const mainCtx = canvas.getContext('2d');
-
-      let curY = 0;
-      let pageIdx = 0;
-      while (curY < canvas.height) {
-        if (pageIdx > 0) pdf.addPage();
-        let targetH = pageHeightPx;
-        if (curY + targetH < canvas.height) {
-          const scanRange = 150;
-          try {
-            const scanData = mainCtx.getImageData(0, curY + targetH - scanRange, canvas.width, scanRange).data;
-            let bestRow = -1;
-            for (let r = scanRange - 1; r >= 0; r--) {
-              let isWhite = true;
-              for (let c = 0; c < canvas.width; c += 10) {
-                const i = (r * canvas.width + c) * 4;
-                if (scanData[i] < 250 || scanData[i + 1] < 250 || scanData[i + 2] < 250) { isWhite = false; break; }
-              }
-              if (isWhite) { bestRow = r; break; }
-            }
-            if (bestRow !== -1) targetH = (targetH - scanRange) + bestRow + 5;
-          } catch (e) { }
-        } else { targetH = canvas.height - curY; }
-
-        const pCanvas = document.createElement('canvas');
-        pCanvas.width = canvas.width;
-        pCanvas.height = targetH;
-        const pCtx = pCanvas.getContext('2d');
-        pCtx.fillStyle = '#ffffff';
-        pCtx.fillRect(0, 0, pCanvas.width, pCanvas.height);
-        pCtx.drawImage(canvas, 0, curY, canvas.width, targetH, 0, 0, canvas.width, targetH);
-
-        pdf.addImage(pCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', margin, margin, printW, targetH / pxPerMm);
-        curY += targetH;
-        pageIdx++;
       }
 
-      pdf.save(`AISA.pdf`);
-      toast.success("PDF Downloaded! 📄", { id: toastId });
+      // Fallback if no specific code files were matched
+      if (fileCount === 0) {
+        zip.file("code_export.md", content);
+      }
+
+      // Generate Blob with explicit DEFLATE compression for better Windows compatibility
+      const blob = await zip.generateAsync({ 
+        type: "blob",
+        compression: "DEFLATE",
+        compressionOptions: { level: 6 }
+      });
+      
+      // Native download approach (bypasses potential file-saver bugs)
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = "AISA_Code_Project.zip";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Project Downloaded Successfully!", { id: toastId });
     } catch (err) {
-      console.error("PDF Generate error:", err);
+      console.error("ZIP Generate error:", err);
       toast.error("Download failed.", { id: toastId });
     }
   };
+
+
 
   // WhatsApp In-App PDF Share — uploads PDF to cloud, then lets user pick contact IN-APP
   const handleWhatsAppPdfShare = async (msg) => {
@@ -4769,7 +4735,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
       header.style.fontSize = '12px';
       header.style.color = '#888';
       header.style.fontWeight = 'bold';
-      header.innerText = 'AI Ads AI RESPONSE';
+      header.innerText = 'AISA AI RESPONSE';
 
       tempWrapper.appendChild(header);
 
@@ -4784,6 +4750,11 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         el.style.color = '#000000';
         if (el.tagName === 'P') el.style.marginBottom = '6px';
         if (el.tagName === 'A') el.style.color = '#0000ff';
+        
+        const isInsideCode = el.closest('.group\\/code') || el.closest('pre') || el.closest('code');
+        if (isInsideCode) {
+          el.style.backgroundColor = '#f8f9fa';
+        }
       });
 
       tempWrapper.appendChild(clonedContent);
@@ -4858,7 +4829,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
       toast.loading("Uploading PDF...", { id: toastId });
       const blob = pdf.output('blob');
       const formData = new FormData();
-      formData.append('pdf', blob, 'AI Ads.pdf');
+      formData.append('pdf', blob, 'AISA Document.pdf');
 
       const { BASE_URL } = await import('../types');
       const uploadRes = await axios.post(`${BASE_URL}/api/chat/upload-pdf`, formData, {
@@ -4873,7 +4844,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
 
       // 3. Show in-app WhatsApp contact picker modal
       setWaPdfUrl(pdfUrl);
-      setWaMsgContent(`🤖 *AI Ads AI Response*\n\nYeh dekho meri AI Ads se baat: ${pdfUrl}`);
+      setWaMsgContent(`🤖 *AISA AI Response*\n\nYeh dekho meri AISA se baat: ${pdfUrl}`);
       setWaPhone('');
       setWaShareModal(true);
 
@@ -5089,7 +5060,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
 
       // Generate new AI response based on the edited message
       const SYSTEM_INSTRUCTION = `
-You are AI Ads, an advanced AI assistant.
+You are AISA, an advanced AI assistant.
 IMAGE GENERATION CAPABILITIES:
 If the user asks for an image (e.g., "generate", "create", "draw", "show me a pic", "image dikhao", "photo bhejo", "pic do"), tell them to use the Image Generation mode via the Magic Tools button. Do NOT attempt to generate images inline.
 `;
@@ -6053,7 +6024,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                     disabled={isDownloadingUrl === msg.imageUrl}
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleDownload(msg.imageUrl, 'AI Ads-generated.png');
+                                      handleDownload(msg.imageUrl, 'AISA-generated.png');
                                     }}
                                     className={`p-2.5 rounded-xl shadow-lg border border-white/20 flex items-center gap-2 ${isDownloadingUrl === msg.imageUrl ? 'bg-zinc-600 cursor-wait' : 'bg-primary text-white hover:bg-primary/90'}`}
                                     title="Download High-Res"
@@ -6292,7 +6263,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                         {({ active }) => (
                                           <button
                                             onClick={() => {
-                                              const text = `I've converted "${msg.conversion.fileName}" into voice audio using AI Ads! ${window.location.href}`;
+                                              const text = `I've converted "${msg.conversion.fileName}" into voice audio using AISA! ${window.location.href}`;
                                               const url = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
                                                 ? `whatsapp://send?text=${encodeURIComponent(text)}`
                                                 : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
@@ -6309,7 +6280,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                         {({ active }) => (
                                           <button
                                             onClick={() => {
-                                              const text = `AI Ads Audio Conversion: ${msg.conversion.fileName}`;
+                                              const text = `AISA Audio Conversion: ${msg.conversion.fileName}`;
                                               const url = `https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(text)}`;
                                               window.open(url, '_blank');
                                             }}
@@ -6419,16 +6390,27 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                     <Share className="w-3.5 h-3.5" />
                                   </button>
 
-                                  {/* PDF Tools — Always show Download */}
+                                  {/* PDF / ZIP Tools */}
                                   <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 ml-2 pl-2">
-                                    <button
-                                      onClick={() => handleDownloadPdf(msg)}
-                                      className="text-red-500 hover:text-red-600 transition-all p-1.5 hover:bg-red-50/10 rounded-lg flex items-center gap-1 active:scale-95 group/pdf"
-                                      title="Download Ready-Made PDF Report"
-                                    >
-                                      <FileText className="w-3.5 h-3.5 group-hover/pdf:scale-110 transition-transform" />
-                                      <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
-                                    </button>
+                                    {(msg.detectedMode === 'CODING_HELP' || msg.detectedMode === 'CODE_WRITER') ? (
+                                      <button
+                                        onClick={() => handleDownloadCodeProject(msg)}
+                                        className="text-blue-500 hover:text-blue-600 transition-all p-1.5 hover:bg-blue-50/10 rounded-lg flex items-center gap-1 active:scale-95 group/code"
+                                        title="Download Code Project (ZIP)"
+                                      >
+                                        <FileText className="w-3.5 h-3.5 group-hover/code:scale-110 transition-transform" />
+                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() => handlePdfAction('download', msg)}
+                                        className="text-red-500 hover:text-red-600 transition-all p-1.5 hover:bg-red-50/10 rounded-lg flex items-center gap-1 active:scale-95 group/pdf"
+                                        title="Download Ready-Made PDF Report"
+                                      >
+                                        <FileText className="w-3.5 h-3.5 group-hover/pdf:scale-110 transition-transform" />
+                                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
                               </div>
