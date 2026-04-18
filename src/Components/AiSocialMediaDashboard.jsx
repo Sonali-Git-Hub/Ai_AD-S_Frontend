@@ -5273,7 +5273,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
             >
               <Dialog.Panel
                 ref={dashboardRef}
-                className="relative transform overflow-hidden bg-background text-foreground shadow-2xl transition-all w-full h-screen flex"
+                className="relative transform overflow-hidden bg-background text-foreground shadow-2xl transition-all w-full h-[100dvh] flex"
                 style={{
                   '--background': '45 26% 91%',
                   '--primary': '216 39% 48%',
@@ -5436,7 +5436,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                     );
                   })()}
 
-                  <div className="flex-1 space-y-1">
+                  <div className="flex-1 space-y-1 overflow-y-auto custom-scrollbar pr-2">
                     {tabs.map(tab => (
                       <button
                         key={tab.id}
@@ -5465,7 +5465,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                 </div>
 
                   {/* Main Content Area */}
-                  <div className="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-zinc-950 overflow-hidden">
+                  <div className="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-zinc-950 overflow-hidden relative">
                   {/* Header */}
                   <header className="h-16 lg:h-24 bg-white/80 dark:bg-[#080808]/80 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 px-4 lg:px-10 flex items-center justify-between z-20 shrink-0">
                     <div className="flex items-center gap-2 lg:gap-4">
@@ -5547,7 +5547,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                   </div>
 
                   {/* Scrollable Content */}
-                  <main className={`flex-1 overflow-y-auto ${activeTab === 'generation' ? 'p-4 lg:p-10' : 'p-12'} custom-scrollbar relative mesh-bg`} data-lenis-prevent>
+                  <main className={`flex-1 overflow-y-auto ${activeTab === 'generation' ? 'p-4 lg:p-10' : 'p-6 lg:p-12'} custom-scrollbar relative mesh-bg`} data-lenis-prevent>
                     {renderContent()}
                   </main>
                 </div>

@@ -5837,7 +5837,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
   }, [isAudioConvertMode]);
 
   return (
-    <div className="flex w-full bg-secondary relative overflow-hidden aisa-scalable-text overscroll-none h-full">
+    <div className="flex w-full bg-secondary relative overflow-hidden aisa-scalable-text h-[100dvh]">
       {/* 🌟 Premium Minimalist Background Wrapper 🌟 */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none bg-[#f8f9fc] dark:bg-[#0b0c15]">
         {/* Universal Ambient Glows: Animated Blobs for Depth */}
@@ -6043,7 +6043,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
           className={`relative flex-1 aisa-scalable-text ${
             legalView === 'DASHBOARD' && currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id === 'legal_my_case'
               ? 'overflow-hidden'
-              : 'overflow-y-auto chatgpt-container pt-6 pb-64 md:pb-72 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent'
+              : `overflow-y-auto chatgpt-container pt-6 ${messages.length > 0 ? 'pb-64 md:pb-72' : 'pb-12'} scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent`
           }`}
         >
           {legalView === 'DASHBOARD' && currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id === 'legal_my_case' ? (
@@ -7195,132 +7195,125 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
             </div>
           )}
 
-          <div ref={messagesEndRef} />
-            </>
-          )}
-        </div>
+            <div ref={messagesEndRef} />
+              </>
+            )}
 
-
-
-        {/* Welcome Screen - Absolute Overlay */}
-        <AnimatePresence>
-          {messages.length === 0 && legalView !== 'DASHBOARD' && currentMode !== 'LEGAL_TOOLKIT' && (!currentCase || selectedLegalTool?.id !== 'legal_my_case') && (
-            <motion.div
-              key="welcome-screen"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
-              className="absolute inset-0 z-0 overflow-hidden pointer-events-auto bg-transparent flex flex-col items-center justify-center"
-            >
-              {/* Removed duplicate background component */}
-              <div className="relative z-10 flex flex-col items-center w-full h-full">
+            {/* Welcome Screen - Integrated Hub */}
+            <AnimatePresence>
+              {messages.length === 0 && legalView !== 'DASHBOARD' && currentMode !== 'LEGAL_TOOLKIT' && (!currentCase || selectedLegalTool?.id !== 'legal_my_case') && (
                 <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.1 }}
-                  className="mb-4"
+                  key="welcome-screen"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
+                  className="relative w-full z-0 pointer-events-auto bg-transparent flex flex-col items-center py-12 sm:py-20"
                 >
-                  <img
-                    src="/logo/Logo.svg"
-                    alt="AISA"
-                    className="w-20 h-20 sm:w-24 sm:h-24 mx-auto drop-shadow-[0_0_30px_rgba(139,92,246,0.4)] transition-all duration-700 hover:scale-110"
+                  <div className="relative z-10 flex flex-col items-center w-full min-h-full justify-center">
+                    <motion.div
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.1 }}
+                      className="mb-8"
+                    >
+                      <img
+                        src="/logo/Logo.svg"
+                        alt="AISA"
+                        className="w-20 h-20 sm:w-24 sm:h-24 mx-auto drop-shadow-[0_0_30px_rgba(139,92,246,0.4)] transition-all duration-700 hover:scale-110"
+                      />
+                    </motion.div>
 
-                  />
+                    <section className="w-full px-1 sm:px-2 md:px-0">
+                      <FuturisticToolCards
+                        isAdmin={isAdminUser}
+                        activeToolId={
+                          isImageGeneration ? 'image' : 
+                          isVideoGeneration ? 'video' :
+                          isDeepSearch ? 'deep_search' :
+                          isWebSearch ? 'web_search' :
+                          isCodeWriter ? 'code' :
+                          isAudioConvertMode ? 'audio' :
+                          isFileAnalysis ? 'document' :
+                          isMagicEditing ? 'edit_image' :
+                          isMagicVideoModalOpen ? 'image_to_video' :
+                          isStockModalOpen ? 'ai_cashflow' :
+                          (activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') ? 'legal' : null
+                        }
+                        onToolSelect={(id) => {
+                          setIsImageGeneration(false);
+                          setIsVideoGeneration(false);
+                          setIsAudioConvertMode(false);
+                          setIsCodeWriter(false);
+                          setIsDeepSearch(false);
+                          setIsWebSearch(false);
+                          setIsFileAnalysis(false);
+                          setIsMagicEditing(false);
+                          setIsMagicVideoModalOpen(false);
+                          setIsCashFlowMode(false);
+                          setActiveLegalToolkit(false);
+
+                          if (id === 'image') {
+                            if (!checkPremiumTool('Image Generation')) return;
+                            setIsImageGeneration(true);
+                            setIsMagicSettingsOpen(true);
+                            if (inputRef.current) { inputRef.current.value = "Generate an image of "; inputRef.current.focus(); }
+                            toast.success("Image Mode Active");
+                          } else if (id === 'video') {
+                            if (!checkPremiumTool('Generate Video')) return;
+                            setIsVideoGeneration(true);
+                            setIsMagicSettingsOpen(true);
+                            if (inputRef.current) { inputRef.current.value = "Generate a video of "; inputRef.current.focus(); }
+                            toast.success("Video Mode Active");
+                          } else if (id === 'audio') {
+                            if (!checkPremiumTool('Convert to Audio')) return;
+                            setIsAudioConvertMode(true);
+                            if (inputRef.current) { inputRef.current.value = "Convert this text to audio: "; inputRef.current.focus(); }
+                            toast.success("Audio Mode Active");
+                          } else if (id === 'code') {
+                            if (!checkPremiumTool('Code Writer')) return;
+                            setIsCodeWriter(true);
+                            if (inputRef.current) { inputRef.current.value = "Write a function to "; inputRef.current.focus(); }
+                            toast.success("Code Mode Active");
+                          } else if (id === 'deep_search') {
+                            setIsDeepSearch(true);
+                            if (inputRef.current) { inputRef.current.value = "Research in-depth about "; inputRef.current.focus(); }
+                            toast.success("Deep Intelligence Active");
+                          } else if (id === 'web_search') {
+                            setIsWebSearch(true);
+                            if (inputRef.current) { inputRef.current.value = "Search for live updates on "; inputRef.current.focus(); }
+                            toast.success("Real-Time Search Active");
+                          } else if (id === 'document') {
+                            setIsFileAnalysis(true);
+                            uploadInputRef.current?.click();
+                            toast.success("Upload document for analysis");
+                          } else if (id === 'edit_image') {
+                            if (!checkPremiumTool('Edit Image')) return;
+                            setIsMagicEditing(true);
+                            toast.success("Image Editor Active");
+                          } else if (id === 'image_to_video') {
+                            if (!checkPremiumTool('Image to Video')) return;
+                            setIsMagicVideoModalOpen(true);
+                            toast.success("Image to Video Mode Active");
+                          } else if (id === 'ai_cashflow') {
+                            setIsCashFlowMode(true);
+                            setIsStockModalOpen(true);
+                            toast.success("AI CashFlow Active 📈");
+                          } else if (id === 'aiad_agent') {
+                            if (!checkPremiumTool('AI Ad Agent')) return;
+                            setIsSocialMediaDashboardOpen(true);
+                            toast.success("AI ADS™ Active");
+                          }
+                        }}
+                      />
+                    </section>
+                  </div>
                 </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
-                <section className="w-full flex-1 flex items-center justify-center px-1 sm:px-2 md:px-0">
-                  <FuturisticToolCards
-                    isAdmin={isAdminUser}
-                    activeToolId={
-                      isImageGeneration ? 'image' : 
-                      isVideoGeneration ? 'video' :
-                      isDeepSearch ? 'deep_search' :
-                      isWebSearch ? 'web_search' :
-                      isCodeWriter ? 'code' :
-                      isAudioConvertMode ? 'audio' :
-                      isFileAnalysis ? 'document' :
-                      isMagicEditing ? 'edit_image' :
-                      isMagicVideoModalOpen ? 'image_to_video' :
-                      isStockModalOpen ? 'ai_cashflow' :
-                      (activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') ? 'legal' : null
-                    }
-                    onToolSelect={(id) => {
-                      // Reset states
-                      setIsImageGeneration(false);
-                      setIsVideoGeneration(false);
-                      setIsAudioConvertMode(false);
-                      setIsCodeWriter(false);
-                      setIsDeepSearch(false);
-                      setIsWebSearch(false);
-                      setIsFileAnalysis(false);
-                      setIsMagicEditing(false);
-                      setIsMagicVideoModalOpen(false);
-                      setIsCashFlowMode(false);
-                      setActiveLegalToolkit(false);
 
-                      if (id === 'image') {
-                        if (!checkPremiumTool('Image Generation')) return;
-                        setIsImageGeneration(true);
-                        setIsMagicSettingsOpen(true);
-                        if (inputRef.current) { inputRef.current.value = "Generate an image of "; inputRef.current.focus(); }
-                        toast.success("Image Mode Active");
-                      } else if (id === 'video') {
-                        if (!checkPremiumTool('Generate Video')) return;
-                        setIsVideoGeneration(true);
-                        setIsMagicSettingsOpen(true);
-                        if (inputRef.current) { inputRef.current.value = "Generate a video of "; inputRef.current.focus(); }
-                        toast.success("Video Mode Active");
-                      } else if (id === 'audio') {
-                        if (!checkPremiumTool('Convert to Audio')) return;
-                        setIsAudioConvertMode(true);
-                        if (inputRef.current) { inputRef.current.value = "Convert this text to audio: "; inputRef.current.focus(); }
-                        toast.success("Audio Mode Active");
-                      } else if (id === 'code') {
-                        if (!checkPremiumTool('Code Writer')) return;
-                        setIsCodeWriter(true);
-                        if (inputRef.current) { inputRef.current.value = "Write a function to "; inputRef.current.focus(); }
-                        toast.success("Code Mode Active");
-                      } else if (id === 'deep_search') {
-                        setIsDeepSearch(true);
-                        if (inputRef.current) { inputRef.current.value = "Research in-depth about "; inputRef.current.focus(); }
-                        toast.success("Deep Intelligence Active");
-                      } else if (id === 'web_search') {
-                        setIsWebSearch(true);
-                        if (inputRef.current) { inputRef.current.value = "Search for live updates on "; inputRef.current.focus(); }
-                        toast.success("Real-Time Search Active");
-                      } else if (id === 'document') {
-                        setIsFileAnalysis(true);
-                        uploadInputRef.current?.click();
-                        toast.success("Upload document for analysis");
-                      } else if (id === 'edit_image') {
-                        if (!checkPremiumTool('Edit Image')) return;
-                        setIsMagicEditing(true);
-                        toast.success("Image Editor Active");
-                      } else if (id === 'image_to_video') {
-                        if (!checkPremiumTool('Image to Video')) return;
-                        setIsMagicVideoModalOpen(true);
-                        toast.success("Image to Video Active");
-                      } else if (id === 'legal') {
-                        if (!checkPremiumTool('AI Legal')) return;
-                        setActiveLegalToolkit(true);
-                        toast.success("AI Legal Enabled ⚖️");
-                      } else if (id === 'ai_cashflow') {
-                        if (!checkPremiumTool('AI CashFlow')) return;
-                        setIsStockModalOpen(true);
-                        toast.success("AI CashFlow Active 📈");
-                      } else if (id === 'aiad_agent') {
-                        if (!checkPremiumTool('AI Ad Agent')) return;
-                        setIsSocialMediaDashboardOpen(true);
-                        toast.success("AI ADS™ Active");
-                      }
-                    }}
-                  />
-                </section>
-              </div>
 
-            </motion.div>
-          )}
-        </AnimatePresence>
 
 
         {/* Unified Chat Input Container */}
@@ -7468,26 +7461,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         </div>
                       </div>
                       <div className="p-1.5 pb-12 space-y-1 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(100vh - 220px)' }}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!checkPremiumTool('AI Ad Agent')) return;
-                            setIsToolsMenuOpen(false);
-                            setIsSocialMediaDashboardOpen(true);
-                          }}
-                          className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md`}
-                        >
-                          <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300`}>
-                            <Megaphone className="w-5.5 h-5.5" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
-                              <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">AI ADS™</span>
-                            </div>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Automate 30 days of social media content.</p>
-                          </div>
-                        </button>
 
                         <button
                           type="button"

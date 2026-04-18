@@ -1572,7 +1572,6 @@ export const LanguageProvider = ({ children }) => {
             conversationIncludedFeedback: "एआई को बेहतर बनाने में मदद करने के लिए आपकी बातचीत आपकी प्रतिक्रिया के साथ शामिल की जाएगी।",
             submitting: "सबमिट किया जा रहा है...",
             pitch: "पिच",
-            speed: "गति",
             lower: "धीमा",
             normal: "सामान्य",
         },
