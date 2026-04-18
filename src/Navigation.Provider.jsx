@@ -193,7 +193,7 @@ const NavigateProvider = () => {
       <CookieConsentBanner />
       <Routes>
         {/* Public Routes */}
-        <Route path={AppRoute.LANDING} element={<HomeRedirect />} />
+        <Route path={AppRoute.LANDING} element={<Landing />} />
         <Route path={AppRoute.LOGIN} element={<GuestRoute><Login /></GuestRoute>} />
         <Route path={AppRoute.SIGNUP} element={<GuestRoute><Signup /></GuestRoute>} />
 
@@ -201,9 +201,10 @@ const NavigateProvider = () => {
         <Route path={AppRoute.FORGOT_PASSWORD} element={<ForgotPassword />} />
         <Route path={AppRoute.RESET_PASSWORD} element={<ResetPassword />} />
 
-        <Route path={AppRoute.PRIVACY_POLICY} element={<PrivacyPolicy />} />
-        <Route path={AppRoute.TERMS_OF_SERVICE} element={<TermsOfService />} />
-        <Route path={AppRoute.COOKIE_POLICY} element={<CookiePolicy />} />
+        <Route path={AppRoute.PRIVACY_POLICY} element={<Landing />} />
+        <Route path={AppRoute.TERMS_OF_SERVICE} element={<Landing />} />
+        <Route path="/terms-of-service" element={<Navigate to={AppRoute.TERMS_OF_SERVICE} replace />} />
+        <Route path={AppRoute.COOKIE_POLICY} element={<Landing />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/share/:shareId" element={<SharedChat />} />
 

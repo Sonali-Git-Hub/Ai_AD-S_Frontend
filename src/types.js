@@ -52,7 +52,7 @@ export const AppRoute = {
   FORGOT_PASSWORD: "/forgot-password",
   RESET_PASSWORD: "/reset-password/:token",
   PRIVACY_POLICY: "/privacy-policy",
-  TERMS_OF_SERVICE: "/terms-of-service",
+  TERMS_OF_SERVICE: "/terms",
   COOKIE_POLICY: "/cookie-policy",
   ADMIN_DASHBOARD: "/dashboard/admin",
 };
