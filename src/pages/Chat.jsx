@@ -8341,7 +8341,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             setIsSendTapped(true);
                             setTimeout(() => setIsSendTapped(false), 2000);
                           }}
-                          className={`w-[42px] h-[42px] rounded-full flex items-center justify-center transition-all shadow-lg relative overflow-visible z-20 ${(!inputValue.trim() && filePreviews.length === 0) ? 'opacity-30 cursor-not-allowed bg-secondary border border-border/10' : 'bg-gradient-to-br from-primary to-indigo-600 text-white shadow-primary/30 hover:shadow-primary/50'}`}
+                          className={`w-[42px] h-[42px] rounded-full flex items-center justify-center transition-all shadow-lg relative overflow-visible z-20 bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-blue-500/30 hover:shadow-blue-500/50`}
                         >
                           <AnimatePresence>
                             {ripples.map(id => (
@@ -8367,10 +8367,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             transition={{ duration: 0.8, ease: "anticipate" }}
                             className="relative z-10"
                           >
-                            <Zap
-                              className={`w-[22px] h-[22px] transition-all duration-300 ${!inputValue.trim() && filePreviews.length === 0 ? 'text-subtext/20' : 'text-white hover:scale-110'}`}
+                            <SendHorizontal
+                              className="w-[22px] h-[22px] transition-all duration-300 text-white hover:scale-110"
                               strokeWidth={2.5}
-                              fill="currentColor"
                             />
                           </motion.div>
                         </motion.button>

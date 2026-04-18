@@ -84,8 +84,8 @@ const Sidebar = ({ isOpen, onClose }) => {
   const [editingProjectId, setEditingProjectId] = useState(null);
   const [renameProjectName, setRenameProjectName] = useState('');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isProjectsExpanded, setIsProjectsExpanded] = useState(true);
-  const [isCasesExpanded, setIsCasesExpanded] = useState(true);
+  const [isProjectsExpanded, setIsProjectsExpanded] = useState(false);
+  const [isCasesExpanded, setIsCasesExpanded] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [currentShareId, setCurrentShareId] = useState('');
@@ -609,30 +609,8 @@ const Sidebar = ({ isOpen, onClose }) => {
                       onClick={() => setIsCreatingProject(true)}
                       className={`mx-3 px-3 py-2 rounded-lg flex items-center gap-2.5 cursor-pointer transition-all w-[calc(100%-24px)] mb-1 group/create ${theme === 'dark' ? 'hover:bg-primary/10 text-primary' : 'hover:bg-primary/5 text-primary'}`}
                     >
-                      <PlusCircle className="w-4 h-4 transition-transform group-hover/create:rotate-90" />
+                      <span className="text-[13px] font-bold">Create New Project</span>
                     </button>
-                    {isCreatingProject && (
-                      <div className="mx-3 px-3 py-2 bg-primary/5 rounded-lg border border-primary/20 mb-2 animate-in slide-in-from-top-2 duration-300">
-                        <input
-                          autoFocus
-                          value={newProjectName}
-                          onChange={(e) => setNewProjectName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleCreateProject(false);
-                            if (e.key === 'Escape') {
-                              setIsCreatingProject(false);
-                              setNewProjectName('');
-                            }
-                          }}
-                          onBlur={() => {
-                            if (!newProjectName.trim()) setIsCreatingProject(false);
-                          }}
-                          placeholder="Project name..."
-                          className="w-full bg-transparent border-0 outline-none text-[13px] text-maintext py-1 placeholder:text-subtext/40"
-                        />
-                      </div>
-                    )}
-
                     {/* Regular Projects List */}
                     {projects.filter(p => !p.isLegalCase).map((p, idx) => (
                       <div key={p._id} className="relative group/proj flex items-center mx-3">
