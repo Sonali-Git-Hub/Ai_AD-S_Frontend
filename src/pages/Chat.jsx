@@ -5837,7 +5837,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
   }, [isAudioConvertMode]);
 
   return (
-    <div className="flex w-full bg-secondary relative overflow-hidden aisa-scalable-text h-[100dvh]">
+    <div className="flex w-full bg-secondary relative overflow-hidden aisa-scalable-text h-full">
       {/* 🌟 Premium Minimalist Background Wrapper 🌟 */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none bg-[#f8f9fc] dark:bg-[#0b0c15]">
         {/* Universal Ambient Glows: Animated Blobs for Depth */}
@@ -6167,9 +6167,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                       {/* Attachment Display */}
                       {((msg.attachments && msg.attachments.length > 0) || msg.attachment) && (
-                        <div className="flex flex-col gap-3 mb-3 mt-1">
+                        <div className="flex flex-col gap-3 mb-3 mt-1 max-w-full overflow-hidden">
                           {(msg.attachments || (msg.attachment ? [msg.attachment] : [])).map((att, idx) => (
-                            <div key={idx} className="w-full">
+                            <div key={idx} className="w-full max-w-full overflow-hidden">
                               {att.type === 'image' ? (
                                 <div
                                   className="relative group/image overflow-hidden rounded-xl border border-white/20 shadow-lg transition-all hover:scale-[1.01] cursor-pointer max-w-[320px]"
@@ -6214,7 +6214,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                   </button>
                                 </div>
                               ) : (
-                                <div className={`flex items-center gap-3 p-3 rounded-xl border transition-colors backdrop-blur-md ${msg.role === 'user' ? 'bg-transparent border-white/20 hover:bg-white/10 shadow-none' : 'bg-secondary/30 border-border hover:bg-secondary/50'}`}>
+                                <div className={`flex items-center gap-3 p-3 rounded-xl border transition-colors backdrop-blur-md max-w-full overflow-hidden ${msg.role === 'user' ? 'bg-transparent border-white/20 hover:bg-white/10 shadow-none' : 'bg-secondary/30 border-border hover:bg-secondary/50'}`}>
                                   <div
                                     className="flex-1 flex items-center gap-3 min-w-0 cursor-pointer p-0.5 rounded-lg"
                                     onClick={() => setViewingDoc(att)}
@@ -6238,8 +6238,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                         return <FileIcon className={`${baseClass} text-primary`} />;
                                       })()}
                                     </div>
-                                    <div className="min-w-0 flex-1">
-                                      <p className="font-semibold truncate text-xs mb-0.5">{att.name || 'File'}</p>
+                                    <div className="min-w-0 flex-1 overflow-hidden">
+                                      <p className="font-semibold truncate text-xs mb-0.5 break-all">{att.name || 'File'}</p>
                                       <p className="text-[10px] opacity-70 uppercase tracking-tight font-medium">
                                         {(() => {
                                           const name = (att.name || '').toLowerCase();
@@ -6849,47 +6849,47 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             </div>
                           )}
 
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <button
-                              onClick={() => {
-                                const downloadToast = toast.loading("Starting download...");
-                                try {
-                                  const byteCharacters = atob(msg.conversion.file);
-                                  const byteNumbers = new Array(byteCharacters.length);
-                                  for (let i = 0; i < byteCharacters.length; i++) {
-                                    byteNumbers[i] = byteCharacters.charCodeAt(i);
-                                  }
-                                  const byteArray = new Uint8Array(byteNumbers);
-                                  const blob = new Blob([byteArray], { type: msg.conversion.mimeType });
-                                  const url = URL.createObjectURL(blob);
-                                  const a = document.createElement('a');
-                                  a.href = url;
-                                  a.download = msg.conversion.fileName;
-                                  document.body.appendChild(a);
-                                  a.click();
-                                  setTimeout(() => {
-                                    document.body.removeChild(a);
-                                    URL.revokeObjectURL(url);
-                                    toast.dismiss(downloadToast);
-                                    toast.success("Download complete!");
-                                  }, 500);
-                                } catch (err) {
-                                  toast.dismiss(downloadToast);
-                                  toast.error("Download failed");
-                                }
-                              }}
-                              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-white rounded-xl transition-all shadow-lg font-bold text-sm active:scale-95 hover:opacity-90"
-                              style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}
-                            >
-                              <Download className="w-4 h-4" />
-                              Download {msg.conversion.mimeType.includes('audio') ? 'Audio' : msg.conversion.mimeType.includes('pdf') ? 'PDF' : 'Document'}
-                            </button>
+                           <div className="flex flex-wrap items-center gap-2 mt-4">
+                             <button
+                               onClick={() => {
+                                 const downloadToast = toast.loading("Starting download...");
+                                 try {
+                                   const byteCharacters = atob(msg.conversion.file);
+                                   const byteNumbers = new Array(byteCharacters.length);
+                                   for (let i = 0; i < byteCharacters.length; i++) {
+                                     byteNumbers[i] = byteCharacters.charCodeAt(i);
+                                   }
+                                   const byteArray = new Uint8Array(byteNumbers);
+                                   const blob = new Blob([byteArray], { type: msg.conversion.mimeType });
+                                   const url = URL.createObjectURL(blob);
+                                   const a = document.createElement('a');
+                                   a.href = url;
+                                   a.download = msg.conversion.fileName;
+                                   document.body.appendChild(a);
+                                   a.click();
+                                   setTimeout(() => {
+                                     document.body.removeChild(a);
+                                     URL.revokeObjectURL(url);
+                                     toast.dismiss(downloadToast);
+                                     toast.success("Download complete!");
+                                   }, 500);
+                                 } catch (err) {
+                                   toast.dismiss(downloadToast);
+                                   toast.error("Download failed");
+                                 }
+                               }}
+                               className="flex items-center justify-center gap-2 px-6 py-2.5 text-white rounded-xl transition-all shadow-md font-bold text-sm active:scale-95 hover:shadow-lg hover:-translate-y-0.5"
+                               style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}
+                             >
+                               <Download className="w-4 h-4" />
+                               Download {msg.conversion.mimeType.includes('audio') ? 'Audio' : msg.conversion.mimeType.includes('pdf') ? 'PDF' : 'Document'}
+                             </button>
 
                             <Menu as="div" className="relative">
                               <Menu.Button className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white/10 border border-transparent text-maintext rounded-xl transition-all hover:bg-white/20 font-bold text-sm shadow-sm active:scale-95 whitespace-nowrap backdrop-blur-sm">
-                                <Share className="w-4 h-4" />
-                                Share
-                              </Menu.Button>
+                             <Share className="w-4 h-4" />
+                             Share
+                           </Menu.Button>
 
                               <Portal>
                                 <Transition
@@ -7318,7 +7318,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
         {/* Unified Chat Input Container */}
         {legalView !== 'DASHBOARD' && (
-          <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none" style={{ padding: 'max(0.375rem, env(safe-area-inset-bottom, 0.375rem)) 0.5rem max(0.375rem, 0.375rem) 0.5rem' }}>
+          <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none" style={{ padding: '0.5rem 0.5rem calc(0.5rem + env(safe-area-inset-bottom, 0px)) 0.5rem' }}>
             {/* Bottom Mask to prevent text showing behind input area */}
             <div className="absolute inset-0 bg-gradient-to-t from-secondary via-secondary/90 to-transparent -z-10 h-full w-full pointer-events-none" />
             <div className="max-w-5xl mx-auto w-full pointer-events-auto">

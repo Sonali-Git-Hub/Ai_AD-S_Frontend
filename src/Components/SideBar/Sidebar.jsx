@@ -428,7 +428,8 @@ const Sidebar = ({ isOpen, onClose }) => {
 
       {isOpen && (
         <div
-          className="fixed inset-0 z-[90] bg-black/50 backdrop-blur-sm lg:hidden animate-in fade-in duration-200"
+          className={`fixed inset-0 z-[90] backdrop-blur-[6px] lg:hidden animate-in fade-in duration-300
+            ${theme === 'dark' ? 'bg-black/60' : 'bg-slate-900/40'}`}
           onClick={onClose}
         />
       )}
@@ -437,7 +438,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         ref={sidebarRef}
         onMouseMove={handleSidebarMouseMove}
         className={`
-          fixed inset-y-0 left-0 z-[100] w-[280px] sm:w-72 lg:w-64 
+          fixed inset-y-0 left-0 z-[100] w-[280px] sm:w-72 lg:w-[280px] 
           sidebar-glass flex flex-col transition-all duration-500 ease-in-out 
           lg:relative lg:translate-x-0 
           shadow-[0_8px_32px_0_rgba(0,0,0,0.2)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.5)]
@@ -453,11 +454,11 @@ const Sidebar = ({ isOpen, onClose }) => {
 
         {/* Animated Background Glow Spots */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-30 dark:opacity-20 transition-opacity duration-500 group-hover:opacity-40">
-          <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[40%] bg-primary/20 blur-[100px] animate-float-slow" />
-          <div className="absolute bottom-[10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/20 blur-[100px] animate-float-slow" style={{ animationDelay: '-5s' }} />
+          <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[40%] bg-primary/30 blur-[100px] animate-float-slow" />
+          <div className="absolute bottom-[10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/30 blur-[100px] animate-float-slow" style={{ animationDelay: '-5s' }} />
         </div>
         {/* Brand & Top Actions */}
-        <div className="p-6 pb-2 flex items-center justify-between relative z-10">
+        <div className="p-6 pb-2 mb-2 flex items-center justify-between relative z-10">
           <Link to="/" state={{ fromLogo: true }} className="group/logo flex items-center gap-2">
             <div className="relative">
               <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 animate-pulse opacity-0 group-hover/logo:opacity-100 transition-opacity" />
@@ -564,20 +565,15 @@ const Sidebar = ({ isOpen, onClose }) => {
 
 
 
-          {/* New Chat Button */}
           <div className="px-5 pt-4 pb-2 relative z-10">
             <button
               onClick={handleNewChat}
-              className={`w-full relative overflow-hidden group p-[1px] rounded-[14px] transition-all duration-500 hover:scale-[1.03] active:scale-[0.97]
-                ${theme === 'dark'
-                  ? 'bg-primary shadow-[0_8px_20px_rgba(var(--primary),0.3)] hover:shadow-[0_12px_30px_rgba(var(--primary),0.5)]'
-                  : 'bg-primary shadow-[0_6px_15px_rgba(var(--primary),0.2)] hover:shadow-[0_10px_20px_rgba(var(--primary),0.3)]'}`}
+              className="w-full relative overflow-hidden group p-[1px] rounded-[16px] transition-all duration-500 hover:scale-[1.03] active:scale-[0.97] bg-blue-600 shadow-[0_8px_25px_rgba(37,99,235,0.4)] dark:shadow-[0_8px_25px_rgba(37,99,235,0.2)]"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-primary to-purple-600 animate-gradient bg-[length:300%_auto]" />
-              <div className={`relative flex items-center justify-center gap-2 px-4 py-2.5 backdrop-blur-md rounded-[13px] group-hover:bg-transparent transition-all duration-500
-                ${theme === 'dark' ? 'bg-[#0a0c1a]/80' : 'bg-white/10'}`}>
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-700 animate-gradient bg-[length:300%_auto]" />
+              <div className="relative flex items-center justify-center gap-2 px-4 py-3 backdrop-blur-md rounded-[15px] group-hover:bg-transparent transition-all duration-500 bg-blue-600/10">
                 <Plus className="w-4 h-4 text-white group-hover:rotate-180 transition-transform duration-700" strokeWidth={3} />
-                <span className="font-extrabold text-white text-[13px] tracking-wide">{t('newChat')}</span>
+                <span className="font-black text-[13px] tracking-wide text-white">{t('newChat')}</span>
               </div>
             </button>
           </div>
@@ -594,8 +590,8 @@ const Sidebar = ({ isOpen, onClose }) => {
                 className="px-5 pt-4 pb-2 flex items-center justify-between cursor-pointer group/header select-none relative z-10"
               >
                 <div className="flex items-center gap-2">
-                  <h3 className={`text-[11px] font-bold uppercase tracking-[0.1em] group-hover/header:text-primary transition-colors 
-                    ${theme === 'dark' ? 'text-subtext/60' : 'text-slate-600'}`}>PROJECTS</h3>
+                  <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] group-hover/header:text-primary transition-colors 
+                    ${theme === 'dark' ? 'text-subtext/60' : 'text-slate-900'}`}>PROJECTS</h3>
                   <div className={`h-[1px] w-8 transition-all group-hover/header:w-12 group-hover/header:bg-primary/30 
                     ${theme === 'dark' ? 'bg-subtext/20' : 'bg-slate-300'}`}></div>
                 </div>
@@ -675,13 +671,13 @@ const Sidebar = ({ isOpen, onClose }) => {
                     {/* CASES Nested Folder Item */}
                     <div
                       onClick={(e) => { e.stopPropagation(); setIsCasesExpanded(!isCasesExpanded); }}
-                      className={`mx-3 px-3 py-2 rounded-lg flex items-center justify-between cursor-pointer transition-all ${theme === 'dark' ? 'hover:bg-white/5 text-subtext/80' : 'hover:bg-black/5 text-slate-700'}`}
+                      className={`mx-3 px-3 py-2 rounded-lg flex items-center justify-between cursor-pointer transition-all ${theme === 'dark' ? 'hover:bg-white/5 text-subtext/80' : 'hover:bg-slate-100 text-slate-900 border border-transparent shadow-sm'}`}
                     >
                       <div className="flex items-center gap-2.5">
                         <FolderOpen className={`w-4 h-4 text-primary transition-transform duration-300 ${isCasesExpanded ? 'scale-110' : ''}`} />
-                        <span className="text-[14px] font-bold">CASES</span>
+                        <span className={`text-[11px] font-black uppercase tracking-[0.15em] ${theme === 'dark' ? 'text-subtext/90' : 'text-slate-900'}`}>CASES</span>
                       </div>
-                      <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isCasesExpanded ? '' : '-rotate-90'}`} />
+                      <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isCasesExpanded ? '' : '-rotate-90'} ${theme === 'dark' ? 'text-subtext/40' : 'text-slate-400'}`} />
                     </div>
 
                     <AnimatePresence>
@@ -754,7 +750,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                                         : 'text-subtext hover:bg-white/20 dark:hover:bg-white/10 hover:text-maintext'}`}
                                     >
                                       <Folder className={`w-4 h-4 shrink-0 transition-transform duration-300 ${currentProjectId === p._id ? 'scale-110 text-primary ring-4 ring-primary/10 rounded-full' : 'group-hover/proj:scale-110'}`} />
-                                      <span className="truncate font-medium text-[14px] text-left pr-8">{highlightMatch(p.name, searchQuery)}</span>
+                                      <span className="truncate font-bold text-[13px] text-left pr-4">{highlightMatch(p.name, searchQuery)}</span>
                                     </button>
                                     <div className="absolute right-2 opacity-0 group-hover/proj:opacity-100 flex items-center gap-1 transition-all duration-300 translate-x-2 group-hover/proj:translate-x-0">
                                       <button onClick={(e) => { e.stopPropagation(); setEditingProjectId(p._id); setRenameProjectName(p.name); }} className="p-1.5 text-subtext hover:text-primary transition-all bg-white/10 rounded-lg border border-white/5 shadow-sm">
@@ -823,10 +819,10 @@ const Sidebar = ({ isOpen, onClose }) => {
                               navigate(`/dashboard/chat/${session.sessionId}`);
                               onClose();
                             }}
-                            className={`sidebar-chat-item group/item transition-all duration-500
+                            className={`sidebar-chat-item group/item transition-all duration-500 mb-1 mx-2
                             ${currentSessionId === session.sessionId
-                                ? (theme === 'dark' ? 'bg-white/[0.08] text-white border border-white/10 shadow-2xl backdrop-blur-3xl' : 'bg-primary/10 text-primary border border-primary/20 shadow-sm backdrop-blur-3xl')
-                                : (theme === 'dark' ? 'text-subtext/60 hover:bg-white/[0.04] hover:text-white border border-transparent' : 'text-slate-600 hover:bg-black/[0.04] hover:text-slate-900 border border-transparent')
+                                ? (theme === 'dark' ? 'bg-white/[0.08] text-white border border-white/10 shadow-2xl backdrop-blur-3xl' : 'bg-white text-primary border border-primary/20 shadow-lg shadow-primary/10 backdrop-blur-3xl ring-4 ring-primary/5')
+                                : (theme === 'dark' ? 'text-subtext/60 hover:bg-white/[0.04] hover:text-white border border-transparent' : 'text-slate-700 hover:bg-white hover:text-slate-900 border border-transparent hover:shadow-md hover:scale-[1.01]')
                               }
                           `}
                           >
@@ -842,7 +838,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                                 {highlightMatch(session.title || "Untitled Intelligence", searchQuery)}
                               </div>
                               <div className="flex items-center gap-2">
-                                <div className={`text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 ${theme === 'dark' ? 'text-subtext/40' : 'text-slate-500'}`}>
+                                <div className={`text-[10px] font-black uppercase tracking-widest flex items-center gap-2 ${theme === 'dark' ? 'text-subtext/40' : 'text-slate-500'}`}>
                                   <span className={`w-1.5 h-1.5 rounded-full ${currentSessionId === session.sessionId ? 'bg-primary animate-pulse' : (theme === 'dark' ? 'bg-white/20' : 'bg-slate-300')}`}></span>
                                   {new Date(session.lastModified).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                 </div>
@@ -909,7 +905,7 @@ const Sidebar = ({ isOpen, onClose }) => {
               className={`flex-1 h-10 rounded-xl border transition-all duration-300 group/theme flex items-center justify-center
                 ${theme === 'dark'
                   ? 'bg-white/5 border-white/5 text-subtext hover:text-primary hover:bg-primary/10'
-                  : 'bg-black/5 border-black/5 text-slate-800 hover:text-primary hover:bg-primary/5'}`}
+                  : 'bg-white/50 border-slate-200 text-slate-900 hover:text-primary hover:bg-white shadow-sm'}`}
               title={theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
             >
               {theme === 'dark' ? <Sun className="w-[18px] h-[18px] group-hover/theme:rotate-90 transition-transform duration-500" /> : <Moon className="w-[18px] h-[18px] group-hover/theme:-rotate-12 transition-transform duration-500" />}
@@ -923,7 +919,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                   className={`w-full h-10 rounded-xl border transition-all duration-300 flex items-center justify-center
                     ${theme === 'dark'
                       ? 'bg-white/5 border-white/5 text-subtext hover:text-primary hover:bg-primary/10'
-                      : 'bg-black/5 border-black/5 text-slate-800 hover:text-primary hover:bg-primary/5'}`}
+                      : 'bg-white/50 border-slate-200 text-slate-900 hover:text-primary hover:bg-white shadow-sm'}`}
                 >
                   {user.avatar ? (
                     <img src={user.avatar} alt="P" className="w-[22px] h-[22px] object-cover rounded-md" />
@@ -972,12 +968,12 @@ const Sidebar = ({ isOpen, onClose }) => {
             )}
             <button
               onClick={() => setIsFaqOpen(true)}
-              className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl transition-all text-[10px] font-bold border ${!isAdmin ? 'col-span-2' : ''} 
+              className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl transition-all text-[10px] font-black uppercase tracking-wider border ${!isAdmin ? 'col-span-2' : ''} 
                 ${theme === 'dark'
                   ? 'text-white bg-white/5 border-white/5 hover:bg-white/10'
-                  : 'text-slate-800 bg-black/5 border-black/5 hover:bg-black/10'}`}
+                  : 'text-slate-900 bg-white/50 border-slate-200 hover:bg-white shadow-sm'}`}
             >
-              <HelpCircle className={`w-3 h-3 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`} />
+              <HelpCircle className={`w-3.5 h-3.5 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`} />
               <span>{t('helpFaq')}</span>
             </button>
           </div>
