@@ -409,19 +409,6 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
             component: <MultiScheduleReminder />
         });
 
-        settings.push({
-            id: 'region', tab: 'personalization', label: t('region'), description: t('regionDesc'), keywords: 'country world',
-            component: (
-                <div className="pt-6 mt-6 border-t border-gray-100 dark:border-white/5">
-                    {renderSettingRow(t('region'), t('regionDesc'), renderDropdown(region, Object.keys(regions || {}), (e) => setRegion(e.target.value), Globe))}
-                </div>
-            )
-        });
-
-        settings.push({
-            id: 'language', tab: 'personalization', label: t('language'), description: t('languageDesc'), keywords: 'translate speak',
-            component: renderSettingRow(t('language'), t('languageDesc'), renderDropdown(language, regions[region] || ["English"], (e) => setLanguage(e.target.value), Languages))
-        });
 
         // Data
         settings.push({

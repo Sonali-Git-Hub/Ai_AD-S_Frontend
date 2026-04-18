@@ -13,7 +13,10 @@ export const MODES = {
     DOCUMENT_CONVERT: 'DOCUMENT_CONVERT',
     IMAGE_EDIT: 'IMAGE_EDIT',
     WEB_SEARCH: 'web_search',
-    LEGAL_TOOLKIT: 'LEGAL_TOOLKIT'
+    LEGAL_TOOLKIT: 'LEGAL_TOOLKIT',
+    IMAGE_GENERATION: 'IMAGE_GENERATION',
+    VIDEO_GENERATION: 'VIDEO_GENERATION',
+    CASHFLOW: 'CASHFLOW'
 };
 
 const EDIT_KEYWORDS = [
@@ -99,7 +102,11 @@ export function getModeName(mode) {
         [MODES.DEEP_SEARCH]: 'AISA™ Deep Search',
         [MODES.DOCUMENT_CONVERT]: 'AISA™ Convert',
         [MODES.IMAGE_EDIT]: 'AISA™ Edit',
-        [MODES.LEGAL_TOOLKIT]: 'AISA™ Legal'
+        [MODES.LEGAL_TOOLKIT]: 'AISA™ Legal',
+        [MODES.IMAGE_GENERATION]: 'Image Generator',
+        [MODES.VIDEO_GENERATION]: 'Video Generator',
+        [MODES.CASHFLOW]: 'Deep Market Research',
+        [MODES.WEB_SEARCH]: 'Web Search'
     };
     return names[mode] || 'Chat';
 }
@@ -114,7 +121,11 @@ export function getModeIcon(mode) {
         [MODES.DEEP_SEARCH]: '🔍',
         [MODES.DOCUMENT_CONVERT]: '🔄',
         [MODES.IMAGE_EDIT]: '🎨',
-        [MODES.LEGAL_TOOLKIT]: '⚖️'
+        [MODES.LEGAL_TOOLKIT]: '⚖️',
+        [MODES.IMAGE_GENERATION]: '🖼️',
+        [MODES.VIDEO_GENERATION]: '🎥',
+        [MODES.CASHFLOW]: '📊',
+        [MODES.WEB_SEARCH]: '🌐'
     };
     return icons[mode] || '💬';
 }
@@ -129,7 +140,11 @@ export function getModeColor(mode) {
         [MODES.DEEP_SEARCH]: '#0ea5e9',
         [MODES.DOCUMENT_CONVERT]: '#10b981',
         [MODES.IMAGE_EDIT]: '#f43f5e',
-        [MODES.LEGAL_TOOLKIT]: '#8b5cf6'
+        [MODES.LEGAL_TOOLKIT]: '#8b5cf6',
+        [MODES.IMAGE_GENERATION]: '#8b5cf6',
+        [MODES.VIDEO_GENERATION]: '#f59e0b',
+        [MODES.CASHFLOW]: '#10b981',
+        [MODES.WEB_SEARCH]: '#3b82f6'
     };
     return colors[mode] || '#6366f1';
 }

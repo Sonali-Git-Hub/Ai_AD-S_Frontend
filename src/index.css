@@ -121,22 +121,18 @@
     word-wrap: break-word;
   }
 
-  /* Enhanced Search Highlight Styling */
+  /* Marked/Highlighted text styling */
   mark {
-    background-color: rgba(99, 102, 241, 0.15); /* primary/15 */
+    background-color: rgba(85, 85, 255, 0.1);
     color: inherit;
-    padding: 0 2px;
-    border-radius: 4px;
-    border-bottom: 2px solid #6366f1;
-    font-weight: 700;
-    box-shadow: 0 0 10px rgba(99, 102, 241, 0.1);
+    padding: 0.1em 0.2em;
+    border-radius: 0.2em;
+    border-bottom: 2px solid #5555ff;
   }
 
   .dark mark {
-    background-color: rgba(99, 102, 241, 0.3);
-    color: #fff;
-    border-bottom-color: #818cf8;
-    box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
+    background-color: #5555ff;
+    color: white;
   }
 }
 
@@ -639,8 +635,6 @@ html.lenis, html.lenis body {
   background-color: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  -webkit-user-select: text;
-  user-select: text;
 }
 
 .chatgpt-message-row.user-row {
@@ -688,11 +682,6 @@ html.lenis, html.lenis body {
   background-color: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  -webkit-user-select: text !important;
-  -moz-user-select: text !important;
-  -ms-user-select: text !important;
-  user-select: text !important;
-  cursor: text;
 }
 
 .user-row .chatgpt-text {
@@ -832,6 +821,7 @@ html.lenis, html.lenis body {
   flex-direction: column;
   align-items: flex-end;
 }
+
 
 /* Sidebar Chat Item Fixes */
 .sidebar-chat-item {
