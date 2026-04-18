@@ -81,7 +81,7 @@ export const chatStorageService = {
   async getSessions(projectId) {
     try {
       const params = {};
-      if (projectId) params.projectId = projectId;
+      if (projectId && projectId !== 'default' && projectId !== 'all') params.projectId = projectId;
       const response = await axios.get(`${API_BASE_URL}/chat`, {
         params,
         headers: getAuthHeaders(),
@@ -159,7 +159,7 @@ export const chatStorageService = {
 
     // 2. Sync with Backend
     try {
-      const finalProjectId = projectId || message.projectId;
+      const finalProjectId = (projectId === 'default' || projectId === 'all') ? null : (projectId || (message.projectId === 'default' ? null : message.projectId));
       await axios.post(`${API_BASE_URL}/chat/${sessionId}/message`, { message, title, projectId: finalProjectId }, {
         headers: getAuthHeaders(),
         withCredentials: true
@@ -216,7 +216,7 @@ export const chatStorageService = {
 
     // 2. Sync with Backend (using the same upsert endpoint)
     try {
-      const finalProjectId = projectId || updatedMsg.projectId;
+      const finalProjectId = (projectId === 'default' || projectId === 'all') ? null : (projectId || (updatedMsg.projectId === 'default' ? null : updatedMsg.projectId));
       await axios.post(`${API_BASE_URL}/chat/${sessionId}/message`, { 
         message: updatedMsg, 
         projectId: finalProjectId 

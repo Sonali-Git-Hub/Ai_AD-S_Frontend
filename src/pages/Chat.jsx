@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect, Fragment } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Send, SendHorizontal, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe, Sliders, PlayCircle, Brain, ImagePlus, PlaySquare, RefreshCcw, TrendingUp, Zap, Scale, Navigation, Rocket, Megaphone } from 'lucide-react';
+import { Send, SendHorizontal, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe, Sliders, PlayCircle, Brain, ImagePlus, PlaySquare, RefreshCcw, TrendingUp, Zap, Gavel, Navigation, Rocket, Megaphone, Scale, ArrowLeft, ChevronRight, Briefcase, Calendar, Users, FolderOpen, Save } from 'lucide-react';
+import LegalLogo from '../Components/LegalLogo';
 import { renderAsync } from 'docx-preview';
 import * as XLSX from 'xlsx';
 import { Menu, Transition, Dialog, Listbox, Portal } from '@headlessui/react';
@@ -24,11 +25,11 @@ import ModelSelector from '../Components/ModelSelector';
 import MagicToolSettingsCard from '../Components/MagicToolSettingsCard';
 import CashFlowStockModal from '../Components/CashFlowStockModal';
 import CashFlowChartWidget from '../Components/CashFlowChartWidget';
-import LegalToolkitCard from '../Components/LegalToolkitCard';
+import LegalToolkitCard, { PREMIUM_TOOLS } from '../Components/LegalToolkitCard';
 import axios from 'axios';
 import { apis, API } from '../types';
 import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
+import { toCanvas } from 'html-to-image';
 import { detectMode, getModeName, getModeIcon, getModeColor, MODES } from '../utils/modeDetection';
 import { userData, getUserData, sessionsData, toggleState, memoryData, activeProjectIdData } from '../userStore/userData';
 import { usePersonalization } from '../context/PersonalizationContext';
@@ -808,14 +809,414 @@ const Chat = () => {
     });
   };
   const lastDetectedTextRef = useRef('');
-  
-  // Projects Feature State
+
+  // Cases (Projects) Feature State
+
   const [projects, setProjects] = useState([]);
+  const [currentCase, setCurrentCase] = useState(null);
+  const [isCasePanelOpen, setIsCasePanelOpen] = useState(false);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [isDownloadingUrl, setIsDownloadingUrl] = useState(null);
   const [expandedMessages, setExpandedMessages] = useState({}); // { [msgId]: true/false }
   const USER_MSG_COLLAPSE_CHARS = 200; // Collapse threshold
+
+  // --- MY CASE CRM STATES ---
+  const [legalView, setLegalView] = useState('CHAT'); // 'DASHBOARD' | 'CHAT'
+  const [legalCases, setLegalCases] = useState([]);
+  const [isNewCaseModalOpen, setIsNewCaseModalOpen] = useState(false);
+  const [newCaseForm, setNewCaseForm] = useState({
+    caseName: '',
+    clientName: '',
+    caseSummary: ''
+  });
+  const [isRenamingCase, setIsRenamingCase] = useState(null); // ID of case being renamed
+  const [renameValue, setRenameValue] = useState('');
+
+  // Fetch all legal cases for dashboard
+  const fetchLegalCases = async () => {
+    try {
+      const allProjects = await apiService.getProjects();
+      const cases = allProjects.filter(p => p.isLegalCase);
+      setLegalCases(cases);
+    } catch (err) {
+      console.error("Failed to fetch legal cases:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id === 'legal_my_case') {
+      fetchLegalCases();
+    }
+  }, [currentMode, selectedLegalTool]);
+
+  const handleCreateNewCase = async () => {
+    if (!newCaseForm.caseName.trim()) {
+      toast.error("Case name is required");
+      return;
+    }
+    const tid = toast.loading("Creating legal case...");
+    try {
+      const newCase = await apiService.createProject({
+        name: newCaseForm.caseName,
+        clientName: newCaseForm.clientName,
+        caseSummary: newCaseForm.caseSummary,
+        isLegalCase: true
+      });
+      toast.success("Case created successfully!", { id: tid });
+      setIsNewCaseModalOpen(false);
+      setNewCaseForm({ caseName: '', clientName: '', caseSummary: '' });
+      
+      // Select the new case and switch to chat
+      handleOpenCase(newCase);
+    } catch (err) {
+      toast.error("Failed to create case", { id: tid });
+    }
+  };
+
+  const handleOpenCase = async (c) => {
+    // Set project context immediately
+    setCurrentProjectId(c._id);
+    setCurrentCase(c);
+    
+    // Fix: Set legal mode immediately to avoid UI flickering/stuck state
+    if (c.isLegalCase) {
+      setCurrentMode('LEGAL_TOOLKIT');
+      setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
+      setLegalView('CHAT');
+    }
+    
+    // Clear messages for a fresh start when switching cases to prevent stale content
+    setMessages([]);
+
+    // Load the most recent session for this case so history is preserved
+    try {
+      const caseSessions = await chatStorageService.getSessions(c._id);
+      if (Array.isArray(caseSessions) && caseSessions.length > 0) {
+        // Sessions are sorted newest-first by the service
+        const lastSession = caseSessions[0];
+        navigate(`/dashboard/chat/${lastSession.sessionId}`);
+      } else {
+        // No previous session — open a fresh chat for this case
+        navigate('/dashboard/chat/new');
+      }
+    } catch (err) {
+      console.error('Failed to load case sessions:', err);
+      navigate('/dashboard/chat/new');
+    }
+    
+    // Focus input for immediate interaction
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 500);
+  };
+
+  const handleDeleteCase = async (id) => {
+    if (window.confirm("Are you sure you want to delete this case? All data and history will be lost.")) {
+      try {
+        await apiService.deleteProject(id);
+        toast.success("Case deleted");
+        fetchLegalCases();
+        
+        // If the current active case is the one deleted, reset view
+        if (currentProjectId === id) {
+          setCurrentProjectId(null);
+          setCurrentCase(null);
+          setLegalView('DASHBOARD');
+          navigate('/dashboard/chat/new');
+        }
+      } catch (err) {
+        toast.error("Delete failed");
+      }
+    }
+  };
+
+  const handleRenameCase = async (id) => {
+    if (!renameValue.trim()) {
+      setIsRenamingCase(null);
+      return;
+    }
+    try {
+      const updated = await apiService.updateProject(id, { name: renameValue });
+      setIsRenamingCase(null);
+      fetchLegalCases();
+      
+      // Update local currentCase if it's the one renamed
+      if (currentCase?._id === id) {
+        setCurrentCase(prev => ({ ...prev, name: renameValue }));
+      }
+      
+      toast.success("Case renamed");
+    } catch (err) {
+      toast.error("Rename failed");
+    }
+  };
+
+  // --- CRM RENDER HELPERS ---
+  const renderCaseDashboard = () => {
+    return (
+      <div className="flex-1 flex flex-col w-full h-full overflow-hidden aisa-scalable-text bg-slate-50/30 dark:bg-transparent absolute inset-0">
+        {/* Dashboard Header - Sticky */}
+        <div className="w-full px-6 sm:px-10 pt-8 pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 border-b border-slate-200/60 dark:border-zinc-800/60 bg-slate-50/80 dark:bg-[#0b0c15]/80 backdrop-blur-xl">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-indigo-600 rounded-2xl shadow-xl shadow-indigo-500/30 text-white">
+              <Briefcase className="w-7 h-7" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">My Cases</h1>
+              <p className="text-xs text-subtext font-medium mt-0.5">Manage your legal repositories with AISA Intelligence</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => setIsNewCaseModalOpen(true)}
+            className="flex items-center gap-2 px-6 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-sm transition-all active:scale-95 shadow-xl shadow-indigo-500/20 whitespace-nowrap"
+          >
+            <Plus className="w-5 h-5" />
+            <span>New Case Folder</span>
+          </button>
+        </div>
+
+        {/* Case Grid - Scrollable */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-6 sm:px-10 py-8">
+          {legalCases.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {legalCases.map((c) => (
+                <motion.div 
+                  key={c._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  whileHover={{ y: -6, scale: 1.01 }}
+                  className="group relative bg-white dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm hover:shadow-2xl hover:shadow-indigo-500/15 transition-all cursor-pointer"
+                  onClick={() => handleOpenCase(c)}
+                >
+                  <div className="flex justify-between items-start mb-5">
+                    <div className={`p-4 rounded-2xl ${currentProjectId === c._id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-indigo-50 dark:bg-zinc-800 text-indigo-600'} transition-colors`}>
+                      <FolderOpen className="w-6 h-6" />
+                    </div>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsRenamingCase(c._id);
+                          setRenameValue(c.name);
+                        }}
+                        className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl text-subtext transition-colors"
+                        title="Rename"
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteCase(c._id);
+                        }}
+                        className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl text-red-500 transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 mb-5">
+                    {isRenamingCase === c._id ? (
+                      <div className="flex gap-2" onClick={e => e.stopPropagation()}>
+                         <input 
+                           autoFocus
+                           value={renameValue}
+                           onChange={e => setRenameValue(e.target.value)}
+                           className="bg-slate-50 dark:bg-black/20 border border-primary rounded-lg px-2 py-1 text-sm font-bold w-full outline-none"
+                           onKeyDown={e => e.key === 'Enter' && handleRenameCase(c._id)}
+                         />
+                         <button onClick={() => handleRenameCase(c._id)} className="p-1 text-green-500"><Check size={16}/></button>
+                         <button onClick={() => setIsRenamingCase(null)} className="p-1 text-slate-400"><X size={16}/></button>
+                      </div>
+                    ) : (
+                      <h3 className="text-base font-black text-slate-800 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{c.name}</h3>
+                    )}
+                    <p className="text-xs text-subtext font-bold uppercase tracking-widest flex items-center gap-1.5">
+                      <Users size={11} />
+                      {c.clientName || 'Private Client'}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-zinc-800">
+                    <span className="text-[10px] text-subtext font-bold uppercase tracking-tighter">
+                      {new Date(c.updatedAt || Date.now()).toLocaleDateString()}
+                    </span>
+                    <div className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 group-hover:translate-x-1 transition-transform">
+                      <span className="text-[10px] font-black uppercase tracking-widest">Open Case</span>
+                      <ChevronRight size={14} />
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center space-y-4">
+              <div className="p-6 bg-slate-100 dark:bg-zinc-800/50 rounded-full text-slate-400">
+                <FolderOpen className="w-14 h-14" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-black text-slate-800 dark:text-white">No active cases found</h3>
+                <p className="text-sm text-subtext mt-2 max-w-sm">Start by creating your first legal case folder to begin collaboration with AISA Intelligence.</p>
+              </div>
+              <button 
+                onClick={() => setIsNewCaseModalOpen(true)}
+                className="mt-2 px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-sm hover:scale-105 transition-all shadow-xl shadow-indigo-500/20"
+              >
+                Initialize First Case
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderNewCaseModal = () => {
+    return (
+      <Transition appear show={isNewCaseModalOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-[200]" onClose={() => setIsNewCaseModalOpen(false)}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-md" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95 translate-y-8"
+                enterTo="opacity-100 scale-100 translate-y-0"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100 translate-y-0"
+                leaveTo="opacity-0 scale-95 translate-y-8"
+              >
+                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-[32px] bg-white dark:bg-zinc-900 p-8 text-left align-middle shadow-2xl transition-all border border-slate-200 dark:border-zinc-800">
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-indigo-600 rounded-xl text-white">
+                        <Plus size={20} />
+                      </div>
+                      <Dialog.Title as="h3" className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                        New Legal Case
+                      </Dialog.Title>
+                    </div>
+                    <button onClick={() => setIsNewCaseModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full transition-colors">
+                      <X size={20} className="text-subtext" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1 whitespace-nowrap">Case Name <span className="text-red-500">*</span></label>
+                       <input 
+                         type="text"
+                         value={newCaseForm.caseName}
+                         onChange={e => setNewCaseForm({...newCaseForm, caseName: e.target.value})}
+                         placeholder="e.g. Smith vs. Johnson Realty"
+                         className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-bold"
+                       />
+                    </div>
+
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1 whitespace-nowrap">Client Name</label>
+                       <input 
+                         type="text"
+                         value={newCaseForm.clientName}
+                         onChange={e => setNewCaseForm({...newCaseForm, clientName: e.target.value})}
+                         placeholder="Full legal name"
+                         className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
+                       />
+                    </div>
+
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1 whitespace-nowrap">Case Summary</label>
+                       <textarea 
+                         rows={4}
+                         value={newCaseForm.caseSummary}
+                         onChange={e => setNewCaseForm({...newCaseForm, caseSummary: e.target.value})}
+                         placeholder="Brief overview of matter..."
+                         className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none resize-none"
+                       />
+                    </div>
+
+                    <button 
+                      onClick={handleCreateNewCase}
+                      className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-sm shadow-xl shadow-indigo-500/20 transition-all active:scale-95 mt-4"
+                    >
+                      Initialize Case Folder
+                    </button>
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
+    );
+  };
+
+  // Fetch Case Details when currentProjectId changes
+  useEffect(() => {
+    const fetchCaseDetails = async () => {
+      if (!currentProjectId || currentProjectId === 'default' || currentProjectId === 'all') {
+        setCurrentCase(null);
+        setCurrentMode('NORMAL_CHAT');
+        setSelectedLegalTool(null);
+        setLegalView('CHAT');
+        return;
+      }
+
+      // Optimization: If currentCase already has the right project, just ensure mode is correct and skip fetch
+      if (currentCase?._id === currentProjectId) {
+        if (currentCase.isLegalCase && currentMode !== 'LEGAL_TOOLKIT') {
+          setCurrentMode('LEGAL_TOOLKIT');
+          setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
+          setLegalView('CHAT');
+        }
+        return;
+      }
+
+      try {
+        const response = await apiService.getProject(currentProjectId);
+        if (response) {
+          setCurrentCase(response);
+          // If the project is a legal case, we automatically open the legal toolkit and its specific view
+          if (response.isLegalCase) {
+             setCurrentMode('LEGAL_TOOLKIT');
+             setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
+             setLegalView('CHAT');
+             
+             // If we are currently on a 'new' chat path, try to auto-navigate to history
+             if (location.pathname === '/dashboard/chat/new') {
+               try {
+                 const caseSessions = await chatStorageService.getSessions(currentProjectId);
+                 if (Array.isArray(caseSessions) && caseSessions.length > 0) {
+                   const lastSession = caseSessions[0];
+                   navigate(`/dashboard/chat/${lastSession.sessionId}`);
+                 }
+               } catch (sessionErr) {
+                 console.error("Failed to fetch case sessions for auto-navigation:", sessionErr);
+               }
+             }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch case details:", err);
+      }
+    };
+    fetchCaseDetails();
+  }, [currentProjectId]);
 
   const [deleteConfig, setDeleteConfig] = useState({
     isOpen: false,
@@ -3008,11 +3409,32 @@ const Chat = () => {
       if (sessionId && sessionId !== 'new') {
         setCurrentSessionId(sessionId);
         console.log(`[DEBUG] Initializing chat for session: ${sessionId}`);
-        const history = await chatStorageService.getHistory(sessionId);
-        console.log(`[DEBUG] Received history:`, history);
+        const sessionData = await chatStorageService.getHistory(sessionId);
+        console.log(`[DEBUG] Received history:`, sessionData);
+
+        // --- CONTEXT SYNC ---
+        // If the loaded session belongs to a project, ensure the project context is active
+        if (sessionData.projectId && sessionData.projectId !== currentProjectId) {
+          console.log(`[DEBUG] Syncing project context to: ${sessionData.projectId}`);
+          setCurrentProjectId(sessionData.projectId);
+        }
+
+        // --- LEGAL MODE RESTORE ---
+        // Only restore legal My Case mode if the session belongs to an actual legal case.
+        // Other tools (Draft Maker, Case Predictor, etc.) may also have a projectId but
+        // should NOT trigger My Case mode.
+        if (sessionData.projectId && currentCase?.isLegalCase) {
+          setCurrentMode('LEGAL_TOOLKIT');
+          setSelectedLegalTool(prev =>
+            prev?.id === 'legal_my_case' ? prev : { id: 'legal_my_case', name: 'My Case' }
+          );
+          setLegalView('CHAT');
+        }
+
+        const historyMessages = sessionData.messages || [];
 
         // Regenerate Blob URLs for audio conversions on load
-        const historyMessages = Array.isArray(history) ? history : (history?.messages || []);
+
         
         const processedHistory = historyMessages.map(msg => {
           // Ensure every message has a valid unique ID (backend might supply _id)
@@ -3022,8 +3444,6 @@ const Chat = () => {
 
           if (msg.conversion && msg.conversion.file) {
             try {
-              // Only create if we don't have a CURRENT valid blob URL
-              // (URLs stored in DB are strings that are invalid on reload)
               const byteChars = atob(msg.conversion.file);
               const byteNums = new Array(byteChars.length);
               for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
@@ -3047,6 +3467,17 @@ const Chat = () => {
         setMessages(processedHistory);
       } else {
         setCurrentSessionId('new');
+        // Fix: Force unconditional reset of all legal mode states when not in a project context
+        if (!currentProjectId || currentProjectId === 'default' || currentProjectId === 'all') {
+          setCurrentCase(null);
+          setCurrentMode('NORMAL_CHAT');
+          setSelectedLegalTool(null);
+        } else if (currentCase?.isLegalCase) {
+          // Ensure legal mode is maintained for legal cases
+          setCurrentMode('LEGAL_TOOLKIT');
+          setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
+        }
+        setLegalView('CHAT');
 
         // --- SMART WELCOME ---
         const user = getUserData();
@@ -3097,7 +3528,7 @@ const Chat = () => {
       setShowHistory(false);
     };
     initChat();
-  }, [sessionId]);
+  }, [sessionId, location.key, currentProjectId]);
 
   const chatContainerRef = useRef(null);
   const shouldAutoScrollRef = useRef(true);
@@ -3156,6 +3587,55 @@ const Chat = () => {
   };
 
   const isSendingRef = useRef(false);
+
+
+  const handleSuggestionClick = (text) => {
+    // 1. Check for Legal Tool Redirection
+    if (currentProjectId && currentProjectId !== 'default') {
+      const lowerText = text.toLowerCase();
+      // Map suggestion phrases to internal tool IDs
+      const toolMap = {
+        'draft a legal notice': 'legal_draft_maker',
+        'draft a response': 'legal_draft_maker',
+        'create a legal notice': 'legal_draft_maker',
+        'analyze this document': 'legal_contract_analyzer',
+        'analyze a contract': 'legal_contract_analyzer',
+        'search relevant case laws': 'legal_case_law_research',
+        'research case laws': 'legal_case_law_research',
+        'identify legal risks': 'legal_compliance_checker',
+        'check compliance': 'legal_compliance_checker'
+      };
+
+      for (const [phrase, toolId] of Object.entries(toolMap)) {
+        if (lowerText.includes(phrase)) {
+          console.log(`[LegalRedirect] Redirecting to tool: ${toolId}`);
+          
+          // Switch mode to Legal Toolkit
+          setCurrentMode('LEGAL_TOOLKIT');
+          
+          // Find and select the tool in PREMIUM_TOOLS (imported or defined in LegalToolkitCard context)
+          // Actually, we can just set the active tool if we have access to the state
+          const legalTool = PREMIUM_TOOLS.find(t => t.id === toolId);
+          if (legalTool) {
+            setSelectedLegalTool(legalTool);
+            setActiveTool(legalTool.name);
+          }
+          
+          toast.success(`Opening ${legalTool?.name || 'Legal Tool'}...`);
+          
+          // Trigger the tool immediately with context
+          handleSendMessage(null, `Please proceed with ${legalTool?.name || text} using the current case context.`, toolId);
+          return;
+        }
+      }
+    }
+
+    // Default: Fill the input box briefly as requested
+    setInputValue(text);
+    // Immediately trigger the message send
+    handleSendMessage(null, text);
+  };
+
 
   const handleSendMessage = async (e, overrideContent, toolOverride = null) => {
     if (e) e.preventDefault();
@@ -3301,8 +3781,14 @@ const Chat = () => {
       }
 
       // Handle AI Legal Mode (Specific Tool Execution)
-      if (currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool) {
-        setLoadingText(`${selectedLegalTool.name}... ⚖️`);
+      const isLegalOverride = toolOverride && toolOverride.startsWith('legal_');
+      if ((currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool) || isLegalOverride) {
+        const activeToolId = isLegalOverride ? toolOverride : selectedLegalTool.id;
+        const activeToolName = isLegalOverride ? 
+          (toolOverride.replace('legal_', '').split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')) : 
+          selectedLegalTool.name;
+
+        setLoadingText(`${activeToolName}... ⚖️`);
         try {
           const userMsgId = Date.now().toString();
           const newUserMsg = {
@@ -3324,10 +3810,12 @@ const Chat = () => {
 
           const res = await axios.post(`${API}/legal-toolkit/execute`, {
             message: contentToSend,
-            toolName: selectedLegalTool.id,
+            toolName: activeToolId,
             sessionId: activeSessionId,
             attachments: newUserMsg.attachments,
-            conversationHistory: messages
+            conversationHistory: messages,
+            caseContext: currentCase,
+            projectId: currentProjectId
           }, {
             headers: { Authorization: `Bearer ${getUserData()?.token}` }
           });
@@ -3339,12 +3827,12 @@ const Chat = () => {
               role: 'model',
               content: res.data.reply,
               timestamp: new Date(),
-              toolUsed: res.data.toolUsed || selectedLegalTool.name
+              toolUsed: res.data.toolUsed || activeToolId
             };
             if (res.data.toolUsed) setActiveTool(res.data.toolUsed);
             setMessages(prev => [...prev, aiMsg]);
-            await chatStorageService.saveMessage(activeSessionId, newUserMsg);
-            await chatStorageService.saveMessage(activeSessionId, aiMsg);
+            await chatStorageService.saveMessage(activeSessionId, newUserMsg, null, currentProjectId);
+            await chatStorageService.saveMessage(activeSessionId, aiMsg, null, currentProjectId);
             refreshSubscription();
           } else {
             throw new Error(res.data.error || 'Execution failed');
@@ -3524,7 +4012,7 @@ const Chat = () => {
       try {
         // Include projectId in the message object for local storage and sync
         userMsg.projectId = currentProjectId;
-        await chatStorageService.saveMessage(activeSessionId, userMsg);
+        await chatStorageService.saveMessage(activeSessionId, userMsg, null, currentProjectId);
 
         if (isFirstMessage) {
           // Navigation already handled above
@@ -3614,6 +4102,20 @@ const Chat = () => {
         const SYSTEM_INSTRUCTION = `
 You are AISA™, the official AI assistant of the AISA™ platform. Powered by A-Series.
 ${activeAgent.category ? `Your specialization is in ${activeAgent.category}.` : ''}
+
+${currentCase ? `
+### ACTIVE CASE CONTEXT (MY CASE CRM):
+- **Client Name**: ${currentCase.clientName || 'Not specified'}
+- **Case Summary**: ${currentCase.caseSummary || 'No summary provided yet.'}
+- **Key Issues**: ${currentCase.keyIssue || 'No specific issues identified.'}
+${currentCase.importantDates && currentCase.importantDates.length > 0 ? `- **Important Dates**: ${currentCase.importantDates.map(d => `${d.label}: ${new Date(d.date).toLocaleDateString()}`).join(', ')}` : ''}
+
+**YOUR ROLE FOR THIS CASE**:
+- You are a dedicated legal assistant for THIS case.
+- Maintain separate memory and context for this folder.
+- Always respond based on these client details and requirements.
+- If the user asks general questions, try to relate them back to this case if relevant.
+` : ''}
 
 ### CRITICAL BRAND RULE:
 Whenever a user mentions "AISA", "AISA AI", "AISA app", "your image", "your video", "AISA image", "AISA video", or refers to AISA in third person, you MUST interpret it as referring to THIS platform (AISA™ brand identity), not a generic artificial intelligence.
@@ -3878,7 +4380,8 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
             projectId: currentProjectId,
             conversion: conversionData,
             imageUrl: aiImageUrl,
-            videoUrl: aiVideoUrl
+            videoUrl: aiVideoUrl,
+            detectedMode: detectedMode // ✅ Store detected mode so download button shows correctly (ZIP vs PDF)
           };
 
           // Add the empty message structure to UI
@@ -3930,16 +4433,41 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
             finalModelMsg.sources = responseSources;
             if (aiResponseData.suggestions) finalModelMsg.suggestions = aiResponseData.suggestions;
             if (aiResponseData.snapshot) finalModelMsg.snapshot = aiResponseData.snapshot;
-          } else if (i === responseParts.length - 1) {
-            // For multi-part responses, add suggestions to the last part
-            if (aiResponseData.suggestions) {
-              finalModelMsg.suggestions = aiResponseData.suggestions;
-              setSuggestions(aiResponseData.suggestions);
+            finalModelMsg.detectedMode = detectedMode; // ✅ Ensure detectedMode persists to storage
+          }
+
+          // Set Smart Suggestions for the last response part
+          if (i === responseParts.length - 1) {
+            const hasSmartSuggestions = aiResponseData?.suggestions && Array.isArray(aiResponseData.suggestions) && aiResponseData.suggestions.length > 0;
+            let finalSuggestions = hasSmartSuggestions ? aiResponseData.suggestions : [
+              "Can you show a real-world example?",
+              "How can I use this in my project?",
+              "What are the advantages of this approach?",
+              "Can you give a step-by-step guide?"
+            ];
+
+            // --- LEGAL CASE CRM OVERRIDE ---
+            if (currentCase && currentCase.isLegalCase) {
+              const legalOptions = [
+                "Draft a Legal Notice",
+                "Analyze this document",
+                "Search relevant Case Laws",
+                "Draft a Contract Response",
+                "Identify Legal Risks",
+                "Explain legal terminology"
+              ];
+              // Shuffle and pick 4
+              const shuffled = [...legalOptions].sort(() => 0.5 - Math.random());
+              finalSuggestions = shuffled.slice(0, 4);
             }
+
+            const trimmedSuggestions = finalSuggestions.slice(0, 4);
+            finalModelMsg.suggestions = trimmedSuggestions;
+            setSuggestions(trimmedSuggestions);
           }
 
           // After typing is complete, save the full message to history
-          await chatStorageService.saveMessage(activeSessionId, finalModelMsg);
+          await chatStorageService.saveMessage(activeSessionId, finalModelMsg, null, currentProjectId);
 
           // Refresh usage counts after successful generation
           refreshSubscription();
@@ -4063,7 +4591,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
 
       const link = document.createElement('a');
       link.href = blobUrl;
-      link.download = filename || 'AI Ads-download.png';
+      link.download = filename || 'AISA-download.png';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -4191,8 +4719,8 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         try {
           await navigator.share({
             files: [file],
-            title: file.name || 'AI Ads Document',
-            text: 'Converted Document from AI Ads'
+            title: file.name || 'AISA Document',
+            text: 'Converted Document from AISA'
           });
           return;
         } catch (err) {
@@ -4222,7 +4750,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         }
         const byteArray = new Uint8Array(byteNumbers);
         const blob = new Blob([byteArray], { type: 'application/pdf' });
-        const filename = msg.conversion.fileName || 'AI Ads.pdf';
+        const filename = msg.conversion.fileName || 'AISA Document.pdf';
         const file = new window.File([blob], filename, { type: 'application/pdf' });
 
         if (isPregeneration) {
@@ -4259,8 +4787,8 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
             try {
               await navigator.share({
                 files: [file],
-                title: 'AI Ads AI Response',
-                text: msg && msg.content ? `${msg.content.substring(0, 150)}...` : 'AI Ads Document output'
+                title: 'AISA AI Response',
+                text: msg && msg.content ? `${msg.content.substring(0, 150)}...` : 'AISA Document output'
               });
               toast.success("PDF sent to share menu!", { id: shareToastId });
             } catch (shareErr) {
@@ -4313,6 +4841,28 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         const clonedContent = element.cloneNode(true);
         clonedContent.id = `temp-pdf-${msg.id}`;
 
+        // 🔥 STRIP "REQUIRED INFORMATION" FROM PDF (DRAFT MAKER FIX)
+        const stripRequiredInfo = (node) => {
+          const markers = ["🔶 REQUIRED INFORMATION", "REQUIRED INFORMATION", "🔶 REQUIRED INFO", "REQUIRED INFO"];
+          const content = node.innerHTML;
+          if (content) {
+            for (const marker of markers) {
+              if (content.includes(marker)) {
+                const parts = content.split(marker);
+                node.innerHTML = parts[0];
+                
+                // Cleanup trailing clutter
+                const lastChild = node.lastElementChild;
+                if (lastChild && (lastChild.innerText.trim() === "" || lastChild.innerText.trim() === "🔶")) {
+                  node.removeChild(lastChild);
+                }
+                break;
+              }
+            }
+          }
+        };
+        stripRequiredInfo(clonedContent);
+
         // Add Header
         const header = document.createElement('div');
         header.style.marginBottom = '20px';
@@ -4321,7 +4871,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         header.style.fontSize = '12px';
         header.style.color = '#888';
         header.style.fontWeight = 'bold';
-        header.innerText = 'AI Ads AI RESPONSE';
+        header.innerText = 'AISA AI RESPONSE';
 
         tempWrapper.appendChild(header);
 
@@ -4334,9 +4884,39 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
 
         const all = clonedContent.querySelectorAll('*');
         Array.from(all).forEach(el => {
-          el.style.color = '#000000';
+          const computedBg = el.style.backgroundColor;
+          const isCodeEl = el.closest('pre') || el.closest('code') || el.closest('[class*="group/code"]') ||
+                           el.tagName === 'PRE' || el.tagName === 'CODE';
+
+          if (isCodeEl) {
+            // Force ALL code block elements to be readable in PDF
+            el.style.backgroundColor = '#f5f5f5';
+            el.style.color = '#1a1a1a';
+            el.style.textShadow = 'none';
+            el.style.borderColor = '#ddd';
+          } else {
+            // Force normal text elements to be black
+            if (el.tagName !== 'SPAN') {
+              el.style.color = '#000000';
+            }
+          }
           if (el.tagName === 'P') el.style.marginBottom = '6px';
           if (el.tagName === 'A') el.style.color = '#0000ff';
+        });
+
+        // Force dark wrapper divs of code blocks to be light
+        const codeDivs = clonedContent.querySelectorAll('[class*="bg-[#0d0d0d]"], [class*="bg-[#2d2d2d]"], pre, code');
+        Array.from(codeDivs).forEach(el => {
+          el.style.backgroundColor = '#f5f5f5';
+          el.style.color = '#1a1a1a';
+        });
+
+        // Expand scrollable areas like code blocks so they don't clip
+        const scrollers = clonedContent.querySelectorAll('.overflow-auto, [class*="overflow-"], [class*="max-h-"], pre, code');
+        Array.from(scrollers).forEach(el => {
+          el.style.maxHeight = 'none';
+          el.style.overflow = 'visible';
+          el.style.height = 'auto';
         });
 
         tempWrapper.appendChild(clonedContent);
@@ -4346,12 +4926,10 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         await new Promise(r => setTimeout(r, 100));
 
         // Generate canvas from the unconstrained clone
-        canvas = await html2canvas(tempWrapper, {
-          scale: 2,
-          useCORS: true,
+        canvas = await toCanvas(tempWrapper, {
+          pixelRatio: 2,
           backgroundColor: '#ffffff',
-          windowWidth: 800, // Force window width awareness
-          logging: false
+          width: 800
         });
 
         // Cleanup
@@ -4453,7 +5031,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
       }
       // ===== END SMART SLICING =====
 
-      const filename = `AI Ads.pdf`;
+      const filename = `AISA Document.pdf`;
       const blob = pdf.output('blob');
       const file = new File([blob], filename, { type: 'application/pdf', lastModified: new Date().getTime() });
 
@@ -4510,8 +5088,8 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
           try {
             await navigator.share({
               files: [file],
-              title: 'AI Ads AI Response',
-              text: msg && msg.content ? `${msg.content.substring(0, 150)}...` : 'AI Ads Document output'
+              title: 'AISA AI Response',
+              text: msg && msg.content ? `${msg.content.substring(0, 150)}...` : 'AISA Document output'
             });
             if (processToastId) toast.success("PDF sent to share menu!", { id: processToastId });
           } catch (shareErr) {
@@ -4626,125 +5204,61 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
     }
   };
 
-  const handleDownloadPdf = async (msg) => {
-    const toastId = toast.loading("Generating PDF Report...");
+  const handleDownloadCodeProject = async (msg) => {
+    const toastId = toast.loading("Generating Project ZIP...");
     try {
-      const element = document.getElementById(`msg-text-${msg.id}`);
-      if (!element) { toast.error("Content not found", { id: toastId }); return; }
-
-      const tempWrapper = document.createElement('div');
-      tempWrapper.style.position = 'absolute';
-      tempWrapper.style.left = '-9999px';
-      tempWrapper.style.top = '-9999px';
-      tempWrapper.style.width = '800px'; 
-      tempWrapper.style.backgroundColor = '#ffffff';
-
-      const clonedContent = element.cloneNode(true);
-      const header = document.createElement('div');
-      header.style.marginBottom = '30px';
-      header.style.paddingBottom = '15px';
-      header.style.borderBottom = '2px solid #000000';
-      header.style.display = 'flex';
-      header.style.justifyContent = 'space-between';
-      header.style.alignItems = 'center';
-      header.innerHTML = `
-        <div style="font-weight: 900; font-size: 24px; color: #000000;">AISA</div>
-        <div style="font-size: 10px; color: #aaa; text-align: right;">DOC-ID: ${msg.id}<br/>DATE: ${new Date().toLocaleDateString()}</div>
-      `;
-
-      tempWrapper.appendChild(header);
-      clonedContent.style.padding = '10px';
-      clonedContent.style.color = '#000000';
-      clonedContent.style.backgroundColor = '#ffffff';
-      clonedContent.style.width = '100%';
-      clonedContent.style.lineHeight = '1.6';
-
-      const all = clonedContent.querySelectorAll('*');
-      Array.from(all).forEach(el => {
-        el.style.color = '#111827';
-        if (el.tagName === 'H1' || el.tagName === 'H2' || el.tagName === 'H3') {
-           el.style.color = '#000000';
-           el.style.marginTop = '24px';
-           el.style.marginBottom = '12px';
-        }
-        if (el.tagName === 'P') el.style.marginBottom = '10px';
-        if (el.tagName === 'LI') el.style.marginBottom = '8px';
-      });
-
-      tempWrapper.appendChild(clonedContent);
+      const JSZipModule = await import('jszip');
+      const JSZip = JSZipModule.default || JSZipModule;
       
-      const footer = document.createElement('div');
-      footer.style.marginTop = '40px';
-      footer.style.paddingTop = '15px';
-      footer.style.borderTop = '1px solid #eee';
-      footer.style.fontSize = '10px';
-      footer.style.color = '#999';
-      footer.innerHTML = `AISA Report - Generated on ${new Date().toLocaleString()}. Always consult with a licensed professional.`;
-      tempWrapper.appendChild(footer);
+      const zip = new JSZip();
+      
+      const content = msg.content || "";
+      // Updated regex to catch bold filenames followed by codeblocks with possible language tags
+      const regex = /\*\*(.+?)\*\*[\s\n]*```(?:[a-zA-Z]*)\n([\s\S]*?)```/g;
+      let match;
+      let fileCount = 0;
 
-      document.body.appendChild(tempWrapper);
-      await new Promise(r => setTimeout(r, 200));
-
-      const canvas = await html2canvas(tempWrapper, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        windowWidth: 800
-      });
-      document.body.removeChild(tempWrapper);
-
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const margin = 15;
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const printW = pageW - margin * 2;
-      const printH = pageH - margin * 2;
-      const pxPerMm = canvas.width / printW;
-      const pageHeightPx = Math.floor(printH * pxPerMm);
-      const mainCtx = canvas.getContext('2d');
-
-      let curY = 0;
-      let pageIdx = 0;
-      while (curY < canvas.height) {
-        if (pageIdx > 0) pdf.addPage();
-        let targetH = pageHeightPx;
-        if (curY + targetH < canvas.height) {
-          const scanRange = 150;
-          try {
-            const scanData = mainCtx.getImageData(0, curY + targetH - scanRange, canvas.width, scanRange).data;
-            let bestRow = -1;
-            for (let r = scanRange - 1; r >= 0; r--) {
-              let isWhite = true;
-              for (let c = 0; c < canvas.width; c += 10) {
-                const i = (r * canvas.width + c) * 4;
-                if (scanData[i] < 250 || scanData[i + 1] < 250 || scanData[i + 2] < 250) { isWhite = false; break; }
-              }
-              if (isWhite) { bestRow = r; break; }
-            }
-            if (bestRow !== -1) targetH = (targetH - scanRange) + bestRow + 5;
-          } catch (e) {}
-        } else { targetH = canvas.height - curY; }
-
-        const pCanvas = document.createElement('canvas');
-        pCanvas.width = canvas.width;
-        pCanvas.height = targetH;
-        const pCtx = pCanvas.getContext('2d');
-        pCtx.fillStyle = '#ffffff';
-        pCtx.fillRect(0, 0, pCanvas.width, pCanvas.height);
-        pCtx.drawImage(canvas, 0, curY, canvas.width, targetH, 0, 0, canvas.width, targetH);
-        
-        pdf.addImage(pCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', margin, margin, printW, targetH / pxPerMm);
-        curY += targetH;
-        pageIdx++;
+      while ((match = regex.exec(content)) !== null) {
+        let filename = match[1].trim();
+        let code = match[2];
+        if (filename && code) {
+           // Ensure filename doesn't have invalid path characters
+           filename = filename.replace(/[\/\\]/g, '_');
+           zip.file(filename, code);
+           fileCount++;
+        }
       }
 
-      pdf.save(`AISA.pdf`);
-      toast.success("PDF Downloaded! 📄", { id: toastId });
+      // Fallback if no specific code files were matched
+      if (fileCount === 0) {
+        zip.file("code_export.md", content);
+      }
+
+      // Generate Blob with explicit DEFLATE compression for better Windows compatibility
+      const blob = await zip.generateAsync({ 
+        type: "blob",
+        compression: "DEFLATE",
+        compressionOptions: { level: 6 }
+      });
+      
+      // Native download approach (bypasses potential file-saver bugs)
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = "AISA_Code_Project.zip";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Project Downloaded Successfully!", { id: toastId });
     } catch (err) {
-      console.error("PDF Generate error:", err);
+      console.error("ZIP Generate error:", err);
       toast.error("Download failed.", { id: toastId });
     }
   };
+
+
 
   // WhatsApp In-App PDF Share — uploads PDF to cloud, then lets user pick contact IN-APP
   const handleWhatsAppPdfShare = async (msg) => {
@@ -4774,7 +5288,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
       header.style.fontSize = '12px';
       header.style.color = '#888';
       header.style.fontWeight = 'bold';
-      header.innerText = 'AI Ads AI RESPONSE';
+      header.innerText = 'AISA AI RESPONSE';
 
       tempWrapper.appendChild(header);
 
@@ -4789,6 +5303,11 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         el.style.color = '#000000';
         if (el.tagName === 'P') el.style.marginBottom = '6px';
         if (el.tagName === 'A') el.style.color = '#0000ff';
+        
+        const isInsideCode = el.closest('.group\\/code') || el.closest('pre') || el.closest('code');
+        if (isInsideCode) {
+          el.style.backgroundColor = '#f8f9fa';
+        }
       });
 
       tempWrapper.appendChild(clonedContent);
@@ -4863,7 +5382,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
       toast.loading("Uploading PDF...", { id: toastId });
       const blob = pdf.output('blob');
       const formData = new FormData();
-      formData.append('pdf', blob, 'AI Ads.pdf');
+      formData.append('pdf', blob, 'AISA Document.pdf');
 
       const { BASE_URL } = await import('../types');
       const uploadRes = await axios.post(`${BASE_URL}/api/chat/upload-pdf`, formData, {
@@ -4878,7 +5397,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
 
       // 3. Show in-app WhatsApp contact picker modal
       setWaPdfUrl(pdfUrl);
-      setWaMsgContent(`🤖 *AI Ads AI Response*\n\nYeh dekho meri AI Ads se baat: ${pdfUrl}`);
+      setWaMsgContent(`🤖 *AISA AI Response*\n\nYeh dekho meri AISA se baat: ${pdfUrl}`);
       setWaPhone('');
       setWaShareModal(true);
 
@@ -5036,60 +5555,60 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
   };
 
   const saveEdit = async (msg) => {
-    if (editContent.trim() === "") return; // Don't allow empty
+    if (editContent.trim() === "") return;
 
     const updatedMsg = { ...msg, content: editContent, text: editContent, edited: true };
-
-    // Find the index of the edited message
     const editedMsgIndex = messages.findIndex(m => m.id === msg.id);
 
-    // If in Audio Convert Mode, perform an in-place update without truncating history
+    // 1. Audio Mode Handling
     if (isAudioConvertMode) {
       const updatedMessages = [...messages];
       updatedMessages[editedMsgIndex] = updatedMsg;
       setMessages(updatedMessages);
       setEditingMessageId(null);
       setIsLoading(true);
-      
       try {
         await chatStorageService.updateMessage(sessionId, updatedMsg);
-        
-        // Find the assistant's message that immediately follows the edited text
         const nextMsg = messages[editedMsgIndex + 1];
         const replaceAssistantMsgId = (nextMsg && nextMsg.role !== 'user') ? nextMsg.id : null;
-        
+
         await manualTextToAudioConversion(updatedMsg.content, sessionId, replaceAssistantMsgId);
       } catch (e) {
-        console.error("Error during audio edit:", e);
+        console.error("Audio edit error:", e);
       } finally {
         setIsLoading(false);
       }
       return;
     }
 
-    // Normal chat mode behavior: truncate history
-    // Remove all messages after the edited message
+    // 2. AI Message Edit (e.g. Draft Maker)
+    if (msg.role !== 'user') {
+      const updatedMessages = [...messages];
+      updatedMessages[editedMsgIndex] = updatedMsg;
+      setMessages(updatedMessages);
+      setEditingMessageId(null);
+      try {
+        await chatStorageService.updateMessage(sessionId, updatedMsg);
+        toast.success("Draft updated!");
+      } catch (e) {
+        console.error("AI edit error:", e);
+        toast.error("Failed to save changes");
+      }
+      return;
+    }
+
+    // 3. Normal User Message Edit (Regenerate)
     const messagesUpToEdit = messages.slice(0, editedMsgIndex);
     const updatedMessages = [...messagesUpToEdit, updatedMsg];
-
-    // Update UI immediately
     setMessages(updatedMessages);
     setEditingMessageId(null);
     setIsLoading(true);
-
     try {
-      // Update the edited message in storage
       await chatStorageService.updateMessage(sessionId, updatedMsg);
+      await chatStorageService.truncateMessagesAfter(sessionId, msg.id);
 
-      // Delete all messages that came after the edited message
-      const messagesToDelete = messages.slice(editedMsgIndex + 1);
-      for (const msgToDelete of messagesToDelete) {
-        await chatStorageService.deleteMessage(sessionId, msgToDelete.id);
-      }
-
-      // Generate new AI response based on the edited message
       const SYSTEM_INSTRUCTION = `
-You are AI Ads, an advanced AI assistant.
+You are AISA, an advanced AI assistant.
 IMAGE GENERATION CAPABILITIES:
 If the user asks for an image (e.g., "generate", "create", "draw", "show me a pic", "image dikhao", "photo bhejo", "pic do"), tell them to use the Image Generation mode via the Magic Tools button. Do NOT attempt to generate images inline.
 `;
@@ -5102,7 +5621,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         currentLang
       );
 
-      // Extract text reply and other metadata from the response object
       let reply = "";
       let conversion = null;
       let videoUrl = null;
@@ -5127,10 +5645,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         ...(imageUrl && { imageUrl })
       };
 
-      // Update state with new AI response
       setMessages(prev => [...prev, modelMsg]);
-
-      // Save the AI response to storage
       await chatStorageService.saveMessage(sessionId, modelMsg);
 
       toast.success("Message edited and new response generated!");
@@ -5272,27 +5787,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
     return () => window.removeEventListener('keydown', handleEsc);
   }, []);
 
-  // Process Word documents
-  useEffect(() => {
-    if (viewingDoc && viewingDoc.name.match(/\.(docx|doc)$/i) && docContainerRef.current) {
-      // Clear previous content
-      docContainerRef.current.innerHTML = '';
-
-      fetch(viewingDoc.url)
-        .then(res => res.blob())
-        .then(blob => {
-          renderAsync(blob, docContainerRef.current, undefined, {
-            inWrapper: true,
-            ignoreWidth: false,
-            className: "docx-viewer"
-          }).catch(err => {
-            console.error("Docx Preview Error:", err);
-            docContainerRef.current.innerHTML = '<div class="text-center p-10 text-subtext">Preview not available.<br/>Please download to view.</div>';
-          });
-        });
-    }
-  }, [viewingDoc]);
-
   // Process Excel documents
   useEffect(() => {
     if (viewingDoc && viewingDoc.name.match(/\.(xls|xlsx|csv)$/i)) {
@@ -5343,7 +5837,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
   }, [isAudioConvertMode]);
 
   return (
-    <div className="flex w-full bg-secondary relative overflow-hidden aisa-scalable-text overscroll-none h-full">
+    <div className="flex w-full bg-secondary relative overflow-hidden aisa-scalable-text h-[100dvh]">
       {/* 🌟 Premium Minimalist Background Wrapper 🌟 */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none bg-[#f8f9fc] dark:bg-[#0b0c15]">
         {/* Universal Ambient Glows: Animated Blobs for Depth */}
@@ -5513,9 +6007,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
 
 
+      {/* SideBar is managed by NavigationProvider / DashboardLayout */}
+
       {/* Main Area */}
       <div
-        className="flex-1 flex flex-col relative bg-transparent w-full min-w-0 pt-0"
+        className="flex-1 flex flex-col relative bg-transparent w-full min-w-0 pt-4"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -5544,13 +6040,90 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         <div
           ref={chatContainerRef}
           onScroll={handleScroll}
-          className="relative flex-1 overflow-y-auto chatgpt-container pt-8 pb-64 md:pb-72 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent aisa-scalable-text"
+          className={`relative flex-1 aisa-scalable-text ${
+            legalView === 'DASHBOARD' && currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id === 'legal_my_case'
+              ? 'overflow-hidden'
+              : `overflow-y-auto chatgpt-container pt-8 ${messages.length > 0 ? 'pb-64 md:pb-72' : 'pb-12'} scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent`
+          }`}
         >
-          {messages.length > 0 && (
+          {legalView === 'DASHBOARD' && currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id === 'legal_my_case' ? (
+            renderCaseDashboard()
+          ) : (
             <>
-              {/* Extra large Top Spacer for premium starting position */}
-              {/* Removed spacer to keep messages at top */}
-              {messages.map((msg) => (
+            {currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id === 'legal_my_case' && (
+                <div className="w-full px-6 sm:px-12 pt-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-zinc-800/50 pb-6">
+                  <div className="flex flex-col gap-4">
+                    <button 
+                      onClick={() => setLegalView('DASHBOARD')}
+                      className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-black text-[10px] uppercase tracking-widest bg-indigo-50 dark:bg-indigo-900/20 px-4 py-2 rounded-full transition-all hover:gap-3 w-fit"
+                    >
+                      <ArrowLeft size={14} />
+                      Back to Case List
+                    </button>
+                    
+                    {currentCase && (
+                      <div className="flex items-center gap-4 ml-1">
+                        <div className="p-3 bg-indigo-600 rounded-2xl text-white shadow-xl shadow-indigo-500/30">
+                          <Briefcase size={20} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          {isRenamingCase === currentCase._id ? (
+                            <div className="flex items-center gap-2">
+                              <input 
+                                type="text" 
+                                value={renameValue}
+                                onChange={(e) => setRenameValue(e.target.value)}
+                                onBlur={() => handleRenameCase(currentCase._id)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleRenameCase(currentCase._id);
+                                  if (e.key === 'Escape') setIsRenamingCase(null);
+                                }}
+                                className="bg-slate-50 dark:bg-black/20 border border-indigo-500 rounded-xl px-3 py-1.5 text-lg font-black w-full outline-none text-slate-900 dark:text-white"
+                                autoFocus
+                              />
+                            </div>
+                          ) : (
+                            <>
+                              <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none truncate">{currentCase.name}</h2>
+                              <p className="text-xs text-subtext font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
+                                <Users size={12} className="text-indigo-500" />
+                                {currentCase.clientName || 'Private Client'}
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {currentCase && (
+                    <div className="flex items-center gap-2 self-end sm:self-center">
+                       <button 
+                         onClick={() => {
+                           setRenameValue(currentCase.name);
+                           setIsRenamingCase(currentCase._id);
+                         }}
+                         className="p-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-slate-400 rounded-2xl hover:bg-slate-50 dark:hover:bg-zinc-800/80 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-sm group"
+                         title="Rename Case"
+                       >
+                         <Edit2 size={18} className="group-hover:scale-110 transition-transform" />
+                       </button>
+                       <button 
+                         onClick={() => handleDeleteCase(currentCase._id)}
+                         className="p-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-400 hover:text-red-500 rounded-2xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-all shadow-sm group"
+                         title="Delete Case"
+                       >
+                         <Trash2 size={18} className="group-hover:scale-110 transition-transform" />
+                       </button>
+                    </div>
+                  )}
+                </div>
+              )}
+              {messages.length > 0 && (
+                <>
+                  {/* Reduced Top Spacer */}
+                  <div className="h-2 w-full shrink-0" />
+              {messages.map((msg, idx) => (
                 <div
                   key={msg.id}
                   className={`chatgpt-message-row group ${msg.role === 'user' ? 'user-row' : 'ai-row'}`}
@@ -5706,8 +6279,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           <textarea
                             value={editContent}
                             onChange={(e) => setEditContent(e.target.value)}
-                            className="w-full bg-black/5 dark:bg-white/10 text-slate-900 dark:text-white rounded-xl p-3 text-sm focus:outline-none resize-none border border-black/10 dark:border-white/20 placeholder-slate-400 dark:placeholder-white/50"
-                            rows={2}
+                            className="w-full bg-black/5 dark:bg-white/10 text-slate-900 dark:text-white rounded-xl p-5 text-sm focus:outline-none border border-black/10 dark:border-white/20 placeholder-slate-400 dark:placeholder-white/50 min-h-[500px] lg:min-h-[650px] font-mono leading-[1.8] resize-y shadow-inner transition-all hover:border-primary/30"
+                            rows={25}
                             autoFocus
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' && !e.shiftKey) {
@@ -5787,8 +6360,48 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             <div className="relative group/msg-content">
                               <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
+                                urlTransform={(value) => value}
                                 components={{
                                   a: ({ href, children }) => {
+                                    if (href && href.startsWith('action:')) {
+                                      const isLocked = children?.toString()?.includes('🔒') || children?.toString()?.includes('Unlock');
+                                      return (
+                                        <button
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            const toolKey = href.replace('action:', '');
+                                            setCurrentMode('LEGAL_TOOLKIT');
+                                            
+                                            const TOOL_NAMES = {
+                                              legal_draft_maker: "Draft Maker",
+                                              legal_case_predictor: "Case Predictor",
+                                              legal_argument_builder: "Argument Builder",
+                                              legal_evidence_checker: "Evidence Analyst",
+                                              legal_contract_analyzer: "Contract Analyzer",
+                                              legal_strategy_engine: "Strategy Engine"
+                                            };
+                                            const toolName = TOOL_NAMES[toolKey] || toolKey;
+                                            
+                                            // Open the premium upsell if locked
+                                            if (isLocked) {
+                                              window.dispatchEvent(new CustomEvent('premium_required', { detail: { toolName } }));
+                                              return;
+                                            }
+                                            
+                                            setSelectedLegalTool({ id: toolKey, name: toolName });
+                                            setActiveTool(toolName);
+                                            
+                                            setTimeout(() => {
+                                              handleSendMessage(null, `Please proceed with ${toolName} using the current case context. Generate the full response for this task immediately without asking for further details if possible.`, toolKey);
+                                            }, 150);
+                                          }}
+                                          className={`inline-flex mt-2 items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0 ${isLocked ? 'bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20' : 'bg-gradient-to-r from-primary/10 to-indigo-500/10 border border-primary/20 text-primary hover:bg-primary/20 hover:border-primary/40'}`}
+                                        >
+                                          {children}
+                                          <ChevronRight className="w-4 h-4 ml-1 opacity-70" />
+                                        </button>
+                                      );
+                                    }
                                     const isInternal = href && href.startsWith('/');
                                     return (
                                       <a
@@ -6058,7 +6671,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                     disabled={isDownloadingUrl === msg.imageUrl}
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleDownload(msg.imageUrl, 'AI Ads-generated.png');
+                                      handleDownload(msg.imageUrl, 'AISA-generated.png');
                                     }}
                                     className={`p-2.5 rounded-xl shadow-lg border border-white/20 flex items-center gap-2 ${isDownloadingUrl === msg.imageUrl ? 'bg-zinc-600 cursor-wait' : 'bg-primary text-white hover:bg-primary/90'}`}
                                     title="Download High-Res"
@@ -6297,7 +6910,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                         {({ active }) => (
                                           <button
                                             onClick={() => {
-                                              const text = `I've converted "${msg.conversion.fileName}" into voice audio using AI Ads! ${window.location.href}`;
+                                              const text = `I've converted "${msg.conversion.fileName}" into voice audio using AISA! ${window.location.href}`;
                                               const url = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
                                                 ? `whatsapp://send?text=${encodeURIComponent(text)}`
                                                 : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
@@ -6314,7 +6927,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                         {({ active }) => (
                                           <button
                                             onClick={() => {
-                                              const text = `AI Ads Audio Conversion: ${msg.conversion.fileName}`;
+                                              const text = `AISA Audio Conversion: ${msg.conversion.fileName}`;
                                               const url = `https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(text)}`;
                                               window.open(url, '_blank');
                                             }}
@@ -6424,16 +7037,38 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                     <Share className="w-3.5 h-3.5" />
                                   </button>
 
-                                  {/* PDF Tools — Always show Download */}
+                                  {/* PDF / ZIP Tools */}
                                   <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 ml-2 pl-2">
-                                    <button
-                                      onClick={() => handleDownloadPdf(msg)}
-                                      className="text-red-500 hover:text-red-600 transition-all p-1.5 hover:bg-red-50/10 rounded-lg flex items-center gap-1 active:scale-95 group/pdf"
-                                      title="Download Ready-Made PDF Report"
-                                    >
-                                      <FileText className="w-3.5 h-3.5 group-hover/pdf:scale-110 transition-transform" />
-                                      <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
-                                    </button>
+                                    {/* Edit Button for Draft Maker */}
+                                    {(msg.toolUsed?.toLowerCase() === 'legal_draft_maker' || msg.toolUsed === 'Draft Maker') && (
+                                      <button
+                                        onClick={() => startEditing(msg)}
+                                        className="text-primary hover:text-primary transition-all p-1.5 hover:bg-primary/5 rounded-lg flex items-center gap-1 active:scale-95 group/edit"
+                                        title="Edit Draft"
+                                      >
+                                        <Edit2 className="w-3.5 h-3.5 group-hover/edit:scale-110 transition-transform" />
+                                      </button>
+                                    )}
+
+                                    {(msg.detectedMode === 'CODING_HELP' || msg.detectedMode === 'CODE_WRITER') ? (
+                                      <button
+                                        onClick={() => handleDownloadCodeProject(msg)}
+                                        className="text-blue-500 hover:text-blue-600 transition-all p-1.5 hover:bg-blue-50/10 rounded-lg flex items-center gap-1 active:scale-95 group/code"
+                                        title="Download Code Project (ZIP)"
+                                      >
+                                        <FileText className="w-3.5 h-3.5 group-hover/code:scale-110 transition-transform" />
+                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() => handlePdfAction('download', msg)}
+                                        className="text-red-500 hover:text-red-600 transition-all p-1.5 hover:bg-red-50/10 rounded-lg flex items-center gap-1 active:scale-95 group/pdf"
+                                        title="Download Ready-Made PDF Report"
+                                      >
+                                        <FileText className="w-3.5 h-3.5 group-hover/pdf:scale-110 transition-transform" />
+                                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -6441,28 +7076,24 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           </div>
                         )}
 
-                      {/* Related Questions Suggestions */}
-                    {(msg.role === 'model' || msg.role === 'assistant') &&
-                      msg.suggestions && msg.suggestions.length > 0 &&
-                      typingMessageId !== msg.id && (
-                        <div className="mt-6 flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2 duration-700">
-                          <div className="flex items-center gap-2 px-1">
-                            <Sparkles className="w-3.5 h-3.5 text-blue-500/60" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-subtext/60">Suggestions</span>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {msg.suggestions.map((q, idx) => (
+
+                      {/* Integrated Smart Suggestions (Only for the latest AI response) */}
+                      {idx === messages.length - 1 && (msg.role === 'model' || msg.role === 'assistant') &&
+                        suggestions.length > 0 && !isLoading && !typingMessageId && (
+                          <div className="suggestions-container animate-in fade-in slide-in-from-bottom-3 duration-500">
+                            {suggestions.map((item, index) => (
                               <button
-                                key={idx}
-                                onClick={() => handleSendMessage(null, q)}
-                                className="text-[13px] px-4 py-2 rounded-2xl border border-border bg-white dark:bg-white/5 text-maintext hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95 text-left shadow-sm"
+                                key={index}
+                                onClick={() => handleSuggestionClick(item)}
+                                className="suggestion-btn"
                               >
-                                {q}
+                                {item}
                               </button>
                             ))}
                           </div>
-                        </div>
-                      )}
+                        )}
+
+
 
                     {/* Timestamp & User Actions */}
                     <div className="h-0 group-hover:h-7 flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300 overflow-hidden">
@@ -6527,153 +7158,171 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
               )}
             </>
           )}
-
-          <div ref={messagesEndRef} />
-        </div>
-
-
-
-        {/* Welcome Screen - Absolute Overlay */}
-        <AnimatePresence>
-          {messages.length === 0 && (
-            <motion.div
-              key="welcome-screen"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
-              className="absolute inset-0 z-0 overflow-y-auto no-scrollbar scroll-smooth pointer-events-auto bg-transparent"
-            >
-              {/* Removed duplicate background component */}
-              <div className="relative z-10 flex flex-col items-center w-full min-h-full pt-12">
-                <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.1 }}
-                  className="mb-12"
-                >
-                  <img
-                    src="/logo/Logo.svg"
-                    alt="AISA"
-                    className="w-20 h-20 sm:w-24 sm:h-24 mx-auto drop-shadow-[0_0_30px_rgba(139,92,246,0.4)] transition-all duration-700 hover:scale-110"
-
-                  />
-                </motion.div>
-
-                <section className="w-full pb-32 px-1 sm:px-2 md:px-0">
-                  <FuturisticToolCards 
-                    isAdmin={isAdminUser}
-                    activeToolId={
-                      isImageGeneration ? 'image' : 
-                      isVideoGeneration ? 'video' :
-                      isDeepSearch ? 'deep_search' :
-                      isWebSearch ? 'web_search' :
-                      isCodeWriter ? 'code' :
-                      isAudioConvertMode ? 'audio' :
-                      isFileAnalysis ? 'document' :
-                      isMagicEditing ? 'edit_image' :
-                      isMagicVideoModalOpen ? 'image_to_video' :
-                      isStockModalOpen ? 'ai_cashflow' :
-                      (activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') ? 'legal' : null
-                    }
-                    onToolSelect={(id) => {
-                      // Reset states
-                      setIsImageGeneration(false);
-                      setIsVideoGeneration(false);
-                      setIsAudioConvertMode(false);
-                      setIsCodeWriter(false);
-                      setIsDeepSearch(false);
-                      setIsWebSearch(false);
-                      setIsFileAnalysis(false);
-                      setIsMagicEditing(false);
-                      setIsMagicVideoModalOpen(false);
-                      setIsCashFlowMode(false);
-                      setActiveLegalToolkit(false);
-
-                      if (id === 'image') {
-                        if (!checkPremiumTool('Image Generation')) return;
-                        setIsImageGeneration(true);
-                        setIsMagicSettingsOpen(true);
-                        if (inputRef.current) { inputRef.current.value = "Generate an image of "; inputRef.current.focus(); }
-                        toast.success("Image Mode Active");
-                      } else if (id === 'video') {
-                        if (!checkPremiumTool('Generate Video')) return;
-                        setIsVideoGeneration(true);
-                        setIsMagicSettingsOpen(true);
-                        if (inputRef.current) { inputRef.current.value = "Generate a video of "; inputRef.current.focus(); }
-                        toast.success("Video Mode Active");
-                      } else if (id === 'audio') {
-                        if (!checkPremiumTool('Convert to Audio')) return;
-                        setIsAudioConvertMode(true);
-                        if (inputRef.current) { inputRef.current.value = "Convert this text to audio: "; inputRef.current.focus(); }
-                        toast.success("Audio Mode Active");
-                      } else if (id === 'code') {
-                        if (!checkPremiumTool('Code Writer')) return;
-                        setIsCodeWriter(true);
-                        if (inputRef.current) { inputRef.current.value = "Write a function to "; inputRef.current.focus(); }
-                        toast.success("Code Mode Active");
-                      } else if (id === 'deep_search') {
-                        setIsDeepSearch(true);
-                        if (inputRef.current) { inputRef.current.value = "Research in-depth about "; inputRef.current.focus(); }
-                        toast.success("Deep Intelligence Active");
-                      } else if (id === 'web_search') {
-                        setIsWebSearch(true);
-                        if (inputRef.current) { inputRef.current.value = "Search for live updates on "; inputRef.current.focus(); }
-                        toast.success("Real-Time Search Active");
-                      } else if (id === 'document') {
-                        setIsFileAnalysis(true);
-                        uploadInputRef.current?.click();
-                        toast.success("Upload document for analysis");
-                      } else if (id === 'edit_image') {
-                        if (!checkPremiumTool('Edit Image')) return;
-                        setIsMagicEditing(true);
-                        toast.success("Image Editor Active");
-                      } else if (id === 'image_to_video') {
-                        if (!checkPremiumTool('Image to Video')) return;
-                        setIsMagicVideoModalOpen(true);
-                        toast.success("Image to Video Active");
-                      } else if (id === 'legal') {
-                        if (!checkPremiumTool('AI Legal')) return;
-                        setActiveLegalToolkit(true);
-                        toast.success("AI Legal Enabled ⚖️");
-                      } else if (id === 'ai_cashflow') {
-                        if (!checkPremiumTool('AI CashFlow')) return;
-                        setIsStockModalOpen(true);
-                        toast.success("AI CashFlow Active 📈");
-                      } else if (id === 'aiad_agent') {
-                        if (!checkPremiumTool('AI Ad Agent')) return;
-                        setIsSocialMediaDashboardOpen(true);
-                        toast.success("AIADS™ Active");
-                      }
-                    }}
-                  />
-                </section>
-              </div>
-
-            </motion.div>
+          
+          {messages.length === 0 && currentCase && selectedLegalTool?.id === 'legal_my_case' && (
+            <div className="flex-1 flex flex-col items-center justify-center py-12 px-6 text-center animate-in fade-in zoom-in duration-500 absolute inset-0 pointer-events-none">
+               <div className="pointer-events-auto flex flex-col items-center">
+                  <div className="w-20 h-20 bg-indigo-600/10 rounded-3xl flex items-center justify-center mb-6 shadow-inner ring-1 ring-indigo-500/20">
+                     <Briefcase className="w-10 h-10 text-indigo-600" />
+                  </div>
+                  <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-3 tracking-tight">
+                    {currentCase.name} <span className="text-indigo-600">Workspace</span>
+                  </h2>
+                  <p className="max-w-md text-subtext font-medium leading-relaxed mb-8">
+                    This case is now active. You can analyze documents, predict outcomes, or draft legal papers specifically for this case.
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-3">
+                     <button 
+                       onClick={() => {
+                         setInputValue("Analyze this case for me");
+                         inputRef.current?.focus();
+                       }} 
+                       className="px-5 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:border-indigo-500 hover:text-indigo-500 transition-all shadow-sm"
+                     >
+                       Analyze Case
+                     </button>
+                     <button 
+                       onClick={() => {
+                         setInputValue("Draft a legal summary for this case");
+                         inputRef.current?.focus();
+                       }} 
+                       className="px-5 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:border-indigo-500 hover:text-indigo-500 transition-all shadow-sm"
+                     >
+                       Draft Summary
+                     </button>
+                  </div>
+               </div>
+            </div>
           )}
-        </AnimatePresence>
+
+            <div ref={messagesEndRef} />
+              </>
+            )}
+
+            {/* Welcome Screen - Integrated Hub */}
+            <AnimatePresence>
+              {messages.length === 0 && legalView !== 'DASHBOARD' && currentMode !== 'LEGAL_TOOLKIT' && (!currentCase || selectedLegalTool?.id !== 'legal_my_case') && (
+                <motion.div
+                  key="welcome-screen"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
+                  className="relative w-full z-0 pointer-events-auto bg-transparent flex flex-col items-center py-12 sm:py-20"
+                >
+                  <div className="relative z-10 flex flex-col items-center w-full min-h-full justify-center">
+                    <motion.div
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.1 }}
+                      className="mb-8"
+                    >
+                      <img
+                        src="/logo/Logo.svg"
+                        alt="AISA"
+                        className="w-20 h-20 sm:w-24 sm:h-24 mx-auto drop-shadow-[0_0_30px_rgba(139,92,246,0.4)] transition-all duration-700 hover:scale-110"
+                      />
+                    </motion.div>
+
+                    <section className="w-full px-1 sm:px-2 md:px-0">
+                      <FuturisticToolCards
+                        isAdmin={isAdminUser}
+                        activeToolId={
+                          isImageGeneration ? 'image' : 
+                          isVideoGeneration ? 'video' :
+                          isDeepSearch ? 'deep_search' :
+                          isWebSearch ? 'web_search' :
+                          isCodeWriter ? 'code' :
+                          isAudioConvertMode ? 'audio' :
+                          isFileAnalysis ? 'document' :
+                          isMagicEditing ? 'edit_image' :
+                          isMagicVideoModalOpen ? 'image_to_video' :
+                          isStockModalOpen ? 'ai_cashflow' :
+                          (activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') ? 'legal' : null
+                        }
+                        onToolSelect={(id) => {
+                          setIsImageGeneration(false);
+                          setIsVideoGeneration(false);
+                          setIsAudioConvertMode(false);
+                          setIsCodeWriter(false);
+                          setIsDeepSearch(false);
+                          setIsWebSearch(false);
+                          setIsFileAnalysis(false);
+                          setIsMagicEditing(false);
+                          setIsMagicVideoModalOpen(false);
+                          setIsCashFlowMode(false);
+                          setActiveLegalToolkit(false);
+
+                          if (id === 'image') {
+                            if (!checkPremiumTool('Image Generation')) return;
+                            setIsImageGeneration(true);
+                            setIsMagicSettingsOpen(true);
+                            if (inputRef.current) { inputRef.current.value = "Generate an image of "; inputRef.current.focus(); }
+                            toast.success("Image Mode Active");
+                          } else if (id === 'video') {
+                            if (!checkPremiumTool('Generate Video')) return;
+                            setIsVideoGeneration(true);
+                            setIsMagicSettingsOpen(true);
+                            if (inputRef.current) { inputRef.current.value = "Generate a video of "; inputRef.current.focus(); }
+                            toast.success("Video Mode Active");
+                          } else if (id === 'audio') {
+                            if (!checkPremiumTool('Convert to Audio')) return;
+                            setIsAudioConvertMode(true);
+                            if (inputRef.current) { inputRef.current.value = "Convert this text to audio: "; inputRef.current.focus(); }
+                            toast.success("Audio Mode Active");
+                          } else if (id === 'code') {
+                            if (!checkPremiumTool('Code Writer')) return;
+                            setIsCodeWriter(true);
+                            if (inputRef.current) { inputRef.current.value = "Write a function to "; inputRef.current.focus(); }
+                            toast.success("Code Mode Active");
+                          } else if (id === 'deep_search') {
+                            setIsDeepSearch(true);
+                            if (inputRef.current) { inputRef.current.value = "Research in-depth about "; inputRef.current.focus(); }
+                            toast.success("Deep Intelligence Active");
+                          } else if (id === 'web_search') {
+                            setIsWebSearch(true);
+                            if (inputRef.current) { inputRef.current.value = "Search for live updates on "; inputRef.current.focus(); }
+                            toast.success("Real-Time Search Active");
+                          } else if (id === 'document') {
+                            setIsFileAnalysis(true);
+                            uploadInputRef.current?.click();
+                            toast.success("Upload document for analysis");
+                          } else if (id === 'edit_image') {
+                            if (!checkPremiumTool('Edit Image')) return;
+                            setIsMagicEditing(true);
+                            toast.success("Image Editor Active");
+                          } else if (id === 'image_to_video') {
+                            if (!checkPremiumTool('Image to Video')) return;
+                            setIsMagicVideoModalOpen(true);
+                            toast.success("Image to Video Mode Active");
+                          } else if (id === 'ai_cashflow') {
+                            setIsCashFlowMode(true);
+                            setIsStockModalOpen(true);
+                            toast.success("AI CashFlow Active 📈");
+                          } else if (id === 'aiad_agent') {
+                            if (!checkPremiumTool('AI Ad Agent')) return;
+                            setIsSocialMediaDashboardOpen(true);
+                            toast.success("AI ADS™ Active");
+                          }
+                        }}
+                      />
+                    </section>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+
+
 
 
         {/* Unified Chat Input Container */}
-        <div className="absolute bottom-0 left-0 right-0 z-[60] pointer-events-none" style={{ padding: '0.375rem 0.5rem max(0.375rem, env(safe-area-inset-bottom, 0.375rem)) 0.5rem' }}>
-          {/* Bottom Mask to prevent text showing behind input area */}
-          <div className="absolute inset-0 bg-gradient-to-t from-secondary via-secondary/90 to-transparent -z-10 h-full w-full pointer-events-none" />
-          
-          <div className="max-w-5xl mx-auto w-full pointer-events-auto">
-            {/* Integrated Smart Suggestions appearing above the input bar */}
-            {suggestions.length > 0 && !isLoading && !typingMessageId && (
-              <div className="suggestions-container flex flex-wrap gap-2 px-4 mb-3 animate-in fade-in slide-in-from-bottom-3 duration-500">
-                {suggestions.map((item, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleSendMessage(null, item)}
-                    className="suggestion-btn"
-                  >
-                    {item}
-                  </button>
-                ))}
-              </div>
-            )}
+        {legalView !== 'DASHBOARD' && (
+          <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none" style={{ padding: 'max(0.375rem, env(safe-area-inset-bottom, 0.375rem)) 0.5rem max(0.375rem, 0.375rem) 0.5rem' }}>
+            {/* Bottom Mask to prevent text showing behind input area */}
+            <div className="absolute inset-0 bg-gradient-to-t from-secondary via-secondary/90 to-transparent -z-10 h-full w-full pointer-events-none" />
+            <div className="max-w-5xl mx-auto w-full pointer-events-auto">
+
 
             <form 
               onSubmit={handleSendMessage} 
@@ -6811,27 +7460,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           </h3>
                         </div>
                       </div>
-                      <div className="p-1.5 pb-12 space-y-1 overflow-y-auto scrollbar-hide" style={{ maxHeight: 'calc(100vh - 220px)' }}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!checkPremiumTool('AI Ad Agent')) return;
-                            setIsToolsMenuOpen(false);
-                            setIsSocialMediaDashboardOpen(true);
-                          }}
-                          className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md`}
-                        >
-                          <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300`}>
-                            <Megaphone className="w-5.5 h-5.5" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
-                              <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">AIADS™</span>
-                            </div>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Automate 30 days of social media content.</p>
-                          </div>
-                        </button>
+                      <div className="p-1.5 pb-12 space-y-1 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(100vh - 220px)' }}>
 
                         <button
                           type="button"
@@ -7075,42 +7704,40 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           </div>
                         </button>
 
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!checkPremiumTool('AI CashFlow')) return;
-                              setIsToolsMenuOpen(false);
-                              const newMode = !isCashFlowMode;
-                              setIsCashFlowMode(newMode);
-                              
-                              setIsImageGeneration(false);
-                              setIsVideoGeneration(false);
-                              setIsDeepSearch(false);
-                              setIsWebSearch(false);
-                              setIsAudioConvertMode(false);
-                              setIsDocumentConvert(false);
-                              setIsCodeWriter(false);
-                              setIsMagicEditing(false);
-                              setIsFileAnalysis(false);
-                              if (newMode) {
-                                setIsStockModalOpen(true);
-                                toast.success("AI CashFlow Explorer Active");
-                              }
-                            }}
-                            className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isCashFlowMode ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
-                          >
-                            <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isCashFlowMode ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
-                              <TrendingUp className="w-5.5 h-5.5" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!checkPremiumTool('AI CashFlow')) return;
+                            setIsToolsMenuOpen(false);
+                            const newMode = !isCashFlowMode;
+                            setIsCashFlowMode(newMode);
+                            setIsImageGeneration(false);
+                            setIsVideoGeneration(false);
+                            setIsDeepSearch(false);
+                            setIsWebSearch(false);
+                            setIsAudioConvertMode(false);
+                            setIsDocumentConvert(false);
+                            setIsCodeWriter(false);
+                            setIsMagicEditing(false);
+                            setIsFileAnalysis(false);
+                            if (newMode) {
+                              setIsStockModalOpen(true);
+                              toast.success("AI CashFlow Explorer Active");
+                            }
+                          }}
+                          className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isCashFlowMode ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
+                        >
+                          <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isCashFlowMode ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
+                            <TrendingUp className="w-5.5 h-5.5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
+                              <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">AI CashFlow</span>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-0.5">
-                                <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
-                                <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">AI CashFlow</span>
-                              </div>
-                              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Live Analysis & Reports.</p>
-                            </div>
-                          </button>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Live Analysis & Reports.</p>
+                          </div>
+                        </button>
 
 
                         <button
@@ -7132,7 +7759,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${activeLegalToolkit ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
                         >
                           <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${activeLegalToolkit ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
-                            <Scale className="w-5.5 h-5.5" />
+                            <LegalLogo size={32} showText={false} style={{ color: activeLegalToolkit ? '#fff' : undefined }} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
@@ -7142,7 +7769,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">7 specialized AI legal tools.</p>
                           </div>
                         </button>
-
                         <button
                           type="button"
                           onClick={() => {
@@ -7165,58 +7791,85 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         </button>
 
 
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!checkPremiumTool('AI Ad Agent')) return;
+                            setIsToolsMenuOpen(false);
+                            setIsSocialMediaDashboardOpen(true);
+                          }}
+                          className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md`}
+                        >
+                          <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300`}>
+                            <Megaphone className="w-5.5 h-5.5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
+                              <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">AIADS™</span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Automate 30 days of social media content.</p>
+                          </div>
+                        </button>
+
                       </div>
                     </motion.div>
-                  )}
-                </AnimatePresence>
+                    )}
 
-                <div className="relative">
-                  <motion.button
-                    type="button"
-                    ref={attachBtnRef}
-                    onMouseEnter={() => setIsAttachHovered(true)}
-                    onMouseLeave={() => setIsAttachHovered(false)}
-                    whileHover={{ scale: 1.15, rotate: 90 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => {
-                      setIsAttachMenuOpen(!isAttachMenuOpen);
-                      setIsToolsMenuOpen(false);
-                    }}
-                    className="w-[40px] h-[40px] rounded-full flex items-center justify-center text-subtext hover:text-primary hover:bg-secondary transition-all shadow-sm hover:shadow-md relative overflow-visible z-20"
-                    title="Attachments"
-                  >
-                    <Plus className={`w-[22px] h-[22px] transition-transform duration-300 ${isAttachMenuOpen ? 'rotate-45' : ''}`} />
-                  </motion.button>
+                  </AnimatePresence>
+
+                  <div className="relative">
+                    <AnimatePresence>
+                      {isAttachHovered && <MagicShowEffect />}
+                    </AnimatePresence>
+                    <motion.button
+                      type="button"
+                      ref={attachBtnRef}
+                      onMouseEnter={() => setIsAttachHovered(true)}
+                      onMouseLeave={() => setIsAttachHovered(false)}
+                      whileHover={{ scale: 1.15, rotate: 90 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => {
+                        setIsAttachMenuOpen(!isAttachMenuOpen);
+                        setIsToolsMenuOpen(false);
+                      }}
+                      className="w-[40px] h-[40px] rounded-full flex items-center justify-center text-subtext hover:text-primary hover:bg-secondary transition-all shadow-sm hover:shadow-md relative overflow-visible z-20"
+                      title="Attachments"
+                    >
+                      <Plus className={`w-[22px] h-[22px] transition-transform duration-300 ${isAttachMenuOpen ? 'rotate-45' : ''}`} />
+                    </motion.button>
+                  </div>
+
+                  <div className="relative">
+                    <AnimatePresence>
+                      {(isBrainHovered || isBrainTapped) && <MagicShowEffect isMobileIdle={!isBrainHovered && !isBrainTapped} />}
+                    </AnimatePresence>
+                    <motion.button
+                      type="button"
+                      ref={toolsBtnRef}
+                      onMouseEnter={() => setIsBrainHovered(true)}
+                      onMouseLeave={() => setIsBrainHovered(false)}
+                      whileHover={{ scale: 1.15, rotate: [0, -5, 5, 0] }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setExplosions(prev => [...prev, { 
+                          id: Date.now(), 
+                          x: rect.left + rect.width / 2, 
+                          y: rect.top + rect.height / 2 
+                        }]);
+                        setIsBrainTapped(true);
+                        setTimeout(() => setIsBrainTapped(false), 2000);
+                        setIsToolsMenuOpen(!isToolsMenuOpen);
+                        setIsAttachMenuOpen(false);
+                      }}
+                      className="w-[40px] h-[40px] rounded-full flex items-center justify-center bg-secondary/80 text-subtext hover:text-primary transition-colors shadow-lg hover:shadow-primary/40 relative overflow-visible z-20"
+                      title="AISA ™ Magic Tools"
+                    >
+                      <Brain className={`w-[22px] h-[22px] relative z-10 transition-colors ${isBrainHovered ? 'text-primary' : ''}`} />
+                    </motion.button>
+                  </div>
                 </div>
-
-                <div className="relative">
-                  <motion.button
-                    type="button"
-                    ref={toolsBtnRef}
-                    onMouseEnter={() => setIsBrainHovered(true)}
-                    onMouseLeave={() => setIsBrainHovered(false)}
-                    whileHover={{ scale: 1.15, rotate: [0, -5, 5, 0] }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={(e) => {
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      setExplosions(prev => [...prev, { 
-                        id: Date.now(), 
-                        x: rect.left + rect.width / 2, 
-                        y: rect.top + rect.height / 2 
-                      }]);
-                      setIsBrainTapped(true);
-                      setTimeout(() => setIsBrainTapped(false), 2000);
-                      setIsToolsMenuOpen(!isToolsMenuOpen);
-                      setIsAttachMenuOpen(false);
-                    }}
-                    className="w-[40px] h-[40px] rounded-full flex items-center justify-center bg-secondary/80 text-subtext hover:text-primary transition-colors shadow-lg hover:shadow-primary/40 relative overflow-visible z-20"
-                    title="AISA ™ Magic Tools"
-                  >
-                    <Brain className={`w-[22px] h-[22px] relative z-10 transition-colors ${isBrainHovered ? 'text-primary' : ''}`} />
-                  </motion.button>
-                </div>
-
-              </div>
 
               <div className="flex-1 flex items-center min-w-0 bg-transparent border-0 ring-0 focus:ring-0">
                 <AnimatePresence>
@@ -7415,7 +8068,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         >
                           <div className="flex items-center gap-2">
                             <div className="w-5 h-5 rounded-lg bg-indigo-500/20 flex items-center justify-center">
-                              <Scale size={14} strokeWidth={2.5} />
+                              <LegalLogo size={24} showText={false} style={{ color: 'inherit' }} />
                             </div>
                             <span className="uppercase tracking-wide text-[10px] font-black truncate max-w-[120px]">
                               AI Legal
@@ -7438,6 +8091,23 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           >
                             <X size={14} strokeWidth={3} />
                           </button>
+                        </motion.div>
+                      )}
+
+                      {currentCase && currentCase.isLegalCase && selectedLegalTool?.id === 'legal_my_case' && (
+                        <motion.div
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          onClick={() => setIsCasePanelOpen(!isCasePanelOpen)}
+                          className="flex items-center gap-2.5 px-4 py-1.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-full text-xs font-bold shadow-lg shadow-indigo-500/30 cursor-pointer hover:scale-105 active:scale-95 transition-all whitespace-nowrap shrink-0 group"
+                        >
+                          <Briefcase size={14} className="group-hover:rotate-12 transition-transform" />
+                          <div className="flex flex-col items-start leading-none gap-0.5">
+                            <span className="text-[8px] font-black uppercase tracking-widest opacity-80">ACTIVE CASE</span>
+                            <span className="text-[10px] font-bold truncate max-w-[100px]">{currentCase.clientName || 'Untitled Case'}</span>
+                          </div>
+                          <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse ml-1" />
                         </motion.div>
                       )}
                       {isMagicEditing && (
@@ -7636,11 +8306,12 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                   </div>
                 )}
               </div>
+              </div>
+              </form>
             </div>
-          </form>
-        </div>
+          </div>
+        )}
       </div>
-    </div>
 
         {/* Live AI Modal */}
         <AnimatePresence>
@@ -8264,6 +8935,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
       </Transition>
 
       <PremiumUpsellModal />
+      {renderNewCaseModal()}
       <MagicVideoGenModal
         isOpen={isMagicVideoModalOpen}
         onClose={() => setIsMagicVideoModalOpen(false)}
@@ -8365,6 +9037,15 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
             return;
           }
 
+          if (tool.id === 'legal_my_case') {
+             setLegalView('DASHBOARD');
+             setSelectedLegalTool({ id: tool.id, name: tool.name });
+             setCurrentMode('LEGAL_TOOLKIT');
+             setActiveLegalToolkit(false);
+             fetchLegalCases();
+             return;
+          }
+
           setSelectedLegalTool({ id: tool.id, name: tool.name });
           setCurrentMode('LEGAL_TOOLKIT');
           setActiveLegalToolkit(false);
@@ -8403,6 +9084,176 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         sessionTitle={messages[0]?.content || "Shared Chat"}
         sessionId={currentSessionId}
       />
+      {/* My Case CRM Panel */}
+      <AnimatePresence>
+        {isCasePanelOpen && currentCase && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsCasePanelOpen(false)}
+              className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[110]"
+            />
+            
+            {/* Slide-out Panel */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white dark:bg-zinc-900 shadow-2xl z-[120] flex flex-col border-l border-border"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-border bg-gradient-to-r from-indigo-600 to-blue-600 text-white flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white/20 rounded-xl">
+                    <Briefcase className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black tracking-tight leading-none">Case Intelligence</h2>
+                    <p className="text-[10px] uppercase font-bold tracking-widest opacity-80 mt-1">My Case CRM Folder</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsCasePanelOpen(false)}
+                  className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Form Content */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                {/* Client Name */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Client Name</label>
+                  <input 
+                    type="text"
+                    value={currentCase.clientName || ''}
+                    onChange={(e) => setCurrentCase({...currentCase, clientName: e.target.value})}
+                    placeholder="Enter client name..."
+                    className="w-full bg-slate-50 dark:bg-black/20 border border-border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
+                  />
+                </div>
+
+                {/* Case Summary */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Case Summary</label>
+                  <textarea 
+                    value={currentCase.caseSummary || ''}
+                    onChange={(e) => setCurrentCase({...currentCase, caseSummary: e.target.value})}
+                    placeholder="Briefly describe the case background..."
+                    rows={4}
+                    className="w-full bg-slate-50 dark:bg-black/20 border border-border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none resize-none"
+                  />
+                </div>
+
+                {/* Key Issues */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Key Legal Issues</label>
+                  <textarea 
+                    value={currentCase.keyIssue || ''}
+                    onChange={(e) => setCurrentCase({...currentCase, keyIssue: e.target.value})}
+                    placeholder="List the primary legal questions or points of law..."
+                    rows={3}
+                    className="w-full bg-slate-50 dark:bg-black/20 border border-border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none resize-none"
+                  />
+                </div>
+
+                {/* Important Dates */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between ml-1">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-subtext">Important Dates</label>
+                    <button 
+                      onClick={() => {
+                        const dates = currentCase.importantDates || [];
+                        setCurrentCase({
+                          ...currentCase, 
+                          importantDates: [...dates, { label: 'Hearing', date: new Date().toISOString() }]
+                        });
+                      }}
+                      className="text-[10px] font-bold text-primary hover:underline"
+                    >
+                      + Add Date
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {(currentCase.importantDates || []).map((d, index) => (
+                      <div key={index} className="flex gap-2 items-center bg-slate-50 dark:bg-black/20 p-2 rounded-xl border border-border">
+                        <input 
+                          type="text"
+                          value={d.label}
+                          onChange={(e) => {
+                            const newDates = [...currentCase.importantDates];
+                            newDates[index] = { ...newDates[index], label: e.target.value };
+                            setCurrentCase({...currentCase, importantDates: newDates});
+                          }}
+                          className="flex-1 bg-transparent border-0 text-[11px] font-bold focus:ring-0 outline-none px-2"
+                        />
+                        <input 
+                          type="date"
+                          value={d.date ? new Date(d.date).toISOString().split('T')[0] : ''}
+                          onChange={(e) => {
+                            const newDates = [...currentCase.importantDates];
+                            newDates[index] = { ...newDates[index], date: e.target.value };
+                            setCurrentCase({...currentCase, importantDates: newDates});
+                          }}
+                          className="bg-transparent border-0 text-[11px] focus:ring-0 outline-none"
+                        />
+                        <button 
+                          onClick={() => {
+                            const newDates = currentCase.importantDates.filter((_, i) => i !== index);
+                            setCurrentCase({...currentCase, importantDates: newDates});
+                          }}
+                          className="p-1 hover:text-red-500"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    ))}
+                    {(!currentCase.importantDates || currentCase.importantDates.length === 0) && (
+                      <div className="text-center py-4 bg-slate-50/50 dark:bg-black/10 rounded-xl border border-dashed border-border">
+                        <p className="text-[10px] text-subtext font-medium italic">No dates tracked yet.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-6 border-t border-border bg-slate-50/80 dark:bg-black/20 backdrop-blur-md">
+                <button 
+                  onClick={async () => {
+                    const tid = toast.loading("Saving Case Intelligence...");
+                    try {
+                      await apiService.updateProject(currentProjectId, currentCase);
+                      toast.success("Case details synchronized!", { id: tid });
+                      setIsCasePanelOpen(false);
+                      
+                      // Inject knowledge into chat - simple message from AI
+                      setMessages(prev => [...prev, {
+                        id: `case-update-${Date.now()}`,
+                        role: 'model',
+                        content: `✅ **Case Details Updated.** I have synchronized the repository for **${currentCase.clientName}**. \n\nI am now better prepared to assist you with the specific legal issues and summary provided. How would you like to proceed?`,
+                        timestamp: Date.now()
+                      }]);
+                    } catch (err) {
+                      toast.error("Failed to sync case data.", { id: tid });
+                    }
+                  }}
+                  className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-sm shadow-xl shadow-indigo-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <Save className="w-5 h-5" />
+                  <span>Synchronize Case Folder</span>
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
 
   );

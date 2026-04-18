@@ -616,6 +616,10 @@ html.lenis, html.lenis body {
 
 /* ChatGPT Interface Styles */
 .chatgpt-container {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
   color: #1a1a1a !important;
   line-height: 1.6;
@@ -623,6 +627,10 @@ html.lenis, html.lenis body {
 }
 
 .dark .chatgpt-container {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
   background-color: transparent !important;
   color: #ececec !important;
 }
@@ -630,7 +638,7 @@ html.lenis, html.lenis body {
 .chatgpt-message-row {
   width: 100%;
   display: flex;
-  padding: 7px 24px;
+  padding: 7px 24px !important;
   transition: background-color 0.3s ease;
   background-color: transparent !important;
   border: none !important;
@@ -924,33 +932,44 @@ html.lenis, html.lenis body {
 /* Chat Suggestions */
 .suggestions-container {
   display: flex;
-  gap: 10px;
-  margin-top: 10px;
-  margin-bottom: 20px;
+  gap: 8px; /* Tight spacing (gap-2) */
+  margin-top: 12px;
+  margin-bottom: 12px;
   flex-wrap: wrap;
 }
 
 .suggestion-btn {
-  background: linear-gradient(135deg, #6b5cff, #8f7cff);
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 13px;
+  background: rgba(99, 102, 241, 0.08); /* Subtle background */
+  color: #6366f1; /* Primary color text */
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  padding: 6px 14px;
+  border-radius: 99px; /* Rounded pill */
+  font-size: 12.5px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(107, 92, 255, 0.2);
+  transition: all 0.2s ease;
+  box-shadow: none;
+}
+
+.dark .suggestion-btn {
+  background: rgba(139, 92, 246, 0.1);
+  color: #a78bfa;
+  border-color: rgba(139, 92, 246, 0.2);
 }
 
 .suggestion-btn:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 6px 16px rgba(107, 92, 255, 0.3);
-  filter: brightness(1.1);
+  background: rgba(99, 102, 241, 0.15);
+  transform: translateY(-1px);
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+.dark .suggestion-btn:hover {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.4);
 }
 
 .suggestion-btn:active {
-  transform: scale(0.98);
+  transform: scale(0.96);
 }
 
 /* Mobile Specific Padding Optimization */

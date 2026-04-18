@@ -5,16 +5,30 @@ import {
   FileText, Shield, FileCheck, Scale, Binary, 
   Mail, PenTool, AlertTriangle, Edit3, Brain, 
   Library, Clock, CheckCircle, ArrowLeftRight, Lock, Sparkles,
-  MessageCircle, ArrowRight, X, ChevronDown, Zap, Maximize2, Minimize2, Gavel
+  MessageCircle, ArrowRight, X, ChevronDown, Zap, Maximize2, Minimize2, Gavel, Briefcase
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import LegalLogo from './LegalLogo';
 
 const SECTIONS = {
   CORE: ['legal_draft_maker', 'legal_contract_analyzer', 'legal_case_predictor'],
   ADVANCED: ['legal_strategy_engine', 'legal_evidence_checker', 'legal_research_assistant', 'legal_argument_builder']
 };
 
-const PREMIUM_TOOLS = [
+export const PREMIUM_TOOLS = [
+  { 
+    id: 'legal_my_case', 
+    name: 'My Case', 
+    icon: Briefcase, 
+    desc: 'Personal Legal CRM & Case Intelligence System', 
+    price: '₹1299',
+    workflow: [
+      'Select or create a legal case folder.',
+      'Input client details and case summary.',
+      'Chat with AI assistant focused strictly on case context.',
+      'Access specialized case tools (Drafting, Analysis, etc.)'
+    ]
+  },
   { 
     id: 'legal_draft_maker', 
     name: 'Draft Maker', 
@@ -42,7 +56,7 @@ const PREMIUM_TOOLS = [
   { 
     id: 'legal_case_predictor', 
     name: 'Case Predictor', 
-    icon: Scale, 
+    icon: LegalLogo, 
     desc: 'Outcome Probability & Case Strength Analyst', 
     price: '₹999',
     workflow: [
@@ -100,6 +114,7 @@ const PREMIUM_TOOLS = [
     ]
   }
 ];
+
 
 const ToolCard = ({ tool, isPrimary = false, size = 'md', onClose, onSelect }) => {
   const isUnlocked = true; // All legal tools are now available for ALL tiers (Free included)
@@ -295,7 +310,7 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
                     whileHover={{ rotate: 180, scale: 1.08 }}
                     className="w-[42px] h-[42px] rounded-[14px] bg-gradient-to-br from-indigo-500 via-[#4F46E5] to-[#3B82F6] flex items-center justify-center shadow-[0_6px_15px_rgba(99,102,241,0.35)] border border-white/30"
                   >
-                    <Scale className="w-[20px] h-[20px] text-white" />
+                    <LegalLogo size={24} color="white" showText={false} />
                   </motion.div>
                   <div>
                     <h1 className="text-[17px] font-black text-slate-900 dark:text-white leading-tight tracking-tight">AI Legal</h1>
@@ -346,7 +361,7 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
                       style: { background: '#F8FAFC', color: '#1E293B', fontWeight: 'bold' }
                     });
                   }}
-                  className="group relative cursor-pointer rounded-[2rem] p-8 mb-10 overflow-hidden"
+                  className="group relative cursor-pointer rounded-[1.4rem] sm:rounded-[1.8rem] p-4 sm:p-7 mb-5 sm:mb-8 overflow-hidden"
                   style={{
                     background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 40%, #7c3aed 100%)',
                     boxShadow: '0 25px 60px -10px rgba(79,70,229,0.5)',
@@ -363,23 +378,28 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
                   <div className="absolute top-0 right-0 w-60 h-60 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl animate-pulse" />
                   <div className="absolute bottom-0 left-0 w-48 h-48 bg-violet-400/25 rounded-full -ml-10 -mb-10 blur-2xl" />
                   
-                  <div className="relative z-10 flex flex-col sm:flex-row items-center gap-7">
-                    <div className="w-18 h-18 bg-white/20 backdrop-blur-2xl rounded-[1.6rem] flex items-center justify-center border border-white/30 shadow-2xl group-hover:scale-105 transition-transform duration-500 shrink-0">
-                      <MessageCircle className="w-10 h-10 text-white" />
-                    </div>
-                    <div className="flex-1 text-center sm:text-left space-y-2">
-                      <div className="flex items-center justify-center sm:justify-start gap-2.5">
-                        <span className="px-3 py-1.5 bg-white/20 backdrop-blur-md border border-white/25 rounded-full text-[9px] font-black text-white uppercase tracking-widest">Premium Elite</span>
-                        <Zap className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300" />
+                  <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
+                    
+                    <div className="flex items-center gap-3.5 sm:gap-6 w-full sm:w-auto">
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/20 backdrop-blur-xl rounded-[1rem] sm:rounded-[1.4rem] flex items-center justify-center border border-white/25 shadow-xl group-hover:scale-105 transition-transform duration-500 shrink-0">
+                        <MessageCircle className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                       </div>
-                      <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">💬 General Legal Chat</h2>
-                      <p className="text-indigo-50/90 text-[13px] font-semibold leading-relaxed">
-                        Professional legal discourse, situational guidance, and citation Q&A.
-                      </p>
+                      
+                      <div className="flex-1 text-left space-y-0.5 sm:space-y-1.5">
+                        <div className="flex items-center justify-start gap-1.5 sm:gap-2">
+                          <span className="px-2 sm:px-2.5 py-0.5 sm:py-1 bg-white/15 backdrop-blur-md border border-white/20 rounded-full text-[7px] sm:text-[8px] font-black text-white uppercase tracking-widest">Basic</span>
+                          <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-400 fill-yellow-400" />
+                        </div>
+                        <h2 className="text-[17px] leading-tight sm:text-2xl font-extrabold text-white tracking-tight">💬 General Legal Chat</h2>
+                        <p className="text-indigo-100 text-[10px] sm:text-[12px] font-medium leading-tight sm:leading-relaxed">
+                          Professional legal discourse, simple guidance, and Q&A.
+                        </p>
+                      </div>
                     </div>
+
                     <motion.button
                       whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                      className="px-8 py-4 bg-white text-indigo-700 font-black rounded-2xl shadow-xl hover:shadow-2xl transition-all text-[12px] uppercase tracking-[0.18em] shrink-0"
+                      className="w-full sm:w-auto mt-0 sm:mt-0 px-4 py-2.5 sm:px-6 sm:py-3 bg-white text-indigo-700 font-black rounded-xl sm:rounded-2xl shadow-xl hover:shadow-2xl transition-all text-[10px] sm:text-[11px] uppercase tracking-[0.15em] shrink-0"
                     >
                       Launch Chat →
                     </motion.button>

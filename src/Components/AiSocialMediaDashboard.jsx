@@ -9,9 +9,9 @@ import {
   ChevronRight, Plus, HelpCircle, AlertCircle, Info, Filter, Search,
   Instagram, Facebook, Linkedin, Twitter, Youtube, Send, Save, Globe, CheckCircle2, Mic2,
   Eye, Target, Zap, Hash, Copy, Sparkle, User, User2, Briefcase, History, Activity, Tag, 
-  Server, BrainCircuit, AlertTriangle
+  Server, BrainCircuit, AlertTriangle, Building2, ShoppingBag, Cpu, Utensils, Camera, HeartPulse, UserCircle, ShoppingCart, ArrowRight, AlignLeft
 } from 'lucide-react';
-import { Dialog, Transition, Menu } from '@headlessui/react';
+import { Dialog, Transition, Menu, Listbox } from '@headlessui/react';
 import toast from 'react-hot-toast';
 import { apiService } from '../services/apiService';
 import { API } from '../types.js';
@@ -40,6 +40,55 @@ const INITIAL_USAGE = {
   carouselLimit: 0,
   videoLimit: 0,
   billingMonth: new Date().toISOString().slice(0, 7)
+};
+
+const CustomSelect = ({ value, onChange, options, color = 'indigo', className = '' }) => {
+  const colorMap = {
+    indigo: 'focus:border-indigo-500 text-indigo-500 bg-indigo-500/10 text-indigo-500',
+    amber: 'focus:border-amber-500 text-amber-500 bg-amber-500/10 text-amber-500',
+    primary: 'focus:border-primary text-primary bg-primary/10 text-primary',
+  };
+
+  const selectedLabel = options.find(o => (o.value || o) === value)?.label || value;
+
+  return (
+    <Listbox value={value} onChange={onChange}>
+      <div className="relative w-full">
+        <Listbox.Button className={`w-full flex items-center justify-between text-left cursor-pointer outline-none transition-all shadow-inner hover:bg-white dark:hover:bg-white/5 truncate pr-10 ${className}`}>
+          <span className="block truncate font-black">{selectedLabel}</span>
+          <span className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 pointer-events-none">
+            <ChevronDown className="w-4 sm:w-5 h-4 sm:h-5 text-slate-400" />
+          </span>
+        </Listbox.Button>
+        <Transition as={Fragment} leave="transition ease-in duration-100" leaveFrom="opacity-100" leaveTo="opacity-0">
+          <Listbox.Options className="absolute z-[100] mt-2 max-h-60 w-full overflow-auto rounded-2xl sm:rounded-[24px] bg-white dark:bg-zinc-900 py-2 text-sm sm:text-base shadow-2xl ring-1 ring-black/5 dark:ring-white/10 focus:outline-none border border-slate-100 dark:border-white/5 animate-in slide-in-from-top-2">
+            {options.map((option, idx) => {
+              const optValue = typeof option === 'string' ? option : option.value;
+              const optLabel = typeof option === 'string' ? option : option.label;
+              return (
+                <Listbox.Option
+                  key={idx}
+                  className={({ active }) => `relative cursor-pointer select-none py-3 sm:py-4 pl-10 pr-4 transition-colors font-bold ${active ? colorMap[color].split(' ').slice(2).join(' ') : 'text-slate-900 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5'}`}
+                  value={optValue}
+                >
+                  {({ selected }) => (
+                    <>
+                      <span className={`block truncate ${selected ? 'font-black' : 'font-bold'}`}>{optLabel}</span>
+                      {selected ? (
+                        <span className={`absolute inset-y-0 left-0 flex items-center pl-3 ${colorMap[color].split(' ')[1]}`}>
+                          <Check className="h-4 w-4" />
+                        </span>
+                      ) : null}
+                    </>
+                  )}
+                </Listbox.Option>
+              );
+            })}
+          </Listbox.Options>
+        </Transition>
+      </div>
+    </Listbox>
+  );
 };
 
 const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
@@ -113,7 +162,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
   const [wizardConfig, setWizardConfig] = useState({ mode: 'today', count: 1 });
   const [stagedCalendarCount, setStagedCalendarCount] = useState(0);
 
-  // AI Ads Agent – Visual Post Generation state
+  // AI Ads™ Agent — Visual Post Generation state
   const [visualGenRowId, setVisualGenRowId] = useState(null); // tracks which card is actively generating
 
   // Gen Post Format Modal
@@ -121,6 +170,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState(null);
+  const [assetSearchQuery, setAssetSearchQuery] = useState('');
 
   // Phase 3 Collaboration & Scheduling Data
   const [reviewQueue, setReviewQueue] = useState([]);
@@ -137,6 +187,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
   // Onboarding State
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [onboardingData, setOnboardingData] = useState({
     customName: '', role: '', industry: '',
@@ -148,6 +199,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
     brandLogo: null, brandLogoPreview: null
   });
   const [isOnboardingSaving, setIsOnboardingSaving] = useState(false);
+  const [isOnboardingFetching, setIsOnboardingFetching] = useState(false);
   const [showOnboardingGuide, setShowOnboardingGuide] = useState(false);
   const [isRapidTestingEnabled, setIsRapidTestingEnabled] = useState(false);
 
@@ -164,6 +216,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
   const [brandLogo, setBrandLogo] = useState(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState(null);
   const [overviewFiles, setOverviewFiles] = useState([]); // Support multiple docs
+  const [onboardingFiles, setOnboardingFiles] = useState([]); // Isolated onboarding docs
   const [syncedLogos, setSyncedLogos] = useState([]); 
   
   // Defensive fallbacks for legacy/hidden references
@@ -171,12 +224,11 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
     window.overviewFile = null;
   }
 
-  const [showUserProfileModal, setShowUserProfileModal] = useState(false);
   const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(false);
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [editableProfileData, setEditableProfileData] = useState({});
-  const profileImageRef = useRef(null);
+  const [showCompanyInfoPanel, setShowCompanyInfoPanel] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const dashboardRef = useRef(null); // Ref to stop Headless UI FocusTrap from stealing focus on keystrokes
+  const profileImageRef = useRef(null);
   
   const handleProfileImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -186,12 +238,15 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
     try {
       const formData = new FormData();
       formData.append('image', file);
-      formData.append('workspaceId', workspace?._id);
+      const personalWs = allWorkspaces.find(w => w.isPersonalProfile) || workspace;
+      formData.append('workspaceId', personalWs?._id);
 
       const res = await apiService.uploadProfileImage(formData);
       if (res.success) {
-        setWorkspace(res.workspace);
-        // Sync with AI Ads Core Profile
+        if (personalWs?._id === workspace?._id) {
+          setWorkspace(res.workspace);
+        }
+        fetchWorkspaces();
         const updated = updateUser({ avatar: res.url });
         setCurrentUser(updated);
         toast.success('Profile picture updated!', { id: toastId });
@@ -233,7 +288,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
           const res = await apiService.quickAnalysis(brandLogo, workspace?._id);
           if (res.success && res.brandColors?.length > 0) {
             setBrandProfile(prev => ({ ...prev, brandColors: res.brandColors }));
-            toast.success("AI Synthesis: Colors extracted from logo!");
+            toast.success("AI Generation: Colors extracted from logo!");
           }
         } catch (e) { console.warn("Logo analysis failed"); }
       };
@@ -246,12 +301,13 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
   // REAL MAGIC: Auto-extract DNA from ALL PDFs/Docs
   useEffect(() => {
-    if (overviewFiles.length > 0) {
+    const allFiles = [...overviewFiles, ...onboardingFiles];
+    if (allFiles.length > 0) {
       const analyzeDocs = async () => {
         setIsSyncing(true);
-        const toastId = toast.loading(`AI Synthesis: Distilling brand DNA from ${overviewFiles.length} files...`);
+        const toastId = toast.loading(`AI Generation: Distilling brand DNA from ${allFiles.length} files...`);
         try {
-          const res = await apiService.quickAnalysis(overviewFiles, workspace?._id);
+          const res = await apiService.quickAnalysis(allFiles, workspace?._id);
           if (res.success) {
             setBrandProfile(prev => ({
               ...prev,
@@ -263,7 +319,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
               toneOfVoice: res.toneOfVoice || prev.toneOfVoice,
               brandColors: Array.from(new Set([...(prev.brandColors || []), ...(res.brandColors || [])]))
             }));
-            toast.success("AI Synthesis: Identity synchronized!", { id: toastId });
+            toast.success("AI Generation: Identity synchronized!", { id: toastId });
           } else {
             toast.error(res.error || "AI could not read these document formats.", { id: toastId });
           }
@@ -275,7 +331,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
       };
       analyzeDocs();
     }
-  }, [overviewFiles, workspace?._id]);
+  }, [overviewFiles, onboardingFiles, workspace?._id]);
 
 
   // --- 1. Dashboard Initialization & Splash ---
@@ -482,13 +538,11 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
         const wsId = wsData.workspace._id;
 
         const anyOnboarded = (wsList.workspaces || []).some(w => w.onboarding?.completed);
-        const guideShownSession = localStorage.getItem('aisa_onboarding_guide_shown');
 
-        if (!anyOnboarded && !wsData.workspace.onboarding?.completed && !guideShownSession) {
+        if (!anyOnboarded && !wsData.workspace.onboarding?.completed) {
           setShowOnboarding(true);
-          setShowOnboardingGuide(true);
-          localStorage.setItem('aisa_onboarding_guide_shown', 'true');
         }
+        setIsCheckingOnboarding(false);
 
         await fetchWorkspaceData(wsId.toString(), isBackground);
         return wsData.workspace; // Return for reuse
@@ -496,6 +550,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
       return null;
     } catch (error) {
       console.error("Dashboard Init Error:", error);
+      setIsCheckingOnboarding(false);
       return null;
     } finally {
       if (!isBackground) setLoading(false);
@@ -534,7 +589,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
     setIsSyncing(true);
     setIsOnboardingFetching(true); // Sync both states
     if (target === 'brandProfile') setLastFetchedData(null); // clear old banner
-    const toastId = toast.loading('🔍 AISA is scanning your brand identity...');
+    const toastId = toast.loading('⚡ AI Ads™ is scanning your brand identity...');
 
     try {
       const json = await apiService.fetchBrandAssets(targetUrl, workspace?._id);
@@ -597,24 +652,28 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
   };
 
   useEffect(() => {
-    if (workspace?.brandProfile) {
+    // Only populate Brand Setup form if there is an explicitly saved brand profile.
+    // Onboarding data is shown in Company Info, NOT in Brand Setup.
+    if (workspace?.brandProfile?.companyName) {
+      const bp = workspace.brandProfile;
       setBrandProfile({
-        companyName: workspace.brandProfile.companyName || '',
-        brandColors: workspace.brandProfile.brandColors || ['#3b82f6', '#8b5cf6'],
-        toneOfVoice: workspace.brandProfile.toneOfVoice || 'Professional',
-        ctaStyle: workspace.brandProfile.ctaStyle || 'Direct',
-        website: workspace.brandProfile.website || '',
-        targetEthnicity: workspace.brandProfile.targetEthnicity || 'Global',
-        extractedBrandSummary: workspace.brandProfile.extractedBrandSummary || '',
-        logoUrl: workspace.brandProfile.logoUrl || null,
-        targetIndustry: workspace.brandProfile.targetIndustry || '',
-        targetAudience: workspace.brandProfile.targetAudience || '',
-        contentObjective: workspace.brandProfile.contentObjective || 'Awareness',
-        campaignMonth: workspace.brandProfile.campaignMonth || 'January',
-        postingFrequency: workspace.brandProfile.postingFrequency || '3x per week'
+        companyName: bp.companyName || '',
+        brandColors: bp.brandColors?.length ? bp.brandColors : ['#3b82f6', '#8b5cf6'],
+        toneOfVoice: bp.toneOfVoice || 'Professional',
+        ctaStyle: bp.ctaStyle || 'Direct',
+        website: bp.website || '',
+        targetEthnicity: bp.targetEthnicity || 'Global',
+        extractedBrandSummary: bp.extractedBrandSummary || bp.companyOverviewText || '',
+        logoUrl: bp.logoUrl || null,
+        targetIndustry: bp.targetIndustry || '',
+        targetAudience: bp.targetAudience || '',
+        contentObjective: bp.contentObjective || 'Awareness',
+        campaignMonth: bp.campaignMonth || 'January',
+        postingFrequency: bp.postingFrequency || '3x per week'
       });
       setCurrentEditingBrandId(workspace._id);
     }
+    // If no explicit brand profile yet (fresh after onboarding), keep Brand Setup blank.
   }, [workspace]);
 
   const switchWorkspace = (ws) => {
@@ -683,8 +742,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
         setWorkspace(res.workspace);
         setShowOnboarding(false);
         toast.success("Workspace setup complete! Launching Strategy Engine...");
-        
-        // Final Sync: Trigger workspace refresh to ensure all stats/UI are grounded
+
+        // Final Sync: Trigger workspace refresh
+        // NOTE: Brand Setup (brandProfile state) is intentionally NOT seeded from onboarding data.
+        // Brand Setup is a separate tool that starts clean. Onboarding data only appears in Company Info.
         fetchWorkspaceData(res.workspace._id);
         initWorkspace(true);
       }
@@ -763,7 +824,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
     setIsProcessing(true);
     setActiveJob({ progress: 10, status: 'initializing' });
     try {
-      toast.success(`Orchestrating ${type} synthesis...`);
+      toast.success(`Orchestrating ${type} generation...`);
       // Simulating job progress for the UI requirement
       let p = 10;
       const interval = setInterval(() => {
@@ -793,6 +854,9 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
       if (res.success) {
         setCalendarEntries(prev => prev.filter(e => e._id !== entryId));
         toast.success("Entry hard deleted", { id: toastId });
+        // Refresh allWorkspaces so the brand switcher count stays in sync
+        const wsList = await apiService.getSocialAgentWorkspaces();
+        if (wsList.success) setAllWorkspaces(wsList.workspaces);
       } else {
         toast.error("Failed to delete entry", { id: toastId });
       }
@@ -803,7 +867,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
   const handleToneNudge = (entryId, nudge) => {
     const label = nudge === 'bold' ? 'Bold/Edgy' : 'Friendly/Informative';
-    toast(`Nudging AI towards a ${label} tone...`, { icon: '🤖' });
+    toast(`Nudging AI towards a ${label} tone...`, { icon: '🤔' });
     handleRegeneratePost(entryId, nudge);
   };
 
@@ -838,7 +902,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
   const handleGenerateFromCalendar = async (entryId) => {
     setIsProcessing(true);
-    const toastId = toast.loading("🤖 Crafting high-converting social copy...");
+    const toastId = toast.loading("🤔 Crafting high-converting social copy...");
     try {
       const res = await apiService.generateFromCalendar(workspace?._id, entryId);
       if (res.success) {
@@ -933,7 +997,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
         // --- STEP 0: AUTOMATED AI ACTIVATION CHAIN ---
         const wsId = ensureStringId(isNew ? res.brandProfile.workspaceId : (workspace?._id || currentEditingBrandId));
 
-        let activeToast = toast.loading("🔐 Phase 1/3: Synchronizing Brand DNA...", { duration: 10000 });
+        let activeToast = toast.loading("⚡ Phase 1/3: Synchronizing Brand DNA...", { duration: 10000 });
 
         try {
           // Pulse effect for normalization
@@ -1090,7 +1154,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
       }
     } catch (err) {
       console.error("[DirectSynthesis] Failed:", err);
-      toast.error(err.message || "Synthesis failed");
+      toast.error(err.message || "Generation failed");
       setActiveGenerationRowId(null); // Return to table if failed
     } finally {
       setIsGenerating(false);
@@ -1129,7 +1193,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
         }
         setActiveJob(res.job || { _id: res.jobId });
         setShowWizard(false);
-        toast.success(entryIds ? "Synthesis Pipeline Triggered!" : "AI Generation Pipeline Started!");
+        toast.success(entryIds ? "Generation Pipeline Triggered!" : "AI Generation Pipeline Started!");
       }
     } catch (err) {
       toast.error("Generation failed to start");
@@ -1139,7 +1203,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
   };
 
   /**
-   * AI Ads Agent - Visual Post Generation Pipeline
+   * AI Ads™ Agent - Visual Post Generation Pipeline
    * 1. Calls GPT-4 to craft a brand-aware Imagen prompt from the calendar card
    * 2. Vertex AI Imagen 3/4 renders the high-quality visual
    * 3. Polls for completion, then auto-redirects to Post Generation tab
@@ -1150,7 +1214,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
     setVisualGenRowId(entryId);
 
     const toastId = toast.loading(
-      `🎨 Engineering prompt for "${entry.title || 'Post'}"...`,
+      `🖼️ Engineering prompt for "${entry.title || 'Post'}"...`,
       { duration: 30000 }
     );
 
@@ -1167,7 +1231,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
         throw new Error(res?.error || 'Failed to start generation');
       }
 
-      toast.loading('🤖 Vertex AI Imagen generating visual...', { id: toastId, duration: 120000 });
+      toast.loading('🤔 Vertex AI Imagen generating visual...', { id: toastId, duration: 120000 });
 
       // Step 2: Poll for job completion (max 90s)
       const jobId = res.jobId;
@@ -1342,8 +1406,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
     return (
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 flex flex-col space-y-12 pb-20">
 
-        {/* ── SECTION 1: Strategic Command Stats ─────────────────── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        {/* ── SECTION 1: Strategic Command Stats ─────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
           {[
             { id: 'brands', label: 'Active Brands', val: allWorkspaces.length, icon: Palette, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
             { id: 'strategy', label: 'Strategy Flow', val: calendarEntries.length, icon: CalendarRange, color: 'text-amber-500', bg: 'bg-amber-500/10' },
@@ -1359,12 +1423,12 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
             },
             { id: 'vault', label: 'Assets in Vault', val: (assets || []).filter(a => a.assetSource === 'generated').length, icon: Library, color: 'text-primary', bg: 'bg-primary/10' }
           ].map((stat, i) => (
-            <div key={stat.id} className="p-6 rounded-[32px] bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 flex flex-col items-center text-center group hover:border-primary/30 transition-all shadow-sm relative overflow-hidden">
+            <div key={stat.id} className="p-4 md:p-6 rounded-[24px] md:rounded-[32px] bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 flex flex-col items-center text-center group hover:border-primary/30 transition-all shadow-sm relative overflow-hidden">
               {stat.pulse && <div className="absolute top-0 right-0 p-3"><div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /></div>}
-              <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                <stat.icon className={`w-6 h-6 ${stat.spin ? 'animate-spin' : ''}`} />
+              <div className={`w-10 h-10 md:w-12 md:h-12 rounded-[14px] md:rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform`}>
+                <stat.icon className={`w-5 h-5 md:w-6 md:h-6 ${stat.spin ? 'animate-spin' : ''}`} />
               </div>
-              <h4 className={`text-2xl font-black mb-1 ${stat.pulse ? 'text-primary' : 'text-slate-800 dark:text-white'}`}>{stat.val}</h4>
+              <h4 className={`text-xl md:text-2xl font-black mb-1 ${stat.pulse ? 'text-primary' : 'text-slate-800 dark:text-white'}`}>{stat.val}</h4>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
               
               {stat.id === 'pulse' && activeJob && (
@@ -1376,10 +1440,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
           ))}
         </div>
 
-        {/* ── SECTION 2: Hero & Resource Quota ───────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* ── SECTION 2: Hero & Resource Quota ─────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
           {/* Banner Section */}
-          <div className="lg:col-span-3 p-8 md:p-10 rounded-[48px] bg-gradient-to-br from-[#0A2342] via-[#123C69] to-[#0A2342] text-white relative overflow-hidden group shadow-2xl shadow-blue-900/40 flex flex-col justify-center min-h-[320px] border border-white/10">
+          <div className="lg:col-span-3 p-6 sm:p-8 md:p-10 rounded-[32px] md:rounded-[48px] bg-gradient-to-br from-[#0A2342] via-[#123C69] to-[#0A2342] text-white relative overflow-hidden group shadow-2xl shadow-blue-900/40 flex flex-col justify-center min-h-[320px] border border-white/10">
             <div className="absolute top-0 right-0 w-1/2 h-full bg-white opacity-[0.03] rotate-12 translate-x-1/2 translate-y-1/2 pointer-events-none" />
             <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute top-8 right-8 opacity-10 group-hover:opacity-20 transition-opacity duration-1000 pointer-events-none">
@@ -1391,43 +1455,45 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                 <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-xl border border-white/30 flex items-center justify-center shadow-lg">
                   <Target className="w-5 h-5 text-white" />
                 </div>
-                <div className="ads-badge-small !bg-white/10 !text-white !border-white/20 uppercase tracking-[4px]">AI ADS ENGINE</div>
+                <div className="ads-badge-small !bg-white/10 !text-white !border-white/20 tracking-[4px]">AI Ads™ ENGINE</div>
               </div>
 
-              <div className="max-w-2xl">
-                <h2 className="text-3xl md:text-5xl font-black leading-[1.1] tracking-[-0.04em] mb-4 drop-shadow-sm">
+              <div className="max-w-2xl mt-4 sm:mt-0">
+                <h2 className="text-2xl sm:text-3xl md:text-5xl font-black leading-[1.15] md:leading-[1.1] tracking-[-0.02em] md:tracking-[-0.04em] mb-4 drop-shadow-sm">
                   Struggling to come up with <br className="hidden md:block" />
                   daily social posts? <span className="text-blue-400">Not Anymore.</span>
                 </h2>
-                <p className="text-blue-100/60 font-semibold text-sm md:text-lg leading-relaxed max-w-xl">
-                  Introducing <span className="text-white underline decoration-blue-500/50 underline-offset-8">AI Ads™</span> Generator to Create Ready-To-Post Creatives in Seconds!
+                <p className="text-blue-100/60 font-semibold text-xs sm:text-sm md:text-lg leading-relaxed max-w-xl">
+                  Introducing <span className="text-white underline decoration-blue-500/50 underline-offset-4 md:underline-offset-8">AI Ads™</span> Generator to Create Ready-To-Post Creatives in Seconds!
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-4 pt-2">
-                <button onClick={() => setActiveTab('calendar')} className="px-8 h-14 bg-white text-[#0A2342] rounded-2xl font-black uppercase text-[10px] tracking-[2px] hover:bg-blue-50 transition-all shadow-xl active:scale-95 flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 pt-2">
+                <button onClick={() => setActiveTab('calendar')} className="w-full sm:w-auto px-8 h-12 sm:h-14 bg-white text-[#0A2342] rounded-[20px] sm:rounded-2xl font-black uppercase text-[10px] tracking-[2px] hover:bg-blue-50 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2">
                   <Zap className="w-4 h-4 fill-[#0A2342]" />
                   Ignite Content
                 </button>
-                <button onClick={() => setActiveTab('calendar')} className="px-8 h-14 bg-white/5 backdrop-blur-sm border border-white/20 text-white rounded-2xl font-black uppercase text-[10px] tracking-[2px] hover:bg-white/10 transition-all flex items-center gap-2">
+                <button onClick={() => setActiveTab('calendar')} className="w-full sm:w-auto px-8 h-12 sm:h-14 bg-white/5 backdrop-blur-sm border border-white/20 text-white rounded-[20px] sm:rounded-2xl font-black uppercase text-[10px] tracking-[2px] hover:bg-white/10 transition-all flex items-center justify-center gap-2">
                   View Roadmap
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="pt-8 border-t border-white/10 mt-6 max-w-2xl">
-                <div className="flex items-center bg-white/10 backdrop-blur-md rounded-[24px] border border-white/20 p-2 focus-within:ring-2 focus-within:ring-primary/50 transition-all">
-                  <input
-                    type="text"
-                    value={oneOffPrompt}
-                    onChange={(e) => setOneOffPrompt(e.target.value)}
-                    placeholder="e.g. Generate a minimalist product shot..."
-                    className="flex-1 bg-transparent text-white font-bold placeholder:text-white/40 px-4 outline-none text-sm"
-                  />
+              <div className="pt-6 sm:pt-8 border-t border-white/10 mt-6 max-w-2xl">
+                <div className="flex flex-col sm:flex-row sm:items-center bg-transparent sm:bg-white/10 sm:backdrop-blur-md rounded-none sm:rounded-[24px] border-0 sm:border sm:border-white/20 p-0 sm:p-2 gap-3 sm:gap-0 focus-within:ring-0 sm:focus-within:ring-2 focus-within:ring-primary/50 transition-all">
+                  <div className="flex-1 bg-white/10 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none rounded-[20px] sm:rounded-none border border-white/20 sm:border-0 flex items-center h-12 sm:h-auto">
+                    <input
+                      type="text"
+                      value={oneOffPrompt}
+                      onChange={(e) => setOneOffPrompt(e.target.value)}
+                      placeholder="e.g. Generate a minimalist product shot..."
+                      className="flex-1 w-full bg-transparent text-white font-bold placeholder:text-white/40 px-4 outline-none text-xs sm:text-sm"
+                    />
+                  </div>
                   <button
                     onClick={() => { if (!oneOffPrompt) return; setShowOneOffModal(true); }}
                     disabled={!oneOffPrompt}
-                    className="h-12 px-6 bg-primary rounded-[18px] text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-primary/30 hover:scale-[1.02] disabled:opacity-50 transition-all flex items-center gap-2"
+                    className="w-full sm:w-auto h-12 px-6 bg-primary rounded-[20px] sm:rounded-[18px] text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-primary/30 hover:scale-[1.02] disabled:opacity-50 transition-all flex items-center justify-center gap-2 shrink-0"
                   >
                     <Sparkles className="w-4 h-4 fill-white" /> Run AI
                   </button>
@@ -1437,13 +1503,13 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        {/* ── SECTION 4: Dual Monitor (Pulse & Tasks) ────────────── */}
+        {/* ── SECTION 4: Dual Monitor (Pulse & Tasks) ─────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Agent Brain Pulse */}
-          <div className="col-span-1 p-8 rounded-[40px] bg-slate-900 border border-slate-800 flex flex-col justify-between overflow-hidden relative group shadow-sm min-h-[400px]">
+          <div className="col-span-1 p-6 md:p-8 rounded-[32px] md:rounded-[40px] bg-slate-900 border border-slate-800 flex flex-col justify-between overflow-hidden relative group shadow-sm min-h-[300px] md:min-h-[400px]">
             <div className="absolute top-0 right-0 w-40 h-40 bg-primary/20 blur-3xl rounded-full pointer-events-none -z-10" />
             <div className="relative z-10 flex-1">
-              <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center justify-between mb-6 md:mb-8">
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.6)]" />
                   <span className="text-[10px] font-black uppercase tracking-[3px] text-slate-400">Agent Brain Pulse</span>
@@ -1474,7 +1540,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
           {/* Action Tasks (Matches Sidebar Options) */}
           <div className="lg:col-span-2 space-y-8">
              <div className="flex items-center justify-between px-2">
-                <h3 className="text-xl font-black uppercase tracking-tight text-slate-800 dark:text-white">Agent Tasks for {workspace?.onboarding?.customName || currentUser?.name || 'AISA Agent'}</h3>
+                <h3 className="text-xl font-black tracking-tight text-slate-800 dark:text-white uppercase">AGENT TASKS FOR <span className="normal-case">AI Ads™ Agent</span></h3>
              </div>
              
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -1510,7 +1576,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
         </div>
 
 
-        {/* ── SECTION 6: Intelligence & Visual Vault ────────────── */}
+        {/* ── SECTION 6: Intelligence & Visual Vault ─────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
            {/* Hashtag Intelligence Summary */}
            <div className="p-8 rounded-[40px] bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 shadow-sm">
@@ -1617,18 +1683,18 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
           )}
         </AnimatePresence>
 
-        {/* ── HEADER & MAGIC ACTION ──────────────────────────────── */}
-        <div className="flex flex-col xl:flex-row items-end justify-between gap-10">
+        {/* ── HEADER & MAGIC ACTION ─────────────────────────────────────────────────────────────────── */}
+        <div className="flex flex-col xl:flex-row items-start xl:items-end justify-between gap-6 xl:gap-10">
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-[3px] border border-primary/20">AISA™ Intelligence</div>
+              <div className="px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black tracking-[3px] border border-primary/20">AI Ads™ Intelligence</div>
               <div className="h-px w-12 bg-primary/30" />
             </div>
-            <h2 className="text-6xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-[0.9]">
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-[0.9]">
               Design Your <br /><span className="text-primary italic">Identity</span>
             </h2>
-            <p className="text-lg text-slate-400 font-bold max-w-xl">
-              Define your brand DNA, sync your digital footprint, and let AISA™ build your professional social presence.
+            <p className="text-sm sm:text-base lg:text-lg text-slate-400 font-bold max-w-xl">
+              Define your brand DNA, sync your digital footprint, and let AI Ads™ build your professional social presence.
             </p>
           </div>
 
@@ -1645,8 +1711,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                  </div>
                </div>
                
-               <div className="flex gap-2">
-                 <div className="relative flex-1">
+               <div className="flex flex-col sm:flex-row gap-2">
+                 <div className="relative w-full sm:flex-1">
                     <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input 
                       value={brandProfile.website || ''}
@@ -1658,7 +1724,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                  <button 
                    onClick={() => handleAiFetch(brandProfile.website)}
                    disabled={!brandProfile.website || isExtracting}
-                   className="h-14 px-8 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
+                   className="w-full sm:w-auto h-14 px-8 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
                  >
                    Activate
                  </button>
@@ -1672,14 +1738,14 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
 
 
-          {/* ── CENTER: FORM SECTIONS ──────────────────────────────── */}
+          {/* ── CENTER: FORM SECTIONS ─────────────────────────────────────────────────────────────────── */}
           <div className="space-y-8 min-w-0">
 
 
             {/* ROW 1: CORE & VOICE */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* CARD 1: CORE IDENTITY */}
-              <div className="bg-white dark:bg-zinc-900 rounded-[40px] p-10 border border-slate-100 dark:border-white/5 shadow-sm space-y-8 hover:border-primary/20 transition-all duration-500 group">
+              <div className="bg-white dark:bg-zinc-900 rounded-[32px] md:rounded-[40px] p-6 sm:p-8 md:p-10 border border-slate-100 dark:border-white/5 shadow-sm space-y-6 sm:space-y-8 hover:border-primary/20 transition-all duration-500 group">
                <div className="flex items-center justify-between">
                    <div className="flex items-center gap-4">
                      <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center group-hover:bg-indigo-500 group-hover:rotate-[10deg] transition-all duration-500 relative">
@@ -1698,7 +1764,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                       value={brandProfile.companyName || ''}
                       onChange={(e) => setBrandProfile({ ...brandProfile, companyName: e.target.value })}
                       placeholder="e.g. Tesla Inc"
-                      className="w-full h-16 px-6 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-3xl text-lg font-black outline-none focus:border-indigo-500 transition-all shadow-inner"
+                      className="w-full h-14 sm:h-16 px-4 sm:px-6 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl text-base sm:text-lg font-black outline-none focus:border-indigo-500 transition-all shadow-inner"
                     />
                   </div>
                   <div className="space-y-2">
@@ -1707,32 +1773,24 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                       value={brandProfile.targetIndustry || ''}
                       onChange={(e) => setBrandProfile({ ...brandProfile, targetIndustry: e.target.value })}
                       placeholder="e.g. Tech & AI"
-                      className="w-full h-14 px-6 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-3xl text-sm font-bold outline-none focus:border-indigo-500 transition-all shadow-inner"
+                      className="w-full h-12 sm:h-14 px-4 sm:px-6 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl text-sm font-bold outline-none focus:border-indigo-500 transition-all shadow-inner"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Priority Region</label>
-                    <div className="relative group/select-region">
-                      <select 
-                        value={brandProfile.targetEthnicity || 'Global'}
-                        onChange={(e) => setBrandProfile({ ...brandProfile, targetEthnicity: e.target.value })}
-                        className="w-full h-14 px-6 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-3xl text-sm font-bold outline-none focus:border-indigo-500 cursor-pointer appearance-none shadow-inner transition-all hover:bg-white dark:hover:bg-white/5"
-                      >
-                         <option value="Global">Global</option>
-                         <option value="Indian">Indian</option>
-                         <option value="American">American</option>
-                         <option value="European">European</option>
-                      </select>
-                      <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none group-hover/select-region:scale-110 transition-transform">
-                         <ChevronDown className="w-4 h-4 text-slate-400" />
-                      </div>
-                    </div>
+                    <CustomSelect
+                      value={brandProfile.targetEthnicity || 'Global'}
+                      onChange={(val) => setBrandProfile({ ...brandProfile, targetEthnicity: val })}
+                      options={['Global', 'Indian', 'American', 'European']}
+                      color="indigo"
+                      className="h-12 sm:h-14 px-4 sm:px-6 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl text-sm outline-none focus:border-indigo-500"
+                    />
                   </div>
                 </div>
               </div>
 
               {/* CARD 2: VOICE & PERSONALITY */}
-              <div className="bg-white dark:bg-zinc-900 rounded-[40px] p-10 border border-slate-100 dark:border-white/5 shadow-sm space-y-8 hover:border-primary/20 transition-all duration-500 group">
+              <div className="bg-white dark:bg-zinc-900 rounded-[32px] md:rounded-[40px] p-6 sm:p-8 md:p-10 border border-slate-100 dark:border-white/5 shadow-sm space-y-6 sm:space-y-8 hover:border-primary/20 transition-all duration-500 group">
                 <div className="flex items-center justify-between">
                    <div className="flex items-center gap-4">
                      <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500 group-hover:rotate-[-10deg] transition-all duration-500 relative">
@@ -1747,40 +1805,34 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                 <div className="space-y-6">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Target Audience</label>
-                    <div className="relative group/select">
-                      <select 
-                        value={brandProfile.targetAudience || 'Business Owner'}
-                        onChange={(e) => setBrandProfile({ ...brandProfile, targetAudience: e.target.value })}
-                        className="w-full h-16 px-10 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-[32px] text-base font-black outline-none focus:border-amber-500 cursor-pointer appearance-none shadow-inner transition-all hover:bg-white dark:hover:bg-white/5"
-                      >
-                         <option value="Business Owner">BUSINESS OWNER</option>
-                         <option value="Students">STUDENTS</option>
-                         <option value="Professional (Dr, Advocate, etc.)">PROFESSIONAL (DR, ADVOCATE, ETC.)</option>
-                         <option value="Govt Employee">GOVT EMPLOYEE</option>
-                         <option value="Retired">RETIRED</option>
-                      </select>
-                      <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none group-hover/select:scale-110 transition-transform">
-                         <ChevronDown className="w-5 h-5 text-slate-400" />
-                      </div>
-                    </div>
+                    <CustomSelect
+                      value={brandProfile.targetAudience || 'Business Owner'}
+                      onChange={(val) => setBrandProfile({ ...brandProfile, targetAudience: val })}
+                      options={[
+                        { label: 'BUSINESS OWNER', value: 'Business Owner' },
+                        { label: 'STUDENTS', value: 'Students' },
+                        { label: 'PROFESSIONAL (DR, ADVOCATE, ETC.)', value: 'Professional (Dr, Advocate, etc.)' },
+                        { label: 'GOVT EMPLOYEE', value: 'Govt Employee' },
+                        { label: 'RETIRED', value: 'Retired' }
+                      ]}
+                      color="amber"
+                      className="h-14 sm:h-16 px-6 sm:px-8 lg:px-10 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-3xl sm:rounded-[32px] text-sm sm:text-base outline-none focus:border-amber-500"
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Content Objective</label>
-                    <div className="relative group/select-obj scroll-mt-20">
-                      <select 
-                        value={brandProfile.contentObjective || 'Awareness'}
-                        onChange={(e) => setBrandProfile({ ...brandProfile, contentObjective: e.target.value })}
-                        className="w-full h-16 px-10 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-[32px] text-base font-black outline-none focus:border-amber-500 cursor-pointer appearance-none shadow-inner transition-all hover:bg-white dark:hover:bg-white/5"
-                      >
-                         <option value="Awareness">BRAND AWARENESS</option>
-                         <option value="Leads">LEADS</option>
-                         <option value="Engagement">ENGAGEMENT</option>
-                         <option value="Sales">SALES</option>
-                      </select>
-                      <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none group-hover/select-obj:scale-110 transition-transform">
-                         <ChevronUp className="w-5 h-5 text-slate-400" />
-                      </div>
-                    </div>
+                    <CustomSelect
+                      value={brandProfile.contentObjective || 'Awareness'}
+                      onChange={(val) => setBrandProfile({ ...brandProfile, contentObjective: val })}
+                      options={[
+                        { label: 'BRAND AWARENESS', value: 'Awareness' },
+                        { label: 'LEADS', value: 'Leads' },
+                        { label: 'ENGAGEMENT', value: 'Engagement' },
+                        { label: 'SALES', value: 'Sales' }
+                      ]}
+                      color="amber"
+                      className="h-14 sm:h-16 px-6 sm:px-8 lg:px-10 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-3xl sm:rounded-[32px] text-sm sm:text-base outline-none focus:border-amber-500"
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Archetype (Voice)</label>
@@ -1789,7 +1841,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                          <button 
                            key={tone}
                            onClick={() => setBrandProfile({ ...brandProfile, toneOfVoice: tone })}
-                           className={`h-11 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-all ${brandProfile.toneOfVoice === tone ? 'bg-amber-500 text-white border-amber-600 shadow-md' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5 hover:border-amber-500/30'}`}
+                           className={`h-10 sm:h-11 rounded-[14px] sm:rounded-2xl text-[8px] sm:text-[9px] font-black uppercase tracking-wider sm:tracking-widest border transition-all ${brandProfile.toneOfVoice === tone ? 'bg-amber-500 text-white border-amber-600 shadow-md' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5 hover:border-amber-500/30'}`}
                          >
                            {tone}
                          </button>
@@ -1798,22 +1850,24 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Conversion CTA Style</label>
-                    <select 
+                    <CustomSelect
                       value={brandProfile.ctaStyle || 'Direct'}
-                      onChange={(e) => setBrandProfile({ ...brandProfile, ctaStyle: e.target.value })}
-                      className="w-full h-14 px-6 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-3xl text-sm font-bold outline-none focus:border-amber-500 cursor-pointer appearance-none shadow-inner"
-                    >
-                      <option value="Direct">Direct & Authoritative</option>
-                      <option value="Engagement">Engagement & Community</option>
-                      <option value="Storytelling">Narrative & Educational</option>
-                    </select>
+                      onChange={(val) => setBrandProfile({ ...brandProfile, ctaStyle: val })}
+                      options={[
+                        { label: 'Direct & Authoritative', value: 'Direct' },
+                        { label: 'Engagement & Community', value: 'Engagement' },
+                        { label: 'Narrative & Educational', value: 'Storytelling' }
+                      ]}
+                      color="amber"
+                      className="h-12 sm:h-14 px-4 sm:px-6 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl text-sm outline-none focus:border-amber-500"
+                    />
                   </div>
                 </div>
               </div>
             </div>
 
             {/* ROW 2: VISUAL IDENTITY (FULL WIDTH) */}
-            <div className="bg-white dark:bg-zinc-900 rounded-[40px] p-10 border border-slate-100 dark:border-white/5 shadow-sm space-y-10 hover:border-primary/20 transition-all duration-500 group">
+            <div className="bg-white dark:bg-zinc-900 rounded-[32px] md:rounded-[40px] p-6 sm:p-8 md:p-10 border border-slate-100 dark:border-white/5 shadow-sm space-y-8 sm:space-y-10 hover:border-primary/20 transition-all duration-500 group">
                 <div className="flex items-center justify-between">
                    <div className="flex items-center gap-4">
                      <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:scale-110 transition-all duration-500 relative">
@@ -1914,20 +1968,20 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                <button 
                  onClick={handleSaveBrand}
                  disabled={isSaving}
-                 className="group relative w-full h-24 overflow-hidden rounded-[40px] bg-zinc-900 shadow-2xl transition-all hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
+                 className="group relative w-full h-20 sm:h-24 overflow-hidden rounded-[32px] sm:rounded-[40px] bg-zinc-900 shadow-2xl transition-all hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
                >
                   <div className="absolute inset-0 bg-gradient-to-r from-primary to-indigo-600 opacity-90 transition-all group-hover:scale-110"></div>
                   <div className="relative z-10 flex flex-col items-center justify-center">
                      {isSaving ? (
-                       <RefreshCw className="w-8 h-8 text-white animate-spin" />
+                       <RefreshCw className="w-6 h-6 sm:w-8 sm:h-8 text-white animate-spin" />
                      ) : (
                        <>
-                         <div className="flex items-center gap-3">
-                            <Sparkles className="w-5 h-5 text-white animate-pulse" />
-                            <span className="text-xl font-black text-white uppercase tracking-[4px]">Activate Strategy Hub</span>
-                            <Sparkles className="w-5 h-5 text-white animate-pulse" />
+                         <div className="flex items-center gap-2 sm:gap-3">
+                            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white animate-pulse" />
+                            <span className="text-base sm:text-xl font-black text-white uppercase tracking-[2px] sm:tracking-[4px]">Activate Strategy Hub</span>
+                            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white animate-pulse" />
                          </div>
-                         <p className="text-[10px] text-white/60 font-black uppercase tracking-[3px] mt-1">Initiating AI Generation Pulse</p>
+                         <p className="text-[8px] sm:text-[10px] text-white/60 font-black uppercase tracking-[2px] sm:tracking-[3px] mt-1">Initiating AI Generation Pulse</p>
                        </>
                      )}
                   </div>
@@ -1936,7 +1990,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
           </div>
 
-          <div className="sticky top-8 space-y-6 min-w-[350px]">
+          <div className="sticky top-8 space-y-6 w-full xl:min-w-[350px]">
             
             {/* THE BRAND CARTRIDGE (PASSPORT) */}
             <div className="relative group perspective-1000">
@@ -1997,8 +2051,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
 
              {/* STEP 4: INTELLIGENCE CORE (MATCHED TO REFERENCE) */}
-             <div className="p-10 rounded-[48px] bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 space-y-8 hover:border-emerald-500/20 transition-all duration-500 group">
-                <div className="flex items-center justify-between">
+             <div className="p-6 sm:p-8 md:p-10 rounded-[32px] md:rounded-[48px] bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 space-y-6 sm:space-y-8 hover:border-emerald-500/20 transition-all duration-500 group">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 md:gap-0">
                    <div className="flex flex-col">
                       <div className="flex items-center gap-2">
                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -2008,11 +2062,11 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                    </div>
                    
                    {/* Action Hub */}
-                   <div className="flex flex-col gap-3">
-                      <div className="flex items-center gap-3">
+                   <div className="flex flex-col gap-3 w-full md:w-auto">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
                          <button 
                            onClick={() => document.getElementById('overview-upload-core').click()}
-                           className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-[9px] font-black uppercase tracking-[2px] text-slate-600 dark:text-slate-300 hover:border-primary/40 hover:text-primary transition-all shadow-sm active:scale-95"
+                           className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-[9px] font-black uppercase tracking-[2px] text-slate-600 dark:text-slate-300 hover:border-primary/40 hover:text-primary transition-all shadow-sm active:scale-95 w-full sm:w-auto"
                          >
                             <Upload className="w-3.5 h-3.5" />
                             {overviewFiles.length > 0 ? `${overviewFiles.length} Docs Ready` : 'Upload Docs'}
@@ -2029,7 +2083,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                          <button 
                            onClick={() => handleAiFetch(brandProfile.website)}
                            disabled={isSyncing || !brandProfile.website}
-                           className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-primary text-white text-[9px] font-black uppercase tracking-[2px] transition-all shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+                           className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-2xl bg-primary text-white text-[9px] font-black uppercase tracking-[2px] transition-all shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 disabled:opacity-50 w-full sm:w-auto"
                          >
                             <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
                             {isSyncing ? 'Syncing...' : 'Fetch Web'}
@@ -2060,7 +2114,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                         value={brandProfile.extractedBrandSummary || ''}
                         onChange={(e) => setBrandProfile({ ...brandProfile, extractedBrandSummary: e.target.value })}
                         placeholder="Type manual brand notes / USP / mission... (OR use the 'Fetch Web' button to automatically synthesize from your URL)"
-                        className="w-full h-48 px-8 py-8 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-[40px] text-[13px] font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-emerald-500 transition-all leading-relaxed resize-none shadow-[0_10px_30px_rgba(0,0,0,0.02)]"
+                        className="w-full h-48 sm:h-56 px-6 sm:px-8 py-6 sm:py-8 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-[32px] sm:rounded-[40px] text-xs sm:text-[13px] font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-emerald-500 transition-all leading-relaxed resize-none shadow-[0_10px_30px_rgba(0,0,0,0.02)]"
                       />
                       <div className="absolute bottom-6 right-8 flex items-center gap-2 opacity-30">
                         <span className="text-[8px] font-black uppercase tracking-widest">Global DNA Bank</span>
@@ -2078,31 +2132,28 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                    <div className="grid grid-cols-1 gap-4">
                       <div className="space-y-1">
                          <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Campaign Month</label>
-                         <div className="relative group/select-month">
-                            <select 
-                              value={brandProfile.campaignMonth || 'April'}
-                              onChange={(e) => setBrandProfile({ ...brandProfile, campaignMonth: e.target.value })}
-                              className="w-full h-12 px-6 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-2xl text-[10px] font-black uppercase outline-none focus:border-primary transition-all cursor-pointer appearance-none shadow-inner"
-                            >
-                               {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(m => <option key={m} value={m}>{m.toUpperCase()}</option>)}
-                            </select>
-                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none group-hover/select-month:scale-110 transition-transform">
-                               <ChevronDown className="w-4 h-4 text-slate-400" />
-                            </div>
-                         </div>
+                         <CustomSelect
+                           value={brandProfile.campaignMonth || 'April'}
+                           onChange={(val) => setBrandProfile({ ...brandProfile, campaignMonth: val })}
+                           options={['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(m => ({ label: m.toUpperCase(), value: m }))}
+                           color="primary"
+                           className="h-12 px-6 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-2xl text-[10px] uppercase outline-none focus:border-primary"
+                         />
                       </div>
                       <div className="space-y-1">
                          <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Posting Frequency</label>
-                         <select 
+                         <CustomSelect
                            value={brandProfile.postingFrequency || '3x per week'}
-                           onChange={(e) => setBrandProfile({ ...brandProfile, postingFrequency: e.target.value })}
-                           className="w-full h-10 px-4 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-xl text-[10px] font-bold outline-none focus:border-primary transition-all"
-                         >
-                            <option value="1x per week">1x per week</option>
-                            <option value="3x per week">3x per week</option>
-                            <option value="Daily">Daily</option>
-                            <option value="2x Daily">2x Daily (High Growth)</option>
-                         </select>
+                           onChange={(val) => setBrandProfile({ ...brandProfile, postingFrequency: val })}
+                           options={[
+                             { label: '1x per week', value: '1x per week' },
+                             { label: '3x per week', value: '3x per week' },
+                             { label: 'Daily', value: 'Daily' },
+                             { label: '2x Daily (High Growth)', value: '2x Daily' }
+                           ]}
+                           color="primary"
+                           className="h-10 px-4 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-xl text-[10px] outline-none focus:border-primary"
+                         />
                       </div>
                    </div>
                 </div>
@@ -2243,14 +2294,14 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
           if (!showPreviewModal) {
             return (
-              <div className="flex-1 overflow-y-auto w-full flex items-start justify-start flex-wrap gap-6 p-4">
+              <div className="flex-1 overflow-y-auto w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-4 pb-24">
                 {calendarWorkspaces.map(ws => {
                   const profile = ws.brandProfile || {};
                   const isCurrent = ws._id === workspace?._id;
                   const entriesCount = isCurrent ? calendarEntries.length : (ws.calendarEntryCount || ws.onboarding?.calendarCount || 0);
 
                   return (
-                    <div key={ws._id} className={`bg-white dark:bg-zinc-900 rounded-[32px] border p-6 flex flex-col w-[280px] shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)] transition-all duration-500 group animate-in slide-in-from-left-4 ${isCurrent ? 'border-primary shadow-primary/10' : 'border-slate-100 dark:border-white/5'}`}>
+                    <div key={ws._id} className={`bg-white dark:bg-zinc-900 rounded-[32px] border p-6 flex flex-col w-full shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)] transition-all duration-500 group animate-in slide-in-from-left-4 ${isCurrent ? 'border-primary shadow-primary/10' : 'border-slate-100 dark:border-white/5'}`}>
                       <div className="flex items-start gap-4 mb-6">
                         <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-white/5 overflow-hidden border border-slate-100 dark:border-white/10 flex-shrink-0 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform duration-500">
                           {(() => {
@@ -2331,8 +2382,27 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                         )}
 
                         <button
-                          onClick={() => handleHardDeleteWorkspace(ws._id)}
-                          title="Permanently Delete Brand"
+                          onClick={async () => {
+                            const wsName = ws.workspaceName || 'this brand';
+                            if (!window.confirm(`Clear all calendar entries for "${wsName}"?\n\nThis removes the content calendar only. The brand and its settings will be kept.`)) return;
+                            const toastId = toast.loading(`Clearing calendar for ${wsName}...`);
+                            try {
+                              const res = await apiService.clearCalendarForWorkspace(ws._id);
+                              if (res.success) {
+                                toast.success(`Calendar cleared for ${wsName}`, { id: toastId });
+                                // Update local state immediately
+                                if (ws._id === workspace?._id) setCalendarEntries([]);
+                                // Refresh allWorkspaces so the switcher count resets to 0
+                                const wsList = await apiService.getSocialAgentWorkspaces();
+                                if (wsList.success) setAllWorkspaces(wsList.workspaces);
+                              } else {
+                                toast.error('Clear failed', { id: toastId });
+                              }
+                            } catch (err) {
+                              toast.error('Error clearing calendar', { id: toastId });
+                            }
+                          }}
+                          title="Clear Content Calendar"
                           className="h-11 w-11 bg-slate-50 dark:bg-white/5 hover:bg-red-500/10 text-slate-400 hover:text-red-500 rounded-xl flex items-center justify-center transition-all border border-slate-100 dark:border-white/5 hover:border-red-500/20"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -2342,7 +2412,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                   );
                 })}
 
-                <div className="border-2 border-dashed border-slate-200 dark:border-white/10 rounded-[20px] p-5 flex flex-col items-center justify-center w-[260px] h-[190px] text-slate-400 hover:border-primary/50 hover:bg-primary/5 hover:text-primary cursor-pointer transition-all duration-300 opacity-60 hover:opacity-100 group animate-in slide-in-from-left-4" style={{ animationDelay: '100ms' }}>
+                <div className="border-2 border-dashed border-slate-200 dark:border-white/10 rounded-[32px] p-6 flex flex-col items-center justify-center w-full min-h-[200px] h-full text-slate-400 hover:border-primary/50 hover:bg-primary/5 hover:text-primary cursor-pointer transition-all duration-300 opacity-60 hover:opacity-100 group animate-in slide-in-from-left-4" style={{ animationDelay: '100ms' }}>
                   <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                     <Plus className="w-5 h-5" />
                   </div>
@@ -2354,16 +2424,16 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
           return (
             <div className="flex-1 overflow-hidden flex flex-col space-y-6 animate-in slide-in-from-bottom-4 duration-500">
-              <div className="flex justify-between items-end px-2">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-end px-2 gap-4">
                 <div>
                   <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter mb-1">Imported Schedule</h3>
                   <p className="text-xs text-slate-500 font-medium lowercase italic">Total of {calendarEntries.length} potential posts detected across platforms.</p>
                 </div>
-                <div className="flex gap-3">
-                  <button onClick={() => setShowPreviewModal(false)} className="px-6 h-12 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-slate-600 dark:text-slate-300">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full md:w-auto">
+                  <button onClick={() => setShowPreviewModal(false)} className="flex-1 sm:flex-none justify-center px-4 sm:px-6 h-12 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-slate-600 dark:text-slate-300">
                     <X className="w-4 h-4" /> Exit Preview
                   </button>
-                  <label htmlFor="cal-upload-refresh" className="px-6 h-12 bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 cursor-pointer transition-all hover:scale-105 shadow-xl shadow-primary/20">
+                  <label htmlFor="cal-upload-refresh" className="flex-1 sm:flex-none justify-center px-4 sm:px-6 h-12 bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02] shadow-xl shadow-primary/20 active:scale-95">
                     <RefreshCw className="w-4 h-4" /> RE-IMPORT
                     <input type="file" id="cal-upload-refresh" className="hidden" onChange={(e) => { setCalendarFile(e.target.files[0]); handleUploadCalendar(); }} />
                   </label>
@@ -2921,27 +2991,22 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
             <div className="max-w-md w-full">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-[3px] block mb-4">Select Target Brand Strategy</label>
-              <div className="relative group">
-                <select 
-                  value={workspace?._id}
-                  onChange={(e) => {
-                    const ws = calendarWorkspaces.find(b => b._id === e.target.value);
-                    if (ws) {
-                      switchWorkspace(ws);
-                      fetchPipelines(ws._id);
-                    }
-                  }}
-                  className="w-full h-16 pl-6 pr-12 bg-white dark:bg-[#1a1a1a] border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-black uppercase outline-none focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer text-slate-900 dark:text-white"
-                >
-                  {calendarWorkspaces.length === 0 && <option disabled>Discovery: No Strategy Maps Found</option>}
-                  {calendarWorkspaces.map(b => (
-                    <option key={b._id} value={b._id} className="text-black bg-white py-2">
-                      {b.workspaceName || b.brandProfile?.companyName || "Untitled Brand"}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none group-hover:text-primary transition-colors" />
-              </div>
+              <CustomSelect 
+                value={workspace?._id}
+                onChange={(val) => {
+                  const ws = calendarWorkspaces.find(b => b._id === val);
+                  if (ws) {
+                    switchWorkspace(ws);
+                    fetchPipelines(ws._id);
+                  }
+                }}
+                options={calendarWorkspaces.length === 0 ? [{ value: '', label: 'Discovery: No Strategy Maps Found' }] : calendarWorkspaces.map(b => ({
+                  value: b._id,
+                  label: b.workspaceName || b.brandProfile?.companyName || "Untitled Brand"
+                }))}
+                className="h-16 pl-6 pr-12 bg-white dark:bg-[#1a1a1a] border border-slate-200 dark:border-white/10 rounded-2xl text-xs"
+                color="primary"
+              />
             </div>
 
             {workspace && (
@@ -2973,7 +3038,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
         {/* Step 2: Integrated Brand Dashboard Summary */}
         {workspace && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-150">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-150">
             <div className="bg-white dark:bg-[#080808] p-8 rounded-[40px] border border-slate-100 dark:border-white/5 shadow-xl flex flex-col justify-between">
               <div>
                 <div className="flex justify-between items-start mb-4">
@@ -3045,23 +3110,23 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[4px] animate-pulse">Establishing Secure Brand Connection...</p>
           </div>
         ) : finalRows.length > 0 ? (
-          <div className="bg-white dark:bg-[#080808]/50 rounded-[32px] border border-slate-100 dark:border-white/5 shadow-xl animate-in slide-in-from-bottom-8 duration-700 min-h-[500px] flex flex-col">
-            <div className="p-8 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                  <Server className="w-6 h-6" />
+          <div className="bg-white dark:bg-[#080808]/50 rounded-[32px] border border-slate-100 dark:border-white/5 shadow-xl animate-in slide-in-from-bottom-8 duration-700 min-h-[400px] sm:min-h-[500px] flex flex-col">
+            <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] flex items-center shrink-0">
+              <div className="flex items-center gap-4 self-start">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                  <Server className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-widest">Orchestration Pipeline: {workspace?.workspaceName}</h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">{finalRows.length} Strategized Rows Detected</p>
+                  <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white uppercase tracking-widest">Orchestration Pipeline: {workspace?.workspaceName}</h3>
+                  <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase mt-1">{finalRows.length} Strategized Rows Detected</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="relative group">
+              <div className="flex items-center gap-4 w-full sm:w-auto">
+                <div className="relative group w-full sm:w-auto">
                   <button 
                     onClick={() => handleGenerateContent('selected', finalRows.length, finalRows.map(r => r._id))}
                     disabled={isGenerating}
-                    className="h-12 px-8 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20 disabled:opacity-50 relative z-10 overflow-hidden"
+                    className="h-12 w-full sm:w-auto px-8 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center sm:justify-start gap-2 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20 disabled:opacity-50 relative z-10 overflow-hidden"
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                     {isGenerating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />} 
@@ -3075,7 +3140,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                         <BrainCircuit className="w-4 h-4" />
                       </div>
                       <div>
-                        <p className="text-[10px] font-black text-white uppercase tracking-[2px] mb-1.5 bg-gradient-to-r from-primary to-indigo-400 bg-clip-text text-transparent">Full Plan Synthesis</p>
+                        <p className="text-[10px] font-black text-white uppercase tracking-[2px] mb-1.5 bg-gradient-to-r from-primary to-indigo-400 bg-clip-text text-transparent">Full Content Generation</p>
                         <p className="text-[9px] font-semibold text-slate-400 leading-relaxed uppercase tracking-widest italic">
                           Orchestrate AI to automatically draft captions, creative angles, and platform-specific hashtags for every post in your currently visible plan.
                         </p>
@@ -3085,139 +3150,194 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                         </div>
                       </div>
                     </div>
-                    {/* Decorative Triangle */}
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-slate-900/95" />
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="flex-1 w-full overflow-y-auto custom-scrollbar">
-              <table className="w-full text-left border-collapse table-auto">
-                <thead>
-                  <tr className="border-b border-slate-100 dark:border-white/5 bg-slate-50/30 dark:bg-white/[0.01]">
-                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Schedule</th>
-                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Platform</th>
-                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Phase</th>
-                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Strategy / Hook</th>
-                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Asset Type</th>
-                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                  {finalRows.map((row, idx) => (
-                    <tr key={row._id || idx} className="group hover:bg-slate-50 dark:hover:bg-white/[0.01] transition-colors">
-                      <td className="p-4">
-                        <div className="flex items-center gap-3 whitespace-nowrap">
-                          <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/5 flex flex-col items-center justify-center border border-slate-200 dark:border-white/10 group-hover:border-primary/30 transition-colors">
-                            <span className="text-[9px] font-black text-primary leading-none">{new Date(row.scheduledDate).getDate()}</span>
-                            <span className="text-[6px] font-black text-slate-400 uppercase tracking-tighter">{new Date(row.scheduledDate).toLocaleString('default', { month: 'short' })}</span>
+              {/* Desktop View */}
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="w-full text-left border-collapse table-auto">
+                  <thead>
+                    <tr className="border-b border-slate-100 dark:border-white/5 bg-slate-50/30 dark:bg-white/[0.01]">
+                      <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Schedule</th>
+                      <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Platform</th>
+                      <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Phase</th>
+                      <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Strategy / Hook</th>
+                      <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Asset Type</th>
+                      <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                    {finalRows.map((row, idx) => (
+                      <tr key={row._id || idx} className="group hover:bg-slate-50 dark:hover:bg-white/[0.01] transition-colors">
+                        <td className="p-4">
+                          <div className="flex items-center gap-3 whitespace-nowrap">
+                            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/5 flex flex-col items-center justify-center border border-slate-200 dark:border-white/10 group-hover:border-primary/30 transition-colors">
+                              <span className="text-[9px] font-black text-primary leading-none">{new Date(row.scheduledDate).getDate()}</span>
+                              <span className="text-[6px] font-black text-slate-400 uppercase tracking-tighter">{new Date(row.scheduledDate).toLocaleString('default', { month: 'short' })}</span>
+                            </div>
                           </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex gap-1">
+                            {['instagram', 'linkedin', 'twitter', 'facebook', 'youtube'].map(p => {
+                              const active = (row.platform || row.rawData?.Platform || '').toLowerCase().includes(p);
+                              if (!active) return null;
+                              return (
+                                <div key={p} className="p-1.5 rounded-lg bg-primary/5 text-primary border border-primary/10 group-hover:border-primary/30 transition-all">
+                                  {p === 'instagram' && <Instagram className="w-3 h-3" />}
+                                  {p === 'linkedin' && <Linkedin className="w-3 h-3" />}
+                                  {p === 'twitter' && <Twitter className="w-3 h-3" />}
+                                  {p === 'facebook' && <Facebook className="w-3 h-3" />}
+                                  {p === 'youtube' && <Youtube className="w-3 h-3" />}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-white/5 px-1.5 py-0.5 rounded border border-slate-200 dark:border-white/10">
+                            {row.phase || row.rawData?.Phase || "Awareness"}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <div className="max-w-[200px] xl:max-w-[350px]">
+                            <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight mb-0.5 truncate group-hover:text-primary transition-colors">
+                              {row.heading_hook || row.title || row.rawData?.Title}
+                            </p>
+                            <p className="text-[9px] text-slate-400 font-medium truncate italic opacity-60">
+                              {row.sub_heading || row.hook || row.rawData?.Hook || "Defining direction..."}
+                            </p>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase border ${
+                            (row.postType || row.format || row.rawData?.Format) === 'Video' ? 'bg-amber-100 dark:bg-amber-500/10 text-amber-600 border-amber-200/50' :
+                            (row.postType || row.format || row.rawData?.Format) === 'Carousel' ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 border-indigo-200/50' :
+                            'bg-blue-100 dark:bg-primary/10 text-primary border-blue-200/50'
+                          }`}>
+                            {row.postType || row.format || row.rawData?.Format}
+                          </span>
+                        </td>
+                        <td className="p-4 text-right">
+                          <div className="flex justify-end gap-2">
+                            {row.status === 'generated' ? (
+                              <button 
+                                onClick={() => {
+                                  const post = generatedPosts.find(p => ensureStringId(p.calendarEntryId) === ensureStringId(row._id));
+                                  const asset = assets.find(a => 
+                                    (post && ensureStringId(a.postId) === ensureStringId(post._id)) || 
+                                    ensureStringId(a.calendarEntryId) === ensureStringId(row._id)
+                                  );
+                                  if (asset) setSelectedAsset(asset);
+                                }}
+                                className="h-9 px-4 bg-emerald-500 text-white rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center gap-2"
+                              >
+                                <Eye className="w-3 h-3" /> View
+                              </button>
+                            ) : (
+                              <button 
+                                onClick={() => handleGenerateContent('single', 1, [row._id])}
+                                disabled={isGenerating}
+                                className="h-9 px-4 bg-primary text-white rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all flex items-center gap-2"
+                              >
+                                <Sparkle className="w-3 h-3" /> Gen Content
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile View */}
+              <div className="lg:hidden p-4 space-y-4">
+                {finalRows.map((row, idx) => (
+                  <div key={row._id || idx} className="p-5 bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-3xl space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex flex-col items-center justify-center border border-primary/20">
+                          <span className="text-[11px] font-black text-primary leading-none">{new Date(row.scheduledDate).getDate()}</span>
+                          <span className="text-[7px] font-black text-slate-400 uppercase tracking-tighter">{new Date(row.scheduledDate).toLocaleString('default', { month: 'short' })}</span>
                         </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex gap-1">
-                          {['instagram', 'linkedin', 'twitter', 'facebook', 'youtube'].map(p => {
-                            const active = (row.platform || row.rawData?.Platform || '').toLowerCase().includes(p);
-                            if (!active) return null;
-                            return (
-                              <div key={p} className="p-1.5 rounded-lg bg-primary/5 text-primary border border-primary/10 group-hover:border-primary/30 transition-all">
-                                {p === 'instagram' && <Instagram className="w-3 h-3" />}
-                                {p === 'linkedin' && <Linkedin className="w-3 h-3" />}
-                                {p === 'twitter' && <Twitter className="w-3 h-3" />}
-                                {p === 'facebook' && <Facebook className="w-3 h-3" />}
-                                {p === 'youtube' && <Youtube className="w-3 h-3" />}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-white/5 px-1.5 py-0.5 rounded border border-slate-200 dark:border-white/10">
-                          {row.phase || row.rawData?.Phase || "Awareness"}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <div className="max-w-[200px] xl:max-w-[350px]">
-                          <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight mb-0.5 truncate group-hover:text-primary transition-colors">
+                        <div>
+                          <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">
                             {row.heading_hook || row.title || row.rawData?.Title}
                           </p>
-                          <p className="text-[9px] text-slate-400 font-medium truncate italic opacity-60">
-                            {row.sub_heading || row.hook || row.rawData?.Hook || "Defining direction..."}
-                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1.5 py-0.5 bg-white dark:bg-zinc-800 rounded border border-slate-200 dark:border-white/10">
+                              {row.phase || row.rawData?.Phase || "Awareness"}
+                            </span>
+                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase border ${
+                              (row.postType || row.format || row.rawData?.Format) === 'Video' ? 'bg-amber-100 dark:bg-amber-500/10 text-amber-600 border-amber-200/50' :
+                              (row.postType || row.format || row.rawData?.Format) === 'Carousel' ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 border-indigo-200/50' :
+                              'bg-blue-100 dark:bg-primary/10 text-primary border-blue-200/50'
+                            }`}>
+                              {row.postType || row.format || row.rawData?.Format}
+                            </span>
+                          </div>
                         </div>
-                      </td>
-                      <td className="p-4">
-                        <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase border ${
-                          (row.postType || row.format || row.rawData?.Format) === 'Video' ? 'bg-amber-100 dark:bg-amber-500/10 text-amber-600 border-amber-200/50' :
-                          (row.postType || row.format || row.rawData?.Format) === 'Carousel' ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 border-indigo-200/50' :
-                          'bg-blue-100 dark:bg-primary/10 text-primary border-blue-200/50'
-                        }`}>
-                          {row.postType || row.format || row.rawData?.Format}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-1.5">
-                          <div className={`w-1 h-1 rounded-full ${row.status === 'generated' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-300'}`} />
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                            {row.status === 'generated' ? 'Ready' : 'Pending'}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="p-4 text-right">
-                        {row.status === 'generated' ? (
-                          <button 
-                            onClick={() => {
-                              const post = generatedPosts.find(p => ensureStringId(p.calendarEntryId) === ensureStringId(row._id));
-                              const asset = assets.find(a => 
-                                (post && ensureStringId(a.postId) === ensureStringId(post._id)) || 
-                                ensureStringId(a.calendarEntryId) === ensureStringId(row._id)
-                              );
-                              
-                              if (asset) {
-                                setSelectedAsset(asset);
-                              } else {
-                                // Dynamic Isolation: Allow viewing content even if visual post isn't generated
-                                setSelectedAsset({
-                                  _id: `virtual-${row._id}`,
-                                  calendarEntryId: row._id,
-                                  calendarEntry: row,
-                                  isVirtual: true,
-                                  originalName: row.title || row.heading_hook || "Neural Content Artifact"
-                                });
-                              }
-                            }}
-                            className="h-10 px-5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white transition-all shadow-lg shadow-emerald-500/10"
-                          >
-                            <div className="flex items-center gap-1.5">
-                              <Eye className="w-3.5 h-3.5" />
-                              <span>View Content</span>
+                      </div>
+                      <div className="flex gap-1">
+                        {['instagram', 'linkedin', 'twitter', 'facebook', 'youtube'].map(p => {
+                          const active = (row.platform || row.rawData?.Platform || '').toLowerCase().includes(p);
+                          if (!active) return null;
+                          return (
+                            <div key={p} className="p-1 rounded-lg bg-primary/5 text-primary border border-primary/10">
+                              {p === 'instagram' && <Instagram className="w-3 h-3" />}
+                              {p === 'linkedin' && <Linkedin className="w-3 h-3" />}
+                              {p === 'twitter' && <Twitter className="w-3 h-3" />}
+                              {p === 'facebook' && <Facebook className="w-3 h-3" />}
+                              {p === 'youtube' && <Youtube className="w-3 h-3" />}
                             </div>
-                          </button>
-                        ) : (
-                          <button 
-                            onClick={() => handleGenerateContent('today', 1, [row._id])}
-                            disabled={isGenerating}
-                            className={`h-10 px-5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
-                              isGenerating 
-                              ? 'bg-slate-50 dark:bg-white/5 text-slate-400 border border-slate-100 dark:border-white/5 cursor-not-allowed'
-                              : 'bg-primary text-white hover:scale-105 shadow-lg shadow-primary/20 hover:shadow-primary/40'
-                            }`}
-                          >
-                            {isGenerating ? <RefreshCw className="w-3.5 h-3.5 animate-spin mx-auto" /> : (
-                              <div className="flex items-center gap-1.5">
-                                <Zap className="w-3.5 h-3.5" />
-                                <span>Gen Content</span>
-                              </div>
-                            )}
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed italic border-l-2 border-primary/20 pl-3">
+                      {row.sub_heading || row.hook || row.rawData?.Hook || "Defining direction..."}
+                    </p>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5">
+                      <div className="flex items-center gap-1.5">
+                        <div className={`w-1.5 h-1.5 rounded-full ${row.status === 'generated' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-300'}`} />
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                          {row.status === 'generated' ? 'Ready' : 'Pending Gen'}
+                        </span>
+                      </div>
+                      
+                      {row.status === 'generated' ? (
+                        <button 
+                          onClick={() => {
+                            const post = generatedPosts.find(p => ensureStringId(p.calendarEntryId) === ensureStringId(row._id));
+                            const asset = assets.find(a => 
+                              (post && ensureStringId(a.postId) === ensureStringId(post._id)) || 
+                              ensureStringId(a.calendarEntryId) === ensureStringId(row._id)
+                            );
+                            if (asset) setSelectedAsset(asset);
+                          }}
+                          className="h-10 px-6 bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center gap-2"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> View
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => handleGenerateContent('single', 1, [row._id])}
+                          disabled={isGenerating}
+                          className="h-10 px-6 bg-primary text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all flex items-center gap-2"
+                        >
+                          <Sparkle className="w-3.5 h-3.5" /> Gen Content
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         ) : (
@@ -3367,32 +3487,54 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
   };
 
   const renderAssetLibrary = () => {
-    const generatedAssets = (assets || []).filter(a => a.assetSource === 'generated');
+    const generatedAssets = (assets || []).filter(a => {
+      const isGenerated = a.assetSource === 'generated';
+      if (!isGenerated) return false;
+      
+      if (!assetSearchQuery) return true;
+      
+      const query = assetSearchQuery.toLowerCase().trim();
+      const assetType = (a.assetType || '').toLowerCase().replace('_', ' ');
+      const dateStr = (a.dateString || '').toLowerCase();
+      const originalName = (a.originalName || '').toLowerCase();
+      
+      // Keywords mapping for easier search
+      const isSingleQuery = query === 'single' || query === 'post' || query === 'single post';
+      const isCarouselQuery = query === 'carousel' || query === 'multi';
+
+      if (isSingleQuery) return assetType.includes('single') || assetType === 'image';
+      if (isCarouselQuery) return assetType.includes('carousel');
+
+      return (
+        assetType.includes(query) || 
+        dateStr.includes(query) || 
+        originalName.includes(query)
+      );
+    });
 
     return (
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 h-full flex flex-col space-y-6 pb-20">
         
 
-        {/* ── Studio Toolbox ────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div className="lg:col-span-3 bg-white dark:bg-[#080808]/80 backdrop-blur-xl p-8 rounded-[40px] border border-slate-100 dark:border-white/5 shadow-xl flex items-center justify-between">
-            <div className="flex items-center gap-4">
-               <div className="relative group">
-                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                 <input 
-                   placeholder="Search neural vault..." 
-                   className="h-14 pl-12 pr-6 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all w-64 md:w-80" 
-                 />
-               </div>
-            </div>
-
-            <div className="flex gap-4">
-               <button
-                 onClick={() => setShowOneOffModal(true)}
-                 className="h-14 px-8 bg-primary text-white rounded-2xl flex items-center gap-3 font-black uppercase text-[10px] tracking-[2px] shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
-               >
-                 <Sparkles className="w-4 h-4 fill-current animate-pulse" /> Magic Create
-               </button>
+        {/* ── Studio Toolbox ────────────────────────────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="lg:col-span-3 bg-white dark:bg-[#080808]/80 backdrop-blur-xl p-6 sm:p-8 rounded-[32px] sm:rounded-[40px] border border-slate-100 dark:border-white/5 shadow-xl flex items-center">
+            <div className="relative group w-full">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input 
+                value={assetSearchQuery}
+                onChange={(e) => setAssetSearchQuery(e.target.value)}
+                placeholder="Search by date, single post, or carousel..." 
+                className="h-14 pl-12 pr-6 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all w-full md:w-80" 
+              />
+              {assetSearchQuery && (
+                <button 
+                  onClick={() => setAssetSearchQuery('')}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -3408,7 +3550,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        {/* ── Neural Vault Explorer ──────────────────────── */}
+        {/* ── Neural Vault Explorer ────────────────────────────────────────────────────────────────── */}
         <div className="space-y-6">
           <div className="flex items-center justify-between px-4">
             <h3 className="text-sm font-black text-slate-400 uppercase tracking-[4px]">Neural Vault Artifacts</h3>
@@ -3418,27 +3560,27 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-6">
             {generatedAssets.map((asset) => (
               <div
                 key={asset._id}
                 onClick={() => setSelectedAsset(asset)}
                 className="group relative"
               >
-                <div className="aspect-square rounded-[36px] overflow-hidden relative cursor-pointer border-4 border-white dark:border-zinc-900 shadow-xl group-hover:scale-[1.03] active:scale-95 transition-all duration-500">
+                <div className="aspect-square rounded-[24px] sm:rounded-[36px] overflow-hidden relative cursor-pointer border-2 sm:border-4 border-white dark:border-zinc-900 shadow-xl group-hover:scale-[1.03] active:scale-95 transition-all duration-500">
                   <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity z-10" />
                   <img src={asset.gcsUrl} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt="Generated Asset" />
                   
-                  <div className="absolute top-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 duration-500 flex flex-col gap-2">
+                  <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-20 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 duration-500 flex flex-col gap-2">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDownloadMedia(asset.gcsUrl);
                       }}
                       title="Download Artifact"
-                      className="w-10 h-10 rounded-2xl bg-white/90 dark:bg-black/90 text-primary flex items-center justify-center shadow-2xl hover:bg-primary hover:text-white transition-all transform hover:rotate-6 active:scale-90"
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/90 dark:bg-black/90 text-primary flex items-center justify-center shadow-2xl hover:bg-primary hover:text-white transition-all transform hover:rotate-6 active:scale-90"
                     >
-                      <Download className="w-5 h-5" />
+                      <Download className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                     <button
                       onClick={(e) => {
@@ -3446,27 +3588,27 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                         handleCopyImageToClipboard(asset.gcsUrl);
                       }}
                       title="Copy Image to Clipboard"
-                      className="w-10 h-10 rounded-2xl bg-white/90 dark:bg-black/90 text-indigo-600 flex items-center justify-center shadow-2xl hover:bg-indigo-600 hover:text-white transition-all transform hover:-rotate-6 active:scale-90"
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/90 dark:bg-black/90 text-indigo-600 flex items-center justify-center shadow-2xl hover:bg-indigo-600 hover:text-white transition-all transform hover:-rotate-6 active:scale-90"
                     >
-                      <Copy className="w-4 h-4" />
+                      <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
                   </div>
 
                   {/* Magic Create Label Badge (Top Left) */}
                   {asset.metadata?.isMagicCreate && (
-                    <div className="absolute top-4 left-4 z-20 px-3 py-1 bg-primary text-white text-[8px] font-black uppercase tracking-[2px] rounded-lg shadow-lg shadow-primary/30">
-                      Magic Create
+                    <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-20 px-2 py-0.5 sm:px-3 sm:py-1 bg-primary text-white text-[7px] sm:text-[8px] font-black uppercase tracking-[2px] rounded-lg shadow-lg shadow-primary/30">
+                      Magic
                     </div>
                   )}
 
-                  <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-500 flex flex-col z-20">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] font-black text-white uppercase tracking-widest">
-                        {asset.metadata?.isMagicCreate ? 'Neural Masterpiece' : (asset.assetType?.replace('_', ' ') || 'AI ART')}
+                  <div className="absolute inset-x-0 bottom-0 p-3 sm:p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-500 flex flex-col z-20">
+                    <div className="flex items-center justify-between mb-0.5 sm:mb-1">
+                      <span className="text-[7px] sm:text-[10px] font-black text-white uppercase tracking-widest truncate mr-1">
+                        {asset.metadata?.isMagicCreate ? 'Neural' : (asset.assetType?.replace('_', ' ') || 'AI ART')}
                       </span>
-                      {asset.dateString && <span className="text-[8px] font-bold text-primary bg-white/90 px-2 py-0.5 rounded-md uppercase tracking-widest">{asset.dateString}</span>}
+                      {asset.dateString && <span className="text-[6px] sm:text-[8px] font-bold text-primary bg-white/90 px-1.5 py-0.5 rounded sm:rounded-md uppercase tracking-widest flex-shrink-0">{asset.dateString}</span>}
                     </div>
-                    <p className="text-[8px] font-bold text-white/60 uppercase tracking-wider truncate">{asset.originalName || 'Visual Synthesis'}</p>
+                    <p className="text-[6px] sm:text-[8px] font-bold text-white/60 uppercase tracking-wider truncate">{asset.originalName || 'Visual Artifact'}</p>
                   </div>
                 </div>
               </div>
@@ -3558,7 +3700,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                           <div className="absolute top-4 left-4 w-8 h-8 rounded-full bg-black/60 text-white font-black flex items-center justify-center text-xs backdrop-blur-md">
                             {i+1}
                           </div>
-                          {/* Per-slide action buttons — visible on hover */}
+                          {/* Per-slide action buttons Ã¢â‚¬â€ visible on hover */}
                           <div className="absolute bottom-4 right-4 flex flex-col gap-2 opacity-0 group-hover/slide:opacity-100 transition-all duration-300 translate-y-2 group-hover/slide:translate-y-0">
                             {/* Download */}
                             <button
@@ -3639,7 +3781,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
                 <div className="max-w-6xl mx-auto space-y-12">
 
-                {/* ── GENERATED CONTENT PANEL ──────────────────────────── */}
+                {/* Ã¢â€â‚¬Ã¢â€â‚¬ GENERATED CONTENT PANEL Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
                 {(() => {
                   const ce = selectedAsset?.calendarEntry || calendarEntries.find(e => ensureStringId(e._id) === ensureStringId(selectedAsset?.calendarEntryId));
                   // Dynamic Content Visibility: Ensure space is empty if content isn't yet synthesized
@@ -3816,7 +3958,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                        <div className="w-20 h-20 rounded-full bg-slate-50 mx-auto flex items-center justify-center text-slate-300 mb-6">
                          <BrainCircuit className="w-10 h-10 opacity-20" />
                        </div>
-                       <h3 className="text-sm font-black text-slate-400 uppercase tracking-[4px]">Awaiting Synthesis Data</h3>
+                       <h3 className="text-sm font-black text-slate-400 uppercase tracking-[4px]">Awaiting Content Generation</h3>
                        <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest mt-2">Trigger regeneration to see fresh angles.</p>
                     </div>
                   )}
@@ -4059,13 +4201,13 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
         id: 'single',
         label: 'Single Post',
         desc: 'One high-impact visual optimised for your platform',
-        icon: '🖼️',
+        icon: <ImageIcon className="w-8 h-8 text-primary" />,
       },
       {
         id: 'carousel',
         label: 'Carousel Post',
         desc: 'Multi-slide storytelling format (Instagram / LinkedIn)',
-        icon: '📑',
+        icon: <Library className="w-8 h-8 text-primary" />,
       },
     ];
 
@@ -4147,19 +4289,19 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
               <p className="text-[8px] font-black text-slate-400 uppercase tracking-[3px] mb-3">Generation Pipeline</p>
               <div className="flex items-center gap-2">
                 {[
-                  { label: 'GPT-4', icon: '🧠', desc: 'Prompt' },
-                  { icon: '→', plain: true },
-                  { label: 'Imagen', icon: '🖼️', desc: 'Visual' },
-                  { icon: '→', plain: true },
-                  { label: 'GCS', icon: '☁️', desc: 'Upload' },
-                  { icon: '→', plain: true },
-                  { label: 'Asset', icon: '✨', desc: 'Saved' },
+                  { label: 'GPT-4', icon: <BrainCircuit className="w-4 h-4 mx-auto" />, desc: 'Prompt' },
+                  { icon: <ArrowRight className="w-3 h-3 text-slate-300" />, plain: true },
+                  { label: 'Imagen', icon: <ImageIcon className="w-4 h-4 mx-auto" />, desc: 'Visual' },
+                  { icon: <ArrowRight className="w-3 h-3 text-slate-300" />, plain: true },
+                  { label: 'GCS', icon: <Upload className="w-4 h-4 mx-auto" />, desc: 'Upload' },
+                  { icon: <ArrowRight className="w-3 h-3 text-slate-300" />, plain: true },
+                  { label: 'Asset', icon: <Sparkles className="w-4 h-4 mx-auto" />, desc: 'Saved' },
                 ].map((step, i) =>
                   step.plain ? (
-                    <span key={i} className="text-slate-300 dark:text-white/20 font-black text-xs">→</span>
+                    <div key={i} className="flex items-center justify-center">{step.icon}</div>
                   ) : (
                     <div key={i} className="flex-1 text-center">
-                      <span className="text-base block">{step.icon}</span>
+                      <div className="text-primary mb-1 flex justify-center">{step.icon}</div>
                       <p className="text-[7px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">{step.label}</p>
                     </div>
                   )
@@ -4252,21 +4394,175 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
     );
   };
 
+  const renderCompanyInfoPanel = () => {
+    const ow = allWorkspaces.find(w => w.onboarding?.completed) || workspace;
+    const bp = ow?.brandProfile;
+    const brandName = bp?.companyName || ow?.onboarding?.brandName || ow?.workspaceName || '—';
+    const logoUrl   = bp?.logoUrl || null;
+    const colors    = bp?.brandColors?.length ? bp.brandColors : (ow?.onboarding?.brandColors || []);
+    const desc      = bp?.extractedBrandSummary || bp?.companyOverviewText || ow?.onboarding?.businessDescription || '';
+    const site      = bp?.website || (ow?.onboarding?.noWebsite ? null : ow?.onboarding?.website) || '';
+    const role      = ow?.onboarding?.role || '';
+    const industry  = ow?.onboarding?.industry || bp?.targetIndustry || '';
+    
+    // User data
+    const personalWs = allWorkspaces.find(w => w.isPersonalProfile) || workspace;
+    const userName = personalWs?.onboarding?.customName || currentUser?.name || 'User Profile';
+    const userAvatar = currentUser?.avatar || null;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[160] bg-black/60 backdrop-blur-md flex items-center justify-center p-6"
+        onClick={() => setShowCompanyInfoPanel(false)}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          className="w-full max-w-3xl bg-white dark:bg-zinc-900 rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Top Section: User Profile */}
+          <div className="bg-slate-50 dark:bg-zinc-950 p-8 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between relative">
+            <div className="flex items-center gap-6 relative z-10">
+              <div className="relative group cursor-pointer" onClick={() => profileImageRef.current?.click()}>
+                <input
+                  type="file"
+                  ref={profileImageRef}
+                  onChange={handleProfileImageUpload}
+                  className="hidden"
+                  accept="image/*"
+                />
+                {userAvatar ? (
+                  <img src={toProxyUrl(userAvatar)} alt="User" className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-zinc-800 shadow-lg group-hover:opacity-75 transition-opacity" onError={e => e.target.style.display='none'} />
+                ) : (
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border-4 border-white dark:border-zinc-800 shadow-lg flex items-center justify-center text-3xl font-black text-white group-hover:opacity-75 transition-opacity">
+                    {userName.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center backdrop-blur-sm">
+                    <Upload className="w-4 h-4 text-white" />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[4px] text-indigo-500 mb-1">User Profile</p>
+                <h2 className="text-3xl font-black text-slate-800 dark:text-white">{userName}</h2>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest rounded-full">Active</span>
+                  <span className="text-xs text-slate-400 font-bold">{currentUser?._id?.substring(0, 8) || 'Member'}</span>
+                </div>
+              </div>
+            </div>
+            <button onClick={() => setShowCompanyInfoPanel(false)} className="absolute top-6 right-6 w-10 h-10 rounded-full bg-slate-200/50 dark:bg-zinc-800 hover:bg-slate-300 dark:hover:bg-zinc-700 flex items-center justify-center transition-all z-20">
+              <X className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+            </button>
+          </div>
+
+          {/* Body Section: Company Details */}
+          <div className="flex-1 overflow-y-auto p-8 bg-white dark:bg-zinc-900 custom-scrollbar">
+            <h3 className="text-xs font-black uppercase tracking-[5px] text-slate-400 mb-6 flex items-center gap-3">
+              <Briefcase className="w-4 h-4 text-indigo-500" /> Company Details
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Brand Overview Card */}
+              <div className="bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-900/10 dark:to-transparent border border-indigo-100 dark:border-indigo-500/10 p-6 rounded-[24px]">
+                <div className="flex items-center gap-4 mb-6">
+                  {logoUrl ? (
+                    <img src={toProxyUrl(logoUrl)} alt="Logo" className="w-16 h-16 rounded-2xl object-contain bg-white p-1 border border-slate-100 dark:border-white/10 shadow-sm" onError={e => e.target.style.display='none'} />
+                  ) : (
+                    <div className="w-16 h-16 rounded-2xl bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center text-2xl font-black text-indigo-600 dark:text-indigo-400">
+                      {brandName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-white">{brandName}</h2>
+                    {site && (
+                      <a href={site} target="_blank" rel="noreferrer" className="text-xs font-bold text-indigo-500 hover:underline flex items-center gap-1 mt-1">
+                        <Globe className="w-3 h-3" />
+                        {site.replace(/^https?:\/\//, '')}
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                {colors.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-[3px] mb-2">Brand Colors</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {colors.map((c, i) => (
+                        <div key={i} className="w-10 h-10 rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm" style={{ backgroundColor: c }} title={c} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Info Grid */}
+              <div className="space-y-4">
+                {role && (
+                  <div className="p-5 bg-slate-50 dark:bg-white/5 rounded-[24px] border border-slate-100 dark:border-white/5 flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center shrink-0">
+                      <User2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-blue-500 uppercase tracking-[3px] mb-1">Primary Role</p>
+                      <p className="text-sm font-bold text-slate-800 dark:text-white capitalize">{role.replace(/_/g, ' ')}</p>
+                    </div>
+                  </div>
+                )}
+                {industry && (
+                  <div className="p-5 bg-slate-50 dark:bg-white/5 rounded-[24px] border border-slate-100 dark:border-white/5 flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center shrink-0">
+                      <Target className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[3px] mb-1">Industry</p>
+                      <p className="text-sm font-bold text-slate-800 dark:text-white">{industry}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Description */}
+            {desc && (
+              <div className="mt-8 p-6 bg-slate-50 dark:bg-white/5 rounded-[24px] border border-slate-100 dark:border-white/5">
+                <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[3px] mb-3">About the Brand</p>
+                <p className="text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed">{desc}</p>
+              </div>
+            )}
+
+            {!brandName && !desc && (
+              <p className="text-sm text-slate-400 italic text-center py-8">Complete the onboarding wizard to populate your brand profile.</p>
+            )}
+          </div>
+        </motion.div>
+      </motion.div>
+    );
+  };
+
   const renderOnboardingGuideModal = () => {
     const guideSteps = [
       {
         title: "Step 1: Introduction",
-        desc: "Initially, AI Ads needs to know who you are and your business name. This is the foundation of your content.",
+        desc: "Initially, AI Ads™ needs to know who you are and your business name. This is the foundation of your content.",
         icon: User
       },
       {
         title: "Step 2: AI Identity Fetch",
-        desc: "Simply enter your website URL, and AI Ads will automatically scan it to extract your logo, brand colors, and company description. No manual entry needed!",
+        desc: "Simply enter your website URL, and AI Ads™ will automatically scan it to extract your logo, brand colors, and company description. No manual entry needed!",
         icon: Zap
       },
       {
         title: "Step 3: Define Goals",
-        desc: "Tell us what you want to achieve (e.g., brand awareness, sales) and who your target audience is. This helps AI Ads write posts that actually work.",
+        desc: "Tell us what you want to achieve (e.g., brand awareness, sales) and who your target audience is. This helps AI Ads™ write posts that actually work.",
         icon: Target
       },
       {
@@ -4288,7 +4584,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                 </div>
                 <div>
                   <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">User Quick-Start Guide</h3>
-                  <p className="text-[10px] font-black text-primary uppercase tracking-widest mt-0.5">Everything you need to know about AI Ads Setup</p>
+                  <p className="text-[10px] font-black text-primary tracking-widest mt-0.5">EVERYTHING YOU NEED TO KNOW ABOUT AI Ads™ SETUP</p>
                 </div>
               </div>
               <button
@@ -4306,7 +4602,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {guideSteps.map((s, i) => (
                   <div key={i} className="p-6 rounded-[32px] bg-slate-50 border border-slate-100 group hover:border-primary/30 transition-all">
-                    <div className="w-10 h-10 rounded-2xl bg-white shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+<div className="w-10 h-10 rounded-2xl bg-white shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                       <s.icon className="w-5 h-5 text-primary" />
                     </div>
                     <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-wider mb-2">{s.title}</h4>
@@ -4320,7 +4616,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                   <Sparkles className="w-8 h-8" />
                 </div>
                 <p className="text-[11px] font-bold text-indigo-600 leading-relaxed uppercase tracking-wider">
-                  <span className="font-black">Pro Tip:</span> Even if you don't have a website, you can fill in details manually. AI Ads will still create professional content based on what you describe!
+                  <span className="font-black">Pro Tip:</span> Even if you don't have a website, you can fill in details manually. AI Ads™ will still create professional content based on what you describe!
                 </p>
               </div>
             </div>
@@ -4342,7 +4638,6 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
     );
   };
 
-  const [isOnboardingFetching, setIsOnboardingFetching] = useState(false);
 
   const renderOnboardingUI = () => {
     // New streamlined 6-step onboarding: User + Brand Setup
@@ -4352,7 +4647,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
     const stepTitles = [
       "Let's get introduced.",
       "Tell us about your company.",
-      "✨ Magic Website Setup",
+      "Magic Website Setup",
       "Explain your vision.",
       "Your Brand's Look.",
       "What's your main goal?"
@@ -4373,7 +4668,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
       if (onboardingStep === 3 && !onboardingData.businessDescription.trim()) return toast.error('Please describe your brand');
       if (onboardingStep === 4) { /* colors/logo optional */ }
       if (onboardingStep >= TOTAL_STEPS - 1) {
-        // Last step — submit
+        // Last step - submit
         handleCompleteOnboarding({ preventDefault: () => { } });
         if (onboardingData.brandLogo && workspace) {
           const fd = new FormData();
@@ -4405,7 +4700,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
             <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary transition-all">
               <Sparkles className="w-4 h-4 text-primary group-hover:text-white" />
             </div>
-            <span className="text-sm font-black text-slate-800 uppercase tracking-widest leading-none">AI Ads Setup</span>
+            <span className="text-sm font-black text-slate-800 tracking-widest leading-none">AI Ads™ SETUP</span>
           </button>
           {/* Progress dots */}
           <div className="flex items-center gap-1.5">
@@ -4427,56 +4722,43 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
             <p className="text-sm text-slate-500 font-medium">{stepSubtitles[onboardingStep]}</p>
           </div>
 
-          {/* ── STEP 0: Your Name ── */}
+          {/* -- STEP 0: Name -- */}
           {onboardingStep === 0 && (
-            <div className="space-y-4">
-              <label htmlFor="userName" className="sr-only">Your Name</label>
+            <div className="space-y-2">
+              <label htmlFor="customName" className="text-xs font-black uppercase tracking-widest text-slate-500 cursor-pointer">Your Full Name</label>
               <input
-                id="userName"
+                id="customName"
+                autoFocus
                 type="text"
                 placeholder="e.g. Ravi Sharma"
-                value={onboardingData.customName}
+                value={onboardingData.customName || ''}
                 onChange={e => setOnboardingData({ ...onboardingData, customName: e.target.value })}
                 onKeyDown={e => e.key === 'Enter' && goNext()}
                 className="w-full h-14 px-5 rounded-2xl border-2 border-slate-200 focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none text-base font-semibold text-slate-800 transition-all bg-white shadow-sm"
               />
-              <p className="text-xs text-slate-400">This is how AI Ads will address you throughout the platform.</p>
+              <p className="text-xs text-slate-400">This is how AI Ads™ will address you throughout the platform.</p>
             </div>
           )}
 
-          {/* ── STEP 1: Company Name ── */}
+          {/* -- STEP 1: Company -- */}
           {onboardingStep === 1 && (
-            <div className="space-y-4">
-              <label htmlFor="brandName" className="sr-only">Company Name</label>
+            <div className="space-y-2">
+              <label htmlFor="brandName" className="text-xs font-black uppercase tracking-widest text-slate-500 cursor-pointer">Company / Brand Name</label>
               <input
                 id="brandName"
+                autoFocus
                 type="text"
-                placeholder="e.g. Zeta Health Labs"
-                value={onboardingData.brandName}
+                placeholder="e.g. FitFuel India"
+                value={onboardingData.brandName || ''}
                 onChange={e => setOnboardingData({ ...onboardingData, brandName: e.target.value })}
                 onKeyDown={e => e.key === 'Enter' && goNext()}
                 className="w-full h-14 px-5 rounded-2xl border-2 border-slate-200 focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none text-base font-semibold text-slate-800 transition-all bg-white shadow-sm"
               />
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { icon: '💪', label: 'Health & Wellness' },
-                  { icon: '🛍️', label: 'E-commerce' },
-                  { icon: '💻', label: 'Technology' },
-                  { icon: '🍽️', label: 'Food & Lifestyle' },
-                  { icon: '📱', label: 'Creator / Personal Brand' },
-                  { icon: '🏢', label: 'Agency / Services' },
-                ].map(ind => (
-                  <label key={ind.label} className={`flex items-center gap-3 p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${onboardingData.industry === ind.label ? 'border-primary bg-primary/5 shadow-sm shadow-primary/10' : 'border-slate-200 hover:border-slate-300 bg-white'}`}>
-                    <input type="radio" className="sr-only" name="industry" checked={onboardingData.industry === ind.label} onChange={() => setOnboardingData({ ...onboardingData, industry: ind.label })} />
-                    <span className="text-xl">{ind.icon}</span>
-                    <span className="text-xs font-bold text-slate-700">{ind.label}</span>
-                  </label>
-                ))}
-              </div>
+              <p className="text-xs text-slate-400">This will be the primary name for your AI agent's workspace.</p>
             </div>
           )}
 
-          {/* ── STEP 2: Website + AI Fetch ── */}
+          {/* -- STEP 2: Website + AI Fetch -- */}
           {onboardingStep === 2 && (
             <div className="space-y-5">
               <div className="space-y-2">
@@ -4498,10 +4780,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                     className="h-14 px-5 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 disabled:opacity-50 hover:bg-indigo-700 transition-all shadow-lg shadow-primary/20 active:scale-95 shrink-0"
                   >
                     {isExtracting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                    {isExtracting ? 'Scanning...' : '✨ Auto Fill'}
+                    {isExtracting ? 'Scanning...' : 'Auto Fill'}
                   </button>
                 </div>
-                <p className="text-[11px] text-slate-400">Click <span className="font-bold text-primary">✨ Auto Fill</span> to build your entire brand profile instantly.</p>
+                <p className="text-[11px] text-slate-400">Click <span className="font-bold text-primary">Auto Fill</span> to build your entire brand profile instantly.</p>
               </div>
 
               <label className="flex items-center gap-3 cursor-pointer p-4 rounded-2xl border-2 border-slate-200 hover:border-slate-300 transition-all bg-white">
@@ -4517,7 +4799,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
               {/* Preview of fetched brand data */}
               {(onboardingData.brandName || onboardingData.brandLogoPreview || onboardingData.brandColors?.length > 0) && (
                 <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200">
-                  <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest mb-3">✅ Brand Data Detected</p>
+                  <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest mb-3">Brand Data Detected</p>
                   <div className="flex items-center gap-4">
                     {onboardingData.brandLogoPreview && (
                       <img src={toProxyUrl(onboardingData.brandLogoPreview)} className="w-12 h-12 object-contain rounded-xl border border-emerald-200 bg-white p-1" alt="Logo" onError={e => e.target.style.display = 'none'} />
@@ -4538,7 +4820,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          {/* ── STEP 3: Brand Description & Strategy Documents ── */}
+          {/* -- STEP 3: Brand Description & Strategy Documents -- */}
           {onboardingStep === 3 && (
             <div className="space-y-6">
               <div className="space-y-2">
@@ -4572,22 +4854,22 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                       multiple 
                       onChange={(e) => {
                         const files = Array.from(e.target.files);
-                        setOverviewFiles(prev => [...prev, ...files]);
+                        setOnboardingFiles(prev => [...prev, ...files]);
                         // This triggers the useEffect global scan
                       }} 
                       accept=".pdf,.doc,.docx" 
                     />
                  </div>
 
-                 {overviewFiles.length > 0 && (
+                 {onboardingFiles.length > 0 && (
                    <div className="flex flex-wrap gap-2 pt-2">
-                     {overviewFiles.map((f, i) => (
+                     {onboardingFiles.map((f, i) => (
                         <div key={i} className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-xl">
                           <FileText className="w-3 h-3 text-primary" />
                           <span className="text-[8px] font-black text-primary truncate max-w-[100px]">{f.name}</span>
                           <X 
                             className="w-3 h-3 text-primary cursor-pointer hover:scale-120" 
-                            onClick={() => setOverviewFiles(prev => prev.filter((_, idx) => idx !== i))}
+                            onClick={() => setOnboardingFiles(prev => prev.filter((_, idx) => idx !== i))}
                           />
                         </div>
                      ))}
@@ -4595,11 +4877,11 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                  )}
               </div>
               
-              <p className="text-[10px] text-slate-400 font-medium italic">AISA™ uses these documents to extract your brand's unique voice, unique selling points, and target demographics automatically.</p>
+              <p className="text-[10px] text-slate-400 font-medium italic">AI Ads™ uses these documents to extract your brand's unique voice, unique selling points, and target demographics automatically.</p>
             </div>
           )}
 
-          {/* ── STEP 4: Visual Identity ── */}
+          {/* -- STEP 4: Visual Identity -- */}
           {onboardingStep === 4 && (
             <div className="space-y-6">
               {/* Logo Upload */}
@@ -4661,7 +4943,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          {/* ── STEP 5: Role & Goal ── */}
+          {/* -- STEP 5: Role & Goal -- */}
           {onboardingStep === 5 && (
             <div className="space-y-5">
               <div className="space-y-2">
@@ -4701,13 +4983,14 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
             >
               {isOnboardingSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : null}
               {onboardingStep < TOTAL_STEPS - 1
-                ? (onboardingStep === 0 && onboardingData.customName ? `Continue as ${onboardingData.customName}` : 'Continue →')
-                : `Launch ${onboardingData.brandName || onboardingData.customName || 'My'}'s Workspace 🚀`
+                ? (onboardingStep === 0 && onboardingData.customName ? `Continue as ${onboardingData.customName}` : 'Continue')
+                : `Launch ${onboardingData.brandName || onboardingData.customName || 'My'}'s Workspace`
               }
+              <ArrowRight className="w-4 h-4" />
             </button>
             {onboardingStep > 0 && (
-              <button onClick={() => setOnboardingStep(prev => prev - 1)} className="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors">
-                ← Back
+              <button onClick={() => setOnboardingStep(prev => prev - 1)} className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors">
+                <ChevronLeft className="w-3 h-3" /> Back
               </button>
             )}
           </div>
@@ -4716,373 +4999,6 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
     );
   };
 
-  const renderUserProfileModal = () => {
-    const personalWs = allWorkspaces.find(w => w.isPersonalProfile) || workspace;
-    
-    const handleEditProfileClick = () => {
-      setEditableProfileData({
-        fullName: personalWs?.onboarding?.customName || (user?.name) || '',
-        role: personalWs?.onboarding?.role || '',
-        industry: personalWs?.onboarding?.industry || '',
-        selectedPlatforms: personalWs?.selectedPlatforms || [],
-        avatarPreview: user?.avatar || ''
-      });
-      setIsEditingProfile(true);
-    };
-
-    const calculateProfileCompleteness = () => {
-      const fields = [
-        personalWs?.onboarding?.customName,
-        personalWs?.onboarding?.role,
-        personalWs?.onboarding?.industry,
-        personalWs?.onboarding?.postingFrequency,
-        personalWs?.onboarding?.website,
-      ];
-      const filled = fields.filter(f => f && f !== '' && f !== 'Setup Required').length;
-      return Math.round((filled / fields.length) * 100);
-    };
-
-    const handleSaveProfile = async () => {
-      try {
-        setIsSaving(true);
-        const res = await apiService.completeSocialOnboarding({
-          workspaceId: personalWs?._id || workspace?._id,
-          ...editableProfileData
-        });
-        if (res.success) {
-          // If the updated workspace was the active one, update it.
-          // In reality, this always updates the personal profile which isn't usually the brand view.
-          if (workspace?._id === res.workspace._id) {
-            setWorkspace(res.workspace);
-          }
-          // Refresh workspaces list
-          const allRes = await apiService.getSocialAgentWorkspaces();
-          if (allRes.success) setAllWorkspaces(allRes.workspaces);
-          
-          setIsEditingProfile(false);
-          toast.success("Profile updated successfully!");
-        }
-      } catch (error) {
-        toast.error("Failed to update profile");
-      } finally {
-        setIsSaving(false);
-      }
-    };
-
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[160] bg-white dark:bg-[#080808] flex flex-col overflow-y-auto custom-scrollbar"
-      >
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full flex-1 flex flex-col relative"
-        >
-          <button
-            onClick={() => {
-              setShowUserProfileModal(false);
-              setIsEditingProfile(false);
-            }}
-            className="absolute top-8 right-8 w-12 h-12 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all z-20 backdrop-blur-md border border-white/20"
-          >
-            <X className="w-6 h-6" />
-          </button>
-
-          {/* Premium Header */}
-          <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-primary p-12 sm:p-20 text-white flex flex-col items-center text-center relative overflow-hidden">
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
-            <input
-              type="file"
-              ref={profileImageRef}
-              onChange={handleProfileImageUpload}
-              className="hidden"
-              accept="image/*"
-            />
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 260, damping: 20 }}
-              className="w-32 h-32 rounded-full bg-white/20 border-4 border-white/20 flex items-center justify-center text-6xl font-black shadow-2xl relative z-10 mb-6 backdrop-blur-xl ring-8 ring-white/5 cursor-pointer group/avatar overflow-hidden"
-              onClick={() => profileImageRef.current?.click()}
-            >
-              {(() => {
-                // Priority for User Profile: 1. User Avatar -> 2. Saved Multi-brand Onboarding Image -> 3. Brand Logo (Fallback)
-                const rawUrl = currentUser?.avatar || workspace?.onboarding?.profileImageUrl || activeProfile?.logoUrl;
-                if (rawUrl) {
-                  const finalUrl = toProxyUrl(rawUrl);
-                  return <img src={finalUrl} alt="User Profile" className="w-full h-full object-cover" onError={e => e.target.src = "/social_media_3d_logo.png"} />;
-                }
-                const nameToUse = workspace?.onboarding?.customName || currentUser?.name || activeProfile?.companyName || 'U';
-                return (
-                  <div className="w-full h-full bg-gradient-to-br from-primary to-indigo-600 text-white flex items-center justify-center text-4xl font-black uppercase">
-                    {nameToUse.charAt(0)}
-                  </div>
-                );
-              })()}
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
-                <Upload className="w-8 h-8 text-white rotate-180" />
-              </div>
-            </motion.div>
-
-            <div className="flex flex-col items-center gap-1 relative z-10">
-              <motion.h1
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-4xl font-black tracking-tight"
-              >
-                {workspace?.onboarding?.customName || currentUser?.name || 'User Profile'}
-              </motion.h1>
-
-              <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
-                <span className="text-[10px] font-black uppercase tracking-[3px] text-indigo-200/60 bg-white/5 px-3 py-1 rounded-full border border-white/10 italic">
-                  ID: {currentUser?._id?.substring(0, 8) || 'Anonymous'}
-                </span>
-                <span className="w-1 h-1 rounded-full bg-white/20" />
-                <span className="text-[10px] font-black uppercase tracking-[5px] text-indigo-100">
-                  {workspace?.onboarding?.role ? workspace.onboarding.role.replace(/_/g, ' ') : 'Agitator'}
-                </span>
-              </div>
-            </div>
-
-            {/* Profile Completeness Insight */}
-            {!isEditingProfile && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.4 }}
-                className="mt-10 w-full max-w-sm relative z-10 p-6 bg-white/5 backdrop-blur-md rounded-3xl border border-white/10"
-              >
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-[10px] font-black text-indigo-100 uppercase tracking-[4px]">Profile Vitality</span>
-                  <span className="text-[10px] font-black text-emerald-400">{calculateProfileCompleteness()}%</span>
-                </div>
-                <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden p-[1px]">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${calculateProfileCompleteness()}%` }}
-                    className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full shadow-[0_0_20px_rgba(52,211,153,0.4)]"
-                  />
-                </div>
-              </motion.div>
-            )}
-          </div>
-
-          <div className="p-8 sm:p-20 space-y-16 flex-1">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-              {/* Left Side: Deep Profile Details */}
-              <div className="lg:col-span-2 space-y-10">
-                <div>
-                  <div className="flex items-center justify-between mb-8">
-                    <h2 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-[5px] flex items-center gap-3">
-                      <Target className="w-5 h-5 text-indigo-500" /> Identity Blueprint
-                    </h2>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {[
-                      { label: 'My Industry', key: 'industry', type: 'text', icon: Palette },
-                      { label: 'Post Volume', key: 'postingFrequency', type: 'select', options: ['daily', 'weekly', 'monthly'], icon: CalendarRange },
-                      { label: 'Nexus URL', key: 'website', type: 'url', icon: Globe },
-                      { label: 'Agitator', key: 'biggestChallenge', type: 'text', icon: Sparkles },
-                      { label: 'Grind Time', key: 'contentCreationTime', type: 'select', options: ['1_hour', '5_hours', '10_hours', '10_plus', 'too_much'], icon: Clock },
-                      { label: 'Advocacy', key: 'adsComfortLevel', type: 'select', options: ['comfortable', 'neutral', 'uncomfortable'], icon: CheckSquare }
-                    ].filter(f => workspace?.onboarding?.[f.key] && workspace?.onboarding?.[f.key] !== '' && workspace?.onboarding?.[f.key] !== 'Awaiting Definition')
-                      .map((field, idx) => (
-                        <motion.div
-                          key={field.key}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.1 + (idx * 0.05) }}
-                          className="bg-slate-50/50 dark:bg-white/[0.02] p-5 rounded-3xl border border-slate-200/50 dark:border-white/5 hover:border-indigo-500/20 hover:shadow-xl hover:shadow-indigo-500/[0.02] transition-all group relative overflow-hidden"
-                        >
-                          <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
-                            <field.icon className="w-12 h-12" />
-                          </div>
-                          <label htmlFor={`profile-${field.key}`} className="text-[10px] font-black text-indigo-500/80 uppercase tracking-[3px] block mb-2 cursor-pointer">{field.label}</label>
-                          {isEditingProfile ? (
-                            field.type === 'select' ? (
-                              <select
-                                id={`profile-${field.key}`}
-                                value={editableProfileData[field.key] || ''}
-                                onChange={e => setEditableProfileData({ ...editableProfileData, [field.key]: e.target.value })}
-                                className="w-full text-sm font-bold bg-white dark:bg-zinc-800 border-2 border-slate-100 dark:border-zinc-700/50 rounded-2xl p-3 focus:ring-4 focus:ring-indigo-50/10 focus:border-indigo-500 outline-none transition-all dark:text-white"
-                              >
-                                <option value="">Select Option...</option>
-                                {field.options.map(opt => <option key={opt} value={opt}>{opt.replace(/_/g, ' ')}</option>)}
-                              </select>
-                            ) : (
-                              <input
-                                id={`profile-${field.key}`}
-                                type={field.type}
-                                value={editableProfileData[field.key] || ''}
-                                onChange={e => setEditableProfileData({ ...editableProfileData, [field.key]: e.target.value })}
-                                placeholder={`Enter ${field.label}...`}
-                                className="w-full text-sm font-bold bg-white dark:bg-zinc-800 border-2 border-slate-100 dark:border-zinc-700/50 rounded-2xl p-3 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all dark:text-white"
-                              />
-                            )
-                          ) : (
-                            <p className="text-sm font-bold text-slate-800 dark:text-slate-100 capitalize truncate">
-                              {(() => {
-                                const ow = allWorkspaces.find(w => w.onboarding?.completed) || workspace;
-                                if (field.key === 'website' && ow?.onboarding?.[field.key]) {
-                                  const val = ow?.onboarding?.[field.key];
-                                  return (typeof val === 'string') ? <a href={val} target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">{val.replace(/^https?:\/\//, '') || 'Website'}</a> : 'N/A';
-                                }
-                                return ow?.onboarding?.[field.key]?.toString()?.replace(/_/g, ' ') || 'Awaiting Definition';
-                              })()}
-                            </p>
-                          )}
-                        </motion.div>
-                      ))}
-                  </div>
-                </div>
-
-                {/* Extended Road Map Feature */}
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.6 }}
-                  className="bg-gradient-to-br from-indigo-600/10 via-indigo-600/5 to-transparent p-8 rounded-[32px] border border-indigo-600/10 backdrop-blur-sm group"
-                >
-                  <div className="flex items-center gap-6">
-                    <div className="w-16 h-16 rounded-[24px] bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-2xl shadow-indigo-600/30 group-hover:scale-110 transition-transform duration-500">
-                      <Sparkles className="w-8 h-8" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-[4px] mb-2">Social HQ Roadmap</h3>
-                      <p className="text-[12px] text-slate-500 dark:text-slate-400 leading-relaxed max-w-lg">
-                        We are evolving your profile into a <strong className="text-indigo-600 dark:text-indigo-400">Content Command Center</strong>. Soon, you'll be able to sync Social OAuth for direct publishing, define multi-persona audiences, and configure real-time AI approval triggers.
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              </div>
-
-              {/* Right Side: Social Grid & Preferences */}
-              <div className="space-y-12">
-                <div>
-                  <h2 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-[5px] flex items-center gap-3 mb-8">
-                    <Layers className="w-5 h-5 text-emerald-500" /> Active Echoes
-                  </h2>
-                  <div className="grid grid-cols-2 gap-4">
-                    {isEditingProfile ? (
-                      ['instagram', 'tiktok', 'linkedin', 'twitter', 'facebook'].map(plat => {
-                        const isSelected = editableProfileData.selectedPlatforms?.includes(plat);
-                        return (
-                          <button
-                            key={plat}
-                            onClick={() => {
-                              const current = editableProfileData.selectedPlatforms || [];
-                              const next = isSelected
-                                ? current.filter(p => p !== plat)
-                                : [...current, plat];
-                              setEditableProfileData({ ...editableProfileData, selectedPlatforms: next });
-                            }}
-                            className={`p-4 rounded-[24px] border-2 transition-all flex flex-col items-center gap-2 ${isSelected ? 'bg-emerald-500/10 border-emerald-500' : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5'}`}
-                          >
-                            <span className={`text-xs font-black uppercase tracking-widest ${isSelected ? 'text-emerald-600' : 'text-slate-400'}`}>{plat}</span>
-                          </button>
-                        );
-                      })
-                    ) : (
-                      (() => {
-                        const ow = allWorkspaces.find(w => w.onboarding?.completed) || workspace;
-                        return (ow?.selectedPlatforms && ow.selectedPlatforms.length > 0 ? ow.selectedPlatforms : ['instagram', 'tiktok']).map((platform, idx) => (
-                          <motion.div
-                            key={platform}
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ delay: 0.4 + (idx * 0.1) }}
-                            className="bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 p-4 rounded-[24px] flex flex-col items-center justify-center text-center group hover:bg-emerald-500/5 hover:border-emerald-500/20 transition-all font-black text-[10px] uppercase text-slate-400 tracking-widest"
-                          >
-                            <div className="w-10 h-10 rounded-xl bg-white dark:bg-zinc-800 border border-slate-100 dark:border-white/10 flex items-center justify-center mb-3 shadow-sm group-hover:shadow-lg transition-all group-hover:-translate-y-1">
-                              <span className="text-emerald-500">{platform.charAt(0).toUpperCase()}</span>
-                            </div>
-                            {platform}
-                          </motion.div>
-                        ));
-                      })()
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <h2 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-[5px] flex items-center gap-3 mb-8">
-                    <Settings className="w-5 h-5 text-slate-500" /> Core Toggles
-                  </h2>
-                  <div className="space-y-4">
-                    {[
-                      { label: 'Weekly Performance', desc: 'AI-driven growth digests' },
-                      { label: 'Autonomous Queue', desc: 'Auto-pilot day-by-day runs' }
-                    ].map((pref, idx) => (
-                      <motion.div
-                        key={idx}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.7 + (idx * 0.1) }}
-                        className="group flex items-center justify-between p-5 bg-slate-50/50 dark:bg-white/[0.02] rounded-[24px] border border-slate-200/5 dark:border-white/5 hover:bg-white transition-all shadow-sm"
-                      >
-                        <div className="pr-4">
-                          <p className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-[2px]">{pref.label}</p>
-                          <p className="text-[10px] text-slate-500 font-medium">{pref.desc}</p>
-                        </div>
-                        <div className="w-10 h-5 bg-slate-200 dark:bg-white/10 rounded-full relative cursor-not-allowed opacity-40">
-                          <div className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full" />
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer Actions */}
-            <div className="mt-20 pt-12 border-t border-slate-200/10 flex flex-col sm:flex-row justify-between items-center gap-6 pb-20">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[4px]">Verified AI Ads Core • Version 1.0.4</p>
-
-              <div className="flex gap-4">
-                {isEditingProfile ? (
-                  <>
-                    <button
-                      onClick={() => setIsEditingProfile(false)}
-                      className="px-8 py-3.5 rounded-2xl bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200 font-black text-xs uppercase hover:bg-slate-200 transition-all active:scale-95"
-                    >
-                      Discard
-                    </button>
-                    <button
-                      onClick={handleSaveProfile}
-                      disabled={isSaving}
-                      className="px-10 py-3.5 rounded-2xl bg-indigo-600 text-white font-black text-xs uppercase transition-all shadow-[0_15px_30px_rgba(79,70,229,0.3)] hover:shadow-indigo-600/50 hover:bg-indigo-700 active:scale-95 disabled:opacity-50"
-                    >
-                      {isSaving ? 'Syncing...' : 'Commit Settings'}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={handleEditProfileClick}
-                      className="px-8 py-3.5 rounded-2xl bg-indigo-600/10 text-indigo-600 dark:text-indigo-400 font-black text-xs uppercase border border-indigo-600/20 hover:bg-indigo-600 hover:text-white transition-all active:scale-95"
-                    >
-                      Precision Adjust
-                    </button>
-                    <button
-                      onClick={() => setShowUserProfileModal(false)}
-                      className="px-12 py-3.5 rounded-2xl bg-primary text-white font-black text-xs uppercase hover:bg-primary/90 transition-all shadow-[0_15px_30px_rgba(var(--primary-rgb),0.3)] hover:shadow-primary/50 active:scale-95"
-                    >
-                      Finalize View
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      </motion.div>
-    );
-  };
 
   const renderDirectSynthesisPage = () => {
     const row = calendarEntries.find(r => ensureStringId(r._id) === ensureStringId(activeGenerationRowId));
@@ -5109,7 +5025,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
               <ChevronLeft className="w-6 h-6" />
             </button>
             <div>
-              <h2 className="text-sm font-black text-slate-800 uppercase tracking-[4px]">Direct Synthesis Page</h2>
+              <h2 className="text-sm font-black text-slate-800 uppercase tracking-[4px]">Direct Generation Page</h2>
               <div className="flex items-center gap-2 mt-1">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{row?.title || "Targeted Orchestration"}</p>
@@ -5223,7 +5139,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                   {isGenerating && (
                     <div className="flex items-center gap-8 pr-6">
                        <div className="flex flex-col items-end">
-                         <span className="text-[9px] font-black text-primary uppercase tracking-[3px]">Synthesis Active</span>
+                         <span className="text-[9px] font-black text-primary uppercase tracking-[3px]">Generation Active</span>
                          <span className="text-[8px] font-bold text-slate-300 uppercase tracking-widest mt-1">Optimizing Variation Logic</span>
                        </div>
                        <div className="w-12 h-12 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
@@ -5357,7 +5273,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
             >
               <Dialog.Panel
                 ref={dashboardRef}
-                className="relative transform overflow-hidden bg-background text-foreground shadow-2xl transition-all w-full h-screen flex"
+                className="relative transform overflow-hidden bg-background text-foreground shadow-2xl transition-all w-full h-[100dvh] flex"
                 style={{
                   '--background': '45 26% 91%',
                   '--primary': '216 39% 48%',
@@ -5375,8 +5291,24 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                   {showOnboarding && !showSplash && renderOnboardingUI()}
                 </AnimatePresence>
 
-                {/* Dashboard Sidebar */}
-                <div className={`${isSidebarCollapsed ? 'w-24' : 'w-[280px]'} hidden lg:flex bg-white dark:bg-[#080808] border-r border-slate-200 dark:border-white/5 flex-col p-8 shrink-0 transition-all duration-500 ease-in-out relative group/sidebar`}>
+                {/* Dashboard UI - Only show if splash is gone and onboarding is not active and check is done */}
+                {!showSplash && !showOnboarding && !isCheckingOnboarding && (
+                  <>
+                    {/* Mobile Overlay */}
+                    {isMobileMenuOpen && (
+                      <div 
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[130] lg:hidden"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      />
+                    )}
+
+                    {/* Dashboard Sidebar */}
+                    <div className={`
+                      fixed lg:relative inset-y-0 left-0 z-[140] transform transition-transform duration-500 ease-in-out
+                      ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+                      ${isSidebarCollapsed ? 'lg:w-24' : 'lg:w-[280px]'}
+                      w-[280px] flex bg-white dark:bg-[#080808] border-r border-slate-200 dark:border-white/5 flex-col p-6 lg:p-8 shrink-0 group/sidebar
+                    `}>
 
                   {/* Collapse Toggle */}
                   <button
@@ -5386,57 +5318,45 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                     {isSidebarCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
                   </button>
 
-                  <div className={`relative flex items-center gap-3 mb-10 ${isSidebarCollapsed ? 'px-0 justify-center' : 'px-2'}`}>
-                    <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-lg shadow-primary/5 shrink-0 overflow-hidden">
-                      {(() => {
-                        const isEditingActive = workspace?._id === currentEditingBrandId;
-                        const rawUrl = activeProfile?.logoUrl || (isEditingActive ? (logoPreviewUrl || brandProfile?.logoUrl) : null) || workspace?.onboarding?.profileImageUrl || currentUser?.avatar;
-                        const nameToUse = activeProfile?.companyName || (isEditingActive ? brandProfile?.companyName : null) || workspace?.workspaceName || currentUser?.name || 'B';
+                  {/* Ã¢â€â‚¬Ã¢â€â‚¬ WORKSPACE HEADER Ã¢â€â‚¬Ã¢â€â‚¬ */}
+                  {(() => {
+                    const onboardedWs = allWorkspaces.find(w => w.onboarding?.completed);
+                    const companyName  = onboardedWs?.onboarding?.customName || currentUser?.name || 'My Company';
+                    const companyAvatarUrl = onboardedWs?.onboarding?.profileImageUrl || currentUser?.avatar;
+                    const activeBrandName = activeProfile?.companyName || workspace?.workspaceName || '';
 
-                        if (rawUrl) {
-                          const finalUrl = toProxyUrl(rawUrl);
-                          return (
-                            <img
-                              src={finalUrl}
-                              alt="Logo"
-                              className="w-full h-full object-contain p-1"
-                              onError={e => {
-                                e.currentTarget.style.display = 'none';
-                                const parent = e.currentTarget.parentElement;
-                                if (parent && !parent.querySelector('.fallback-avatar')) {
-                                  const fallback = document.createElement('div');
-                                  fallback.className = "fallback-avatar w-full h-full bg-gradient-to-br from-primary to-indigo-600 text-white flex items-center justify-center text-xl font-black uppercase";
-                                  fallback.textContent = (nameToUse || 'B').charAt(0);
-                                  parent.appendChild(fallback);
-                                }
-                              }}
-                            />
-                          );
-                        }
 
-                        return (
-                          <div className="w-full h-full bg-gradient-to-br from-primary to-indigo-600 text-white flex items-center justify-center text-xl font-black uppercase">
-                            {nameToUse.charAt(0)}
-                          </div>
-                        );
-                      })()}
-                    </div>
-                    {!isSidebarCollapsed && (
-                      <Menu as="div" className="flex-1 min-w-0 relative">
+                    return (
+                      <Menu as="div" className="relative mb-8">
                         <Menu.Button
-                          className={`w-full flex items-center justify-between gap-2 p-2 rounded-xl group/profile hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-start`}
+                          className={`w-full flex items-center gap-3 p-2.5 rounded-2xl group/ws hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-start ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}
+                          title={isSidebarCollapsed ? companyName : ''}
                         >
-                          <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-left-2">
-                            <h1 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none truncate group-hover/profile:text-primary transition-colors">
-                              {activeProfile?.companyName || (workspace?._id === currentEditingBrandId ? brandProfile?.companyName : '') || workspace?.workspaceName || currentUser?.name || 'My Profile'}
-                            </h1>
-                            <div className="flex items-center gap-1.5 mt-1">
-                              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{allWorkspaces.length} BRANDS</span>
-                              <ChevronDown className="w-3 h-3 text-slate-400 group-hover/profile:text-primary transition-all" />
-                            </div>
+                          <div className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-md shadow-primary/5 shrink-0 overflow-hidden">
+                            {companyAvatarUrl ? (
+                              <img src={toProxyUrl(companyAvatarUrl)} alt={companyName} className="w-full h-full object-cover" onError={e => { e.currentTarget.style.display = 'none'; }} />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-primary to-indigo-600 text-white flex items-center justify-center text-lg font-black uppercase">
+                                {companyName.charAt(0)}
+                              </div>
+                            )}
                           </div>
+                          {!isSidebarCollapsed && (
+                            <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-left-2">
+                              <p className="text-[12px] font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-tight break-words group-hover/ws:text-primary transition-colors">
+                                {companyName}
+                              </p>
+                              {activeBrandName && (
+                                <p className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 truncate mt-0.5 leading-none">
+                                  {activeBrandName}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          {!isSidebarCollapsed && (
+                            <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0 group-hover/ws:text-primary transition-all" />
+                          )}
                         </Menu.Button>
-
                         <Transition
                           as={Fragment}
                           enter="transition ease-out duration-100"
@@ -5446,66 +5366,84 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                           leaveFrom="transform opacity-100 scale-100"
                           leaveTo="transform opacity-0 scale-95"
                         >
-                          <Menu.Items className="absolute left-0 mt-2 w-[280px] origin-top-left bg-white dark:bg-zinc-900 rounded-[28px] shadow-2xl ring-1 ring-black/5 dark:ring-white/5 focus:outline-none z-[130] p-3 overflow-hidden border border-slate-100 dark:border-white/5 animate-in slide-in-from-top-2">
-                             <div className="space-y-1">
-                                <div className="max-h-64 overflow-y-auto custom-scrollbar px-1 py-1">
-                                  <p className="text-[7px] font-black text-slate-400 uppercase tracking-[2px] px-6 mb-2 mt-2">Switch Brand Intelligence</p>
-                                  {allWorkspaces
-                                    .filter(ws => ws.calendarEntryCount > 0 || ws._id === workspace?._id)
-                                    .map(ws => (
-                                    <Menu.Item key={ws._id}>
-                                      {({ active }) => (
-                                        <button
-                                          onClick={() => switchWorkspace(ws)}
-                                          className={`${active || workspace?._id === ws._id ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400'
-                                            } w-full flex items-center justify-between gap-3 px-6 h-12 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all mb-1`}
-                                        >
-                                          <div className="flex items-center gap-3 truncate">
-                                            <div className="w-7 h-7 rounded-xl bg-primary/20 flex items-center justify-center text-[10px] font-black shrink-0">
-                                              {ws.workspaceName?.charAt(0) || 'B'}
-                                            </div>
-                                            <span className="truncate">{ws.workspaceName}</span>
-                                          </div>
-                                          {ws.calendarEntryCount > 0 && (
-                                            <div className="px-1.5 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-500 text-[8px] flex items-center gap-1 border border-emerald-500/10">
-                                              <Layers className="w-2.5 h-2.5" />
-                                              {ws.calendarEntryCount}
-                                            </div>
-                                          )}
-                                        </button>
-                                      )}
-                                    </Menu.Item>
-                                  ))}
-                                </div>
-
-                                <div className="h-px bg-slate-100 dark:bg-white/5 my-2 mx-6" />
-                                
-                                <Menu.Item>
-                                  {({ active }) => (
-                                    <button
-                                      onClick={() => setShowUserProfileModal(true)}
-                                      className={`${active ? 'bg-indigo-500/5 text-indigo-500' : 'text-slate-600 dark:text-slate-400'
-                                        } w-full flex items-center gap-3 px-6 h-12 text-[10px] font-black uppercase tracking-widest transition-all rounded-2xl`}
-                                    >
-                                      <User2 className="w-4 h-4 shadow-sm" />
-                                      Profile Info
-                                    </button>
-                                  )}
-                                </Menu.Item>
+                          <Menu.Items className="absolute left-0 mt-1 w-[270px] origin-top-left bg-white dark:bg-zinc-900 rounded-[24px] shadow-2xl ring-1 ring-black/5 dark:ring-white/5 focus:outline-none z-[130] p-3 border border-slate-100 dark:border-white/5 animate-in slide-in-from-top-2">
+                            <div className="flex items-center gap-3 px-4 py-2.5 mb-1">
+                              <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
+                                {companyAvatarUrl ? (
+                                  <img src={toProxyUrl(companyAvatarUrl)} alt={companyName} className="w-full h-full object-cover" onError={e => { e.currentTarget.style.display = 'none'; }} />
+                                ) : (
+                                  <div className="w-full h-full bg-gradient-to-br from-primary to-indigo-600 text-white flex items-center justify-center text-xs font-black uppercase">
+                                    {companyName.charAt(0)}
+                                  </div>
+                                )}
                               </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">{companyName}</p>
+                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{allWorkspaces.length} {allWorkspaces.length === 1 ? 'Brand' : 'Brands'}</p>
+                              </div>
+                            </div>
+                            <div className="h-px bg-slate-100 dark:bg-white/5 mx-4 mb-2" />
+                            <p className="text-[7px] font-black text-slate-400 uppercase tracking-[2px] px-4 mb-1.5">Switch Brand</p>
+                            <div className="max-h-52 overflow-y-auto custom-scrollbar space-y-0.5 px-1">
+                              {allWorkspaces.map(ws => {
+                                const wsLogo = ws.brandProfile?.logoUrl;
+                                const isActive = workspace?._id === ws._id;
+                                return (
+                                  <Menu.Item key={ws._id}>
+                                    {({ active }) => (
+                                      <button
+                                        onClick={() => switchWorkspace(ws)}
+                                        className={`w-full flex items-center justify-between gap-3 px-3 h-11 rounded-2xl text-[10px] font-black uppercase tracking-wide transition-all ${active || isActive ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400'}`}
+                                      >
+                                        <div className="flex items-center gap-2.5 min-w-0">
+                                          <div className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center shrink-0 overflow-hidden">
+                                            {wsLogo ? (
+                                              <img src={toProxyUrl(wsLogo)} alt="" className="w-full h-full object-contain p-0.5" onError={e => { e.currentTarget.style.display = 'none'; }} />
+                                            ) : (
+                                              <span className="text-[9px] font-black">{ws.workspaceName?.charAt(0) || 'B'}</span>
+                                            )}
+                                          </div>
+                                          <span className="truncate">{ws.workspaceName}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 shrink-0">
+                                          {ws.calendarEntryCount > 0 && (
+                                            <span className="text-[8px] font-black px-1.5 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/10">{ws.calendarEntryCount}</span>
+                                          )}
+                                          {isActive && <Check className="w-3 h-3 text-primary" />}
+                                        </div>
+                                      </button>
+                                    )}
+                                  </Menu.Item>
+                                );
+                              })}
+                            </div>
+
+                             <div className="h-px bg-slate-100 dark:bg-white/5 mx-4 my-2" />
+                             <Menu.Item>
+                               {({ active }) => (
+                                 <button
+                                   onClick={() => setShowCompanyInfoPanel(true)}
+                                   className={`w-full flex items-center gap-3 px-4 h-10 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${active ? 'bg-indigo-500/5 text-indigo-500' : 'text-slate-500 dark:text-slate-400'}`}
+                                 >
+                                   <User2 className="w-3.5 h-3.5" />
+                                   Company Info
+                                 </button>
+                               )}
+                             </Menu.Item>
                           </Menu.Items>
                         </Transition>
                       </Menu>
-                    )}
-                  </div>
+                    );
+                  })()}
 
-                  <div className="flex-1 space-y-1">
+                  <div className="flex-1 space-y-1 overflow-y-auto custom-scrollbar pr-2">
                     {tabs.map(tab => (
                       <button
                         key={tab.id}
                         onClick={() => {
                           if (!tab.comingSoon) {
                             setActiveTab(tab.id);
+                            setIsMobileMenuOpen(false);
                           }
                         }}
                         className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-5' : 'justify-between px-5 py-4'} rounded-2xl transition-all group ${activeTab === tab.id
@@ -5526,41 +5464,90 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
                 </div>
 
-                {/* Main Content Area */}
-                <div className="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-zinc-950 overflow-hidden">
+                  {/* Main Content Area */}
+                  <div className="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-zinc-950 overflow-hidden relative">
                   {/* Header */}
-                  <header className="h-24 bg-white/80 dark:bg-[#080808]/80 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 px-10 flex items-center justify-between z-20 shrink-0">
-                    <div className="flex items-center gap-4">
-                      <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">
+                  <header className="h-16 lg:h-24 bg-white/80 dark:bg-[#080808]/80 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 px-4 lg:px-10 flex items-center justify-between z-20 shrink-0">
+                    <div className="flex items-center gap-2 lg:gap-4">
+                      <button 
+                        onClick={() => setIsMobileMenuOpen(true)}
+                        className="lg:hidden w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center hover:bg-slate-200 active:scale-95 transition-all text-slate-800 dark:text-white shrink-0"
+                      >
+                        <AlignLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </button>
+                      <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter truncate max-w-[120px] sm:max-w-none">
                         {tabs.find(t => t.id === activeTab)?.name}
                       </h2>
-                      <div className="h-4 w-px bg-slate-200 dark:bg-white/10 mx-2" />
-                      <div className="flex -space-x-2 ml-2">
+                      <div className="hidden sm:block h-4 w-px bg-slate-200 dark:bg-white/10 mx-1 lg:mx-2" />
+                      <div className="hidden sm:flex -space-x-2 ml-1 lg:ml-2">
                         {[
                           { Icon: Instagram, color: 'bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500' },
                           { Icon: Linkedin, color: 'bg-blue-600' },
                           { Icon: Twitter, color: 'bg-black' },
                           { Icon: Facebook, color: 'bg-blue-500' }
                         ].map((item, idx) => (
-                          <div key={idx} className={`w-8 h-8 rounded-full border-2 border-white dark:border-zinc-950 flex items-center justify-center text-white p-1.5 shadow-sm ${item.color} hover:scale-110 transition-transform cursor-pointer`}>
+                          <div key={idx} className={`w-6 h-6 lg:w-8 lg:h-8 rounded-full border-2 border-white dark:border-zinc-950 flex items-center justify-center text-white p-1 lg:p-1.5 shadow-sm ${item.color} hover:scale-110 transition-transform cursor-pointer`}>
                             <item.Icon className="w-full h-full" />
                           </div>
                         ))}
-                        <div className="w-8 h-8 rounded-full border-2 border-white dark:border-zinc-950 bg-primary/10 flex items-center justify-center text-[7px] font-black text-primary backdrop-blur-md">
+                        <div className="w-6 h-6 lg:w-8 lg:h-8 rounded-full border-2 border-white dark:border-zinc-950 bg-primary/10 flex items-center justify-center text-[6px] lg:text-[7px] font-black text-primary backdrop-blur-md">
                           +2
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                      <button onClick={onClose} className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center hover:bg-slate-200 transition-all active:scale-95 shadow-sm">
-                        <X className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                    <div className="flex items-center gap-2 lg:gap-4 shrink-0">
+                      <button onClick={onClose} className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center hover:bg-slate-200 transition-all active:scale-95 shadow-sm">
+                        <X className="w-4 h-4 lg:w-5 lg:h-5 text-slate-600 dark:text-slate-400" />
                       </button>
                     </div>
                   </header>
 
+                  {/* Dynamic Pipeline Progress */}
+                  <div className="bg-white/40 dark:bg-[#080808]/40 border-b border-slate-200 dark:border-white/5 px-4 lg:px-10 py-3 lg:py-4 flex items-center shrink-0 overflow-x-auto custom-scrollbar hide-scrollbar-on-idle">
+                    <div className="flex items-center w-full max-w-5xl mx-auto">
+                      {tabs.map((tab, idx) => {
+                        const isActive = activeTab === tab.id;
+                        const isPast = tabs.findIndex(t => t.id === activeTab) > idx;
+                        const isUpcoming = !isActive && !isPast;
+                        
+                        const circleStyle = isActive 
+                          ? 'bg-indigo-500 text-white border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.4)]' 
+                          : isPast 
+                            ? 'bg-emerald-500 text-white border-emerald-500' 
+                            : 'bg-slate-100 dark:bg-zinc-800 text-slate-400 border-slate-200 dark:border-zinc-700';
+                            
+                        const textStyle = isActive 
+                          ? 'text-indigo-600 dark:text-indigo-400' 
+                          : isPast 
+                            ? 'text-emerald-600 dark:text-emerald-400' 
+                            : 'text-slate-400';
+
+                        const lineBg = isPast ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-zinc-800';
+
+                        return (
+                          <React.Fragment key={tab.id}>
+                            <div className="flex items-center gap-3 relative group cursor-pointer" onClick={() => !tab.comingSoon && setActiveTab(tab.id)}>
+                              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-500 z-10 relative ${circleStyle}`}>
+                                {isPast ? <Check className="w-4 h-4" /> : <tab.icon className="w-4 h-4" />}
+                              </div>
+                              <span className={`text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-colors duration-300 ${textStyle}`}>
+                                {tab.name}
+                              </span>
+                            </div>
+                            {idx < tabs.length - 1 && (
+                              <div className="flex-1 px-4">
+                                <div className={`h-[2px] w-full rounded-full transition-colors duration-500 ${lineBg}`} />
+                              </div>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   {/* Scrollable Content */}
-                  <main className={`flex-1 overflow-y-auto ${activeTab === 'generation' ? 'p-4 lg:p-10' : 'p-12'} custom-scrollbar relative mesh-bg`} data-lenis-prevent>
+                  <main className={`flex-1 overflow-y-auto ${activeTab === 'generation' ? 'p-4 lg:p-10' : 'p-6 lg:p-12'} custom-scrollbar relative mesh-bg`} data-lenis-prevent>
                     {renderContent()}
                   </main>
                 </div>
@@ -5570,8 +5557,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                 {renderOneOffAssetModal()}
                 {renderGenPostModal()}
 
+
+
                 <AnimatePresence>
-                  {showUserProfileModal && renderUserProfileModal()}
+                  {showCompanyInfoPanel && renderCompanyInfoPanel()}
                 </AnimatePresence>
 
                 {showOnboardingGuide && renderOnboardingGuideModal()}
@@ -5600,6 +5589,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                   </div>
                 )}
                 {renderAssetPreviewModal()}
+                  </>
+                )}
               </Dialog.Panel>
             </Transition.Child>
           </div>
@@ -5634,12 +5625,12 @@ const DashboardSplash = ({ onComplete }) => {
       initial={{ opacity: 1 }}
       exit={{ opacity: 0, scale: 1.1, pointerEvents: 'none' }}
       transition={{ duration: 0.8, ease: "easeInOut" }}
-      className="absolute inset-0 z-[110] bg-white dark:bg-[#080808] flex flex-col items-center justify-center p-12 pointer-events-none select-none"
+      className="absolute inset-0 z-[110] bg-white dark:bg-[#080808] flex flex-col items-center justify-center p-6 md:p-12 pointer-events-none select-none"
     >
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="w-80 h-80 relative group mb-12 rounded-full overflow-hidden border-2 border-primary/20 bg-zinc-950/20 backdrop-blur-sm shadow-[0_0_80px_rgba(var(--primary-rgb),0.1)]"
+        className="w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80 relative group mb-8 md:mb-12 rounded-full overflow-hidden border-2 border-primary/20 bg-zinc-950/20 backdrop-blur-sm shadow-[0_0_80px_rgba(var(--primary-rgb),0.1)]"
       >
         <img
           src="/ai_ads_logo_circular.png"
@@ -5648,15 +5639,15 @@ const DashboardSplash = ({ onComplete }) => {
         />
       </motion.div>
 
-      <div className="w-full max-w-md space-y-4">
+      <div className="w-full max-w-xs sm:max-w-sm md:max-w-md space-y-4">
         <div className="h-1.5 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden shadow-inner border border-white/5">
           <motion.div
             className="h-full bg-gradient-to-r from-primary via-indigo-500 to-primary bg-[length:200%_100%] shadow-[0_0_20px_rgba(var(--primary-rgb),0.5)]"
             style={{ width: `${progress}%` }}
           />
         </div>
-        <div className="flex justify-between items-center text-[10px] font-black text-primary uppercase tracking-[4px]">
-          <span>PERSONALIZING YOUR AI ADS™ EXPERIENCE</span>
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-2 text-center text-[8px] sm:text-[10px] font-black text-primary uppercase tracking-[2px] sm:tracking-[4px]">
+          <span className="normal-case">PERSONALIZING YOUR AI Ads™ EXPERIENCE</span>
           <span>{Math.round(progress)}%</span>
         </div>
       </div>
@@ -5667,3 +5658,4 @@ const DashboardSplash = ({ onComplete }) => {
 
 
 export default AiSocialMediaDashboard;
+

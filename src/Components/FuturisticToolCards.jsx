@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useInView, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { ImagePlus, PlaySquare, Headphones, Code, Sparkles, Zap, Search, Globe, FileText, Wand2, PlayCircle, Scale, Video, Brain, TrendingUp, Megaphone, Lock } from 'lucide-react';
+import LegalLogo from './LegalLogo';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -453,9 +454,9 @@ const FuturisticToolCards = ({ onToolSelect, activeToolId, isAdmin = false }) =>
     { id: 'document', label: t('analyzeDocument'), badge: t('badgeDocument'), desc: t('chatWithPdfsDocs'), icon: FileText, color: '#3b82f6', prompt: "Summarize this 50-page legal PDF and identify risks...", review: { rating: 5, count: "7.4k", text: "I uploaded a 120-page contract and it found a hidden liability clause in seconds. Worth every credit." } },
     { id: 'code', label: t('codeWriter'), badge: t('badgeCode'), desc: t('writeDebugCode'), icon: Code, color: '#6366f1', prompt: "Write a robust Python script for a neural network...", review: { rating: 4.9, count: "14.2k", text: "Writes production-ready code with tests. It actually understands modern design patterns, not just snippets." } },
     { id: 'audio', label: t('convertToAudio'), badge: t('badgeAudio'), desc: t('textDocsToVoice'), icon: Headphones, color: '#34d399', prompt: "Synthesize this report into a natural sounding male voice...", review: { rating: 4.8, count: "6k", text: "The most human-like synthesis I've heard. Even the breathing and pauses feel natural. Perfect for podcasts." } },
-    { id: 'legal', label: t('aiLegal'), badge: t('badgeLegal'), desc: t('specializedAiLegalTools'), icon: Scale, color: '#818cf8', prompt: "Analyze this employment contract for potential loopholes...", review: { rating: 5, count: "3.2k", text: "AISA's legal reasoning is spookily good. It identified risks that our junior lawyers missed twice." } },
+    { id: 'legal', label: t('aiLegal'), badge: t('badgeLegal'), desc: t('specializedAiLegalTools'), icon: LegalLogo, color: '#818cf8', prompt: "Analyze this employment contract for potential loopholes...", review: { rating: 5, count: "3.2k", text: "AISA's legal reasoning is spookily good. It identified risks that our junior lawyers missed twice." } },
     { id: 'ai_cashflow', label: t('aiCashFlow'), badge: t('badgeFinance'), desc: t('liveAnalysisReports'), icon: TrendingUp, color: '#10b981', prompt: "Analyzing cashflow...", review: { rating: 5, count: "4.2k", text: "Incredible financial insights. The real-time analysis saved us thousands." } },
-    { id: 'aiad_agent', label: t('aiAds') || 'AIADS™', badge: t('badgeAds') || 'ADS', desc: 'Social Media Orchestration', icon: Megaphone, color: '#eab308', prompt: "Generate a 30-day social media campaign for AISA...", review: { rating: 5, count: "18k", text: "Automated my entire month's content in under 5 minutes. The hashtags are perfectly optimized for trends." } },
+    { id: 'aiad_agent', label: t('aiAds') || 'AI ADS™', badge: t('badgeAds') || 'ADS', desc: 'Social Media Orchestration', icon: Megaphone, color: '#eab308', prompt: "Generate a 30-day social media campaign for AISA...", review: { rating: 5, count: "18k", text: "Automated my entire month's content in under 5 minutes. The hashtags are perfectly optimized for trends." } },
   ];
 
   // Map the visual tool IDs to the IDs used in state
@@ -478,9 +479,9 @@ const FuturisticToolCards = ({ onToolSelect, activeToolId, isAdmin = false }) =>
   };
 
   return (
-    <div className="w-full py-4 sm:py-12 px-2 sm:px-3 flex justify-center" ref={ref}>
+    <div className="w-full py-2 sm:py-4 px-2 sm:px-3 flex justify-center" ref={ref}>
       <motion.div
-        className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-6 max-w-6xl min-h-[300px]"
+        className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4 max-w-6xl"
         variants={containerVariants}
         initial="hidden"
         animate="visible"

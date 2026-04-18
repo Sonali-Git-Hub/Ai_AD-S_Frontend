@@ -8,6 +8,7 @@ import ThemeToggle from './ThemeToggle';
 import ProfileSettingsDropdown from './ProfileSettingsDropdown/ProfileSettingsDropdown';
 import { useTheme } from '../context/ThemeContext';
 import { logo } from '../constants';
+import apiService from '../services/apiService';
 
 /* ─────────────────────────────────────────────────────────
    Neural Network 3D Canvas
@@ -348,7 +349,15 @@ const Hero = () => {
                 {isProfileOpen && (
                   <ProfileSettingsDropdown 
                     onClose={() => setIsProfileOpen(false)} 
-                    onLogout={() => { localStorage.clear(); window.location.reload(); }} 
+                    onLogout={async () => { 
+                      try {
+                        await apiService.resetSocialOnboarding();
+                      } catch (err) {
+                        console.error("Failed to reset onboarding during logout:", err);
+                      }
+                      localStorage.clear(); 
+                      window.location.reload(); 
+                    }} 
                   />
                 )}
               </AnimatePresence>

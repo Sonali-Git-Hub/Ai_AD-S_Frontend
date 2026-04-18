@@ -29,7 +29,10 @@ import {
   FolderPlus,
   Folder,
   FolderOpen,
-  Share2
+  Share2,
+  Briefcase,
+  Gavel,
+  PlusCircle
 } from 'lucide-react';
 import { apis, AppRoute } from '../../types';
 import ShareModal from '../ShareModal';
@@ -76,16 +79,18 @@ const Sidebar = ({ isOpen, onClose }) => {
   const [projects, setProjects] = useState([]);
   const [currentProjectId, setCurrentProjectId] = useRecoilState(activeProjectIdData);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const [isCreatingCase, setIsCreatingCase] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [editingProjectId, setEditingProjectId] = useState(null);
   const [renameProjectName, setRenameProjectName] = useState('');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isProjectsExpanded, setIsProjectsExpanded] = useState(false);
+  const [isProjectsExpanded, setIsProjectsExpanded] = useState(true);
+  const [isCasesExpanded, setIsCasesExpanded] = useState(true);
   const [projectToDelete, setProjectToDelete] = useState(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [currentShareId, setCurrentShareId] = useState('');
   const [sessionToShare, setSessionToShare] = useState(null);
-  
+
   // Magic Glow State
   const glowX = useMotionValue(0);
   const glowY = useMotionValue(0);
@@ -113,7 +118,14 @@ const Sidebar = ({ isOpen, onClose }) => {
     issueCategories.other || "Other"
   ];
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      // Reset onboarding status in the backend so it asks again next time
+      await apiService.resetSocialOnboarding();
+    } catch (err) {
+      console.error("Failed to reset onboarding during logout:", err);
+    }
+    
     localStorage.clear();
     setUserRecoil({ user: null }); // Clear Recoil state to ensure UI reacts immediately
     navigate(AppRoute.LANDING);
@@ -225,7 +237,41 @@ const Sidebar = ({ isOpen, onClose }) => {
     }
   }, [currentProjectId]);
 
+  const handleCreateProject = async (isLegal = false) => {
+    if (!newProjectName.trim()) {
+      setIsCreatingProject(false);
+      setIsCreatingCase(false);
+      return;
+    }
+
+    try {
+      const newCase = await apiService.createProject({
+        name: newProjectName.trim(),
+        isLegalCase: isLegal
+      });
+      setProjects(prev => [newCase, ...prev]);
+      setCurrentProjectId(newCase._id);
+      
+      if (isLegal) {
+        setIsCasesExpanded(true);
+      } else {
+        setIsProjectsExpanded(true);
+      }
+      
+      setIsCreatingProject(false);
+      setIsCreatingCase(false);
+      setNewProjectName('');
+      toast.success(isLegal ? "Case created successfully!" : "Project created successfully!");
+      navigate('/dashboard/chat/new');
+    } catch (err) {
+      console.error("Failed to create:", err);
+      toast.error(isLegal ? "Failed to create case" : "Failed to create project");
+    }
+  };
+
   const handleNewChat = () => {
+    // Reset to global context so user can access the main tool cards dashboard
+    setCurrentProjectId('default');
     navigate('/dashboard/chat/new');
     onClose();
   };
@@ -302,22 +348,6 @@ const Sidebar = ({ isOpen, onClose }) => {
   };
 
   // --- Project Handlers ---
-  const handleCreateProject = async () => {
-    if (!newProjectName.trim()) return;
-    try {
-      const project = await apiService.createProject(newProjectName.trim());
-      setProjects(prev => [project, ...prev]);
-      setCurrentProjectId(project._id);
-      setNewProjectName('');
-      setIsCreatingProject(false);
-      toast.success(t('projectCreated'));
-      navigate('/dashboard/chat/new');
-    } catch (err) {
-      console.error("Failed to create project:", err);
-      toast.error(t('failedToCreateProject'));
-    }
-  };
-
   const handleRenameProject = async (e, projectId) => {
     e.stopPropagation();
     if (!renameProjectName.trim()) {
@@ -416,7 +446,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         `}
       >
         {/* Interactive Mouse Glow Tracker */}
-        <motion.div 
+        <motion.div
           className="absolute w-[300px] h-[300px] bg-primary/20 rounded-full blur-[100px] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700"
           style={{ x: useSpring(glowX, { damping: 20, stiffness: 100 }), y: useSpring(glowY, { damping: 20, stiffness: 100 }), left: '-150px', top: '-150px' }}
         />
@@ -431,20 +461,20 @@ const Sidebar = ({ isOpen, onClose }) => {
           <Link to="/" state={{ fromLogo: true }} className="group/logo flex items-center gap-2">
             <div className="relative">
               <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 animate-pulse opacity-0 group-hover/logo:opacity-100 transition-opacity" />
-              <img 
-                 src={"/logo/Logo.svg"} 
-                alt="AISA™" 
-                className="h-10 w-auto relative z-10 transition-transform duration-500 group-hover/logo:scale-110 drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]" 
+              <img
+                src={"/logo/Logo.svg"}
+                alt="AISA™"
+                className="h-10 w-auto relative z-10 transition-transform duration-500 group-hover/logo:scale-110 drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]"
               />
             </div>
             <span className="text-xl font-black text-maintext tracking-tighter group-hover/logo:text-primary transition-colors">AISA<sup className="text-[0.6em] ml-0.5">™</sup></span>
           </Link>
-          
+
           <button
             onClick={onClose}
             className={`lg:hidden p-2.5 rounded-2xl transition-all border shadow-sm active:scale-95
-              ${theme === 'dark' 
-                ? 'text-subtext hover:text-white bg-white/5 hover:bg-white/10 border-white/10' 
+              ${theme === 'dark'
+                ? 'text-subtext hover:text-white bg-white/5 hover:bg-white/10 border-white/10'
                 : 'text-slate-500 hover:text-primary bg-slate-100 hover:bg-slate-200 border-slate-200'}`}
           >
             <X className="w-5.5 h-5.5" />
@@ -525,8 +555,8 @@ const Sidebar = ({ isOpen, onClose }) => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className={`w-full backdrop-blur-3xl border focus:ring-[6px] rounded-[20px] py-3 pl-11 pr-4 text-sm outline-none transition-all font-semibold shadow-sm 
-                  ${theme === 'dark' 
-                    ? 'bg-black/40 border-white/10 focus:border-primary/50 focus:bg-black/60 focus:ring-primary/10 placeholder:text-subtext/40 text-white' 
+                  ${theme === 'dark'
+                    ? 'bg-black/40 border-white/10 focus:border-primary/50 focus:bg-black/60 focus:ring-primary/10 placeholder:text-subtext/40 text-white'
                     : 'bg-white/80 border-slate-200 focus:border-primary/40 focus:bg-white focus:ring-primary/10 placeholder:text-slate-500 text-slate-900 shadow-inner'}`}
               />
             </div>
@@ -539,8 +569,8 @@ const Sidebar = ({ isOpen, onClose }) => {
             <button
               onClick={handleNewChat}
               className={`w-full relative overflow-hidden group p-[1px] rounded-[14px] transition-all duration-500 hover:scale-[1.03] active:scale-[0.97]
-                ${theme === 'dark' 
-                  ? 'bg-primary shadow-[0_8px_20px_rgba(var(--primary),0.3)] hover:shadow-[0_12px_30px_rgba(var(--primary),0.5)]' 
+                ${theme === 'dark'
+                  ? 'bg-primary shadow-[0_8px_20px_rgba(var(--primary),0.3)] hover:shadow-[0_12px_30px_rgba(var(--primary),0.5)]'
                   : 'bg-primary shadow-[0_6px_15px_rgba(var(--primary),0.2)] hover:shadow-[0_10px_20px_rgba(var(--primary),0.3)]'}`}
             >
               <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-primary to-purple-600 animate-gradient bg-[length:300%_auto]" />
@@ -565,7 +595,7 @@ const Sidebar = ({ isOpen, onClose }) => {
               >
                 <div className="flex items-center gap-2">
                   <h3 className={`text-[11px] font-bold uppercase tracking-[0.1em] group-hover/header:text-primary transition-colors 
-                    ${theme === 'dark' ? 'text-subtext/60' : 'text-slate-600'}`}>{t('projects')}</h3>
+                    ${theme === 'dark' ? 'text-subtext/60' : 'text-slate-600'}`}>PROJECTS</h3>
                   <div className={`h-[1px] w-8 transition-all group-hover/header:w-12 group-hover/header:bg-primary/30 
                     ${theme === 'dark' ? 'bg-subtext/20' : 'bg-slate-300'}`}></div>
                 </div>
@@ -581,60 +611,166 @@ const Sidebar = ({ isOpen, onClose }) => {
                     transition={{ duration: 0.3, ease: "circOut" }}
                     className="space-y-1 relative z-10"
                   >
-                    {/* New Project Integrated Button */}
+                    {/* Create New Project Button */}
                     <button
-                      onClick={(e) => { e.stopPropagation(); setIsCreatingProject(true); }}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-all group/newproj ${theme === 'dark' ? 'text-subtext/70 hover:bg-white/5 hover:text-maintext' : 'text-slate-600 hover:bg-black/5 hover:text-slate-900'}`}
+                      onClick={() => setIsCreatingProject(true)}
+                      className={`mx-3 px-3 py-2 rounded-lg flex items-center gap-2.5 cursor-pointer transition-all w-[calc(100%-24px)] mb-1 group/create ${theme === 'dark' ? 'hover:bg-primary/10 text-primary' : 'hover:bg-primary/5 text-primary'}`}
                     >
-                      <FolderPlus className="w-4 h-4 shrink-0 group-hover/newproj:scale-110 group-hover/newproj:text-primary transition-all" />
-                      <span className="truncate font-medium text-[14px]">{t('newProject')}</span>
+                      <PlusCircle className="w-4 h-4 transition-transform group-hover/create:rotate-90" />
                     </button>
+                    {isCreatingProject && (
+                      <div className="mx-3 px-3 py-2 bg-primary/5 rounded-lg border border-primary/20 mb-2 animate-in slide-in-from-top-2 duration-300">
+                        <input
+                          autoFocus
+                          value={newProjectName}
+                          onChange={(e) => setNewProjectName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleCreateProject(false);
+                            if (e.key === 'Escape') {
+                              setIsCreatingProject(false);
+                              setNewProjectName('');
+                            }
+                          }}
+                          onBlur={() => {
+                            if (!newProjectName.trim()) setIsCreatingProject(false);
+                          }}
+                          placeholder="Project name..."
+                          className="w-full bg-transparent border-0 outline-none text-[13px] text-maintext py-1 placeholder:text-subtext/40"
+                        />
+                      </div>
+                    )}
 
-                    {projects.length>0 && projects
-                      .filter(p => !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                      .map((p, idx) => (
-                      <motion.div 
-                        key={p._id} 
-                        initial={{ x: -10, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ delay: idx * 0.05 }}
-                        className="relative group/proj flex items-center"
-                      >
-                        {editingProjectId === p._id ? (
-                          <div className="flex w-full items-center gap-2 px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
-                            <input
-                              autoFocus
-                              value={renameProjectName}
-                              onChange={e => setRenameProjectName(e.target.value)}
-                              onKeyDown={e => { if (e.key === 'Enter') handleRenameProject(e, p._id); if (e.key === 'Escape') setEditingProjectId(null); }}
-                              className="flex-1 min-w-0 bg-transparent border-b border-primary outline-none text-xs text-maintext py-1"
-                            />
-                            <button onClick={(e) => handleRenameProject(e, p._id)} className="text-primary hover:opacity-80 shrink-0"><Check className="w-4 h-4" /></button>
-                            <button onClick={(e) => { e.stopPropagation(); setEditingProjectId(null); }} className="text-subtext hover:text-red-500 shrink-0"><X className="w-4 h-4" /></button>
-                          </div>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => handleSwitchProject(p._id)}
-                              className={`flex-1 flex items-center min-w-0 gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${currentProjectId === p._id
-                                ? 'bg-primary/10 text-primary font-bold shadow-sm'
-                                : 'text-subtext hover:bg-white/20 dark:hover:bg-white/10 hover:text-maintext'}`}
-                            >
-                              <Folder className={`w-4 h-4 shrink-0 transition-transform duration-300 ${currentProjectId === p._id ? 'scale-110 text-primary ring-4 ring-primary/10 rounded-full' : 'group-hover/proj:scale-110'}`} />
-                              <span className="truncate font-medium text-[14px] text-left pr-8">{highlightMatch(p.name, searchQuery)}</span>
-                            </button>
-                            <div className="absolute right-2 opacity-0 group-hover/proj:opacity-100 flex items-center gap-1 transition-all duration-300 translate-x-2 group-hover/proj:translate-x-0">
-                              <button onClick={(e) => { e.stopPropagation(); setEditingProjectId(p._id); setRenameProjectName(p.name); }} className="p-1.5 text-subtext hover:text-primary transition-all bg-white/10 rounded-lg border border-white/5 shadow-sm">
-                                <Edit2 className="w-3 h-3" />
-                              </button>
-                              <button onClick={(e) => handleDeleteProject(e, p._id)} className="p-1.5 text-subtext hover:text-red-500 transition-all bg-white/10 rounded-lg border border-white/5 shadow-sm">
-                                <Trash2 className="w-3 h-3" />
-                              </button>
+                    {/* Regular Projects List */}
+                    {projects.filter(p => !p.isLegalCase).map((p, idx) => (
+                      <div key={p._id} className="relative group/proj flex items-center mx-3">
+                         {editingProjectId === p._id ? (
+                            <div className="flex w-full items-center gap-2 px-3 py-1.5">
+                               <input
+                                 autoFocus
+                                 value={renameProjectName}
+                                 onChange={e => setRenameProjectName(e.target.value)}
+                                 onKeyDown={e => { if (e.key === 'Enter') handleRenameProject(e, p._id); if (e.key === 'Escape') setEditingProjectId(null); }}
+                                 className="flex-1 min-w-0 bg-transparent border-b border-primary outline-none text-xs text-maintext py-1"
+                               />
+                               <button onClick={(e) => handleRenameProject(e, p._id)} className="text-primary"><Check className="w-4 h-4" /></button>
                             </div>
-                          </>
-                        )}
-                      </motion.div>
+                         ) : (
+                            <>
+                              <button
+                                onClick={() => handleSwitchProject(p._id)}
+                                className={`flex-1 flex items-center min-w-0 gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${currentProjectId === p._id ? 'bg-primary/10 text-primary font-bold' : 'text-subtext hover:bg-white/10 hover:text-maintext'}`}
+                              >
+                                <Folder className="w-4 h-4 shrink-0" />
+                                <span className="truncate text-[13px]">{p.name}</span>
+                              </button>
+                              <div className="absolute right-1 opacity-0 group-hover/proj:opacity-100 flex items-center gap-0.5">
+                                <button onClick={(e) => { e.stopPropagation(); setEditingProjectId(p._id); setRenameProjectName(p.name); }} className="p-1 hover:text-primary"><Edit2 className="w-3 h-3" /></button>
+                                <button onClick={(e) => handleDeleteProject(e, p._id)} className="p-1 hover:text-red-500"><Trash2 className="w-3 h-3" /></button>
+                              </div>
+                            </>
+                         )}
+                      </div>
                     ))}
+
+                    {/* CASES Nested Folder Item */}
+                    <div
+                      onClick={(e) => { e.stopPropagation(); setIsCasesExpanded(!isCasesExpanded); }}
+                      className={`mx-3 px-3 py-2 rounded-lg flex items-center justify-between cursor-pointer transition-all ${theme === 'dark' ? 'hover:bg-white/5 text-subtext/80' : 'hover:bg-black/5 text-slate-700'}`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <FolderOpen className={`w-4 h-4 text-primary transition-transform duration-300 ${isCasesExpanded ? 'scale-110' : ''}`} />
+                        <span className="text-[14px] font-bold">CASES</span>
+                      </div>
+                      <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isCasesExpanded ? '' : '-rotate-90'}`} />
+                    </div>
+
+                    <AnimatePresence>
+                      {isCasesExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="pl-6 space-y-1 overflow-hidden"
+                        >
+                          {/* Create New Case Button */}
+                          <button
+                            onClick={() => setIsCreatingCase(true)}
+                            className={`px-3 py-2 rounded-lg flex items-center gap-2.5 cursor-pointer transition-all w-full mb-1 group/createCase ${theme === 'dark' ? 'hover:bg-primary/10 text-primary' : 'hover:bg-primary/5 text-primary'}`}
+                          >
+                            <PlusCircle className="w-3.5 h-3.5" />
+                            <span className="text-[12px] font-bold">Create New Case</span>
+                          </button>
+
+                          {isCreatingCase && (
+                            <div className="px-3 py-2 bg-primary/5 rounded-lg border border-primary/20 mb-2 mr-3">
+                              <input
+                                autoFocus
+                                value={newProjectName}
+                                onChange={(e) => setNewProjectName(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleCreateProject(true);
+                                  if (e.key === 'Escape') {
+                                    setIsCreatingCase(false);
+                                    setNewProjectName('');
+                                  }
+                                }}
+                                onBlur={() => {
+                                  if (!newProjectName.trim()) setIsCreatingCase(false);
+                                }}
+                                placeholder="Case name..."
+                                className="w-full bg-transparent border-0 outline-none text-[12px] text-maintext py-1"
+                              />
+                            </div>
+                          )}
+
+                          {projects
+                            .filter(p => p.isLegalCase && (!searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase())))
+                            .map((p, idx) => (
+                              <motion.div
+                                key={p._id}
+                                initial={{ x: -10, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                transition={{ delay: idx * 0.05 }}
+                                className="relative group/proj flex items-center"
+                              >
+                                {editingProjectId === p._id ? (
+                                  <div className="flex w-full items-center gap-2 px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
+                                    <input
+                                      autoFocus
+                                      value={renameProjectName}
+                                      onChange={e => setRenameProjectName(e.target.value)}
+                                      onKeyDown={e => { if (e.key === 'Enter') handleRenameProject(e, p._id); if (e.key === 'Escape') setEditingProjectId(null); }}
+                                      className="flex-1 min-w-0 bg-transparent border-b border-primary outline-none text-xs text-maintext py-1"
+                                    />
+                                    <button onClick={(e) => handleRenameProject(e, p._id)} className="text-primary hover:opacity-80 shrink-0"><Check className="w-4 h-4" /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); setEditingProjectId(null); }} className="text-subtext hover:text-red-500 shrink-0"><X className="w-4 h-4" /></button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={() => handleSwitchProject(p._id)}
+                                      className={`flex-1 flex items-center min-w-0 gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${currentProjectId === p._id
+                                        ? 'bg-primary/10 text-primary font-bold shadow-sm'
+                                        : 'text-subtext hover:bg-white/20 dark:hover:bg-white/10 hover:text-maintext'}`}
+                                    >
+                                      <Folder className={`w-4 h-4 shrink-0 transition-transform duration-300 ${currentProjectId === p._id ? 'scale-110 text-primary ring-4 ring-primary/10 rounded-full' : 'group-hover/proj:scale-110'}`} />
+                                      <span className="truncate font-medium text-[14px] text-left pr-8">{highlightMatch(p.name, searchQuery)}</span>
+                                    </button>
+                                    <div className="absolute right-2 opacity-0 group-hover/proj:opacity-100 flex items-center gap-1 transition-all duration-300 translate-x-2 group-hover/proj:translate-x-0">
+                                      <button onClick={(e) => { e.stopPropagation(); setEditingProjectId(p._id); setRenameProjectName(p.name); }} className="p-1.5 text-subtext hover:text-primary transition-all bg-white/10 rounded-lg border border-white/5 shadow-sm">
+                                        <Edit2 className="w-3 h-3" />
+                                      </button>
+                                      <button onClick={(e) => handleDeleteProject(e, p._id)} className="p-1.5 text-subtext hover:text-red-500 transition-all bg-white/10 rounded-lg border border-white/5 shadow-sm">
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  </>
+                                )}
+                              </motion.div>
+                            ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -653,8 +789,8 @@ const Sidebar = ({ isOpen, onClose }) => {
                 {(Array.isArray(sessions) ? sessions : [])
                   .filter(session => session.title?.toLowerCase().includes(searchQuery.toLowerCase()))
                   .map((session, idx) => (
-                    <motion.div 
-                      key={session.sessionId} 
+                    <motion.div
+                      key={session.sessionId}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: idx * 0.04, duration: 0.5 }}
@@ -695,12 +831,12 @@ const Sidebar = ({ isOpen, onClose }) => {
                           `}
                           >
                             {currentSessionId === session.sessionId && (
-                              <motion.div 
+                              <motion.div
                                 layoutId="activeIndicator"
                                 className="absolute left-1 top-4 bottom-4 w-1 bg-primary rounded-full shadow-[0_0_10px_rgba(var(--primary),0.5)]"
                               />
                             )}
-                            
+
                             <div className="sidebar-chat-title-group text-left">
                               <div className="sidebar-chat-title mb-1">
                                 {highlightMatch(session.title || "Untitled Intelligence", searchQuery)}
@@ -720,7 +856,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                                 )}
                               </div>
                             </div>
-                            
+
                             <div className="sidebar-chat-actions">
                               <button
                                 onClick={(e) => startRename(e, session)}
@@ -768,11 +904,11 @@ const Sidebar = ({ isOpen, onClose }) => {
         <div className="p-4 border-t border-white/5 relative z-20 space-y-3">
           <div className="flex items-center gap-2">
             {/* Theme Toggle Button */}
-            <button 
+            <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className={`flex-1 h-10 rounded-xl border transition-all duration-300 group/theme flex items-center justify-center
-                ${theme === 'dark' 
-                  ? 'bg-white/5 border-white/5 text-subtext hover:text-primary hover:bg-primary/10' 
+                ${theme === 'dark'
+                  ? 'bg-white/5 border-white/5 text-subtext hover:text-primary hover:bg-primary/10'
                   : 'bg-black/5 border-black/5 text-slate-800 hover:text-primary hover:bg-primary/5'}`}
               title={theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
             >
@@ -785,8 +921,8 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <button
                   onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                   className={`w-full h-10 rounded-xl border transition-all duration-300 flex items-center justify-center
-                    ${theme === 'dark' 
-                      ? 'bg-white/5 border-white/5 text-subtext hover:text-primary hover:bg-primary/10' 
+                    ${theme === 'dark'
+                      ? 'bg-white/5 border-white/5 text-subtext hover:text-primary hover:bg-primary/10'
                       : 'bg-black/5 border-black/5 text-slate-800 hover:text-primary hover:bg-primary/5'}`}
                 >
                   {user.avatar ? (
@@ -837,8 +973,8 @@ const Sidebar = ({ isOpen, onClose }) => {
             <button
               onClick={() => setIsFaqOpen(true)}
               className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl transition-all text-[10px] font-bold border ${!isAdmin ? 'col-span-2' : ''} 
-                ${theme === 'dark' 
-                  ? 'text-white bg-white/5 border-white/5 hover:bg-white/10' 
+                ${theme === 'dark'
+                  ? 'text-white bg-white/5 border-white/5 hover:bg-white/10'
                   : 'text-slate-800 bg-black/5 border-black/5 hover:bg-black/10'}`}
             >
               <HelpCircle className={`w-3 h-3 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`} />
@@ -849,15 +985,15 @@ const Sidebar = ({ isOpen, onClose }) => {
       </div>
 
       <FaqModal isOpen={isFaqOpen} onClose={() => setIsFaqOpen(false)} />
-      <DeleteConfirmModal 
-        isOpen={isDeleteModalOpen} 
-        onClose={() => setIsDeleteModalOpen(false)} 
+      <DeleteConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={confirmDeleteProject}
         title={t('deleteProjectTitle')}
         description={t('deleteProjectDesc')}
         confirmText={t('deleteProjectLabel')}
       />
-      
+
       <ShareModal
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
