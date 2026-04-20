@@ -211,14 +211,16 @@
 }
 
 .sidebar-glass {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
-  backdrop-filter: blur(20px);
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.4) 100%);
+  backdrop-filter: blur(25px);
+  border-right: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.05);
 }
 
 .dark .sidebar-glass {
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%);
-  border-right: 1px solid rgba(255, 255, 255, 0.03);
+  background: linear-gradient(135deg, rgba(10, 12, 26, 0.6) 0%, rgba(5, 7, 18, 0.4) 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 15px 0 40px rgba(0, 0, 0, 0.3);
 }
 
 /* Glass aesthetic for message cards and other surfaces to match sidebar */
@@ -638,7 +640,7 @@ html.lenis, html.lenis body {
 .chatgpt-message-row {
   width: 100%;
   display: flex;
-  padding: 8px 24px !important;
+  padding: 7px 24px !important;
   transition: background-color 0.3s ease;
   background-color: transparent !important;
   border: none !important;
@@ -657,11 +659,34 @@ html.lenis, html.lenis body {
   width: 100%;
   max-width: 100%;
   display: flex;
-  gap: 20px;
+  gap: 16px;
   margin: 0; 
   background-color: transparent !important;
   border: none !important;
   box-shadow: none !important;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+.chatgpt-message-content p, 
+.chatgpt-message-content li,
+.chatgpt-message-content div {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+.ai-row .chatgpt-message-content {
+  display: block !important;
+}
+
+.ai-row .chatgpt-avatar-container {
+  float: left;
+  margin-right: 14px;
+  margin-bottom: 2px;
+  margin-top: 6px;
 }
 
 .user-row .chatgpt-message-content {
@@ -676,7 +701,7 @@ html.lenis, html.lenis body {
 
 @media (min-width: 1024px) {
   .chatgpt-message-content {
-    max-width: 1400px; 
+    max-width: 950px; 
   }
 }
 
@@ -708,8 +733,7 @@ html.lenis, html.lenis body {
 }
 
 .ai-row .chatgpt-text {
-  align-items: flex-start;
-  text-align: left;
+  display: block;
   background-color: transparent !important;
   padding: 0;
   border-radius: 0;
@@ -762,32 +786,54 @@ html.lenis, html.lenis body {
   color: #ececec;
 }
 
+.chatgpt-text h1, 
+.chatgpt-text h2, 
+.chatgpt-text h3,
+.chatgpt-text p {
+  margin-top: 0;
+}
+
 .chatgpt-text h1 {
   font-size: 24px;
-  margin-top: 1.5rem;
+  margin-top: 1rem;
+}
+
+.chatgpt-text h1:first-child,
+.chatgpt-text h2:first-child,
+.chatgpt-text h3:first-child,
+.chatgpt-text p:first-child {
+  margin-top: 0 !important;
 }
 
 .chatgpt-text h2 {
   font-size: 20px;
-  margin-top: 1.25rem;
+  margin-top: 0.75rem;
 }
 
 .chatgpt-text h3 {
   font-size: 18px;
-  margin-top: 1rem;
+  margin-top: 0.5rem;
 }
 
 .chatgpt-text p {
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .chatgpt-text ul, .chatgpt-text ol {
-  margin-bottom: 8px;
-  padding-left: 24px;
+  margin-bottom: 4px;
+  padding-left: 20px;
 }
 
 .chatgpt-text li {
-  margin-bottom: 8px;
+  margin-bottom: 2px;
+}
+
+/* Aggressive first-child spacing elimination */
+.chatgpt-text > div:first-child,
+.chatgpt-text > div:first-child > *:first-child,
+.chatgpt-text > div:first-child > div:first-child > *:first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
 }
 
 .chatgpt-text code {
@@ -837,9 +883,9 @@ html.lenis, html.lenis body {
   justify-content: space-between !important;
   align-items: center !important;
   width: 100% !important;
-  padding: 12px 16px !important;
-  gap: 12px !important;
-  border-radius: 16px !important;
+  padding: 10px 12px !important;
+  gap: 10px !important;
+  border-radius: 14px !important;
 }
 
 .sidebar-chat-title-group {
@@ -854,8 +900,9 @@ html.lenis, html.lenis body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 700;
-  font-size: 14px;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: -0.01em;
 }
 
 .sidebar-chat-actions {
@@ -938,4 +985,23 @@ html.lenis, html.lenis body {
 
 .suggestion-btn:active {
   transform: scale(0.96);
+}
+
+/* Mobile Specific Padding Optimization */
+@media (max-width: 640px) {
+  .chatgpt-message-row {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    padding-top: 14px !important;
+    padding-bottom: 14px !important;
+  }
+
+  .ai-row .chatgpt-avatar-container {
+    margin-top: 8px !important;
+    margin-right: 12px !important;
+  }
+  
+  .chatgpt-message-content {
+    gap: 12px !important;
+  }
 }

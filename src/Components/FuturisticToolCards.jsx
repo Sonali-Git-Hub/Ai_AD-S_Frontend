@@ -402,6 +402,10 @@ const ToolCard = ({ tool, onToolSelect, index }) => {
               <motion.div 
                  whileHover={{ scale: 1.02 }}
                  whileTap={{ scale: 0.98 }}
+                 onClick={(e) => {
+                   e.stopPropagation();
+                   onToolSelect(tool.id);
+                 }}
                  className="bg-primary text-white text-[8px] font-black uppercase tracking-widest py-1.5 rounded-lg flex items-center justify-center gap-2 shadow-lg shadow-primary/20 cursor-pointer"
               >
                 <Zap size={9} fill="white" />

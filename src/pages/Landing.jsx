@@ -1,5 +1,5 @@
-import React, { useState, useEffect, Suspense, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, Suspense, useCallback, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
     ArrowRight, Bot, Zap, Shield, CircleUser,
     Github, Twitter,
@@ -53,6 +53,51 @@ const Landing = () => {
     const [isCookieModalOpen, setIsCookieModalOpen] = useState(false);
     const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
     const [isBloomExploded, setIsBloomExploded] = useState(false);
+
+    const location = useLocation();
+    const didInitFromUrl = useRef(false);
+
+    // ── Home Redirect Logic ──
+    // Moved from Navigation.Provider to Landing to prevent unmount flicker
+    useEffect(() => {
+        if (didInitFromUrl.current) return;
+        
+        const isInternalNavigation = location.state?.fromLogo === true;
+        const hasToken = user?.token;
+        
+        // Only redirect on FIRST entry to the root path if logged in and NOT an internal navigation
+        if (location.pathname === '/' && hasToken && !isInternalNavigation) {
+            navigate('/dashboard/chat', { replace: true });
+        }
+        
+        // Mark as initialized so internal navigation (like closing a modal) doesn't trigger this again
+        didInitFromUrl.current = true;
+    }, [location.pathname, user?.token, navigate]);
+
+    // ── URL Modal Sync ──
+    // Listen to URL changes to open/close modals (handles direct URL, Back button, and navigate)
+    useEffect(() => {
+        if (location.pathname === '/privacy-policy') {
+            setIsPrivacyModalOpen(true);
+        } else if (location.pathname === '/terms') {
+            setIsTermsModalOpen(true);
+        } else if (location.pathname === '/cookie-policy') {
+            setIsCookieModalOpen(true);
+        } else {
+            // Close all if we moved back to root
+            setIsPrivacyModalOpen(false);
+            setIsTermsModalOpen(false);
+            setIsCookieModalOpen(false);
+        }
+    }, [location.pathname]);
+
+    // Use standard navigate() — since the component stays mounted, there effectively is no flicker.
+    const openPrivacyModal = () => navigate('/privacy-policy');
+    const closePrivacyModal = () => navigate('/');
+    const openTermsModal = () => navigate('/terms');
+    const closeTermsModal = () => navigate('/');
+    const openCookieModal = () => navigate('/cookie-policy');
+    const closeCookieModal = () => navigate('/');
 
     // ── Listen for the Bloom Explosion Event from FlowingAICreature ──
     useEffect(() => {
@@ -245,9 +290,9 @@ const Landing = () => {
                         <motion.div variants={itemVariants} className="space-y-8">
                             <h4 className="text-xs font-black text-primary uppercase tracking-[0.25em] pl-1 footer-link-sparkle w-fit cursor-pointer">{t('governance')}</h4>
                             <ul className="space-y-5">
-                                <li><button onClick={() => setIsPrivacyModalOpen(true)} className="text-gray-600 dark:text-gray-400 hover:text-primary transition-all font-bold text-sm tracking-wide footer-link-sparkle">{t('privacyPolicy')}</button></li>
-                                <li><button onClick={() => setIsTermsModalOpen(true)} className="text-gray-600 dark:text-gray-400 hover:text-primary transition-all font-bold text-sm tracking-wide footer-link-sparkle">{t('termsOfService')}</button></li>
-                                <li><button onClick={() => setIsCookieModalOpen(true)} className="text-gray-600 dark:text-gray-400 hover:text-primary transition-all font-bold text-sm tracking-wide footer-link-sparkle">{t('cookiePolicy')}</button></li>
+                                <li><button onClick={openPrivacyModal} className="text-gray-600 dark:text-gray-400 hover:text-primary transition-all font-bold text-sm tracking-wide footer-link-sparkle">{t('privacyPolicy')}</button></li>
+                                <li><button onClick={openTermsModal} className="text-gray-600 dark:text-gray-400 hover:text-primary transition-all font-bold text-sm tracking-wide footer-link-sparkle">{t('termsOfService')}</button></li>
+                                <li><button onClick={openCookieModal} className="text-gray-600 dark:text-gray-400 hover:text-primary transition-all font-bold text-sm tracking-wide footer-link-sparkle">{t('cookiePolicy')}</button></li>
                             </ul>
                         </motion.div>
                     </motion.div>
@@ -309,9 +354,9 @@ const Landing = () => {
                 )}
             </AnimatePresence>
 
-            <PrivacyPolicyModal isOpen={isPrivacyModalOpen} onClose={() => setIsPrivacyModalOpen(false)} />
-            <TermsOfServiceModal isOpen={isTermsModalOpen} onClose={() => setIsTermsModalOpen(false)} />
-            <CookiePolicyModal isOpen={isCookieModalOpen} onClose={() => setIsCookieModalOpen(false)} />
+            <PrivacyPolicyModal isOpen={isPrivacyModalOpen} onClose={closePrivacyModal} />
+            <TermsOfServiceModal isOpen={isTermsModalOpen} onClose={closeTermsModal} />
+            <CookiePolicyModal isOpen={isCookieModalOpen} onClose={closeCookieModal} />
             <AboutAISA isOpen={isAboutModalOpen} onClose={() => setIsAboutModalOpen(false)} />
         </div>
     );

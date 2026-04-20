@@ -401,7 +401,7 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
                       whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                       className="w-full sm:w-auto mt-0 sm:mt-0 px-4 py-2.5 sm:px-6 sm:py-3 bg-white text-indigo-700 font-black rounded-xl sm:rounded-2xl shadow-xl hover:shadow-2xl transition-all text-[10px] sm:text-[11px] uppercase tracking-[0.15em] shrink-0"
                     >
-                      Launch Chat →
+                      Start Chat →
                     </motion.button>
                   </div>
                 </motion.div>
