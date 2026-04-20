@@ -185,8 +185,13 @@ const ToolCard = ({ tool, isPrimary = false, size = 'md', onClose, onSelect }) =
 
       <div className="flex flex-col gap-4 relative z-10">
         <div className="flex items-start justify-between">
-          <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-500 group-hover:scale-110 ${isUnlocked ? 'bg-gradient-to-br from-indigo-500 to-violet-600 shadow-[0_6px_16px_rgba(99,102,241,0.35)]' : 'bg-white/80 border border-white/80 shadow-sm'}`}>
-            <Icon className={`w-5.5 h-5.5 ${isUnlocked ? 'text-white' : 'text-slate-400'}`} />
+          <div className="flex flex-col items-center gap-1">
+            <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-500 group-hover:scale-110 ${isUnlocked ? 'bg-gradient-to-br from-indigo-500 to-violet-600 shadow-[0_6px_16px_rgba(99,102,241,0.35)]' : 'bg-white/80 border border-white/80 shadow-sm'}`}>
+              <Icon className={`w-5.5 h-5.5 ${isUnlocked ? 'text-white' : 'text-slate-400'}`} />
+            </div>
+            {tool.name === 'Case Predictor' && (
+              <span className={`text-[6px] font-black uppercase tracking-[0.1em] transition-colors ${isUnlocked ? 'text-indigo-600' : 'text-slate-400'}`}>सत्यमेव जयते</span>
+            )}
           </div>
           <button 
             onClick={(e) => { e.stopPropagation(); setShowWorkflow(true); }}
@@ -306,12 +311,15 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
                 onDoubleClick={() => setIsMaximized(!isMaximized)}
               >
                 <div className="flex items-center gap-3.5">
-                  <motion.div
-                    whileHover={{ rotate: 180, scale: 1.08 }}
-                    className="w-[42px] h-[42px] rounded-[14px] bg-gradient-to-br from-indigo-500 via-[#4F46E5] to-[#3B82F6] flex items-center justify-center shadow-[0_6px_15px_rgba(99,102,241,0.35)] border border-white/30"
-                  >
-                    <LegalLogo size={24} color="white" showText={false} />
-                  </motion.div>
+                  <div className="flex flex-col items-center gap-1.5">
+                    <motion.div
+                      whileHover={{ rotate: 180, scale: 1.08 }}
+                      className="w-[42px] h-[42px] rounded-[14px] bg-gradient-to-br from-indigo-500 via-[#4F46E5] to-[#3B82F6] flex items-center justify-center shadow-[0_6px_15px_rgba(99,102,241,0.35)] border border-white/30"
+                    >
+                      <LegalLogo size={24} color="white" showText={false} />
+                    </motion.div>
+                    <span className="text-[6px] font-black uppercase tracking-[0.2em] text-indigo-600 dark:text-indigo-400">सत्यमेव जयते</span>
+                  </div>
                   <div>
                     <h1 className="text-[17px] font-black text-slate-900 dark:text-white leading-tight tracking-tight">AI Legal</h1>
                     <div className="flex items-center gap-1">

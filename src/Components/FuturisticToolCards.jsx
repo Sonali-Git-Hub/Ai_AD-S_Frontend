@@ -217,116 +217,49 @@ const ToolCard = ({ tool, onToolSelect, index }) => {
   const theme = themeContext?.theme || 'dark';
   const isDark = theme.toLowerCase() === 'dark';
   const [isFlipped, setIsFlipped] = useState(false);
-  const cardRef = useRef(null);
   const { icon: Icon } = tool;
-
-  // Mouse-tracked 3D tilt
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  // Using direct transform in style is better than animate for performance and stability with MotionValues
-  const tiltX = useSpring(useTransform(y, [-70, 70], [15, -15]), { stiffness: 100, damping: 20 });
-  const tiltY = useSpring(useTransform(x, [-70, 70], [-15, 15]), { stiffness: 100, damping: 20 });
-
-  // Flip rotation
-  const handleMouseMove = (e) => {
-    if (!cardRef.current || isFlipped) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    x.set(e.clientX - rect.left - rect.width / 2);
-    y.set(e.clientY - rect.top - rect.height / 2);
-  };
-
-  const handleMouseLeave = () => {
-    x.set(0); y.set(0);
-    setIsFlipped(false);
-  };
-
-  const handleMouseEnter = () => {
-      if (tool.comingSoon) return;
-      setIsFlipped(true);
-  };
-
-  const handleCardClick = () => {
-    if (tool.comingSoon) return;
-    if (!isFlipped) {
-      setIsFlipped(true);
-    } else {
-      onToolSelect(tool.id);
-    }
-  };
 
   const isActive = tool.active;
 
   return (
     <div 
-      className="relative w-full h-[145px] sm:h-[155px]"
-      style={{ perspective: '1200px' }}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      className="relative w-full h-[135px] group"
+      style={{ perspective: '1000px' }}
+      onMouseEnter={() => !tool.comingSoon && setIsFlipped(true)}
+      onMouseLeave={() => setIsFlipped(false)}
     >
-      {/* Active Glow Backdrop */}
-      {isActive && (
-        <motion.div 
-          layoutId="activeGlow"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1.1 }}
-          className="absolute inset-[-10px] rounded-[30px] bg-primary/25 blur-2xl z-0 pointer-events-none"
-        />
-      )}
-      
       <motion.div
-        ref={cardRef}
-        className={`w-full h-full relative cursor-pointer z-10 ${isActive ? 'ring-2 ring-primary ring-offset-2 ring-offset-transparent' : ''} rounded-[20px]`}
-        animate={{ 
-          rotateY: isFlipped ? 180 : 0,
-        }}
-        transition={{ 
-          type: "spring", 
-          stiffness: 120, 
-          damping: 20,
-        }}
-        style={{ 
-          transformStyle: 'preserve-3d',
-          rotateX: isFlipped ? 0 : tiltX,
-        }}
-        onClick={handleCardClick}
+        className="w-full h-full relative cursor-pointer"
+        animate={{ rotateY: isFlipped ? 180 : 0 }}
+        transition={{ type: "spring", stiffness: 100, damping: 20 }}
+        style={{ transformStyle: 'preserve-3d' }}
+        onClick={() => !tool.comingSoon && onToolSelect(tool.id === 'legal' ? 'legal_toolkit' : tool.id)}
       >
         {/* FRONT SIDE */}
         <div 
-          className={`absolute inset-0 w-full h-full rounded-[20px] border p-4 sm:p-5 transition-all duration-300 flex flex-col justify-between backface-hidden ${
+          className={`absolute inset-0 w-full h-full rounded-[22px] border p-4 flex flex-col gap-2.5 backface-hidden ${
             isActive 
-              ? (isDark ? 'bg-primary/10 border-primary shadow-[0_0_30px_rgba(var(--primary-rgb),0.3)] backdrop-blur-xl' : 'bg-blue-50 border-primary shadow-[0_0_25px_rgba(var(--primary-rgb),0.15)]')
-              : (isDark 
-                  ? 'sidebar-glass border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]' 
-                  : 'bg-white border-slate-200/60 shadow-[0_4px_20px_rgba(0,0,0,0.05)]')
+              ? 'bg-primary/5 border-primary ring-1 ring-primary shadow-[0_0_30px_rgba(139,92,246,0.15)]' 
+              : (isDark ? 'bg-slate-900/40 border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3)] backdrop-blur-xl' : 'bg-white/70 border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.04)] backdrop-blur-xl')
           }`}
           style={{ backfaceVisibility: 'hidden' }}
         >
-          <div className="flex items-center justify-between mb-3">
-            <div 
-              className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500"
-              style={{ 
-                background: isActive ? 'var(--primary)' : (isDark ? `${tool.color}15` : `${tool.color}10`),
-                border: isDark ? `1px solid ${tool.color}30` : `1px solid ${tool.color}20`,
-                boxShadow: isActive ? '0 0 15px var(--primary)' : 'none'
-              }}
-            >
-              <Icon size={18} style={{ color: isActive ? '#fff' : tool.color }} />
+          <div className="flex items-start justify-between">
+            <div className="flex flex-col items-center gap-1">
+              <div 
+                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ background: isDark ? `${tool.color}15` : `${tool.color}10` }}
+              >
+                <Icon size={tool.id === 'legal' ? 22 : 18} style={{ color: tool.color }} />
+              </div>
+              {tool.id === 'legal' && (
+                <span className={`text-[5px] font-black uppercase tracking-tighter ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>सत्यमेव जयते</span>
+              )}
             </div>
-            
-            <div className="flex items-center gap-1.5">
-               {isActive && (
-                 <motion.span 
-                   initial={{ scale: 0 }}
-                   animate={{ scale: 1 }}
-                   className="flex items-center gap-1 bg-primary text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg animate-pulse"
-                 >
-                   <div className="w-1 h-1 rounded-full bg-white animate-ping" />
-                   {t('active')}
-                 </motion.span>
-               )}
-               <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
-                 isActive ? 'bg-primary/20 text-primary' : (isDark ? 'bg-white/5 text-white/40' : 'bg-slate-100 text-slate-500')
+
+            <div className="flex flex-col items-end gap-1">
+               <span className={`text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                 isDark ? 'bg-white/5 text-white/40' : 'bg-[#f1f5f9] text-[#94a3b8]'
                }`}>
                  {tool.badge}
                </span>
@@ -334,89 +267,48 @@ const ToolCard = ({ tool, onToolSelect, index }) => {
           </div>
 
           <div className="space-y-0.5">
-            <h3 className={`text-[13px] sm:text-[14px] font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+            <h3 className={`text-[13px] font-bold tracking-tight leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
               {tool.label}
             </h3>
-            <p className={`text-[9.5px] sm:text-[10px] leading-snug line-clamp-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            <p className={`text-[9px] leading-snug line-clamp-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               {tool.desc}
             </p>
           </div>
-
-          {tool.comingSoon && (
-            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 dark:bg-black/40 backdrop-blur-[1px] rounded-[20px]">
-              <div className={`px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest ${
-                isDark ? 'bg-[#1a1c2e] border-white/10 text-slate-400' : 'bg-white border-slate-200 text-slate-500 shadow-sm'
-              }`}>
-                {t('soon')}
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* BACK SIDE (Review & Preview) */}
+        {/* BACK SIDE */}
         <div 
-          className={`absolute inset-0 w-full h-full rounded-[20px] border overflow-hidden flex flex-col backface-hidden transition-all duration-300 ${
-            isActive 
-              ? (isDark ? 'bg-primary/20 border-primary shadow-[0_0_30px_rgba(var(--primary-rgb),0.4)] backdrop-blur-2xl' : 'bg-blue-50 border-primary shadow-[0_0_25px_rgba(var(--primary-rgb),0.2)]')
-              : (isDark 
-                  ? 'sidebar-glass border-primary/30 shadow-[0_10px_40px_rgba(var(--primary-rgb),0.2)]' 
-                  : 'bg-white border-primary/20 shadow-[0_10px_40px_rgba(0,0,0,0.1)]')
+          className={`absolute inset-0 w-full h-full rounded-[20px] border overflow-hidden flex flex-col backface-hidden ${
+            isDark ? 'bg-slate-950 border-white/20' : 'bg-white border-slate-200 shadow-xl'
           }`}
           style={{ 
             backfaceVisibility: 'hidden',
             transform: 'rotateY(180deg)',
           }}
         >
-          <div className="flex flex-col h-full relative z-10">
-            {/* Live Demo Animation Section */}
-            <div className="h-[40%] w-full overflow-hidden border-b border-black/5 dark:border-white/5 bg-slate-50 dark:bg-slate-900/50">
-              <ToolPreviewContent 
-                id={tool.id} 
-                prompt={tool.prompt} 
-                active={isFlipped} 
-              />
-            </div>
-
-            {/* Review Section */}
-            <div className="flex-1 p-2.5 flex flex-col justify-between bg-white/40 dark:bg-[#1a1e2e]/40 backdrop-blur-sm">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-0.5">
-                    {[...Array(5)].map((_, i) => (
-                      <Sparkles 
-                        key={i} 
-                        size={7} 
-                        className={i < Math.floor(tool.review?.rating || 0) ? "text-yellow-400 fill-yellow-400" : "text-slate-300"} 
-                      />
-                    ))}
-                    <span className={`text-[7px] font-bold ml-1 ${isDark ? 'text-white/80' : 'text-slate-600'}`}>
-                      {tool.review?.rating || '5.0'}
-                    </span>
-                  </div>
-                </div>
-                <p className={`text-[8.5px] leading-tight italic font-medium line-clamp-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                  "{tool.review?.text || "Revolutionary AI tool that significantly improves my workflow efficiency."}"
-                </p>
-              </div>
-
-              <motion.div 
-                 whileHover={{ scale: 1.02 }}
-                 whileTap={{ scale: 0.98 }}
-                 onClick={(e) => {
-                   e.stopPropagation();
-                   onToolSelect(tool.id);
-                 }}
-                 className="bg-primary text-white text-[8px] font-black uppercase tracking-widest py-1.5 rounded-lg flex items-center justify-center gap-2 shadow-lg shadow-primary/20 cursor-pointer"
-              >
-                <Zap size={9} fill="white" />
-                {t('liveTry')}
-              </motion.div>
-            </div>
+          <div className="flex-1 overflow-hidden border-b border-black/5 dark:border-white/5">
+            <ToolPreviewContent 
+              id={tool.id} 
+              prompt={tool.prompt} 
+              active={isFlipped} 
+            />
           </div>
-          
-          {/* Subtle Neural Background for back side */}
-          <div className="absolute inset-0 pointer-events-none opacity-[0.03]">
-            <div className="bg-primary absolute inset-0 blur-3xl rounded-full translate-y-1/2" />
+          <div className="p-3 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-0.5">
+                {[...Array(5)].map((_, i) => (
+                  <Sparkles key={i} size={7} className={i < Math.floor(tool.review?.rating || 5) ? "text-amber-400 fill-amber-400" : "text-slate-300"} />
+                ))}
+              </div>
+              <span className="text-[7px] font-black text-primary">{tool.review?.rating || '5.0'}</span>
+            </div>
+            <p className={`text-[8px] leading-tight italic font-medium line-clamp-2 mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+              "{tool.review?.text || "Revolutionary AI tool that saves me hours of work every single day."}"
+            </p>
+            <div className="bg-primary text-white text-[8px] font-black uppercase tracking-widest py-1.5 rounded-lg flex items-center justify-center gap-1.5 shadow-lg shadow-primary/20">
+              <Zap size={9} fill="white" />
+              {t('liveTry')}
+            </div>
           </div>
         </div>
       </motion.div>
@@ -485,7 +377,7 @@ const FuturisticToolCards = ({ onToolSelect, activeToolId, isAdmin = false }) =>
   return (
     <div className="w-full py-2 sm:py-4 px-2 sm:px-3 flex justify-center" ref={ref}>
       <motion.div
-        className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4 max-w-6xl"
+        className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 max-w-[1700px] px-8"
         variants={containerVariants}
         initial="hidden"
         animate="visible"

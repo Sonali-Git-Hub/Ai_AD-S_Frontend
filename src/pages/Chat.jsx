@@ -60,27 +60,6 @@ const SendRipple = ({ onComplete }) => {
         onAnimationComplete={onComplete}
         className="absolute inset-0 rounded-full border-2 border-primary/40 bg-primary/5"
       />
-      {/* Mini Sparkle Burst for Send */}
-      {[...Array(12)].map((_, i) => {
-        const angle = (i / 12) * Math.PI * 2;
-        const dist = 60 + Math.random() * 40;
-        return (
-          <motion.div
-            key={i}
-            initial={{ x: 0, y: 0, scale: 0, opacity: 0 }}
-            animate={{
-              x: Math.cos(angle) * dist,
-              y: Math.sin(angle) * dist,
-              scale: [0, 1.5, 0],
-              opacity: [0, 1, 0]
-            }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-          >
-            <Sparkles size={10} className="text-primary fill-current" />
-          </motion.div>
-        );
-      })}
     </div>
   );
 };
@@ -115,12 +94,11 @@ const MagicShowEffect = ({ isMobileIdle = false }) => {
         />
       </div>
 
-      {/* 3. Theatrical Magic Sparkles */}
+      {/* 3. Theatrical Magic Particles */}
       {[...Array(particleCount)].map((_, i) => {
         const randomX = (Math.random() - 0.5) * (isMobileIdle ? 100 : 280);
         const randomY = (Math.random() - 0.5) * (isMobileIdle ? 100 : 240) - (isMobileIdle ? 0 : 50);
-        const randomScale = Math.random() * 1.4 + 0.5;
-        const randomRotation = Math.random() * 360;
+        const randomScale = Math.random() * 1.2 + 0.4;
         const randomDuration = isMobileIdle ? 1.5 + Math.random() * 2 : 0.5 + Math.random() * 1.0;
         const randomDelay = Math.random() * (isMobileIdle ? 1.5 : 0.15);
 
@@ -132,8 +110,7 @@ const MagicShowEffect = ({ isMobileIdle = false }) => {
               x: randomX,
               y: randomY,
               opacity: [0, 1, 0.8, 0],
-              scale: [0, randomScale, 1.2, 0],
-              rotate: [0, randomRotation],
+              scale: [0, randomScale, 1.1, 0],
             }}
             transition={{
               duration: randomDuration,
@@ -141,15 +118,9 @@ const MagicShowEffect = ({ isMobileIdle = false }) => {
               delay: randomDelay,
               ease: [0.23, 1, 0.32, 1]
             }}
-            className="absolute flex items-center justify-center top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-          >
-            <Sparkles
-              size={Math.random() * 14 + 10}
-              className={i % 3 === 0 ? "text-indigo-400" : (i % 2 === 0 ? "text-primary" : "text-white")}
-              fill="currentColor"
-              style={isMobile ? {} : { filter: `drop-shadow(0 0 12px ${i % 2 === 0 ? '#8b5cf6' : '#fff'})` }}
-            />
-          </motion.div>
+            className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none rounded-full ${i % 3 === 0 ? "bg-indigo-400 w-1.5 h-1.5" : (i % 2 === 0 ? "bg-primary w-2 h-2" : "bg-white w-1 h-1")}`}
+            style={isMobile ? {} : { boxShadow: `0 0 12px ${i % 2 === 0 ? '#8b5cf6' : '#fff'}` }}
+          />
         );
       })}
 
@@ -465,16 +436,15 @@ const Chat = () => {
   const isAdmin = user?.token && (user?.role === 'admin' || user?.email === 'admin@uwo24.com');
 
   const checkPremiumTool = (toolName) => {
-    // Whitelist AI Legal for all users
-    if (toolName === 'AI Legal') return true;
+    //Whitelisted after login check below
 
     if (!user?.token) {
       window.dispatchEvent(new CustomEvent('login_required', { detail: { toolName } }));
       return false;
     }
 
-    // Whitelist AI CashFlow for all LOGGED IN users
-    if (toolName === 'AI CashFlow') return true;
+    // Whitelist AI CashFlow & AI Legal for all LOGGED IN users
+    if (toolName === 'AI CashFlow' || toolName === 'AI Legal') return true;
 
     // Admin Access Rule: Treat all tools as unlocked
     if (user.email === 'admin@uwo24.com' || isAdminUser) return true;
@@ -3751,11 +3721,11 @@ const Chat = () => {
     // ─── Smart Routing Interceptor (Pipeline System) ─────────────────────────
     // If a tool intent was detected with high confidence but not activated,
     // we route it through the pipeline instead of standard chat.
-    if (intentSuggestion && !toolOverride && intentSuggestion.confidence > 0.85 && intentSuggestion.intent !== 'normal_chat') {
+    if (intentSuggestion && !toolOverride && intentSuggestion.confidence > 0.88 && intentSuggestion.intent !== 'normal_chat') {
       // Check if ANY magic tool mode is already active
       const isCurrentModeChat = !isImageGeneration && !isVideoGeneration && !isDeepSearch && !isWebSearch &&
         !isMagicEditing && !isCodeWriter && !isFileAnalysis && !isAudioConvertMode &&
-        !isDocumentConvert && !isVoiceMode;
+        !isDocumentConvert && !isVoiceMode && currentMode === 'NORMAL_CHAT';
 
       if (isCurrentModeChat) {
         console.log(`[IntentRouting] High confidence intent (${intentSuggestion.intent}) detected. Routing to pipeline.`);
@@ -6078,7 +6048,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
       {/* Main Area */}
       <div
-        className="flex-1 flex flex-col relative bg-transparent w-full min-w-0 pt-4"
+        className="flex-1 flex flex-col relative bg-transparent w-full min-w-0 pt-16"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -6103,13 +6073,14 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
 
 
+
         {/* Messages */}
         <div
           ref={chatContainerRef}
           onScroll={handleScroll}
           className={`relative flex-1 aisa-scalable-text ${legalView === 'DASHBOARD' && currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id === 'legal_my_case'
               ? 'overflow-hidden'
-              : 'overflow-y-auto chatgpt-container pt-6 pb-64 md:pb-72 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent'
+              : 'overflow-y-auto chatgpt-container pt-4 pb-64 md:pb-72 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent'
             }`}
         >
           {legalView === 'DASHBOARD' && currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id === 'legal_my_case' ? (
@@ -6203,7 +6174,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       <div className={`chatgpt-message-content ${msg.role === 'model' ? 'w-full' : ''}`}>
                         {/* Avatar */}
                         <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user'
+                          className={`chatgpt-avatar-container w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user'
                             ? 'bg-slate-200 dark:bg-slate-700'
                             : 'bg-transparent'
                             }`}
@@ -6217,17 +6188,15 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                         <div className="flex-1 chatgpt-text">
 
-                          {msg.isGenerating && (
-                            <div className="flex items-center gap-3 mb-3 p-3 bg-primary/5 rounded-xl border border-primary/10 animate-pulse">
-                              <img src="/logo/Logo.svg" alt="AISA" className="w-5 h-5 object-contain" />
-                              <span className="text-xs font-semibold text-primary uppercase tracking-tighter">AISA generating...</span>
+                          {msg.isGenerating && !msg.content && (
+                            <div className="flex items-center gap-2 mb-2 animate-pulse">
+                              <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] opacity-80">AISA generating...</span>
                             </div>
                           )}
 
                           {msg.isProcessing && (
-                            <div className="flex items-center gap-3 mb-3 p-3 bg-primary/5 rounded-xl border border-primary/10 animate-pulse">
-                              <Loader size="sm" />
-                              <span className="text-xs font-semibold text-primary uppercase tracking-tighter">Preparing Audio...</span>
+                            <div className="flex items-center gap-2 mb-2 animate-pulse">
+                              <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] opacity-80">Preparing Audio...</span>
                             </div>
                           )}
 
@@ -6486,14 +6455,15 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                           </a>
                                         );
                                       },
-                                      p: ({ children }) => <div className="mb-[14px] last:mb-0 leading-[1.6]">{children}</div>,
-                                      ul: ({ children }) => <ul className="list-disc pl-5 mb-[14px] last:mb-0 space-y-1.5">{children}</ul>,
-                                      ol: ({ children }) => <ol className="list-decimal pl-5 mb-[14px] last:mb-0 space-y-1.5">{children}</ol>,
-                                      li: ({ children }) => <li className="mb-1 last:mb-0 leading-[1.6]">{children}</li>,
-                                      h1: ({ children }) => <h1 className="text-[22px] font-semibold mb-3.5 mt-6 block tracking-tight">{children}</h1>,
-                                      h2: ({ children }) => <h2 className="text-[18px] font-semibold mb-3 mt-5 block tracking-tight">{children}</h2>,
-                                      h3: ({ children }) => <h3 className="text-[16px] font-semibold mb-2.5 mt-4 block tracking-tight">{children}</h3>,
-                                      strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                                      p: ({ children }) => <p className="mb-4 last:mb-0 leading-relaxed">{children}</p>,
+                                      ul: ({ children }) => <ul className="space-y-2">{children}</ul>,
+                                      ol: ({ children }) => <ol className="space-y-2">{children}</ol>,
+                                      li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                                      h1: ({ children }) => <h1 className="text-3xl font-bold mb-6 mt-8 tracking-tight">{children}</h1>,
+                                      h2: ({ children }) => <h2 className="text-2xl font-bold mb-4 mt-6 tracking-tight">{children}</h2>,
+                                      h3: ({ children }) => <h3 className="text-xl font-bold mb-3 mt-5 tracking-tight">{children}</h3>,
+                                      strong: ({ children }) => <strong className="font-bold text-slate-900 dark:text-white">{children}</strong>,
+                                      hr: () => <hr className="my-8 border-t border-slate-200 dark:border-white/10" />,
                                       table: ({ children }) => (
                                         <div className="overflow-x-auto my-4 rounded-xl border border-border/50 shadow-lg bg-surface/30 backdrop-blur-sm">
                                           <table className="w-full border-collapse text-sm">{children}</table>
@@ -6576,7 +6546,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                               {msg.role === 'model' && (
                                                 <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-100 sm:opacity-0 sm:group-hover/img-container:opacity-100 transition-opacity">
                                                   <div className="flex items-center gap-2">
-                                                    <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                                                    <div className="w-4 h-4 text-primary bg-primary/20 rounded-full flex items-center justify-center animate-pulse" />
                                                     <span className="text-[10px] font-bold text-white uppercase tracking-widest">AISA™ Generated Asset</span>
                                                   </div>
                                                 </div>
@@ -6663,7 +6633,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                   >
                                     <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-100 sm:opacity-0 sm:group-hover/generated:opacity-100 transition-opacity">
                                       <div className="flex items-center gap-2">
-                                        <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                                        <div className="w-4 h-4 text-primary bg-primary/20 rounded-full flex items-center justify-center animate-pulse" />
                                         <span className="text-[10px] font-bold text-white uppercase tracking-widest">AI Ads Generated Asset</span>
                                       </div>
                                     </div>
@@ -7049,66 +7019,66 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                       </p>
                                     );
                                   })()}
-                                  <div className="flex flex-col items-end gap-2 self-end sm:self-auto">
-                                    <div className="flex items-center gap-3">
-                                      <button
-                                        onClick={() => {
-                                          // Language is auto-detected inside speakResponse / detectLanguageFromText
-                                          speakResponse(msg.content, null, msg.id, msg.attachments || [], true);
-                                        }}
-                                        className={`transition-colors p-1.5 rounded-lg ${speakingMessageId === msg.id
-                                          ? 'text-primary bg-primary/10'
-                                          : 'text-subtext hover:text-primary hover:bg-surface-hover'
-                                          }`}
-                                        title={speakingMessageId === msg.id && !isPaused ? "Pause" : "Speak"}
-                                      >
-                                        {speakingMessageId === msg.id && !isPaused ? (
-                                          <Pause className="w-3.5 h-3.5" />
-                                        ) : (
-                                          <Volume2 className="w-3.5 h-3.5" />
-                                        )}
-                                      </button>
-                                      <button
-                                        onClick={() => handleCopyMessage(msg.content)}
-                                        className="text-subtext hover:text-maintext transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
-                                        title="Copy"
-                                      >
-                                        <Copy className="w-3.5 h-3.5" />
-                                      </button>
-                                      <button
-                                        onClick={() => handleThumbsUp(msg.id)}
-                                        className={`transition-colors p-1.5 rounded-lg ${messageFeedback[msg.id]?.type === 'up'
-                                          ? 'text-blue-500 bg-blue-500/10'
-                                          : 'text-subtext hover:text-primary hover:bg-surface-hover'
-                                          }`}
-                                        title="Helpful"
-                                      >
-                                        <ThumbsUp className="w-3.5 h-3.5" />
-                                      </button>
-                                      <button
-                                        onClick={() => handleThumbsDown(msg.id)}
-                                        className={`transition-colors p-1.5 rounded-lg ${messageFeedback[msg.id]?.type === 'down'
-                                          ? 'text-red-500 bg-red-500/10'
-                                          : 'text-subtext hover:text-red-500 hover:bg-surface-hover'
-                                          }`}
-                                        title="Not Helpful"
-                                      >
-                                        <ThumbsDown className="w-3.5 h-3.5" />
-                                      </button>
-                                      <button
-                                        onClick={() => handleShare(msg.content)}
-                                        className="text-subtext hover:text-primary transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
-                                        title="Share Text"
-                                      >
-                                        <Share className="w-3.5 h-3.5" />
-                                      </button>
+                                    <div className="flex flex-col items-end gap-2 self-end sm:self-auto">
+                                      <div className="flex items-center gap-3">
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            speakResponse(msg.content, null, msg.id, msg.attachments || [], true);
+                                          }}
+                                          className={`transition-colors p-1.5 rounded-lg ${speakingMessageId === msg.id
+                                            ? 'text-primary bg-primary/10'
+                                            : 'text-subtext hover:text-primary hover:bg-surface-hover'
+                                            }`}
+                                          title={speakingMessageId === msg.id && !isPaused ? "Pause" : "Speak"}
+                                        >
+                                          {speakingMessageId === msg.id && !isPaused ? (
+                                            <Pause className="w-3.5 h-3.5" />
+                                          ) : (
+                                            <Volume2 className="w-3.5 h-3.5" />
+                                          )}
+                                        </button>
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); handleCopyMessage(msg.content); }}
+                                          className="text-subtext hover:text-maintext transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
+                                          title="Copy"
+                                        >
+                                          <Copy className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); handleThumbsUp(msg.id); }}
+                                          className={`transition-colors p-1.5 rounded-lg ${messageFeedback[msg.id]?.type === 'up'
+                                            ? 'text-blue-500 bg-blue-500/10'
+                                            : 'text-subtext hover:text-primary hover:bg-surface-hover'
+                                            }`}
+                                          title="Helpful"
+                                        >
+                                          <ThumbsUp className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); handleThumbsDown(msg.id); }}
+                                          className={`transition-colors p-1.5 rounded-lg ${messageFeedback[msg.id]?.type === 'down'
+                                            ? 'text-red-500 bg-red-500/10'
+                                            : 'text-subtext hover:text-red-500 hover:bg-surface-hover'
+                                            }`}
+                                          title="Not Helpful"
+                                        >
+                                          <ThumbsDown className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); handleShare(msg.content); }}
+                                          className="text-subtext hover:text-primary transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
+                                          title="Share Text"
+                                        >
+                                          <Share className="w-3.5 h-3.5" />
+                                        </button>
 
                                       {/* PDF / ZIP Tools */}
                                       <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 ml-2 pl-2">
                                         {/* Edit Button for Draft Maker */}
                                         {(msg.toolUsed?.toLowerCase() === 'legal_draft_maker' || msg.toolUsed === 'Draft Maker') && (
                                           <button
-                                            onClick={() => startEditing(msg)}
+                                            onClick={(e) => { e.stopPropagation(); startEditing(msg); }}
                                             className="text-primary hover:text-primary transition-all p-1.5 hover:bg-primary/5 rounded-lg flex items-center gap-1 active:scale-95 group/edit"
                                             title="Edit Draft"
                                           >
@@ -7118,7 +7088,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                                         {(msg.detectedMode === 'CODING_HELP' || msg.detectedMode === 'CODE_WRITER') ? (
                                           <button
-                                            onClick={() => handleDownloadCodeProject(msg)}
+                                            onClick={(e) => { e.stopPropagation(); handleDownloadCodeProject(msg); }}
                                             className="text-blue-500 hover:text-blue-600 transition-all p-1.5 hover:bg-blue-50/10 rounded-lg flex items-center gap-1 active:scale-95 group/code"
                                             title="Download Code Project (ZIP)"
                                           >
@@ -7127,7 +7097,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                           </button>
                                         ) : (
                                           <button
-                                            onClick={() => handlePdfAction('download', msg)}
+                                            onClick={(e) => { e.stopPropagation(); handlePdfAction('download', msg); }}
                                             className="text-red-500 hover:text-red-600 transition-all p-1.5 hover:bg-red-50/10 rounded-lg flex items-center gap-1 active:scale-95 group/pdf"
                                             title="Download Ready-Made PDF Report"
                                           >
@@ -7150,7 +7120,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 {suggestions.map((item, index) => (
                                   <button
                                     key={index}
-                                    onClick={() => handleSuggestionClick(item)}
+                                    onClick={(e) => { e.stopPropagation(); handleSuggestionClick(item); }}
                                     className="suggestion-btn"
                                   >
                                     {item}
@@ -7274,24 +7244,25 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
-                  className="absolute inset-0 z-10 pointer-events-none flex flex-col items-center overflow-y-auto overflow-x-hidden pt-8 pb-48 sm:pt-12 md:pb-60"
+                  className="absolute inset-0 z-10 pointer-events-none flex flex-col items-center overflow-y-auto overflow-x-hidden pt-12 pb-60 sm:pt-20 px-4 sm:px-6"
                 >
-                  <div className="relative z-10 pointer-events-auto flex flex-col items-center w-full max-w-5xl mx-auto px-2">
+                  <div className="relative z-10 pointer-events-auto flex flex-col items-center w-full max-w-[1750px] mx-auto">
                     <motion.div
                       initial={{ y: 20, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: 0.1 }}
-                      className="mb-6"
+                      transition={{ delay: 0.1, duration: 0.8, ease: "easeOut" }}
+                      className="mb-12 relative group"
                     >
+                      {/* Logo Glow Effect */}
+                      <div className="absolute inset-0 bg-primary/20 blur-[60px] rounded-full scale-150 opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
                       <img
                         src="/logo/Logo.svg"
                         alt="AISA"
-                        className="w-16 h-16 sm:w-20 sm:h-20 mx-auto drop-shadow-[0_0_30px_rgba(139,92,246,0.4)] transition-all duration-700 hover:scale-110"
+                        className="w-20 h-20 sm:w-24 sm:h-24 mx-auto relative z-10 drop-shadow-[0_0_40px_rgba(139,92,246,0.3)] transition-all duration-1000 group-hover:scale-105"
                       />
-                      <p className="text-center text-sm font-bold text-primary/70 mt-2 tracking-widest">AISA™</p>
                     </motion.div>
 
-                    <section className="w-full px-1 sm:px-2 md:px-0">
+                    <section className="w-full flex justify-center">
                       <FuturisticToolCards
                         isAdmin={isAdminUser}
                         activeToolId={
@@ -7365,6 +7336,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             setIsMagicVideoModalOpen(true);
                             toast.success("Image to Video Mode Active");
                           } else if (id === 'ai_cashflow') {
+                            if (!checkPremiumTool('AI CashFlow')) return;
                             setIsCashFlowMode(true);
                             setIsStockModalOpen(true);
                             toast.success("AI CashFlow Active 📈");
@@ -7373,6 +7345,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             setIsSocialMediaDashboardOpen(true);
                             toast.success("AI ADS™ Active");
                           } else if (id === 'legal') {
+                            if (!checkPremiumTool('AI Legal')) return;
                             setActiveLegalToolkit(true);
                             setCurrentMode('LEGAL_TOOLKIT');
                             // Removed setLegalView('DASHBOARD') to keep input box visible behind modal
@@ -7388,15 +7361,14 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
         {/* Unified Chat Input Container */}
         {legalView !== 'DASHBOARD' && (
-          <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none" style={{ padding: '0.5rem 0.5rem calc(0.5rem + env(safe-area-inset-bottom, 0px)) 0.5rem' }}>
-            {/* Bottom Mask to prevent text showing behind input area */}
-            <div className="absolute inset-0 bg-gradient-to-t from-secondary via-secondary/90 to-transparent -z-10 h-full w-full pointer-events-none" />
+          <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none bg-background" style={{ padding: '3rem 2rem calc(0.5rem + env(safe-area-inset-bottom, 0px)) 2rem' }}>
+            {/* Opaque background prevents text from showing behind input area */}
             <div className="max-w-5xl mx-auto w-full pointer-events-auto">
 
 
               <form
                 onSubmit={handleSendMessage}
-                className="relative w-full flex flex-col transition-all duration-300 backdrop-blur-3xl p-3 z-50 aisa-chat-input-wrapper bg-[#f8f9fc]/90 dark:bg-zinc-900/95 border border-slate-200/50 dark:border-zinc-800/80 rounded-[32px] shadow-2xl ring-1 ring-black/5 overflow-visible"
+                className="relative w-full flex flex-col transition-all duration-300 p-3 z-50 aisa-chat-input-wrapper bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 rounded-[32px] shadow-2xl ring-1 ring-black/5 overflow-visible"
               >
                 {/* Internal File Preview Area */}
                 {filePreviews.length > 0 && (
@@ -7443,7 +7415,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                   {/* AI CashFlow Search Results Dropdown */}
                   {isCashFlowMode && Array.isArray(stockSearchResults) && stockSearchResults.length > 0 && (
-                    <div className="absolute bottom-full left-0 right-0 mb-3 px-2 z-[110] pointer-events-auto max-h-[300px] overflow-y-auto custom-scrollbar">
+                    <div className="absolute bottom-full left-0 right-0 mb-3 px-2 z-[110] pointer-events-auto max-h-[300px] overflow-y-auto no-scrollbar">
                       <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden">
                         {stockSearchResults.map((stock) => (
                           <button
@@ -7530,7 +7502,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               </h3>
                             </div>
                           </div>
-                          <div className="p-1.5 pb-12 space-y-1 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+                          <div className="p-1.5 pb-12 space-y-1 overflow-y-auto no-scrollbar" style={{ maxHeight: 'calc(100vh - 220px)' }}>
 
                             <button
                               type="button"
@@ -7828,8 +7800,13 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               }}
                               className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${activeLegalToolkit ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
                             >
-                              <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${activeLegalToolkit ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
-                                <LegalLogo size={32} showText={false} style={{ color: activeLegalToolkit ? '#fff' : undefined }} />
+                              <div className="flex flex-col items-center gap-1.5 shrink-0">
+                                <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${activeLegalToolkit ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
+                                  <LegalLogo size={28} showText={false} style={{ color: activeLegalToolkit ? '#fff' : undefined }} />
+                                </div>
+                                <span className={`text-[8.5px] font-black uppercase tracking-[0.1em] text-center whitespace-nowrap ${activeLegalToolkit ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400'}`}>
+                                  सत्यमेव जयते
+                                </span>
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-0.5">
@@ -7889,9 +7866,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     </AnimatePresence>
 
                     <div className="relative">
-                      <AnimatePresence>
-                        {isAttachHovered && <MagicShowEffect />}
-                      </AnimatePresence>
                       <motion.button
                         type="button"
                         ref={attachBtnRef}
@@ -7911,9 +7885,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     </div>
 
                     <div className="relative">
-                      <AnimatePresence>
-                        {(isBrainHovered || isBrainTapped) && <MagicShowEffect isMobileIdle={!isBrainHovered && !isBrainTapped} />}
-                      </AnimatePresence>
                       <motion.button
                         type="button"
                         ref={toolsBtnRef}
@@ -7922,12 +7893,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         whileHover={{ scale: 1.15, rotate: [0, -5, 5, 0] }}
                         whileTap={{ scale: 0.9 }}
                         onClick={(e) => {
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          setExplosions(prev => [...prev, {
-                            id: Date.now(),
-                            x: rect.left + rect.width / 2,
-                            y: rect.top + rect.height / 2
-                          }]);
                           setIsBrainTapped(true);
                           setTimeout(() => setIsBrainTapped(false), 2000);
                           setIsToolsMenuOpen(!isToolsMenuOpen);
@@ -8270,7 +8235,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       }}
                       placeholder={isLimitReached ? t('limitReached') || "Chat limit reached. Sign in to continue." : (isVideoGeneration ? t('describeVideo') || "Describe the video you want to generate..." : isAudioConvertMode ? t('enterTextToConvert') || "Enter text to convert..." : isDocumentConvert ? t('uploadFileToConvert') || "Upload file & ask to convert..." : typedPlaceholder)}
                       rows={1}
-                      className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none px-2 py-2 text-slate-800 dark:text-zinc-100 text-left placeholder-slate-400 dark:placeholder-zinc-500 resize-none overflow-y-auto custom-scrollbar font-medium leading-relaxed text-[16px] ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
+                      className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none px-5 py-2 text-slate-800 dark:text-zinc-100 text-left placeholder-slate-400 dark:placeholder-zinc-500 resize-none overflow-y-auto custom-scrollbar font-medium leading-relaxed text-[16px] ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
                       style={{ minHeight: '32px', height: 'auto', maxHeight: '180px', lineHeight: '1.5' }}
                     />
                   </div>
@@ -8288,11 +8253,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       <>
                         {getAgentCapabilities(activeAgent.agentName, activeAgent.category).canVoice && (
                           <div className="relative">
-                            <AnimatePresence>
-                              {isMicTapped && (
-                                <MagicShowEffect isMobileIdle={false} />
-                              )}
-                            </AnimatePresence>
                             <motion.button
                               type="button"
                               onMouseEnter={() => setIsMicHovered(true)}
@@ -8327,11 +8287,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       </button>
                     ) : (
                       <div className="flex items-center gap-[6px] relative">
-                        <AnimatePresence>
-                          {isSendTapped && !isLoading && (
-                            <MagicShowEffect isMobileIdle={false} />
-                          )}
-                        </AnimatePresence>
                         <motion.button
                           type="submit"
                           disabled={!inputValue.trim() && filePreviews.length === 0}
@@ -8510,7 +8465,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
               >
                 <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-border p-8 text-center shadow-2xl transition-all">
                   <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Sparkles className="w-10 h-10 text-primary animate-pulse" />
+                    <Rocket className="w-10 h-10 text-primary animate-pulse" />
                   </div>
 
                   <Dialog.Title as="h3" className="text-2xl font-black text-maintext mb-2 tracking-tight uppercase">
@@ -9060,14 +9015,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         onClose={() => setIsStockModalOpen(false)}
         onSelect={(stock) => handleStockAnalysis(stock)}
       />
-      {explosions && explosions.map(exp => (
-        <NeuralExplosion
-          key={exp.id}
-          x={exp.x}
-          y={exp.y}
-          onComplete={() => setExplosions(prev => prev.filter(e => e.id !== exp.id))}
-        />
-      ))}
+      {/* No effects */}
 
       <LegalToolkitCard
         isOpen={activeLegalToolkit}

@@ -1,6 +1,6 @@
 import React from 'react';
 
-const LegalLogo = ({ size = 24, color = 'currentColor', className = "", showText = true, style = {} }) => {
+const LegalLogo = ({ size = 24, color = 'currentColor', className = "", showText = false, style = {} }) => {
   const finalColor = style.color || color;
   const iconSize = showText ? size * 0.85 : size;
 

@@ -14,32 +14,16 @@ const AisaTypingIndicator = ({ visible = true, message = "AISA™ is thinking" }
       className="flex items-start gap-2 md:gap-3 mb-4 w-full max-w-5xl mx-auto"
     >
       {/* Avatar */}
-      <div className="relative flex-shrink-0">
-        <div className="w-8 h-8 rounded-xl flex items-center justify-center overflow-hidden"
-          style={{
-            background: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.1))',
-            border: '1px solid rgba(139,92,246,0.3)',
-            boxShadow: '0 0 12px rgba(139,92,246,0.2)',
-          }}>
-          <img src="/logo/Logo.svg" alt="AISA™" style={{ width: 22, height: 22, objectFit: 'contain' }} />
-        </div>
-        {/* Pulse ring */}
-        <div className="absolute inset-0 rounded-xl"
-          style={{
-            border: '1px solid rgba(139,92,246,0.4)',
-            animation: 'neon-pulse 2s ease-in-out infinite',
-          }} />
-      </div>
-
-      {/* Typing bubble */}
-      <div className="aisa-typing-indicator">
-        <Sparkles style={{ width: 10, height: 10, color: 'rgba(167,139,250,0.7)', flexShrink: 0 }} />
-        <span style={{ fontSize: '11px', color: 'rgba(167,139,250,0.7)', fontWeight: 600 }}>
+      <div className="flex items-center gap-2 px-0 py-1 opacity-80">
+        <Sparkles strokeWidth={3} style={{ width: 12, height: 12, color: '#6366f1', flexShrink: 0 }} />
+        <span style={{ fontSize: '11px', color: '#6366f1', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
           {message}
         </span>
-        <div className="aisa-typing-dot" />
-        <div className="aisa-typing-dot" />
-        <div className="aisa-typing-dot" />
+        <div className="flex gap-1 ml-1.5">
+          <div className="w-1 h-1 rounded-full bg-indigo-500/40 animate-bounce" style={{ animationDelay: '0ms' }} />
+          <div className="w-1 h-1 rounded-full bg-indigo-500/40 animate-bounce" style={{ animationDelay: '150ms' }} />
+          <div className="w-1 h-1 rounded-full bg-indigo-500/40 animate-bounce" style={{ animationDelay: '300ms' }} />
+        </div>
       </div>
     </motion.div>
   );

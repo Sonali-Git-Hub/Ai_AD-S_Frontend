@@ -45,7 +45,7 @@ const Landing = () => {
     const { theme } = useTheme();
     const normalizedTheme = typeof theme === 'string' ? theme.toLowerCase() : 'system';
     const isDarkMode = normalizedTheme === 'dark' || (normalizedTheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    
+
     const [isFaqOpen, setIsFaqOpen] = useState(false);
     const [openFaqIndex, setOpenFaqIndex] = useState(null);
     const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
@@ -61,15 +61,15 @@ const Landing = () => {
     // Moved from Navigation.Provider to Landing to prevent unmount flicker
     useEffect(() => {
         if (didInitFromUrl.current) return;
-        
+
         const isInternalNavigation = location.state?.fromLogo === true;
         const hasToken = user?.token;
-        
+
         // Only redirect on FIRST entry to the root path if logged in and NOT an internal navigation
         if (location.pathname === '/' && hasToken && !isInternalNavigation) {
             navigate('/dashboard/chat', { replace: true });
         }
-        
+
         // Mark as initialized so internal navigation (like closing a modal) doesn't trigger this again
         didInitFromUrl.current = true;
     }, [location.pathname, user?.token, navigate]);
@@ -105,7 +105,7 @@ const Landing = () => {
             setIsBloomExploded(true);
             // Dynamic glow interaction for the footer reveal
             if (typeof gsap !== 'undefined') {
-                gsap.fromTo(".footer-reveal-bg", 
+                gsap.fromTo(".footer-reveal-bg",
                     { filter: "brightness(1.4)" },
                     { filter: "brightness(1)", duration: 2, ease: "sine.inOut" }
                 );
@@ -129,7 +129,7 @@ const Landing = () => {
 
     return (
         <div style={{ background: isDarkMode ? '#0b0b12' : '#EEF2FF' }} className="min-h-screen flex flex-col relative overflow-hidden aisa-scalable-text">
-            
+
 
             {/* ── 3D Immersive Adventure Element ── */}
             <ErrorBoundary>
@@ -162,32 +162,32 @@ const Landing = () => {
                 whileInView="show"
                 viewport={{ once: true }}
                 style={{
-                  background: isDarkMode 
-                    ? 'linear-gradient(180deg,rgba(4,4,14,0) 0%,rgba(6,6,20,0) 100%)'
-                    : 'linear-gradient(180deg, #EEF2FF 0%, rgba(224, 231, 255, 0.4) 100%)',
+                    background: isDarkMode
+                        ? 'linear-gradient(180deg,rgba(4,4,14,0) 0%,rgba(6,6,20,0) 100%)'
+                        : 'linear-gradient(180deg, #EEF2FF 0%, rgba(224, 231, 255, 0.4) 100%)',
                 }}
                 className="flex flex-col items-center text-center px-4 relative z-10 py-32"
             >
                 {/* Secondary CTA Area */}
                 <motion.div variants={itemVariants} className="max-w-4xl w-full">
                     <h2 className="text-4xl md:text-7xl font-black mb-6 text-[#0F172A] dark:text-white tracking-tight leading-[1.05]">
-                        {t('choosePowerLevel').split(' ').slice(0, 2).join(' ')} <br/> <span className="text-primary italic">{t('choosePowerLevel').split(' ').slice(2).join(' ')}</span>
+                        {t('choosePowerLevel').split(' ').slice(0, 2).join(' ')} <br /> <span className="text-primary italic">{t('choosePowerLevel').split(' ').slice(2).join(' ')}</span>
                     </h2>
                     <p className="text-xl text-[#64748B] dark:text-gray-400 mb-16 max-w-2xl mx-auto opacity-80">
                         {t('unlockFrontierAI')}
                     </p>
-                    
+
                     <motion.div
                         whileHover={{ y: -12, scale: 1.02 }}
                         onClick={() => navigate("/pricing")}
                         style={{
-                          background: isDarkMode 
-                            ? 'rgba(255,255,255,0.03)' 
-                            : 'rgba(255, 255, 255, 0.6)',
-                          backdropFilter: 'blur(3xl)',
-                          boxShadow: isDarkMode 
-                            ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)' 
-                            : '0 20px 50px rgba(99, 102, 241, 0.08), inset 0 1px 0 rgba(255,255,255,0.8)',
+                            background: isDarkMode
+                                ? 'rgba(255,255,255,0.03)'
+                                : 'rgba(255, 255, 255, 0.6)',
+                            backdropFilter: 'blur(3xl)',
+                            boxShadow: isDarkMode
+                                ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                                : '0 20px 50px rgba(99, 102, 241, 0.08), inset 0 1px 0 rgba(255,255,255,0.8)',
                         }}
                         className="backdrop-blur-3xl rounded-[4rem] p-16 border border-indigo-500/10 dark:border-white/5 cursor-pointer group transition-all"
                     >
@@ -214,9 +214,9 @@ const Landing = () => {
             >
                 {/* Internal Glow for Reveal Effect */}
                 <div className={`absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-transparent transition-opacity duration-1500 ${isBloomExploded ? 'opacity-80' : 'opacity-0'}`} />
-                
+
                 <div className="max-w-7xl mx-auto px-8 lg:px-12 pt-10 pb-8 relative z-10">
-                    <motion.div 
+                    <motion.div
                         initial="hidden"
                         animate={isBloomExploded ? "show" : "hidden"}
                         variants={containerVariants}
@@ -266,10 +266,10 @@ const Landing = () => {
                             <ul className="space-y-6 text-gray-600 dark:text-gray-400 text-[0.95rem] font-medium">
                                 <li className="flex items-center gap-4 group cursor-pointer transition-all active:scale-95">
                                     <div className="p-2 rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-white"><MapPin size={18} /></div>
-                                    <a 
-                                        href="https://www.google.com/maps/search/?api=1&query=Jabalpur,+Madhya+Pradesh" 
-                                        target="_blank" 
-                                        rel="noreferrer" 
+                                    <a
+                                        href="https://www.google.com/maps/search/?api=1&query=Jabalpur,+Madhya+Pradesh"
+                                        target="_blank"
+                                        rel="noreferrer"
                                         className="transition-colors group-hover:text-primary footer-link-sparkle"
                                     >
                                         {t('city')}
@@ -310,7 +310,7 @@ const Landing = () => {
             <AnimatePresence>
                 {isFaqOpen && (
                     <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/70 backdrop-blur-xl">
-                        <motion.div 
+                        <motion.div
                             initial={{ scale: 0.95, opacity: 0, y: 30 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 30 }}

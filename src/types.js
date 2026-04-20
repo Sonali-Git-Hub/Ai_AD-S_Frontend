@@ -109,6 +109,7 @@ const apis = {
   },
   uploadAvatar: `${API}/user/avatar`,
   removeAvatar: `${API}/user/avatar`,
+  deleteAccount: `${API}/user`,
   aiAdAgent: {
     configure: `${API}/ai-ad/configure`,
     posts: `${API}/ai-ad/posts`,

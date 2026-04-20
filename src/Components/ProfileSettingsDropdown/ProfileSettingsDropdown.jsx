@@ -35,7 +35,8 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         notifications,
         deleteNotification,
         clearAllNotifications,
-        chatSessions
+        chatSessions,
+        refreshChatSessions
     } = usePersonalization();
     const { theme, setTheme, accentColor, setAccentColor, ACCENT_COLORS } = useTheme();
     const { language, setLanguage, region, setRegion, regions, t } = useLanguage();
@@ -324,6 +325,60 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         }
     };
 
+    const handleDeleteAccount = async () => {
+        setDeleteLoading(true);
+        try {
+            await axios.delete(apis.deleteAccount, {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            toast.success('Account deleted successfully');
+            setShowDeleteModal(false);
+            onLogout();
+            onClose();
+        } catch (error) {
+            toast.error(error.response?.data?.error || 'Failed to delete account');
+        } finally {
+            setDeleteLoading(false);
+        }
+    };
+
+    const handleDeleteChatSession = async (sessionId) => {
+        if (!confirm(t('confirmDeleteChat') || "Are you sure you want to delete this chat session?")) return;
+        
+        try {
+            await axios.delete(`${API}/chat/${sessionId}`, {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            toast.success(t('chatDeleted') || 'Chat deleted');
+            refreshChatSessions(); // Refresh list via context
+        } catch (error) {
+            toast.error(t('deleteChatFailed') || 'Failed to delete chat');
+        }
+    };
+
+    const handleClearAllHistory = async () => {
+        if (!confirm(t('confirmClearAllHistory') || "Are you sure you want to delete ALL chat history? This cannot be undone.")) return;
+        
+        const loading = toast.loading(t('clearingHistory') || "Clearing history...");
+        try {
+            // Delete sessions one by one or via a bulk endpoint if available. 
+            // In ChatSession.js, DELETE /api/chat/:sessionId is for one.
+            // Let's see if we can do bulk. For now, individual is safer if no bulk exists.
+            await Promise.all(chatSessions.map(s => 
+                axios.delete(`${API}/chat/${s.sessionId}`, {
+                    headers: { 'Authorization': `Bearer ${user.token}` }
+                })
+            ));
+            
+            toast.dismiss(loading);
+            toast.success(t('historyCleared') || 'All history cleared');
+            refreshChatSessions();
+        } catch (error) {
+            toast.dismiss(loading);
+            toast.error(t('clearHistoryFailed') || 'Failed to clear history');
+        }
+    };
+
     const handleResetPassword = async () => {
         if (!resetOtp || !newPassword) {
             toast.error('Please enter OTP and New Password');
@@ -480,7 +535,17 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                     <div className="space-y-4">
                         {allSettings.filter(s => s.tab === 'data').map(s => <div key={s.id}>{s.component}</div>)}
                         <div className="pt-4 mt-4 border-t border-gray-100 dark:border-white/5">
-                            <h4 className="text-xs font-bold text-gray-400 uppercase mb-4">{t('chatHistory')}</h4>
+                            <div className="flex items-center justify-between mb-4">
+                                <h4 className="text-xs font-bold text-gray-400 uppercase">{t('chatHistory')}</h4>
+                                {chatSessions?.length > 0 && (
+                                    <button 
+                                        onClick={handleClearAllHistory}
+                                        className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-500/10 px-2 py-1 rounded-lg transition-all"
+                                    >
+                                        {t('clearAll') || 'Clear All'}
+                                    </button>
+                                )}
+                            </div>
                             <div className="space-y-2 pr-2 max-h-[300px] overflow-y-auto custom-scrollbar">
                                 {Object.keys(groupedSessions).length > 0 ? Object.keys(groupedSessions).sort((a, b) => new Date(b) - new Date(a)).map(date => (
                                     <div key={date} className="border border-border rounded-xl bg-gray-50/50 dark:bg-zinc-800/30">
@@ -492,8 +557,22 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                             <div className="p-2 pt-0 space-y-1">
                                                 {groupedSessions[date].map(s => (
                                                     <div key={s.sessionId} className="flex items-center justify-between p-2 hover:bg-white dark:hover:bg-zinc-800 rounded-lg text-xs group">
-                                                        <span className="truncate flex-1">{s.title || t('newChat')}</span>
-                                                        <button onClick={() => { window.location.href = `/dashboard/chat/${s.sessionId}`; onClose(); }} className="ml-2 px-2 py-1 bg-primary text-white rounded font-bold opacity-0 group-hover:opacity-100 transition-opacity">{t('viewLabel')}</button>
+                                                        <span className="truncate flex-1 font-medium text-gray-600 dark:text-gray-300">{s.title || t('newChat')}</span>
+                                                        <div className="flex items-center gap-1">
+                                                            <button 
+                                                                onClick={() => { window.location.href = `/dashboard/chat/${s.sessionId}`; onClose(); }} 
+                                                                className="px-2 py-1 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded font-bold opacity-0 group-hover:opacity-100 transition-all text-[10px]"
+                                                            >
+                                                                {t('viewLabel')}
+                                                            </button>
+                                                            <button 
+                                                                onClick={(e) => { e.stopPropagation(); handleDeleteChatSession(s.sessionId); }} 
+                                                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                                                                title="Delete Session"
+                                                            >
+                                                                <Trash2 size={12} />
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
@@ -596,12 +675,24 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                         </div>
 
                         {allSettings.filter(s => s.tab === 'account').map(s => <div key={s.id}>{s.component}</div>)}
-                        <div className="py-4 flex justify-between items-center text-sm">
+                        <div className="py-4 flex justify-between items-center text-sm border-b border-gray-100 dark:border-white/5">
                             <div>
                                 <p className="font-bold">{t('password')}</p>
                                 <p className="text-xs text-subtext">{t('manageAccountSecurity') || 'Manage your account security'}</p>
                             </div>
                             <button onClick={() => setShowResetModal(true)} className="text-primary font-bold hover:underline">{t('changePassword')}</button>
+                        </div>
+                        <div className="py-6 flex justify-between items-center text-sm">
+                            <div className="space-y-1">
+                                <p className="font-bold text-red-500">{t('dangerZone') || 'Danger Zone'}</p>
+                                <p className="text-[11px] text-subtext leading-tight max-w-[280px]">Permanently delete your account and all associated data. This action is irreversible.</p>
+                            </div>
+                            <button 
+                                onClick={() => setShowDeleteModal(true)} 
+                                className="px-5 py-2.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 rounded-xl font-bold transition-all"
+                            >
+                                {t('deleteAccount') || 'Delete Account'}
+                            </button>
                         </div>
                     </div>
                 );
@@ -863,6 +954,36 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                     </div>
                 </motion.div>
             </div>
+
+            {/* Account Deletion Modal */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowDeleteModal(false)}>
+                    <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="bg-white dark:bg-[#1E2438] p-8 rounded-3xl w-full max-w-sm shadow-2xl border border-red-500/10 text-center" onClick={e => e.stopPropagation()}>
+                        <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <Trash2 className="w-8 h-8 text-red-500" />
+                        </div>
+                        <h3 className="text-xl font-black text-gray-900 dark:text-white mb-3">Delete Account?</h3>
+                        <p className="text-sm text-subtext mb-8 leading-relaxed">
+                            Are you absolutely sure? This will permanently remove your profile, data, and access. **This cannot be undone.**
+                        </p>
+                        <div className="flex flex-col gap-3">
+                            <button 
+                                onClick={handleDeleteAccount} 
+                                disabled={deleteLoading} 
+                                className="w-full py-4 bg-red-500 text-white rounded-2xl font-black text-sm tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-500/25 disabled:opacity-50 active:scale-95 uppercase"
+                            >
+                                {deleteLoading ? 'Deleting Account...' : 'Yes, Delete Permanently'}
+                            </button>
+                            <button 
+                                onClick={() => setShowDeleteModal(false)}
+                                className="w-full py-4 bg-gray-50 dark:bg-white/5 text-gray-500 dark:text-gray-400 rounded-2xl font-bold text-sm tracking-widest hover:bg-gray-100 dark:hover:bg-white/10 transition-all active:scale-95 uppercase"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
 
             {/* Password Reset Modal */}
             {showResetModal && (

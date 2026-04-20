@@ -44,7 +44,8 @@
     --radius: 1rem;
   }
 
-  :root.dark, .dark {
+  :root.dark,
+  .dark {
     --background: 227 39% 9%;
     /* #0E1220 - Deep Calm Charcoal/Navy */
     --foreground: 210 20% 90%;
@@ -196,9 +197,22 @@
 }
 
 @keyframes float-slow {
-  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.3; }
-  33% { transform: translate(10px, -15px) scale(1.1); opacity: 0.5; }
-  66% { transform: translate(-15px, 10px) scale(0.95); opacity: 0.4; }
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.3;
+  }
+
+  33% {
+    transform: translate(10px, -15px) scale(1.1);
+    opacity: 0.5;
+  }
+
+  66% {
+    transform: translate(-15px, 10px) scale(0.95);
+    opacity: 0.4;
+  }
 }
 
 .animate-float-slow {
@@ -206,8 +220,15 @@
 }
 
 @keyframes border-glow {
-  0%, 100% { border-color: rgba(var(--primary), 0.1); }
-  50% { border-color: rgba(var(--primary), 0.5); }
+
+  0%,
+  100% {
+    border-color: rgba(var(--primary), 0.1);
+  }
+
+  50% {
+    border-color: rgba(var(--primary), 0.5);
+  }
 }
 
 .sidebar-glass {
@@ -275,9 +296,12 @@
 }
 
 @keyframes float {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-20px);
   }
@@ -369,13 +393,27 @@ body,
   background: rgba(99, 102, 241, 0.45);
 }
 
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
 .scrollbar-hide {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 .scrollbar-hide::-webkit-scrollbar {
-  display: none; /* Chrome, Safari and Opera */
+  display: none;
+  /* Chrome, Safari and Opera */
 }
 
 .demo-scroll-thumb {
@@ -398,6 +436,7 @@ body,
 }
 
 @media (prefers-reduced-motion: no-preference) {
+
   html.is-scrolling [style*="backdrop-filter"],
   html.is-scrolling [class*="backdrop-blur"] {
     backdrop-filter: blur(0px) !important;
@@ -411,6 +450,7 @@ body,
     backdrop-filter: blur(8px) !important;
     -webkit-backdrop-filter: blur(8px) !important;
   }
+
   [class*="shadow-"] {
     box-shadow: none !important;
   }
@@ -488,13 +528,12 @@ body,
   left: 0;
   width: 0;
   height: 1.5px;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    #a855f7 20%, 
-    #22d3ee 50%, 
-    #a855f7 80%, 
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      #a855f7 20%,
+      #22d3ee 50%,
+      #a855f7 80%,
+      transparent 100%);
   background-size: 200% 100%;
   border-radius: 2px;
   transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
@@ -509,24 +548,28 @@ body,
 }
 
 @keyframes sparkle-shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .dark .footer-link-sparkle::after {
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    #c084fc 20%, 
-    #67e8f9 50%, 
-    #c084fc 80%, 
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      #c084fc 20%,
+      #67e8f9 50%,
+      #c084fc 80%,
+      transparent 100%);
   background-size: 200% 100%;
 }
 
 
 .holographic-card {
-  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
   @apply backdrop-blur-xl border border-white/20;
   position: relative;
   overflow: hidden;
@@ -539,24 +582,27 @@ body,
   left: -50%;
   width: 200%;
   height: 200%;
-  background: conic-gradient(
-    from 0deg,
-    transparent,
-    rgba(99, 102, 241, 0.1),
-    rgba(168, 85, 247, 0.1),
-    transparent 60%
-  );
+  background: conic-gradient(from 0deg,
+      transparent,
+      rgba(99, 102, 241, 0.1),
+      rgba(168, 85, 247, 0.1),
+      transparent 60%);
   animation: rotate-conic 10s linear infinite;
 }
 
 @keyframes rotate-conic {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .mesh-bg {
   background-color: #f8f9fc;
-  background-image: 
+  background-image:
     radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.05) 0px, transparent 50%),
     radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.05) 0px, transparent 50%),
     radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.05) 0px, transparent 50%),
@@ -565,7 +611,7 @@ body,
 
 .dark .mesh-bg {
   background-color: #050505;
-  background-image: 
+  background-image:
     radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.1) 0px, transparent 50%),
     radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.1) 0px, transparent 50%);
 }
@@ -591,12 +637,14 @@ body,
 .custom-scrollbar::-webkit-scrollbar {
   width: 5px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
   @apply bg-primary/20 rounded-full hover:bg-primary/40;
 }
 
 /* --- LENIS SMOOTH SCROLL --- */
-html.lenis, html.lenis body {
+html.lenis,
+html.lenis body {
   height: auto;
 }
 
@@ -640,7 +688,7 @@ html.lenis, html.lenis body {
 .chatgpt-message-row {
   width: 100%;
   display: flex;
-  padding: 7px 24px !important;
+  padding: 8px 160px !important;
   transition: background-color 0.3s ease;
   background-color: transparent !important;
   border: none !important;
@@ -659,8 +707,8 @@ html.lenis, html.lenis body {
   width: 100%;
   max-width: 100%;
   display: flex;
-  gap: 16px;
-  margin: 0; 
+  gap: 10px;
+  margin: 0;
   background-color: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -669,7 +717,7 @@ html.lenis, html.lenis body {
   word-break: break-word;
 }
 
-.chatgpt-message-content p, 
+.chatgpt-message-content p,
 .chatgpt-message-content li,
 .chatgpt-message-content div {
   overflow-wrap: break-word;
@@ -678,30 +726,50 @@ html.lenis, html.lenis body {
   max-width: 100%;
 }
 
+/* Message Structure */
+
+.chatgpt-text>div:first-child>*:first-child,
+.chatgpt-text>*:first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.chatgpt-avatar-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 .ai-row .chatgpt-message-content {
   display: block !important;
+  text-align: left;
 }
 
 .ai-row .chatgpt-avatar-container {
   float: left;
   margin-right: 14px;
-  margin-bottom: 2px;
-  margin-top: 6px;
+  margin-bottom: 10px;
+  margin-top: 2px;
+}
+
+.ai-row .chatgpt-text {
+  display: block !important;
+  flex: none !important;
+  width: auto !important;
 }
 
 .user-row .chatgpt-message-content {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 16px;
   flex-direction: row-reverse;
-  text-align: right;
-}
-
-.ai-row .chatgpt-message-content {
-  flex-direction: row;
   text-align: left;
 }
 
 @media (min-width: 1024px) {
   .chatgpt-message-content {
-    max-width: 950px; 
+    max-width: 950px;
   }
 }
 
@@ -710,8 +778,6 @@ html.lenis, html.lenis body {
   letter-spacing: normal;
   color: #374151;
   width: 100%;
-  display: flex;
-  flex-direction: column;
   background-color: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -742,17 +808,18 @@ html.lenis, html.lenis body {
 }
 
 /* Ensure headings inherit alignment */
-.user-row .chatgpt-text h1, 
-.user-row .chatgpt-text h2, 
+.user-row .chatgpt-text h1,
+.user-row .chatgpt-text h2,
 .user-row .chatgpt-text h3,
 .user-row .chatgpt-text p,
 .user-row .chatgpt-text ul,
 .user-row .chatgpt-text ol {
-  text-align: left; /* Normal left alignment inside the user bubble */
+  text-align: left;
+  /* Normal left alignment inside the user bubble */
 }
 
-.ai-row .chatgpt-text h1, 
-.ai-row .chatgpt-text h2, 
+.ai-row .chatgpt-text h1,
+.ai-row .chatgpt-text h2,
 .ai-row .chatgpt-text h3,
 .ai-row .chatgpt-text p,
 .ai-row .chatgpt-text ul,
@@ -772,66 +839,127 @@ html.lenis, html.lenis body {
 }
 
 /* Heading Typography & Bullet Fix */
-.chatgpt-text h1, .chatgpt-text h2, .chatgpt-text h3 {
+.chatgpt-text h1,
+.chatgpt-text h2,
+.chatgpt-text h3 {
   list-style-type: none !important;
   list-style: none !important;
   color: #111827;
-  font-weight: 600;
-  margin-bottom: 0.75rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  line-height: 1.3;
 }
 
-.dark .chatgpt-text h1, 
-.dark .chatgpt-text h2, 
+.dark .chatgpt-text h1,
+.dark .chatgpt-text h2,
 .dark .chatgpt-text h3 {
-  color: #ececec;
-}
-
-.chatgpt-text h1, 
-.chatgpt-text h2, 
-.chatgpt-text h3,
-.chatgpt-text p {
-  margin-top: 0;
+  color: #f9fafb;
 }
 
 .chatgpt-text h1 {
-  font-size: 24px;
-  margin-top: 1rem;
+  font-size: 1.75rem;
+  margin-top: 1.5rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  padding-bottom: 0.5rem;
 }
 
-.chatgpt-text h1:first-child,
-.chatgpt-text h2:first-child,
-.chatgpt-text h3:first-child,
-.chatgpt-text p:first-child {
-  margin-top: 0 !important;
+.dark .chatgpt-text h1 {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
 .chatgpt-text h2 {
-  font-size: 20px;
-  margin-top: 0.75rem;
+  font-size: 1.4rem;
+  margin-top: 1.25rem;
 }
 
 .chatgpt-text h3 {
-  font-size: 18px;
-  margin-top: 0.5rem;
+  font-size: 1.15rem;
+  margin-top: 1rem;
 }
 
 .chatgpt-text p {
-  margin-bottom: 4px;
+  margin-bottom: 1rem;
+  line-height: 1.6;
 }
 
-.chatgpt-text ul, .chatgpt-text ol {
-  margin-bottom: 4px;
-  padding-left: 20px;
+/* List Styles Rewrite for ChatGPT-like appearance */
+.chatgpt-text ul,
+.chatgpt-text ol {
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+  width: 100%;
 }
 
 .chatgpt-text li {
-  margin-bottom: 2px;
+  margin-bottom: 0.5rem;
+  padding-left: 0.25rem;
+}
+
+.chatgpt-text li>p {
+  margin-bottom: 0.5rem;
+}
+
+/* Base List Types */
+.chatgpt-text ul {
+  list-style-type: disc;
+}
+
+.chatgpt-text ol {
+  list-style-type: decimal;
+}
+
+/* Nested List Styles - The core fix for the user request */
+.chatgpt-text ul ul,
+.chatgpt-text ol ul,
+.chatgpt-text ul ol,
+.chatgpt-text ol ol {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+  border-left: 1px solid rgba(0, 0, 0, 0.05);
+  /* Subtle vertical line for nesting */
+}
+
+.dark .chatgpt-text ul ul,
+.dark .chatgpt-text ol ul,
+.dark .chatgpt-text ul ol,
+.dark .chatgpt-text ol ol {
+  border-left-color: rgba(255, 255, 255, 0.05);
+}
+
+.chatgpt-text ul ul {
+  list-style-type: circle;
+}
+
+.chatgpt-text ul ul ul {
+  list-style-type: square;
+}
+
+/* Strong emphasis */
+.chatgpt-text strong {
+  font-weight: 700;
+  color: #111827;
+}
+
+.dark .chatgpt-text strong {
+  color: #ffffff;
+}
+
+/* Horizontal Rule */
+.chatgpt-text hr {
+  margin: 2rem 0;
+  border: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.dark .chatgpt-text hr {
+  border-top-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Aggressive first-child spacing elimination */
-.chatgpt-text > div:first-child,
-.chatgpt-text > div:first-child > *:first-child,
-.chatgpt-text > div:first-child > div:first-child > *:first-child {
+.chatgpt-text>div:first-child,
+.chatgpt-text>div:first-child>*:first-child,
+.chatgpt-text>div:first-child>div:first-child>*:first-child {
   margin-top: 0 !important;
   padding-top: 0 !important;
 }
@@ -864,7 +992,7 @@ html.lenis, html.lenis body {
 }
 
 /* Alignment for specific components inside rows */
-.user-row .chatgpt-text > div {
+.user-row .chatgpt-text>div {
   display: flex;
   flex-direction: column;
   items-align: flex-end;
@@ -947,18 +1075,22 @@ html.lenis, html.lenis body {
 /* Chat Suggestions */
 .suggestions-container {
   display: flex;
-  gap: 8px; /* Tight spacing (gap-2) */
+  gap: 8px;
+  /* Tight spacing (gap-2) */
   margin-top: 12px;
   margin-bottom: 12px;
   flex-wrap: wrap;
 }
 
 .suggestion-btn {
-  background: rgba(99, 102, 241, 0.08); /* Subtle background */
-  color: #6366f1; /* Primary color text */
+  background: rgba(99, 102, 241, 0.08);
+  /* Subtle background */
+  color: #6366f1;
+  /* Primary color text */
   border: 1px solid rgba(99, 102, 241, 0.2);
   padding: 6px 14px;
-  border-radius: 99px; /* Rounded pill */
+  border-radius: 99px;
+  /* Rounded pill */
   font-size: 12.5px;
   font-weight: 500;
   cursor: pointer;
@@ -990,8 +1122,8 @@ html.lenis, html.lenis body {
 /* Mobile Specific Padding Optimization */
 @media (max-width: 640px) {
   .chatgpt-message-row {
-    padding-left: 12px !important;
-    padding-right: 12px !important;
+    padding-left: 32px !important;
+    padding-right: 32px !important;
     padding-top: 14px !important;
     padding-bottom: 14px !important;
   }
@@ -1000,7 +1132,7 @@ html.lenis, html.lenis body {
     margin-top: 8px !important;
     margin-right: 12px !important;
   }
-  
+
   .chatgpt-message-content {
     gap: 12px !important;
   }
