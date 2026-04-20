@@ -200,12 +200,12 @@ export const LanguageProvider = ({ children }) => {
             Finance: "Finance",
             Shopping: "Shopping",
             Traveling: "Traveling",
-            welcomeMessage: "Hello! I’m AISA™, your Artificial Intelligence Super Assistant.",
+            welcomeMessage: "Hello! I’m AISA, your Artificial Intelligence Super Assistant.",
             switchedTo: "Switched to",
             heroTitle: "The Future of Conversational AI",
             heroTitleLine1: "The Future of",
             heroTitleLine2: "Conversational AI",
-            heroSubtitle: "Experience the next generation of intelligent assistance. AISA™ learns, adapts, and creates with you in real-time through a stunning interface.",
+            heroSubtitle: "Experience the next generation of intelligent assistance. AISA is a comprehensive AI platform designed to help users solve complex problems, manage tasks, analyze documents, and generate creative content through a secure interface.",
             startNow: "Start Now",
             privacyTitle: "Privacy First",
             privacyDesc: "Your data is yours. End-to-end encryption for all conversations.",
@@ -223,7 +223,7 @@ export const LanguageProvider = ({ children }) => {
             helpCenter: "Help Center",
 
             poweredByUWO: "Powered by UWO™",
-            exploreAisa: "Explore AISA™",
+            exploreAisa: "Explore AISA",
             exploreAiMall: "Explore AI-Mall™",
             existingUser: "Existing User",
             getStarted: "Get Started",
@@ -234,8 +234,8 @@ export const LanguageProvider = ({ children }) => {
             faq: "FAQ",
             faqList: [
                 {
-                    question: "What is AISA™?",
-                    answer: "AISA™ is an intelligent AI chat assistant that helps you with writing, analysis, coding, and much more. It's your personal AI companion for creative and technical tasks."
+                    question: "What is AISA?",
+                    answer: "AISA is an intelligent AI chat assistant that helps you with writing, analysis, coding, and much more. It's your personal AI companion for creative and technical tasks."
                 },
                 {
                     question: "How do I use AISA™?",
@@ -275,9 +275,9 @@ export const LanguageProvider = ({ children }) => {
             aiSmartAssistant: "Artificial Intelligence Smart Assistant",
             aboutIntro: "A seamless, intelligent workspace designed to think, talk, and create with you. Stop juggling apps—experience conversation, creation, analysis, and deep search in one fluid interface.",
             coreIntelligence: "Core Intelligence",
-            coreIntelligenceDesc: "AISA™ is powered by advanced AI systems enabling context-aware conversations, multi-modal understanding, intelligent document processing, and real-time visual & voice interaction.",
-            whyAisaExists: "Why AISA™ Exists",
-            whyAisaExistsDesc: "Modern users juggle too many tools. AISA™ solves this by offering one AI for all tasks: faster workflows, smarter understanding, and real-world usability.",
+            coreIntelligenceDesc: "AISA is powered by advanced AI systems enabling context-aware conversations, multi-modal understanding, intelligent document processing, and real-time visual & voice interaction.",
+            whyAisaExists: "Why AISA Exists",
+            whyAisaExistsDesc: "Modern users juggle too many tools. AISA solves this by offering one AI for all tasks: faster workflows, smarter understanding, and real-world usability.",
             powerhouseFeatures: "Powerhouse Features",
             builtForEveryone: "Built for Everyone",
             oneAssistant: "One Assistant. Unlimited Possibilities.",

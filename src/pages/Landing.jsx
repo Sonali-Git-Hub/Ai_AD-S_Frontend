@@ -227,9 +227,9 @@ const Landing = () => {
                             <div className="flex flex-col items-start gap-4 cursor-pointer group" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
                                 <div className="relative">
                                     <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    <img src={logo} alt="AISA™" className="w-14 h-14 relative transform group-hover:scale-110 transition-transform duration-500" />
+                                    <img src={logo} alt="AISA" className="w-14 h-14 relative transform group-hover:scale-110 transition-transform duration-500" />
                                 </div>
-                                <span className="text-xl font-black text-maintext tracking-tighter group-hover:text-primary transition-colors">AISA <span className="text-primary">™</span></span>
+                                <span className="text-xl font-black text-maintext tracking-tighter group-hover:text-primary transition-colors">AISA</span>
                             </div>
                             <p className="text-base text-gray-500 dark:text-gray-400 leading-relaxed font-medium">
                                 {t('aboutIntroText')}
@@ -290,9 +290,9 @@ const Landing = () => {
                         <motion.div variants={itemVariants} className="space-y-8">
                             <h4 className="text-xs font-black text-primary uppercase tracking-[0.25em] pl-1 footer-link-sparkle w-fit cursor-pointer">{t('governance')}</h4>
                             <ul className="space-y-5">
-                                <li><button onClick={openPrivacyModal} className="text-gray-600 dark:text-gray-400 hover:text-primary transition-all font-bold text-sm tracking-wide footer-link-sparkle">{t('privacyPolicy')}</button></li>
-                                <li><button onClick={openTermsModal} className="text-gray-600 dark:text-gray-400 hover:text-primary transition-all font-bold text-sm tracking-wide footer-link-sparkle">{t('termsOfService')}</button></li>
-                                <li><button onClick={openCookieModal} className="text-gray-600 dark:text-gray-400 hover:text-primary transition-all font-bold text-sm tracking-wide footer-link-sparkle">{t('cookiePolicy')}</button></li>
+                                <li><Link to="/privacy-policy" className="inline-block text-gray-600 dark:text-gray-400 hover:text-primary transition-all font-bold text-sm tracking-wide footer-link-sparkle">{t('privacyPolicy')}</Link></li>
+                                <li><Link to="/terms" className="inline-block text-gray-600 dark:text-gray-400 hover:text-primary transition-all font-bold text-sm tracking-wide footer-link-sparkle">{t('termsOfService')}</Link></li>
+                                <li><Link to="/cookie-policy" className="inline-block text-gray-600 dark:text-gray-400 hover:text-primary transition-all font-bold text-sm tracking-wide footer-link-sparkle">{t('cookiePolicy')}</Link></li>
                             </ul>
                         </motion.div>
                     </motion.div>
