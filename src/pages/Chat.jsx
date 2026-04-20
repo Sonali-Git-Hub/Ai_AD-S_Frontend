@@ -826,14 +826,31 @@ const Chat = () => {
   const [legalView, setLegalView] = useState('CHAT'); // 'DASHBOARD' | 'CHAT'
   const [legalCases, setLegalCases] = useState([]);
   const [isNewCaseModalOpen, setIsNewCaseModalOpen] = useState(false);
+  const [editingCaseId, setEditingCaseId] = useState(null);
   const [newCaseForm, setNewCaseForm] = useState({
     clientName: '',
     caseType: '',
+    otherCaseType: '',
     accused: '',
     caseSummary: ''
   });
   const [isRenamingCase, setIsRenamingCase] = useState(null); // ID of case being renamed
   const [renameValue, setRenameValue] = useState('');
+
+  const handleOpenEditModal = (c) => {
+    setEditingCaseId(c._id);
+    const standardTypes = ['Civil Case', 'Criminal Case', 'Divorce Case', 'Property Dispute', 'Corporate Legal', 'Consumer Court', 'Labor Dispute'];
+    const isOther = c.caseType && !standardTypes.includes(c.caseType);
+
+    setNewCaseForm({
+      clientName: c.clientName || '',
+      caseType: isOther ? 'Other' : (c.caseType || ''),
+      otherCaseType: isOther ? c.caseType : '',
+      accused: c.accused || '',
+      caseSummary: c.caseSummary || ''
+    });
+    setIsNewCaseModalOpen(true);
+  };
 
   // Fetch all legal cases for dashboard
   const fetchLegalCases = async () => {
@@ -857,29 +874,51 @@ const Chat = () => {
       toast.error("Client name is required");
       return;
     }
-    const tid = toast.loading("Creating legal case...");
+
+    if (newCaseForm.caseType === 'Other' && !newCaseForm.otherCaseType.trim()) {
+      toast.error("Please enter the case type");
+      return;
+    }
+
+    const tid = toast.loading(editingCaseId ? "Updating legal case..." : "Creating legal case...");
     try {
       // Use clientName as the project name if no specific name provided
       const caseName = newCaseForm.accused
         ? `${newCaseForm.clientName} vs ${newCaseForm.accused}`
         : `${newCaseForm.clientName} Case`;
 
-      const newCase = await apiService.createProject({
+      const finalCaseType = newCaseForm.caseType === 'Other' ? newCaseForm.otherCaseType : newCaseForm.caseType;
+
+      const payload = {
         name: caseName,
         clientName: newCaseForm.clientName,
-        caseType: newCaseForm.caseType,
+        caseType: finalCaseType,
         accused: newCaseForm.accused,
         caseSummary: newCaseForm.caseSummary,
         isLegalCase: true
-      });
-      toast.success("Case created successfully!", { id: tid });
-      setIsNewCaseModalOpen(false);
-      setNewCaseForm({ clientName: '', caseType: '', accused: '', caseSummary: '' });
+      };
 
-      // Select the new case and switch to chat
-      handleOpenCase(newCase, true); // Added true for 'isNew' flag
+      if (editingCaseId) {
+        await apiService.updateProject(editingCaseId, payload);
+        toast.success("Case updated successfully!", { id: tid });
+        fetchLegalCases();
+        
+        // Update local currentCase if it's the one renamed
+        if (currentCase?._id === editingCaseId) {
+          setCurrentCase(prev => ({ ...prev, ...payload }));
+        }
+      } else {
+        const newCase = await apiService.createProject(payload);
+        toast.success("Case created successfully!", { id: tid });
+        // Select the new case and switch to chat
+        handleOpenCase(newCase, true); // Added true for 'isNew' flag
+      }
+
+      setIsNewCaseModalOpen(false);
+      setEditingCaseId(null);
+      setNewCaseForm({ clientName: '', caseType: '', otherCaseType: '', accused: '', caseSummary: '' });
     } catch (err) {
-      toast.error("Failed to create case", { id: tid });
+      toast.error(editingCaseId ? "Failed to update case" : "Failed to create case", { id: tid });
     }
   };
 
@@ -987,30 +1026,34 @@ const Chat = () => {
     return (
       <div className="flex-1 flex flex-col w-full h-full overflow-hidden aisa-scalable-text bg-slate-50/30 dark:bg-transparent absolute inset-0">
         {/* Dashboard Header - Sticky */}
-        <div className="w-full px-6 sm:px-10 pt-8 pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 border-b border-slate-200/60 dark:border-zinc-800/60 bg-slate-50/80 dark:bg-[#0b0c15]/80 backdrop-blur-xl">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-indigo-600 rounded-2xl shadow-xl shadow-indigo-500/30 text-white">
-              <Briefcase className="w-7 h-7" />
+        <div className="w-full px-4 sm:px-10 pt-6 sm:pt-8 pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 border-b border-slate-200/60 dark:border-zinc-800/60 bg-slate-50/80 dark:bg-[#0b0c15]/80 backdrop-blur-xl">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="p-2.5 sm:p-3 bg-indigo-600 rounded-xl sm:rounded-2xl shadow-xl shadow-indigo-500/30 text-white">
+              <Briefcase className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">My Cases</h1>
-              <p className="text-xs text-subtext font-medium mt-0.5">Manage your legal repositories with AISA Intelligence</p>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">My Cases</h1>
+              <p className="text-[10px] sm:text-xs text-subtext font-medium mt-0.5">Manage your legal repositories with AISA Intelligence</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={() => setActiveLegalToolkit(true)}
-              className="flex items-center gap-2 px-6 py-3.5 bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800 text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-zinc-800 rounded-2xl font-black text-sm transition-all active:scale-95 shadow-xl shadow-indigo-500/5 whitespace-nowrap"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-3.5 bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800 text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-zinc-800 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm transition-all active:scale-95 shadow-xl shadow-indigo-500/5 whitespace-nowrap"
             >
-              <Scale className="w-5 h-5" />
+              <Scale className="w-4 h-4 sm:w-5 sm:h-5" />
               <span>Legal Toolkit</span>
             </button>
             <button
-              onClick={() => setIsNewCaseModalOpen(true)}
-              className="flex items-center gap-2 px-6 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-sm transition-all active:scale-95 shadow-xl shadow-indigo-500/20 whitespace-nowrap"
+              onClick={() => {
+                setEditingCaseId(null);
+                setNewCaseForm({ clientName: '', caseType: '', otherCaseType: '', accused: '', caseSummary: '' });
+                setIsNewCaseModalOpen(true);
+              }}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm transition-all active:scale-95 shadow-xl shadow-indigo-500/20 whitespace-nowrap"
             >
-              <Plus className="w-5 h-5" />
-              <span>New Case Folder</span>
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span>New Case</span>
             </button>
           </div>
         </div>
@@ -1032,27 +1075,26 @@ const Chat = () => {
                     <div className={`p-4 rounded-2xl ${currentProjectId === c._id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-indigo-50 dark:bg-zinc-800 text-indigo-600'} transition-colors`}>
                       <FolderOpen className="w-6 h-6" />
                     </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setIsRenamingCase(c._id);
-                          setRenameValue(c.name);
+                          handleOpenEditModal(c);
                         }}
-                        className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl text-subtext transition-colors"
-                        title="Rename"
+                        className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl text-subtext transition-colors bg-white/50 dark:bg-black/20 sm:bg-transparent"
+                        title="Edit Case"
                       >
-                        <Edit2 size={14} />
+                        <Edit2 size={16} />
                       </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteCase(c._id);
                         }}
-                        className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl text-red-500 transition-colors"
-                        title="Delete"
+                        className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl text-red-500 transition-colors bg-white/50 dark:bg-black/20 sm:bg-transparent"
+                        title="Delete Case"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </div>
@@ -1152,13 +1194,13 @@ const Chat = () => {
                   <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-3">
                       <div className="p-2.5 bg-indigo-600 rounded-xl text-white">
-                        <Plus size={20} />
+                        {editingCaseId ? <Edit2 size={20} /> : <Plus size={20} />}
                       </div>
                       <Dialog.Title as="h3" className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                        New Legal Case
+                        {editingCaseId ? 'Edit Legal Case' : 'New Legal Case'}
                       </Dialog.Title>
                     </div>
-                    <button onClick={() => setIsNewCaseModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full transition-colors">
+                    <button onClick={() => { setIsNewCaseModalOpen(false); setEditingCaseId(null); }} className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full transition-colors">
                       <X size={20} className="text-subtext" />
                     </button>
                   </div>
@@ -1179,7 +1221,14 @@ const Chat = () => {
                       <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1 whitespace-nowrap">Case Type</label>
                       <select
                         value={newCaseForm.caseType}
-                        onChange={e => setNewCaseForm({ ...newCaseForm, caseType: e.target.value })}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setNewCaseForm({
+                            ...newCaseForm,
+                            caseType: val,
+                            otherCaseType: val === 'Other' ? newCaseForm.otherCaseType : ''
+                          });
+                        }}
                         className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-bold appearance-none cursor-pointer"
                       >
                         <option value="">Select Case Type</option>
@@ -1190,7 +1239,30 @@ const Chat = () => {
                         <option value="Corporate Legal">Corporate Legal</option>
                         <option value="Consumer Court">Consumer Court</option>
                         <option value="Labor Dispute">Labor Dispute</option>
+                        <option value="Other">Other</option>
                       </select>
+
+                      <AnimatePresence>
+                        {newCaseForm.caseType === 'Other' && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                            animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+                            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            className="space-y-2 overflow-hidden"
+                          >
+                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1 whitespace-nowrap">Enter Case Type <span className="text-red-500">*</span></label>
+                            <input
+                              type="text"
+                              autoFocus
+                              value={newCaseForm.otherCaseType}
+                              onChange={e => setNewCaseForm({ ...newCaseForm, otherCaseType: e.target.value })}
+                              placeholder="e.g. Intellectual Property"
+                              className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-bold"
+                            />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
 
                     <div className="space-y-2">
@@ -1219,7 +1291,7 @@ const Chat = () => {
                       onClick={handleCreateNewCase}
                       className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-sm shadow-xl shadow-indigo-500/20 transition-all active:scale-95 mt-4"
                     >
-                      Submit
+                      {editingCaseId ? 'Update Case' : 'Submit'}
                     </button>
                   </div>
                 </Dialog.Panel>
@@ -3894,7 +3966,8 @@ const Chat = () => {
               role: 'model',
               content: res.data.reply,
               timestamp: new Date(),
-              toolUsed: res.data.toolUsed || activeToolId
+              toolUsed: res.data.toolUsed || activeToolId,
+              mode: MODES.LEGAL_TOOLKIT
             };
             if (res.data.toolUsed) setActiveTool(res.data.toolUsed);
             setMessages(prev => [...prev, aiMsg]);
@@ -7105,8 +7178,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                                       {/* PDF / ZIP Tools */}
                                       <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 ml-2 pl-2">
-                                        {/* Edit Button for Draft Maker */}
-                                        {(msg.toolUsed?.toLowerCase() === 'legal_draft_maker' || msg.toolUsed === 'Draft Maker') && (
+                                        {/* Edit Button for AI Legal Tools */}
+                                        {(msg.mode === MODES.LEGAL_TOOLKIT || msg.toolUsed?.toLowerCase().startsWith('legal_') || msg.toolUsed?.toLowerCase().includes('legal') || msg.toolUsed === 'Draft Maker') && (
                                           <button
                                             onClick={() => startEditing(msg)}
                                             className="text-primary hover:text-primary transition-all p-1.5 hover:bg-primary/5 rounded-lg flex items-center gap-1 active:scale-95 group/edit"
