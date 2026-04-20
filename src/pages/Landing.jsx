@@ -227,9 +227,11 @@ const Landing = () => {
                             <div className="flex flex-col items-start gap-4 cursor-pointer group" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
                                 <div className="relative">
                                     <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    <img src={logo} alt="AISA™" className="w-14 h-14 relative transform group-hover:scale-110 transition-transform duration-500" />
+                                    <div className="flex items-center gap-3">
+                                        <img src={logo} alt="AISA™" className="w-14 h-14 relative transform group-hover:scale-110 transition-transform duration-500" />
+                                        <span className="text-3xl font-black tracking-tighter text-slate-800 dark:text-white">AISA<span className="text-primary ml-0.5">™</span></span>
+                                    </div>
                                 </div>
-                                <span className="text-xl font-black text-maintext tracking-tighter group-hover:text-primary transition-colors">AISA <span className="text-primary">™</span></span>
                             </div>
                             <p className="text-base text-gray-500 dark:text-gray-400 leading-relaxed font-medium">
                                 {t('aboutIntroText')}

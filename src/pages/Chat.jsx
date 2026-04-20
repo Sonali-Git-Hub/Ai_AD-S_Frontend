@@ -7328,11 +7328,19 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     >
                       {/* Logo Glow Effect */}
                       <div className="absolute inset-0 bg-primary/20 blur-[60px] rounded-full scale-150 opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-                      <img
-                        src="/logo/Logo.svg"
-                        alt="AISA"
-                        className="w-20 h-20 sm:w-24 sm:h-24 mx-auto relative z-10 drop-shadow-[0_0_40px_rgba(139,92,246,0.3)] transition-all duration-1000 group-hover:scale-105"
-                      />
+                      <div className="flex flex-col items-center gap-4 relative z-10 group-hover:scale-105 transition-all duration-700">
+                        <img
+                          src="/logo/Logo.svg"
+                          alt="AISA"
+                          className="w-20 h-20 sm:w-24 sm:h-24 mx-auto drop-shadow-[0_0_50px_rgba(139,92,246,0.6)]"
+                        />
+                        <div className="flex flex-col items-center">
+                          <h1 className="text-4xl sm:text-6xl font-black tracking-tighter text-slate-800 dark:text-white">
+                            AISA<span className="text-primary text-2xl sm:text-3xl ml-0.5">™</span>
+                          </h1>
+                          <p className="text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] text-primary/80 mt-1">Frontier Intelligence</p>
+                        </div>
+                      </div>
                     </motion.div>
 
                     <section className="w-full flex justify-center">
@@ -7434,7 +7442,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
         {/* Unified Chat Input Container */}
         {legalView !== 'DASHBOARD' && (
-          <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none bg-background" style={{ padding: '3rem 2rem calc(0.5rem + env(safe-area-inset-bottom, 0px)) 2rem' }}>
+          <div className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none bg-[#EEF2FF] dark:bg-[#04040e] border-t border-slate-200/40 dark:border-white/5" style={{ padding: '3.5rem 2rem calc(1.5rem + env(safe-area-inset-bottom, 0px)) 2rem' }}>
             {/* Opaque background prevents text from showing behind input area */}
             <div className="max-w-5xl mx-auto w-full pointer-events-auto">
 
@@ -8308,8 +8316,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       }}
                       placeholder={isLimitReached ? t('limitReached') || "Chat limit reached. Sign in to continue." : (isVideoGeneration ? t('describeVideo') || "Describe the video you want to generate..." : isAudioConvertMode ? t('enterTextToConvert') || "Enter text to convert..." : isDocumentConvert ? t('uploadFileToConvert') || "Upload file & ask to convert..." : typedPlaceholder)}
                       rows={1}
-                      className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none px-5 py-2 text-slate-800 dark:text-zinc-100 text-left placeholder-slate-400 dark:placeholder-zinc-500 resize-none overflow-y-auto custom-scrollbar font-medium leading-relaxed text-[16px] ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
-                      style={{ minHeight: '32px', height: 'auto', maxHeight: '180px', lineHeight: '1.5' }}
+                      className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none px-4 py-3 sm:px-5 sm:py-4 text-slate-800 dark:text-zinc-100 text-left placeholder-slate-400 dark:placeholder-zinc-500 resize-none overflow-y-auto custom-scrollbar font-bold leading-relaxed text-[16px] ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
+                      style={{ minHeight: '44px', height: 'auto', maxHeight: '180px', lineHeight: '1.5' }}
                     />
                   </div>
 
