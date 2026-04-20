@@ -118,14 +118,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     issueCategories.other || "Other"
   ];
 
-  const handleLogout = async () => {
-    try {
-      // Reset onboarding status in the backend so it asks again next time
-      await apiService.resetSocialOnboarding();
-    } catch (err) {
-      console.error("Failed to reset onboarding during logout:", err);
-    }
-    
+  const handleLogout = () => {
     localStorage.clear();
     setUserRecoil({ user: null }); // Clear Recoil state to ensure UI reacts immediately
     navigate(AppRoute.LANDING);

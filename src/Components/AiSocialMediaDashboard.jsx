@@ -9,7 +9,7 @@ import {
   ChevronRight, Plus, HelpCircle, AlertCircle, Info, Filter, Search,
   Instagram, Facebook, Linkedin, Twitter, Youtube, Send, Save, Globe, CheckCircle2, Mic2,
   Eye, Target, Zap, Hash, Copy, Sparkle, User, User2, Briefcase, History, Activity, Tag, 
-  Server, BrainCircuit, AlertTriangle, Building2, ShoppingBag, Cpu, Utensils, Camera, HeartPulse, UserCircle, ShoppingCart, ArrowRight, AlignLeft
+  Server, BrainCircuit, AlertTriangle, Building2, ShoppingBag, Cpu, Utensils, Camera, HeartPulse, UserCircle, ShoppingCart, ArrowRight, AlignLeft, Lock, Crown
 } from 'lucide-react';
 import { Dialog, Transition, Menu, Listbox } from '@headlessui/react';
 import toast from 'react-hot-toast';
@@ -91,7 +91,7 @@ const CustomSelect = ({ value, onChange, options, color = 'indigo', className = 
   );
 };
 
-const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
+const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin }) => {
   const [currentUser, setCurrentUser] = useState(getUserData());
   const [searchParams, setSearchParams] = useSearchParams();
   
@@ -202,6 +202,32 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
   const [isOnboardingFetching, setIsOnboardingFetching] = useState(false);
   const [showOnboardingGuide, setShowOnboardingGuide] = useState(false);
   const [isRapidTestingEnabled, setIsRapidTestingEnabled] = useState(false);
+  
+  useEffect(() => {
+    if (showOnboarding && !localStorage.getItem('aisa_guide_v3_shown')) {
+      const timer = setTimeout(() => {
+        setShowOnboardingGuide(true);
+        // We set it here so it doesn't pop up again even if they refresh before closing
+        localStorage.setItem('aisa_guide_v3_shown', 'true');
+      }, 1500); 
+      return () => clearTimeout(timer);
+    }
+  }, [showOnboarding]);
+
+  // ── Local Premium Modal (embedded inside Dialog to fix stacking context) ─────
+  const [localPremiumModal, setLocalPremiumModal] = useState({ open: false, toolName: '', customMessage: '' });
+
+  useEffect(() => {
+    const handler = (e) => {
+      setLocalPremiumModal({
+        open: true,
+        toolName: e.detail?.toolName || 'Premium Feature',
+        customMessage: e.detail?.customMessage || ''
+      });
+    };
+    window.addEventListener('premium_required', handler);
+    return () => window.removeEventListener('premium_required', handler);
+  }, []);
 
   // Form State
   const [isSaving, setIsSaving] = useState(false);
@@ -588,10 +614,11 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
     setIsExtracting(true);
     setIsSyncing(true);
     setIsOnboardingFetching(true); // Sync both states
-    if (target === 'brandProfile') setLastFetchedData(null); // clear old banner
     const toastId = toast.loading('⚡ AI Ads™ is scanning your brand identity...');
 
+
     try {
+
       const json = await apiService.fetchBrandAssets(targetUrl, workspace?._id);
 
       // Prepare the new profile data from AI response
@@ -933,6 +960,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
     }
 
     setIsSaving(true);
+
     const isNew = !currentEditingBrandId;
     let targetWorkspaceId = ensureStringId(currentEditingBrandId || workspace?._id);
 
@@ -970,6 +998,11 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
       formData.append('targetIndustry', brandProfile.targetIndustry || '');
       formData.append('targetAudience', brandProfile.targetAudience || '');
       formData.append('contentObjective', brandProfile.contentObjective || '');
+      
+      // SOCIAL LINKS
+      if (brandProfile.socialMediaLinks) {
+        formData.append('socialMediaLinks', JSON.stringify(brandProfile.socialMediaLinks));
+      }
       formData.append('campaignMonth', brandProfile.campaignMonth || '');
       formData.append('postingFrequency', brandProfile.postingFrequency || '');
       
@@ -1022,7 +1055,11 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
           }
         } catch (genErr) {
           console.error("AI Generation Chain Failed:", genErr);
-          toast.error("Strategist encountered an error. Please try again in the Content Generation tab.", { id: activeToast });
+          if (genErr.message?.includes('unlimited strategies')) {
+             toast.dismiss(activeToast);
+          } else {
+             toast.error("Strategist encountered an error. Please try again in the Content Generation tab.", { id: activeToast });
+          }
         }
 
         // Re-fetch all to show the new card in the grid
@@ -1139,17 +1176,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
       if (res.success) {
         toast.success("Neural Content Synthesized!");
         
-        // Step 2: Sync Hashtags to Local State for immediate view
-        setHashtagTopic(topic);
-        const tagsRes = await apiService.getSocialHashtagInsights(workspace._id, topic);
-        if (tagsRes.success) {
-          setHashtagInsights(prev => ({
-            ...prev,
-            [entryId]: tagsRes.hashtags
-          }));
-        }
-
-        // Step 3: Refresh local data to show the new variations in the table
+        // Step 2: Refresh local data to show the new variations in the table
         await fetchWorkspaceData(workspace._id);
       }
     } catch (err) {
@@ -1210,6 +1237,21 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
    */
   const handleVisualPostGeneration = async (entry, postFormat = 'single') => {
     if (!workspace || !entry) return;
+
+    console.log("[AISA] Visual Gen - Plan check:", { isPremium, userPlan });
+
+    // Centralized Frontend Premium Gate for Visual Generation
+    if (!isPremium && !isAdmin) {
+      console.log("[AISA] Blocking visual gen - Premium required");
+      window.dispatchEvent(new CustomEvent('premium_required', { 
+        detail: { 
+          toolName: 'AI Ads Visuals',
+          customMessage: 'Visual post rendering is a premium feature. Upgrade to Pro to generate stunning AI assets for your brand.'
+        } 
+      }));
+      return;
+    }
+
     const entryId = String(entry._id);
     setVisualGenRowId(entryId);
 
@@ -1272,7 +1314,12 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
     } catch (err) {
       console.error('[VisualPost] Error:', err);
-      toast.error(`Generation failed: ${err.message}`, { id: toastId });
+      // Suppress toast if it's a premium restriction (modal will handle it)
+      if (err.message?.includes('paid plans') || err.message?.includes('premium') || err.message?.includes('PLAN_RESTRICTED')) {
+        toast.dismiss(toastId);
+      } else {
+        toast.error(`Generation failed: ${err.message}`, { id: toastId });
+      }
     } finally {
       setVisualGenRowId(null);
     }
@@ -1407,20 +1454,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 flex flex-col space-y-12 pb-20">
 
         {/* ── SECTION 1: Strategic Command Stats ─────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
           {[
             { id: 'brands', label: 'Active Brands', val: allWorkspaces.length, icon: Palette, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
             { id: 'strategy', label: 'Strategy Flow', val: calendarEntries.length, icon: CalendarRange, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-            { 
-              id: 'pulse', 
-              label: activeJob ? 'AI Gen Progress' : 'AI Engine Status', 
-              val: activeJob ? `${activeJob.progress || 0}%` : 'Waiting', 
-              icon: activeJob ? RefreshCw : Sparkles, 
-              color: activeJob ? 'text-primary' : 'text-emerald-500', 
-              bg: activeJob ? 'bg-primary/10' : 'bg-emerald-500/10',
-              pulse: !!activeJob,
-              spin: activeJob?.status === 'processing'
-            },
             { id: 'vault', label: 'Assets in Vault', val: (assets || []).filter(a => a.assetSource === 'generated').length, icon: Library, color: 'text-primary', bg: 'bg-primary/10' }
           ].map((stat, i) => (
             <div key={stat.id} className="p-4 md:p-6 rounded-[24px] md:rounded-[32px] bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 flex flex-col items-center text-center group hover:border-primary/30 transition-all shadow-sm relative overflow-hidden">
@@ -1479,26 +1516,6 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                 </button>
               </div>
 
-              <div className="pt-6 sm:pt-8 border-t border-white/10 mt-6 max-w-2xl">
-                <div className="flex flex-col sm:flex-row sm:items-center bg-transparent sm:bg-white/10 sm:backdrop-blur-md rounded-none sm:rounded-[24px] border-0 sm:border sm:border-white/20 p-0 sm:p-2 gap-3 sm:gap-0 focus-within:ring-0 sm:focus-within:ring-2 focus-within:ring-primary/50 transition-all">
-                  <div className="flex-1 bg-white/10 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none rounded-[20px] sm:rounded-none border border-white/20 sm:border-0 flex items-center h-12 sm:h-auto">
-                    <input
-                      type="text"
-                      value={oneOffPrompt}
-                      onChange={(e) => setOneOffPrompt(e.target.value)}
-                      placeholder="e.g. Generate a minimalist product shot..."
-                      className="flex-1 w-full bg-transparent text-white font-bold placeholder:text-white/40 px-4 outline-none text-xs sm:text-sm"
-                    />
-                  </div>
-                  <button
-                    onClick={() => { if (!oneOffPrompt) return; setShowOneOffModal(true); }}
-                    disabled={!oneOffPrompt}
-                    className="w-full sm:w-auto h-12 px-6 bg-primary rounded-[20px] sm:rounded-[18px] text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-primary/30 hover:scale-[1.02] disabled:opacity-50 transition-all flex items-center justify-center gap-2 shrink-0"
-                  >
-                    <Sparkles className="w-4 h-4 fill-white" /> Run AI
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -1720,7 +1737,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                       placeholder="Enter Brand URL"
                       className="w-full h-14 pl-12 pr-4 bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold outline-none focus:border-primary transition-all"
                     />
-                 </div>
+                </div>
                  <button 
                    onClick={() => handleAiFetch(brandProfile.website)}
                    disabled={!brandProfile.website || isExtracting}
@@ -1764,6 +1781,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                       value={brandProfile.companyName || ''}
                       onChange={(e) => setBrandProfile({ ...brandProfile, companyName: e.target.value })}
                       placeholder="e.g. Tesla Inc"
+                      autoComplete="off"
                       className="w-full h-14 sm:h-16 px-4 sm:px-6 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl text-base sm:text-lg font-black outline-none focus:border-indigo-500 transition-all shadow-inner"
                     />
                   </div>
@@ -1773,6 +1791,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                       value={brandProfile.targetIndustry || ''}
                       onChange={(e) => setBrandProfile({ ...brandProfile, targetIndustry: e.target.value })}
                       placeholder="e.g. Tech & AI"
+                      autoComplete="off"
                       className="w-full h-12 sm:h-14 px-4 sm:px-6 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl text-sm font-bold outline-none focus:border-indigo-500 transition-all shadow-inner"
                     />
                   </div>
@@ -1964,7 +1983,33 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
 
             {/* REDESIGNED MASTER SAVE BUTTON */}
-            <div className="pt-4">
+            <div className="pt-4 space-y-4">
+               {calendarEntries.length === 0 && (
+                 <div className="p-6 bg-primary/5 rounded-[32px] border border-primary/20 flex flex-col sm:flex-row gap-3 items-center">
+                    <div className="flex-1 w-full">
+                       <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-2 ml-1">Optional: Sync from URL</p>
+                       <div className="relative">
+                          <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/60" />
+                          <input 
+                            placeholder="https://yourbrand.com"
+                            autoComplete="off"
+                            className="w-full h-12 pl-12 pr-4 bg-white dark:bg-zinc-800 border border-primary/20 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all"
+                            value={brandProfile.website || ''}
+                            onChange={(e) => setBrandProfile({ ...brandProfile, website: e.target.value })}
+                          />
+                       </div>
+                    </div>
+                    <button 
+                      onClick={() => handleAiFetch(brandProfile.website)}
+                      disabled={!brandProfile.website || isExtracting}
+                      className="h-12 px-6 bg-primary text-white rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-all disabled:opacity-50"
+                    >
+                      {isExtracting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                      Sync Brand
+                    </button>
+                 </div>
+               )}
+
                <button 
                  onClick={handleSaveBrand}
                  disabled={isSaving}
@@ -2294,7 +2339,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
           if (!showPreviewModal) {
             return (
-              <div className="flex-1 overflow-y-auto w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-4 pb-24">
+              <div className="flex-1 overflow-y-auto w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-4 pb-24 items-start">
                 {calendarWorkspaces.map(ws => {
                   const profile = ws.brandProfile || {};
                   const isCurrent = ws._id === workspace?._id;
@@ -2412,12 +2457,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                   );
                 })}
 
-                <div className="border-2 border-dashed border-slate-200 dark:border-white/10 rounded-[32px] p-6 flex flex-col items-center justify-center w-full min-h-[200px] h-full text-slate-400 hover:border-primary/50 hover:bg-primary/5 hover:text-primary cursor-pointer transition-all duration-300 opacity-60 hover:opacity-100 group animate-in slide-in-from-left-4" style={{ animationDelay: '100ms' }}>
-                  <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                    <Plus className="w-5 h-5" />
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest">Add Pipeline</span>
-                </div>
+
               </div>
             );
           }
@@ -2469,16 +2509,26 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
                         <div className="flex-1 mb-8">
                           {/* HEADING / HOOK */}
-                          <div>
-                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">HEADING / HOOK</p>
+                          <div className="group/field relative">
+                            <div className="flex items-center justify-between mb-1">
+                              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">HEADING / HOOK</p>
+                              <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(entry.heading_hook || entry.title || ''); toast.success('Copied!'); }} className="opacity-0 group-hover/field:opacity-100 transition-opacity focus:outline-none">
+                                <Copy className="w-3 h-3 text-slate-400 hover:text-primary transition-colors" />
+                              </button>
+                            </div>
                             <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight mb-3 line-clamp-2 group-hover:text-primary transition-colors">
                               {entry.heading_hook || entry.title || 'Strategizing...'}
                             </h4>
                           </div>
                           
                           {/* SUB-HEADING */}
-                          <div>
-                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">SUB-HEADING</p>
+                          <div className="group/field relative">
+                            <div className="flex items-center justify-between mb-1">
+                              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">SUB-HEADING</p>
+                              <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(entry.subHeading || entry.sub_heading || entry.hook || ''); toast.success('Copied!'); }} className="opacity-0 group-hover/field:opacity-100 transition-opacity focus:outline-none">
+                                <Copy className="w-3 h-3 text-slate-400 hover:text-primary transition-colors" />
+                              </button>
+                            </div>
                             <p className="text-[10px] text-slate-400 font-bold leading-relaxed mb-6 italic">
                               "{entry.subHeading || entry.sub_heading || entry.hook || 'No sub-heading provided'}"
                             </p>
@@ -2523,10 +2573,15 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                           <div className="space-y-6 mb-8 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
                             {/* SHORT CA */}
                             {(entry.captionShort || entry.short_caption) && (
-                              <div>
-                                <p className="text-[8px] font-black text-indigo-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                                  <Zap className="w-3 h-3" /> SHORT CA
-                                </p>
+                              <div className="group/field relative">
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <p className="text-[8px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1.5">
+                                    <Zap className="w-3 h-3" /> SHORT CA
+                                  </p>
+                                  <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(entry.captionShort || entry.short_caption || ''); toast.success('Copied!'); }} className="opacity-0 group-hover/field:opacity-100 transition-opacity focus:outline-none">
+                                    <Copy className="w-3 h-3 text-slate-400 hover:text-indigo-500 transition-colors" />
+                                  </button>
+                                </div>
                                 <p className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed font-bold">
                                   {entry.captionShort || entry.short_caption}
                                 </p>
@@ -2535,10 +2590,15 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
                             {/* LONG CAP */}
                             {(entry.captionLong || entry.long_caption) && (
-                              <div>
-                                <p className="text-[8px] font-black text-primary uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                                  <FileText className="w-3 h-3" /> LONG CAP
-                                </p>
+                              <div className="group/field relative">
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <p className="text-[8px] font-black text-primary uppercase tracking-widest flex items-center gap-1.5">
+                                    <FileText className="w-3 h-3" /> LONG CAP
+                                  </p>
+                                  <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(entry.captionLong || entry.long_caption || ''); toast.success('Copied!'); }} className="opacity-0 group-hover/field:opacity-100 transition-opacity focus:outline-none">
+                                    <Copy className="w-3 h-3 text-slate-400 hover:text-primary transition-colors" />
+                                  </button>
+                                </div>
                                 <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
                                   {entry.captionLong || entry.long_caption}
                                 </p>
@@ -2547,10 +2607,20 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
 
                             {/* HASHTAGS */}
                             {entry.hashtags && (
-                              <div>
-                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                                  <Hash className="w-3 h-3" /> HASHTAGS
-                                </p>
+                              <div className="group/field relative">
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                    <Hash className="w-3 h-3" /> HASHTAGS
+                                  </p>
+                                  <button onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    const tags = Array.isArray(entry.hashtags) ? entry.hashtags.map(t => t.startsWith('#') ? t : `#${t}`).join(' ') : String(entry.hashtags);
+                                    navigator.clipboard.writeText(tags || ''); 
+                                    toast.success('Copied!'); 
+                                  }} className="opacity-0 group-hover/field:opacity-100 transition-opacity focus:outline-none">
+                                    <Copy className="w-3 h-3 text-slate-400 hover:text-primary transition-colors" />
+                                  </button>
+                                </div>
                                 <div className="flex flex-wrap gap-1">
                                   {(Array.isArray(entry.hashtags) ? entry.hashtags : String(entry.hashtags).split(/[\s,]+/)).filter(Boolean).map((tag, i) => (
                                     <span key={i} className="text-[9px] font-bold text-primary/70 bg-primary/5 px-1.5 py-0.5 rounded-md">
@@ -2994,13 +3064,13 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
               <CustomSelect 
                 value={workspace?._id}
                 onChange={(val) => {
-                  const ws = calendarWorkspaces.find(b => b._id === val);
+                  const ws = allWorkspaces.find(b => b._id === val);
                   if (ws) {
                     switchWorkspace(ws);
                     fetchPipelines(ws._id);
                   }
                 }}
-                options={calendarWorkspaces.length === 0 ? [{ value: '', label: 'Discovery: No Strategy Maps Found' }] : calendarWorkspaces.map(b => ({
+                options={allWorkspaces.length === 0 ? [{ value: '', label: 'Discovery: No Strategy Maps Found' }] : allWorkspaces.map(b => ({
                   value: b._id,
                   label: b.workspaceName || b.brandProfile?.companyName || "Untitled Brand"
                 }))}
@@ -3111,46 +3181,14 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
           </div>
         ) : finalRows.length > 0 ? (
           <div className="bg-white dark:bg-[#080808]/50 rounded-[32px] border border-slate-100 dark:border-white/5 shadow-xl animate-in slide-in-from-bottom-8 duration-700 min-h-[400px] sm:min-h-[500px] flex flex-col">
-            <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] flex items-center shrink-0">
-              <div className="flex items-center gap-4 self-start">
+            <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-4">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
                   <Server className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div>
                   <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white uppercase tracking-widest">Orchestration Pipeline: {workspace?.workspaceName}</h3>
                   <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase mt-1">{finalRows.length} Strategized Rows Detected</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 w-full sm:w-auto">
-                <div className="relative group w-full sm:w-auto">
-                  <button 
-                    onClick={() => handleGenerateContent('selected', finalRows.length, finalRows.map(r => r._id))}
-                    disabled={isGenerating}
-                    className="h-12 w-full sm:w-auto px-8 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center sm:justify-start gap-2 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20 disabled:opacity-50 relative z-10 overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                    {isGenerating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />} 
-                    Generate Full Plan
-                  </button>
-                  
-                  {/* Premium Hover Card */}
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-72 p-5 bg-slate-900/95 backdrop-blur-xl rounded-[24px] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 pointer-events-none z-[100]">
-                    <div className="flex items-start gap-4">
-                      <div className="w-8 h-8 rounded-xl bg-primary/20 flex items-center justify-center text-primary shrink-0 border border-primary/20">
-                        <BrainCircuit className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black text-white uppercase tracking-[2px] mb-1.5 bg-gradient-to-r from-primary to-indigo-400 bg-clip-text text-transparent">Full Content Generation</p>
-                        <p className="text-[9px] font-semibold text-slate-400 leading-relaxed uppercase tracking-widest italic">
-                          Orchestrate AI to automatically draft captions, creative angles, and platform-specific hashtags for every post in your currently visible plan.
-                        </p>
-                        <div className="mt-3 pt-3 border-t border-white/5 flex items-center gap-2">
-                          <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-                          <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest">Optimized for: {workspace?.workspaceName}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -3227,11 +3265,16 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                               <button 
                                 onClick={() => {
                                   const post = generatedPosts.find(p => ensureStringId(p.calendarEntryId) === ensureStringId(row._id));
-                                  const asset = assets.find(a => 
+                                  const asset = assets?.find(a => 
                                     (post && ensureStringId(a.postId) === ensureStringId(post._id)) || 
                                     ensureStringId(a.calendarEntryId) === ensureStringId(row._id)
                                   );
-                                  if (asset) setSelectedAsset(asset);
+                                  if (asset) {
+                                    setSelectedAsset(asset);
+                                  } else {
+                                    // Navigate to Direct Synthesis view (text content)
+                                    setActiveGenerationRowId(ensureStringId(row._id));
+                                  }
                                 }}
                                 className="h-9 px-4 bg-emerald-500 text-white rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center gap-2"
                               >
@@ -3315,11 +3358,16 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                         <button 
                           onClick={() => {
                             const post = generatedPosts.find(p => ensureStringId(p.calendarEntryId) === ensureStringId(row._id));
-                            const asset = assets.find(a => 
+                            const asset = assets?.find(a => 
                               (post && ensureStringId(a.postId) === ensureStringId(post._id)) || 
                               ensureStringId(a.calendarEntryId) === ensureStringId(row._id)
                             );
-                            if (asset) setSelectedAsset(asset);
+                            if (asset) {
+                              setSelectedAsset(asset);
+                            } else {
+                              // Navigate to Direct Synthesis view (text content)
+                              setActiveGenerationRowId(ensureStringId(row._id));
+                            }
                           }}
                           className="h-10 px-6 bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center gap-2"
                         >
@@ -3466,7 +3514,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                     <span className="text-[9px] font-black uppercase opacity-60">Strategy: {hashtagInsights.recommendedVolume}</span>
                     <button
                       onClick={() => {
-                        const all = [...hashtagInsights.viralClusters.flatMap(c => c.tags), ...hashtagInsights.brandSpecific].join(' ');
+                        const all = [...(hashtagInsights.viralClusters || []).flatMap(c => c.tags || []), ...(hashtagInsights.brandSpecific || [])].join(' ');
                         navigator.clipboard.writeText(all);
                         toast.success("Full Intelligence Suite Copied!");
                       }}
@@ -3636,9 +3684,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
     const variations = post?.variations || [];
     const livePrompt = post?.metadata?.originalPrompt || selectedAsset.metadata?.prompt || "Neural Synthesized Content Artifact";
     const rowId = ensureStringId(selectedAsset.calendarEntryId);
-    const currentInsights = Array.isArray(hashtagInsights[rowId]) ? hashtagInsights[rowId] : (hashtagInsights[rowId]?.hashtags || []);
+    const safeInsights = hashtagInsights || {};
+    const currentInsights = Array.isArray(safeInsights[rowId]) ? safeInsights[rowId] : (safeInsights[rowId]?.hashtags || []);
     const suggestedTags = [...new Set([...(post?.hashtags || []), ...currentInsights])];
-    const brandTags = hashtagInsights[rowId]?.brandSpecific || [workspace?.workspaceName?.toLowerCase()?.replace(/\s+/g, '') || 'brand'];
+    const brandTags = safeInsights[rowId]?.brandSpecific || [workspace?.workspaceName?.toLowerCase()?.replace(/\s+/g, '') || 'brand'];
 
     return (
       <Dialog open={!!selectedAsset} onClose={() => setSelectedAsset(null)} className="relative z-[200]">
@@ -4590,7 +4639,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
               <button
                 onClick={() => {
                   setShowOnboardingGuide(false);
-                  localStorage.setItem('aisa_onboarding_guide_shown', 'true');
+                  localStorage.setItem('aisa_guide_v3_shown', 'true');
                 }}
                 className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-red-500 transition-all shadow-sm"
               >
@@ -4694,13 +4743,19 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
         <div className="w-full shrink-0 px-8 py-5 flex items-center justify-between border-b border-slate-100 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
           <button
             onClick={() => setShowOnboardingGuide(true)}
-            className="flex items-center gap-2 group cursor-help transition-all"
+            className="flex items-center gap-3 group cursor-help transition-all"
             title="Open User Manual"
           >
             <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary transition-all">
               <Sparkles className="w-4 h-4 text-primary group-hover:text-white" />
             </div>
-            <span className="text-sm font-black text-slate-800 tracking-widest leading-none">AI Ads™ SETUP</span>
+            <div className="flex flex-col items-start">
+              <span className="text-sm font-black text-slate-800 tracking-widest leading-none">AI Ads™ SETUP</span>
+              <div className="flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 animate-pulse">
+                <div className="w-1 h-1 rounded-full bg-emerald-500" />
+                <span className="text-[7px] font-black text-emerald-600 uppercase tracking-widest">See User Guide</span>
+              </div>
+            </div>
           </button>
           {/* Progress dots */}
           <div className="flex items-center gap-1.5">
@@ -4730,6 +4785,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                 id="customName"
                 autoFocus
                 type="text"
+                autoComplete="off"
                 placeholder="e.g. Ravi Sharma"
                 value={onboardingData.customName || ''}
                 onChange={e => setOnboardingData({ ...onboardingData, customName: e.target.value })}
@@ -4748,6 +4804,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                 id="brandName"
                 autoFocus
                 type="text"
+                autoComplete="off"
                 placeholder="e.g. FitFuel India"
                 value={onboardingData.brandName || ''}
                 onChange={e => setOnboardingData({ ...onboardingData, brandName: e.target.value })}
@@ -4767,6 +4824,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                   <input
                     id="onboardingWebsite"
                     type="url"
+                    autoComplete="off"
                     placeholder="https://yourbrand.com"
                     value={onboardingData.website || ''}
                     disabled={onboardingData.noWebsite || isOnboardingFetching}
@@ -5007,224 +5065,254 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
     const isFailed = !isGenerating && !associatedPost && activeJob?.status === 'failed';
 
     if (!row) return (
-      <div className="flex flex-col items-center justify-center h-screen gap-6 opacity-60">
-        <RefreshCw className="w-12 h-12 text-primary animate-spin" />
-        <p className="text-xs font-black uppercase tracking-[4px]">Neural Context Recovery...</p>
+      <div className="flex flex-col items-center justify-center h-64 gap-4 opacity-50">
+        <RefreshCw className="w-8 h-8 text-primary animate-spin" />
+        <p className="text-xs font-black uppercase tracking-[3px]">Loading...</p>
       </div>
     );
 
+    const rowId = ensureStringId(activeGenerationRowId);
+    const safeInsights = hashtagInsights || {};
+    const currentInsights = Array.isArray(safeInsights[rowId]) ? safeInsights[rowId] : (safeInsights[rowId]?.hashtags || []);
+    const postTags = (associatedPost?.hashtags || []).slice(0, 30);
+    const allTags = [...new Set([...currentInsights, ...postTags])];
+
     return (
-      <div className="flex flex-col h-full bg-[#f8fafc] animate-in fade-in zoom-in-95 duration-500 overflow-hidden rounded-[40px] border border-slate-100">
-        {/* Header Navigation */}
-        <div className="p-8 border-b border-slate-100 bg-white flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-6">
-            <button 
+      <div className="animate-in slide-in-from-bottom-4 fade-in duration-300">
+        {/* Compact Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <button
               onClick={() => { setActiveGenerationRowId(null); setActiveJob(null); }}
-              className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-200 hover:bg-slate-100 transition-all text-slate-500"
+              className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-primary hover:border-primary/30 transition-all shadow-sm"
             >
-              <ChevronLeft className="w-6 h-6" />
+              <ChevronLeft className="w-4 h-4" />
             </button>
             <div>
-              <h2 className="text-sm font-black text-slate-800 uppercase tracking-[4px]">Direct Generation Page</h2>
-              <div className="flex items-center gap-2 mt-1">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{row?.title || "Targeted Orchestration"}</p>
+              <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest truncate max-w-[400px]">
+                {row?.heading_hook || row?.title}
+              </h3>
+              <div className="flex items-center gap-2 mt-0.5">
+                <div className={`w-1.5 h-1.5 rounded-full ${isDone ? 'bg-emerald-500' : isFailed ? 'bg-red-400' : 'bg-primary animate-pulse'}`} />
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                  {isDone ? 'Content Ready' : isFailed ? 'Generation Failed' : 'Generating...'}
+                </span>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-             {isDone && (
-               <button 
-                 onClick={() => handleDirectSynthesis(activeGenerationRowId)}
-                 className="h-12 px-6 rounded-2xl bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-primary/20"
-               >
-                 Regenerate Variations
-               </button>
-             )}
-             <div className="w-12 h-12 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center">
-               <Zap className={`w-5 h-5 ${isGenerating ? 'text-primary animate-pulse' : 'text-slate-400'}`} />
-             </div>
+          <div className="flex items-center gap-2">
+            {/* Moved Regenerate Button to AI Content Studio */}
+            {isGenerating && (
+              <div className="w-8 h-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+            )}
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-12 custom-scrollbar relative">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 max-w-[1700px] mx-auto min-h-full items-start">
-            
-            {/* Sidebar: Strategic Framework & Intelligence */}
-            <div className="lg:col-span-4 space-y-10 h-full">
-              {/* Strategic DNA Card */}
-              <div className="bg-white p-10 rounded-[50px] border border-slate-100 shadow-xl relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl -translate-y-12 translate-x-12" />
-                <div className="flex justify-between items-center mb-10 relative z-10">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20">
-                      <Target className="w-5 h-5" />
-                    </div>
-                    <span className="text-[10px] font-black text-slate-800 uppercase tracking-[3px]">Strategic DNA</span>
-                  </div>
-                </div>
-                <h4 className="text-lg font-black text-slate-800 uppercase mb-10 leading-relaxed border-l-4 border-primary pl-6 py-2">{row?.heading_hook || row?.title}</h4>
-                
-                <div className="space-y-4">
-                  {[
-                    { label: 'Platform', value: row?.platform || 'Multi', icon: Globe },
-                    { label: 'Strategy Phase', value: row?.phase || 'Awareness', icon: Zap },
-                    { label: 'Format Mix', value: row?.format || 'Social Post', icon: Layers }
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-center justify-between p-6 bg-slate-50 border border-slate-100 rounded-3xl group-hover:bg-white transition-all">
-                      <div className="flex items-center gap-4">
-                        <item.icon className="w-5 h-5 text-slate-400" />
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{item.label}</span>
-                      </div>
-                      <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+        {/* Content Body */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-              {/* Hashtag Hub Card */}
-              <div className="bg-white p-10 rounded-[50px] border border-slate-100 shadow-xl relative overflow-hidden">
-                <div className="flex justify-between items-center mb-10">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center border border-purple-500/20">
-                      <Hash className="w-5 h-5" />
-                    </div>
-                    <span className="text-[10px] font-black text-slate-800 uppercase tracking-[3px]">Viral Intelligence</span>
-                  </div>
+          {/* Left: Hook + Hashtags */}
+          <div className="space-y-4">
+            {/* Hook Card */}
+            <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Target className="w-3.5 h-3.5 text-primary" />
                 </div>
-                <div className="flex flex-wrap gap-2.5 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
-                  {(() => {
-                    const rowId = ensureStringId(activeGenerationRowId);
-                    const currentInsights = Array.isArray(hashtagInsights[rowId]) ? hashtagInsights[rowId] : (hashtagInsights[rowId]?.hashtags || []);
-                    const postTags = associatedPost?.hashtags || [];
-                    const allTags = [...new Set([...currentInsights, ...postTags])];
-                    
-                    if (allTags.length > 0) {
-                      return allTags.map((tag, i) => (
-                        <span key={i} className="px-4 py-2.5 rounded-2xl bg-slate-50 border border-slate-100 text-[10px] font-bold text-slate-500 hover:text-primary hover:bg-white hover:border-primary/30 transition-all cursor-pointer">
-                          #{typeof tag === 'object' ? (tag.name || tag.hashtag || 'viral') : tag.replace('#', '')}
-                        </span>
-                      ));
-                    }
-                    return (
-                      <div className="flex flex-col items-center justify-center w-full p-10 text-center space-y-4 opacity-30">
-                        <div className="p-4 rounded-full border border-dashed border-slate-400 animate-pulse"><Search className="w-6 h-6" /></div>
-                        <p className="text-[9px] font-black uppercase tracking-[3px]">Mapping Context...</p>
-                      </div>
-                    );
-                  })()}
-                </div>
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-[3px]">Hook</span>
               </div>
+              <p className="text-sm font-black text-slate-800 uppercase leading-snug border-l-2 border-primary pl-3">
+                {row?.heading_hook || row?.title}
+              </p>
+              {row?.sub_heading && (
+                <p className="text-[11px] text-slate-400 font-medium mt-3 pl-3 italic leading-relaxed">"{row.sub_heading}"</p>
+              )}
             </div>
 
-            {/* Main Workspace: Evolution variations */}
-            <div className="lg:col-span-8 flex flex-col h-full space-y-10">
-              <div className="bg-white p-12 rounded-[60px] border border-slate-100 flex flex-col h-full shadow-2xl relative overflow-hidden min-h-[85vh]">
-                <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/5 rounded-full blur-3xl text-primary" />
-                
-                <div className="flex items-center justify-between mb-12 relative z-10 p-4 border-b border-slate-50 pb-10">
-                  <div className="flex items-center gap-5">
-                    <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/20 shadow-sm">
-                      <Layers className="w-7 h-7" />
-                    </div>
-                    <div>
-                      <h4 className="text-2xl font-black text-slate-800 uppercase tracking-tight">AI Content Studio</h4>
-                      <div className="flex items-center gap-3 mt-1">
-                        <div className={`w-2 h-2 rounded-full ${isDone ? 'bg-emerald-500' : isFailed ? 'bg-red-500' : 'bg-primary animate-pulse'}`} />
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{isDone ? 'Variations Ready' : isFailed ? 'Failed to Generate' : 'Generating creative angles...'}</p>
+            {/* Hashtags Card */}
+            <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                    <Hash className="w-3.5 h-3.5 text-purple-500" />
+                  </div>
+                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-[3px]">Hashtags</span>
+                  <span className="text-[8px] text-slate-300 font-bold">({allTags.length})</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      const text = allTags.map(tag => `#${typeof tag === 'object' ? (tag.name || tag.hashtag || 'viral') : tag.replace('#', '')}`).join(' ');
+                      navigator.clipboard.writeText(text);
+                      toast.success('All Hashtags Copied!');
+                    }}
+                    className="h-6 px-2.5 rounded-lg bg-slate-50 border border-slate-100 text-slate-400 hover:text-primary text-[8px] font-black uppercase tracking-widest flex items-center gap-1 hover:border-primary/20 transition-all"
+                  >
+                    <Copy className="w-2.5 h-2.5" /> Copy All
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const topic = row?.title || row?.heading_hook || 'social media';
+                      const loadingToast = toast.loading('Generating fresh hashtags...');
+                      try {
+                        const res = await apiService.getSocialHashtagInsights(workspace._id, topic);
+                        if (res.success && res.hashtags) {
+                          const newTags = Array.isArray(res.hashtags) 
+                            ? res.hashtags.slice(0, 30) 
+                            : [
+                                ...(res.hashtags?.viralClusters || []).flatMap(c => c.tags || []),
+                                ...(res.hashtags?.brandSpecific || [])
+                              ].slice(0, 30);
+                          setHashtagInsights(prev => {
+                            const existing = Array.isArray(prev?.[rowId]) ? prev[rowId] : (prev?.[rowId]?.hashtags || []);
+                            return {
+                              ...(prev || {}),
+                              [rowId]: [...existing, ...newTags]
+                            };
+                          });
+                          toast.success("Hashtags Regenerated!", { id: loadingToast });
+                        } else {
+                          throw new Error("No hashtags returned");
+                        }
+                      } catch (err) {
+                        toast.error("Failed to regenerate hashtags", { id: loadingToast });
+                      }
+                    }}
+                    className="h-6 px-2.5 rounded-lg bg-purple-50 border border-purple-100 text-purple-500 text-[8px] font-black uppercase tracking-widest flex items-center gap-1 hover:bg-purple-100 transition-all"
+                  >
+                    <RefreshCw className="w-2.5 h-2.5" /> Regenerate
+                  </button>
+                </div>
+              </div>
+              {allTags.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {allTags.map((tag, i) => (
+                    <span
+                      key={i}
+                      onClick={() => { navigator.clipboard.writeText(`#${typeof tag === 'object' ? (tag.name || 'viral') : tag.replace('#', '')}`); toast.success('Copied!'); }}
+                      className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-100 text-[9px] font-bold text-slate-500 hover:text-primary hover:bg-primary/5 hover:border-primary/20 cursor-pointer transition-all"
+                    >
+                      #{typeof tag === 'object' ? (tag.name || tag.hashtag || 'viral') : tag.replace('#', '')}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 opacity-40 py-2">
+                  <Search className="w-4 h-4" />
+                  <span className="text-[9px] font-bold uppercase tracking-widest">Generating...</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Generated Content (2-col span) */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                    <Layers className="w-3.5 h-3.5 text-amber-500" />
+                  </div>
+                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-[3px]">AI Content Studio</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {isDone && (
+                    <button
+                      onClick={() => handleDirectSynthesis(activeGenerationRowId)}
+                      className="h-7 px-3 rounded-lg bg-amber-500 text-white text-[9px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-sm shadow-amber-500/20 flex items-center gap-1.5"
+                    >
+                      <RefreshCw className="w-3 h-3" /> Regenerate
+                    </button>
+                  )}
+
+                </div>
+              </div>
+
+              <div className="p-6">
+                {isGenerating ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {Array(4).fill(0).map((_, i) => (
+                      <div key={i} className="bg-slate-50 rounded-2xl border border-dashed border-slate-200 animate-pulse p-6 min-h-[120px] flex flex-col gap-3">
+                        <div className="w-16 h-2 bg-slate-200 rounded-full" />
+                        <div className="w-full h-2 bg-slate-100 rounded-full" />
+                        <div className="w-3/4 h-2 bg-slate-100 rounded-full" />
                       </div>
+                    ))}
+                  </div>
+                ) : associatedPost ? (
+                  <div className="flex flex-col gap-6 max-h-[420px] overflow-y-auto pr-2 custom-scrollbar">
+                    {/* Variations & Captions Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {associatedPost.variations?.length > 0 && associatedPost.variations.map((v, i) => (
+                        <div key={i} className="group relative bg-slate-50 border border-slate-100 rounded-2xl p-5 hover:border-primary/20 hover:bg-white transition-all">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="px-2 py-0.5 rounded-md bg-primary/5 text-primary text-[8px] font-black uppercase tracking-widest border border-primary/10">
+                              {v.type || `Variation ${i + 1}`}
+                            </span>
+                            <button
+                              onClick={() => { navigator.clipboard.writeText(v.text || v); toast.success('Copied!'); }}
+                              className="w-7 h-7 rounded-lg bg-white text-slate-300 hover:text-primary hover:bg-primary/5 transition-all flex items-center justify-center border border-slate-100"
+                            >
+                              <Copy className="w-3 h-3" />
+                            </button>
+                          </div>
+                          <p className="text-xs text-slate-600 leading-relaxed select-all">{v.text || v}</p>
+                        </div>
+                      ))}
+
+                      {/* Consolidated Captions Card */}
+                      {(associatedPost.captionLong || associatedPost.captionShort) && (
+                        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 relative group hover:border-primary/20 hover:bg-white transition-all flex flex-col justify-center gap-5">
+                          
+                          {associatedPost.captionLong && (
+                            <div className="flex flex-col gap-2">
+                              <div className="flex justify-between items-center">
+                                <span className="text-[9px] font-black text-primary uppercase tracking-[3px]">Main Caption</span>
+                                <button onClick={() => { navigator.clipboard.writeText(associatedPost.captionLong); toast.success('Copied!'); }} className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Copy className="w-3.5 h-3.5 text-slate-400 hover:text-primary transition-colors" />
+                                </button>
+                              </div>
+                              <p className="text-[11px] text-slate-600 leading-relaxed select-all font-medium">{associatedPost.captionLong}</p>
+                            </div>
+                          )}
+                          
+                          {associatedPost.captionLong && associatedPost.captionShort && (
+                            <div className="w-full h-px bg-slate-200/60" />
+                          )}
+
+                          {associatedPost.captionShort && (
+                            <div className="flex flex-col gap-2">
+                              <div className="flex justify-between items-center">
+                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-[3px]">Sub Caption</span>
+                                <button onClick={() => { navigator.clipboard.writeText(associatedPost.captionShort); toast.success('Copied!'); }} className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Copy className="w-3.5 h-3.5 text-slate-400 hover:text-primary transition-colors" />
+                                </button>
+                              </div>
+                              <p className="text-[11px] text-slate-600 leading-relaxed select-all font-medium">{associatedPost.captionShort}</p>
+                            </div>
+                          )}
+
+                        </div>
+                      )}
                     </div>
                   </div>
-                  
-                  {isGenerating && (
-                    <div className="flex items-center gap-8 pr-6">
-                       <div className="flex flex-col items-end">
-                         <span className="text-[9px] font-black text-primary uppercase tracking-[3px]">Generation Active</span>
-                         <span className="text-[8px] font-bold text-slate-300 uppercase tracking-widest mt-1">Optimizing Variation Logic</span>
-                       </div>
-                       <div className="w-12 h-12 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-16 gap-4 opacity-30">
+                    <div className="w-12 h-12 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center animate-pulse">
+                      <Zap className="w-5 h-5 text-slate-400" />
                     </div>
-                  )}
-                </div>
-
-                {/* Evolution Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 flex-1 overflow-y-auto pr-4 custom-scrollbar">
-                  {isGenerating ? (
-                    Array(4).fill(0).map((_, i) => (
-                      <div key={i} className="bg-slate-50/50 rounded-[40px] border border-dashed border-slate-200 animate-pulse flex flex-col items-center justify-center p-12 min-h-[300px]">
-                        <RefreshCw className="w-10 h-10 text-primary/10 animate-spin mb-4" />
-                        <div className="w-32 h-2 bg-slate-200 rounded-full" />
-                      </div>
-                    ))
-                  ) : associatedPost?.variations?.length > 0 ? (
-                    associatedPost.variations.map((v, i) => (
-                      <div key={i} className="group bg-white p-12 rounded-[50px] border border-slate-100 hover:border-primary/30 transition-all duration-500 shadow-sm hover:shadow-2xl relative flex flex-col">
-                        <div className="flex justify-between items-start mb-8">
-                          <span className="px-4 py-2 rounded-full bg-primary/5 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/10">
-                            {v.type || `Variation ${i+1}`}
-                          </span>
-                          <button 
-                            onClick={() => { navigator.clipboard.writeText(v.text); toast.success("Variation Copied!"); }}
-                            className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-400 hover:bg-primary hover:text-white transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 shadow-sm"
-                          >
-                            <Copy className="w-5 h-5" />
-                          </button>
-                        </div>
-                        <p className="text-[15px] text-slate-600 font-medium leading-[1.8] flex-1 select-all">
-                          {v.text || v}
-                        </p>
-                        <div className="mt-12 pt-8 border-t border-slate-50 flex items-center justify-between opacity-30">
-                          <span className="text-[10px] font-black uppercase tracking-widest italic">{row?.platform?.toUpperCase()} OPTIMIZED</span>
-                          <Sparkles className="w-4 h-4" />
-                        </div>
-                      </div>
-                    ))
-                  ) : associatedPost ? (
-                    <div className="space-y-10 group/card">
-                      <div className="p-10 bg-slate-50 border border-slate-100 rounded-[45px] shadow-sm">
-                         <div className="flex justify-between items-center mb-6">
-                           <span className="text-[9px] font-black text-primary uppercase tracking-[4px]">Synthesized Content</span>
-                           <button onClick={() => { navigator.clipboard.writeText(associatedPost.captionLong || associatedPost.hook); toast.success("Primary Content Copied!"); }}>
-                             <Copy className="w-4 h-4 text-slate-400 hover:text-primary transition-colors" />
-                           </button>
-                         </div>
-                         <p className="text-[15px] text-slate-600 font-medium leading-relaxed italic">{associatedPost.captionLong || associatedPost.hook}</p>
-                      </div>
-                      <div className="p-10 bg-primary/[0.03] rounded-[45px] border border-primary/10 shadow-inner">
-                        <span className="text-[9px] font-black text-primary uppercase tracking-widest mb-6 block px-2">Social Master Hashtags</span>
-                        <div className="flex flex-wrap gap-2.5">
-                          {(associatedPost.hashtags || []).map((tag, i) => (
-                            <span key={i} className="px-3 py-1.5 bg-white rounded-xl text-[11px] font-black text-primary border border-primary/10 shadow-sm">#{tag.replace('#', '')}</span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-center space-y-12 opacity-30 py-24">
-                      <div className="relative">
-                        <div className="w-32 h-32 rounded-full border-4 border-dashed border-slate-300 flex items-center justify-center animate-spin-slow-reverse">
-                          <Globe className="w-16 h-16 text-slate-300" />
-                        </div>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Zap className="w-8 h-8 text-primary animate-bounce shadow-glow shadow-primary/40" />
-                        </div>
-                      </div>
-                      <div className="space-y-6">
-                        <h5 className="text-[14px] font-black uppercase tracking-[6px] text-slate-600">Awaiting GPT-4 Pulse...</h5>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-loose">
-                          Decoding Strategy Row DNA<br />Generating Professional Variations
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                    <p className="text-[9px] font-black uppercase tracking-[3px] text-slate-400">Awaiting Generation...</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
+
         </div>
       </div>
     );
   };
+
 
   const renderContent = () => {
     if (activeGenerationRowId && activeTab === 'generation') {
@@ -5290,6 +5378,9 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                   )}
                   {showOnboarding && !showSplash && renderOnboardingUI()}
                 </AnimatePresence>
+
+                {/* Always allow onboarding guide to show */}
+                {showOnboardingGuide && renderOnboardingGuideModal()}
 
                 {/* Dashboard UI - Only show if splash is gone and onboarding is not active and check is done */}
                 {!showSplash && !showOnboarding && !isCheckingOnboarding && (
@@ -5436,8 +5527,12 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                     );
                   })()}
 
-                  <div className="flex-1 space-y-1 overflow-y-auto custom-scrollbar pr-2">
-                    {tabs.map(tab => (
+                  <div className="flex-1 space-y-2 overflow-y-auto custom-scrollbar pr-2">
+                    {tabs.map((tab, idx) => {
+                      const isPast = tabs.findIndex(t => t.id === activeTab) > idx;
+                      const isActive = activeTab === tab.id;
+                      
+                      return (
                       <button
                         key={tab.id}
                         onClick={() => {
@@ -5446,19 +5541,38 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                             setIsMobileMenuOpen(false);
                           }
                         }}
-                        className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-5' : 'justify-between px-5 py-4'} rounded-2xl transition-all group ${activeTab === tab.id
-                          ? 'bg-primary/10 text-primary border border-primary/20 shadow-sm'
-                          : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5'
-                          } ${tab.comingSoon ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+                        className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-5' : 'justify-between px-4 py-3'} rounded-2xl transition-all group ${
+                          isActive
+                            ? 'bg-primary/10 border border-primary/20 shadow-sm'
+                            : 'hover:bg-slate-50 dark:hover:bg-white/5'
+                        } ${tab.comingSoon ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
                         title={isSidebarCollapsed ? tab.name : ''}
                       >
-                        <div className="flex items-center gap-4">
-                          <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? 'text-primary' : 'group-hover:text-primary transition-colors'} shrink-0`} />
-                          {!isSidebarCollapsed && <span className="text-xs font-black uppercase tracking-widest animate-in fade-in slide-in-from-left-2">{tab.name}</span>}
+                        <div className="flex items-center gap-3">
+                          <div className={`w-6 h-6 flex items-center justify-center rounded-full border text-[9px] font-black shrink-0 transition-all ${
+                            isActive 
+                              ? 'bg-primary text-white border-primary shadow-[0_0_10px_rgba(99,102,241,0.4)]' 
+                              : isPast 
+                                ? 'bg-emerald-500 text-white border-emerald-500'
+                                : 'bg-slate-100 dark:bg-white/5 text-slate-400 border-slate-200 dark:border-white/10'
+                          }`}>
+                            {isPast ? <Check className="w-3 h-3" /> : (idx + 1)}
+                          </div>
+                          {!isSidebarCollapsed && (
+                            <tab.icon className={`w-4 h-4 ${isActive ? 'text-primary' : isPast ? 'text-emerald-500' : 'text-slate-400 group-hover:text-primary'} transition-colors shrink-0`} />
+                          )}
+                          {!isSidebarCollapsed && (
+                            <span className={`text-[10px] sm:text-xs font-black uppercase tracking-widest animate-in fade-in slide-in-from-left-2 ${
+                              isActive ? 'text-primary' : isPast ? 'text-emerald-500' : 'text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300'
+                            }`}>
+                              {tab.name}
+                            </span>
+                          )}
                         </div>
                         {(!tab.comingSoon || !isSidebarCollapsed) && tab.comingSoon && <span className="text-[7px] font-black bg-slate-200 dark:bg-white/10 px-1.5 py-0.5 rounded text-slate-500 uppercase">Soon</span>}
                       </button>
-                    ))}
+                      );
+                    })}
                   </div>
 
 
@@ -5479,20 +5593,48 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                         {tabs.find(t => t.id === activeTab)?.name}
                       </h2>
                       <div className="hidden sm:block h-4 w-px bg-slate-200 dark:bg-white/10 mx-1 lg:mx-2" />
-                      <div className="hidden sm:flex -space-x-2 ml-1 lg:ml-2">
-                        {[
-                          { Icon: Instagram, color: 'bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500' },
-                          { Icon: Linkedin, color: 'bg-blue-600' },
-                          { Icon: Twitter, color: 'bg-black' },
-                          { Icon: Facebook, color: 'bg-blue-500' }
-                        ].map((item, idx) => (
-                          <div key={idx} className={`w-6 h-6 lg:w-8 lg:h-8 rounded-full border-2 border-white dark:border-zinc-950 flex items-center justify-center text-white p-1 lg:p-1.5 shadow-sm ${item.color} hover:scale-110 transition-transform cursor-pointer`}>
-                            <item.Icon className="w-full h-full" />
-                          </div>
-                        ))}
-                        <div className="w-6 h-6 lg:w-8 lg:h-8 rounded-full border-2 border-white dark:border-zinc-950 bg-primary/10 flex items-center justify-center text-[6px] lg:text-[7px] font-black text-primary backdrop-blur-md">
-                          +2
+                      <div className="hidden sm:flex flex-col items-center ml-1 lg:ml-2">
+                        <div className="flex -space-x-2">
+                          {[
+                            { id: 'Instagram', Icon: Instagram, color: 'bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500' },
+                            { id: 'LinkedIn', Icon: Linkedin, color: 'bg-blue-600' },
+                            { id: 'Twitter', Icon: Twitter, color: 'bg-black' },
+                            { id: 'Facebook', Icon: Facebook, color: 'bg-blue-500' },
+                            { id: 'YouTube', Icon: Youtube, color: 'bg-red-600' }
+                          ].map((item, idx) => {
+                            const hasLink = brandProfile?.socialMediaLinks?.[item.id.toLowerCase()];
+                            return (
+                              <div 
+                                key={idx} 
+                                onClick={() => {
+                                  if (hasLink) {
+                                    window.open(hasLink.startsWith('http') ? hasLink : `https://${hasLink}`, '_blank');
+                                  } else {
+                                    const url = window.prompt(`Enter your ${item.id} profile URL:`);
+                                    if (url && url.trim()) {
+                                      const updatedLinks = { ...(brandProfile?.socialMediaLinks || {}), [item.id.toLowerCase()]: url.trim() };
+                                      setBrandProfile(prev => ({ ...prev, socialMediaLinks: updatedLinks }));
+                                      
+                                      const formData = new FormData();
+                                      formData.append('workspaceId', currentEditingBrandId || workspace?._id);
+                                      formData.append('socialMediaLinks', JSON.stringify(updatedLinks));
+                                      apiService.uploadSocialAgentBrand(formData)
+                                        .then(() => toast.success(`${item.id} link saved!`))
+                                        .catch(() => toast.error(`Failed to save ${item.id} link`));
+                                    }
+                                  }
+                                }}
+                                className={`w-6 h-6 lg:w-8 lg:h-8 rounded-full border-2 border-white dark:border-zinc-950 flex items-center justify-center text-white p-1 lg:p-1.5 shadow-sm ${item.color} hover:scale-110 hover:z-10 transition-transform cursor-pointer relative group`}
+                              >
+                                <item.Icon className="w-full h-full" />
+                                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[9px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none transition-opacity z-50">
+                                  {hasLink ? `Visit ${item.id}` : `Add ${item.id} Link`}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
+                        <span className="text-[7px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mt-1">Quick Access</span>
                       </div>
                     </div>
 
@@ -5503,48 +5645,6 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                     </div>
                   </header>
 
-                  {/* Dynamic Pipeline Progress */}
-                  <div className="bg-white/40 dark:bg-[#080808]/40 border-b border-slate-200 dark:border-white/5 px-4 lg:px-10 py-3 lg:py-4 flex items-center shrink-0 overflow-x-auto custom-scrollbar hide-scrollbar-on-idle">
-                    <div className="flex items-center w-full max-w-5xl mx-auto">
-                      {tabs.map((tab, idx) => {
-                        const isActive = activeTab === tab.id;
-                        const isPast = tabs.findIndex(t => t.id === activeTab) > idx;
-                        const isUpcoming = !isActive && !isPast;
-                        
-                        const circleStyle = isActive 
-                          ? 'bg-indigo-500 text-white border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.4)]' 
-                          : isPast 
-                            ? 'bg-emerald-500 text-white border-emerald-500' 
-                            : 'bg-slate-100 dark:bg-zinc-800 text-slate-400 border-slate-200 dark:border-zinc-700';
-                            
-                        const textStyle = isActive 
-                          ? 'text-indigo-600 dark:text-indigo-400' 
-                          : isPast 
-                            ? 'text-emerald-600 dark:text-emerald-400' 
-                            : 'text-slate-400';
-
-                        const lineBg = isPast ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-zinc-800';
-
-                        return (
-                          <React.Fragment key={tab.id}>
-                            <div className="flex items-center gap-3 relative group cursor-pointer" onClick={() => !tab.comingSoon && setActiveTab(tab.id)}>
-                              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-500 z-10 relative ${circleStyle}`}>
-                                {isPast ? <Check className="w-4 h-4" /> : <tab.icon className="w-4 h-4" />}
-                              </div>
-                              <span className={`text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-colors duration-300 ${textStyle}`}>
-                                {tab.name}
-                              </span>
-                            </div>
-                            {idx < tabs.length - 1 && (
-                              <div className="flex-1 px-4">
-                                <div className={`h-[2px] w-full rounded-full transition-colors duration-500 ${lineBg}`} />
-                              </div>
-                            )}
-                          </React.Fragment>
-                        );
-                      })}
-                    </div>
-                  </div>
 
                   {/* Scrollable Content */}
                   <main className={`flex-1 overflow-y-auto ${activeTab === 'generation' ? 'p-4 lg:p-10' : 'p-6 lg:p-12'} custom-scrollbar relative mesh-bg`} data-lenis-prevent>
@@ -5563,7 +5663,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                   {showCompanyInfoPanel && renderCompanyInfoPanel()}
                 </AnimatePresence>
 
-                {showOnboardingGuide && renderOnboardingGuideModal()}
+
 
                 {activeJob && (
                   <div className="fixed bottom-10 right-10 z-[120] w-80 bg-white dark:bg-zinc-900 rounded-[32px] border border-slate-100 dark:border-white/5 shadow-2xl p-6 overflow-hidden animate-in slide-in-from-right-10 duration-500">
@@ -5589,6 +5689,65 @@ const AiSocialMediaDashboard = ({ isOpen, onClose }) => {
                   </div>
                 )}
                 {renderAssetPreviewModal()}
+
+                {/* ── Embedded Premium Upsell Modal (fixes Headless UI stacking context) ── */}
+                {localPremiumModal.open && (
+                  <div
+                    className="fixed inset-0 z-[99999] bg-black/70 backdrop-blur-sm flex justify-center items-center p-4"
+                    onClick={() => setLocalPremiumModal({ open: false, toolName: '', customMessage: '' })}
+                  >
+                    <div
+                      className="relative bg-[#0f0f0f] border border-white/10 rounded-3xl p-8 max-w-sm w-full shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-amber-500/20 blur-3xl pointer-events-none" />
+                      <div className="absolute -bottom-12 -left-12 w-40 h-40 rounded-full bg-purple-500/20 blur-3xl pointer-events-none" />
+                      <button
+                        onClick={() => setLocalPremiumModal({ open: false, toolName: '', customMessage: '' })}
+                        className="absolute top-4 right-4 p-1.5 text-white/40 hover:text-white/80 hover:bg-white/10 rounded-full transition-all"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                      <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg shadow-amber-500/30 mb-5 relative">
+                        <Lock className="w-7 h-7 text-white" />
+                        <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-amber-300 flex items-center justify-center border-2 border-[#0f0f0f]">
+                          <Crown className="w-2.5 h-2.5 text-amber-800" />
+                        </div>
+                      </div>
+                      <h3 className="text-xl font-black text-white mb-1">Premium Feature</h3>
+                      <p className="text-white/50 text-sm mb-1 capitalize font-semibold">{localPremiumModal.toolName}</p>
+                      <p className="text-white/40 text-sm mb-6 leading-relaxed">
+                        {localPremiumModal.customMessage || (
+                          <>This magic tool is only available for <span className="text-amber-400 font-bold">paid plan users</span>. Upgrade your plan to unlock all AI magic tools.</>
+                        )}
+                      </p>
+                      <div className="flex flex-col gap-2 mb-6">
+                        {['Generate Images & Videos', 'Web & Deep Search', 'Convert to Audio & Doc', 'Code Writer Mode'].map(f => (
+                          <div key={f} className="flex items-center gap-2.5 text-sm text-white/60">
+                            <div className="w-4 h-4 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                              <Zap className="w-2.5 h-2.5 text-amber-400" />
+                            </div>
+                            {f}
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => { setLocalPremiumModal({ open: false, toolName: '', customMessage: '' }); window.location.href = '/pricing'; }}
+                        className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-600 text-black font-black text-sm hover:shadow-lg hover:shadow-amber-500/30 transition-all active:scale-95 flex items-center justify-center gap-2"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        Upgrade Now
+                      </button>
+                      <button
+                        onClick={() => setLocalPremiumModal({ open: false, toolName: '', customMessage: '' })}
+                        className="w-full mt-3 py-2.5 text-xs font-semibold text-white/30 hover:text-white/60 transition-colors"
+                      >
+                        Maybe Later
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                   </>
                 )}
               </Dialog.Panel>

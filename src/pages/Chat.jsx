@@ -473,7 +473,7 @@ const Chat = () => {
     }
 
     // Whitelist AI CashFlow for all LOGGED IN users
-    if (toolName === 'AI CashFlow') return true;
+    if (toolName === 'AI CashFlow' || toolName === 'AI Ad Agent') return true;
 
     // Admin Access Rule: Treat all tools as unlocked
     if (user.email === 'admin@uwo24.com' || isAdminUser) return true;
@@ -8981,6 +8981,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         isOpen={isSocialMediaDashboardOpen}
         onClose={() => setIsSocialMediaDashboardOpen(false)}
         userPlan={userPlanName}
+        isPremium={isPremiumUser}
+        isAdmin={isAdminUser}
       />
       <CashFlowStockModal 
         isOpen={isStockModalOpen}

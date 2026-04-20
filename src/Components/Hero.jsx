@@ -350,11 +350,6 @@ const Hero = () => {
                   <ProfileSettingsDropdown 
                     onClose={() => setIsProfileOpen(false)} 
                     onLogout={async () => { 
-                      try {
-                        await apiService.resetSocialOnboarding();
-                      } catch (err) {
-                        console.error("Failed to reset onboarding during logout:", err);
-                      }
                       localStorage.clear(); 
                       window.location.reload(); 
                     }} 
