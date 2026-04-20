@@ -305,14 +305,12 @@ export const apiService = {
     }
   },
 
-  async uploadProfileImage(formData) {
+  async syncSocialProfile() {
     try {
-      const response = await apiClient.post('/social-agent/profile/upload-image', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const response = await apiClient.get('/auth/sync-profile');
       return response.data;
     } catch (error) {
-      console.error("Failed to upload profile image:", error);
+      console.error("Failed to sync profile:", error);
       throw error;
     }
   },

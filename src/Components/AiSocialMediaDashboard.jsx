@@ -254,31 +254,27 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   const [showCompanyInfoPanel, setShowCompanyInfoPanel] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const dashboardRef = useRef(null); // Ref to stop Headless UI FocusTrap from stealing focus on keystrokes
-  const profileImageRef = useRef(null);
   
-  const handleProfileImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const toastId = toast.loading('Uploading profile picture...');
+  const handleSyncProfile = async () => {
+    const toastId = toast.loading('Syncing with social profile...');
     try {
-      const formData = new FormData();
-      formData.append('image', file);
-      const personalWs = allWorkspaces.find(w => w.isPersonalProfile) || workspace;
-      formData.append('workspaceId', personalWs?._id);
-
-      const res = await apiService.uploadProfileImage(formData);
-      if (res.success) {
-        if (personalWs?._id === workspace?._id) {
-          setWorkspace(res.workspace);
-        }
-        fetchWorkspaces();
-        const updated = updateUser({ avatar: res.url });
+      const res = await apiService.syncSocialProfile();
+      if (res.avatar) {
+        // Update local user store and state
+        const updated = updateUser({ avatar: res.avatar });
         setCurrentUser(updated);
-        toast.success('Profile picture updated!', { id: toastId });
+        
+        // Refresh all workspaces to catch the updated profile image across the UI
+        initWorkspace(true);
+        
+        toast.success(res.message || 'Profile synchronized!', { id: toastId });
+      } else {
+        toast.error(res.message || 'No new photo found.', { id: toastId });
       }
     } catch (error) {
-      toast.error('Failed to upload image', { id: toastId });
+      console.error("Sync failed:", error);
+      const errMsg = error.response?.data?.error || error.message || "Sync failed";
+      toast.error(`${errMsg}. Ensure you are logged in with Google/Microsoft.`, { id: toastId });
     }
   };
 
@@ -1273,7 +1269,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
         throw new Error(res?.error || 'Failed to start generation');
       }
 
-      toast.loading('🤔 Vertex AI Imagen generating visual...', { id: toastId, duration: 120000 });
+      toast.loading('🤔 AISA™ generating post visual...', { id: toastId, duration: 120000 });
 
       // Step 2: Poll for job completion (max 90s)
       const jobId = res.jobId;
@@ -2675,15 +2671,6 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                               )}
                             </button>
                           )}
-                          
-                          <button
-                            onClick={() => handleRegeneratePost(entry._id || idx)}
-                            disabled={isProcessing}
-                            className="h-11 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 text-slate-400 hover:text-primary hover:border-primary/20 rounded-xl flex items-center justify-center transition-all disabled:opacity-50"
-                          >
-                            <RefreshCw className={`w-4 h-4 ${isProcessing ? 'animate-spin' : ''}`} />
-                            <span className="ml-2 text-[9px] font-black uppercase tracking-widest hidden sm:inline">Rethink</span>
-                          </button>
                         </div>
                         
                         <div className="flex items-center justify-between mt-4 px-1">
@@ -2696,17 +2683,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                            >
                              <Hash className="w-3 h-3" /> Viral Tags
                            </button>
-                           <button
-                             onClick={() => {
-                               setOneOffPrompt(`A branded social media image for: ${entry.title}. It should be ${entry.postType} style with a focus on: ${entry.hook}`);
-                               setShowOneOffModal(true);
-                               setActiveTab('assets');
-                             }}
-                             className="text-[8px] font-black text-slate-400 hover:text-emerald-500 uppercase tracking-widest flex items-center gap-1.5 transition-colors"
-                           >
-                             <Sparkles className="w-3 h-3" /> Magic Asset
-                           </button>
-                        </div>
+                         </div>
                       </div>
                     </div>
                   ))}
@@ -4478,26 +4455,14 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
           {/* Top Section: User Profile */}
           <div className="bg-slate-50 dark:bg-zinc-950 p-8 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between relative">
             <div className="flex items-center gap-6 relative z-10">
-              <div className="relative group cursor-pointer" onClick={() => profileImageRef.current?.click()}>
-                <input
-                  type="file"
-                  ref={profileImageRef}
-                  onChange={handleProfileImageUpload}
-                  className="hidden"
-                  accept="image/*"
-                />
+              <div className="relative">
                 {userAvatar ? (
-                  <img src={toProxyUrl(userAvatar)} alt="User" className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-zinc-800 shadow-lg group-hover:opacity-75 transition-opacity" onError={e => e.target.style.display='none'} />
+                  <img src={toProxyUrl(userAvatar)} alt="User" className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-zinc-800 shadow-lg" onError={e => e.target.style.display='none'} />
                 ) : (
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border-4 border-white dark:border-zinc-800 shadow-lg flex items-center justify-center text-3xl font-black text-white group-hover:opacity-75 transition-opacity">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border-4 border-white dark:border-zinc-800 shadow-lg flex items-center justify-center text-3xl font-black text-white">
                     {userName.charAt(0).toUpperCase()}
                   </div>
                 )}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center backdrop-blur-sm">
-                    <Upload className="w-4 h-4 text-white" />
-                  </div>
-                </div>
               </div>
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[4px] text-indigo-500 mb-1">User Profile</p>
@@ -4505,6 +4470,14 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                 <div className="flex items-center gap-2 mt-2">
                   <span className="px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest rounded-full">Active</span>
                   <span className="text-xs text-slate-400 font-bold">{currentUser?._id?.substring(0, 8) || 'Member'}</span>
+                  <button 
+                    onClick={handleSyncProfile}
+                    className="ml-2 flex items-center gap-1.5 px-3 py-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-full transition-all group/sync"
+                    title="Sync with social profile"
+                  >
+                    <RefreshCw className="w-3 h-3 group-hover/sync:rotate-180 transition-transform duration-700" />
+                    <span className="text-[9px] font-black uppercase tracking-widest">Sync</span>
+                  </button>
                 </div>
               </div>
             </div>
