@@ -293,7 +293,7 @@ const ToolCard = ({ tool, onToolSelect, index }) => {
       >
         {/* FRONT SIDE */}
         <div 
-          className={`absolute inset-0 w-full h-full rounded-[20px] border p-4 sm:p-5 transition-all duration-300 flex flex-col justify-between backface-hidden ${
+          className={`absolute inset-0 w-full h-full rounded-[20px] border p-3 sm:p-5 transition-all duration-300 flex flex-col justify-between backface-hidden ${
             isActive 
               ? (isDark ? 'bg-primary/10 border-primary shadow-[0_0_30px_rgba(var(--primary-rgb),0.3)] backdrop-blur-xl' : 'bg-blue-50 border-primary shadow-[0_0_25px_rgba(var(--primary-rgb),0.15)]')
               : (isDark 

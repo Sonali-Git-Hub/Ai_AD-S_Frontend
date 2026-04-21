@@ -20,6 +20,11 @@ import KnowledgeUpload from '../Components/KnowledgeUpload';
 import KnowledgeManagement from '../Components/KnowledgeManagement';
 import DeleteConfirmModal from '../Components/DeleteConfirmModal';
 const ADMIN_EMAIL = 'admin@uwo24.com';
+const LoadingSpinner = () => (
+    <div className="flex items-center justify-center py-16">
+        <div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
+    </div>
+);
 
 // ─── Tab Button ───
 const TabButton = ({ active, icon: Icon, label, onClick }) => (
@@ -442,6 +447,7 @@ const PlansTab = () => {
         features: ''
     });
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, planId: null });
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         fetchPlans();
@@ -488,7 +494,7 @@ const PlansTab = () => {
         } catch (err) {
             toast.error('Failed to save plan');
         } finally {
-            setSaving(true);
+            setSaving(false);
         }
     };
 
@@ -1099,12 +1105,7 @@ const LegalPagesTab = () => {
     );
 };
 
-// ─── Loading Spinner ───
-const LoadingSpinner = () => (
-    <div className="flex items-center justify-center py-16">
-        <div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
-    </div>
-);
+// ─── Loading Spinner Removed (Moved to Top) ───
 
 // ═══════════════════════════════
 // KNOWLEDGE BASE TAB
