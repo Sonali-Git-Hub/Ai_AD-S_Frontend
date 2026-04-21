@@ -5,6 +5,7 @@ import axios from 'axios';
 import { AppRoute, apis } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { logo } from '../constants';
 
 const ForgotPassword = () => {
     const navigate = useNavigate();
@@ -69,7 +70,15 @@ const ForgotPassword = () => {
                 />
             </div>
 
-            <div className="relative w-full max-w-[440px] px-4">
+            <div className="relative w-full max-w-[440px] px-4 flex flex-col items-center">
+                {/* Canonical Logo - Scaled for all devices */}
+                <div className="w-full flex justify-center mb-6 shrink-0 z-[60]">
+                    <img
+                        src={logo}
+                        alt="AISA™ Logo"
+                        className="w-[70px] sm:w-[90px] h-auto object-contain brightness-110 drop-shadow-2xl"
+                    />
+                </div>
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}

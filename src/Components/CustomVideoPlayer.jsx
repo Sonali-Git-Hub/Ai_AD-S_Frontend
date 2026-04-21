@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Download, FastForward, Rewind, Loader2 } from 'lucide-react';
 import { apiService } from '../services/apiService';
+import { logo } from '../constants';
 
 const CustomVideoPlayer = ({ src, compact = false }) => {
     const videoRef = useRef(null);
@@ -288,7 +289,7 @@ const CustomVideoPlayer = ({ src, compact = false }) => {
 
             {/* AISA Watermark Logo */}
             <img
-                src="/logo/Logo.svg"
+                src={logo}
                 alt="AISA Watermark"
                 className={`absolute transition-all duration-300 pointer-events-none z-[15] opacity-60 select-none drop-shadow-2xl ${compact
                     ? `right-2 w-6 ${showControls || !isPlaying ? 'bottom-12' : 'bottom-2'}`

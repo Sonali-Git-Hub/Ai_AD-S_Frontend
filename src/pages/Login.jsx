@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import { useLanguage } from '../context/LanguageContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGoogleLogin } from '@react-oauth/google';
+import { logo } from '../constants';
 
 import loginBg from './login_bg.gif';
 
@@ -156,7 +157,7 @@ const Login = () => {
         {/* Canonical Logo - Scaled for all devices */}
         <div className="w-full flex justify-center mb-4 shrink-0">
           <img
-            src="/logo/Logo.svg"
+            src={logo}
             alt="AISA™ Logo"
             className="w-[80px] sm:w-[100px] h-auto object-contain brightness-110 drop-shadow-2xl"
           />

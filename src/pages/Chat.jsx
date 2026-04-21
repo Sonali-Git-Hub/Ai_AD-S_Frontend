@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Send, SendHorizontal, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe, Sliders, PlayCircle, Brain, ImagePlus, PlaySquare, RefreshCcw, TrendingUp, Zap, Gavel, Navigation, Rocket, Megaphone, Scale, ArrowLeft, ChevronRight, Briefcase, Calendar, Users, FolderOpen, Save } from 'lucide-react';
 import LegalLogo from '../Components/LegalLogo';
+import { logo } from '../constants';
 import { renderAsync } from 'docx-preview';
 import * as XLSX from 'xlsx';
 import { Menu, Transition, Dialog, Listbox, Portal } from '@headlessui/react';
@@ -6191,7 +6192,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           {msg.role === 'user' ? (
                             <User className="w-5 h-5 text-slate-600 dark:text-slate-300" />
                           ) : (
-                            <img src="/logo/Logo.svg" alt="AISA" className="w-6 h-6 object-contain" />
+                            <img src={logo} alt="AISA" className="w-6 h-6 object-contain" />
                           )}
                         </div>
 
@@ -6199,7 +6200,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                           {msg.isGenerating && (
                             <div className="flex items-center gap-3 mb-3 p-3 bg-primary/5 rounded-xl border border-primary/10 animate-pulse">
-                              <img src="/logo/Logo.svg" alt="AISA" className="w-5 h-5 object-contain" />
+                              <img src={logo} alt="AISA" className="w-5 h-5 object-contain" />
                               <span className="text-xs font-semibold text-primary uppercase tracking-tighter">AISA generating...</span>
                             </div>
                           )}
@@ -7264,13 +7265,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                   className="mb-6"
                 >
                   <img
-                    src="/logo/Logo.svg"
+                    src={logo}
                     alt="AISA"
                     className="w-16 h-16 sm:w-20 sm:h-20 mx-auto drop-shadow-[0_0_30px_rgba(139,92,246,0.4)] transition-all duration-700 hover:scale-110"
-                    style={{ 
-                      WebkitMaskImage: 'radial-gradient(circle at 50% 45%, black 40%, transparent 70%)',
-                      maskImage: 'radial-gradient(circle at 50% 45%, black 40%, transparent 70%)'
-                    }}
                   />
                 </motion.div>
                 <section className="w-full px-1 sm:px-2 md:px-0">
@@ -7504,7 +7501,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           <div className="px-6 py-5 bg-slate-50 dark:bg-zinc-800/80 border-b border-slate-100 dark:border-zinc-800 shrink-0">
                             <div className="flex items-center gap-2.5">
                               <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center overflow-hidden border border-white/20">
-                                <img src="/logo/Logo.svg" alt="AISA" className="w-7 h-7 object-contain" />
+                                <img src={logo} alt="AISA" className="w-7 h-7 object-contain" />
                               </div>
                               <h3 className="text-[16px] font-black text-slate-800 dark:text-white uppercase tracking-tight">
                                 AISA ™ Magic Tools

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Cpu, Mail, Lock, User, ArrowLeft } from 'lucide-react';
 import { AppRoute } from '../types';
+import { logo } from '../constants';
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ const Auth = () => {
         {/* Logo + Title */}
         <div className="mb-8 text-center">
           <div className="inline-block p-1 rounded-full bg-white/10 backdrop-blur-xl shadow-xl shadow-purple-900/40 mb-4 overflow-hidden border border-white/20">
-            <img src="/logo/Logo.svg" alt="AISA" className="w-10 h-10 object-contain" />
+            <img src={logo} alt="AISA" className="w-10 h-10 object-contain" />
           </div>
 
           <h2 className="text-3xl font-bold text-white mb-2">

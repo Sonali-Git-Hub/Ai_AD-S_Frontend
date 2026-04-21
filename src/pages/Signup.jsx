@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import { useLanguage } from '../context/LanguageContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGoogleLogin } from '@react-oauth/google';
+import { logo } from '../constants';
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -124,6 +125,15 @@ const Signup = () => {
 
       {/* Content Container */}
       <div className="relative w-full max-w-5xl flex flex-col items-center p-4">
+        {/* Canonical Logo - Scaled for all devices */}
+        <div className="w-full flex justify-center mb-6 shrink-0 z-[60]">
+          <img
+            src={logo}
+            alt="AISA™ Logo"
+            className="w-[80px] sm:w-[100px] h-auto object-contain brightness-110 drop-shadow-2xl"
+          />
+        </div>
+
         {/* SMALL FLOATING GLASS PANEL */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 30 }}
