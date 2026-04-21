@@ -549,10 +549,10 @@ const Sidebar = ({ isOpen, onClose }) => {
           <div className="px-5 pt-4 pb-2 relative z-10">
             <button
               onClick={handleNewChat}
-              className="w-full relative overflow-hidden group p-[1px] rounded-[16px] transition-all duration-500 hover:scale-[1.03] active:scale-[0.97] bg-blue-600 shadow-[0_8px_25px_rgba(37,99,235,0.4)] dark:shadow-[0_8px_25px_rgba(37,99,235,0.2)]"
+              className="w-full relative overflow-hidden group p-[1px] rounded-[16px] transition-all duration-500 hover:scale-[1.03] active:scale-[0.97] bg-primary shadow-[0_8px_25px_rgba(139,92,246,0.4)] dark:shadow-[0_8px_25px_rgba(139,92,246,0.2)]"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-700 animate-gradient bg-[length:300%_auto]" />
-              <div className="relative flex items-center justify-center gap-2 px-4 py-3 backdrop-blur-md rounded-[15px] group-hover:bg-transparent transition-all duration-500 bg-blue-600/10">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary via-purple-600 to-indigo-700 animate-gradient bg-[length:300%_auto]" />
+              <div className="relative flex items-center justify-center gap-2 px-4 py-3 backdrop-blur-md rounded-[15px] group-hover:bg-transparent transition-all duration-500 bg-primary/10">
                 <Plus className="w-4 h-4 text-white group-hover:rotate-180 transition-transform duration-700" strokeWidth={3} />
                 <span className="font-black text-[13px] tracking-wide text-white">{t('newChat')}</span>
               </div>
