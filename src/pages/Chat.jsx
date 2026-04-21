@@ -7805,7 +7805,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 <div className="w-5 h-5 rounded-lg bg-blue-600 dark:bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/40 text-white">
                                   <Globe size={14} strokeWidth={3} />
                                 </div>
-                                <span className="uppercase tracking-widest text-[9px] font-black hidden xs:inline">Web Search</span>
+                                <span className="uppercase tracking-widest text-[9px] font-black">Web Search</span>
                               </div>
                               <button
                                 type="button"
@@ -7828,7 +7828,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 <div className="w-5 h-5 rounded-lg bg-emerald-600 dark:bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/40 text-white">
                                   <Search size={14} strokeWidth={3} />
                                 </div>
-                                <span className="uppercase tracking-widest text-[9px] font-black hidden xs:inline">Deep Search</span>
+                                <span className="uppercase tracking-widest text-[9px] font-black">Deep Search</span>
                               </div>
                               <button
                                 type="button"
@@ -7853,7 +7853,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 <div className="w-5 h-5 rounded-lg bg-indigo-600 dark:bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/40 text-white">
                                   <ImageIcon size={14} strokeWidth={3} />
                                 </div>
-                                <span className="uppercase tracking-widest text-[9px] font-black hidden xs:inline">Image Gen</span>
+                                <span className="uppercase tracking-widest text-[9px] font-black">Image Gen</span>
                               </div>
 
                               <div className="w-[1px] h-3 bg-indigo-500/40 mx-0.5 relative z-10" />
@@ -7893,7 +7893,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 <div className="w-5 h-5 rounded-lg bg-violet-600 dark:bg-violet-500 flex items-center justify-center shadow-lg shadow-violet-500/40 text-white">
                                   <Video size={14} strokeWidth={3} />
                                 </div>
-                                <span className="uppercase tracking-widest text-[9px] font-black hidden xs:inline">Video Gen</span>
+                                <span className="uppercase tracking-widest text-[9px] font-black">Video Gen</span>
                               </div>
 
                               <div className="w-[1px] h-3 bg-violet-500/40 mx-0.5 relative z-10" />
@@ -7926,7 +7926,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 <div className="w-5 h-5 rounded-lg bg-rose-500/20 flex items-center justify-center">
                                   <Volume2 size={14} strokeWidth={2.5} />
                                 </div>
-                                <span className="uppercase tracking-wide text-[10px] font-black hidden sm:inline">Voice Mode</span>
+                                <span className="uppercase tracking-wide text-[10px] font-black">Voice Mode</span>
                               </div>
                               <button
                                 type="button"
@@ -7946,7 +7946,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 <div className="w-5 h-5 rounded-lg bg-indigo-500/20 flex items-center justify-center">
                                   <Headphones size={14} strokeWidth={2.5} />
                                 </div>
-                                <span className="uppercase tracking-wide text-[10px] font-black hidden sm:inline">Audio Convert</span>
+                                <span className="uppercase tracking-wide text-[10px] font-black">Audio Convert</span>
                               </div>
                               <button type="button" onClick={() => setIsVoiceSettingsOpen(true)} className="ml-1 w-5 h-5 rounded-lg flex items-center justify-center hover:bg-indigo-500/20 text-subtext hover:text-indigo-600 transition-colors" title="Voice Settings">
                                 <Sliders size={13} />
@@ -7962,13 +7962,13 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           )}
                           {isDocumentConvert && (
                             <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
-                              <FileText size={12} strokeWidth={3} /> <span className="hidden sm:inline">Doc Convert</span>
+                              <FileText size={12} strokeWidth={3} /> <span>Doc Convert</span>
                               <button onClick={() => setIsDocumentConvert(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
                             </motion.div>
                           )}
                           {isCodeWriter && (
                             <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
-                              <Code size={12} strokeWidth={3} /> <span className="hidden sm:inline">Code Writer</span>
+                              <Code size={12} strokeWidth={3} /> <span>Code Writer</span>
                               <button onClick={() => setIsCodeWriter(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
                             </motion.div>
                           )}
@@ -8074,7 +8074,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 <div className="w-5 h-5 rounded-lg bg-blue-500/20 flex items-center justify-center">
                                   <FileText size={14} strokeWidth={2.5} />
                                 </div>
-                                <span className="uppercase tracking-wide text-[10px] font-black hidden sm:inline">{t('analyzeDocument')}</span>
+                                <span className="uppercase tracking-wide text-[10px] font-black">{t('analyzeDocument')}</span>
                               </div>
                               <button
                                 type="button"
