@@ -7368,14 +7368,14 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
         {/* Unified Chat Input Container */}
         {legalView !== 'DASHBOARD' && (
-          <div className="fixed bottom-0 left-0 right-0 z-20 pointer-events-none" style={{ padding: '0.5rem 0.5rem calc(0.5rem + env(safe-area-inset-bottom, 0px)) 0.5rem', background: isDarkMode ? '#04040e' : '#EEF2FF', pointerEvents: 'auto' }}>
+          <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none" style={{ padding: '0 1rem calc(1rem + env(safe-area-inset-bottom, 0px)) 1rem', background: 'transparent' }}>
             {/* Bottom Mask removed in favor of solid background */}
-            <div className="max-w-5xl mx-auto w-full">
+            <div className="max-w-5xl mx-auto w-full pointer-events-auto">
 
 
               <form
                 onSubmit={handleSendMessage}
-                className="relative w-full flex flex-col transition-all duration-300 backdrop-blur-3xl p-3 z-50 aisa-chat-input-wrapper bg-[#f8f9fc]/90 dark:bg-zinc-900/95 border border-slate-200/50 dark:border-zinc-800/80 rounded-[32px] shadow-2xl ring-1 ring-black/5 overflow-visible"
+                className="relative w-full flex flex-col transition-all duration-300 backdrop-blur-3xl p-2 z-50 aisa-chat-input-wrapper bg-[#f8f9fc]/95 dark:bg-zinc-900/95 border border-slate-200 dark:border-zinc-800 rounded-[24px] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] ring-1 ring-black/5 overflow-visible"
               >
                 {/* Internal File Preview Area */}
                 {filePreviews.length > 0 && (
@@ -7417,7 +7417,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 <input id="photos-upload" type="file" ref={photosInputRef} onChange={handleFileSelect} multiple className="hidden" accept="image/*" />
                 <input id="camera-upload" type="file" onChange={handleFileSelect} className="hidden" accept="image/*" capture="environment" />
 
-                <div className="flex items-end gap-2 w-full">
+                <div className="flex items-center gap-2 w-full">
 
 
                   {/* AI CashFlow Search Results Dropdown */}
@@ -7877,10 +7877,10 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           setIsAttachMenuOpen(!isAttachMenuOpen);
                           setIsToolsMenuOpen(false);
                         }}
-                        className="w-[40px] h-[40px] rounded-full flex items-center justify-center text-subtext hover:text-primary hover:bg-secondary transition-all shadow-sm hover:shadow-md relative overflow-visible z-20"
+                        className="w-[36px] h-[36px] rounded-full flex items-center justify-center bg-secondary/80 text-subtext hover:text-primary hover:bg-secondary transition-all shadow-lg relative overflow-visible z-20"
                         title="Attachments"
                       >
-                        <Plus className={`w-[22px] h-[22px] transition-transform duration-300 ${isAttachMenuOpen ? 'rotate-45' : ''}`} />
+                        <Plus className={`w-[20px] h-[20px] transition-transform duration-300 ${isAttachMenuOpen ? 'rotate-45' : ''}`} />
                       </motion.button>
                     </div>
 
@@ -7894,10 +7894,10 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           setIsToolsMenuOpen(!isToolsMenuOpen);
                           setIsAttachMenuOpen(false);
                         }}
-                        className="w-[40px] h-[40px] rounded-full flex items-center justify-center bg-secondary/80 text-subtext hover:text-primary transition-colors shadow-lg hover:shadow-primary/40 relative overflow-visible z-20"
+                        className="w-[36px] h-[36px] rounded-full flex items-center justify-center bg-secondary/80 text-subtext hover:text-primary transition-colors shadow-lg hover:shadow-primary/40 relative overflow-visible z-20"
                         title="AISA ™ Magic Tools"
                       >
-                        <Brain className={`w-[22px] h-[22px] relative z-10 transition-colors`} />
+                        <Brain className={`w-[20px] h-[20px] relative z-10 transition-colors`} />
                       </motion.button>
                     </div>
                   </div>
@@ -8231,8 +8231,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       }}
                       placeholder={isLimitReached ? t('limitReached') || "Chat limit reached. Sign in to continue." : (isVideoGeneration ? t('describeVideo') || "Describe the video you want to generate..." : isAudioConvertMode ? t('enterTextToConvert') || "Enter text to convert..." : isDocumentConvert ? t('uploadFileToConvert') || "Upload file & ask to convert..." : typedPlaceholder)}
                       rows={1}
-                      className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none px-4 py-3 sm:px-5 sm:py-4 text-slate-800 dark:text-zinc-100 text-left placeholder-slate-400 dark:placeholder-zinc-500 resize-none overflow-y-auto custom-scrollbar font-bold leading-relaxed text-[16px] ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
-                      style={{ minHeight: '44px', height: 'auto', maxHeight: '180px', lineHeight: '1.5' }}
+                      className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none px-3.5 py-2 sm:px-4 sm:py-3 text-slate-800 dark:text-zinc-100 text-left placeholder-slate-400 dark:placeholder-zinc-500 resize-none overflow-y-auto custom-scrollbar font-bold leading-relaxed text-[16px] ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
+                      style={{ minHeight: '40px', height: 'auto', maxHeight: '180px', lineHeight: '1.5' }}
                     />
                   </div>
 
@@ -8250,17 +8250,18 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         {getAgentCapabilities(activeAgent.agentName, activeAgent.category).canVoice && (
                           <div className="relative">
 
-                            <motion.button
-                              type="button"
-                              whileHover={{ scale: 1.15, rotate: [0, -10, 10, 0] }}
-                              whileTap={{ scale: 0.9 }}
-                              onClick={() => {
-                                handleVoiceInput();
-                              }}
-                              title={t('voiceInput')}
-                            >
-                              <Mic className={`w-[22px] h-[22px] shrink-0 transition-colors`} />
-                            </motion.button>
+                              <motion.button
+                                type="button"
+                                whileHover={{ scale: 1.15, rotate: [0, -10, 10, 0] }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => {
+                                  handleVoiceInput();
+                                }}
+                                className="w-[36px] h-[36px] rounded-full flex items-center justify-center bg-secondary/80 text-subtext hover:text-primary transition-colors shadow-lg relative overflow-visible z-20"
+                                title={t('voiceInput')}
+                              >
+                                <Mic className={`w-[20px] h-[20px] shrink-0 transition-colors`} />
+                              </motion.button>
                           </div>
                         )}
                       </>
@@ -8294,7 +8295,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             setIsSendTapped(true);
                             setTimeout(() => setIsSendTapped(false), 2000);
                           }}
-                          className={`w-[42px] h-[42px] rounded-full flex items-center justify-center transition-all shadow-lg relative overflow-visible z-20 bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-blue-500/30 hover:shadow-blue-500/50`}
+                          className={`w-[38px] h-[38px] rounded-full flex items-center justify-center transition-all shadow-lg relative overflow-visible z-20 bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-blue-500/30 hover:shadow-blue-500/50`}
                         >
                           <AnimatePresence>
                             {ripples.map(id => (
@@ -8321,7 +8322,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             className="relative z-10"
                           >
                             <SendHorizontal
-                              className="w-[22px] h-[22px] transition-all duration-300 text-white hover:scale-110"
+                              className="w-[20px] h-[20px] transition-all duration-300 text-white hover:scale-110"
                               strokeWidth={2.5}
                             />
                           </motion.div>
