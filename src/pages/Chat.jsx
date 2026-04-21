@@ -353,16 +353,13 @@ const Chat = () => {
   const isAdmin = user?.token && (user?.role === 'admin' || user?.email === 'admin@uwo24.com');
 
   const checkPremiumTool = (toolName) => {
-    // Whitelist AI Legal for all users
-    if (toolName === 'AI Legal') return true;
-
     if (!user?.token) {
       window.dispatchEvent(new CustomEvent('login_required', { detail: { toolName } }));
       return false;
     }
 
-    // Whitelist AI CashFlow for all LOGGED IN users
-    if (toolName === 'AI CashFlow' || toolName === 'AI Ad Agent') return true;
+    // Whitelist certain tools for all LOGGED IN users (even free tier)
+    if (toolName === 'AI Legal' || toolName === 'AI CashFlow' || toolName === 'AI Ad Agent') return true;
 
     // Admin Access Rule: Treat all tools as unlocked
     if (user.email === 'admin@uwo24.com' || isAdminUser) return true;
@@ -6192,7 +6189,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           {msg.role === 'user' ? (
                             <User className="w-5 h-5 text-slate-600 dark:text-slate-300" />
                           ) : (
-                            <img src={logo} alt="AISA" className="w-6 h-6 object-contain" />
+                            <img src={logo} alt="AISA" className="w-6 h-[18px] object-cover object-top" />
                           )}
                         </div>
 
@@ -6200,7 +6197,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                           {msg.isGenerating && (
                             <div className="flex items-center gap-3 mb-3 p-3 bg-primary/5 rounded-xl border border-primary/10 animate-pulse">
-                              <img src={logo} alt="AISA" className="w-5 h-5 object-contain" />
+                              <img src={logo} alt="AISA" className="w-5 h-3.5 object-cover object-top" />
                               <span className="text-xs font-semibold text-primary uppercase tracking-tighter">AISA generating...</span>
                             </div>
                           )}
@@ -7267,7 +7264,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                   <img
                     src={logo}
                     alt="AISA"
-                    className="w-16 h-16 sm:w-20 sm:h-20 mx-auto drop-shadow-[0_0_30px_rgba(139,92,246,0.4)] transition-all duration-700 hover:scale-110"
+                    className="w-16 h-12 sm:w-20 sm:h-16 mx-auto object-cover object-top drop-shadow-[0_0_30px_rgba(139,92,246,0.4)] transition-all duration-700 hover:scale-110"
                   />
                 </motion.div>
                 <section className="w-full px-1 sm:px-2 md:px-0">
@@ -7344,6 +7341,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         setIsMagicVideoModalOpen(true);
                         toast.success("Image to Video Mode Active");
                       } else if (id === 'ai_cashflow') {
+                        if (!checkPremiumTool('AI CashFlow')) return;
                         setIsCashFlowMode(true);
                         setIsStockModalOpen(true);
                         toast.success("AI CashFlow Active 📈");
@@ -7352,6 +7350,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         setIsSocialMediaDashboardOpen(true);
                         toast.success("AI ADS™ Active");
                       } else if (id === 'legal') {
+                        if (!checkPremiumTool('AI Legal')) return;
                         setActiveLegalToolkit(true);
                         setCurrentMode('LEGAL_TOOLKIT');
                         // Removed setLegalView('DASHBOARD') to keep input box visible behind modal
@@ -7501,7 +7500,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           <div className="px-6 py-5 bg-slate-50 dark:bg-zinc-800/80 border-b border-slate-100 dark:border-zinc-800 shrink-0">
                             <div className="flex items-center gap-2.5">
                               <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center overflow-hidden border border-white/20">
-                                <img src={logo} alt="AISA" className="w-7 h-7 object-contain" />
+                                <img src={logo} alt="AISA" className="w-7 h-5 object-cover object-top" />
                               </div>
                               <h3 className="text-[16px] font-black text-slate-800 dark:text-white uppercase tracking-tight">
                                 AISA ™ Magic Tools
