@@ -642,8 +642,8 @@ const Chat = () => {
       // Map params to states
       if (modeParam === 'deepsearch' || toolParam === 'deepsearch') setIsDeepSearch(true);
       else if (modeParam === 'websearch' || modeParam === 'webbrowse' || toolParam === 'websearch') setIsWebSearch(true);
-      else if (modeParam === 'imagegen' || modeParam === 'image' || toolParam === 'imagegen') { setIsImageGeneration(true); setIsMagicSettingsOpen(true); }
-      else if (modeParam === 'videogen' || modeParam === 'video' || toolParam === 'videogen') { setIsVideoGeneration(true); setIsMagicSettingsOpen(true); }
+      else if (modeParam === 'imagegen' || modeParam === 'image' || toolParam === 'imagegen') { setIsImageGeneration(true); }
+      else if (modeParam === 'videogen' || modeParam === 'video' || toolParam === 'videogen') { setIsVideoGeneration(true); }
       else if (modeParam === 'coding' || modeParam === 'code' || toolParam === 'coding') setIsCodeWriter(true);
       else if (modeParam === 'ailegal' || modeParam === 'legal' || toolParam === 'ailegal') { setActiveLegalToolkit(true); setCurrentMode('LEGAL_TOOLKIT'); }
       else if (modeParam === 'aicashflow' || modeParam === 'finance' || toolParam === 'aicashflow') { setIsFileAnalysis(true); alert("AICASHFLOW analysis mode active. Please upload your ledger/data file."); } // Heuristic for now
@@ -1343,13 +1343,12 @@ const Chat = () => {
     setActiveLegalToolkit(false);
 
     // Dynamic activation based on map
-    if (toolUpdates.activeImageGen) { setIsImageGeneration(true); setIsMagicSettingsOpen(true); }
+    if (toolUpdates.activeImageGen) { setIsImageGeneration(true); }
     if (toolUpdates.activeVideoGen) {
       if (toolUpdates.videoMode === 'image_to_video') {
         setIsMagicVideoModalOpen(true);
       } else {
         setIsVideoGeneration(true);
-        setIsMagicSettingsOpen(true);
       }
     }
     if (toolUpdates.activeMagicEdit) setIsMagicEditing(true);
@@ -6195,19 +6194,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                         <div className="flex-1 chatgpt-text">
 
-                          {msg.isGenerating && (
-                            <div className="flex items-center gap-3 mb-3 p-3 bg-primary/5 rounded-xl border border-primary/10 animate-pulse">
-                              <img src={logo} alt="AISA" className="w-5 h-3.5 object-cover object-top" />
-                              <span className="text-xs font-semibold text-primary uppercase tracking-tighter">AISA generating...</span>
-                            </div>
-                          )}
 
-                          {msg.isProcessing && (
-                            <div className="flex items-center gap-3 mb-3 p-3 bg-primary/5 rounded-xl border border-primary/10 animate-pulse">
-                              <Loader size="sm" />
-                              <span className="text-xs font-semibold text-primary uppercase tracking-tighter">Preparing Audio...</span>
-                            </div>
-                          )}
+
+
 
                           {/* Attachment Display */}
                           {((msg.attachments && msg.attachments.length > 0) || msg.attachment) && (
@@ -6352,53 +6341,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           ) : (
                             msg.content && (
                               <div id={`msg-text-${msg.id}`} className={`max-w-full break-words leading-relaxed whitespace-normal ${msg.role === 'user' ? 'bg-indigo-50/50 dark:bg-indigo-950/20 px-4 py-2.5 rounded-2xl rounded-tl-none border border-indigo-100/30 dark:border-indigo-800/20 text-slate-900 dark:text-white font-normal shadow-sm w-fit inline-block mb-1' : 'text-maintext'}`}>
-                                {msg.role === 'user' && msg.mode && msg.mode !== MODES.NORMAL_CHAT && (
-                                  <div className={`flex items-center gap-1.5 mb-2 px-2.5 py-1 backdrop-blur-md rounded-full w-fit border shadow-sm transition-all hover:scale-105`}
-                                    style={{
-                                      backgroundColor: `${getModeColor(msg.mode)}15`,
-                                      borderColor: `${getModeColor(msg.mode)}30`
-                                    }}
-                                  >
-                                    <span className="text-[10px] animate-pulse">{getModeIcon(msg.mode)}</span>
-                                    <span className={`text-[9px] font-black uppercase tracking-[0.1em]`}
-                                      style={{ color: getModeColor(msg.mode) }}
-                                    >
-                                      {getModeName(msg.mode)} Active
-                                    </span>
-                                  </div>
-                                )}
 
-                                {msg.role === 'model' && (msg.isRealTime || msg.mode === MODES.DEEP_SEARCH || msg.mode === MODES.WEB_SEARCH) && (
-                                  <div className="flex items-center gap-3 mb-4 px-4 py-2 bg-gradient-to-r from-blue-600/10 to-indigo-600/10 border border-blue-500/20 rounded-2xl w-fit shadow-lg shadow-blue-500/5 transition-all hover:scale-[1.02] group/search-badge">
-                                    <div className="p-1.5 bg-blue-500 rounded-lg shadow-md ring-1 ring-blue-400 group-hover/search-badge:rotate-12 transition-transform">
-                                      <Globe className="w-3.5 h-3.5 text-white animate-[spin_8s_linear_infinite]" />
-                                    </div>
-                                    <div className="flex flex-col">
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="text-[10px] font-black uppercase tracking-[0.15em] text-blue-500 leading-none">
-                                          {msg.mode === MODES.DEEP_SEARCH ? 'Deep Intelligence Search' : 'Web Intelligence Search'}
-                                        </span>
-                                        <div className="w-1 h-1 rounded-full bg-blue-400 animate-pulse" />
-                                      </div>
-                                      <span className="text-[9px] font-bold text-blue-500/60 uppercase tracking-widest mt-0.5">Real-Time Grounding Active</span>
-                                    </div>
-                                  </div>
-                                )}
 
-                                {msg.role === 'model' && !msg.isRealTime && msg.sources && msg.sources.length > 0 && (
-                                  <div className="flex items-center gap-3 mb-4 px-4 py-2 bg-gradient-to-r from-emerald-600/10 to-teal-600/10 border border-emerald-500/20 rounded-2xl w-fit shadow-lg shadow-emerald-500/5 transition-all hover:scale-[1.02] group/knowledge-badge">
-                                    <div className="p-1.5 bg-emerald-500 rounded-lg shadow-md ring-1 ring-emerald-400 group-hover/knowledge-badge:rotate-12 transition-transform">
-                                      <HardDrive className="w-3.5 h-3.5 text-white" />
-                                    </div>
-                                    <div className="flex flex-col">
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="text-[10px] font-black uppercase tracking-[0.15em] text-emerald-500 leading-none">AI Ads Knowledge</span>
-                                        <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
-                                      </div>
-                                      <span className="text-[9px] font-bold text-emerald-500/60 uppercase tracking-widest mt-0.5">Verified Documents Grounding</span>
-                                    </div>
-                                  </div>
-                                )}
+
+
+
 
                                 {/* [READ MORE LOGIC]: For long messages, we show a truncate and read more option */}
                                 <div className="relative group/msg-content">
@@ -6686,7 +6633,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           setIsMagicEditing(true);
-                                          setIsMagicSettingsOpen(true);
+       
                                           setEditRefImage({
                                             url: msg.imageUrl,
                                             name: 'Generated Asset',
@@ -7246,7 +7193,10 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
         {/* Welcome Screen - Integrated Hub */}
         <AnimatePresence>
-          {messages.length === 0 && currentMode !== 'LEGAL_TOOLKIT' && (!currentCase || selectedLegalTool?.id !== 'legal_my_case') && (
+          {messages.length === 0 && 
+            currentMode !== 'LEGAL_TOOLKIT' && 
+            (!currentCase || selectedLegalTool?.id !== 'legal_my_case') && 
+            !(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || activeLegalToolkit) && (
             <motion.div
               key="welcome-screen"
               initial={{ opacity: 0 }}
@@ -7301,13 +7251,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       if (id === 'image') {
                         if (!checkPremiumTool('Image Generation')) return;
                         setIsImageGeneration(true);
-                        setIsMagicSettingsOpen(true);
                         if (inputRef.current) { inputRef.current.value = "Generate an image of "; inputRef.current.focus(); }
                         toast.success("Image Mode Active");
                       } else if (id === 'video') {
                         if (!checkPremiumTool('Generate Video')) return;
                         setIsVideoGeneration(true);
-                        setIsMagicSettingsOpen(true);
                         if (inputRef.current) { inputRef.current.value = "Generate a video of "; inputRef.current.focus(); }
                         toast.success("Video Mode Active");
                       } else if (id === 'audio') {
@@ -7525,7 +7473,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 setIsDocumentConvert(false);
                                 setIsCodeWriter(false);
                                 if (newMode) {
-                                  setIsMagicSettingsOpen(true);
                                   toast.success("Image Generation Mode Enabled");
                                 }
                               }}
@@ -7556,7 +7503,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 setIsDocumentConvert(false);
                                 setIsCodeWriter(false);
                                 if (newMode) {
-                                  setIsMagicSettingsOpen(true);
+
                                   toast.success("Video Generation Mode Enabled");
                                 }
                               }}
@@ -7736,7 +7683,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 setIsCashFlowMode(false);
                                 setIsFileAnalysis(false);
                                 if (newMode) {
-                                  setIsMagicSettingsOpen(true);
+
                                   toast.success("Image Editing Enabled");
                                 }
                               }}

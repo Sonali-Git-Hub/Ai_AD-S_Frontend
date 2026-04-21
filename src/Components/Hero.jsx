@@ -315,8 +315,9 @@ const Hero = () => {
       >
         <motion.div 
           whileHover={{ scale: 1.05 }} 
-          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }} 
+          style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center' }} 
           onClick={() => navigate('/')}
+          className="group"
         >
           <div className="relative">
             <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full scale-150 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -330,6 +331,16 @@ const Hero = () => {
               className="drop-shadow-[0_0_40px_rgba(99,102,241,0.6)] relative transition-all duration-500" 
             />
           </div>
+          <span style={{
+            fontSize: window.innerWidth < 640 ? '0.6rem' : '0.75rem',
+            fontWeight: 900,
+            letterSpacing: '0.25em',
+            color: isDarkMode ? '#fff' : '#0F172A',
+            marginTop: window.innerWidth < 640 ? '-2px' : '-5px',
+            transition: 'all 0.3s'
+          }} className="group-hover:text-primary">
+            AISA
+          </span>
         </motion.div>
 
         <div style={{ 
