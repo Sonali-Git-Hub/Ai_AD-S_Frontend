@@ -146,10 +146,10 @@ const SharedChat = () => {
               }`}>
                 {/* Mode Indicator for Model */}
                 {msg.role === 'model' && (msg.mode === MODES.WEB_SEARCH || msg.isRealTime) && (
-                   <div className="flex items-center gap-2 mb-4 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full w-fit">
-                      <Globe className="w-3.5 h-3.5 text-blue-500 animate-pulse" />
-                      <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest leading-none">Web Search Mode</span>
-                   </div>
+                    <div className="flex items-center gap-2 mb-4 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-full w-fit">
+                       <Globe className="w-3.5 h-3.5 text-primary animate-pulse" />
+                       <span className="text-[9px] font-black text-primary uppercase tracking-widest leading-none">Web Search Mode</span>
+                    </div>
                 )}
 
                 <div className="prose prose-zinc dark:prose-invert max-w-none text-sm leading-relaxed text-maintext">

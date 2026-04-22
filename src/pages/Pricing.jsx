@@ -128,7 +128,7 @@ const Pricing = () => {
           name: userState?.user?.name || "User",
           email: userState?.user?.email || ""
         },
-        theme: { color: "#6366f1" }
+        theme: { color: "var(--color-primary)" }
       };
 
       const rzp = new window.Razorpay(options);
@@ -187,7 +187,7 @@ const Pricing = () => {
           name: userState?.user?.name || "User",
           email: userState?.user?.email || ""
         },
-        theme: { color: "#6366f1" }
+        theme: { color: "var(--color-primary)" }
       };
 
       const rzp = new window.Razorpay(options);
@@ -485,7 +485,7 @@ const Pricing = () => {
         <div className="credit-modal-overlay">
           <div className="credit-modal">
             <div className="modal-header">
-              <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">{t('instantCreditBoost')}</h3>
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">{t('instantCreditBoost')}</h3>
               <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{t('extraCreditsRoll')}</p>
             </div>
 
@@ -493,10 +493,10 @@ const Pricing = () => {
               {packages.map((pkg) => (
                 <div key={pkg._id} className="package-item group" onClick={() => handleBuyCredits(pkg)}>
                   <div className="flex flex-col">
-                    <span className="package-credits text-lg font-bold group-hover:text-blue-500 transition-colors">+{pkg.credits} Credits</span>
+                    <span className="package-credits text-lg font-bold group-hover:text-primary transition-colors">+{pkg.credits} Credits</span>
                     <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">One-time purchase</span>
                   </div>
-                  <div className="bg-blue-500 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-sm group-hover:bg-blue-600 group-hover:scale-105 transition-all">
+                  <div className="bg-primary text-white px-4 py-2 rounded-xl font-bold text-sm shadow-sm group-hover:bg-primary-dark group-hover:scale-105 transition-all">
                     ₹{pkg.price}
                   </div>
                 </div>

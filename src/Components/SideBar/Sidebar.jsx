@@ -432,7 +432,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         {/* Animated Background Glow Spots */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-30 dark:opacity-20 transition-opacity duration-500 group-hover:opacity-40">
           <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[40%] bg-primary/30 blur-[100px] animate-float-slow" />
-          <div className="absolute bottom-[10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/30 blur-[100px] animate-float-slow" style={{ animationDelay: '-5s' }} />
+          <div className="absolute bottom-[10%] right-[-10%] w-[50%] h-[50%] bg-primary/30 blur-[100px] animate-float-slow" style={{ animationDelay: '-5s' }} />
         </div>
         {/* Brand & Top Actions */}
         <div className="p-6 pb-2 mb-2 flex items-center justify-between relative z-10">
@@ -551,7 +551,7 @@ const Sidebar = ({ isOpen, onClose }) => {
               onClick={handleNewChat}
               className="w-full relative overflow-hidden group p-[1px] rounded-[16px] transition-all duration-500 hover:scale-[1.03] active:scale-[0.97] bg-primary shadow-[0_8px_25px_rgba(139,92,246,0.4)] dark:shadow-[0_8px_25px_rgba(139,92,246,0.2)]"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-primary via-purple-600 to-indigo-700 animate-gradient bg-[length:300%_auto]" />
+              <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary-light to-primary-dark animate-gradient bg-[length:300%_auto]" />
               <div className="relative flex items-center justify-center gap-2 px-4 py-3 backdrop-blur-md rounded-[15px] group-hover:bg-transparent transition-all duration-500 bg-primary/10">
                 <Plus className="w-4 h-4 text-white group-hover:rotate-180 transition-transform duration-700" strokeWidth={3} />
                 <span className="font-black text-[13px] tracking-wide text-white">{t('newChat')}</span>

@@ -6395,7 +6395,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                                   handleSendMessage(null, `Please proceed with ${toolName} using the current case context. Generate the full response for this task immediately without asking for further details if possible.`, toolKey);
                                                 }, 150);
                                               }}
-                                              className={`inline-flex mt-2 items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0 ${isLocked ? 'bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20' : 'bg-gradient-to-r from-primary/10 to-indigo-500/10 border border-primary/20 text-primary hover:bg-primary/20 hover:border-primary/40'}`}
+                                              className={`inline-flex mt-2 items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0 ${isLocked ? 'bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20' : 'bg-gradient-to-r from-primary/10 to-primary-dark/10 border border-primary/20 text-primary hover:bg-primary/20 hover:border-primary/40'}`}
                                             >
                                               {children}
                                               <ChevronRight className="w-4 h-4 ml-1 opacity-70" />
@@ -6791,8 +6791,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                               btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
                                             }
                                           }}
-                                          className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 shadow-lg shadow-purple-500/30 transition-transform active:scale-90"
-                                          style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}
+                                          className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 shadow-lg shadow-primary/30 transition-transform active:scale-90"
+                                          style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))' }}
                                         >
                                           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                                         </button>
@@ -6808,8 +6808,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                             audio.playbackRate = next;
                                             e.currentTarget.textContent = `${next}×`;
                                           }}
-                                          className="px-2.5 py-1 text-[10px] font-bold text-purple-300 rounded-lg border border-purple-500/20 hover:border-purple-400/50 transition-colors"
-                                          style={{ background: 'rgba(124,58,237,0.1)' }}
+                                          className="px-2.5 py-1 text-[10px] font-bold text-primary-light rounded-lg border border-primary/20 hover:border-primary/50 transition-colors"
+                                          style={{ background: 'var(--color-primary-bg)' }}
                                         >1×</button>
 
                                         <div className="flex-1" />
@@ -6879,7 +6879,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                     }
                                   }}
                                   className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-white rounded-lg transition-all shadow-lg font-bold text-[11px] active:scale-95 hover:opacity-90"
-                                  style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}
+                                  style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))' }}
                                 >
                                   <Download className="w-4 h-4" />
                                   Download
@@ -6942,7 +6942,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                       <button
                                         onClick={() => handleThumbsUp(msg.id)}
                                         className={`transition-colors p-1.5 rounded-lg ${messageFeedback[msg.id]?.type === 'up'
-                                          ? 'text-blue-500 bg-blue-500/10'
+                                          ? 'text-primary bg-primary/10'
                                           : 'text-subtext hover:text-primary hover:bg-surface-hover'
                                           }`}
                                         title="Helpful"
@@ -6983,11 +6983,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                         {(msg.detectedMode === 'CODING_HELP' || msg.detectedMode === 'CODE_WRITER') ? (
                                           <button
                                             onClick={() => handleDownloadCodeProject(msg)}
-                                            className="text-blue-500 hover:text-blue-600 transition-all p-1.5 hover:bg-blue-50/10 rounded-lg flex items-center gap-1 active:scale-95 group/code"
+                                            className="text-primary hover:text-primary-dark transition-all p-1.5 hover:bg-primary/5 rounded-lg flex items-center gap-1 active:scale-95 group/code"
                                             title="Download Code Project (ZIP)"
                                           >
                                             <FileText className="w-3.5 h-3.5 group-hover/code:scale-110 transition-transform" />
-                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
+                                            <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.6)]" />
                                           </button>
                                         ) : (
                                           !isMediaFeature && (
@@ -7040,7 +7040,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 </button>
                                 <button
                                   onClick={() => handleMessageUndo(msg)}
-                                  className="p-1.5 text-subtext hover:text-indigo-500 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+                                  className="p-1.5 text-subtext hover:text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
                                   title="Undo/Restore to Input"
                                 >
                                   <Undo2 className="w-3.5 h-3.5" />
@@ -7095,11 +7095,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
               {messages.length === 0 && currentCase && selectedLegalTool?.id === 'legal_my_case' && (
                 <div className="flex-1 flex flex-col items-center justify-center py-12 px-6 text-center animate-in fade-in zoom-in duration-500 absolute inset-0 pointer-events-none">
                   <div className="pointer-events-auto flex flex-col items-center">
-                    <div className="w-20 h-20 bg-indigo-600/10 rounded-3xl flex items-center justify-center mb-6 shadow-inner ring-1 ring-indigo-500/20">
-                      <Briefcase className="w-10 h-10 text-indigo-600" />
+                    <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mb-6 shadow-inner ring-1 ring-primary/20">
+                      <Briefcase className="w-10 h-10 text-primary" />
                     </div>
                     <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-3 tracking-tight">
-                      {currentCase.name} <span className="text-indigo-600">Workspace</span>
+                      {currentCase.name} <span className="text-primary">Workspace</span>
                     </h2>
                     <p className="max-w-md text-subtext font-medium leading-relaxed mb-8">
                       This case is now active. You can analyze documents, predict outcomes, or draft legal papers specifically for this case.
@@ -7110,7 +7110,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           setInputValue("Analyze this case for me");
                           inputRef.current?.focus();
                         }}
-                        className="px-5 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:border-indigo-500 hover:text-indigo-500 transition-all shadow-sm"
+                        className="px-5 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:border-primary hover:text-primary transition-all shadow-sm"
                       >
                         Analyze Case
                       </button>
@@ -7119,7 +7119,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           setInputValue("Draft a legal summary for this case");
                           inputRef.current?.focus();
                         }}
-                        className="px-5 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:border-indigo-500 hover:text-indigo-500 transition-all shadow-sm"
+                        className="px-5 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:border-primary hover:text-primary transition-all shadow-sm"
                       >
                         Draft Summary
                       </button>
@@ -7156,7 +7156,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                   <img
                     src={logo}
                     alt="AISA"
-                    className="w-16 h-12 sm:w-20 sm:h-16 mx-auto object-cover object-top drop-shadow-[0_0_30px_rgba(139,92,246,0.4)] transition-all duration-700 hover:scale-110"
+                    className="w-16 h-12 sm:w-20 sm:h-16 mx-auto object-cover object-top drop-shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.4)] transition-all duration-700 hover:scale-110"
                   />
                 </motion.div>
                 <section className="w-full px-1 sm:px-2 md:px-0">
@@ -7813,11 +7813,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               initial={{ opacity: 0, y: 10, scale: 0.95 }}
                               animate={{ opacity: 1, y: 0, scale: 1 }}
                               exit={{ opacity: 0, scale: 0.95 }}
-                              className="flex items-center gap-3 px-3.5 py-1.5 bg-blue-600/20 dark:bg-blue-500/25 text-blue-700 dark:text-blue-400 rounded-full text-xs font-bold border border-blue-400/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-blue-600/30 group shadow-[0_8px_32px_-4px_rgba(37,99,235,0.3)] relative overflow-hidden ring-1 ring-white/10"
+                              className="flex items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
                             >
                               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
                               <div className="flex items-center gap-2 relative z-10">
-                                <div className="w-5 h-5 rounded-lg bg-blue-600 dark:bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/40 text-white">
+                                <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
                                   <Globe size={14} strokeWidth={3} />
                                 </div>
                                 <span className="uppercase tracking-widest text-[9px] font-black">Web Search</span>
@@ -7825,7 +7825,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               <button
                                 type="button"
                                 onClick={() => setIsWebSearch(false)}
-                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-blue-600 dark:text-blue-400 transition-all hover:rotate-90 relative z-10"
+                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
                               >
                                 <X size={14} strokeWidth={3} />
                               </button>
@@ -7836,11 +7836,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               initial={{ opacity: 0, y: 10, scale: 0.95 }}
                               animate={{ opacity: 1, y: 0, scale: 1 }}
                               exit={{ opacity: 0, scale: 0.95 }}
-                              className="flex items-center gap-3 px-3.5 py-1.5 bg-emerald-600/20 dark:bg-emerald-500/25 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-bold border border-emerald-400/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-emerald-600/30 group shadow-[0_8px_32px_-4px_rgba(10,185,129,0.3)] relative overflow-hidden ring-1 ring-white/10"
+                              className="flex items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
                             >
                               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
                               <div className="flex items-center gap-2 relative z-10">
-                                <div className="w-5 h-5 rounded-lg bg-emerald-600 dark:bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/40 text-white">
+                                <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
                                   <Search size={14} strokeWidth={3} />
                                 </div>
                                 <span className="uppercase tracking-widest text-[9px] font-black">Deep Search</span>
@@ -7848,7 +7848,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               <button
                                 type="button"
                                 onClick={() => setIsDeepSearch(false)}
-                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-emerald-600 dark:text-emerald-400 transition-all hover:rotate-90 relative z-10"
+                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
                               >
                                 <X size={14} strokeWidth={3} />
                               </button>
@@ -7859,24 +7859,24 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               initial={{ opacity: 0, y: 10, scale: 0.95 }}
                               animate={{ opacity: 1, y: 0, scale: 1 }}
                               exit={{ opacity: 0, scale: 0.95 }}
-                              className="flex items-center gap-3 px-3.5 py-1.5 bg-indigo-600/20 dark:bg-indigo-500/25 text-indigo-700 dark:text-indigo-400 rounded-full text-xs font-bold border border-indigo-400/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-indigo-600/30 group shadow-[0_8px_32px_-4px_rgba(79,70,229,0.3)] relative overflow-hidden ring-1 ring-white/10"
+                              className="flex items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
                             >
                               {/* Glossy Reflection Effect */}
                               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
 
                               <div className="flex items-center gap-2 relative z-10">
-                                <div className="w-5 h-5 rounded-lg bg-indigo-600 dark:bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/40 text-white">
+                                <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
                                   <ImageIcon size={14} strokeWidth={3} />
                                 </div>
                                 <span className="uppercase tracking-widest text-[9px] font-black">Image Gen</span>
                               </div>
 
-                              <div className="w-[1px] h-3 bg-indigo-500/40 mx-0.5 relative z-10" />
+                              <div className="w-[1px] h-3 bg-primary/40 mx-0.5 relative z-10" />
 
                               <button
                                 type="button"
                                 onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
-                                className="flex items-center gap-1.5 hover:text-indigo-900 dark:hover:text-indigo-200 transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
+                                className="flex items-center gap-1.5 hover:text-primary dark:hover:text-primary transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
                               >
                                 <span className="text-[10px] font-extrabold opacity-90">{imageAspectRatio}</span>
                                 <span className="text-[10px] font-black truncate max-w-[60px] sm:max-w-[100px] tracking-tight">
@@ -7889,7 +7889,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               <button
                                 type="button"
                                 onClick={() => setIsImageGeneration(false)}
-                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-indigo-600 dark:text-indigo-400 transition-all hover:rotate-90 relative z-10"
+                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
                               >
                                 <X size={14} strokeWidth={3} />
                               </button>
@@ -7900,23 +7900,23 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               initial={{ opacity: 0, y: 10, scale: 0.95 }}
                               animate={{ opacity: 1, y: 0, scale: 1 }}
                               exit={{ opacity: 0, scale: 0.95 }}
-                              className="flex items-center gap-3 px-3.5 py-1.5 bg-violet-600/20 dark:bg-violet-500/25 text-violet-700 dark:text-violet-400 rounded-full text-xs font-bold border border-violet-400/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-violet-600/30 group shadow-[0_8px_32px_-4px_rgba(139,92,246,0.3)] relative overflow-hidden ring-1 ring-white/10"
+                              className="flex items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
                             >
                               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
 
                               <div className="flex items-center gap-2 relative z-10">
-                                <div className="w-5 h-5 rounded-lg bg-violet-600 dark:bg-violet-500 flex items-center justify-center shadow-lg shadow-violet-500/40 text-white">
+                                <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
                                   <Video size={14} strokeWidth={3} />
                                 </div>
                                 <span className="uppercase tracking-widest text-[9px] font-black">Video Gen</span>
                               </div>
 
-                              <div className="w-[1px] h-3 bg-violet-500/40 mx-0.5 relative z-10" />
+                              <div className="w-[1px] h-3 bg-primary/40 mx-0.5 relative z-10" />
 
                               <button
                                 type="button"
                                 onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
-                                className="flex items-center gap-1.5 hover:text-violet-900 dark:hover:text-violet-200 transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
+                                className="flex items-center gap-1.5 hover:text-primary dark:hover:text-primary transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
                               >
                                 <span className="text-[10px] font-extrabold opacity-90">{videoAspectRatio || 'D'}</span>
                                 <span className="text-[10px] font-black tracking-tight ml-1">{videoResolution}</span>
@@ -7926,7 +7926,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               <button
                                 type="button"
                                 onClick={() => setIsVideoGeneration(false)}
-                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-violet-600 dark:text-violet-400 transition-all hover:rotate-90 relative z-10"
+                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
                               >
                                 <X size={14} strokeWidth={3} />
                               </button>
@@ -7935,10 +7935,10 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           {isVoiceMode && (
                             <motion.div
                               initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                              className="flex items-center gap-2.5 px-3 py-1.5 bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-full text-xs font-bold border border-rose-500/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-rose-500/15 group shadow-lg shadow-rose-500/10"
+                              className="flex items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
                             >
                               <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-lg bg-rose-500/20 flex items-center justify-center">
+                                <div className="w-5 h-5 rounded-lg bg-primary/20 flex items-center justify-center">
                                   <Volume2 size={14} strokeWidth={2.5} />
                                 </div>
                                 <span className="uppercase tracking-wide text-[10px] font-black">Voice Mode</span>
@@ -7946,7 +7946,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               <button
                                 type="button"
                                 onClick={() => setIsVoiceMode(false)}
-                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 transition-all hover:rotate-90"
+                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary dark:text-primary transition-all hover:rotate-90"
                               >
                                 <X size={14} strokeWidth={3} />
                               </button>
@@ -7955,21 +7955,21 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           {isAudioConvertMode && (
                             <motion.div
                               initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                              className="flex items-center gap-2.5 px-3 py-1.5 bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-full text-xs font-bold border border-indigo-500/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-indigo-500/15 group shadow-lg shadow-indigo-500/10"
+                              className="flex items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
                             >
                               <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+                                <div className="w-5 h-5 rounded-lg bg-primary/20 flex items-center justify-center">
                                   <Headphones size={14} strokeWidth={2.5} />
                                 </div>
                                 <span className="uppercase tracking-wide text-[10px] font-black">Audio Convert</span>
                               </div>
-                              <button type="button" onClick={() => setIsVoiceSettingsOpen(true)} className="ml-1 w-5 h-5 rounded-lg flex items-center justify-center hover:bg-indigo-500/20 text-subtext hover:text-indigo-600 transition-colors" title="Voice Settings">
+                              <button type="button" onClick={() => setIsVoiceSettingsOpen(true)} className="ml-1 w-5 h-5 rounded-lg flex items-center justify-center hover:bg-primary/20 text-subtext hover:text-primary transition-colors" title="Voice Settings">
                                 <Sliders size={13} />
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setIsAudioConvertMode(false)}
-                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-indigo-500/20 text-rose-600 transition-all hover:rotate-90"
+                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary transition-all hover:rotate-90"
                               >
                                 <X size={14} strokeWidth={3} />
                               </button>
@@ -7991,20 +7991,20 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           {(activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') && (
                             <motion.div
                               initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                              className="flex items-center gap-2.5 px-3 py-1.5 bg-indigo-600/10 dark:bg-indigo-600/20 text-indigo-600 dark:text-indigo-300 rounded-full text-xs font-bold border border-indigo-500/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-indigo-600/15 group shadow-lg shadow-indigo-500/10"
+                              className="flex items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
                             >
                               <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                                <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
                                   <LegalLogo size={14} showText={false} color="white" />
                                 </div>
                                 <span
-                                  className="uppercase tracking-wide text-[10px] font-black truncate max-w-[120px] cursor-pointer hover:text-indigo-400 transition-colors"
+                                  className="uppercase tracking-wide text-[10px] font-black truncate max-w-[120px] cursor-pointer hover:text-primary transition-colors"
                                   onClick={() => setActiveLegalToolkit(true)}
                                   title="Open AI Legal Toolkit"
                                 >
                                   AI Legal
                                   {(selectedLegalTool || activeTool) && (
-                                    <span className="opacity-70 ml-1.5 font-bold border-l border-indigo-500/30 pl-1.5">
+                                    <span className="opacity-70 ml-1.5 font-bold border-l border-primary/30 pl-1.5">
                                       {(selectedLegalTool?.name || selectedLegalTool || activeTool)}
                                     </span>
                                   )}
@@ -8018,7 +8018,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                   setSelectedLegalTool(null);
                                   setActiveTool(null);
                                 }}
-                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 transition-all hover:rotate-90"
+                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary dark:text-primary transition-all hover:rotate-90"
                               >
                                 <X size={14} strokeWidth={3} />
                               </button>
@@ -8031,7 +8031,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               animate={{ opacity: 1, x: 0 }}
                               exit={{ opacity: 0, scale: 0.95 }}
                               onClick={() => setIsCasePanelOpen(!isCasePanelOpen)}
-                              className="flex items-center gap-2.5 px-4 py-1.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-full text-xs font-bold shadow-lg shadow-indigo-500/30 cursor-pointer hover:scale-105 active:scale-95 transition-all whitespace-nowrap shrink-0 group"
+                              className="flex items-center gap-2.5 px-4 py-1.5 bg-gradient-to-r from-primary to-primary-dark text-white rounded-full text-xs font-bold shadow-lg shadow-primary/30 cursor-pointer hover:scale-105 active:scale-95 transition-all whitespace-nowrap shrink-0 group"
                             >
                               <Briefcase size={14} className="group-hover:rotate-12 transition-transform" />
                               <div className="flex flex-col items-start leading-none gap-0.5">
@@ -8046,23 +8046,23 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               initial={{ opacity: 0, y: 10, scale: 0.95 }}
                               animate={{ opacity: 1, y: 0, scale: 1 }}
                               exit={{ opacity: 0, scale: 0.95 }}
-                              className="flex items-center gap-3 px-3.5 py-1.5 bg-amber-500/20 dark:bg-amber-500/25 text-amber-700 dark:text-amber-400 rounded-full text-xs font-bold border border-amber-400/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-amber-500/30 group shadow-[0_8px_32px_-4px_rgba(245,158,11,0.3)] relative overflow-hidden ring-1 ring-white/10"
+                              className="flex items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
                             >
                               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
 
                               <div className="flex items-center gap-2 relative z-10">
-                                <div className="w-5 h-5 rounded-lg bg-amber-500 dark:bg-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/40 text-white">
+                                <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
                                   <Wand2 size={14} strokeWidth={3} />
                                 </div>
                                 <span className="uppercase tracking-widest text-[9px] font-black hidden xs:inline">{t('imageEdit')}</span>
                               </div>
 
-                              <div className="w-[1px] h-3 bg-amber-500/40 mx-0.5 relative z-10" />
+                              <div className="w-[1px] h-3 bg-primary/40 mx-0.5 relative z-10" />
 
                               <button
                                 type="button"
                                 onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
-                                className="flex items-center gap-1.5 hover:text-amber-900 dark:hover:text-amber-200 transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
+                                className="flex items-center gap-1.5 hover:text-primary dark:hover:text-primary transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
                               >
                                 <span className="text-[10px] font-extrabold opacity-90">{imageAspectRatio}</span>
                                 <span className="text-[10px] font-black truncate max-w-[60px] sm:max-w-[100px] tracking-tight">
@@ -8074,7 +8074,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               <button
                                 type="button"
                                 onClick={() => setIsMagicEditing(false)}
-                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-amber-600 dark:text-amber-400 transition-all hover:rotate-90 relative z-10"
+                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
                               >
                                 <X size={14} strokeWidth={3} />
                               </button>
@@ -8083,10 +8083,10 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           {isFileAnalysis && (
                             <motion.div
                               initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                              className="flex items-center gap-2.5 px-3 py-1.5 bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-full text-xs font-bold border border-blue-500/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-blue-500/15 group shadow-lg shadow-blue-500/10"
+                              className="flex items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
                             >
                               <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                                <div className="w-5 h-5 rounded-lg bg-primary/20 flex items-center justify-center">
                                   <FileText size={14} strokeWidth={2.5} />
                                 </div>
                                 <span className="uppercase tracking-wide text-[10px] font-black">{t('analyzeDocument')}</span>
@@ -8094,7 +8094,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               <button
                                 type="button"
                                 onClick={() => setIsFileAnalysis(false)}
-                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition-all hover:rotate-90"
+                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary dark:text-primary transition-all hover:rotate-90"
                               >
                                 <X size={14} strokeWidth={3} />
                               </button>
@@ -8171,7 +8171,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           setIsLoading(false);
                           isSendingRef.current = false;
                         }}
-                        className="w-[36px] h-[36px] rounded-full bg-[#5555ff] text-white flex items-center justify-center shadow-lg hover:bg-[#4444ee] hover:scale-105 transition-all"
+                        className="w-[36px] h-[36px] rounded-full text-white flex items-center justify-center shadow-lg hover:scale-105 transition-all"
+                        style={{ backgroundColor: 'var(--color-primary)' }}
                       >
                         <div className="w-[12px] h-[12px] bg-white rounded-sm" />
                       </button>
@@ -8191,7 +8192,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             setIsSendTapped(true);
                             setTimeout(() => setIsSendTapped(false), 2000);
                           }}
-                          className={`w-[38px] h-[38px] rounded-full flex items-center justify-center transition-all shadow-lg relative overflow-visible z-20 bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-blue-500/30 hover:shadow-blue-500/50`}
+                          className={`w-[38px] h-[38px] rounded-full flex items-center justify-center transition-all shadow-lg relative overflow-visible z-20 text-white`}
+                          style={{ 
+                            background: `linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))`,
+                            boxShadow: isSendHovered ? `0 15px 30px -5px var(--color-primary-border)` : `0 10px 20px -5px var(--color-primary-border)`
+                          }}
                         >
                           <AnimatePresence>
                             {ripples.map(id => (

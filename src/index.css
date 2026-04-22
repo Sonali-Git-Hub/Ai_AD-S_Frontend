@@ -19,7 +19,10 @@
     --popover-foreground: 0 0% 0%;
 
     --primary: 240 100% 67%;
-    /* #5555ff */
+    --primary-light: 240 100% 82%;
+    --primary-dark: 240 100% 52%;
+    --primary-bg: 240 30% 96%;
+    --primary-border: 240 100% 67% / 0.15;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 0 0% 100%;
@@ -56,7 +59,10 @@
     --popover: 227 39% 9%;
     --popover-foreground: 210 15% 80%;
     --primary: 225 60% 55%;
-    /* Professional Soft Blue (Not Neon) */
+    --primary-light: 225 60% 70%;
+    --primary-dark: 225 60% 40%;
+    --primary-bg: 225 30% 12%;
+    --primary-border: 225 60% 55% / 0.15;
     --primary-foreground: 210 40% 98%;
     --secondary: 228 30% 18%;
     /* Subtle darker surface */
@@ -83,6 +89,10 @@
   --color-foreground: hsl(var(--foreground));
 
   --color-primary: hsl(var(--primary));
+  --color-primary-light: hsl(var(--primary-light));
+  --color-primary-dark: hsl(var(--primary-dark));
+  --color-primary-bg: hsl(var(--primary-bg));
+  --color-primary-border: hsl(var(--primary-border));
   --color-primary-foreground: hsl(var(--primary-foreground));
 
   --color-secondary: hsl(var(--secondary));
