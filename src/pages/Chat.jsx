@@ -2189,7 +2189,8 @@ const Chat = () => {
             content: `🎥 Video generated successfully!`, // Use content
             videoUrl: data.videoUrl,
             timestamp: new Date(),
-            projectId: currentProjectId
+            projectId: currentProjectId,
+            mode: MODES.VIDEO_GENERATION
           };
 
           setMessages(prev => prev.map(msg => msg.id === tempId ? videoMessage : msg));
@@ -2323,7 +2324,8 @@ const Chat = () => {
             imageUrl: finalUrl,
             suggestions: initialSuggestions,
             timestamp: new Date(),
-            projectId: currentProjectId
+            projectId: currentProjectId,
+            mode: MODES.IMAGE_GENERATION
           };
 
           // 1. Show the image IMMEDIATELY
@@ -2516,7 +2518,8 @@ const Chat = () => {
             imageUrl: finalUrl,
             suggestions: initialSuggestions,
             timestamp: new Date(),
-            projectId: currentProjectId
+            projectId: currentProjectId,
+            mode: MODES.IMAGE_EDIT
           };
 
           // 1. Show edited image IMMEDIATELY
@@ -6167,7 +6170,12 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 <>
                   {/* Reduced Top Spacer */}
                   <div className="h-2 w-full shrink-0" />
-                  {messages.map((msg, idx) => (
+                  {messages.map((msg, idx) => {
+                    const isMediaFeature = msg.mode === MODES.IMAGE_GENERATION || 
+                                         msg.mode === MODES.VIDEO_GENERATION || 
+                                         msg.mode === MODES.IMAGE_EDIT ||
+                                         !!msg.imageUrl || !!msg.videoUrl;
+                    return (
                     <div
                       key={msg.id}
                       className={`chatgpt-message-row group ${msg.role === 'user' ? 'user-row' : 'ai-row'}`}
@@ -6903,30 +6911,34 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                   })()}
                                   <div className="flex flex-col items-end gap-2 self-end sm:self-auto">
                                     <div className="flex items-center gap-3">
-                                      <button
-                                        onClick={() => {
-                                          // Language is auto-detected inside speakResponse / detectLanguageFromText
-                                          speakResponse(msg.content, null, msg.id, msg.attachments || [], true);
-                                        }}
-                                        className={`transition-colors p-1.5 rounded-lg ${speakingMessageId === msg.id
-                                          ? 'text-primary bg-primary/10'
-                                          : 'text-subtext hover:text-primary hover:bg-surface-hover'
-                                          }`}
-                                        title={speakingMessageId === msg.id && !isPaused ? "Pause" : "Speak"}
-                                      >
-                                        {speakingMessageId === msg.id && !isPaused ? (
-                                          <Pause className="w-3.5 h-3.5" />
-                                        ) : (
-                                          <Volume2 className="w-3.5 h-3.5" />
-                                        )}
-                                      </button>
-                                      <button
-                                        onClick={() => handleCopyMessage(msg.content)}
-                                        className="text-subtext hover:text-maintext transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
-                                        title="Copy"
-                                      >
-                                        <Copy className="w-3.5 h-3.5" />
-                                      </button>
+                                      {!isMediaFeature && (
+                                        <button
+                                          onClick={() => {
+                                            // Language is auto-detected inside speakResponse / detectLanguageFromText
+                                            speakResponse(msg.content, null, msg.id, msg.attachments || [], true);
+                                          }}
+                                          className={`transition-colors p-1.5 rounded-lg ${speakingMessageId === msg.id
+                                            ? 'text-primary bg-primary/10'
+                                            : 'text-subtext hover:text-primary hover:bg-surface-hover'
+                                            }`}
+                                          title={speakingMessageId === msg.id && !isPaused ? "Pause" : "Speak"}
+                                        >
+                                          {speakingMessageId === msg.id && !isPaused ? (
+                                            <Pause className="w-3.5 h-3.5" />
+                                          ) : (
+                                            <Volume2 className="w-3.5 h-3.5" />
+                                          )}
+                                        </button>
+                                      )}
+                                      {!isMediaFeature && (
+                                        <button
+                                          onClick={() => handleCopyMessage(msg.content)}
+                                          className="text-subtext hover:text-maintext transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
+                                          title="Copy"
+                                        >
+                                          <Copy className="w-3.5 h-3.5" />
+                                        </button>
+                                      )}
                                       <button
                                         onClick={() => handleThumbsUp(msg.id)}
                                         className={`transition-colors p-1.5 rounded-lg ${messageFeedback[msg.id]?.type === 'up'
@@ -6978,14 +6990,16 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                             <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
                                           </button>
                                         ) : (
-                                          <button
-                                            onClick={() => handlePdfAction('download', msg)}
-                                            className="text-red-500 hover:text-red-600 transition-all p-1.5 hover:bg-red-50/10 rounded-lg flex items-center gap-1 active:scale-95 group/pdf"
-                                            title="Download Ready-Made PDF Report"
-                                          >
-                                            <FileText className="w-3.5 h-3.5 group-hover/pdf:scale-110 transition-transform" />
-                                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
-                                          </button>
+                                          !isMediaFeature && (
+                                            <button
+                                              onClick={() => handlePdfAction('download', msg)}
+                                              className="text-red-500 hover:text-red-600 transition-all p-1.5 hover:bg-red-50/10 rounded-lg flex items-center gap-1 active:scale-95 group/pdf"
+                                              title="Download Ready-Made PDF Report"
+                                            >
+                                              <FileText className="w-3.5 h-3.5 group-hover/pdf:scale-110 transition-transform" />
+                                              <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                                            </button>
+                                          )
                                         )}
                                       </div>
                                     </div>
@@ -7060,7 +7074,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
 
                   {isLoading && !typingMessageId && (
                     <AisaTypingIndicator

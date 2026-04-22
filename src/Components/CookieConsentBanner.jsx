@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Cookie, X, Shield, BarChart3, Settings2, Lock } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { getUserData } from '../userStore/userData';
+
+import { AppRoute } from '../types';
 
 const COOKIE_CONSENT_KEY = 'aisa_cookie_consent';
 
@@ -15,21 +17,31 @@ const CookieConsentBanner = () => {
         functional: true,
     });
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Do not show the cookie banner on legal pages
+    // Using regex for robust matching (handles case-insensitivity and optional trailing slashes)
+    const isLegalPage = /^\/(privacy-policy|terms|cookie-policy|terms-of-service)(\/|$)/i.test(location.pathname);
 
     useEffect(() => {
-        // Only show for non-registered (not logged in) users
-        const user = getUserData();
-        if (user && user.token) return; // Logged-in users skip cookie banner
+        // If we are on a legal page, hide the banner regardless of consent
+        if (isLegalPage) {
+            setIsVisible(false);
+            return;
+        }
 
+        // Only show for non-registered (not logged in) users who haven't given consent
+        const user = getUserData();
+        const hasToken = user && user.token;
         const consent = localStorage.getItem(COOKIE_CONSENT_KEY);
-        if (!consent) {
-            // Show instantly to block landing page
+
+        if (!hasToken && !consent) {
             setIsVisible(true);
         }
-    }, []);
+    }, [location.pathname, isLegalPage]);
 
     useEffect(() => {
-        if (isVisible) {
+        if (isVisible && !isLegalPage) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = 'unset';
@@ -37,7 +49,7 @@ const CookieConsentBanner = () => {
         return () => {
             document.body.style.overflow = 'unset';
         };
-    }, [isVisible]);
+    }, [isVisible, isLegalPage]);
 
     const saveConsent = (data) => {
         localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify({
@@ -95,7 +107,7 @@ const CookieConsentBanner = () => {
         },
     ];
 
-    if (!isVisible) return null;
+    if (!isVisible || isLegalPage) return null;
 
     return (
         <>

@@ -446,7 +446,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                   className="h-9 w-auto relative z-10 transition-transform duration-500 group-hover/logo:scale-110 drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]"
                 />
               </div>
-              <span className="text-xl font-black text-maintext tracking-tighter group-hover/logo:text-primary transition-colors">AISA<sup className="text-[0.6em] ml-0.5">™</sup></span>
+              <span className="text-xl font-black tracking-tighter group-hover/logo:text-primary transition-colors" style={{ color: '#9333ea', fontFamily: '"Times New Roman", Times, serif' }}>AISA<sup className="text-[0.6em] ml-0.5">™</sup></span>
             </Link>
 
 

@@ -34,6 +34,21 @@ const PrivacyPolicyModal = ({ isOpen, onClose }) => {
 
     const sections = [
         {
+            icon: UserCheck,
+            title: t('pp_google_user_data_title'),
+            items: [t('pp_google_user_data_item')]
+        },
+        {
+            icon: Eye,
+            title: t('pp_data_usage_restrictions_title'),
+            items: [t('pp_data_usage_restrictions_item')]
+        },
+        {
+            icon: Shield,
+            title: t('pp_google_compliance_title'),
+            items: [t('pp_google_compliance_item')]
+        },
+        {
             icon: Database,
             title: t('pp_collect_title'),
             items: [

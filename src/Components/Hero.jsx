@@ -335,11 +335,12 @@ const Hero = () => {
             fontSize: window.innerWidth < 640 ? '0.6rem' : '0.75rem',
             fontWeight: 900,
             letterSpacing: '0.25em',
-            color: isDarkMode ? '#fff' : '#0F172A',
+            color: '#9333ea',
+            fontFamily: '"Times New Roman", Times, serif',
             marginTop: window.innerWidth < 640 ? '-2px' : '-5px',
             transition: 'all 0.3s'
           }} className="group-hover:text-primary">
-            AISA
+            AISA<sup style={{ fontSize: '0.6em', marginLeft: '2px' }}>TM</sup>
           </span>
         </motion.div>
 
