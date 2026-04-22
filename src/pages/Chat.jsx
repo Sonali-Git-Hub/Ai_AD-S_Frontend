@@ -4410,6 +4410,13 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
           responseParts = [cleanedText || "No response generated."];
         }
 
+        // --- DYNAMIC SUGGESTIONS PRE-FETCH ---
+        // We start fetching suggestions in the background while the typewriter runs
+        let dynamicSuggestionsPromise = null;
+        if (!aiResponseData?.suggestions?.length && !currentCase?.isLegalCase) {
+          dynamicSuggestionsPromise = generateFollowUpPrompts(userMsg.content, detectedMode || 'chat');
+        }
+
         // Process response parts and add to messages
         for (let i = 0; i < responseParts.length; i++) {
           const partContent = responseParts[i];
@@ -4487,14 +4494,31 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
           // Set Smart Suggestions for the last response part
           if (i === responseParts.length - 1) {
             const hasSmartSuggestions = aiResponseData?.suggestions && Array.isArray(aiResponseData.suggestions) && aiResponseData.suggestions.length > 0;
-            let finalSuggestions = hasSmartSuggestions ? aiResponseData.suggestions : [
-              "Can you show a real-world example?",
-              "How can I use this in my project?",
-              "What are the advantages of this approach?",
-              "Can you give a step-by-step guide?"
-            ];
+            let finalSuggestions = hasSmartSuggestions ? aiResponseData.suggestions : [];
 
-            // --- LEGAL CASE CRM OVERRIDE ---
+            // If we have a background promise for suggestions, wait for it now
+            if (!hasSmartSuggestions && dynamicSuggestionsPromise) {
+              try {
+                const dynamicPrompts = await dynamicSuggestionsPromise;
+                if (dynamicPrompts && dynamicPrompts.length > 0) {
+                  finalSuggestions = dynamicPrompts;
+                }
+              } catch (err) {
+                console.error("Background suggestions failed:", err);
+              }
+            }
+
+            // Fallback to static suggestions if still empty
+            if (finalSuggestions.length === 0 && !currentCase?.isLegalCase) {
+              finalSuggestions = [
+                "Can you show a real-world example?",
+                "How can I use this in my project?",
+                "What are the advantages of this approach?",
+                "Can you give a step-by-step guide?"
+              ];
+            }
+
+            // --- LEGAL CASE CRM OVERRIDE (Specific to Legal Folder context) ---
             if (currentCase && currentCase.isLegalCase) {
               const legalOptions = [
                 "Draft a Legal Notice",

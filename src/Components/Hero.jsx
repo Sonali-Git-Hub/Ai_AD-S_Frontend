@@ -500,7 +500,7 @@ const Hero = () => {
             fontWeight: 400
           }}
         >
-          {t('heroSubtitle')}
+          <span dangerouslySetInnerHTML={{ __html: t('heroSubtitle') }} />
         </motion.p>
 
         {/* Buttons */}
