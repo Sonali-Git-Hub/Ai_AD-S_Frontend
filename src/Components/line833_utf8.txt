@@ -1,1 +1,0 @@
-﻿                                                   Source: {grahamData.source} &middot; {grahamData.rag_used ? 'ðŸ“š Knowledge Base Retrieved' : 'ðŸ¤– AI Generated'}

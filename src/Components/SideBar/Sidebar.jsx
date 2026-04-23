@@ -98,6 +98,14 @@ const Sidebar = ({ isOpen, onClose }) => {
   const [currentShareId, setCurrentShareId] = useState('');
   const [sessionToShare, setSessionToShare] = useState(null);
   const [, setMode] = useRecoilState(activeModeData);
+  const [expandedHistoryGroups, setExpandedHistoryGroups] = useState({});
+
+  const toggleHistoryGroup = (groupKey) => {
+    setExpandedHistoryGroups(prev => ({
+      ...prev,
+      [groupKey]: !prev[groupKey]
+    }));
+  };
   const [, setLegalTool] = useRecoilState(activeLegalToolData);
 
   // Magic Glow State
@@ -429,19 +437,14 @@ const Sidebar = ({ isOpen, onClose }) => {
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
-        {/* Interactive Mouse Glow Tracker */}
-        <motion.div
-          className="absolute w-[300px] h-[300px] bg-primary/20 rounded-full blur-[100px] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700"
-          style={{ x: useSpring(glowX, { damping: 20, stiffness: 100 }), y: useSpring(glowY, { damping: 20, stiffness: 100 }), left: '-150px', top: '-150px' }}
-        />
 
         {/* Animated Background Glow Spots */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-30 dark:opacity-20 transition-opacity duration-500 group-hover:opacity-40">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-30 dark:opacity-20 transition-opacity duration-500">
           <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[40%] bg-primary/30 blur-[100px] animate-float-slow" />
           <div className="absolute bottom-[10%] right-[-10%] w-[50%] h-[50%] bg-primary/30 blur-[100px] animate-float-slow" style={{ animationDelay: '-5s' }} />
         </div>
         {/* Brand & Top Actions */}
-        <div className="p-6 pb-2 mb-2 flex items-center justify-between relative z-10">
+        <div className="px-6 pt-6 pb-0 mb-0 flex items-center justify-between relative z-10">
           <div className="flex items-center gap-3">
             <Link to="/" state={{ fromLogo: true }} className="group/logo flex items-center gap-2">
               <div className="relative">
@@ -533,7 +536,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
 
           {/* Search Bar */}
-          <div className="px-5 pt-4 relative z-10">
+          <div className="px-5 pt-2 relative z-10">
             <div className="relative group/search">
               <div className="absolute inset-0 bg-primary/10 blur-xl opacity-0 group-focus-within/search:opacity-100 transition-opacity pointer-events-none" />
               <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${theme === 'dark' ? 'text-subtext/60' : 'text-slate-500'} group-focus-within/search:text-primary group-focus-within/search:scale-110 transition-all duration-300`} />
@@ -552,13 +555,13 @@ const Sidebar = ({ isOpen, onClose }) => {
 
 
 
-          <div className="px-5 pt-4 pb-2 relative z-10">
+          <div className="px-5 pt-3 pb-2 relative z-10">
             <button
               onClick={handleNewChat}
               className="w-full relative overflow-hidden group p-[1px] rounded-[16px] transition-all duration-500 hover:scale-[1.03] active:scale-[0.97] bg-primary shadow-[0_8px_25px_rgba(139,92,246,0.4)] dark:shadow-[0_8px_25px_rgba(139,92,246,0.2)]"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary-light to-primary-dark animate-gradient bg-[length:300%_auto]" />
-              <div className="relative flex items-center justify-center gap-2 px-4 py-3 backdrop-blur-md rounded-[15px] group-hover:bg-transparent transition-all duration-500 bg-primary/10">
+              <div className="relative flex items-center justify-center gap-2 px-4 py-2 backdrop-blur-md rounded-[15px] group-hover:bg-transparent transition-all duration-500 bg-primary/10">
                 <Plus className="w-4 h-4 text-white group-hover:rotate-180 transition-transform duration-700" strokeWidth={3} />
                 <span className="font-black text-[13px] tracking-wide text-white">{t('newChat')}</span>
               </div>
@@ -740,104 +743,167 @@ const Sidebar = ({ isOpen, onClose }) => {
 
           {/* Chat Sessions List */}
           <div className="flex-1 overflow-y-auto px-5 space-y-1 relative z-10 custom-scrollbar mt-2">
-            {(token || (Array.isArray(sessions) && sessions.length > 0)) ? (
+            {token ? (
               <>
                 <div className="px-1 py-4 flex items-center justify-between">
                   <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] ${theme === 'dark' ? 'text-subtext/40' : 'text-slate-500'}`}>{t('activityLog')}</h3>
                   <div className={`h-[1px] flex-1 ml-4 ${theme === 'dark' ? 'bg-gradient-to-r from-subtext/10 to-transparent' : 'bg-gradient-to-r from-slate-300 to-transparent'}`}></div>
                 </div>
 
-                {(Array.isArray(sessions) ? sessions : [])
-                  .filter(session => session.title?.toLowerCase().includes(searchQuery.toLowerCase()))
-                  .map((session, idx) => (
-                    <motion.div
-                      key={session.sessionId}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: idx * 0.04, duration: 0.5 }}
-                      className="group relative"
-                    >
-                      {editingSessionId === session.sessionId ? (
-                        <div className="flex items-center gap-3 px-4 py-4 bg-white/5 rounded-2xl border border-primary/40 shadow-2xl">
-                          <input
-                            autoFocus
-                            type="text"
-                            value={newTitle}
-                            onChange={(e) => setNewTitle(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleRename(e, session.sessionId);
-                              if (e.key === 'Escape') setEditingSessionId(null);
-                            }}
-                            className="bg-transparent text-[14px] font-bold text-maintext w-full outline-none"
-                          />
-                          <button
-                            onClick={(e) => handleRename(e, session.sessionId)}
-                            className="text-primary hover:scale-125 transition-transform"
+                {(() => {
+                  const filteredSessions = (Array.isArray(sessions) ? sessions : [])
+                    .filter(session => session.title?.toLowerCase().includes(searchQuery.toLowerCase()));
+
+                  if (filteredSessions.length === 0) return null;
+
+                  const groupedSessions = filteredSessions.reduce((acc, session) => {
+                    const date = new Date(session.lastModified || session.updatedAt || session.createdAt || new Date());
+                    date.setHours(0, 0, 0, 0);
+                    
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    
+                    const yesterday = new Date(today);
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    
+                    let groupKey = '';
+                    if (date.getTime() === today.getTime()) {
+                      groupKey = 'Today';
+                    } else if (date.getTime() === yesterday.getTime()) {
+                      groupKey = 'Yesterday';
+                    } else {
+                      groupKey = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                    }
+                    
+                    if (!acc[groupKey]) acc[groupKey] = [];
+                    acc[groupKey].push(session);
+                    return acc;
+                  }, {});
+
+                  const sortedGroupKeys = Object.keys(groupedSessions).sort((a, b) => {
+                    if (a === 'Today') return -1;
+                    if (b === 'Today') return 1;
+                    if (a === 'Yesterday') return -1;
+                    if (b === 'Yesterday') return 1;
+                    return new Date(b) - new Date(a);
+                  });
+
+                  return sortedGroupKeys.map(groupKey => (
+                    <div key={groupKey} className="mb-3">
+                      {groupKey !== 'Today' && (
+                        <button 
+                          onClick={() => toggleHistoryGroup(groupKey)}
+                          className={`w-full flex items-center justify-between px-3 py-1.5 mb-1 group transition-colors rounded-lg ${theme === 'dark' ? 'text-subtext/60 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-900 hover:bg-black/5'}`}
+                        >
+                          <span className="text-[10px] font-black uppercase tracking-widest">{groupKey}</span>
+                          <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${expandedHistoryGroups[groupKey] ? 'rotate-180' : ''}`} />
+                        </button>
+                      )}
+                      
+                      <AnimatePresence initial={false}>
+                        {(groupKey === 'Today' || expandedHistoryGroups[groupKey]) && (
+                          <motion.div
+                            initial={groupKey === 'Today' ? false : { height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: "easeInOut" }}
+                            className="overflow-hidden flex flex-col"
                           >
-                            <Check className="w-5 h-5" strokeWidth={3} />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="sidebar-chat-container relative">
-                          <div
-                            onClick={() => {
-                              navigate(`/dashboard/chat/${session.sessionId}`);
-                              onClose();
-                            }}
-                            className={`sidebar-chat-item group/item transition-all duration-500 mb-1 mx-2 cursor-pointer
-                          ${currentSessionId === session.sessionId
-                                ? (theme === 'dark' ? 'bg-white/[0.08] text-white border border-white/10 shadow-2xl backdrop-blur-3xl' : 'bg-white text-primary border border-primary/20 shadow-lg shadow-primary/10 backdrop-blur-3xl ring-4 ring-primary/5')
-                                : (theme === 'dark' ? 'text-subtext/60 hover:bg-white/[0.04] hover:text-white border border-transparent' : 'text-slate-700 hover:bg-white hover:text-slate-900 border border-transparent hover:shadow-md hover:scale-[1.01]')
-                              }
-                        `}
-                          >
-                            {currentSessionId === session.sessionId && (
+                            {groupedSessions[groupKey].map((session, idx) => (
                               <motion.div
-                                layoutId="activeIndicator"
-                                className="absolute left-1 top-4 bottom-4 w-1 bg-primary rounded-full shadow-[0_0_10px_rgba(var(--primary),0.5)]"
-                              />
-                            )}
-                            <div className="sidebar-chat-title-group text-left flex-1 min-w-0">
-                              <div className="sidebar-chat-title mb-1 truncate">
-                                {highlightMatch(session.title || "Untitled Intelligence", searchQuery)}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <div className={`text-[10px] font-black uppercase tracking-widest flex items-center gap-2 ${theme === 'dark' ? 'text-subtext/40' : 'text-slate-500'}`}>
-                                  <span className={`w-1.5 h-1.5 rounded-full ${currentSessionId === session.sessionId ? 'bg-primary animate-pulse' : (theme === 'dark' ? 'bg-white/20' : 'bg-slate-300')}`}></span>
-                                  {new Date(session.lastModified).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                </div>
-                                {searchQuery && session.projectId && (
-                                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/10 border border-primary/20">
-                                    <Folder className="w-2.5 h-2.5 text-primary" />
-                                    <span className="text-[9px] font-bold text-primary truncate max-w-[60px]">
-                                      {highlightMatch(projects.find(p => p._id === session.projectId)?.name || "Personal", searchQuery)}
-                                    </span>
+                                key={session.sessionId}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: idx * 0.02, duration: 0.3 }}
+                                className="group relative"
+                              >
+                                {editingSessionId === session.sessionId ? (
+                                  <div className="flex items-center gap-3 px-4 py-4 bg-white/5 rounded-2xl border border-primary/40 shadow-2xl mx-2 mb-1">
+                                    <input
+                                      autoFocus
+                                      type="text"
+                                      value={newTitle}
+                                      onChange={(e) => setNewTitle(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleRename(e, session.sessionId);
+                                        if (e.key === 'Escape') setEditingSessionId(null);
+                                      }}
+                                      className="bg-transparent text-[14px] font-bold text-maintext w-full outline-none"
+                                    />
+                                    <button
+                                      onClick={(e) => handleRename(e, session.sessionId)}
+                                      className="text-primary hover:scale-125 transition-transform shrink-0"
+                                    >
+                                      <Check className="w-5 h-5" strokeWidth={3} />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="sidebar-chat-container relative">
+                                    <div
+                                      onClick={() => {
+                                        navigate(`/dashboard/chat/${session.sessionId}`);
+                                        onClose();
+                                      }}
+                                      className={`sidebar-chat-item group/item transition-all duration-500 mb-1 mx-2 cursor-pointer
+                                    ${currentSessionId === session.sessionId
+                                          ? (theme === 'dark' ? 'bg-white/[0.08] text-white border border-white/10 shadow-2xl backdrop-blur-3xl' : 'bg-white text-primary border border-primary/20 shadow-lg shadow-primary/10 backdrop-blur-3xl ring-4 ring-primary/5')
+                                          : (theme === 'dark' ? 'text-subtext/60 hover:bg-white/[0.04] hover:text-white border border-transparent' : 'text-slate-700 hover:bg-white hover:text-slate-900 border border-transparent hover:shadow-md hover:scale-[1.01]')
+                                        }
+                                  `}
+                                    >
+                                      {currentSessionId === session.sessionId && (
+                                        <motion.div
+                                          layoutId="activeIndicator"
+                                          className="absolute left-1 top-4 bottom-4 w-1 bg-primary rounded-full shadow-[0_0_10px_rgba(var(--primary),0.5)]"
+                                        />
+                                      )}
+                                      <div className="sidebar-chat-title-group text-left flex-1 min-w-0">
+                                        <div className="sidebar-chat-title mb-1 truncate">
+                                          {highlightMatch(session.title || "Untitled Intelligence", searchQuery)}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <div className={`text-[10px] font-black uppercase tracking-widest flex items-center gap-2 ${theme === 'dark' ? 'text-subtext/40' : 'text-slate-500'}`}>
+                                            <span className={`w-1.5 h-1.5 rounded-full ${currentSessionId === session.sessionId ? 'bg-primary animate-pulse' : (theme === 'dark' ? 'bg-white/20' : 'bg-slate-300')}`}></span>
+                                            {new Date(session.lastModified).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                          </div>
+                                          {searchQuery && session.projectId && (
+                                            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/10 border border-primary/20">
+                                              <Folder className="w-2.5 h-2.5 text-primary" />
+                                              <span className="text-[9px] font-bold text-primary truncate max-w-[60px]">
+                                                {highlightMatch(projects.find(p => p._id === session.projectId)?.name || "Personal", searchQuery)}
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      <div className="sidebar-chat-actions">
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); startRename(e, session); }}
+                                          className="sidebar-chat-action-btn"
+                                          title="Rename Chat"
+                                        >
+                                          <Edit2 />
+                                        </button>
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); handleDeleteSession(e, session.sessionId); }}
+                                          className="sidebar-chat-action-btn delete"
+                                          title="Delete Chat"
+                                        >
+                                          <X />
+                                        </button>
+                                      </div>
+                                    </div>
                                   </div>
                                 )}
-                              </div>
-                            </div>
-
-                            <div className="sidebar-chat-actions">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); startRename(e, session); }}
-                                className="sidebar-chat-action-btn"
-                                title="Rename Chat"
-                              >
-                                <Edit2 />
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleDeleteSession(e, session.sessionId); }}
-                                className="sidebar-chat-action-btn delete"
-                                title="Delete Chat"
-                              >
-                                <X />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </motion.div>
-                  ))}
+                              </motion.div>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  ));
+                })()}
 
                 {(!Array.isArray(sessions) || sessions.length === 0) && (
                   <div className="px-4 text-xs text-subtext italic">{t('noRecentChats') || 'No recent chats'}</div>
@@ -879,17 +945,17 @@ const Sidebar = ({ isOpen, onClose }) => {
           )}
 
 
-          <div className="flex flex-col gap-2.5 px-4 pt-5 border-t border-white/5">
-            <div className="flex gap-2">
+          <div className="flex flex-col gap-1 px-4 pt-4 border-t border-white/5">
+            <div className="flex gap-1.5">
               <button 
                 onClick={() => setShowTerms(true)}
-                className="flex-1 px-3 py-2.5 rounded-xl bg-primary text-[9px] font-bold uppercase tracking-wider text-white hover:opacity-90 transition-all shadow-lg shadow-primary/10 active:scale-95"
+                className="flex-1 px-3 py-1.5 rounded-xl bg-primary text-[9px] font-bold uppercase tracking-wider text-white hover:opacity-90 transition-all shadow-lg shadow-primary/10 active:scale-95"
               >
                 Terms
               </button>
               <button 
                 onClick={() => setShowPrivacy(true)}
-                className="flex-1 px-3 py-2.5 rounded-xl bg-primary text-[9px] font-bold uppercase tracking-wider text-white hover:opacity-90 transition-all shadow-lg shadow-primary/10 active:scale-95"
+                className="flex-1 px-3 py-1.5 rounded-xl bg-primary text-[9px] font-bold uppercase tracking-wider text-white hover:opacity-90 transition-all shadow-lg shadow-primary/10 active:scale-95"
               >
                 Privacy
               </button>
@@ -898,7 +964,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             {isAdmin && (
               <button
                 onClick={() => { navigate('/dashboard/admin'); onClose(); }}
-                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-white bg-primary hover:opacity-90 transition-all text-[10px] font-bold border border-white/10 shadow-lg shadow-primary/20 w-full active:scale-95"
+                className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-white bg-primary hover:opacity-90 transition-all text-[10px] font-bold border border-white/10 shadow-lg shadow-primary/20 w-full active:scale-95"
               >
                 <Shield className="w-3.5 h-3.5" />
                 <span>{t('admin')}</span>
@@ -907,7 +973,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
             <button 
               onClick={() => setIsAboutOpen(true)}
-              className="w-full px-3 py-3 rounded-xl bg-primary text-[10px] font-black uppercase tracking-[0.2em] text-white hover:opacity-90 transition-all flex items-center justify-center gap-2 group/about shadow-lg shadow-primary/10 active:scale-[0.98] mt-0.5"
+              className="w-full px-3 py-1.5 rounded-xl bg-primary text-[10px] font-black uppercase tracking-[0.2em] text-white hover:opacity-90 transition-all flex items-center justify-center gap-2 group/about shadow-lg shadow-primary/10 active:scale-[0.98]"
             >
               <Sparkles className="w-3.5 h-3.5 group-hover/about:rotate-12 transition-transform" />
               About AISA
