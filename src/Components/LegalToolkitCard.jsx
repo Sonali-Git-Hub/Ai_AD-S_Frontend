@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  FileText, Shield, FileCheck, Scale, Binary, 
-  Mail, PenTool, AlertTriangle, Edit3, Brain, 
+import {
+  FileText, Shield, FileCheck, Scale, Binary,
+  Mail, PenTool, AlertTriangle, Edit3, Brain,
   Library, Clock, CheckCircle, ArrowLeftRight, Lock, Sparkles,
   MessageCircle, ArrowRight, X, ChevronDown, Zap, Maximize2, Minimize2, Gavel, Briefcase
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import LegalLogo from './LegalLogo';
+import LegalLogo from '../landingpage/LegalLogo';
 
 const SECTIONS = {
   CORE: ['legal_draft_maker', 'legal_contract_analyzer', 'legal_case_predictor'],
@@ -16,11 +16,11 @@ const SECTIONS = {
 };
 
 export const PREMIUM_TOOLS = [
-  { 
-    id: 'legal_my_case', 
-    name: 'My Case', 
-    icon: Briefcase, 
-    desc: 'Personal Legal CRM & Case Intelligence System', 
+  {
+    id: 'legal_my_case',
+    name: 'My Case',
+    icon: Briefcase,
+    desc: 'Personal Legal CRM & Case Intelligence System',
     price: '₹1299',
     workflow: [
       'Select or create a legal case folder.',
@@ -29,11 +29,11 @@ export const PREMIUM_TOOLS = [
       'Access specialized case tools (Drafting, Analysis, etc.)'
     ]
   },
-  { 
-    id: 'legal_draft_maker', 
-    name: 'Draft Maker', 
-    icon: FileText, 
-    desc: 'Notice, Affidavit, FIR & Legal Agreements Architect', 
+  {
+    id: 'legal_draft_maker',
+    name: 'Draft Maker',
+    icon: FileText,
+    desc: 'Notice, Affidavit, FIR & Legal Agreements Architect',
     price: '₹599',
     workflow: [
       'Describe the document you need (FIR, Notice, Agreement, etc.).',
@@ -41,11 +41,11 @@ export const PREMIUM_TOOLS = [
       'AI generates a litigation-ready professional draft.'
     ]
   },
-  { 
-    id: 'legal_contract_analyzer', 
-    name: 'Contract Analyzer', 
-    icon: FileCheck, 
-    desc: 'Risk Scanning & Protective Clause Rewriter', 
+  {
+    id: 'legal_contract_analyzer',
+    name: 'Contract Analyzer',
+    icon: FileCheck,
+    desc: 'Risk Scanning & Protective Clause Rewriter',
     price: '₹799',
     workflow: [
       'Upload or paste your contract/agreement text.',
@@ -53,11 +53,11 @@ export const PREMIUM_TOOLS = [
       'Get professional rewrites to protect your interests.'
     ]
   },
-  { 
-    id: 'legal_case_predictor', 
-    name: 'Case Predictor', 
-    icon: LegalLogo, 
-    desc: 'Outcome Probability & Case Strength Analyst', 
+  {
+    id: 'legal_case_predictor',
+    name: 'Case Predictor',
+    icon: LegalLogo,
+    desc: 'Outcome Probability & Case Strength Analyst',
     price: '₹999',
     workflow: [
       'Input case facts, evidence, and legal claims.',
@@ -65,11 +65,11 @@ export const PREMIUM_TOOLS = [
       'Receive success probability and predicted judicial verdict.'
     ]
   },
-  { 
-    id: 'legal_strategy_engine', 
-    name: 'Strategy Engine', 
-    icon: Brain, 
-    desc: 'Tactical Planning & Case Journey Timeline', 
+  {
+    id: 'legal_strategy_engine',
+    name: 'Strategy Engine',
+    icon: Brain,
+    desc: 'Tactical Planning & Case Journey Timeline',
     price: '₹899',
     workflow: [
       'Brief the AI on your current legal dispute.',
@@ -77,11 +77,11 @@ export const PREMIUM_TOOLS = [
       'Get aggressive, balanced, and safe tactical options.'
     ]
   },
-  { 
-    id: 'legal_evidence_checker', 
-    name: 'Evidence Analyst', 
-    icon: Binary, 
-    desc: 'Professional Strengths, Admissibility & Risk Reporting', 
+  {
+    id: 'legal_evidence_checker',
+    name: 'Evidence Analyst',
+    icon: Binary,
+    desc: 'Professional Strengths, Admissibility & Risk Reporting',
     price: '₹599',
     workflow: [
       'Submit a list or description of your evidence.',
@@ -89,11 +89,11 @@ export const PREMIUM_TOOLS = [
       'AI identifies gaps and suggests ways to strengthen proof.'
     ]
   },
-  { 
-    id: 'legal_research_assistant', 
-    name: 'Research Assistant', 
-    icon: Library, 
-    desc: 'Statutory Interpetation & Case Law CITATIONS', 
+  {
+    id: 'legal_research_assistant',
+    name: 'Research Assistant',
+    icon: Library,
+    desc: 'Statutory Interpetation & Case Law CITATIONS',
     price: '₹699',
     workflow: [
       'Ask any complex legal query or situational question.',
@@ -101,11 +101,11 @@ export const PREMIUM_TOOLS = [
       'Receive citations and strategic summaries for court use.'
     ]
   },
-  { 
-    id: 'legal_argument_builder', 
-    name: 'Argument Builder', 
-    icon: Gavel, 
-    desc: 'Structure Courtroom-Ready Arguments & Cross-Exams', 
+  {
+    id: 'legal_argument_builder',
+    name: 'Argument Builder',
+    icon: Gavel,
+    desc: 'Structure Courtroom-Ready Arguments & Cross-Exams',
     price: '₹999',
     workflow: [
       'Provide brief facts and the core dispute.',
@@ -147,7 +147,7 @@ const ToolCard = ({ tool, isPrimary = false, size = 'md', onClose, onSelect }) =
                 <h6 className="text-white font-black text-[12px] uppercase tracking-widest flex items-center gap-2">
                   <Zap className="w-4 h-4 fill-white" /> Workflow
                 </h6>
-                <button 
+                <button
                   onClick={(e) => { e.stopPropagation(); setShowWorkflow(false); }}
                   className="p-1 hover:bg-white/20 rounded-lg transition-colors"
                 >
@@ -167,7 +167,7 @@ const ToolCard = ({ tool, isPrimary = false, size = 'md', onClose, onSelect }) =
                 ))}
               </div>
             </div>
-            <button 
+            <button
               onClick={(e) => { e.stopPropagation(); if (isUnlocked) onClose(); onSelect(tool, isUnlocked); }}
               className="w-full py-2 bg-white text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-50 transition-colors shadow-lg"
             >
@@ -193,7 +193,7 @@ const ToolCard = ({ tool, isPrimary = false, size = 'md', onClose, onSelect }) =
               <span className={`text-[6px] font-black uppercase tracking-[0.1em] transition-colors ${isUnlocked ? 'text-indigo-600' : 'text-slate-400'}`}>सत्यमेव जयते</span>
             )}
           </div>
-          <button 
+          <button
             onClick={(e) => { e.stopPropagation(); setShowWorkflow(true); }}
             className="p-2 transition-all text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg"
             title="How it works"
@@ -201,7 +201,7 @@ const ToolCard = ({ tool, isPrimary = false, size = 'md', onClose, onSelect }) =
             <Sparkles className="w-4 h-4" />
           </button>
         </div>
-        
+
         <div className="space-y-1">
           <div className="flex items-center justify-between">
             <h5 className="font-bold text-slate-900 group-hover:text-indigo-700 transition-colors tracking-tight text-[14px]">
@@ -235,14 +235,14 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
   const [isMaximized, setIsMaximized] = useState(false);
 
   useEffect(() => {
-    const handleEsc = (e) => { 
+    const handleEsc = (e) => {
       if (e.key === 'Escape') {
         if (isMaximized) {
           setIsMaximized(false);
         } else {
-          onClose(); 
+          onClose();
         }
-      } 
+      }
     };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
@@ -253,7 +253,7 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
   }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen) { document.body.style.overflow = 'hidden'; } 
+    if (isOpen) { document.body.style.overflow = 'hidden'; }
     else { document.body.style.overflow = 'unset'; }
     return () => { document.body.style.overflow = 'unset'; };
   }, [isOpen]);
@@ -277,7 +277,7 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
           className="fixed inset-0 z-[110000] flex items-center justify-center p-4 sm:p-6"
         >
           {/* Backdrop */}
-          <div 
+          <div
             onClick={onClose}
             className="absolute inset-0 bg-black/60 backdrop-blur-[12px]"
           />
@@ -291,7 +291,7 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.94, opacity: 0, transition: { duration: 0.12 } }}
               layout
-              transition={{ 
+              transition={{
                 layout: { duration: 0.25, ease: 'easeInOut' },
                 opacity: { duration: 0.18 },
                 scale: { duration: 0.22 }
@@ -306,7 +306,7 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
               <div className="absolute inset-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-[40px] z-0 rounded-[28px]" />
 
               {/* Header */}
-              <div 
+              <div
                 className="relative z-[8] flex items-center justify-between px-8 sm:px-10 py-5 border-b border-black/[0.05] dark:border-white/[0.05] bg-white/40 dark:bg-zinc-800/40 backdrop-blur-md cursor-default select-none"
                 onDoubleClick={() => setIsMaximized(!isMaximized)}
               >
@@ -330,7 +330,7 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
                 </div>
 
                 <div className="flex items-center gap-2.5">
-                  <motion.button 
+                  <motion.button
                     whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                     onClick={() => setIsMaximized(!isMaximized)}
                     title={isMaximized ? 'Restore' : 'Maximize'}
@@ -338,7 +338,7 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
                   >
                     {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                   </motion.button>
-                  <motion.button 
+                  <motion.button
                     whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}
                     onClick={onClose}
                     title="Close"
@@ -351,7 +351,7 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
 
               {/* Body */}
               <div className="relative z-[8] flex-1 overflow-y-auto px-8 sm:px-11 py-7 custom-scrollbar">
-                
+
                 {!isMaximized && (
                   <div className="mb-6">
                     <p className="text-[13px] text-slate-500 dark:text-slate-400 font-semibold">Advanced AI-driven professional suites for legal mastery.</p>
@@ -362,9 +362,9 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  onClick={() => { 
-                    onSelect({ id: 'legal_chat', name: 'General Legal Chat' }, true); 
-                    onClose(); 
+                  onClick={() => {
+                    onSelect({ id: 'legal_chat', name: 'General Legal Chat' }, true);
+                    onClose();
                     toast.success('Legal Chat Activated ⚖️', {
                       style: { background: '#F8FAFC', color: '#1E293B', fontWeight: 'bold' }
                     });
@@ -385,14 +385,14 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
                   />
                   <div className="absolute top-0 right-0 w-60 h-60 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl animate-pulse" />
                   <div className="absolute bottom-0 left-0 w-48 h-48 bg-violet-400/25 rounded-full -ml-10 -mb-10 blur-2xl" />
-                  
+
                   <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
-                    
+
                     <div className="flex items-center gap-3.5 sm:gap-6 w-full sm:w-auto">
                       <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/20 backdrop-blur-xl rounded-[1rem] sm:rounded-[1.4rem] flex items-center justify-center border border-white/25 shadow-xl group-hover:scale-105 transition-transform duration-500 shrink-0">
                         <MessageCircle className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                       </div>
-                      
+
                       <div className="flex-1 text-left space-y-0.5 sm:space-y-1.5">
                         <div className="flex items-center justify-start gap-1.5 sm:gap-2">
                           <span className="px-2 sm:px-2.5 py-0.5 sm:py-1 bg-white/15 backdrop-blur-md border border-white/20 rounded-full text-[7px] sm:text-[8px] font-black text-white uppercase tracking-widest">Basic</span>

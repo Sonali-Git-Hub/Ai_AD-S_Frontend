@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { Routes, Route, Outlet, Navigate, BrowserRouter, useNavigate, useLocation, Link } from 'react-router-dom';
 
-import Landing from './pages/Landing';
+import Landing from './landingpage/Landing';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import VerificationForm from './pages/VerificationForm';
 import Chat from './pages/Chat';
 import Sidebar from './Components/SideBar/Sidebar.jsx';
 import AiPersonalAssistantDashboard from './pages/AiPersonalAssistant/Dashboard';
-import Pricing from './pages/Pricing';
+import Pricing from './landingpage/Pricing';
 import SocialAgentPage from './pages/SocialAgentPage.jsx';
 import CreditUpsellPopup from './Components/CreditUpsellPopup';
 import SharedChat from './pages/SharedChat';
@@ -25,9 +25,9 @@ import NotificationCenter from './Components/NotificationBar/NotificationCenter.
 
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
-import PrivacyPolicy from './pages/PrivacyPolicy.jsx';
-import TermsOfService from './pages/TermsOfService.jsx';
-import CookiePolicy from './pages/CookiePolicy.jsx';
+import PrivacyPolicy from './landingpage/PrivacyPolicy.jsx';
+import TermsOfService from './landingpage/TermsOfService.jsx';
+import CookiePolicy from './landingpage/CookiePolicy.jsx';
 import { AnimatePresence, motion } from 'framer-motion';
 import { lazy, Suspense } from 'react';
 import ProtectedRoute from './Components/ProtectedRoute/ProtectedRoute.jsx';
@@ -37,7 +37,7 @@ import ProtectedRoute from './Components/ProtectedRoute/ProtectedRoute.jsx';
 // import VendorOverview from './pages/Vendor/VendorOverview';
 // ...
 
-const SecurityAndGuidelines = lazy(() => import('./pages/SecurityAndGuidelines'));
+const SecurityAndGuidelines = lazy(() => import('./landingpage/SecurityAndGuidelines'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 
 // ------------------------------
@@ -198,7 +198,7 @@ const PlaceholderPage = ({ title }) => (
 // ------------------------------
 
 import { Toaster } from 'react-hot-toast';
-import CookieConsentBanner from './Components/CookieConsentBanner';
+import CookieConsentBanner from './landingpage/CookieConsentBanner';
 
 const NavigateProvider = () => {
   const [tglState] = useRecoilState(toggleState);

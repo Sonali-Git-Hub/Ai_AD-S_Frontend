@@ -4,8 +4,8 @@ import { ArrowRight, CircleUser, Zap, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getUserData } from '../userStore/userData';
 import { useLanguage } from '../context/LanguageContext';
-import ThemeToggle from './ThemeToggle';
-import ProfileSettingsDropdown from './ProfileSettingsDropdown/ProfileSettingsDropdown';
+import ThemeToggle from '../Components/ThemeToggle';
+import ProfileSettingsDropdown from '../Components/ProfileSettingsDropdown/ProfileSettingsDropdown';
 import { useTheme } from '../context/ThemeContext';
 import { logo } from '../constants';
 import apiService from '../services/apiService';
@@ -44,7 +44,7 @@ const NeuralCanvas = ({ mousePos, isDarkMode }) => {
           baseY: centerY + Math.sin(angle) * radius,
           z: Math.random() * 2, // depth factor
           size: 1 + Math.random() * 3,
-          color: isDarkMode 
+          color: isDarkMode
             ? (Math.random() > 0.5 ? '#60a5fa' : '#e879f9')
             : (Math.random() > 0.5 ? '#4f46e5' : '#7c3aed'),
         });
@@ -78,7 +78,7 @@ const NeuralCanvas = ({ mousePos, isDarkMode }) => {
   useEffect(() => {
     const { nodes, particles, W, H } = stateRef.current;
     if (!nodes) return;
-    
+
     // Smoothly update positions based on mousePos
     const dx = (mousePos.x - W / 2) / W;
     const dy = (mousePos.y - H / 2) / H;
@@ -145,7 +145,7 @@ const NeuralCanvas = ({ mousePos, isDarkMode }) => {
         ctx.fill();
         ctx.shadowBlur = 0;
       });
-      
+
       /* ── Digital Dust ── */
       particles.forEach(p => {
         ctx.fillStyle = isDarkMode ? `rgba(255, 255, 255, ${p.alpha * 0.5})` : `rgba(79, 70, 229, ${p.alpha * 0.2})`;
@@ -155,7 +155,7 @@ const NeuralCanvas = ({ mousePos, isDarkMode }) => {
       });
 
       // NOTE: Original Core Orb and Rings removed to favor the global 3D FlowingAICreature
-      
+
       stateRef.current.tick++;
       animRef.current = requestAnimationFrame(render);
     };
@@ -178,7 +178,7 @@ const Hero = () => {
   const { theme } = useTheme();
   const heroRef = useRef(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  
+
   // Transition State
   const [introStage, setIntroStage] = useState('animating'); // waiting, animating, finished
 
@@ -190,7 +190,7 @@ const Hero = () => {
   }, []);
 
   const headingText = "The Future of Conversational AI";
-  
+
   // Variants for the character generation
   const container = {
     hidden: { opacity: 0 },
@@ -233,23 +233,23 @@ const Hero = () => {
       }}
     >
       {/* ── Background: Deep Gradient Space ── */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={introStage === 'finished' ? { opacity: introStage === 'finished' ? 1 : 0 } : { opacity: 0 }}
         transition={{ duration: 2 }}
         style={{
           position: 'absolute', inset: 0,
-          background: isDarkMode 
+          background: isDarkMode
             ? 'radial-gradient(ellipse 120% 80% at 50% 50%, #0c0018 0%, #04040e 100%)'
             : 'radial-gradient(ellipse 120% 80% at 50% 50%, #E0E7FF 0%, #EEF2FF 100%)',
           zIndex: 0
-        }} 
+        }}
       />
 
 
-      
+
       {/* Immersive Glowing Lights */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={introStage === 'finished' ? { opacity: 1 } : { opacity: 0 }}
         transition={{ duration: 2.5 }}
@@ -257,7 +257,7 @@ const Hero = () => {
       >
         <div style={{
           position: 'absolute', top: '5%', left: '10%', width: '45vw', height: '45vw',
-          background: isDarkMode 
+          background: isDarkMode
             ? 'radial-gradient(circle, rgba(59,130,246,0.18) 0%, transparent 75%)'
             : 'radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 75%)',
           filter: 'blur(80px)', animation: 'float-glow 8s infinite alternate'
@@ -270,11 +270,11 @@ const Hero = () => {
           filter: 'blur(100px)', animation: 'float-glow 10s infinite alternate-reverse'
         }} />
       </motion.div>
- 
+
       {/* ── 3D Neural Scene ── */}
-      <motion.div 
-        initial={{ opacity: 0 }} 
-        animate={introStage === 'finished' ? { opacity: 1 } : { opacity: 0 }} 
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={introStage === 'finished' ? { opacity: 1 } : { opacity: 0 }}
         transition={{ duration: 1.5 }}
         style={{ position: 'absolute', inset: 0, zIndex: 1 }}
       >
@@ -282,7 +282,7 @@ const Hero = () => {
       </motion.div>
 
       {/* Central Immersive Glow Ring */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={introStage === 'finished' ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
         transition={{ duration: 2 }}
@@ -290,7 +290,7 @@ const Hero = () => {
           position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
           width: '500px', height: '500px', borderRadius: '50%',
           border: isDarkMode ? '1px solid rgba(99, 102, 241, 0.1)' : '1px solid rgba(99, 102, 241, 0.2)',
-          background: isDarkMode 
+          background: isDarkMode
             ? 'radial-gradient(circle, rgba(99, 102, 241, 0.05) 0%, transparent 70%)'
             : 'radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%)',
           zIndex: 1, pointerEvents: 'none',
@@ -305,7 +305,7 @@ const Hero = () => {
         transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
         style={{
           position: 'absolute', top: 0, left: 0, right: 0,
-          padding: window.innerWidth < 640 ? '0.2rem 1rem' : '0.4rem 2.5rem', 
+          padding: window.innerWidth < 640 ? '0.2rem 1rem' : '0.4rem 2.5rem',
           zIndex: 50,
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           background: 'transparent',
@@ -313,22 +313,22 @@ const Hero = () => {
           borderBottom: 'none'
         }}
       >
-        <motion.div 
-          whileHover={{ scale: 1.05 }} 
-          style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center' }} 
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
           onClick={() => navigate('/')}
           className="group"
         >
           <div className="relative">
             <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full scale-150 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <img src={logo} alt="AISA™" 
-              style={{ 
-                height: window.innerWidth < 640 ? '32px' : '50px', 
+            <img src={logo} alt="AISA™"
+              style={{
+                height: window.innerWidth < 640 ? '32px' : '50px',
                 width: 'auto',
                 objectFit: 'cover',
                 objectPosition: 'top'
-              }} 
-              className="drop-shadow-[0_0_40px_rgba(99,102,241,0.6)] relative transition-all duration-500" 
+              }}
+              className="drop-shadow-[0_0_40px_rgba(99,102,241,0.6)] relative transition-all duration-500"
             />
           </div>
           <span style={{
@@ -344,44 +344,44 @@ const Hero = () => {
           </span>
         </motion.div>
 
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: window.innerWidth < 640 ? '0.8rem' : '1.5rem' 
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: window.innerWidth < 640 ? '0.8rem' : '1.5rem'
         }}>
           <ThemeToggle />
           {user ? (
             <div style={{ position: 'relative' }}>
-              <motion.button 
+              <motion.button
                 whileHover={{ scale: 1.1 }}
-                onClick={() => setIsProfileOpen(!isProfileOpen)} 
+                onClick={() => setIsProfileOpen(!isProfileOpen)}
                 style={{ background: 'none', border: 'none', color: isDarkMode ? '#fff' : '#0F172A', cursor: 'pointer' }}
               >
                 <CircleUser size={30} color={isDarkMode ? "#a78bfa" : "#6366f1"} />
               </motion.button>
               <AnimatePresence>
                 {isProfileOpen && (
-                  <ProfileSettingsDropdown 
-                    onClose={() => setIsProfileOpen(false)} 
+                  <ProfileSettingsDropdown
+                    onClose={() => setIsProfileOpen(false)}
                     onLogout={async () => {
                       if (window.resetSocialOnboarding) {
                         window.resetSocialOnboarding();
                       }
                       localStorage.clear();
                       window.location.reload();
-                    }} 
+                    }}
                   />
                 )}
               </AnimatePresence>
             </div>
           ) : (
-            <motion.button 
+            <motion.button
               whileHover={{ scale: 1.05, background: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(99, 102, 241, 0.1)' }}
-              onClick={() => navigate('/login')} 
-              style={{ 
-                background: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(99, 102, 241, 0.05)', 
-                border: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(99, 102, 241, 0.2)', 
-                color: isDarkMode ? '#fff' : '#0F172A', padding: '10px 24px', 
+              onClick={() => navigate('/login')}
+              style={{
+                background: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(99, 102, 241, 0.05)',
+                border: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(99, 102, 241, 0.2)',
+                color: isDarkMode ? '#fff' : '#0F172A', padding: '10px 24px',
                 borderRadius: '12px', cursor: 'pointer', fontWeight: 600,
                 transition: '0.3s'
               }}
@@ -449,15 +449,15 @@ const Hero = () => {
                 </motion.span>
               ))}
             </div>
-            
+
             {/* Line 2: Conversational AI (with Gradient across words) */}
             <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', flexWrap: 'wrap', gap: '0.25em' }}>
               {t('heroTitleLine2').split(" ").map((word, index, arr) => (
                 <motion.span
                   key={`l2-${index}`}
                   variants={child}
-                  style={{ 
-                    display: 'inline-block', 
+                  style={{
+                    display: 'inline-block',
                     // Gradient technique: each word shows a slice of a larger gradient
                     background: 'linear-gradient(90deg, #60a5fa 0%, #a78bfa 50%, #e879f9 100%)',
                     backgroundSize: `${arr.length * 100}% 100%`,
@@ -470,9 +470,9 @@ const Hero = () => {
                   {word}
                 </motion.span>
               ))}
-              
+
               {/* Immersive Glow behind second line */}
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={introStage === 'finished' ? { opacity: 0.4 } : { opacity: 0 }}
                 transition={{ duration: 1.5 }}
@@ -480,7 +480,7 @@ const Hero = () => {
                   position: 'absolute', inset: '-10% -20%',
                   background: 'linear-gradient(90deg, #3b82f6 0%, #d946ef 100%)',
                   filter: 'blur(50px)', zIndex: -1, pointerEvents: 'none'
-                }} 
+                }}
               />
             </div>
           </motion.h1>
@@ -497,7 +497,8 @@ const Hero = () => {
             maxWidth: '720px',
             margin: '0 auto 2.2rem',
             lineHeight: 1.7,
-            fontWeight: 400
+            fontWeight: 400,
+            fontFamily: "'Times New Roman', Times, serif"
           }}
         >
           <span dangerouslySetInnerHTML={{ __html: t('heroSubtitle') }} />
@@ -508,10 +509,10 @@ const Hero = () => {
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={introStage === 'finished' ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 20, scale: 0.95 }}
           transition={{ duration: 1, delay: 0.3 }}
-          style={{ 
-            display: 'flex', 
-            gap: '1rem', 
-            justifyContent: 'center', 
+          style={{
+            display: 'flex',
+            gap: '1rem',
+            justifyContent: 'center',
             flexWrap: 'wrap',
             flexDirection: window.innerWidth < 640 ? 'column' : 'row',
             alignItems: 'center',
@@ -534,7 +535,7 @@ const Hero = () => {
           >
             {user ? t('existingUser') : t('exploreAisa')} <ArrowRight size={22} />
           </motion.button>
-          
+
           <motion.button
             whileHover={{ scale: 1.05, background: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(99, 102, 241, 0.12)' }}
             whileTap={{ scale: 0.98 }}
@@ -562,15 +563,15 @@ const Hero = () => {
         transition={{ duration: 1 }}
         style={{ position: 'absolute', bottom: '2.5rem', left: '50%', transform: 'translateX(-50%)' }}
       >
-        <div style={{ 
-          width: '32px', height: '54px', borderRadius: '16px', 
-          border: isDarkMode ? '1.5px solid rgba(255,255,255,0.4)' : '1.5px solid rgba(15,23,42,0.4)', 
-          display: 'flex', justifyContent: 'center', padding: '8px' 
+        <div style={{
+          width: '32px', height: '54px', borderRadius: '16px',
+          border: isDarkMode ? '1.5px solid rgba(255,255,255,0.4)' : '1.5px solid rgba(15,23,42,0.4)',
+          display: 'flex', justifyContent: 'center', padding: '8px'
         }}>
-          <motion.div 
+          <motion.div
             animate={{ y: [0, 15, 0], opacity: [1, 0, 1] }}
             transition={{ duration: 2.5, repeat: Infinity }}
-            style={{ width: '4px', height: '10px', background: isDarkMode ? '#fff' : '#0F172A', borderRadius: '2px' }} 
+            style={{ width: '4px', height: '10px', background: isDarkMode ? '#fff' : '#0F172A', borderRadius: '2px' }}
           />
         </div>
       </motion.div>

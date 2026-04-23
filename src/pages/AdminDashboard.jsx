@@ -483,6 +483,7 @@ const UsersTab = () => {
 // PLANS TAB
 // ═══════════════════════════════
 const PlansTab = () => {
+    const { t } = useLanguage();
     const [plans, setPlans] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
@@ -692,6 +693,7 @@ const PlansTab = () => {
 // PACKAGES TAB
 // ═══════════════════════════════
 const PackagesTab = () => {
+    const { t } = useLanguage();
     const [packages, setPackages] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
@@ -837,6 +839,7 @@ const PackagesTab = () => {
 // SETTINGS TAB
 // ═══════════════════════════════
 const SettingsTab = () => {
+    const { t } = useLanguage();
     const [settings, setSettings] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -930,6 +933,7 @@ const SettingsTab = () => {
 // LEGAL PAGES TAB
 // ═══════════════════════════════
 const LegalPagesTab = () => {
+    const { t } = useLanguage();
     const [selectedPage, setSelectedPage] = useState('cookie-policy');
     const [pageData, setPageData] = useState({ sections: [] });
     const [loading, setLoading] = useState(true);
@@ -1267,6 +1271,7 @@ const LegalPagesTab = () => {
 // KNOWLEDGE BASE TAB
 // ═══════════════════════════════
 const KnowledgeBaseTab = () => {
+    const { t } = useLanguage();
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     const handleUploadSuccess = () => {

@@ -273,7 +273,7 @@ export const LanguageProvider = ({ children }) => {
             // About AISA Modal
             nextGenPlatform: "Next-Gen AI Platform",
             aiSmartAssistant: "Artificial Intelligence Smart Assistant",
-            aboutIntro: "A seamless, intelligent workspace designed to think, talk, and create with you. Stop juggling apps—experience conversation, creation, analysis, and deep search in one fluid interface.",
+            aboutIntro: "Experience the next generation of intelligent assistance. Use AISA to <b>generate and transform visuals</b>, perform <b>deep research</b>, and master <b>code debugging</b>. Seamlessly manage <b>document analysis</b>, access <b>professional AI legal tools</b>, <b>convert text to audio</b>, and unlock <b>financial insights</b> or <b>automated marketing workflows</b>—all through one secure interface.",
             coreIntelligence: "Core Intelligence",
             coreIntelligenceDesc: "AISA™ is powered by advanced AI systems enabling context-aware conversations, multi-modal understanding, intelligent document processing, and real-time visual & voice interaction.",
             whyAisaExists: "Why AISA™ Exists",
@@ -940,7 +940,7 @@ export const LanguageProvider = ({ children }) => {
             // About AISA Modal
             nextGenPlatform: "नेक्स्ट-जेन एआई प्लेटफॉर्म",
             aiSmartAssistant: "आर्टिफिशियल इंटेलिजेंस स्मार्ट असिस्टेंट",
-            aboutIntro: "एक सहज, बुद्धिमान कार्यक्षेत्र जिसे आपके साथ सोचने, बात करने और बनाने के लिए डिज़ाइन किया गया है। ऐप्स के बीच जुगलिंग बंद करें—एक ही इंटरफ़ेस में बातचीत, निर्माण, विश्लेषण और गहरी खोज का अनुभव करें।",
+            aboutIntro: "Experience the next generation of intelligent assistance. Use AISA to <b>generate and transform visuals</b>, perform <b>deep research</b>, and master <b>code debugging</b>. Seamlessly manage <b>document analysis</b>, access <b>professional AI legal tools</b>, <b>convert text to audio</b>, and unlock <b>financial insights</b> or <b>automated marketing workflows</b>—all through one secure interface.",
             coreIntelligence: "कोर इंटेलिजेंस",
             coreIntelligenceDesc: "AISA™ उन्नत एआई सिस्टम द्वारा संचालित है जो संदर्भ-जागरूक बातचीत, मल्टी-मोडल समझ, बुद्धिमान दस्तावेज़ प्रसंस्करण और वास्तविक समय दृश्य और आवाज बातचीत को सक्षम बनाता है।",
             whyAisaExists: "AISA™ क्यों मौजूद है",

@@ -5,9 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Settings, Bell, Sparkles, LayoutGrid,
     Database, Shield, Lock, User,
-    X, ChevronDown, Play, Globe,
-    LogOut, Monitor, Mic, Check,
-    ChevronLeft, ChevronRight, Trash2, ShieldCheck, Mail, Volume2, Plus,
+    X, ChevronDown, Play, Globe, Camera,
+    LogOut, Monitor, MonitorOff, Mic, Check, HelpCircle,
+    ChevronLeft, ChevronRight, Trash2, ShieldCheck, Mail, Volume2, Plus, MessageSquare, Send, Clock,
     Palette, Type, RefreshCcw, Languages, Crown, History, Calendar, CreditCard, Download, Search, Zap
 } from 'lucide-react';
 import { jsPDF } from "jspdf";
@@ -23,7 +23,7 @@ import CustomSelect from '../CustomSelect/CustomSelect';
 import MultiScheduleReminder from './MultiScheduleReminder';
 import Cropper from 'react-easy-crop';
 import { getCroppedImgBlob } from '../../utils/canvasUtils';
-import { logo } from '../../constants';
+import { logo, faqs } from '../../constants';
 
 const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
     const fileInputRef = useRef(null);
@@ -50,6 +50,8 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
     const [expandedDate, setExpandedDate] = useState(null);
+    const [sessions, setSessions] = useState([]);
+    const [loadingSessions, setLoadingSessions] = useState(false);
 
     // Reset Password State
     const [showResetModal, setShowResetModal] = useState(false);
@@ -60,6 +62,18 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
     const [newPassword, setNewPassword] = useState('');
     const [resetLoading, setResetLoading] = useState(false);
     const [planName, setPlanName] = useState("Free Plan");
+    const [isFaqOpen, setIsFaqOpen] = useState(false); // Legacy for now, though we'll embed
+
+    // FAQ States
+    const [selectedFaqCategory, setSelectedFaqCategory] = useState(0);
+    const [faqSearchQuery, setFaqSearchQuery] = useState('');
+    const [faqSubTab, setFaqSubTab] = useState('faq');
+    const [openFaqIndex, setOpenFaqIndex] = useState(null);
+    const [issueType, setIssueType] = useState('General Inquiry');
+    const [isIssueDropdownOpen, setIsIssueDropdownOpen] = useState(false);
+    const [issueText, setIssueText] = useState('');
+    const [isSending, setIsSending] = useState(false);
+    const [sendStatus, setSendStatus] = useState(null);
 
     // Cropping State
     const [imageToCrop, setImageToCrop] = useState(null);
@@ -119,7 +133,38 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         if (activeTab === 'credits' && user?.token) {
             fetchCreditLogs();
         }
+        if (activeTab === 'account' && user?.token) {
+            fetchSessions();
+        }
     }, [activeTab, user?.token]);
+
+    const fetchSessions = async () => {
+        try {
+            setLoadingSessions(true);
+            const res = await axios.get(apis.sessions, {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            setSessions(res.data);
+        } catch (error) {
+            console.error("Failed to fetch sessions", error);
+        } finally {
+            setLoadingSessions(false);
+        }
+    };
+
+    const handleRevokeSession = async (sessionId) => {
+        try {
+            const res = await axios.delete(`${apis.sessions}/${sessionId}`, {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            if (res.data.success) {
+                toast.success("Session revoked successfully");
+                fetchSessions();
+            }
+        } catch (error) {
+            toast.error("Failed to revoke session");
+        }
+    };
 
     const fetchCreditLogs = async () => {
         try {
@@ -404,12 +449,36 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         }
     };
 
+    const handleSupportSubmit = async () => {
+        if (!issueText.trim()) return;
+        setIsSending(true);
+        setSendStatus(null);
+        try {
+            await axios.post(apis.submitTicket, {
+                email: user.email,
+                type: issueType,
+                message: issueText
+            }, {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            setSendStatus('success');
+            toast.success("Support ticket submitted!");
+            setIssueText('');
+            setTimeout(() => setSendStatus(null), 3000);
+        } catch (error) {
+            toast.error(error.response?.data?.error || "Submission failed");
+        } finally {
+            setIsSending(false);
+        }
+    };
+
     const tabs = [
         { id: 'personalization', label: t('personalization'), icon: Sparkles },
         { id: 'notifications', label: t('notifications'), icon: Bell },
         { id: 'data', label: t('dataControls'), icon: Database },
         { id: 'account', label: t('account'), icon: User },
-        { id: 'connectors', label: 'Connectors', icon: LayoutGrid }
+        { id: 'connectors', label: 'Connectors', icon: LayoutGrid },
+        { id: 'help', label: t('helpFaq') || 'Help & FAQ', icon: HelpCircle }
     ];
 
     const renderSettingRow = (label, description, control) => (
@@ -584,98 +653,173 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                         </div>
                     </div>
                 );
-            case 'security':
-                return (
-                    <div className="space-y-4">
-                        <h4 className="text-xs font-bold text-gray-400 uppercase">Active Sessions</h4>
-                        <div className="space-y-3">
-                            {accounts.map(acc => (
-                                <div key={acc.email} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-zinc-800 rounded-xl border border-border">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs">{(acc.name || 'U').charAt(0).toUpperCase()}</div>
-                                        <div>
-                                            <p className="text-sm font-bold">{acc.name || 'User'}</p>
-                                            <p className="text-[10px] text-subtext">{acc.email}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        {acc.email !== user?.email && <button onClick={() => handleSwitchAccount(acc)} className="px-3 py-1 bg-primary/10 text-primary text-[10px] rounded-lg font-bold">{t('switchLabel')}</button>}
-                                        <button onClick={() => handleAccountLogout(acc.email)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><LogOut size={14} /></button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                );
             case 'account':
                 return (
-                    <div className="space-y-4">
-                        <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-gray-100 dark:border-white/5">
-                            <div 
-                                className="relative group/avatar cursor-pointer shrink-0"
-                                onClick={() => fileInputRef.current?.click()}
-                            >
-                                <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full opacity-0 group-hover/avatar:opacity-100 transition-opacity" />
-                                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden relative z-10 transition-transform group-hover/avatar:scale-105">
-                                    {user.avatar ? (
-                                        <img src={user.avatar} alt={user.name} className="w-full h-full object-cover group-hover/avatar:opacity-50 transition-opacity" />
-                                    ) : (
-                                        <span className="text-3xl font-bold group-hover/avatar:opacity-50 transition-opacity">{(user.name || 'U').charAt(0).toUpperCase()}</span>
-                                    )}
+                    <div className="space-y-6">
+                        {/* Profile Header Card */}
+                        <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent rounded-3xl p-6 border border-primary/20 shadow-xl shadow-primary/5 relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <Shield className="w-32 h-32 rotate-12" />
+                            </div>
+                            <div className="flex flex-col sm:flex-row items-center gap-6 relative z-10">
+                                <div 
+                                    className="relative group/avatar cursor-pointer shrink-0"
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full opacity-0 group-hover/avatar:opacity-100 transition-opacity" />
+                                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white dark:bg-zinc-900 flex items-center justify-center text-primary border border-primary/20 shadow-lg overflow-hidden relative z-10 transition-transform group-hover/avatar:scale-105">
+                                        {user.avatar ? (
+                                            <img src={user.avatar} alt={user.name} className="w-full h-full object-cover group-hover/avatar:opacity-50 transition-opacity" />
+                                        ) : (
+                                            <span className="text-3xl font-black group-hover/avatar:opacity-50 transition-opacity">{(user.name || 'U').charAt(0).toUpperCase()}</span>
+                                        )}
+                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+                                            <Camera className="w-6 h-6 text-white" />
+                                        </div>
+                                    </div>
+                                    <button 
+                                        className="absolute -bottom-2 -right-2 w-8 h-8 bg-primary text-white rounded-lg flex items-center justify-center shadow-lg border-2 border-white dark:border-[#161B2E] z-20 hover:scale-110 transition-transform"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            fileInputRef.current?.click();
+                                        }}
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                    </button>
+                                </div>
+
+                                <div className="flex-1 text-center sm:text-left space-y-3">
+                                    <div>
+                                        <h3 className="text-2xl font-black text-gray-800 dark:text-white capitalize flex items-center justify-center sm:justify-start gap-3">
+                                            {user.name}
+                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${
+                                                planName.toLowerCase().includes('pro') ? 'bg-amber-500/20 text-amber-600 border-amber-500/30' : 
+                                                planName.toLowerCase().includes('founder') ? 'bg-purple-500/20 text-purple-600 border-purple-500/30' : 
+                                                'bg-primary/20 text-primary border-primary/30'
+                                            }`}>
+                                                {planName.replace(' Plan', '')}
+                                            </span>
+                                        </h3>
+                                        <p className="text-sm font-bold text-gray-500/80 mt-1">{user.email}</p>
+                                    </div>
+                                    
+                                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                                        <button 
+                                            onClick={() => window._aisa_sync_profile && window._aisa_sync_profile()}
+                                            className="inline-flex items-center gap-2 px-4 py-2 bg-white/50 dark:bg-white/5 hover:bg-primary/10 hover:text-primary rounded-xl transition-all group/sync border border-border/50 text-[10px] font-black uppercase tracking-widest"
+                                        >
+                                            <RefreshCcw className="w-3.5 h-3.5 group-hover/sync:rotate-180 transition-transform duration-500" />
+                                            {t('syncFromSocial')}
+                                        </button>
+
+                                        {user.avatar && (
+                                            <button 
+                                                onClick={handleRemoveAvatar}
+                                                className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/5 hover:bg-red-500/10 text-red-500 rounded-xl transition-all group/remove border border-red-500/20 text-[10px] font-black uppercase tracking-widest"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5 group-hover/remove:scale-110 transition-transform" />
+                                                {t('removePhoto')}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Security & Sessions Section */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-500 border border-green-500/20">
+                                        <ShieldCheck className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-base font-black text-gray-800 dark:text-white leading-tight">Account Security</h4>
+                                        <p className="text-[11px] text-subtext font-bold uppercase tracking-wider">Active Login Sessions</p>
+                                    </div>
                                 </div>
                                 <button 
-                                    className="absolute -bottom-2 -right-2 w-8 h-8 bg-primary text-white rounded-lg flex items-center justify-center shadow-lg border-2 border-white dark:border-[#161B2E] z-20"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        fileInputRef.current?.click();
-                                    }}
+                                    onClick={fetchSessions}
+                                    className={`p-2 hover:bg-primary/10 rounded-xl transition-all text-subtext hover:text-primary group ${loadingSessions ? 'animate-spin' : ''}`}
+                                    title="Refresh Sessions"
                                 >
-                                    <Plus className="w-4 h-4" />
+                                    <RefreshCcw className="w-4 h-4 group-active:rotate-180 transition-transform" />
                                 </button>
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    className="hidden"
-                                    accept="image/*"
-                                    onChange={handleImageUpload}
-                                />
                             </div>
 
-                            <div className="flex-1 text-center sm:text-left space-y-3">
-                                <div>
-                                    <h3 className="text-xl font-black text-gray-800 dark:text-white capitalize flex items-center justify-center sm:justify-start gap-2">
-                                        {user.name}
-                                        <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
-                                            planName.toLowerCase().includes('pro') ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 
-                                            planName.toLowerCase().includes('founder') ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' : 
-                                            'bg-primary/10 text-primary border-primary/20'
-                                        }`}>
-                                            {planName.replace(' Plan', '')}
-                                        </span>
-                                    </h3>
-                                    <p className="text-sm font-bold text-gray-500 max-w-[200px] truncate sm:max-w-none">{user.email}</p>
-                                </div>
-                                    <button 
-                                    onClick={() => window._aisa_sync_profile && window._aisa_sync_profile()}
-                                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl transition-all group/sync"
-                                >
-                                    <RefreshCcw className="w-3.5 h-3.5 group-hover/sync:rotate-180 transition-transform duration-500" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">{t('syncFromSocial')}</span>
-                                </button>
-
-                                {user.avatar && (
-                                    <button 
-                                        onClick={handleRemoveAvatar}
-                                        className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl transition-all group/remove"
+                            <div className="grid grid-cols-1 gap-3">
+                                {sessions.length > 0 ? sessions.map(session => (
+                                    <motion.div 
+                                        layout
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        key={session._id} 
+                                        className={`group relative p-5 rounded-3xl border transition-all flex items-center justify-between gap-4 ${
+                                            session.isCurrent 
+                                                ? 'bg-primary/[0.03] border-primary/30 shadow-lg shadow-primary/5 ring-1 ring-primary/10' 
+                                                : 'bg-white/40 dark:bg-white/[0.02] border-border/50 hover:border-primary/20 hover:bg-white/60 dark:hover:bg-white/[0.04]'
+                                        }`}
                                     >
-                                        <Trash2 className="w-3.5 h-3.5 group-hover/remove:scale-110 transition-transform" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest">{t('removePhoto')}</span>
-                                    </button>
+                                        {session.isCurrent && (
+                                            <div className="absolute -top-2.5 right-6 px-3 py-1 bg-primary text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg shadow-primary/20 z-10">
+                                                Active Now
+                                            </div>
+                                        )}
+
+                                        <div className="flex items-center gap-4 min-w-0">
+                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-inner transition-transform group-hover:scale-110 ${
+                                                session.device === 'Mobile' ? 'bg-orange-500/10 text-orange-500' : 'bg-blue-500/10 text-blue-500'
+                                            }`}>
+                                                {session.device === 'Mobile' ? <Monitor className="w-6 h-6 rotate-180" /> : <Monitor className="w-6 h-6" />}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2 mb-0.5">
+                                                    <span className="text-sm font-black text-gray-800 dark:text-white truncate">{session.os} • {session.browser}</span>
+                                                </div>
+                                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                                    <p className="text-[11px] text-subtext font-bold flex items-center gap-1.5">
+                                                        <Globe className="w-3 h-3 text-primary/60" />
+                                                        {session.ip}
+                                                    </p>
+                                                    <p className="text-[11px] text-subtext font-bold flex items-center gap-1.5">
+                                                        <Clock className="w-3 h-3 text-primary/60" />
+                                                        {new Date(session.lastActive).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        {!session.isCurrent ? (
+                                            <button 
+                                                onClick={() => handleRevokeSession(session._id)}
+                                                className="px-4 py-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 shadow-sm hover:shadow-red-500/20"
+                                            >
+                                                End Session
+                                            </button>
+                                        ) : (
+                                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0 animate-pulse">
+                                                <ShieldCheck className="w-4 h-4" />
+                                            </div>
+                                        )}
+                                    </motion.div>
+                                )) : (
+                                    <div className="py-12 text-center border-2 border-dashed border-border/40 rounded-3xl bg-gray-50/50 dark:bg-white/[0.01]">
+                                        <div className="w-12 h-12 bg-gray-100 dark:bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-3 text-subtext/40">
+                                            <MonitorOff className="w-6 h-6" />
+                                        </div>
+                                        <p className="text-xs font-bold text-subtext/60 uppercase tracking-widest">No other active sessions</p>
+                                    </div>
                                 )}
                             </div>
                         </div>
 
-                        {allSettings.filter(s => s.tab === 'account').map(s => <div key={s.id}>{s.component}</div>)}
+                        {/* Existing Account Settings */}
+                        <div className="pt-4 space-y-4">
+                            {allSettings.filter(s => s.tab === 'account').map(s => <div key={s.id} className="p-1">{s.component}</div>)}
+                        </div>
+
+                        {/* Password Section */}
+
                         <div className="py-4 flex justify-between items-center text-sm border-b border-gray-100 dark:border-white/5">
                             <div>
                                 <p className="font-bold">{t('password')}</p>
@@ -755,6 +899,148 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                 )}
                             </div>
                         </div>
+                    </div>
+                );
+            case 'help':
+                return (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        {/* Help Sub-Tabs */}
+                        <div className="flex items-center gap-2 p-1 bg-gray-50 dark:bg-white/5 rounded-2xl w-fit">
+                            <button
+                                onClick={() => setFaqSubTab('faq')}
+                                className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${faqSubTab === 'faq' ? 'bg-white dark:bg-white/10 text-primary shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                            >
+                                Browse FAQ
+                            </button>
+                            <button
+                                onClick={() => setFaqSubTab('ticket')}
+                                className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${faqSubTab === 'ticket' ? 'bg-white dark:bg-white/10 text-primary shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                            >
+                                Submit Ticket
+                            </button>
+                        </div>
+
+                        {faqSubTab === 'faq' ? (
+                            <div className="space-y-6">
+                                {/* Search */}
+                                <div className="relative group">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary transition-colors" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search for questions..."
+                                        value={faqSearchQuery}
+                                        onChange={(e) => setFaqSearchQuery(e.target.value)}
+                                        className="w-full bg-gray-50 dark:bg-white/5 border border-border rounded-xl pl-11 pr-4 py-3 text-sm outline-none focus:border-primary/50 transition-all font-medium"
+                                    />
+                                </div>
+
+                                {/* Categories Pills */}
+                                <div className="flex flex-wrap gap-2">
+                                    {faqs.map((cat, idx) => (
+                                        <button
+                                            key={cat.category}
+                                            onClick={() => { setSelectedFaqCategory(idx); setOpenFaqIndex(null); }}
+                                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${selectedFaqCategory === idx ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20' : 'bg-white dark:bg-white/5 border-border text-gray-500 hover:border-primary/30'}`}
+                                        >
+                                            {cat.category}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Questions List */}
+                                <div className="space-y-3 mt-6">
+                                    {faqs[selectedFaqCategory].questions
+                                        .filter(q => !faqSearchQuery || q.question.toLowerCase().includes(faqSearchQuery.toLowerCase()))
+                                        .map((faq, index) => (
+                                            <div key={index} className="bg-gray-50/50 dark:bg-white/5 rounded-2xl border border-transparent hover:border-primary/10 transition-all">
+                                                <button
+                                                    onClick={() => setOpenFaqIndex(openFaqIndex === index ? null : index)}
+                                                    className="w-full flex justify-between items-center p-5 text-left group"
+                                                >
+                                                    <span className="font-bold text-gray-700 dark:text-gray-200 text-sm group-hover:text-primary transition-colors">{faq.question}</span>
+                                                    <div className={`p-1.5 rounded-lg transition-all ${openFaqIndex === index ? 'bg-primary/10 text-primary rotate-180' : 'text-gray-400'}`}>
+                                                        <ChevronDown className="w-4 h-4" />
+                                                    </div>
+                                                </button>
+                                                <AnimatePresence>
+                                                    {openFaqIndex === index && (
+                                                        <motion.div
+                                                            initial={{ height: 0, opacity: 0 }}
+                                                            animate={{ height: "auto", opacity: 1 }}
+                                                            exit={{ height: 0, opacity: 0 }}
+                                                            className="overflow-hidden"
+                                                        >
+                                                            <div className="px-5 pb-5 text-gray-500 dark:text-gray-400 text-xs leading-relaxed font-medium border-t border-gray-100/50 dark:border-white/5 pt-4">
+                                                                {faq.answer}
+                                                            </div>
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
+                                            </div>
+                                        ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="max-w-xl space-y-6 pt-4">
+                                <div className="space-y-2">
+                                    <h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight">Submit a Request</h3>
+                                    <p className="text-sm text-subtext italic">Our team typically responds within 24 hours.</p>
+                                </div>
+
+                                <div className="space-y-5">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Issue Category</label>
+                                        <div className="relative">
+                                            <button
+                                                onClick={() => setIsIssueDropdownOpen(!isIssueDropdownOpen)}
+                                                className="w-full p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-border flex items-center justify-between text-sm font-bold text-gray-700 dark:text-gray-200"
+                                            >
+                                                {issueType}
+                                                <ChevronDown size={16} className={`transition-transform ${isIssueDropdownOpen ? 'rotate-180' : ''}`} />
+                                            </button>
+                                            <AnimatePresence>
+                                                {isIssueDropdownOpen && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: 5 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        className="absolute top-full left-0 right-0 mt-2 z-50 bg-white dark:bg-[#1E2438] border border-border rounded-xl shadow-2xl overflow-hidden py-2"
+                                                    >
+                                                        {['General Inquiry', 'Technical Support', 'Billing', 'Feature Request', 'Bug Report'].map(opt => (
+                                                            <button
+                                                                key={opt}
+                                                                onClick={() => { setIssueType(opt); setIsIssueDropdownOpen(false); }}
+                                                                className={`w-full text-left px-5 py-3 text-xs font-bold transition-all ${issueType === opt ? 'bg-primary/10 text-primary' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                                                            >
+                                                                {opt}
+                                                            </button>
+                                                        ))}
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Your Message</label>
+                                        <textarea
+                                            placeholder="How can we help you?"
+                                            value={issueText}
+                                            onChange={(e) => setIssueText(e.target.value)}
+                                            className="w-full p-4 bg-gray-50 dark:bg-white/5 border border-border rounded-xl min-h-[150px] text-sm font-medium outline-none focus:border-primary/50 transition-all resize-none"
+                                        />
+                                    </div>
+
+                                    <button
+                                        onClick={handleSupportSubmit}
+                                        disabled={isSending || !issueText.trim()}
+                                        className="w-full flex items-center justify-center gap-3 bg-primary text-white py-4 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:opacity-90 transition-all disabled:opacity-50"
+                                    >
+                                        {isSending ? <RefreshCcw size={18} className="animate-spin" /> : <Send size={18} />}
+                                        {isSending ? 'Sending...' : 'Submit Request'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 );
             case 'connectors':

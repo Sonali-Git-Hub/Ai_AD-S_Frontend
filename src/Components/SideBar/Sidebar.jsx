@@ -42,14 +42,17 @@ import { clearUser, getUserData, setUserData, toggleState, userData, sessionsDat
 import axios from 'axios';
 import { useLanguage } from '../../context/LanguageContext';
 import { useTheme } from '../../context/ThemeContext';
-import { Sun, Moon } from 'lucide-react';
+
 
 import { chatStorageService } from '../../services/chatStorageService';
 import { useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import ProfileSettingsDropdown from '../ProfileSettingsDropdown/ProfileSettingsDropdown.jsx';
 import { getSubscriptionDetails } from '../../services/pricingService';
-import FaqModal from '../FaqModal.jsx';
+import TermsOfServiceModal from '../../landingpage/PolicyModals/TermsOfServiceModal';
+import PrivacyPolicyModal from '../../landingpage/PolicyModals/PrivacyPolicyModal';
+import AboutAISA from '../../landingpage/AboutAISA.jsx';
+
 import apiService from '../../services/apiService';
 import DeleteConfirmModal from '../DeleteConfirmModal.jsx';
 
@@ -65,8 +68,11 @@ const Sidebar = ({ isOpen, onClose }) => {
   const [currentUserData, setUserRecoil] = useRecoilState(userData);
   const user = currentUserData.user || getUserData() || { name: "Loading...", email: "...", role: "user" };
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
 
-  const [isFaqOpen, setIsFaqOpen] = useState(false);
+
   const [sessions, setSessions] = useRecoilState(sessionsData);
   const { sessionId } = useParams();
   const [currentSessionId, setCurrentSessionId] = useState(sessionId || 'new');
@@ -231,13 +237,13 @@ const Sidebar = ({ isOpen, onClose }) => {
       });
       setProjects(prev => [newCase, ...prev]);
       setCurrentProjectId(newCase._id);
-      
+
       if (isLegal) {
         setIsCasesExpanded(true);
       } else {
         setIsProjectsExpanded(true);
       }
-      
+
       setIsCreatingProject(false);
       setIsCreatingCase(false);
       setNewProjectName('');
@@ -598,32 +604,32 @@ const Sidebar = ({ isOpen, onClose }) => {
                     {/* Regular Projects List */}
                     {projects.filter(p => !p.isLegalCase).map((p, idx) => (
                       <div key={p._id} className="relative group/proj flex items-center mx-3">
-                         {editingProjectId === p._id ? (
-                            <div className="flex w-full items-center gap-2 px-3 py-1.5">
-                               <input
-                                 autoFocus
-                                 value={renameProjectName}
-                                 onChange={e => setRenameProjectName(e.target.value)}
-                                 onKeyDown={e => { if (e.key === 'Enter') handleRenameProject(e, p._id); if (e.key === 'Escape') setEditingProjectId(null); }}
-                                 className="flex-1 min-w-0 bg-transparent border-b border-primary outline-none text-xs text-maintext py-1"
-                               />
-                               <button onClick={(e) => handleRenameProject(e, p._id)} className="text-primary"><Check className="w-4 h-4" /></button>
+                        {editingProjectId === p._id ? (
+                          <div className="flex w-full items-center gap-2 px-3 py-1.5">
+                            <input
+                              autoFocus
+                              value={renameProjectName}
+                              onChange={e => setRenameProjectName(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') handleRenameProject(e, p._id); if (e.key === 'Escape') setEditingProjectId(null); }}
+                              className="flex-1 min-w-0 bg-transparent border-b border-primary outline-none text-xs text-maintext py-1"
+                            />
+                            <button onClick={(e) => handleRenameProject(e, p._id)} className="text-primary"><Check className="w-4 h-4" /></button>
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleSwitchProject(p._id)}
+                              className={`flex-1 flex items-center min-w-0 gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${currentProjectId === p._id ? 'bg-primary/10 text-primary font-bold' : 'text-subtext hover:bg-white/10 hover:text-maintext'}`}
+                            >
+                              <Folder className="w-4 h-4 shrink-0" />
+                              <span className="truncate text-[13px]">{p.name}</span>
+                            </button>
+                            <div className="absolute right-1 opacity-0 group-hover/proj:opacity-100 flex items-center gap-0.5">
+                              <button onClick={(e) => { e.stopPropagation(); setEditingProjectId(p._id); setRenameProjectName(p.name); }} className="p-1 hover:text-primary"><Edit2 className="w-3 h-3" /></button>
+                              <button onClick={(e) => handleDeleteProject(e, p._id)} className="p-1 hover:text-red-500"><Trash2 className="w-3 h-3" /></button>
                             </div>
-                         ) : (
-                            <>
-                              <button
-                                onClick={() => handleSwitchProject(p._id)}
-                                className={`flex-1 flex items-center min-w-0 gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${currentProjectId === p._id ? 'bg-primary/10 text-primary font-bold' : 'text-subtext hover:bg-white/10 hover:text-maintext'}`}
-                              >
-                                <Folder className="w-4 h-4 shrink-0" />
-                                <span className="truncate text-[13px]">{p.name}</span>
-                              </button>
-                              <div className="absolute right-1 opacity-0 group-hover/proj:opacity-100 flex items-center gap-0.5">
-                                <button onClick={(e) => { e.stopPropagation(); setEditingProjectId(p._id); setRenameProjectName(p.name); }} className="p-1 hover:text-primary"><Edit2 className="w-3 h-3" /></button>
-                                <button onClick={(e) => handleDeleteProject(e, p._id)} className="p-1 hover:text-red-500"><Trash2 className="w-3 h-3" /></button>
-                              </div>
-                            </>
-                         )}
+                          </>
+                        )}
                       </div>
                     ))}
 
@@ -773,18 +779,18 @@ const Sidebar = ({ isOpen, onClose }) => {
                         </div>
                       ) : (
                         <div className="sidebar-chat-container relative">
-                        <div
-                          onClick={() => {
-                            navigate(`/dashboard/chat/${session.sessionId}`);
-                            onClose();
-                          }}
-                          className={`sidebar-chat-item group/item transition-all duration-500 mb-1 mx-2 cursor-pointer
+                          <div
+                            onClick={() => {
+                              navigate(`/dashboard/chat/${session.sessionId}`);
+                              onClose();
+                            }}
+                            className={`sidebar-chat-item group/item transition-all duration-500 mb-1 mx-2 cursor-pointer
                           ${currentSessionId === session.sessionId
-                              ? (theme === 'dark' ? 'bg-white/[0.08] text-white border border-white/10 shadow-2xl backdrop-blur-3xl' : 'bg-white text-primary border border-primary/20 shadow-lg shadow-primary/10 backdrop-blur-3xl ring-4 ring-primary/5')
-                              : (theme === 'dark' ? 'text-subtext/60 hover:bg-white/[0.04] hover:text-white border border-transparent' : 'text-slate-700 hover:bg-white hover:text-slate-900 border border-transparent hover:shadow-md hover:scale-[1.01]')
-                            }
+                                ? (theme === 'dark' ? 'bg-white/[0.08] text-white border border-white/10 shadow-2xl backdrop-blur-3xl' : 'bg-white text-primary border border-primary/20 shadow-lg shadow-primary/10 backdrop-blur-3xl ring-4 ring-primary/5')
+                                : (theme === 'dark' ? 'text-subtext/60 hover:bg-white/[0.04] hover:text-white border border-transparent' : 'text-slate-700 hover:bg-white hover:text-slate-900 border border-transparent hover:shadow-md hover:scale-[1.01]')
+                              }
                         `}
-                        >
+                          >
                             {currentSessionId === session.sessionId && (
                               <motion.div
                                 layoutId="activeIndicator"
@@ -856,49 +862,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
         {/* Bottom Utils */}
         <div className="p-4 border-t border-white/5 relative z-20 space-y-3">
-          <div className="flex items-center gap-2">
-            {/* Theme Toggle Button */}
-            <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className={`flex-1 h-10 rounded-xl border transition-all duration-300 group/theme flex items-center justify-center
-                ${theme === 'dark'
-                  ? 'bg-white/5 border-white/5 text-subtext hover:text-primary hover:bg-primary/10'
-                  : 'bg-white/50 border-slate-200 text-slate-900 hover:text-primary hover:bg-white shadow-sm'}`}
-              title={theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
-            >
-              {theme === 'dark' ? <Sun className="w-[18px] h-[18px] group-hover/theme:rotate-90 transition-transform duration-500" /> : <Moon className="w-[18px] h-[18px] group-hover/theme:-rotate-12 transition-transform duration-500" />}
-            </button>
 
-            {/* Profile Action - Repositioned to bottom - Only show if logged in */}
-            {token && (
-              <div className="relative profile-menu-container flex-1">
-                <button
-                  onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                  className={`w-full h-10 rounded-xl border transition-all duration-300 flex items-center justify-center
-                    ${theme === 'dark'
-                      ? 'bg-white/5 border-white/5 text-subtext hover:text-primary hover:bg-primary/10'
-                      : 'bg-white/50 border-slate-200 text-slate-900 hover:text-primary hover:bg-white shadow-sm'}`}
-                >
-                  {user.avatar ? (
-                    <img src={user.avatar} alt="P" className="w-[22px] h-[22px] object-cover rounded-md" />
-                  ) : (
-                    <User className="w-[18px] h-[18px]" />
-                  )}
-                </button>
-                <AnimatePresence>
-                  {isProfileMenuOpen && (
-                    <ProfileSettingsDropdown
-                      onClose={() => setIsProfileMenuOpen(false)}
-                      onLogout={() => {
-                        handleLogout();
-                        setIsProfileMenuOpen(false);
-                      }}
-                    />
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
-          </div>
 
           {!token && (
             <div
@@ -914,31 +878,45 @@ const Sidebar = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-2">
+
+          <div className="flex flex-col gap-2.5 px-4 pt-5 border-t border-white/5">
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setShowTerms(true)}
+                className="flex-1 px-3 py-2.5 rounded-xl bg-primary text-[9px] font-bold uppercase tracking-wider text-white hover:opacity-90 transition-all shadow-lg shadow-primary/10 active:scale-95"
+              >
+                Terms
+              </button>
+              <button 
+                onClick={() => setShowPrivacy(true)}
+                className="flex-1 px-3 py-2.5 rounded-xl bg-primary text-[9px] font-bold uppercase tracking-wider text-white hover:opacity-90 transition-all shadow-lg shadow-primary/10 active:scale-95"
+              >
+                Privacy
+              </button>
+            </div>
+            
             {isAdmin && (
               <button
                 onClick={() => { navigate('/dashboard/admin'); onClose(); }}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-white bg-primary hover:opacity-90 transition-all text-[10px] font-bold border border-white/10 shadow-lg shadow-primary/20"
+                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-white bg-primary hover:opacity-90 transition-all text-[10px] font-bold border border-white/10 shadow-lg shadow-primary/20 w-full active:scale-95"
               >
-                <Shield className="w-3 h-3" />
+                <Shield className="w-3.5 h-3.5" />
                 <span>{t('admin')}</span>
               </button>
             )}
-            <button
-              onClick={() => setIsFaqOpen(true)}
-              className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl transition-all text-[10px] font-black uppercase tracking-wider border ${!isAdmin ? 'col-span-2' : ''} 
-                ${theme === 'dark'
-                  ? 'text-white bg-white/5 border-white/5 hover:bg-white/10'
-                  : 'text-slate-900 bg-white/50 border-slate-200 hover:bg-white shadow-sm'}`}
+
+            <button 
+              onClick={() => setIsAboutOpen(true)}
+              className="w-full px-3 py-3 rounded-xl bg-primary text-[10px] font-black uppercase tracking-[0.2em] text-white hover:opacity-90 transition-all flex items-center justify-center gap-2 group/about shadow-lg shadow-primary/10 active:scale-[0.98] mt-0.5"
             >
-              <HelpCircle className={`w-3.5 h-3.5 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`} />
-              <span>{t('helpFaq')}</span>
+              <Sparkles className="w-3.5 h-3.5 group-hover/about:rotate-12 transition-transform" />
+              About AISA
             </button>
           </div>
         </div>
       </div>
 
-      <FaqModal isOpen={isFaqOpen} onClose={() => setIsFaqOpen(false)} />
+
       <DeleteConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
@@ -953,6 +931,21 @@ const Sidebar = ({ isOpen, onClose }) => {
         onClose={() => setIsShareModalOpen(false)}
         shareId={currentShareId}
         sessionTitle={sessionToShare?.title || "Shared Chat"}
+      />
+
+      <TermsOfServiceModal
+        isOpen={showTerms}
+        onClose={() => setShowTerms(false)}
+      />
+
+      <PrivacyPolicyModal
+        isOpen={showPrivacy}
+        onClose={() => setShowPrivacy(false)}
+      />
+
+      <AboutAISA
+        isOpen={isAboutOpen}
+        onClose={() => setIsAboutOpen(false)}
       />
 
     </>

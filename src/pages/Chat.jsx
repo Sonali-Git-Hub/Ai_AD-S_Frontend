@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, Fragment } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Send, SendHorizontal, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe, Sliders, PlayCircle, Brain, ImagePlus, PlaySquare, RefreshCcw, TrendingUp, Zap, Gavel, Navigation, Rocket, Megaphone, Scale, ArrowLeft, ChevronRight, Briefcase, Calendar, Users, FolderOpen, Save } from 'lucide-react';
-import LegalLogo from '../Components/LegalLogo';
+import { Send, SendHorizontal, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe, Sliders, PlayCircle, Brain, ImagePlus, PlaySquare, RefreshCcw, TrendingUp, Zap, Gavel, Navigation, Rocket, Megaphone, Scale, ArrowLeft, ChevronRight, Briefcase, Calendar, Users, FolderOpen, Save, Sun, Moon } from 'lucide-react';
+import LegalLogo from '../landingpage/LegalLogo';
 import { logo } from '../constants';
 import { renderAsync } from 'docx-preview';
 import * as XLSX from 'xlsx';
@@ -33,7 +33,7 @@ import { jsPDF } from 'jspdf';
 import { toCanvas } from 'html-to-image';
 import html2canvas from 'html2canvas';
 import { detectMode, getModeName, getModeIcon, getModeColor, MODES } from '../utils/modeDetection';
-import { userData, getUserData, sessionsData, toggleState, memoryData, activeProjectIdData, activeModeData, activeLegalToolData } from '../userStore/userData';
+import { userData, getUserData, clearUser, sessionsData, toggleState, memoryData, activeProjectIdData, activeModeData, activeLegalToolData } from '../userStore/userData';
 import { usePersonalization } from '../context/PersonalizationContext';
 import OnboardingModal from '../Components/OnboardingModal';
 import PremiumUpsellModal from '../Components/PremiumUpsellModal';
@@ -45,11 +45,13 @@ import IntentSuggestionBanner from '../Components/IntentSuggestionBanner';
 import { detectIntent, mapModeToToolState } from '../services/intentService';
 import LoginRequiredModal from '../Components/LoginRequiredModal';
 import AiSocialMediaDashboard from '../Components/AiSocialMediaDashboard';
-import FuturisticToolCards from '../Components/FuturisticToolCards';
+import FuturisticToolCards from '../landingpage/FuturisticToolCards';
 import AisaTypingIndicator from '../Components/AisaTypingIndicator';
 import GmailConnectedModal from '../Components/GmailConnectedModal';
-import AISnapshot from '../Components/AISnapshot';
+import AISnapshot from '../landingpage/AISnapshot';
 import ShareModal from '../Components/ShareModal';
+import ProfileSettingsDropdown from '../Components/ProfileSettingsDropdown/ProfileSettingsDropdown.jsx';
+import { useTheme } from '../context/ThemeContext';
 
 
 const SendRipple = ({ onComplete }) => {
@@ -598,6 +600,9 @@ const Chat = () => {
   const [audioLangCode, setAudioLangCode] = useState(v.languageCode);
   const [audioVoiceName, setAudioVoiceName] = useState(v.voiceName);
   const [audioPitch, setAudioPitch] = useState(v.pitch);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const token = user?.token;
   const [audioSpeed, setAudioSpeed] = useState(v.speed);
   const [isVoiceSettingsOpen, setIsVoiceSettingsOpen] = useState(false);
   const [isPlayingSample, setIsPlayingSample] = useState(false);
@@ -6095,7 +6100,51 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
           </div>
         )}
 
-        {/* Header - Removed for minimalist cinematic aesthetic */}
+        {/* Header - Minimalist with Profile and Theme */}
+        <div className="absolute top-4 right-6 z-[100] flex items-center gap-3">
+          {/* Theme Toggle */}
+          <button
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className={`w-10 h-10 rounded-xl border transition-all duration-300 group/theme flex items-center justify-center
+              ${theme === 'dark'
+                ? 'bg-zinc-900/50 border-white/10 text-slate-400 hover:text-primary hover:bg-primary/10 backdrop-blur-md'
+                : 'bg-white/50 border-slate-200 text-slate-600 hover:text-primary hover:bg-white shadow-sm backdrop-blur-md'}`}
+            title={theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
+          >
+            {theme === 'dark' ? <Sun className="w-[18px] h-[18px] group-hover/theme:rotate-90 transition-transform duration-500" /> : <Moon className="w-[18px] h-[18px] group-hover/theme:-rotate-12 transition-transform duration-500" />}
+          </button>
+
+          {/* Profile Menu */}
+          {token && (
+            <div className="relative profile-menu-container">
+              <button
+                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                className={`w-10 h-10 rounded-xl border transition-all duration-300 flex items-center justify-center
+                  ${theme === 'dark'
+                    ? 'bg-zinc-900/50 border-white/10 text-slate-400 hover:text-primary hover:bg-primary/10 backdrop-blur-md'
+                    : 'bg-white/50 border-slate-200 text-slate-600 hover:text-primary hover:bg-white shadow-sm backdrop-blur-md'}`}
+              >
+                {user?.avatar ? (
+                  <img src={user.avatar} alt="P" className="w-[24px] h-[24px] object-cover rounded-lg" />
+                ) : (
+                  <User className="w-[18px] h-[18px]" />
+                )}
+              </button>
+              <AnimatePresence>
+                {isProfileMenuOpen && (
+                  <ProfileSettingsDropdown
+                    onClose={() => setIsProfileMenuOpen(false)}
+                    onLogout={() => {
+                      clearUser();
+                      navigate('/login');
+                      setIsProfileMenuOpen(false);
+                    }}
+                  />
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
 
 
 
@@ -6195,909 +6244,909 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                   {/* Reduced Top Spacer */}
                   <div className="h-2 w-full shrink-0" />
                   {messages.map((msg, idx) => {
-                    const isMediaFeature = msg.mode === MODES.IMAGE_GENERATION || 
-                                         msg.mode === MODES.VIDEO_GENERATION || 
-                                         msg.mode === MODES.IMAGE_EDIT ||
-                                         !!msg.imageUrl || !!msg.videoUrl;
+                    const isMediaFeature = msg.mode === MODES.IMAGE_GENERATION ||
+                      msg.mode === MODES.VIDEO_GENERATION ||
+                      msg.mode === MODES.IMAGE_EDIT ||
+                      !!msg.imageUrl || !!msg.videoUrl;
                     return (
-                    <div
-                      key={msg.id}
-                      className={`chatgpt-message-row group ${msg.role === 'user' ? 'user-row' : 'ai-row'}`}
-                      onClick={() => {
-                        if (window.getSelection().toString()) return;
-                        setActiveMessageId(activeMessageId === msg.id ? null : msg.id);
-                      }}
-                    >
-                      {/* Actions Menu (Always visible for discoverability) */}
+                      <div
+                        key={msg.id}
+                        className={`chatgpt-message-row group ${msg.role === 'user' ? 'user-row' : 'ai-row'}`}
+                        onClick={() => {
+                          if (window.getSelection().toString()) return;
+                          setActiveMessageId(activeMessageId === msg.id ? null : msg.id);
+                        }}
+                      >
+                        {/* Actions Menu (Always visible for discoverability) */}
 
-                      <div className={`chatgpt-message-content ${msg.role === 'model' ? 'w-full' : ''}`}>
-                        {/* Avatar */}
-                        <div
-                          className={`chatgpt-avatar-container w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user'
-                            ? 'bg-slate-200 dark:bg-slate-700'
-                            : 'bg-transparent'
-                            }`}
-                        >
-                          {msg.role === 'user' ? (
-                            <User className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-                          ) : (
-                            <img src={logo} alt="AISA" className="w-6 h-[18px] object-cover object-top" />
-                          )}
-                        </div>
+                        <div className={`chatgpt-message-content ${msg.role === 'model' ? 'w-full' : ''}`}>
+                          {/* Avatar */}
+                          <div
+                            className={`chatgpt-avatar-container w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === 'user'
+                              ? 'bg-slate-200 dark:bg-slate-700'
+                              : 'bg-transparent'
+                              }`}
+                          >
+                            {msg.role === 'user' ? (
+                              <User className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                            ) : (
+                              <img src={logo} alt="AISA" className="w-6 h-[18px] object-cover object-top" />
+                            )}
+                          </div>
 
-                        <div className="flex-1 chatgpt-text">
-
-
+                          <div className="flex-1 chatgpt-text">
 
 
 
-                          {/* Attachment Display */}
-                          {((msg.attachments && msg.attachments.length > 0) || msg.attachment) && (
-                            <div className="flex flex-col gap-3 mb-3 mt-1">
-                              {(msg.attachments || (msg.attachment ? [msg.attachment] : [])).map((att, idx) => (
-                                <div key={idx} className="w-full">
-                                  {att.type === 'image' ? (
-                                    <div
-                                      className="relative group/image overflow-hidden rounded-xl border border-white/20 shadow-lg transition-all hover:scale-[1.01] cursor-pointer max-w-[320px]"
-                                      onClick={() => setViewingDoc(att)}
-                                    >
-                                      <img
-                                        src={att.url}
-                                        alt="Attachment"
-                                        className="w-full h-auto max-h-[400px] object-contain bg-black/5"
-                                        loading="lazy"
-                                        onError={(e) => {
-                                          console.error("Attachment image load failed:", att.url);
-                                          if (att.url && !e.target.dataset.retried) {
-                                            e.target.dataset.retried = "true";
-                                            const isSignedUrl = att.url?.includes('X-Goog-Signature');
-                                            const retryUrl = isSignedUrl
-                                              ? att.url
-                                              : att.url + (att.url.includes('?') ? '&' : '?') + 'retry=' + Date.now();
-                                            console.log("Retrying attachment image load:", retryUrl);
-                                            e.target.src = retryUrl;
-                                          } else {
-                                            const errorText = att.url ? (att.url.substring(0, 30) + '...') : 'Unknown URL';
-                                            e.target.src = `https://placehold.co/600x400/333/eee?text=Attachment+Unavailable%0A${encodeURIComponent(errorText)}%0AClick+to+Retry`;
-                                            e.target.style.cursor = 'pointer';
-                                            e.target.onclick = (event) => {
-                                              event.stopPropagation();
-                                              const isSignedUrl = att.url?.includes('X-Goog-Signature');
-                                              e.target.src = isSignedUrl ? att.url : att.url + (att.url.includes('?') ? '&' : '?') + 'manual=' + Date.now();
-                                            };
-                                          }
-                                        }}
-                                      />
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleDownload(att.url, att.name);
-                                        }}
-                                        className="absolute top-2 right-2 p-2 bg-black/40 text-white rounded-full opacity-0 group-hover/image:opacity-100 transition-all hover:bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center"
-                                        title="Download"
-                                      >
-                                        <Download className="w-4 h-4" />
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <div className={`flex items-center gap-3 p-3 rounded-xl border transition-colors backdrop-blur-md ${msg.role === 'user' ? 'bg-transparent border-white/20 hover:bg-white/10 shadow-none' : 'bg-secondary/30 border-border hover:bg-secondary/50'}`}>
+
+
+                            {/* Attachment Display */}
+                            {((msg.attachments && msg.attachments.length > 0) || msg.attachment) && (
+                              <div className="flex flex-col gap-3 mb-3 mt-1">
+                                {(msg.attachments || (msg.attachment ? [msg.attachment] : [])).map((att, idx) => (
+                                  <div key={idx} className="w-full">
+                                    {att.type === 'image' ? (
                                       <div
-                                        className="flex-1 flex items-center gap-3 min-w-0 cursor-pointer p-0.5 rounded-lg"
+                                        className="relative group/image overflow-hidden rounded-xl border border-white/20 shadow-lg transition-all hover:scale-[1.01] cursor-pointer max-w-[320px]"
                                         onClick={() => setViewingDoc(att)}
                                       >
-                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${(() => {
-                                          const name = (att.name || '').toLowerCase();
-                                          if (msg.role === 'user') return 'bg-white shadow-sm';
-                                          if (name.endsWith('.pdf')) return 'bg-red-50 dark:bg-red-900/20';
-                                          if (name.match(/\.(doc|docx)$/)) return 'bg-blue-50 dark:bg-blue-900/20';
-                                          if (name.match(/\.(xls|xlsx|csv)$/)) return 'bg-emerald-50 dark:bg-emerald-900/20';
-                                          if (name.match(/\.(ppt|pptx)$/)) return 'bg-blue-50 dark:bg-blue-900/20';
-                                          return 'bg-secondary';
-                                        })()}`}>
-                                          {(() => {
-                                            const name = (att.name || '').toLowerCase();
-                                            const baseClass = "w-6 h-6";
-                                            if (name.match(/\.(xls|xlsx|csv)$/)) return <FileSpreadsheet className={`${baseClass} text-emerald-600`} />;
-                                            if (name.match(/\.(ppt|pptx)$/)) return <Presentation className={`${baseClass} text-blue-600`} />;
-                                            if (name.endsWith('.pdf')) return <FileText className={`${baseClass} text-red-600`} />;
-                                            if (name.match(/\.(doc|docx)$/)) return <FileIcon className={`${baseClass} text-blue-600`} />;
-                                            return <FileIcon className={`${baseClass} text-primary`} />;
-                                          })()}
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                          <p className="font-semibold truncate text-xs mb-0.5">{att.name || 'File'}</p>
-                                          <p className="text-[10px] opacity-70 uppercase tracking-tight font-medium">
-                                            {(() => {
-                                              const name = (att.name || '').toLowerCase();
-                                              if (name.endsWith('.pdf')) return 'PDF • Preview';
-                                              if (name.match(/\.(doc|docx)$/)) return 'WORD • Preview';
-                                              if (name.match(/\.(xls|xlsx|csv)$/)) return 'EXCEL';
-                                              if (name.match(/\.(ppt|pptx)$/)) return 'SLIDES';
-                                              return 'DOCUMENT';
-                                            })()}
-                                          </p>
-                                        </div>
-                                      </div>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleDownload(att.url, att.name);
-                                        }}
-                                        className={`p-2 rounded-lg transition-colors shrink-0 ${msg.role === 'user' ? 'hover:bg-white/20 text-white' : 'hover:bg-primary/10 text-primary'}`}
-                                        title="Download"
-                                      >
-                                        <Download className="w-4 h-4" />
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-
-
-
-
-
-                          {editingMessageId === msg.id ? (
-                            <div className="flex flex-col gap-3 min-w-[200px] w-full mt-2">
-                              <textarea
-                                value={editContent}
-                                onChange={(e) => setEditContent(e.target.value)}
-                                className="w-full bg-black/5 dark:bg-white/10 text-slate-900 dark:text-white rounded-xl p-5 text-sm focus:outline-none border border-black/10 dark:border-white/20 placeholder-slate-400 dark:placeholder-white/50 min-h-[500px] lg:min-h-[650px] font-mono leading-[1.8] resize-y shadow-inner transition-all hover:border-primary/30"
-                                rows={25}
-                                autoFocus
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    saveEdit(msg);
-                                  }
-                                  if (e.key === 'Escape') cancelEdit();
-                                }}
-                              />
-                              <div className="flex gap-3 justify-end items-center">
-                                <button
-                                  onClick={cancelEdit}
-                                  className="text-slate-500 dark:text-white/80 hover:text-slate-800 dark:hover:text-white text-sm font-medium transition-colors"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  onClick={() => saveEdit(msg)}
-                                  className="bg-primary text-white dark:bg-white dark:text-primary px-6 py-2 rounded-full text-sm font-bold hover:opacity-90 transition-all shadow-sm"
-                                >
-                                  Update
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            msg.content && (
-                              <div id={`msg-text-${msg.id}`} className={`max-w-full break-words leading-relaxed whitespace-normal ${msg.role === 'user' ? 'bg-indigo-50/50 dark:bg-indigo-950/20 px-4 py-2.5 rounded-2xl rounded-tl-none border border-indigo-100/30 dark:border-indigo-800/20 text-slate-900 dark:text-white font-normal shadow-sm w-fit inline-block mb-1' : 'text-maintext'}`}>
-
-
-
-
-
-
-                                {/* [READ MORE LOGIC]: For long messages, we show a truncate and read more option */}
-                                <div className="relative group/msg-content">
-                                  <ReactMarkdown
-                                    remarkPlugins={[remarkGfm]}
-                                    urlTransform={(value) => value}
-                                    components={{
-                                      a: ({ href, children }) => {
-                                        if (href && href.startsWith('action:')) {
-                                          const isLocked = children?.toString()?.includes('🔒') || children?.toString()?.includes('Unlock');
-                                          return (
-                                            <button
-                                              onClick={(e) => {
-                                                e.preventDefault();
-                                                const toolKey = href.replace('action:', '');
-                                                setCurrentMode('LEGAL_TOOLKIT');
-
-                                                const TOOL_NAMES = {
-                                                  legal_draft_maker: "Draft Maker",
-                                                  legal_case_predictor: "Case Predictor",
-                                                  legal_argument_builder: "Argument Builder",
-                                                  legal_evidence_checker: "Evidence Analyst",
-                                                  legal_contract_analyzer: "Contract Analyzer",
-                                                  legal_strategy_engine: "Strategy Engine"
-                                                };
-                                                const toolName = TOOL_NAMES[toolKey] || toolKey;
-
-                                                // Open the premium upsell if locked
-                                                if (isLocked) {
-                                                  window.dispatchEvent(new CustomEvent('premium_required', { detail: { toolName } }));
-                                                  return;
-                                                }
-
-                                                setSelectedLegalTool({ id: toolKey, name: toolName });
-                                                setActiveTool(toolName);
-
-                                                setTimeout(() => {
-                                                  handleSendMessage(null, `Please proceed with ${toolName} using the current case context. Generate the full response for this task immediately without asking for further details if possible.`, toolKey);
-                                                }, 150);
-                                              }}
-                                              className={`inline-flex mt-2 items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0 ${isLocked ? 'bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20' : 'bg-gradient-to-r from-primary/10 to-primary-dark/10 border border-primary/20 text-primary hover:bg-primary/20 hover:border-primary/40'}`}
-                                            >
-                                              {children}
-                                              <ChevronRight className="w-4 h-4 ml-1 opacity-70" />
-                                            </button>
-                                          );
-                                        }
-                                        const isInternal = href && href.startsWith('/');
-                                        return (
-                                          <a
-                                            href={href}
-                                            onClick={(e) => {
-                                              if (isInternal) {
-                                                e.preventDefault();
-                                                navigate(href);
-                                              }
-                                            }}
-                                            className="text-primary hover:underline font-bold cursor-pointer"
-                                            target={isInternal ? "_self" : "_blank"}
-                                            rel={isInternal ? "" : "noopener noreferrer"}
-                                          >
-                                            {children}
-                                          </a>
-                                        );
-                                      },
-                                      p: ({ children }) => <div className="mb-[14px] last:mb-0 leading-[1.6]">{children}</div>,
-                                      ul: ({ children }) => <ul className="list-disc pl-5 mb-[14px] last:mb-0 space-y-1.5">{children}</ul>,
-                                      ol: ({ children }) => <ol className="list-decimal pl-5 mb-[14px] last:mb-0 space-y-1.5">{children}</ol>,
-                                      li: ({ children }) => <li className="mb-1 last:mb-0 leading-[1.6]">{children}</li>,
-                                      h1: ({ children }) => <h1 className="text-[22px] font-semibold mb-3.5 mt-6 block tracking-tight">{children}</h1>,
-                                      h2: ({ children }) => <h2 className="text-[18px] font-semibold mb-3 mt-5 block tracking-tight">{children}</h2>,
-                                      h3: ({ children }) => <h3 className="text-[16px] font-semibold mb-2.5 mt-4 block tracking-tight">{children}</h3>,
-                                      strong: ({ children }) => <strong className="font-bold">{children}</strong>,
-                                      table: ({ children }) => (
-                                        <div className="overflow-x-auto my-4 rounded-xl border border-border/50 shadow-lg bg-surface/30 backdrop-blur-sm">
-                                          <table className="w-full border-collapse text-sm">{children}</table>
-                                        </div>
-                                      ),
-                                      thead: ({ children }) => <thead className="bg-primary/10 border-b border-border/50">{children}</thead>,
-                                      tbody: ({ children }) => <tbody className="divide-y divide-border/30">{children}</tbody>,
-                                      tr: ({ children }) => <tr className="transition-colors hover:bg-white/3">{children}</tr>,
-                                      th: ({ children }) => <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-primary">{children}</th>,
-                                      td: ({ children }) => <td className="px-4 py-3 text-sm text-maintext leading-relaxed">{children}</td>,
-                                      mark: ({ children }) => <mark className="bg-[#5555ff] text-white px-1 py-0.5 rounded-sm">{children}</mark>,
-                                      code: ({ node, inline, className, children, ...props }) => {
-                                        const match = /language-(\w+)/.exec(className || '');
-                                        const lang = match ? match[1] : '';
-                                        const codeValue = String(children).replace(/\n$/, '');
-                                        const isUser = msg.role === 'user';
-
-                                        if (!inline) {
-                                          return (
-                                            <div className={`rounded-xl overflow-hidden my-3 border ${isUser ? 'border-white/10 bg-black/20' : 'border-[#1a1a1a] bg-[#0d0d0d]'} shadow-2xl w-full max-w-full group/code`}>
-                                              {!isUser && (
-                                                <div className="flex items-center justify-between px-4 py-2.5 bg-[#2d2d2d]/80 backdrop-blur-sm border-b border-zinc-800">
-                                                  <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] font-black uppercase tracking-widest text-[#9ca3af]">{lang || 'plain text'}</span>
-                                                  </div>
-                                                  <button
-                                                    onClick={() => {
-                                                      navigator.clipboard.writeText(codeValue);
-                                                      toast.success("Code copied!");
-                                                    }}
-                                                    className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 hover:text-white transition-all bg-white/5 hover:bg-white/10 px-3 py-1 rounded-lg border border-white/5 active:scale-95"
-                                                  >
-                                                    <Copy className="w-3.5 h-3.5" />
-                                                    Copy
-                                                  </button>
-                                                </div>
-                                              )}
-                                              <div className={`${isUser ? 'max-h-[500px]' : 'max-h-[600px]'} overflow-auto custom-scrollbar-thin ${isUser ? 'bg-transparent' : 'bg-[#0d0d0d]'}`}>
-                                                <SyntaxHighlighter
-                                                  language={lang || 'text'}
-                                                  style={highlighterTheme}
-                                                  PreTag="div"
-                                                  customStyle={{
-                                                    margin: 0,
-                                                    padding: isUser ? '16px' : '20px',
-                                                    fontSize: isUser ? '13px' : '14px',
-                                                    lineHeight: '1.7',
-                                                    background: 'transparent',
-                                                    borderRadius: 0,
-                                                    border: 'none',
-                                                    color: '#e5e7eb', // Ensure visibility for plain text
-                                                    fontFamily: '"Fira Code", "JetBrains Mono", source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace'
-                                                  }}
-                                                  codeTagProps={{
-                                                    style: {
-                                                      fontFamily: 'inherit',
-                                                      background: 'transparent',
-                                                      color: 'inherit'
-                                                    }
-                                                  }}
-                                                  {...props}
-                                                >
-                                                  {codeValue}
-                                                </SyntaxHighlighter>
-                                              </div>
-                                            </div>
-                                          );
-                                        }
-                                        return (
-                                          <code className="bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded-md font-mono text-primary font-bold mx-0.5 text-xs translate-y-[-1px] inline-block" {...props}>
-                                            {children}
-                                          </code>
-                                        );
-                                      },
-                                      img: ({ node, ...props }) => {
-                                        const isDownloading = isDownloadingUrl === props.src;
-                                        return (
-                                          <div className="relative my-4 group/img-container max-w-full">
-                                            <div className="relative group/image overflow-hidden aspect-auto max-w-[500px] cursor-zoom-in w-fit" onClick={() => setViewingDoc({ url: props.src, type: 'image', name: 'AI Image' })}>
-                                              {msg.role === 'model' && (
-                                                <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-100 sm:opacity-0 sm:group-hover/img-container:opacity-100 transition-opacity">
-                                                  <div className="flex items-center gap-2">
-                                                    <Sparkles className="w-4 h-4 text-primary animate-pulse" />
-                                                    <span className="text-[10px] font-bold text-white uppercase tracking-widest">AISA™ Generated Asset</span>
-                                                  </div>
-                                                </div>
-                                              )}
-                                              <ImageViewer
-                                                src={props.src}
-                                                alt={props.alt || "AI Image"}
-                                              />
-                                              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover/img-container:opacity-100 transition-opacity pointer-events-none" />
-                                            </div>
-                                            <button
-                                              onClick={() => handleDownload(props.src, `AISA_gen_${Date.now()}.png`)}
-                                              disabled={isDownloading}
-                                              className="absolute bottom-4 right-4 z-20 flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl border border-white/20 text-white shadow-lg transition-all active:scale-95 disabled:opacity-50"
-                                            >
-                                              <div className="flex items-center gap-2">
-                                                {isDownloading ? (
-                                                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                ) : (
-                                                  <Download className="w-4 h-4" />
-                                                )}
-                                                <span className="text-[10px] font-bold uppercase">
-                                                  {isDownloading ? 'Downloading...' : 'Download'}
-                                                </span>
-                                              </div>
-                                            </button>
-                                          </div>
-                                        )
-                                      },
-                                    }}
-                                  >
-                                    {msg.content || msg.text || ""}
-                                  </ReactMarkdown>
-                                  {msg.cashflowData && (
-                                    <CashFlowChartWidget data={msg.cashflowData} />
-                                  )}
-                                </div>
-                                {/* Sources List (ONLY for Web Search, HIDE for RAG as requested) */}
-                                {msg.role === 'model' && msg.isRealTime && msg.sources && msg.sources.length > 0 && (
-                                  <div className="mt-4 pt-4">
-                                    <p className="text-[10px] font-bold uppercase text-subtext mb-3 flex items-center gap-2">
-                                      <ExternalLink className="w-3 h-3" />
-                                      Web Sources
-                                    </p>
-                                    <div className="flex flex-wrap gap-2">
-                                      {msg.sources.map((source, sIdx) => (
-                                        <a
-                                          key={sIdx}
-                                          href={source.url}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="flex items-center gap-2 px-3 py-1.5 bg-secondary/50 hover:bg-primary/10 border border-border rounded-lg transition-all group/source"
-                                        >
-                                          {source.url && source.url.includes('http') ? (
-                                            <Globe className="w-3 h-3 text-subtext group-hover/source:text-primary" />
-                                          ) : (
-                                            <FileText className="w-3 h-3 text-subtext group-hover/source:text-primary" />
-                                          )}
-                                          <span className="text-xs font-medium text-maintext group-hover/source:text-primary truncate max-w-[150px]">
-                                            {source.title}
-                                          </span>
-                                          <div className="w-4 h-4 bg-primary/20 rounded flex items-center justify-center">
-                                            <ExternalLink className="w-2.5 h-2.5 text-primary" />
-                                          </div>
-                                        </a>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {msg.videoUrl && (
-                                  <div className="relative mt-4 mb-2 w-fit max-w-full">
-                                    <CustomVideoPlayer src={msg.videoUrl} compact={true} />
-                                  </div>
-                                )}
-
-                                {/* Dynamic Image Rendering (if not in markdown) */}
-                                {msg.imageUrl && (
-                                  <div
-                                    className="relative group/generated mt-4 mb-2 overflow-hidden transition-all hover:scale-[1.01] cursor-zoom-in w-fit max-w-sm"
-                                    onClick={() => {
-                                      if (!viewingDoc) setViewingDoc({ url: msg.imageUrl, type: 'image', name: 'Generated Image' });
-                                    }}
-                                  >
-                                    <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-100 sm:opacity-0 sm:group-hover/generated:opacity-100 transition-opacity">
-                                      <div className="flex items-center gap-2">
-                                        <Sparkles className="w-4 h-4 text-primary animate-pulse" />
-                                        <span className="text-[10px] font-bold text-white uppercase tracking-widest">AI Ads Generated Asset</span>
-                                      </div>
-                                    </div>
-                                    <img
-                                      src={msg.imageUrl}
-                                      alt="Generated Content"
-                                      className="w-full h-auto max-h-[420px] object-contain transition-all duration-500 group-hover/image:scale-[1.02]"
-                                      loading="eager"
-                                      onLoad={() => {
-                                        console.log("Image loaded successfully:", msg.imageUrl);
-                                        scrollToBottom(true);
-                                      }}
-                                      onError={(e) => {
-                                        console.error("Image load failed for URL:", msg.imageUrl);
-                                        if (!e.target.dataset.retried) {
-                                          e.target.dataset.retried = "true";
-                                          setTimeout(() => {
-                                            // ⚠️ Never append extra query params to signed URLs — it breaks the signature
-                                            const isSignedUrl = msg.imageUrl?.includes('X-Goog-Signature');
-                                            const retryUrl = isSignedUrl
-                                              ? msg.imageUrl  // Use exact URL for signed URLs
-                                              : msg.imageUrl + (msg.imageUrl.includes('?') ? '&' : '?') + 'retry=' + Date.now();
-                                            console.log("Retrying image load:", retryUrl);
-                                            e.target.src = retryUrl;
-                                          }, 2000);
-                                        } else {
-                                          const finalErrorMsg = msg.imageUrl?.includes('cloudinary') ? 'Cloudinary Error' : 'Image Load Error';
-                                          e.target.src = `https://placehold.co/600x400/222/fff?text=${encodeURIComponent(finalErrorMsg)}%0AClick+to+Retry`;
-                                          e.target.style.cursor = 'pointer';
-                                          e.target.onclick = (event) => {
-                                            event.stopPropagation();
-                                            const isSignedUrl = msg.imageUrl?.includes('X-Goog-Signature');
-                                            e.target.src = isSignedUrl
-                                              ? msg.imageUrl
-                                              : msg.imageUrl + (msg.imageUrl.includes('?') ? '&' : '?') + 'manual=' + Date.now();
-                                          };
-                                        }
-                                      }}
-                                    />
-                                    <div className="absolute bottom-3 right-3 flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover/generated:opacity-100 transition-all scale-100 sm:scale-90 sm:group-hover/generated:scale-100">
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setIsMagicEditing(true);
-       
-                                          setEditRefImage({
-                                            url: msg.imageUrl,
-                                            name: 'Generated Asset',
-                                            type: 'image/png'
-                                          });
-                                          toast.success('Magic Edit mode active! Type your request.');
-                                          inputRef.current?.focus();
-                                        }}
-                                        className="p-2.5 bg-white/20 backdrop-blur-sm text-white rounded-xl hover:bg-white/30 shadow-lg border border-white/20"
-                                        title="Edit this Image"
-                                      >
-                                        <Wand2 className="w-4 h-4" />
-                                      </button>
-
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleCopyImage(msg.imageUrl);
-                                        }}
-                                        className="p-2.5 bg-white/20 backdrop-blur-sm text-white rounded-xl hover:bg-white/30 shadow-lg border border-white/20"
-                                        title="Copy Image"
-                                      >
-                                        <Copy className="w-4 h-4" />
-                                      </button>
-                                      <button
-                                        disabled={isDownloadingUrl === msg.imageUrl}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleDownload(msg.imageUrl, 'AISA-generated.png');
-                                        }}
-                                        className={`p-2.5 rounded-xl shadow-lg border border-white/20 flex items-center gap-2 ${isDownloadingUrl === msg.imageUrl ? 'bg-zinc-600 cursor-wait' : 'bg-primary text-white hover:bg-primary/90'}`}
-                                        title="Download High-Res"
-                                      >
-                                        <div className="flex items-center gap-2 px-1">
-                                          {isDownloadingUrl === msg.imageUrl ? (
-                                            <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                                          ) : (
-                                            <Download className="w-4 h-4" />
-                                          )}
-                                          <span className="text-[10px] font-bold uppercase">
-                                            {isDownloadingUrl === msg.imageUrl ? 'Downloading...' : 'Download'}
-                                          </span>
-                                        </div>
-                                      </button>
-                                    </div>
-                                  </div>
-                                )}
-                                {msg.snapshot && <AISnapshot data={msg.snapshot} />}
-                              </div>
-                            )
-                          )}
-
-                          {/* File Conversion Download Button */}
-                          {msg.conversion && msg.conversion.file && (
-                            <div className="mt-4 pt-3 border-t border-border/40 space-y-3" style={{ maxWidth: '260px' }}>
-
-                              {/* ── Modern Audio Player ── */}
-                              {msg.conversion.mimeType.startsWith('audio/') && (() => {
-                                const audioSrc = msg.conversion.blobUrl || `data:${msg.conversion.mimeType};base64,${msg.conversion.file}`;
-                                const playerId = `player-${msg.id}`;
-                                return (
-                                  <div className="rounded-2xl overflow-hidden mb-2" style={{ background: 'linear-gradient(135deg, rgba(20,20,40,0.95) 0%, rgba(30,20,60,0.95) 100%)', border: '1px solid rgba(139,92,246,0.2)' }}>
-                                    {/* Waveform decorative bars + header */}
-                                    <div className="px-3 pt-3 pb-1 flex items-center gap-2.5">
-                                      <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}>
-                                        <Volume2 className="w-4 h-4 text-white" />
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-xs font-bold text-white truncate">{msg.conversion.fileName}</p>
-                                        <p className="text-[10px] text-purple-300/60 font-medium">
-                                          {msg.conversion.fileSize || ''}{msg.conversion.charCount ? ` · ${msg.conversion.charCount}c` : ''} · Audio
-                                        </p>
-                                      </div>
-                                      {/* Decorative waveform */}
-                                      <div className="flex items-center gap-[2px] shrink-0">
-                                        {[2, 4, 6, 4, 7, 5, 4, 6, 4, 3, 5, 4].map((h, i) => (
-                                          <div key={i} className="w-[2px] rounded-full opacity-40" style={{ height: `${h}px`, background: 'linear-gradient(to top, #7c3aed, #818cf8)' }} />
-                                        ))}
-                                      </div>
-                                    </div>
-
-                                    {/* Player controls */}
-                                    <div className="px-3 pb-3">
-                                      <audio id={playerId} src={audioSrc} preload="metadata" style={{ display: 'none' }} />
-
-                                      {/* Seek bar */}
-                                      <div className="mb-2">
-                                        <input
-                                          type="range" min="0" max="100" defaultValue="0" step="0.1"
-                                          className="w-full h-1 rounded-full cursor-pointer appearance-none"
-                                          style={{ background: 'rgba(255,255,255,0.08)' }}
-                                          onInput={(e) => {
-                                            const audio = document.getElementById(playerId);
-                                            if (audio && audio.duration) {
-                                              audio.currentTime = (e.target.value / 100) * audio.duration;
+                                        <img
+                                          src={att.url}
+                                          alt="Attachment"
+                                          className="w-full h-auto max-h-[400px] object-contain bg-black/5"
+                                          loading="lazy"
+                                          onError={(e) => {
+                                            console.error("Attachment image load failed:", att.url);
+                                            if (att.url && !e.target.dataset.retried) {
+                                              e.target.dataset.retried = "true";
+                                              const isSignedUrl = att.url?.includes('X-Goog-Signature');
+                                              const retryUrl = isSignedUrl
+                                                ? att.url
+                                                : att.url + (att.url.includes('?') ? '&' : '?') + 'retry=' + Date.now();
+                                              console.log("Retrying attachment image load:", retryUrl);
+                                              e.target.src = retryUrl;
+                                            } else {
+                                              const errorText = att.url ? (att.url.substring(0, 30) + '...') : 'Unknown URL';
+                                              e.target.src = `https://placehold.co/600x400/333/eee?text=Attachment+Unavailable%0A${encodeURIComponent(errorText)}%0AClick+to+Retry`;
+                                              e.target.style.cursor = 'pointer';
+                                              e.target.onclick = (event) => {
+                                                event.stopPropagation();
+                                                const isSignedUrl = att.url?.includes('X-Goog-Signature');
+                                                e.target.src = isSignedUrl ? att.url : att.url + (att.url.includes('?') ? '&' : '?') + 'manual=' + Date.now();
+                                              };
                                             }
-                                            e.target.style.background = `linear-gradient(to right, #7c3aed 0%, #818cf8 ${e.target.value}%, rgba(255,255,255,0.08) ${e.target.value}%, rgba(255,255,255,0.08) 100%)`;
-                                          }}
-                                          ref={(el) => {
-                                            if (!el) return;
-                                            const audio = document.getElementById(playerId);
-                                            if (!audio) return;
-                                            const update = () => {
-                                              if (!audio.duration) return;
-                                              const pct = (audio.currentTime / audio.duration) * 100;
-                                              el.value = pct;
-                                              el.style.background = `linear-gradient(to right, #7c3aed 0%, #818cf8 ${pct}%, rgba(255,255,255,0.08) ${pct}%, rgba(255,255,255,0.08) 100%)`;
-                                              // update time display
-                                              const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
-                                              const timeEl = document.getElementById(`time-${playerId}`);
-                                              const durEl = document.getElementById(`dur-${playerId}`);
-                                              if (timeEl) timeEl.textContent = fmt(audio.currentTime);
-                                              if (durEl && audio.duration) durEl.textContent = fmt(audio.duration);
-                                            };
-                                            audio.addEventListener('timeupdate', update);
-                                            audio.addEventListener('loadedmetadata', update);
                                           }}
                                         />
-                                        <div className="flex justify-between text-[10px] text-white/20 mt-1 font-mono">
-                                          <span id={`time-${playerId}`}>0:00</span>
-                                          <span id={`dur-${playerId}`}>--:--</span>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDownload(att.url, att.name);
+                                          }}
+                                          className="absolute top-2 right-2 p-2 bg-black/40 text-white rounded-full opacity-0 group-hover/image:opacity-100 transition-all hover:bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center"
+                                          title="Download"
+                                        >
+                                          <Download className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div className={`flex items-center gap-3 p-3 rounded-xl border transition-colors backdrop-blur-md ${msg.role === 'user' ? 'bg-transparent border-white/20 hover:bg-white/10 shadow-none' : 'bg-secondary/30 border-border hover:bg-secondary/50'}`}>
+                                        <div
+                                          className="flex-1 flex items-center gap-3 min-w-0 cursor-pointer p-0.5 rounded-lg"
+                                          onClick={() => setViewingDoc(att)}
+                                        >
+                                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${(() => {
+                                            const name = (att.name || '').toLowerCase();
+                                            if (msg.role === 'user') return 'bg-white shadow-sm';
+                                            if (name.endsWith('.pdf')) return 'bg-red-50 dark:bg-red-900/20';
+                                            if (name.match(/\.(doc|docx)$/)) return 'bg-blue-50 dark:bg-blue-900/20';
+                                            if (name.match(/\.(xls|xlsx|csv)$/)) return 'bg-emerald-50 dark:bg-emerald-900/20';
+                                            if (name.match(/\.(ppt|pptx)$/)) return 'bg-blue-50 dark:bg-blue-900/20';
+                                            return 'bg-secondary';
+                                          })()}`}>
+                                            {(() => {
+                                              const name = (att.name || '').toLowerCase();
+                                              const baseClass = "w-6 h-6";
+                                              if (name.match(/\.(xls|xlsx|csv)$/)) return <FileSpreadsheet className={`${baseClass} text-emerald-600`} />;
+                                              if (name.match(/\.(ppt|pptx)$/)) return <Presentation className={`${baseClass} text-blue-600`} />;
+                                              if (name.endsWith('.pdf')) return <FileText className={`${baseClass} text-red-600`} />;
+                                              if (name.match(/\.(doc|docx)$/)) return <FileIcon className={`${baseClass} text-blue-600`} />;
+                                              return <FileIcon className={`${baseClass} text-primary`} />;
+                                            })()}
+                                          </div>
+                                          <div className="min-w-0 flex-1">
+                                            <p className="font-semibold truncate text-xs mb-0.5">{att.name || 'File'}</p>
+                                            <p className="text-[10px] opacity-70 uppercase tracking-tight font-medium">
+                                              {(() => {
+                                                const name = (att.name || '').toLowerCase();
+                                                if (name.endsWith('.pdf')) return 'PDF • Preview';
+                                                if (name.match(/\.(doc|docx)$/)) return 'WORD • Preview';
+                                                if (name.match(/\.(xls|xlsx|csv)$/)) return 'EXCEL';
+                                                if (name.match(/\.(ppt|pptx)$/)) return 'SLIDES';
+                                                return 'DOCUMENT';
+                                              })()}
+                                            </p>
+                                          </div>
                                         </div>
-                                      </div>
-
-                                      {/* Buttons */}
-                                      <div className="flex items-center gap-3">
-                                        {/* Play/Pause */}
                                         <button
                                           onClick={(e) => {
-                                            const audio = document.getElementById(playerId);
-                                            const btn = e.currentTarget;
-                                            if (!audio) return;
-                                            if (audio.paused) {
-                                              // Pause all other players
-                                              document.querySelectorAll('audio').forEach(a => { if (a !== audio) a.pause(); });
-                                              audio.play();
-                                              btn.dataset.playing = 'true';
-                                              btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
-                                              audio.addEventListener('ended', () => {
-                                                btn.dataset.playing = '';
-                                                btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
-                                              }, { once: true });
-                                            } else {
-                                              audio.pause();
-                                              btn.dataset.playing = '';
-                                              btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
-                                            }
+                                            e.stopPropagation();
+                                            handleDownload(att.url, att.name);
                                           }}
-                                          className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 shadow-lg shadow-primary/30 transition-transform active:scale-90"
-                                          style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))' }}
+                                          className={`p-2 rounded-lg transition-colors shrink-0 ${msg.role === 'user' ? 'hover:bg-white/20 text-white' : 'hover:bg-primary/10 text-primary'}`}
+                                          title="Download"
                                         >
-                                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
-                                        </button>
-
-                                        {/* Speed pill */}
-                                        <button
-                                          onClick={(e) => {
-                                            const audio = document.getElementById(playerId);
-                                            if (!audio) return;
-                                            const speeds = [1, 1.25, 1.5, 1.75, 2];
-                                            const cur = speeds.indexOf(audio.playbackRate);
-                                            const next = speeds[(cur + 1) % speeds.length];
-                                            audio.playbackRate = next;
-                                            e.currentTarget.textContent = `${next}×`;
-                                          }}
-                                          className="px-2.5 py-1 text-[10px] font-bold text-primary-light rounded-lg border border-primary/20 hover:border-primary/50 transition-colors"
-                                          style={{ background: 'var(--color-primary-bg)' }}
-                                        >1×</button>
-
-                                        <div className="flex-1" />
-
-                                        {/* Volume */}
-                                        <button onClick={(e) => {
-                                          const audio = document.getElementById(playerId);
-                                          if (!audio) return;
-                                          audio.muted = !audio.muted;
-                                          e.currentTarget.style.opacity = audio.muted ? '0.4' : '1';
-                                        }} className="text-white/40 hover:text-white/80 transition-colors">
-                                          <Volume2 className="w-4 h-4" />
+                                          <Download className="w-4 h-4" />
                                         </button>
                                       </div>
-                                    </div>
+                                    )}
                                   </div>
-                                );
-                              })()}
-
-                              {/* File metadata + Download button */}
-                              {!msg.conversion.mimeType.startsWith('audio/') && (
-                                <div className="flex items-center justify-between px-1 py-1">
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-bold text-maintext truncate">{msg.conversion.fileName}</p>
-                                    <p className="text-[9px] text-subtext font-bold uppercase tracking-widest flex items-center gap-1.5">
-                                      <span className="px-1 py-0.5 bg-primary/10 text-primary rounded-md border border-transparent">
-                                        {msg.conversion.fileSize || "Ready"}
-                                      </span>
-                                      {msg.conversion.charCount && (
-                                        <span className="px-1 py-0.5 bg-secondary/30 text-subtext rounded-md border border-transparent">
-                                          {msg.conversion.charCount}C
-                                        </span>
-                                      )}
-                                      {msg.conversion.mimeType.includes('pdf') ? 'PDF' : 'DOCX'}
-                                    </p>
-                                  </div>
-                                </div>
-                              )}
-
-                              <div className="flex items-center gap-1">
-                                <button
-                                  onClick={() => {
-                                    const downloadToast = toast.loading("Starting download...");
-                                    try {
-                                      const byteCharacters = atob(msg.conversion.file);
-                                      const byteNumbers = new Array(byteCharacters.length);
-                                      for (let i = 0; i < byteCharacters.length; i++) {
-                                        byteNumbers[i] = byteCharacters.charCodeAt(i);
-                                      }
-                                      const byteArray = new Uint8Array(byteNumbers);
-                                      const blob = new Blob([byteArray], { type: msg.conversion.mimeType });
-                                      const url = URL.createObjectURL(blob);
-                                      const a = document.createElement('a');
-                                      a.href = url;
-                                      a.download = msg.conversion.fileName;
-                                      document.body.appendChild(a);
-                                      a.click();
-                                      setTimeout(() => {
-                                        document.body.removeChild(a);
-                                        URL.revokeObjectURL(url);
-                                        toast.dismiss(downloadToast);
-                                        toast.success("Download complete!");
-                                      }, 500);
-                                    } catch (err) {
-                                      toast.dismiss(downloadToast);
-                                      toast.error("Download failed");
-                                    }
-                                  }}
-                                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-white rounded-lg transition-all shadow-lg font-bold text-[11px] active:scale-95 hover:opacity-90"
-                                  style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))' }}
-                                >
-                                  <Download className="w-4 h-4" />
-                                  Download
-                                </button>
-
-
-                              </div>
-                            </div>
-                          )}
-
-                          {/* AI Feedback Actions - Strictly hide for media and processing */}
-                          {(msg.role === 'model' || msg.role === 'assistant') &&
-                            !msg.isProcessing && !msg.isGenerating && !msg.error &&
-                            typingMessageId !== msg.id && (
-                              <div className="mt-4 w-full block">
-                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
-                                  {(() => {
-                                    // Detect if the AI response contains Hindi (Devanagari script)
-                                    const isHindiContent = /[\u0900-\u097F]/.test(msg.content);
-                                    const prompts = isHindiContent ? FEEDBACK_PROMPTS.hi : FEEDBACK_PROMPTS.en;
-                                    const msgIdentifier = (msg.id || msg._id || Date.now()).toString();
-                                    const promptIndex = (msgIdentifier.charCodeAt(msgIdentifier.length - 1) || 0) % prompts.length;
-                                    return (
-                                      <p className="text-xs text-subtext font-medium flex items-center gap-1.5 shrink-0 m-0">
-                                        {prompts[promptIndex]}
-                                        <span className="text-sm">😊</span>
-                                      </p>
-                                    );
-                                  })()}
-                                  <div className="flex flex-col items-end gap-2 self-end sm:self-auto">
-                                    <div className="flex items-center gap-3">
-                                      {!isMediaFeature && (
-                                        <button
-                                          onClick={() => {
-                                            // Language is auto-detected inside speakResponse / detectLanguageFromText
-                                            speakResponse(msg.content, null, msg.id, msg.attachments || [], true);
-                                          }}
-                                          className={`transition-colors p-1.5 rounded-lg ${speakingMessageId === msg.id
-                                            ? 'text-primary bg-primary/10'
-                                            : 'text-subtext hover:text-primary hover:bg-surface-hover'
-                                            }`}
-                                          title={speakingMessageId === msg.id && !isPaused ? "Pause" : "Speak"}
-                                        >
-                                          {speakingMessageId === msg.id && !isPaused ? (
-                                            <Pause className="w-3.5 h-3.5" />
-                                          ) : (
-                                            <Volume2 className="w-3.5 h-3.5" />
-                                          )}
-                                        </button>
-                                      )}
-                                      {!isMediaFeature && (
-                                        <button
-                                          onClick={() => handleCopyMessage(msg.content)}
-                                          className="text-subtext hover:text-maintext transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
-                                          title="Copy"
-                                        >
-                                          <Copy className="w-3.5 h-3.5" />
-                                        </button>
-                                      )}
-                                      <button
-                                        onClick={() => handleThumbsUp(msg.id)}
-                                        className={`transition-colors p-1.5 rounded-lg ${messageFeedback[msg.id]?.type === 'up'
-                                          ? 'text-primary bg-primary/10'
-                                          : 'text-subtext hover:text-primary hover:bg-surface-hover'
-                                          }`}
-                                        title="Helpful"
-                                      >
-                                        <ThumbsUp className="w-3.5 h-3.5" />
-                                      </button>
-                                      <button
-                                        onClick={() => handleThumbsDown(msg.id)}
-                                        className={`transition-colors p-1.5 rounded-lg ${messageFeedback[msg.id]?.type === 'down'
-                                          ? 'text-red-500 bg-red-500/10'
-                                          : 'text-subtext hover:text-red-500 hover:bg-surface-hover'
-                                          }`}
-                                        title="Not Helpful"
-                                      >
-                                        <ThumbsDown className="w-3.5 h-3.5" />
-                                      </button>
-                                      <button
-                                        onClick={() => handleShare(msg.content)}
-                                        className="text-subtext hover:text-primary transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
-                                        title="Share Text"
-                                      >
-                                        <Share className="w-3.5 h-3.5" />
-                                      </button>
-
-                                      {/* PDF / ZIP Tools */}
-                                      <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 ml-2 pl-2">
-                                        {/* Edit Button for AI Legal Tools */}
-                                        {(msg.mode === MODES.LEGAL_TOOLKIT || msg.toolUsed?.toLowerCase().startsWith('legal_') || msg.toolUsed?.toLowerCase().includes('legal') || msg.toolUsed === 'Draft Maker') && (
-                                          <button
-                                            onClick={() => startEditing(msg)}
-                                            className="text-primary hover:text-primary transition-all p-1.5 hover:bg-primary/5 rounded-lg flex items-center gap-1 active:scale-95 group/edit"
-                                            title="Edit Draft"
-                                          >
-                                            <Edit2 className="w-3.5 h-3.5 group-hover/edit:scale-110 transition-transform" />
-                                          </button>
-                                        )}
-
-                                        {(msg.detectedMode === 'CODING_HELP' || msg.detectedMode === 'CODE_WRITER') ? (
-                                          <button
-                                            onClick={() => handleDownloadCodeProject(msg)}
-                                            className="text-primary hover:text-primary-dark transition-all p-1.5 hover:bg-primary/5 rounded-lg flex items-center gap-1 active:scale-95 group/code"
-                                            title="Download Code Project (ZIP)"
-                                          >
-                                            <FileText className="w-3.5 h-3.5 group-hover/code:scale-110 transition-transform" />
-                                            <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.6)]" />
-                                          </button>
-                                        ) : (
-                                          !isMediaFeature && (
-                                            <button
-                                              onClick={() => handlePdfAction('download', msg)}
-                                              className="text-red-500 hover:text-red-600 transition-all p-1.5 hover:bg-red-50/10 rounded-lg flex items-center gap-1 active:scale-95 group/pdf"
-                                              title="Download Ready-Made PDF Report"
-                                            >
-                                              <FileText className="w-3.5 h-3.5 group-hover/pdf:scale-110 transition-transform" />
-                                              <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
-                                            </button>
-                                          )
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-
-
-                          {/* Integrated Smart Suggestions (Only for the latest AI response) */}
-                          {idx === messages.length - 1 && (msg.role === 'model' || msg.role === 'assistant') &&
-                            suggestions.length > 0 && !isLoading && !typingMessageId && (
-                              <div className="suggestions-container animate-in fade-in slide-in-from-bottom-3 duration-500">
-                                {suggestions.map((item, index) => (
-                                  <button
-                                    key={index}
-                                    onClick={() => handleSuggestionClick(item)}
-                                    className="suggestion-btn"
-                                  >
-                                    {item}
-                                  </button>
                                 ))}
                               </div>
                             )}
 
 
 
-                          {/* Timestamp & User Actions */}
-                          <div className="mt-4 flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            {msg.role === 'user' && (
-                              <div className="flex items-center gap-1">
-                                <button
-                                  onClick={() => handleMessageDelete(msg.id)}
-                                  className="p-1.5 text-subtext hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
-                                  title="Delete"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => handleMessageUndo(msg)}
-                                  className="p-1.5 text-subtext hover:text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
-                                  title="Undo/Restore to Input"
-                                >
-                                  <Undo2 className="w-3.5 h-3.5" />
-                                </button>
-                                {!msg.attachment && (
+
+
+
+                            {editingMessageId === msg.id ? (
+                              <div className="flex flex-col gap-3 min-w-[200px] w-full mt-2">
+                                <textarea
+                                  value={editContent}
+                                  onChange={(e) => setEditContent(e.target.value)}
+                                  className="w-full bg-black/5 dark:bg-white/10 text-slate-900 dark:text-white rounded-xl p-5 text-sm focus:outline-none border border-black/10 dark:border-white/20 placeholder-slate-400 dark:placeholder-white/50 min-h-[500px] lg:min-h-[650px] font-mono leading-[1.8] resize-y shadow-inner transition-all hover:border-primary/30"
+                                  rows={25}
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                      e.preventDefault();
+                                      saveEdit(msg);
+                                    }
+                                    if (e.key === 'Escape') cancelEdit();
+                                  }}
+                                />
+                                <div className="flex gap-3 justify-end items-center">
                                   <button
-                                    onClick={() => startEditing(msg)}
-                                    className="p-1.5 text-subtext hover:text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
-                                    title="Edit"
+                                    onClick={cancelEdit}
+                                    className="text-slate-500 dark:text-white/80 hover:text-slate-800 dark:hover:text-white text-sm font-medium transition-colors"
                                   >
-                                    <Edit2 className="w-3.5 h-3.5" />
+                                    Cancel
                                   </button>
+                                  <button
+                                    onClick={() => saveEdit(msg)}
+                                    className="bg-primary text-white dark:bg-white dark:text-primary px-6 py-2 rounded-full text-sm font-bold hover:opacity-90 transition-all shadow-sm"
+                                  >
+                                    Update
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              msg.content && (
+                                <div id={`msg-text-${msg.id}`} className={`max-w-full break-words leading-relaxed whitespace-normal ${msg.role === 'user' ? 'bg-indigo-50/50 dark:bg-indigo-950/20 px-4 py-2.5 rounded-2xl rounded-tl-none border border-indigo-100/30 dark:border-indigo-800/20 text-slate-900 dark:text-white font-normal shadow-sm w-fit inline-block mb-1' : 'text-maintext'}`}>
+
+
+
+
+
+
+                                  {/* [READ MORE LOGIC]: For long messages, we show a truncate and read more option */}
+                                  <div className="relative group/msg-content">
+                                    <ReactMarkdown
+                                      remarkPlugins={[remarkGfm]}
+                                      urlTransform={(value) => value}
+                                      components={{
+                                        a: ({ href, children }) => {
+                                          if (href && href.startsWith('action:')) {
+                                            const isLocked = children?.toString()?.includes('🔒') || children?.toString()?.includes('Unlock');
+                                            return (
+                                              <button
+                                                onClick={(e) => {
+                                                  e.preventDefault();
+                                                  const toolKey = href.replace('action:', '');
+                                                  setCurrentMode('LEGAL_TOOLKIT');
+
+                                                  const TOOL_NAMES = {
+                                                    legal_draft_maker: "Draft Maker",
+                                                    legal_case_predictor: "Case Predictor",
+                                                    legal_argument_builder: "Argument Builder",
+                                                    legal_evidence_checker: "Evidence Analyst",
+                                                    legal_contract_analyzer: "Contract Analyzer",
+                                                    legal_strategy_engine: "Strategy Engine"
+                                                  };
+                                                  const toolName = TOOL_NAMES[toolKey] || toolKey;
+
+                                                  // Open the premium upsell if locked
+                                                  if (isLocked) {
+                                                    window.dispatchEvent(new CustomEvent('premium_required', { detail: { toolName } }));
+                                                    return;
+                                                  }
+
+                                                  setSelectedLegalTool({ id: toolKey, name: toolName });
+                                                  setActiveTool(toolName);
+
+                                                  setTimeout(() => {
+                                                    handleSendMessage(null, `Please proceed with ${toolName} using the current case context. Generate the full response for this task immediately without asking for further details if possible.`, toolKey);
+                                                  }, 150);
+                                                }}
+                                                className={`inline-flex mt-2 items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0 ${isLocked ? 'bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20' : 'bg-gradient-to-r from-primary/10 to-primary-dark/10 border border-primary/20 text-primary hover:bg-primary/20 hover:border-primary/40'}`}
+                                              >
+                                                {children}
+                                                <ChevronRight className="w-4 h-4 ml-1 opacity-70" />
+                                              </button>
+                                            );
+                                          }
+                                          const isInternal = href && href.startsWith('/');
+                                          return (
+                                            <a
+                                              href={href}
+                                              onClick={(e) => {
+                                                if (isInternal) {
+                                                  e.preventDefault();
+                                                  navigate(href);
+                                                }
+                                              }}
+                                              className="text-primary hover:underline font-bold cursor-pointer"
+                                              target={isInternal ? "_self" : "_blank"}
+                                              rel={isInternal ? "" : "noopener noreferrer"}
+                                            >
+                                              {children}
+                                            </a>
+                                          );
+                                        },
+                                        p: ({ children }) => <div className="mb-[14px] last:mb-0 leading-[1.6]">{children}</div>,
+                                        ul: ({ children }) => <ul className="list-disc pl-5 mb-[14px] last:mb-0 space-y-1.5">{children}</ul>,
+                                        ol: ({ children }) => <ol className="list-decimal pl-5 mb-[14px] last:mb-0 space-y-1.5">{children}</ol>,
+                                        li: ({ children }) => <li className="mb-1 last:mb-0 leading-[1.6]">{children}</li>,
+                                        h1: ({ children }) => <h1 className="text-[22px] font-semibold mb-3.5 mt-6 block tracking-tight">{children}</h1>,
+                                        h2: ({ children }) => <h2 className="text-[18px] font-semibold mb-3 mt-5 block tracking-tight">{children}</h2>,
+                                        h3: ({ children }) => <h3 className="text-[16px] font-semibold mb-2.5 mt-4 block tracking-tight">{children}</h3>,
+                                        strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                                        table: ({ children }) => (
+                                          <div className="overflow-x-auto my-4 rounded-xl border border-border/50 shadow-lg bg-surface/30 backdrop-blur-sm">
+                                            <table className="w-full border-collapse text-sm">{children}</table>
+                                          </div>
+                                        ),
+                                        thead: ({ children }) => <thead className="bg-primary/10 border-b border-border/50">{children}</thead>,
+                                        tbody: ({ children }) => <tbody className="divide-y divide-border/30">{children}</tbody>,
+                                        tr: ({ children }) => <tr className="transition-colors hover:bg-white/3">{children}</tr>,
+                                        th: ({ children }) => <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-primary">{children}</th>,
+                                        td: ({ children }) => <td className="px-4 py-3 text-sm text-maintext leading-relaxed">{children}</td>,
+                                        mark: ({ children }) => <mark className="bg-[#5555ff] text-white px-1 py-0.5 rounded-sm">{children}</mark>,
+                                        code: ({ node, inline, className, children, ...props }) => {
+                                          const match = /language-(\w+)/.exec(className || '');
+                                          const lang = match ? match[1] : '';
+                                          const codeValue = String(children).replace(/\n$/, '');
+                                          const isUser = msg.role === 'user';
+
+                                          if (!inline) {
+                                            return (
+                                              <div className={`rounded-xl overflow-hidden my-3 border ${isUser ? 'border-white/10 bg-black/20' : 'border-[#1a1a1a] bg-[#0d0d0d]'} shadow-2xl w-full max-w-full group/code`}>
+                                                {!isUser && (
+                                                  <div className="flex items-center justify-between px-4 py-2.5 bg-[#2d2d2d]/80 backdrop-blur-sm border-b border-zinc-800">
+                                                    <div className="flex items-center gap-2">
+                                                      <span className="text-[10px] font-black uppercase tracking-widest text-[#9ca3af]">{lang || 'plain text'}</span>
+                                                    </div>
+                                                    <button
+                                                      onClick={() => {
+                                                        navigator.clipboard.writeText(codeValue);
+                                                        toast.success("Code copied!");
+                                                      }}
+                                                      className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 hover:text-white transition-all bg-white/5 hover:bg-white/10 px-3 py-1 rounded-lg border border-white/5 active:scale-95"
+                                                    >
+                                                      <Copy className="w-3.5 h-3.5" />
+                                                      Copy
+                                                    </button>
+                                                  </div>
+                                                )}
+                                                <div className={`${isUser ? 'max-h-[500px]' : 'max-h-[600px]'} overflow-auto custom-scrollbar-thin ${isUser ? 'bg-transparent' : 'bg-[#0d0d0d]'}`}>
+                                                  <SyntaxHighlighter
+                                                    language={lang || 'text'}
+                                                    style={highlighterTheme}
+                                                    PreTag="div"
+                                                    customStyle={{
+                                                      margin: 0,
+                                                      padding: isUser ? '16px' : '20px',
+                                                      fontSize: isUser ? '13px' : '14px',
+                                                      lineHeight: '1.7',
+                                                      background: 'transparent',
+                                                      borderRadius: 0,
+                                                      border: 'none',
+                                                      color: '#e5e7eb', // Ensure visibility for plain text
+                                                      fontFamily: '"Fira Code", "JetBrains Mono", source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace'
+                                                    }}
+                                                    codeTagProps={{
+                                                      style: {
+                                                        fontFamily: 'inherit',
+                                                        background: 'transparent',
+                                                        color: 'inherit'
+                                                      }
+                                                    }}
+                                                    {...props}
+                                                  >
+                                                    {codeValue}
+                                                  </SyntaxHighlighter>
+                                                </div>
+                                              </div>
+                                            );
+                                          }
+                                          return (
+                                            <code className="bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded-md font-mono text-primary font-bold mx-0.5 text-xs translate-y-[-1px] inline-block" {...props}>
+                                              {children}
+                                            </code>
+                                          );
+                                        },
+                                        img: ({ node, ...props }) => {
+                                          const isDownloading = isDownloadingUrl === props.src;
+                                          return (
+                                            <div className="relative my-4 group/img-container max-w-full">
+                                              <div className="relative group/image overflow-hidden aspect-auto max-w-[500px] cursor-zoom-in w-fit" onClick={() => setViewingDoc({ url: props.src, type: 'image', name: 'AI Image' })}>
+                                                {msg.role === 'model' && (
+                                                  <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-100 sm:opacity-0 sm:group-hover/img-container:opacity-100 transition-opacity">
+                                                    <div className="flex items-center gap-2">
+                                                      <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                                                      <span className="text-[10px] font-bold text-white uppercase tracking-widest">AISA™ Generated Asset</span>
+                                                    </div>
+                                                  </div>
+                                                )}
+                                                <ImageViewer
+                                                  src={props.src}
+                                                  alt={props.alt || "AI Image"}
+                                                />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover/img-container:opacity-100 transition-opacity pointer-events-none" />
+                                              </div>
+                                              <button
+                                                onClick={() => handleDownload(props.src, `AISA_gen_${Date.now()}.png`)}
+                                                disabled={isDownloading}
+                                                className="absolute bottom-4 right-4 z-20 flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl border border-white/20 text-white shadow-lg transition-all active:scale-95 disabled:opacity-50"
+                                              >
+                                                <div className="flex items-center gap-2">
+                                                  {isDownloading ? (
+                                                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                  ) : (
+                                                    <Download className="w-4 h-4" />
+                                                  )}
+                                                  <span className="text-[10px] font-bold uppercase">
+                                                    {isDownloading ? 'Downloading...' : 'Download'}
+                                                  </span>
+                                                </div>
+                                              </button>
+                                            </div>
+                                          )
+                                        },
+                                      }}
+                                    >
+                                      {msg.content || msg.text || ""}
+                                    </ReactMarkdown>
+                                    {msg.cashflowData && (
+                                      <CashFlowChartWidget data={msg.cashflowData} />
+                                    )}
+                                  </div>
+                                  {/* Sources List (ONLY for Web Search, HIDE for RAG as requested) */}
+                                  {msg.role === 'model' && msg.isRealTime && msg.sources && msg.sources.length > 0 && (
+                                    <div className="mt-4 pt-4">
+                                      <p className="text-[10px] font-bold uppercase text-subtext mb-3 flex items-center gap-2">
+                                        <ExternalLink className="w-3 h-3" />
+                                        Web Sources
+                                      </p>
+                                      <div className="flex flex-wrap gap-2">
+                                        {msg.sources.map((source, sIdx) => (
+                                          <a
+                                            key={sIdx}
+                                            href={source.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-secondary/50 hover:bg-primary/10 border border-border rounded-lg transition-all group/source"
+                                          >
+                                            {source.url && source.url.includes('http') ? (
+                                              <Globe className="w-3 h-3 text-subtext group-hover/source:text-primary" />
+                                            ) : (
+                                              <FileText className="w-3 h-3 text-subtext group-hover/source:text-primary" />
+                                            )}
+                                            <span className="text-xs font-medium text-maintext group-hover/source:text-primary truncate max-w-[150px]">
+                                              {source.title}
+                                            </span>
+                                            <div className="w-4 h-4 bg-primary/20 rounded flex items-center justify-center">
+                                              <ExternalLink className="w-2.5 h-2.5 text-primary" />
+                                            </div>
+                                          </a>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {msg.videoUrl && (
+                                    <div className="relative mt-4 mb-2 w-fit max-w-full">
+                                      <CustomVideoPlayer src={msg.videoUrl} compact={true} />
+                                    </div>
+                                  )}
+
+                                  {/* Dynamic Image Rendering (if not in markdown) */}
+                                  {msg.imageUrl && (
+                                    <div
+                                      className="relative group/generated mt-4 mb-2 overflow-hidden transition-all hover:scale-[1.01] cursor-zoom-in w-fit max-w-sm"
+                                      onClick={() => {
+                                        if (!viewingDoc) setViewingDoc({ url: msg.imageUrl, type: 'image', name: 'Generated Image' });
+                                      }}
+                                    >
+                                      <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-100 sm:opacity-0 sm:group-hover/generated:opacity-100 transition-opacity">
+                                        <div className="flex items-center gap-2">
+                                          <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                                          <span className="text-[10px] font-bold text-white uppercase tracking-widest">AI Ads Generated Asset</span>
+                                        </div>
+                                      </div>
+                                      <img
+                                        src={msg.imageUrl}
+                                        alt="Generated Content"
+                                        className="w-full h-auto max-h-[420px] object-contain transition-all duration-500 group-hover/image:scale-[1.02]"
+                                        loading="eager"
+                                        onLoad={() => {
+                                          console.log("Image loaded successfully:", msg.imageUrl);
+                                          scrollToBottom(true);
+                                        }}
+                                        onError={(e) => {
+                                          console.error("Image load failed for URL:", msg.imageUrl);
+                                          if (!e.target.dataset.retried) {
+                                            e.target.dataset.retried = "true";
+                                            setTimeout(() => {
+                                              // ⚠️ Never append extra query params to signed URLs — it breaks the signature
+                                              const isSignedUrl = msg.imageUrl?.includes('X-Goog-Signature');
+                                              const retryUrl = isSignedUrl
+                                                ? msg.imageUrl  // Use exact URL for signed URLs
+                                                : msg.imageUrl + (msg.imageUrl.includes('?') ? '&' : '?') + 'retry=' + Date.now();
+                                              console.log("Retrying image load:", retryUrl);
+                                              e.target.src = retryUrl;
+                                            }, 2000);
+                                          } else {
+                                            const finalErrorMsg = msg.imageUrl?.includes('cloudinary') ? 'Cloudinary Error' : 'Image Load Error';
+                                            e.target.src = `https://placehold.co/600x400/222/fff?text=${encodeURIComponent(finalErrorMsg)}%0AClick+to+Retry`;
+                                            e.target.style.cursor = 'pointer';
+                                            e.target.onclick = (event) => {
+                                              event.stopPropagation();
+                                              const isSignedUrl = msg.imageUrl?.includes('X-Goog-Signature');
+                                              e.target.src = isSignedUrl
+                                                ? msg.imageUrl
+                                                : msg.imageUrl + (msg.imageUrl.includes('?') ? '&' : '?') + 'manual=' + Date.now();
+                                            };
+                                          }
+                                        }}
+                                      />
+                                      <div className="absolute bottom-3 right-3 flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover/generated:opacity-100 transition-all scale-100 sm:scale-90 sm:group-hover/generated:scale-100">
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setIsMagicEditing(true);
+
+                                            setEditRefImage({
+                                              url: msg.imageUrl,
+                                              name: 'Generated Asset',
+                                              type: 'image/png'
+                                            });
+                                            toast.success('Magic Edit mode active! Type your request.');
+                                            inputRef.current?.focus();
+                                          }}
+                                          className="p-2.5 bg-white/20 backdrop-blur-sm text-white rounded-xl hover:bg-white/30 shadow-lg border border-white/20"
+                                          title="Edit this Image"
+                                        >
+                                          <Wand2 className="w-4 h-4" />
+                                        </button>
+
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleCopyImage(msg.imageUrl);
+                                          }}
+                                          className="p-2.5 bg-white/20 backdrop-blur-sm text-white rounded-xl hover:bg-white/30 shadow-lg border border-white/20"
+                                          title="Copy Image"
+                                        >
+                                          <Copy className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                          disabled={isDownloadingUrl === msg.imageUrl}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDownload(msg.imageUrl, 'AISA-generated.png');
+                                          }}
+                                          className={`p-2.5 rounded-xl shadow-lg border border-white/20 flex items-center gap-2 ${isDownloadingUrl === msg.imageUrl ? 'bg-zinc-600 cursor-wait' : 'bg-primary text-white hover:bg-primary/90'}`}
+                                          title="Download High-Res"
+                                        >
+                                          <div className="flex items-center gap-2 px-1">
+                                            {isDownloadingUrl === msg.imageUrl ? (
+                                              <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                                            ) : (
+                                              <Download className="w-4 h-4" />
+                                            )}
+                                            <span className="text-[10px] font-bold uppercase">
+                                              {isDownloadingUrl === msg.imageUrl ? 'Downloading...' : 'Download'}
+                                            </span>
+                                          </div>
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {msg.snapshot && <AISnapshot data={msg.snapshot} />}
+                                </div>
+                              )
+                            )}
+
+                            {/* File Conversion Download Button */}
+                            {msg.conversion && msg.conversion.file && (
+                              <div className="mt-4 pt-3 border-t border-border/40 space-y-3" style={{ maxWidth: '260px' }}>
+
+                                {/* ── Modern Audio Player ── */}
+                                {msg.conversion.mimeType.startsWith('audio/') && (() => {
+                                  const audioSrc = msg.conversion.blobUrl || `data:${msg.conversion.mimeType};base64,${msg.conversion.file}`;
+                                  const playerId = `player-${msg.id}`;
+                                  return (
+                                    <div className="rounded-2xl overflow-hidden mb-2" style={{ background: 'linear-gradient(135deg, rgba(20,20,40,0.95) 0%, rgba(30,20,60,0.95) 100%)', border: '1px solid rgba(139,92,246,0.2)' }}>
+                                      {/* Waveform decorative bars + header */}
+                                      <div className="px-3 pt-3 pb-1 flex items-center gap-2.5">
+                                        <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}>
+                                          <Volume2 className="w-4 h-4 text-white" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-xs font-bold text-white truncate">{msg.conversion.fileName}</p>
+                                          <p className="text-[10px] text-purple-300/60 font-medium">
+                                            {msg.conversion.fileSize || ''}{msg.conversion.charCount ? ` · ${msg.conversion.charCount}c` : ''} · Audio
+                                          </p>
+                                        </div>
+                                        {/* Decorative waveform */}
+                                        <div className="flex items-center gap-[2px] shrink-0">
+                                          {[2, 4, 6, 4, 7, 5, 4, 6, 4, 3, 5, 4].map((h, i) => (
+                                            <div key={i} className="w-[2px] rounded-full opacity-40" style={{ height: `${h}px`, background: 'linear-gradient(to top, #7c3aed, #818cf8)' }} />
+                                          ))}
+                                        </div>
+                                      </div>
+
+                                      {/* Player controls */}
+                                      <div className="px-3 pb-3">
+                                        <audio id={playerId} src={audioSrc} preload="metadata" style={{ display: 'none' }} />
+
+                                        {/* Seek bar */}
+                                        <div className="mb-2">
+                                          <input
+                                            type="range" min="0" max="100" defaultValue="0" step="0.1"
+                                            className="w-full h-1 rounded-full cursor-pointer appearance-none"
+                                            style={{ background: 'rgba(255,255,255,0.08)' }}
+                                            onInput={(e) => {
+                                              const audio = document.getElementById(playerId);
+                                              if (audio && audio.duration) {
+                                                audio.currentTime = (e.target.value / 100) * audio.duration;
+                                              }
+                                              e.target.style.background = `linear-gradient(to right, #7c3aed 0%, #818cf8 ${e.target.value}%, rgba(255,255,255,0.08) ${e.target.value}%, rgba(255,255,255,0.08) 100%)`;
+                                            }}
+                                            ref={(el) => {
+                                              if (!el) return;
+                                              const audio = document.getElementById(playerId);
+                                              if (!audio) return;
+                                              const update = () => {
+                                                if (!audio.duration) return;
+                                                const pct = (audio.currentTime / audio.duration) * 100;
+                                                el.value = pct;
+                                                el.style.background = `linear-gradient(to right, #7c3aed 0%, #818cf8 ${pct}%, rgba(255,255,255,0.08) ${pct}%, rgba(255,255,255,0.08) 100%)`;
+                                                // update time display
+                                                const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+                                                const timeEl = document.getElementById(`time-${playerId}`);
+                                                const durEl = document.getElementById(`dur-${playerId}`);
+                                                if (timeEl) timeEl.textContent = fmt(audio.currentTime);
+                                                if (durEl && audio.duration) durEl.textContent = fmt(audio.duration);
+                                              };
+                                              audio.addEventListener('timeupdate', update);
+                                              audio.addEventListener('loadedmetadata', update);
+                                            }}
+                                          />
+                                          <div className="flex justify-between text-[10px] text-white/20 mt-1 font-mono">
+                                            <span id={`time-${playerId}`}>0:00</span>
+                                            <span id={`dur-${playerId}`}>--:--</span>
+                                          </div>
+                                        </div>
+
+                                        {/* Buttons */}
+                                        <div className="flex items-center gap-3">
+                                          {/* Play/Pause */}
+                                          <button
+                                            onClick={(e) => {
+                                              const audio = document.getElementById(playerId);
+                                              const btn = e.currentTarget;
+                                              if (!audio) return;
+                                              if (audio.paused) {
+                                                // Pause all other players
+                                                document.querySelectorAll('audio').forEach(a => { if (a !== audio) a.pause(); });
+                                                audio.play();
+                                                btn.dataset.playing = 'true';
+                                                btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
+                                                audio.addEventListener('ended', () => {
+                                                  btn.dataset.playing = '';
+                                                  btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+                                                }, { once: true });
+                                              } else {
+                                                audio.pause();
+                                                btn.dataset.playing = '';
+                                                btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+                                              }
+                                            }}
+                                            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 shadow-lg shadow-primary/30 transition-transform active:scale-90"
+                                            style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))' }}
+                                          >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+                                          </button>
+
+                                          {/* Speed pill */}
+                                          <button
+                                            onClick={(e) => {
+                                              const audio = document.getElementById(playerId);
+                                              if (!audio) return;
+                                              const speeds = [1, 1.25, 1.5, 1.75, 2];
+                                              const cur = speeds.indexOf(audio.playbackRate);
+                                              const next = speeds[(cur + 1) % speeds.length];
+                                              audio.playbackRate = next;
+                                              e.currentTarget.textContent = `${next}×`;
+                                            }}
+                                            className="px-2.5 py-1 text-[10px] font-bold text-primary-light rounded-lg border border-primary/20 hover:border-primary/50 transition-colors"
+                                            style={{ background: 'var(--color-primary-bg)' }}
+                                          >1×</button>
+
+                                          <div className="flex-1" />
+
+                                          {/* Volume */}
+                                          <button onClick={(e) => {
+                                            const audio = document.getElementById(playerId);
+                                            if (!audio) return;
+                                            audio.muted = !audio.muted;
+                                            e.currentTarget.style.opacity = audio.muted ? '0.4' : '1';
+                                          }} className="text-white/40 hover:text-white/80 transition-colors">
+                                            <Volume2 className="w-4 h-4" />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+
+                                {/* File metadata + Download button */}
+                                {!msg.conversion.mimeType.startsWith('audio/') && (
+                                  <div className="flex items-center justify-between px-1 py-1">
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs font-bold text-maintext truncate">{msg.conversion.fileName}</p>
+                                      <p className="text-[9px] text-subtext font-bold uppercase tracking-widest flex items-center gap-1.5">
+                                        <span className="px-1 py-0.5 bg-primary/10 text-primary rounded-md border border-transparent">
+                                          {msg.conversion.fileSize || "Ready"}
+                                        </span>
+                                        {msg.conversion.charCount && (
+                                          <span className="px-1 py-0.5 bg-secondary/30 text-subtext rounded-md border border-transparent">
+                                            {msg.conversion.charCount}C
+                                          </span>
+                                        )}
+                                        {msg.conversion.mimeType.includes('pdf') ? 'PDF' : 'DOCX'}
+                                      </p>
+                                    </div>
+                                  </div>
                                 )}
-                                <button
-                                  onClick={() => handleCopyMessage(msg.content || msg.text)}
-                                  className="p-1.5 text-subtext hover:text-maintext hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
-                                  title="Copy"
-                                >
-                                  <Copy className="w-3.5 h-3.5" />
-                                </button>
+
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => {
+                                      const downloadToast = toast.loading("Starting download...");
+                                      try {
+                                        const byteCharacters = atob(msg.conversion.file);
+                                        const byteNumbers = new Array(byteCharacters.length);
+                                        for (let i = 0; i < byteCharacters.length; i++) {
+                                          byteNumbers[i] = byteCharacters.charCodeAt(i);
+                                        }
+                                        const byteArray = new Uint8Array(byteNumbers);
+                                        const blob = new Blob([byteArray], { type: msg.conversion.mimeType });
+                                        const url = URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = msg.conversion.fileName;
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        setTimeout(() => {
+                                          document.body.removeChild(a);
+                                          URL.revokeObjectURL(url);
+                                          toast.dismiss(downloadToast);
+                                          toast.success("Download complete!");
+                                        }, 500);
+                                      } catch (err) {
+                                        toast.dismiss(downloadToast);
+                                        toast.error("Download failed");
+                                      }
+                                    }}
+                                    className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-white rounded-lg transition-all shadow-lg font-bold text-[11px] active:scale-95 hover:opacity-90"
+                                    style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))' }}
+                                  >
+                                    <Download className="w-4 h-4" />
+                                    Download
+                                  </button>
+
+
+                                </div>
                               </div>
                             )}
 
-                            <span className="text-[10px] text-subtext font-medium">
-                              {new Date(msg.timestamp).toLocaleTimeString([], {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </span>
+                            {/* AI Feedback Actions - Strictly hide for media and processing */}
+                            {(msg.role === 'model' || msg.role === 'assistant') &&
+                              !msg.isProcessing && !msg.isGenerating && !msg.error &&
+                              typingMessageId !== msg.id && (
+                                <div className="mt-4 w-full block">
+                                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
+                                    {(() => {
+                                      // Detect if the AI response contains Hindi (Devanagari script)
+                                      const isHindiContent = /[\u0900-\u097F]/.test(msg.content);
+                                      const prompts = isHindiContent ? FEEDBACK_PROMPTS.hi : FEEDBACK_PROMPTS.en;
+                                      const msgIdentifier = (msg.id || msg._id || Date.now()).toString();
+                                      const promptIndex = (msgIdentifier.charCodeAt(msgIdentifier.length - 1) || 0) % prompts.length;
+                                      return (
+                                        <p className="text-xs text-subtext font-medium flex items-center gap-1.5 shrink-0 m-0">
+                                          {prompts[promptIndex]}
+                                          <span className="text-sm">😊</span>
+                                        </p>
+                                      );
+                                    })()}
+                                    <div className="flex flex-col items-end gap-2 self-end sm:self-auto">
+                                      <div className="flex items-center gap-3">
+                                        {!isMediaFeature && (
+                                          <button
+                                            onClick={() => {
+                                              // Language is auto-detected inside speakResponse / detectLanguageFromText
+                                              speakResponse(msg.content, null, msg.id, msg.attachments || [], true);
+                                            }}
+                                            className={`transition-colors p-1.5 rounded-lg ${speakingMessageId === msg.id
+                                              ? 'text-primary bg-primary/10'
+                                              : 'text-subtext hover:text-primary hover:bg-surface-hover'
+                                              }`}
+                                            title={speakingMessageId === msg.id && !isPaused ? "Pause" : "Speak"}
+                                          >
+                                            {speakingMessageId === msg.id && !isPaused ? (
+                                              <Pause className="w-3.5 h-3.5" />
+                                            ) : (
+                                              <Volume2 className="w-3.5 h-3.5" />
+                                            )}
+                                          </button>
+                                        )}
+                                        {!isMediaFeature && (
+                                          <button
+                                            onClick={() => handleCopyMessage(msg.content)}
+                                            className="text-subtext hover:text-maintext transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
+                                            title="Copy"
+                                          >
+                                            <Copy className="w-3.5 h-3.5" />
+                                          </button>
+                                        )}
+                                        <button
+                                          onClick={() => handleThumbsUp(msg.id)}
+                                          className={`transition-colors p-1.5 rounded-lg ${messageFeedback[msg.id]?.type === 'up'
+                                            ? 'text-primary bg-primary/10'
+                                            : 'text-subtext hover:text-primary hover:bg-surface-hover'
+                                            }`}
+                                          title="Helpful"
+                                        >
+                                          <ThumbsUp className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                          onClick={() => handleThumbsDown(msg.id)}
+                                          className={`transition-colors p-1.5 rounded-lg ${messageFeedback[msg.id]?.type === 'down'
+                                            ? 'text-red-500 bg-red-500/10'
+                                            : 'text-subtext hover:text-red-500 hover:bg-surface-hover'
+                                            }`}
+                                          title="Not Helpful"
+                                        >
+                                          <ThumbsDown className="w-3.5 h-3.5" />
+                                        </button>
+                                        <button
+                                          onClick={() => handleShare(msg.content)}
+                                          className="text-subtext hover:text-primary transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
+                                          title="Share Text"
+                                        >
+                                          <Share className="w-3.5 h-3.5" />
+                                        </button>
+
+                                        {/* PDF / ZIP Tools */}
+                                        <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 ml-2 pl-2">
+                                          {/* Edit Button for AI Legal Tools */}
+                                          {(msg.mode === MODES.LEGAL_TOOLKIT || msg.toolUsed?.toLowerCase().startsWith('legal_') || msg.toolUsed?.toLowerCase().includes('legal') || msg.toolUsed === 'Draft Maker') && (
+                                            <button
+                                              onClick={() => startEditing(msg)}
+                                              className="text-primary hover:text-primary transition-all p-1.5 hover:bg-primary/5 rounded-lg flex items-center gap-1 active:scale-95 group/edit"
+                                              title="Edit Draft"
+                                            >
+                                              <Edit2 className="w-3.5 h-3.5 group-hover/edit:scale-110 transition-transform" />
+                                            </button>
+                                          )}
+
+                                          {(msg.detectedMode === 'CODING_HELP' || msg.detectedMode === 'CODE_WRITER') ? (
+                                            <button
+                                              onClick={() => handleDownloadCodeProject(msg)}
+                                              className="text-primary hover:text-primary-dark transition-all p-1.5 hover:bg-primary/5 rounded-lg flex items-center gap-1 active:scale-95 group/code"
+                                              title="Download Code Project (ZIP)"
+                                            >
+                                              <FileText className="w-3.5 h-3.5 group-hover/code:scale-110 transition-transform" />
+                                              <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.6)]" />
+                                            </button>
+                                          ) : (
+                                            !isMediaFeature && (
+                                              <button
+                                                onClick={() => handlePdfAction('download', msg)}
+                                                className="text-red-500 hover:text-red-600 transition-all p-1.5 hover:bg-red-50/10 rounded-lg flex items-center gap-1 active:scale-95 group/pdf"
+                                                title="Download Ready-Made PDF Report"
+                                              >
+                                                <FileText className="w-3.5 h-3.5 group-hover/pdf:scale-110 transition-transform" />
+                                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                                              </button>
+                                            )
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+
+                            {/* Integrated Smart Suggestions (Only for the latest AI response) */}
+                            {idx === messages.length - 1 && (msg.role === 'model' || msg.role === 'assistant') &&
+                              suggestions.length > 0 && !isLoading && !typingMessageId && (
+                                <div className="suggestions-container animate-in fade-in slide-in-from-bottom-3 duration-500">
+                                  {suggestions.map((item, index) => (
+                                    <button
+                                      key={index}
+                                      onClick={() => handleSuggestionClick(item)}
+                                      className="suggestion-btn"
+                                    >
+                                      {item}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+
+
+
+                            {/* Timestamp & User Actions */}
+                            <div className="mt-4 flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                              {msg.role === 'user' && (
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => handleMessageDelete(msg.id)}
+                                    className="p-1.5 text-subtext hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                    title="Delete"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleMessageUndo(msg)}
+                                    className="p-1.5 text-subtext hover:text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+                                    title="Undo/Restore to Input"
+                                  >
+                                    <Undo2 className="w-3.5 h-3.5" />
+                                  </button>
+                                  {!msg.attachment && (
+                                    <button
+                                      onClick={() => startEditing(msg)}
+                                      className="p-1.5 text-subtext hover:text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+                                      title="Edit"
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleCopyMessage(msg.content || msg.text)}
+                                    className="p-1.5 text-subtext hover:text-maintext hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+                                    title="Copy"
+                                  >
+                                    <Copy className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              )}
+
+                              <span className="text-[10px] text-subtext font-medium">
+                                {new Date(msg.timestamp).toLocaleTimeString([], {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
                     );
                   })}
 
@@ -7159,126 +7208,126 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
         {/* Welcome Screen - Integrated Hub */}
         <AnimatePresence>
-          {messages.length === 0 && 
-            currentMode !== 'LEGAL_TOOLKIT' && 
-            (!currentCase || selectedLegalTool?.id !== 'legal_my_case') && 
+          {messages.length === 0 &&
+            currentMode !== 'LEGAL_TOOLKIT' &&
+            (!currentCase || selectedLegalTool?.id !== 'legal_my_case') &&
             !(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || activeLegalToolkit) && (
-            <motion.div
-              key="welcome-screen"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
-              className="absolute inset-0 z-10 pointer-events-auto flex flex-col items-center overflow-y-auto overflow-x-hidden pt-8 pb-48 sm:pt-12 md:pb-60 scrollbar-hide"
-            >
-              <div className="relative z-10 flex flex-col items-center w-full max-w-5xl mx-auto px-4 sm:px-6">
-                <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.1 }}
-                  className="mb-6"
-                >
-                  <img
-                    src={logo}
-                    alt="AISA"
-                    className="w-16 h-12 sm:w-20 sm:h-16 mx-auto object-cover object-top drop-shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.4)] transition-all duration-700 hover:scale-110"
-                  />
-                </motion.div>
-                <section className="w-full px-1 sm:px-2 md:px-0">
-                  <FuturisticToolCards
-                    isAdmin={isAdminUser}
-                    activeToolId={
-                      isImageGeneration ? 'image' :
-                        isVideoGeneration ? 'video' :
-                          isDeepSearch ? 'deep_search' :
-                            isWebSearch ? 'web_search' :
-                              isCodeWriter ? 'code' :
-                                isAudioConvertMode ? 'audio' :
-                                  isFileAnalysis ? 'document' :
-                                    isMagicEditing ? 'edit_image' :
-                                      isMagicVideoModalOpen ? 'image_to_video' :
-                                        isStockModalOpen ? 'ai_cashflow' :
-                                          (activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') ? 'legal' : null
-                    }
-                    onToolSelect={(id) => {
-                      setIsImageGeneration(false);
-                      setIsVideoGeneration(false);
-                      setIsAudioConvertMode(false);
-                      setIsCodeWriter(false);
-                      setIsDeepSearch(false);
-                      setIsWebSearch(false);
-                      setIsFileAnalysis(false);
-                      setIsMagicEditing(false);
-                      setIsMagicVideoModalOpen(false);
-                      setIsCashFlowMode(false);
-                      if (id !== 'legal') {
-                        setActiveLegalToolkit(false);
+              <motion.div
+                key="welcome-screen"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
+                className="absolute inset-0 z-10 pointer-events-auto flex flex-col items-center overflow-y-auto overflow-x-hidden pt-8 pb-48 sm:pt-12 md:pb-60 scrollbar-hide"
+              >
+                <div className="relative z-10 flex flex-col items-center w-full max-w-5xl mx-auto px-4 sm:px-6">
+                  <motion.div
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                    className="mb-6"
+                  >
+                    <img
+                      src={logo}
+                      alt="AISA"
+                      className="w-16 h-12 sm:w-20 sm:h-16 mx-auto object-cover object-top drop-shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.4)] transition-all duration-700 hover:scale-110"
+                    />
+                  </motion.div>
+                  <section className="w-full px-1 sm:px-2 md:px-0">
+                    <FuturisticToolCards
+                      isAdmin={isAdminUser}
+                      activeToolId={
+                        isImageGeneration ? 'image' :
+                          isVideoGeneration ? 'video' :
+                            isDeepSearch ? 'deep_search' :
+                              isWebSearch ? 'web_search' :
+                                isCodeWriter ? 'code' :
+                                  isAudioConvertMode ? 'audio' :
+                                    isFileAnalysis ? 'document' :
+                                      isMagicEditing ? 'edit_image' :
+                                        isMagicVideoModalOpen ? 'image_to_video' :
+                                          isStockModalOpen ? 'ai_cashflow' :
+                                            (activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') ? 'legal' : null
                       }
+                      onToolSelect={(id) => {
+                        setIsImageGeneration(false);
+                        setIsVideoGeneration(false);
+                        setIsAudioConvertMode(false);
+                        setIsCodeWriter(false);
+                        setIsDeepSearch(false);
+                        setIsWebSearch(false);
+                        setIsFileAnalysis(false);
+                        setIsMagicEditing(false);
+                        setIsMagicVideoModalOpen(false);
+                        setIsCashFlowMode(false);
+                        if (id !== 'legal') {
+                          setActiveLegalToolkit(false);
+                        }
 
-                      if (id === 'image') {
-                        if (!checkPremiumTool('Image Generation')) return;
-                        setIsImageGeneration(true);
-                        if (inputRef.current) { inputRef.current.value = "Generate an image of "; inputRef.current.focus(); }
-                        toast.success("Image Mode Active");
-                      } else if (id === 'video') {
-                        if (!checkPremiumTool('Generate Video')) return;
-                        setIsVideoGeneration(true);
-                        if (inputRef.current) { inputRef.current.value = "Generate a video of "; inputRef.current.focus(); }
-                        toast.success("Video Mode Active");
-                      } else if (id === 'audio') {
-                        if (!checkPremiumTool('Convert to Audio')) return;
-                        setIsAudioConvertMode(true);
-                        if (inputRef.current) { inputRef.current.value = "Convert this text to audio: "; inputRef.current.focus(); }
-                        toast.success("Audio Mode Active");
-                      } else if (id === 'code') {
-                        if (!checkPremiumTool('Code Writer')) return;
-                        setIsCodeWriter(true);
-                        if (inputRef.current) { inputRef.current.value = "Write a function to "; inputRef.current.focus(); }
-                        toast.success("Code Mode Active");
-                      } else if (id === 'deep_search') {
-                        if (!checkPremiumTool('Deep Search')) return;
-                        setIsDeepSearch(true);
-                        if (inputRef.current) { inputRef.current.value = "Research in-depth about "; inputRef.current.focus(); }
-                        toast.success("Deep Intelligence Active");
-                      } else if (id === 'web_search') {
-                        if (!checkPremiumTool('Web Search')) return;
-                        setIsWebSearch(true);
-                        if (inputRef.current) { inputRef.current.value = "Search for live updates on "; inputRef.current.focus(); }
-                        toast.success("Real-Time Search Active");
-                      } else if (id === 'document') {
-                        if (!checkPremiumTool('Document Analyzer')) return;
-                        setIsFileAnalysis(true);
-                        uploadInputRef.current?.click();
-                        toast.success("Upload document for analysis");
-                      } else if (id === 'edit_image') {
-                        if (!checkPremiumTool('Edit Image')) return;
-                        setIsMagicEditing(true);
-                        toast.success("Image Editor Active");
-                      } else if (id === 'image_to_video') {
-                        if (!checkPremiumTool('Image to Video')) return;
-                        setIsMagicVideoModalOpen(true);
-                        toast.success("Image to Video Mode Active");
-                      } else if (id === 'ai_cashflow') {
-                        if (!checkPremiumTool('AI CashFlow')) return;
-                        setIsCashFlowMode(true);
-                        setIsStockModalOpen(true);
-                        toast.success("AI CashFlow Active 📈");
-                      } else if (id === 'aiad_agent') {
-                        if (!checkPremiumTool('AI Ad Agent')) return;
-                        setIsSocialMediaDashboardOpen(true);
-                        toast.success("AI ADS™ Active");
-                      } else if (id === 'legal') {
-                        if (!checkPremiumTool('AI Legal')) return;
-                        setActiveLegalToolkit(true);
-                        setCurrentMode('LEGAL_TOOLKIT');
-                        // Removed setLegalView('DASHBOARD') to keep input box visible behind modal
-                        toast.success("AI Legal Toolkit Active ⚖️");
-                      }
-                    }}
-                  />
-                </section>
-              </div>
-            </motion.div>
-          )}
+                        if (id === 'image') {
+                          if (!checkPremiumTool('Image Generation')) return;
+                          setIsImageGeneration(true);
+                          if (inputRef.current) { inputRef.current.value = "Generate an image of "; inputRef.current.focus(); }
+                          toast.success("Image Mode Active");
+                        } else if (id === 'video') {
+                          if (!checkPremiumTool('Generate Video')) return;
+                          setIsVideoGeneration(true);
+                          if (inputRef.current) { inputRef.current.value = "Generate a video of "; inputRef.current.focus(); }
+                          toast.success("Video Mode Active");
+                        } else if (id === 'audio') {
+                          if (!checkPremiumTool('Convert to Audio')) return;
+                          setIsAudioConvertMode(true);
+                          if (inputRef.current) { inputRef.current.value = "Convert this text to audio: "; inputRef.current.focus(); }
+                          toast.success("Audio Mode Active");
+                        } else if (id === 'code') {
+                          if (!checkPremiumTool('Code Writer')) return;
+                          setIsCodeWriter(true);
+                          if (inputRef.current) { inputRef.current.value = "Write a function to "; inputRef.current.focus(); }
+                          toast.success("Code Mode Active");
+                        } else if (id === 'deep_search') {
+                          if (!checkPremiumTool('Deep Search')) return;
+                          setIsDeepSearch(true);
+                          if (inputRef.current) { inputRef.current.value = "Research in-depth about "; inputRef.current.focus(); }
+                          toast.success("Deep Intelligence Active");
+                        } else if (id === 'web_search') {
+                          if (!checkPremiumTool('Web Search')) return;
+                          setIsWebSearch(true);
+                          if (inputRef.current) { inputRef.current.value = "Search for live updates on "; inputRef.current.focus(); }
+                          toast.success("Real-Time Search Active");
+                        } else if (id === 'document') {
+                          if (!checkPremiumTool('Document Analyzer')) return;
+                          setIsFileAnalysis(true);
+                          uploadInputRef.current?.click();
+                          toast.success("Upload document for analysis");
+                        } else if (id === 'edit_image') {
+                          if (!checkPremiumTool('Edit Image')) return;
+                          setIsMagicEditing(true);
+                          toast.success("Image Editor Active");
+                        } else if (id === 'image_to_video') {
+                          if (!checkPremiumTool('Image to Video')) return;
+                          setIsMagicVideoModalOpen(true);
+                          toast.success("Image to Video Mode Active");
+                        } else if (id === 'ai_cashflow') {
+                          if (!checkPremiumTool('AI CashFlow')) return;
+                          setIsCashFlowMode(true);
+                          setIsStockModalOpen(true);
+                          toast.success("AI CashFlow Active 📈");
+                        } else if (id === 'aiad_agent') {
+                          if (!checkPremiumTool('AI Ad Agent')) return;
+                          setIsSocialMediaDashboardOpen(true);
+                          toast.success("AI ADS™ Active");
+                        } else if (id === 'legal') {
+                          if (!checkPremiumTool('AI Legal')) return;
+                          setActiveLegalToolkit(true);
+                          setCurrentMode('LEGAL_TOOLKIT');
+                          // Removed setLegalView('DASHBOARD') to keep input box visible behind modal
+                          toast.success("AI Legal Toolkit Active ⚖️");
+                        }
+                      }}
+                    />
+                  </section>
+                </div>
+              </motion.div>
+            )}
         </AnimatePresence>
 
         {/* Unified Chat Input Container */}
@@ -7286,981 +7335,981 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
           <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none">
             {/* Gradient Mask to hide text scrolling behind/below input */}
             <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#f8f9fc] via-[#f8f9fc] to-transparent dark:from-zinc-950 dark:via-zinc-950 to-transparent z-10" />
-            
+
             <div className="relative z-20" style={{ padding: '0 1rem calc(1rem + env(safe-area-inset-bottom, 0px)) 1rem' }}>
-            <div className="max-w-4xl mx-auto w-full pointer-events-auto">
+              <div className="max-w-4xl mx-auto w-full pointer-events-auto">
 
 
-              <form
-                onSubmit={handleSendMessage}
-                className="relative w-full flex flex-col transition-all duration-300 p-2 z-50 aisa-chat-input-wrapper bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[24px] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] ring-1 ring-black/5 overflow-visible"
-              >
-                {/* Internal File Preview Area */}
-                {filePreviews.length > 0 && (
-                  <div className="flex flex-wrap gap-4 px-2 py-2 mb-2">
-                    {filePreviews.map((preview) => (
-                      <div key={preview.id} className="relative group shrink-0 w-[68px] sm:w-[76px] aspect-square bg-slate-100 dark:bg-zinc-800 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-700 overflow-visible">
-                        {preview.type.startsWith('image/') ? (
-                          <div className="w-full h-full rounded-2xl overflow-hidden">
-                            <img src={preview.url} alt="Preview" className="w-full h-full object-cover" />
+                <form
+                  onSubmit={handleSendMessage}
+                  className="relative w-full flex flex-col transition-all duration-300 p-2 z-50 aisa-chat-input-wrapper bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[24px] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] ring-1 ring-black/5 overflow-visible"
+                >
+                  {/* Internal File Preview Area */}
+                  {filePreviews.length > 0 && (
+                    <div className="flex flex-wrap gap-4 px-2 py-2 mb-2">
+                      {filePreviews.map((preview) => (
+                        <div key={preview.id} className="relative group shrink-0 w-[68px] sm:w-[76px] aspect-square bg-slate-100 dark:bg-zinc-800 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-700 overflow-visible">
+                          {preview.type.startsWith('image/') ? (
+                            <div className="w-full h-full rounded-2xl overflow-hidden">
+                              <img src={preview.url} alt="Preview" className="w-full h-full object-cover" />
+                            </div>
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center p-1">
+                              <FileText className="w-7 h-7 text-primary/60" />
+                              <span className="text-[7px] font-black uppercase text-primary/70 mt-1 truncate px-1">{preview.type.split('/')[1]?.split('-')[0] || 'FILE'}</span>
+                            </div>
+                          )}
+                          <div className="absolute -top-1.5 -right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-[101]">
+                            <button type="button" className="w-6 h-6 bg-white dark:bg-zinc-700 text-slate-800 dark:text-white rounded-full flex items-center justify-center shadow-lg border border-slate-100 dark:border-zinc-600 hover:scale-110"><Edit2 size={12} /></button>
+                            <button type="button" onClick={() => handleRemoveFile(preview.id)} className="w-6 h-6 bg-white dark:bg-zinc-700 text-red-500 rounded-full flex items-center justify-center shadow-lg border border-slate-100 dark:border-zinc-600 hover:scale-110"><X size={12} /></button>
                           </div>
-                        ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center p-1">
-                            <FileText className="w-7 h-7 text-primary/60" />
-                            <span className="text-[7px] font-black uppercase text-primary/70 mt-1 truncate px-1">{preview.type.split('/')[1]?.split('-')[0] || 'FILE'}</span>
-                          </div>
-                        )}
-                        <div className="absolute -top-1.5 -right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-[101]">
-                          <button type="button" className="w-6 h-6 bg-white dark:bg-zinc-700 text-slate-800 dark:text-white rounded-full flex items-center justify-center shadow-lg border border-slate-100 dark:border-zinc-600 hover:scale-110"><Edit2 size={12} /></button>
-                          <button type="button" onClick={() => handleRemoveFile(preview.id)} className="w-6 h-6 bg-white dark:bg-zinc-700 text-red-500 rounded-full flex items-center justify-center shadow-lg border border-slate-100 dark:border-zinc-600 hover:scale-110"><X size={12} /></button>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Reference Image Preview */}
-                {isMagicEditing && editRefImage && filePreviews.length === 0 && (
-                  <div className="flex p-2 mb-1">
-                    <div className="relative group shrink-0 w-16 h-16 bg-white dark:bg-zinc-800 border border-primary/20 rounded-xl shadow-md overflow-visible">
-                      <img src={editRefImage.url} alt="Reference" className="w-full h-full object-cover rounded-xl" />
-                      <button type="button" onClick={() => setEditRefImage(null)} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-zinc-900 text-white rounded-full flex items-center justify-center shadow-lg border border-white/20"><X size={12} /></button>
+                      ))}
                     </div>
-                  </div>
-                )}
+                  )}
 
-                <input id="file-upload" type="file" ref={uploadInputRef} onChange={handleFileSelect} multiple className="hidden" />
-                <input id="drive-upload" type="file" ref={driveInputRef} onChange={handleFileSelect} multiple className="hidden" />
-                <input id="doc-voice-upload" type="file" onChange={handleDocToVoiceSelect} className="hidden" accept=".pdf,.doc,.docx,.txt" />
-                <input id="photos-upload" type="file" ref={photosInputRef} onChange={handleFileSelect} multiple className="hidden" accept="image/*" />
-                <input id="camera-upload" type="file" ref={cameraInputRef} onChange={handleFileSelect} className="hidden" accept="image/*" capture="environment" />
-
-                <div className="flex items-end gap-2 w-full">
-
-
-                  {/* AI CashFlow Search Results Dropdown */}
-                  {isCashFlowMode && Array.isArray(stockSearchResults) && stockSearchResults.length > 0 && (
-                    <div className="absolute bottom-full left-0 right-0 mb-3 px-2 z-[110] pointer-events-auto max-h-[300px] overflow-y-auto custom-scrollbar">
-                      <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden">
-                        {stockSearchResults.map((stock) => (
-                          <button
-                            key={stock.symbol}
-                            type="button"
-                            onClick={() => {
-                              setSelectedStock(stock);
-                              setInputValue(stock.name);
-                              setStockSearchResults([]);
-                            }}
-                            className="w-full text-left px-4 py-3 hover:bg-primary/10 border-b border-slate-100 dark:border-zinc-800 last:border-0 flex items-center justify-between group transition-colors"
-                          >
-                            <div className="flex flex-col">
-                              <span className="font-bold text-slate-800 dark:text-white group-hover:text-primary transition-colors">{stock.symbol}</span>
-                              <span className="text-xs text-slate-500 dark:text-zinc-400 line-clamp-1">{stock.name}</span>
-                            </div>
-                            <div className="text-right shrink-0">
-                              <span className="text-[10px] px-2 py-0.5 bg-slate-100 dark:bg-white/5 rounded text-slate-500 dark:text-zinc-400 font-bold uppercase">{stock.region}</span>
-                            </div>
-                          </button>
-                        ))}
+                  {/* Reference Image Preview */}
+                  {isMagicEditing && editRefImage && filePreviews.length === 0 && (
+                    <div className="flex p-2 mb-1">
+                      <div className="relative group shrink-0 w-16 h-16 bg-white dark:bg-zinc-800 border border-primary/20 rounded-xl shadow-md overflow-visible">
+                        <img src={editRefImage.url} alt="Reference" className="w-full h-full object-cover rounded-xl" />
+                        <button type="button" onClick={() => setEditRefImage(null)} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-zinc-900 text-white rounded-full flex items-center justify-center shadow-lg border border-white/20"><X size={12} /></button>
                       </div>
                     </div>
                   )}
 
-                  {/* Left Actions Group */}
-                  <div className="flex items-center gap-[8px] pl-[14px] shrink-0">
-                    <AnimatePresence>
-                      {isAttachMenuOpen && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                          animate={{ opacity: 1, scale: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                          transition={{ duration: 0.2, ease: "easeOut" }}
-                          ref={menuRef}
-                          className={`absolute bottom-full left-0 ${(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') ? 'mb-[60px]' : 'mb-4'} w-[min(85vw,220px)] bg-surface/95 dark:bg-[#1a1a1a]/95 border border-border/50 rounded-2xl shadow-2xl overflow-hidden z-[110] backdrop-blur-xl ring-1 ring-black/5`}
-                        >
-                          <div className="p-2 space-y-1">
-                            {getAgentCapabilities(activeAgent.agentName, activeAgent.category).canCamera && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  cameraInputRef.current?.click();
-                                  setIsAttachMenuOpen(false);
-                                }}
+                  <input id="file-upload" type="file" ref={uploadInputRef} onChange={handleFileSelect} multiple className="hidden" />
+                  <input id="drive-upload" type="file" ref={driveInputRef} onChange={handleFileSelect} multiple className="hidden" />
+                  <input id="doc-voice-upload" type="file" onChange={handleDocToVoiceSelect} className="hidden" accept=".pdf,.doc,.docx,.txt" />
+                  <input id="photos-upload" type="file" ref={photosInputRef} onChange={handleFileSelect} multiple className="hidden" accept="image/*" />
+                  <input id="camera-upload" type="file" ref={cameraInputRef} onChange={handleFileSelect} className="hidden" accept="image/*" capture="environment" />
+
+                  <div className="flex items-end gap-2 w-full">
+
+
+                    {/* AI CashFlow Search Results Dropdown */}
+                    {isCashFlowMode && Array.isArray(stockSearchResults) && stockSearchResults.length > 0 && (
+                      <div className="absolute bottom-full left-0 right-0 mb-3 px-2 z-[110] pointer-events-auto max-h-[300px] overflow-y-auto custom-scrollbar">
+                        <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden">
+                          {stockSearchResults.map((stock) => (
+                            <button
+                              key={stock.symbol}
+                              type="button"
+                              onClick={() => {
+                                setSelectedStock(stock);
+                                setInputValue(stock.name);
+                                setStockSearchResults([]);
+                              }}
+                              className="w-full text-left px-4 py-3 hover:bg-primary/10 border-b border-slate-100 dark:border-zinc-800 last:border-0 flex items-center justify-between group transition-colors"
+                            >
+                              <div className="flex flex-col">
+                                <span className="font-bold text-slate-800 dark:text-white group-hover:text-primary transition-colors">{stock.symbol}</span>
+                                <span className="text-xs text-slate-500 dark:text-zinc-400 line-clamp-1">{stock.name}</span>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <span className="text-[10px] px-2 py-0.5 bg-slate-100 dark:bg-white/5 rounded text-slate-500 dark:text-zinc-400 font-bold uppercase">{stock.region}</span>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Left Actions Group */}
+                    <div className="flex items-center gap-[8px] pl-[14px] shrink-0">
+                      <AnimatePresence>
+                        {isAttachMenuOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            ref={menuRef}
+                            className={`absolute bottom-full left-0 ${(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') ? 'mb-[60px]' : 'mb-4'} w-[min(85vw,220px)] bg-surface/95 dark:bg-[#1a1a1a]/95 border border-border/50 rounded-2xl shadow-2xl overflow-hidden z-[110] backdrop-blur-xl ring-1 ring-black/5`}
+                          >
+                            <div className="p-2 space-y-1">
+                              {getAgentCapabilities(activeAgent.agentName, activeAgent.category).canCamera && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    cameraInputRef.current?.click();
+                                    setIsAttachMenuOpen(false);
+                                  }}
+                                  className="w-full text-left px-3 py-2 flex items-center gap-3 hover:bg-primary/10 rounded-xl transition-all group cursor-pointer"
+                                >
+                                  <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center group-hover:border-primary/30 group-hover:bg-primary/20 transition-colors shrink-0">
+                                    <Camera className="w-4 h-4 text-subtext group-hover:text-primary transition-colors" />
+                                  </div>
+                                  <span className="text-[13px] font-semibold text-maintext group-hover:text-primary transition-colors">Camera & Scan</span>
+                                </button>
+                              )}
+                              <label
+                                htmlFor="file-upload"
+                                onClick={() => setIsAttachMenuOpen(false)}
                                 className="w-full text-left px-3 py-2 flex items-center gap-3 hover:bg-primary/10 rounded-xl transition-all group cursor-pointer"
                               >
                                 <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center group-hover:border-primary/30 group-hover:bg-primary/20 transition-colors shrink-0">
-                                  <Camera className="w-4 h-4 text-subtext group-hover:text-primary transition-colors" />
+                                  <Paperclip className="w-4 h-4 text-subtext group-hover:text-primary transition-colors" />
                                 </div>
-                                <span className="text-[13px] font-semibold text-maintext group-hover:text-primary transition-colors">Camera & Scan</span>
-                              </button>
-                            )}
-                            <label
-                              htmlFor="file-upload"
-                              onClick={() => setIsAttachMenuOpen(false)}
-                              className="w-full text-left px-3 py-2 flex items-center gap-3 hover:bg-primary/10 rounded-xl transition-all group cursor-pointer"
-                            >
-                              <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center group-hover:border-primary/30 group-hover:bg-primary/20 transition-colors shrink-0">
-                                <Paperclip className="w-4 h-4 text-subtext group-hover:text-primary transition-colors" />
-                              </div>
-                              <span className="text-[13px] font-semibold text-maintext group-hover:text-primary transition-colors">Upload files</span>
-                            </label>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    <AnimatePresence>
-                      {isToolsMenuOpen && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                          animate={{ opacity: 1, scale: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                          transition={{ duration: 0.2, ease: "easeOut" }}
-                          ref={toolsMenuRef}
-                          className={`absolute bottom-full left-0 ${(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') ? 'mb-[60px]' : 'mb-[16px]'} w-[min(94vw,310px)] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[36px] shadow-[0_40px_80px_-15px_rgba(0,0,0,0.2)] overflow-hidden z-[110] ring-1 ring-black/5`}
-                          style={{ maxHeight: 'calc(100vh - 180px)' }}
-                        >
-                          <div className="px-6 py-5 bg-slate-50 dark:bg-zinc-800/80 border-b border-slate-100 dark:border-zinc-800 shrink-0">
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center overflow-hidden border border-white/20">
-                                <img src={logo} alt="AISA" className="w-7 h-5 object-cover object-top" />
-                              </div>
-                              <h3 className="text-[16px] font-black text-slate-800 dark:text-white uppercase tracking-tight">
-                                AISA ™ Magic Tools
-                              </h3>
+                                <span className="text-[13px] font-semibold text-maintext group-hover:text-primary transition-colors">Upload files</span>
+                              </label>
                             </div>
-                          </div>
-                          <div className="p-1.5 pb-12 space-y-1 overflow-y-auto scrollbar-hide" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
 
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!checkPremiumTool('Generate Image')) return;
-                                setIsToolsMenuOpen(false);
-                                const newMode = !isImageGeneration;
-                                setIsImageGeneration(newMode);
-                                setIsVideoGeneration(false);
-                                setIsDeepSearch(false);
-                                setIsAudioConvertMode(false);
-                                setIsDocumentConvert(false);
-                                setIsCodeWriter(false);
-                                if (newMode) {
-                                  toast.success("Image Generation Mode Enabled");
-                                }
-                              }}
-                              className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isImageGeneration ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
-                            >
-                              <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isImageGeneration ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
-                                <ImageIcon className="w-5.5 h-5.5" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-0.5">
-                                  <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
-                                  <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Generate Image</span>
+                      <AnimatePresence>
+                        {isToolsMenuOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            ref={toolsMenuRef}
+                            className={`absolute bottom-full left-0 ${(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') ? 'mb-[60px]' : 'mb-[16px]'} w-[min(94vw,310px)] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[36px] shadow-[0_40px_80px_-15px_rgba(0,0,0,0.2)] overflow-hidden z-[110] ring-1 ring-black/5`}
+                            style={{ maxHeight: 'calc(100vh - 180px)' }}
+                          >
+                            <div className="px-6 py-5 bg-slate-50 dark:bg-zinc-800/80 border-b border-slate-100 dark:border-zinc-800 shrink-0">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center overflow-hidden border border-white/20">
+                                  <img src={logo} alt="AISA" className="w-7 h-5 object-cover object-top" />
                                 </div>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Create unique AI art from your text.</p>
+                                <h3 className="text-[16px] font-black text-slate-800 dark:text-white uppercase tracking-tight">
+                                  AISA ™ Magic Tools
+                                </h3>
                               </div>
-                            </button>
+                            </div>
+                            <div className="p-1.5 pb-12 space-y-1 overflow-y-auto scrollbar-hide" style={{ maxHeight: 'calc(100vh - 220px)' }}>
 
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!checkPremiumTool('Generate Video')) return;
-                                setIsToolsMenuOpen(false);
-                                const newMode = !isVideoGeneration;
-                                setIsVideoGeneration(newMode);
-                                setIsImageGeneration(false);
-                                setIsDeepSearch(false);
-                                setIsAudioConvertMode(false);
-                                setIsDocumentConvert(false);
-                                setIsCodeWriter(false);
-                                if (newMode) {
-
-                                  toast.success("Video Generation Mode Enabled");
-                                }
-                              }}
-                              className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isVideoGeneration ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
-                            >
-                              <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isVideoGeneration ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
-                                <Video className="w-5.5 h-5.5" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-0.5">
-                                  <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
-                                  <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Generate Video</span>
-                                </div>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Convert scenes into dynamic videos.</p>
-                              </div>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!checkPremiumTool('Web Search')) return;
-                                setIsToolsMenuOpen(false);
-                                setIsWebSearch(!isWebSearch);
-                                setIsDeepSearch(false);
-                                setIsImageGeneration(false);
-                                setIsVideoGeneration(false);
-                                setIsAudioConvertMode(false);
-                                setIsDocumentConvert(false);
-                                setIsCodeWriter(false);
-                                if (!isWebSearch) toast.success("Real-Time Web Search Active");
-                              }}
-                              className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isWebSearch ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
-                            >
-                              <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isWebSearch ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
-                                <Globe className="w-5.5 h-5.5" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-0.5">
-                                  <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
-                                  <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Web Search</span>
-                                </div>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Fast and accurate web queries.</p>
-                              </div>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!checkPremiumTool('Deep Search')) return;
-                                setIsToolsMenuOpen(false);
-                                setIsDeepSearch(!isDeepSearch);
-                                setIsWebSearch(false);
-                                setIsImageGeneration(false);
-                                setIsVideoGeneration(false);
-                                setIsAudioConvertMode(false);
-                                setIsDocumentConvert(false);
-                                setIsCodeWriter(false);
-                                if (!isDeepSearch) toast.success("Deep Search Mode Enabled");
-                              }}
-                              className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isDeepSearch ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
-                            >
-                              <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isDeepSearch ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
-                                <Search className="w-5.5 h-5.5" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-0.5">
-                                  <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
-                                  <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Deep Search</span>
-                                </div>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">In-depth analysis and data mining.</p>
-                              </div>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!checkPremiumTool('Convert to Audio')) return;
-                                setIsToolsMenuOpen(false);
-                                setIsAudioConvertMode(!isAudioConvertMode);
-                                setIsDeepSearch(false);
-                                setIsImageGeneration(false);
-                                setIsVideoGeneration(false);
-                                setIsDocumentConvert(false);
-                                setIsCodeWriter(false);
-                                if (!isAudioConvertMode) toast.success("Convert to Audio Mode Active");
-                              }}
-                              className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isAudioConvertMode ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
-                            >
-                              <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isAudioConvertMode ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
-                                <Headphones className="w-5.5 h-5.5" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-0.5">
-                                  <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
-                                  <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Convert to Audio</span>
-                                </div>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Natural-sounding text-to-speech.</p>
-                              </div>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!checkPremiumTool('Convert Documents')) return;
-                                setIsToolsMenuOpen(false);
-                                setIsDocumentConvert(!isDocumentConvert);
-                                setIsDeepSearch(false);
-                                setIsImageGeneration(false);
-                                setIsVideoGeneration(false);
-                                setIsAudioConvertMode(false);
-                                setIsCodeWriter(false);
-                                if (!isDocumentConvert) toast.success("Document Converter Mode Active");
-                              }}
-                              className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isDocumentConvert ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
-                            >
-                              <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isDocumentConvert ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
-                                <FileText className="w-5.5 h-5.5" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-0.5">
-                                  <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
-                                  <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Convert Documents</span>
-                                </div>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Format conversion and text extraction.</p>
-                              </div>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!checkPremiumTool('Code Writer')) return;
-                                setIsToolsMenuOpen(false);
-                                setIsCodeWriter(!isCodeWriter);
-                                setIsDeepSearch(false);
-                                setIsImageGeneration(false);
-                                setIsVideoGeneration(false);
-                                setIsAudioConvertMode(false);
-                                setIsDocumentConvert(false);
-                                setIsEditingImage(false);
-                                setIsMagicEditing(false);
-                                if (!isCodeWriter) toast.success("Code Writer Mode Enabled");
-                              }}
-                              className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isCodeWriter ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
-                            >
-                              <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isCodeWriter ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
-                                <Code className="w-5.5 h-5.5" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-0.5">
-                                  <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
-                                  <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Code Writer</span>
-                                </div>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Generate multi-language code snippets.</p>
-                              </div>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!checkPremiumTool('Edit Image')) return;
-                                setIsToolsMenuOpen(false);
-                                const newMode = !isMagicEditing;
-                                setIsMagicEditing(newMode);
-
-                                if (newMode && !editRefImage && messages.length > 0) {
-                                  const lastImg = [...messages].reverse().find(m => m.imageUrl);
-                                  if (lastImg) setEditRefImage({ url: lastImg.imageUrl, name: 'Last Generated', type: 'image' });
-                                }
-
-                                setIsImageGeneration(false);
-                                setIsVideoGeneration(false);
-                                setIsDeepSearch(false);
-                                setIsWebSearch(false);
-                                setIsAudioConvertMode(false);
-                                setIsDocumentConvert(false);
-                                setIsCodeWriter(false);
-                                setIsCashFlowMode(false);
-                                setIsFileAnalysis(false);
-                                if (newMode) {
-
-                                  toast.success("Image Editing Enabled");
-                                }
-                              }}
-                              className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isMagicEditing ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
-                            >
-                              <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isMagicEditing ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
-                                <Wand2 className="w-5.5 h-5.5" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-0.5">
-                                  <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
-                                  <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Edit Image</span>
-                                </div>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Magic Image Editor.</p>
-                              </div>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!checkPremiumTool('AI CashFlow')) return;
-                                setIsToolsMenuOpen(false);
-                                const newMode = !isCashFlowMode;
-                                setIsCashFlowMode(newMode);
-                                setIsImageGeneration(false);
-                                setIsVideoGeneration(false);
-                                setIsDeepSearch(false);
-                                setIsWebSearch(false);
-                                setIsAudioConvertMode(false);
-                                setIsDocumentConvert(false);
-                                setIsCodeWriter(false);
-                                setIsMagicEditing(false);
-                                setIsFileAnalysis(false);
-                                if (newMode) {
-                                  setIsStockModalOpen(true);
-                                  toast.success("AI CashFlow Explorer Active");
-                                }
-                              }}
-                              className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isCashFlowMode ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
-                            >
-                              <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isCashFlowMode ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
-                                <TrendingUp className="w-5.5 h-5.5" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-0.5">
-                                  <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
-                                  <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">AI CashFlow</span>
-                                </div>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Live Analysis & Reports.</p>
-                              </div>
-                            </button>
-
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!checkPremiumTool('AI Legal')) return;
-                                setIsToolsMenuOpen(false);
-                                const newMode = !activeLegalToolkit;
-                                setActiveLegalToolkit(newMode);
-                                setIsImageGeneration(false);
-                                setIsVideoGeneration(false);
-                                setIsDeepSearch(false);
-                                setIsAudioConvertMode(false);
-                                setIsDocumentConvert(false);
-                                setIsCodeWriter(false);
-                                setIsMagicEditing(false);
-                                if (newMode) toast.success("AI Legal Enabled ⚖️");
-                              }}
-                              className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${activeLegalToolkit ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
-                            >
-                              <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${activeLegalToolkit ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
-                                <LegalLogo size={32} showText={false} style={{ color: activeLegalToolkit ? '#fff' : undefined }} />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-0.5">
-                                  <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
-                                  <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">AI Legal</span>
-                                </div>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">7 specialized AI legal tools.</p>
-                              </div>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!checkPremiumTool('Image to Video')) return;
-                                setIsToolsMenuOpen(false);
-                                setIsMagicVideoModalOpen(true);
-                              }}
-                              className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md`}
-                            >
-                              <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300`}>
-                                <PlaySquare className="w-5.5 h-5.5" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-0.5">
-                                  <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
-                                  <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Image to Video</span>
-                                </div>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Animate your images with AI magic.</p>
-                              </div>
-                            </button>
-
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!checkPremiumTool('AI Ad Agent')) return;
-                                setIsToolsMenuOpen(false);
-                                setIsSocialMediaDashboardOpen(true);
-                              }}
-                              className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md`}
-                            >
-                              <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300`}>
-                                <Megaphone className="w-5.5 h-5.5" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-0.5">
-                                  <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
-                                  <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">AIADS™</span>
-                                </div>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Automate 30 days of social media content.</p>
-                              </div>
-                            </button>
-
-                          </div>
-                        </motion.div>
-                      )}
-
-                    </AnimatePresence>
-
-                    <div className="relative">
-                      <motion.button
-                        type="button"
-                        ref={attachBtnRef}
-                        whileHover={{ scale: 1.15, rotate: 90 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => {
-                          setIsAttachMenuOpen(!isAttachMenuOpen);
-                          setIsToolsMenuOpen(false);
-                        }}
-                        className="w-[36px] h-[36px] rounded-full flex items-center justify-center bg-secondary/80 text-subtext hover:text-primary hover:bg-secondary transition-all shadow-lg relative overflow-visible z-20"
-                        title="Attachments"
-                      >
-                        <Plus className={`w-[20px] h-[20px] transition-transform duration-300 ${isAttachMenuOpen ? 'rotate-45' : ''}`} />
-                      </motion.button>
-                    </div>
-
-                    <div className="relative">
-                      <motion.button
-                        type="button"
-                        ref={toolsBtnRef}
-                        whileHover={{ scale: 1.15, rotate: [0, -5, 5, 0] }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={(e) => {
-                          setIsToolsMenuOpen(!isToolsMenuOpen);
-                          setIsAttachMenuOpen(false);
-                        }}
-                        className="w-[36px] h-[36px] rounded-full flex items-center justify-center bg-secondary/80 text-subtext hover:text-primary transition-colors shadow-lg hover:shadow-primary/40 relative overflow-visible z-20"
-                        title="AISA ™ Magic Tools"
-                      >
-                        <Brain className="w-5 h-5 relative z-10" />
-                      </motion.button>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 flex items-center min-w-0 bg-transparent border-0 ring-0 focus:ring-0">
-                    <AnimatePresence>
-                      {(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') && (
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto w-[calc(100vw-24px)] max-w-5xl px-6 z-[100] justify-start sm:justify-start">
-                          {isCashFlowMode && (
-                            <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
-                              <TrendingUp size={12} strokeWidth={3} /> <span className="hidden sm:inline">AI CashFlow</span>
-                              <button onClick={() => setIsCashFlowMode(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
-                            </motion.div>
-                          )}
-                          {isWebSearch && (
-                            <motion.div
-                              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.95 }}
-                              className="flex items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
-                            >
-                              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
-                              <div className="flex items-center gap-2 relative z-10">
-                                <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
-                                  <Globe size={14} strokeWidth={3} />
-                                </div>
-                                <span className="uppercase tracking-widest text-[9px] font-black">Web Search</span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => setIsWebSearch(false)}
-                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
-                              >
-                                <X size={14} strokeWidth={3} />
-                              </button>
-                            </motion.div>
-                          )}
-                          {isDeepSearch && (
-                            <motion.div
-                              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.95 }}
-                              className="flex items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
-                            >
-                              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
-                              <div className="flex items-center gap-2 relative z-10">
-                                <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
-                                  <Search size={14} strokeWidth={3} />
-                                </div>
-                                <span className="uppercase tracking-widest text-[9px] font-black">Deep Search</span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => setIsDeepSearch(false)}
-                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
-                              >
-                                <X size={14} strokeWidth={3} />
-                              </button>
-                            </motion.div>
-                          )}
-                          {isImageGeneration && (
-                            <motion.div
-                              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.95 }}
-                              className="flex items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
-                            >
-                              {/* Glossy Reflection Effect */}
-                              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
-
-                              <div className="flex items-center gap-2 relative z-10">
-                                <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
-                                  <ImageIcon size={14} strokeWidth={3} />
-                                </div>
-                                <span className="uppercase tracking-widest text-[9px] font-black">Image Gen</span>
-                              </div>
-
-                              <div className="w-[1px] h-3 bg-primary/40 mx-0.5 relative z-10" />
-
-                              <button
-                                type="button"
-                                onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
-                                className="flex items-center gap-1.5 hover:text-primary dark:hover:text-primary transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
-                              >
-                                <span className="text-[10px] font-extrabold opacity-90">{imageAspectRatio}</span>
-                                <span className="text-[10px] font-black truncate max-w-[60px] sm:max-w-[100px] tracking-tight">
-                                  {TOOL_PRICING.image.models.find(m => m.id === imageModelId)?.name.replace('AISA ', '') || 'Model'}
-
-                                </span>
-                                <ChevronDown size={11} className={`transition-transform duration-300 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => setIsImageGeneration(false)}
-                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
-                              >
-                                <X size={14} strokeWidth={3} />
-                              </button>
-                            </motion.div>
-                          )}
-                          {isVideoGeneration && (
-                            <motion.div
-                              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.95 }}
-                              className="flex items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
-                            >
-                              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
-
-                              <div className="flex items-center gap-2 relative z-10">
-                                <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
-                                  <Video size={14} strokeWidth={3} />
-                                </div>
-                                <span className="uppercase tracking-widest text-[9px] font-black">Video Gen</span>
-                              </div>
-
-                              <div className="w-[1px] h-3 bg-primary/40 mx-0.5 relative z-10" />
-
-                              <button
-                                type="button"
-                                onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
-                                className="flex items-center gap-1.5 hover:text-primary dark:hover:text-primary transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
-                              >
-                                <span className="text-[10px] font-extrabold opacity-90">{videoAspectRatio || 'D'}</span>
-                                <span className="text-[10px] font-black tracking-tight ml-1">{videoResolution}</span>
-                                <ChevronDown size={11} className={`transition-transform duration-300 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => setIsVideoGeneration(false)}
-                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
-                              >
-                                <X size={14} strokeWidth={3} />
-                              </button>
-                            </motion.div>
-                          )}
-                          {isVoiceMode && (
-                            <motion.div
-                              initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                              className="flex items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
-                            >
-                              <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-lg bg-primary/20 flex items-center justify-center">
-                                  <Volume2 size={14} strokeWidth={2.5} />
-                                </div>
-                                <span className="uppercase tracking-wide text-[10px] font-black">Voice Mode</span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => setIsVoiceMode(false)}
-                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary dark:text-primary transition-all hover:rotate-90"
-                              >
-                                <X size={14} strokeWidth={3} />
-                              </button>
-                            </motion.div>
-                          )}
-                          {isAudioConvertMode && (
-                            <motion.div
-                              initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                              className="flex items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
-                            >
-                              <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-lg bg-primary/20 flex items-center justify-center">
-                                  <Headphones size={14} strokeWidth={2.5} />
-                                </div>
-                                <span className="uppercase tracking-wide text-[10px] font-black">Audio Convert</span>
-                              </div>
-                              <button type="button" onClick={() => setIsVoiceSettingsOpen(true)} className="ml-1 w-5 h-5 rounded-lg flex items-center justify-center hover:bg-primary/20 text-subtext hover:text-primary transition-colors" title="Voice Settings">
-                                <Sliders size={13} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setIsAudioConvertMode(false)}
-                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary transition-all hover:rotate-90"
-                              >
-                                <X size={14} strokeWidth={3} />
-                              </button>
-                            </motion.div>
-                          )}
-                          {isDocumentConvert && (
-                            <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
-                              <FileText size={12} strokeWidth={3} /> <span>Doc Convert</span>
-                              <button onClick={() => setIsDocumentConvert(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
-                            </motion.div>
-                          )}
-                          {isCodeWriter && (
-                            <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
-                              <Code size={12} strokeWidth={3} /> <span>Code Writer</span>
-                              <button onClick={() => setIsCodeWriter(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
-                            </motion.div>
-                          )}
-
-                          {(activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') && (
-                            <motion.div
-                              initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                              className="flex items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
-                            >
-                              <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
-                                  <LegalLogo size={14} showText={false} color="white" />
-                                </div>
-                                <span
-                                  className="uppercase tracking-wide text-[10px] font-black truncate max-w-[120px] cursor-pointer hover:text-primary transition-colors"
-                                  onClick={() => setActiveLegalToolkit(true)}
-                                  title="Open AI Legal Toolkit"
-                                >
-                                  AI Legal
-                                  {(selectedLegalTool || activeTool) && (
-                                    <span className="opacity-70 ml-1.5 font-bold border-l border-primary/30 pl-1.5">
-                                      {(selectedLegalTool?.name || selectedLegalTool || activeTool)}
-                                    </span>
-                                  )}
-                                </span>
-                              </div>
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setActiveLegalToolkit(false);
-                                  setCurrentMode('NORMAL_CHAT');
-                                  setSelectedLegalTool(null);
-                                  setActiveTool(null);
+                                  if (!checkPremiumTool('Generate Image')) return;
+                                  setIsToolsMenuOpen(false);
+                                  const newMode = !isImageGeneration;
+                                  setIsImageGeneration(newMode);
+                                  setIsVideoGeneration(false);
+                                  setIsDeepSearch(false);
+                                  setIsAudioConvertMode(false);
+                                  setIsDocumentConvert(false);
+                                  setIsCodeWriter(false);
+                                  if (newMode) {
+                                    toast.success("Image Generation Mode Enabled");
+                                  }
                                 }}
-                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary dark:text-primary transition-all hover:rotate-90"
+                                className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isImageGeneration ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
                               >
-                                <X size={14} strokeWidth={3} />
-                              </button>
-                            </motion.div>
-                          )}
-
-                          {currentCase && currentCase.isLegalCase && selectedLegalTool?.id === 'legal_my_case' && (
-                            <motion.div
-                              initial={{ opacity: 0, x: 20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, scale: 0.95 }}
-                              onClick={() => setIsCasePanelOpen(!isCasePanelOpen)}
-                              className="flex items-center gap-2.5 px-4 py-1.5 bg-gradient-to-r from-primary to-primary-dark text-white rounded-full text-xs font-bold shadow-lg shadow-primary/30 cursor-pointer hover:scale-105 active:scale-95 transition-all whitespace-nowrap shrink-0 group"
-                            >
-                              <Briefcase size={14} className="group-hover:rotate-12 transition-transform" />
-                              <div className="flex flex-col items-start leading-none gap-0.5">
-                                <span className="text-[8px] font-black uppercase tracking-widest opacity-80">ACTIVE CASE</span>
-                                <span className="text-[10px] font-bold truncate max-w-[100px]">{currentCase.clientName || 'Untitled Case'}</span>
-                              </div>
-                              <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse ml-1" />
-                            </motion.div>
-                          )}
-                          {isMagicEditing && (
-                            <motion.div
-                              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.95 }}
-                              className="flex items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
-                            >
-                              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
-
-                              <div className="flex items-center gap-2 relative z-10">
-                                <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
-                                  <Wand2 size={14} strokeWidth={3} />
+                                <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isImageGeneration ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
+                                  <ImageIcon className="w-5.5 h-5.5" />
                                 </div>
-                                <span className="uppercase tracking-widest text-[9px] font-black hidden xs:inline">{t('imageEdit')}</span>
-                              </div>
-
-                              <div className="w-[1px] h-3 bg-primary/40 mx-0.5 relative z-10" />
-
-                              <button
-                                type="button"
-                                onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
-                                className="flex items-center gap-1.5 hover:text-primary dark:hover:text-primary transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
-                              >
-                                <span className="text-[10px] font-extrabold opacity-90">{imageAspectRatio}</span>
-                                <span className="text-[10px] font-black truncate max-w-[60px] sm:max-w-[100px] tracking-tight">
-                                  {TOOL_PRICING.image.models.find(m => m.id === imageModelId)?.name.replace('AISA ', '') || 'Model'}
-                                </span>
-                                <ChevronDown size={11} className={`transition-transform duration-300 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => setIsMagicEditing(false)}
-                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
-                              >
-                                <X size={14} strokeWidth={3} />
-                              </button>
-                            </motion.div>
-                          )}
-                          {isFileAnalysis && (
-                            <motion.div
-                              initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                              className="flex items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
-                            >
-                              <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-lg bg-primary/20 flex items-center justify-center">
-                                  <FileText size={14} strokeWidth={2.5} />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
+                                    <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Generate Image</span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Create unique AI art from your text.</p>
                                 </div>
-                                <span className="uppercase tracking-wide text-[10px] font-black">{t('analyzeDocument')}</span>
-                              </div>
+                              </button>
+
                               <button
                                 type="button"
-                                onClick={() => setIsFileAnalysis(false)}
-                                className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary dark:text-primary transition-all hover:rotate-90"
+                                onClick={() => {
+                                  if (!checkPremiumTool('Generate Video')) return;
+                                  setIsToolsMenuOpen(false);
+                                  const newMode = !isVideoGeneration;
+                                  setIsVideoGeneration(newMode);
+                                  setIsImageGeneration(false);
+                                  setIsDeepSearch(false);
+                                  setIsAudioConvertMode(false);
+                                  setIsDocumentConvert(false);
+                                  setIsCodeWriter(false);
+                                  if (newMode) {
+
+                                    toast.success("Video Generation Mode Enabled");
+                                  }
+                                }}
+                                className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isVideoGeneration ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
                               >
-                                <X size={14} strokeWidth={3} />
+                                <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isVideoGeneration ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
+                                  <Video className="w-5.5 h-5.5" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
+                                    <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Generate Video</span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Convert scenes into dynamic videos.</p>
+                                </div>
                               </button>
-                            </motion.div>
-                          )}
-                        </div>
-                      )}
-                    </AnimatePresence>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!checkPremiumTool('Web Search')) return;
+                                  setIsToolsMenuOpen(false);
+                                  setIsWebSearch(!isWebSearch);
+                                  setIsDeepSearch(false);
+                                  setIsImageGeneration(false);
+                                  setIsVideoGeneration(false);
+                                  setIsAudioConvertMode(false);
+                                  setIsDocumentConvert(false);
+                                  setIsCodeWriter(false);
+                                  if (!isWebSearch) toast.success("Real-Time Web Search Active");
+                                }}
+                                className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isWebSearch ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
+                              >
+                                <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isWebSearch ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
+                                  <Globe className="w-5.5 h-5.5" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
+                                    <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Web Search</span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Fast and accurate web queries.</p>
+                                </div>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!checkPremiumTool('Deep Search')) return;
+                                  setIsToolsMenuOpen(false);
+                                  setIsDeepSearch(!isDeepSearch);
+                                  setIsWebSearch(false);
+                                  setIsImageGeneration(false);
+                                  setIsVideoGeneration(false);
+                                  setIsAudioConvertMode(false);
+                                  setIsDocumentConvert(false);
+                                  setIsCodeWriter(false);
+                                  if (!isDeepSearch) toast.success("Deep Search Mode Enabled");
+                                }}
+                                className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isDeepSearch ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
+                              >
+                                <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isDeepSearch ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
+                                  <Search className="w-5.5 h-5.5" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
+                                    <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Deep Search</span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">In-depth analysis and data mining.</p>
+                                </div>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!checkPremiumTool('Convert to Audio')) return;
+                                  setIsToolsMenuOpen(false);
+                                  setIsAudioConvertMode(!isAudioConvertMode);
+                                  setIsDeepSearch(false);
+                                  setIsImageGeneration(false);
+                                  setIsVideoGeneration(false);
+                                  setIsDocumentConvert(false);
+                                  setIsCodeWriter(false);
+                                  if (!isAudioConvertMode) toast.success("Convert to Audio Mode Active");
+                                }}
+                                className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isAudioConvertMode ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
+                              >
+                                <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isAudioConvertMode ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
+                                  <Headphones className="w-5.5 h-5.5" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
+                                    <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Convert to Audio</span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Natural-sounding text-to-speech.</p>
+                                </div>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!checkPremiumTool('Convert Documents')) return;
+                                  setIsToolsMenuOpen(false);
+                                  setIsDocumentConvert(!isDocumentConvert);
+                                  setIsDeepSearch(false);
+                                  setIsImageGeneration(false);
+                                  setIsVideoGeneration(false);
+                                  setIsAudioConvertMode(false);
+                                  setIsCodeWriter(false);
+                                  if (!isDocumentConvert) toast.success("Document Converter Mode Active");
+                                }}
+                                className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isDocumentConvert ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
+                              >
+                                <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isDocumentConvert ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
+                                  <FileText className="w-5.5 h-5.5" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
+                                    <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Convert Documents</span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Format conversion and text extraction.</p>
+                                </div>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!checkPremiumTool('Code Writer')) return;
+                                  setIsToolsMenuOpen(false);
+                                  setIsCodeWriter(!isCodeWriter);
+                                  setIsDeepSearch(false);
+                                  setIsImageGeneration(false);
+                                  setIsVideoGeneration(false);
+                                  setIsAudioConvertMode(false);
+                                  setIsDocumentConvert(false);
+                                  setIsEditingImage(false);
+                                  setIsMagicEditing(false);
+                                  if (!isCodeWriter) toast.success("Code Writer Mode Enabled");
+                                }}
+                                className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isCodeWriter ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
+                              >
+                                <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isCodeWriter ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
+                                  <Code className="w-5.5 h-5.5" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
+                                    <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Code Writer</span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Generate multi-language code snippets.</p>
+                                </div>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!checkPremiumTool('Edit Image')) return;
+                                  setIsToolsMenuOpen(false);
+                                  const newMode = !isMagicEditing;
+                                  setIsMagicEditing(newMode);
+
+                                  if (newMode && !editRefImage && messages.length > 0) {
+                                    const lastImg = [...messages].reverse().find(m => m.imageUrl);
+                                    if (lastImg) setEditRefImage({ url: lastImg.imageUrl, name: 'Last Generated', type: 'image' });
+                                  }
+
+                                  setIsImageGeneration(false);
+                                  setIsVideoGeneration(false);
+                                  setIsDeepSearch(false);
+                                  setIsWebSearch(false);
+                                  setIsAudioConvertMode(false);
+                                  setIsDocumentConvert(false);
+                                  setIsCodeWriter(false);
+                                  setIsCashFlowMode(false);
+                                  setIsFileAnalysis(false);
+                                  if (newMode) {
+
+                                    toast.success("Image Editing Enabled");
+                                  }
+                                }}
+                                className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isMagicEditing ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
+                              >
+                                <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isMagicEditing ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
+                                  <Wand2 className="w-5.5 h-5.5" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
+                                    <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Edit Image</span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Magic Image Editor.</p>
+                                </div>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!checkPremiumTool('AI CashFlow')) return;
+                                  setIsToolsMenuOpen(false);
+                                  const newMode = !isCashFlowMode;
+                                  setIsCashFlowMode(newMode);
+                                  setIsImageGeneration(false);
+                                  setIsVideoGeneration(false);
+                                  setIsDeepSearch(false);
+                                  setIsWebSearch(false);
+                                  setIsAudioConvertMode(false);
+                                  setIsDocumentConvert(false);
+                                  setIsCodeWriter(false);
+                                  setIsMagicEditing(false);
+                                  setIsFileAnalysis(false);
+                                  if (newMode) {
+                                    setIsStockModalOpen(true);
+                                    toast.success("AI CashFlow Explorer Active");
+                                  }
+                                }}
+                                className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isCashFlowMode ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
+                              >
+                                <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isCashFlowMode ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
+                                  <TrendingUp className="w-5.5 h-5.5" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
+                                    <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">AI CashFlow</span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Live Analysis & Reports.</p>
+                                </div>
+                              </button>
 
 
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!checkPremiumTool('AI Legal')) return;
+                                  setIsToolsMenuOpen(false);
+                                  const newMode = !activeLegalToolkit;
+                                  setActiveLegalToolkit(newMode);
+                                  setIsImageGeneration(false);
+                                  setIsVideoGeneration(false);
+                                  setIsDeepSearch(false);
+                                  setIsAudioConvertMode(false);
+                                  setIsDocumentConvert(false);
+                                  setIsCodeWriter(false);
+                                  setIsMagicEditing(false);
+                                  if (newMode) toast.success("AI Legal Enabled ⚖️");
+                                }}
+                                className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${activeLegalToolkit ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
+                              >
+                                <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${activeLegalToolkit ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
+                                  <LegalLogo size={32} showText={false} style={{ color: activeLegalToolkit ? '#fff' : undefined }} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
+                                    <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">AI Legal</span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">7 specialized AI legal tools.</p>
+                                </div>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!checkPremiumTool('Image to Video')) return;
+                                  setIsToolsMenuOpen(false);
+                                  setIsMagicVideoModalOpen(true);
+                                }}
+                                className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md`}
+                              >
+                                <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300`}>
+                                  <PlaySquare className="w-5.5 h-5.5" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
+                                    <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">Image to Video</span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Animate your images with AI magic.</p>
+                                </div>
+                              </button>
 
-                    <textarea
-                      ref={inputRef}
-                      value={inputValue}
-                      disabled={isLoading || isLimitReached}
-                      onChange={(e) => {
-                        setInputValue(e.target.value);
-                        e.target.style.height = 'auto';
-                        e.target.style.height = `${e.target.scrollHeight}px`;
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey && window.innerWidth > 768) {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          if (isGlobalSending || isLoading) return;
-                          if (inputValue.trim() || selectedFiles.length > 0) {
-                            handleSendMessage(e);
-                          }
-                        }
-                      }}
-                      placeholder={isLimitReached ? t('limitReached') || "Chat limit reached. Sign in to continue." : (isVideoGeneration ? t('describeVideo') || "Describe the video you want to generate..." : isAudioConvertMode ? t('enterTextToConvert') || "Enter text to convert..." : isDocumentConvert ? t('uploadFileToConvert') || "Upload file & ask to convert..." : typedPlaceholder)}
-                      rows={1}
-                      className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none px-3.5 py-2 sm:px-4 sm:py-3 text-slate-800 dark:text-zinc-100 text-left placeholder-slate-400 dark:placeholder-zinc-500 resize-none overflow-y-auto custom-scrollbar font-normal leading-relaxed text-[16px] ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
-                      style={{ minHeight: '40px', height: 'auto', maxHeight: '180px', lineHeight: '1.5' }}
-                    />
-                  </div>
 
-                  {/* Right Actions Group */}
-                  <div className="flex items-center gap-[4px] sm:gap-[6px] pr-[2px] shrink-0">
-                    {isListening && (
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 rounded-full border border-red-500/20 mr-2">
-                        <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
-                        <span className="text-[10px] font-bold text-red-600 uppercase">{t('rec')}</span>
-                      </div>
-                    )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!checkPremiumTool('AI Ad Agent')) return;
+                                  setIsToolsMenuOpen(false);
+                                  setIsSocialMediaDashboardOpen(true);
+                                }}
+                                className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md`}
+                              >
+                                <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300`}>
+                                  <Megaphone className="w-5.5 h-5.5" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="aisa-badge-small !bg-primary !text-white !font-black !px-2 !rounded-md">AISA ™</span>
+                                    <span className="text-[14.5px] font-extrabold text-slate-800 dark:text-white leading-none">AIADS™</span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-tight">Automate 30 days of social media content.</p>
+                                </div>
+                              </button>
 
-                    {!isListening && (
-                      <>
-                        {getAgentCapabilities(activeAgent.agentName, activeAgent.category).canVoice && (
-                          <div className="relative">
-
-                            <motion.button
-                              type="button"
-                              whileHover={{ scale: 1.15, rotate: [0, -10, 10, 0] }}
-                              whileTap={{ scale: 0.9 }}
-                              onClick={() => {
-                                handleVoiceInput();
-                              }}
-                              className="w-[36px] h-[36px] rounded-full flex items-center justify-center bg-secondary/80 text-subtext hover:text-primary transition-colors shadow-lg relative overflow-visible z-20"
-                              title={t('voiceInput')}
-                            >
-                              <Mic className={`w-[20px] h-[20px] shrink-0 transition-colors`} />
-                            </motion.button>
-                          </div>
-                        )}
-                      </>
-                    )}
-
-                    {isLoading ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (abortControllerRef.current) abortControllerRef.current.abort();
-                          setIsLoading(false);
-                          isSendingRef.current = false;
-                        }}
-                        className="w-[36px] h-[36px] rounded-full text-white flex items-center justify-center shadow-lg hover:scale-105 transition-all"
-                        style={{ backgroundColor: 'var(--color-primary)' }}
-                      >
-                        <div className="w-[12px] h-[12px] bg-white rounded-sm" />
-                      </button>
-                    ) : (
-                      <div className="flex items-center gap-[6px] relative">
-                        <AnimatePresence>
-                        </AnimatePresence>
-                        <motion.button
-                          type="submit"
-                          disabled={!inputValue.trim() && filePreviews.length === 0}
-                          onMouseEnter={() => setIsSendHovered(true)}
-                          onMouseLeave={() => setIsSendHovered(false)}
-                          whileHover={{ scale: 1.15, rotate: 2 }}
-                          whileTap={{ scale: 0.88 }}
-                          title={t('send')}
-                          onClick={() => {
-                            setIsSendTapped(true);
-                            setTimeout(() => setIsSendTapped(false), 2000);
-                          }}
-                          className={`w-[38px] h-[38px] rounded-full flex items-center justify-center transition-all shadow-lg relative overflow-visible z-20 text-white`}
-                          style={{ 
-                            background: `linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))`,
-                            boxShadow: isSendHovered ? `0 15px 30px -5px var(--color-primary-border)` : `0 10px 20px -5px var(--color-primary-border)`
-                          }}
-                        >
-                          <AnimatePresence>
-                            {ripples.map(id => (
-                              <SendRipple key={id} onComplete={() => setRipples(r => r.filter(i => i !== id))} />
-                            ))}
-                            {isLaunching && (
-                              <motion.div
-                                initial={{ scale: 0, opacity: 0 }}
-                                animate={{ scale: [1, 2.5], opacity: [0.6, 0] }}
-                                exit={{ opacity: 0 }}
-                                className="absolute inset-0 rounded-full bg-white/20 blur-xl pointer-events-none"
-                              />
-                            )}
-                          </AnimatePresence>
-                          <motion.div
-                            animate={isLaunching ? {
-                              y: [0, -120],
-                              scale: [1, 2.8, 0],
-                              opacity: [1, 0.4, 0],
-                              rotate: [0, 720],
-                              filter: ["blur(0px)", "blur(30px)"]
-                            } : { y: 0, scale: 1, opacity: 1, filter: "blur(0px)" }}
-                            transition={{ duration: 0.8, ease: "anticipate" }}
-                            className="relative z-10"
-                          >
-                            <SendHorizontal
-                              className="w-[20px] h-[20px] transition-all duration-300 text-white hover:scale-110"
-                              strokeWidth={2.5}
-                            />
+                            </div>
                           </motion.div>
+                        )}
+
+                      </AnimatePresence>
+
+                      <div className="relative">
+                        <motion.button
+                          type="button"
+                          ref={attachBtnRef}
+                          whileHover={{ scale: 1.15, rotate: 90 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => {
+                            setIsAttachMenuOpen(!isAttachMenuOpen);
+                            setIsToolsMenuOpen(false);
+                          }}
+                          className="w-[36px] h-[36px] rounded-full flex items-center justify-center bg-secondary/80 text-subtext hover:text-primary hover:bg-secondary transition-all shadow-lg relative overflow-visible z-20"
+                          title="Attachments"
+                        >
+                          <Plus className={`w-[20px] h-[20px] transition-transform duration-300 ${isAttachMenuOpen ? 'rotate-45' : ''}`} />
                         </motion.button>
                       </div>
-                    )}
+
+                      <div className="relative">
+                        <motion.button
+                          type="button"
+                          ref={toolsBtnRef}
+                          whileHover={{ scale: 1.15, rotate: [0, -5, 5, 0] }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={(e) => {
+                            setIsToolsMenuOpen(!isToolsMenuOpen);
+                            setIsAttachMenuOpen(false);
+                          }}
+                          className="w-[36px] h-[36px] rounded-full flex items-center justify-center bg-secondary/80 text-subtext hover:text-primary transition-colors shadow-lg hover:shadow-primary/40 relative overflow-visible z-20"
+                          title="AISA ™ Magic Tools"
+                        >
+                          <Brain className="w-5 h-5 relative z-10" />
+                        </motion.button>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 flex items-center min-w-0 bg-transparent border-0 ring-0 focus:ring-0">
+                      <AnimatePresence>
+                        {(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') && (
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto w-[calc(100vw-24px)] max-w-5xl px-6 z-[100] justify-start sm:justify-start">
+                            {isCashFlowMode && (
+                              <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
+                                <TrendingUp size={12} strokeWidth={3} /> <span className="hidden sm:inline">AI CashFlow</span>
+                                <button onClick={() => setIsCashFlowMode(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
+                              </motion.div>
+                            )}
+                            {isWebSearch && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="flex items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
+                              >
+                                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
+                                <div className="flex items-center gap-2 relative z-10">
+                                  <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
+                                    <Globe size={14} strokeWidth={3} />
+                                  </div>
+                                  <span className="uppercase tracking-widest text-[9px] font-black">Web Search</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setIsWebSearch(false)}
+                                  className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
+                                >
+                                  <X size={14} strokeWidth={3} />
+                                </button>
+                              </motion.div>
+                            )}
+                            {isDeepSearch && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="flex items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
+                              >
+                                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
+                                <div className="flex items-center gap-2 relative z-10">
+                                  <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
+                                    <Search size={14} strokeWidth={3} />
+                                  </div>
+                                  <span className="uppercase tracking-widest text-[9px] font-black">Deep Search</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setIsDeepSearch(false)}
+                                  className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
+                                >
+                                  <X size={14} strokeWidth={3} />
+                                </button>
+                              </motion.div>
+                            )}
+                            {isImageGeneration && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="flex items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
+                              >
+                                {/* Glossy Reflection Effect */}
+                                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
+
+                                <div className="flex items-center gap-2 relative z-10">
+                                  <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
+                                    <ImageIcon size={14} strokeWidth={3} />
+                                  </div>
+                                  <span className="uppercase tracking-widest text-[9px] font-black">Image Gen</span>
+                                </div>
+
+                                <div className="w-[1px] h-3 bg-primary/40 mx-0.5 relative z-10" />
+
+                                <button
+                                  type="button"
+                                  onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
+                                  className="flex items-center gap-1.5 hover:text-primary dark:hover:text-primary transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
+                                >
+                                  <span className="text-[10px] font-extrabold opacity-90">{imageAspectRatio}</span>
+                                  <span className="text-[10px] font-black truncate max-w-[60px] sm:max-w-[100px] tracking-tight">
+                                    {TOOL_PRICING.image.models.find(m => m.id === imageModelId)?.name.replace('AISA ', '') || 'Model'}
+
+                                  </span>
+                                  <ChevronDown size={11} className={`transition-transform duration-300 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => setIsImageGeneration(false)}
+                                  className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
+                                >
+                                  <X size={14} strokeWidth={3} />
+                                </button>
+                              </motion.div>
+                            )}
+                            {isVideoGeneration && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="flex items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
+                              >
+                                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
+
+                                <div className="flex items-center gap-2 relative z-10">
+                                  <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
+                                    <Video size={14} strokeWidth={3} />
+                                  </div>
+                                  <span className="uppercase tracking-widest text-[9px] font-black">Video Gen</span>
+                                </div>
+
+                                <div className="w-[1px] h-3 bg-primary/40 mx-0.5 relative z-10" />
+
+                                <button
+                                  type="button"
+                                  onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
+                                  className="flex items-center gap-1.5 hover:text-primary dark:hover:text-primary transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
+                                >
+                                  <span className="text-[10px] font-extrabold opacity-90">{videoAspectRatio || 'D'}</span>
+                                  <span className="text-[10px] font-black tracking-tight ml-1">{videoResolution}</span>
+                                  <ChevronDown size={11} className={`transition-transform duration-300 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => setIsVideoGeneration(false)}
+                                  className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
+                                >
+                                  <X size={14} strokeWidth={3} />
+                                </button>
+                              </motion.div>
+                            )}
+                            {isVoiceMode && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                className="flex items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div className="w-5 h-5 rounded-lg bg-primary/20 flex items-center justify-center">
+                                    <Volume2 size={14} strokeWidth={2.5} />
+                                  </div>
+                                  <span className="uppercase tracking-wide text-[10px] font-black">Voice Mode</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setIsVoiceMode(false)}
+                                  className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary dark:text-primary transition-all hover:rotate-90"
+                                >
+                                  <X size={14} strokeWidth={3} />
+                                </button>
+                              </motion.div>
+                            )}
+                            {isAudioConvertMode && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                className="flex items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div className="w-5 h-5 rounded-lg bg-primary/20 flex items-center justify-center">
+                                    <Headphones size={14} strokeWidth={2.5} />
+                                  </div>
+                                  <span className="uppercase tracking-wide text-[10px] font-black">Audio Convert</span>
+                                </div>
+                                <button type="button" onClick={() => setIsVoiceSettingsOpen(true)} className="ml-1 w-5 h-5 rounded-lg flex items-center justify-center hover:bg-primary/20 text-subtext hover:text-primary transition-colors" title="Voice Settings">
+                                  <Sliders size={13} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setIsAudioConvertMode(false)}
+                                  className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary transition-all hover:rotate-90"
+                                >
+                                  <X size={14} strokeWidth={3} />
+                                </button>
+                              </motion.div>
+                            )}
+                            {isDocumentConvert && (
+                              <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
+                                <FileText size={12} strokeWidth={3} /> <span>Doc Convert</span>
+                                <button onClick={() => setIsDocumentConvert(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
+                              </motion.div>
+                            )}
+                            {isCodeWriter && (
+                              <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
+                                <Code size={12} strokeWidth={3} /> <span>Code Writer</span>
+                                <button onClick={() => setIsCodeWriter(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
+                              </motion.div>
+                            )}
+
+                            {(activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                className="flex items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
+                                    <LegalLogo size={14} showText={false} color="white" />
+                                  </div>
+                                  <span
+                                    className="uppercase tracking-wide text-[10px] font-black truncate max-w-[120px] cursor-pointer hover:text-primary transition-colors"
+                                    onClick={() => setActiveLegalToolkit(true)}
+                                    title="Open AI Legal Toolkit"
+                                  >
+                                    AI Legal
+                                    {(selectedLegalTool || activeTool) && (
+                                      <span className="opacity-70 ml-1.5 font-bold border-l border-primary/30 pl-1.5">
+                                        {(selectedLegalTool?.name || selectedLegalTool || activeTool)}
+                                      </span>
+                                    )}
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveLegalToolkit(false);
+                                    setCurrentMode('NORMAL_CHAT');
+                                    setSelectedLegalTool(null);
+                                    setActiveTool(null);
+                                  }}
+                                  className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary dark:text-primary transition-all hover:rotate-90"
+                                >
+                                  <X size={14} strokeWidth={3} />
+                                </button>
+                              </motion.div>
+                            )}
+
+                            {currentCase && currentCase.isLegalCase && selectedLegalTool?.id === 'legal_my_case' && (
+                              <motion.div
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                onClick={() => setIsCasePanelOpen(!isCasePanelOpen)}
+                                className="flex items-center gap-2.5 px-4 py-1.5 bg-gradient-to-r from-primary to-primary-dark text-white rounded-full text-xs font-bold shadow-lg shadow-primary/30 cursor-pointer hover:scale-105 active:scale-95 transition-all whitespace-nowrap shrink-0 group"
+                              >
+                                <Briefcase size={14} className="group-hover:rotate-12 transition-transform" />
+                                <div className="flex flex-col items-start leading-none gap-0.5">
+                                  <span className="text-[8px] font-black uppercase tracking-widest opacity-80">ACTIVE CASE</span>
+                                  <span className="text-[10px] font-bold truncate max-w-[100px]">{currentCase.clientName || 'Untitled Case'}</span>
+                                </div>
+                                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse ml-1" />
+                              </motion.div>
+                            )}
+                            {isMagicEditing && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="flex items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
+                              >
+                                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
+
+                                <div className="flex items-center gap-2 relative z-10">
+                                  <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
+                                    <Wand2 size={14} strokeWidth={3} />
+                                  </div>
+                                  <span className="uppercase tracking-widest text-[9px] font-black hidden xs:inline">{t('imageEdit')}</span>
+                                </div>
+
+                                <div className="w-[1px] h-3 bg-primary/40 mx-0.5 relative z-10" />
+
+                                <button
+                                  type="button"
+                                  onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
+                                  className="flex items-center gap-1.5 hover:text-primary dark:hover:text-primary transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
+                                >
+                                  <span className="text-[10px] font-extrabold opacity-90">{imageAspectRatio}</span>
+                                  <span className="text-[10px] font-black truncate max-w-[60px] sm:max-w-[100px] tracking-tight">
+                                    {TOOL_PRICING.image.models.find(m => m.id === imageModelId)?.name.replace('AISA ', '') || 'Model'}
+                                  </span>
+                                  <ChevronDown size={11} className={`transition-transform duration-300 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => setIsMagicEditing(false)}
+                                  className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
+                                >
+                                  <X size={14} strokeWidth={3} />
+                                </button>
+                              </motion.div>
+                            )}
+                            {isFileAnalysis && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                className="flex items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div className="w-5 h-5 rounded-lg bg-primary/20 flex items-center justify-center">
+                                    <FileText size={14} strokeWidth={2.5} />
+                                  </div>
+                                  <span className="uppercase tracking-wide text-[10px] font-black">{t('analyzeDocument')}</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setIsFileAnalysis(false)}
+                                  className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary dark:text-primary transition-all hover:rotate-90"
+                                >
+                                  <X size={14} strokeWidth={3} />
+                                </button>
+                              </motion.div>
+                            )}
+                          </div>
+                        )}
+                      </AnimatePresence>
+
+
+
+                      <textarea
+                        ref={inputRef}
+                        value={inputValue}
+                        disabled={isLoading || isLimitReached}
+                        onChange={(e) => {
+                          setInputValue(e.target.value);
+                          e.target.style.height = 'auto';
+                          e.target.style.height = `${e.target.scrollHeight}px`;
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey && window.innerWidth > 768) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (isGlobalSending || isLoading) return;
+                            if (inputValue.trim() || selectedFiles.length > 0) {
+                              handleSendMessage(e);
+                            }
+                          }
+                        }}
+                        placeholder={isLimitReached ? t('limitReached') || "Chat limit reached. Sign in to continue." : (isVideoGeneration ? t('describeVideo') || "Describe the video you want to generate..." : isAudioConvertMode ? t('enterTextToConvert') || "Enter text to convert..." : isDocumentConvert ? t('uploadFileToConvert') || "Upload file & ask to convert..." : typedPlaceholder)}
+                        rows={1}
+                        className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none px-3.5 py-2 sm:px-4 sm:py-3 text-slate-800 dark:text-zinc-100 text-left placeholder-slate-400 dark:placeholder-zinc-500 resize-none overflow-y-auto custom-scrollbar font-normal leading-relaxed text-[16px] ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
+                        style={{ minHeight: '40px', height: 'auto', maxHeight: '180px', lineHeight: '1.5' }}
+                      />
+                    </div>
+
+                    {/* Right Actions Group */}
+                    <div className="flex items-center gap-[4px] sm:gap-[6px] pr-[2px] shrink-0">
+                      {isListening && (
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 rounded-full border border-red-500/20 mr-2">
+                          <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
+                          <span className="text-[10px] font-bold text-red-600 uppercase">{t('rec')}</span>
+                        </div>
+                      )}
+
+                      {!isListening && (
+                        <>
+                          {getAgentCapabilities(activeAgent.agentName, activeAgent.category).canVoice && (
+                            <div className="relative">
+
+                              <motion.button
+                                type="button"
+                                whileHover={{ scale: 1.15, rotate: [0, -10, 10, 0] }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => {
+                                  handleVoiceInput();
+                                }}
+                                className="w-[36px] h-[36px] rounded-full flex items-center justify-center bg-secondary/80 text-subtext hover:text-primary transition-colors shadow-lg relative overflow-visible z-20"
+                                title={t('voiceInput')}
+                              >
+                                <Mic className={`w-[20px] h-[20px] shrink-0 transition-colors`} />
+                              </motion.button>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {isLoading ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (abortControllerRef.current) abortControllerRef.current.abort();
+                            setIsLoading(false);
+                            isSendingRef.current = false;
+                          }}
+                          className="w-[36px] h-[36px] rounded-full text-white flex items-center justify-center shadow-lg hover:scale-105 transition-all"
+                          style={{ backgroundColor: 'var(--color-primary)' }}
+                        >
+                          <div className="w-[12px] h-[12px] bg-white rounded-sm" />
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-[6px] relative">
+                          <AnimatePresence>
+                          </AnimatePresence>
+                          <motion.button
+                            type="submit"
+                            disabled={!inputValue.trim() && filePreviews.length === 0}
+                            onMouseEnter={() => setIsSendHovered(true)}
+                            onMouseLeave={() => setIsSendHovered(false)}
+                            whileHover={{ scale: 1.15, rotate: 2 }}
+                            whileTap={{ scale: 0.88 }}
+                            title={t('send')}
+                            onClick={() => {
+                              setIsSendTapped(true);
+                              setTimeout(() => setIsSendTapped(false), 2000);
+                            }}
+                            className={`w-[38px] h-[38px] rounded-full flex items-center justify-center transition-all shadow-lg relative overflow-visible z-20 text-white`}
+                            style={{
+                              background: `linear-gradient(135deg, var(--color-primary), var(--color-primary-dark))`,
+                              boxShadow: isSendHovered ? `0 15px 30px -5px var(--color-primary-border)` : `0 10px 20px -5px var(--color-primary-border)`
+                            }}
+                          >
+                            <AnimatePresence>
+                              {ripples.map(id => (
+                                <SendRipple key={id} onComplete={() => setRipples(r => r.filter(i => i !== id))} />
+                              ))}
+                              {isLaunching && (
+                                <motion.div
+                                  initial={{ scale: 0, opacity: 0 }}
+                                  animate={{ scale: [1, 2.5], opacity: [0.6, 0] }}
+                                  exit={{ opacity: 0 }}
+                                  className="absolute inset-0 rounded-full bg-white/20 blur-xl pointer-events-none"
+                                />
+                              )}
+                            </AnimatePresence>
+                            <motion.div
+                              animate={isLaunching ? {
+                                y: [0, -120],
+                                scale: [1, 2.8, 0],
+                                opacity: [1, 0.4, 0],
+                                rotate: [0, 720],
+                                filter: ["blur(0px)", "blur(30px)"]
+                              } : { y: 0, scale: 1, opacity: 1, filter: "blur(0px)" }}
+                              transition={{ duration: 0.8, ease: "anticipate" }}
+                              className="relative z-10"
+                            >
+                              <SendHorizontal
+                                className="w-[20px] h-[20px] transition-all duration-300 text-white hover:scale-110"
+                                strokeWidth={2.5}
+                              />
+                            </motion.div>
+                          </motion.button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </form>
+                </form>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
 
       {/* Live AI Modal */}

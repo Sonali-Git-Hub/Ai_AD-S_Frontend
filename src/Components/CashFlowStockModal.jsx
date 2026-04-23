@@ -4,7 +4,7 @@ import { X, Search, TrendingUp, BarChart3, Globe, Zap, Loader2, Check, ExternalL
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
-import AISnapshot from './AISnapshot';
+import AISnapshot from '../landingpage/AISnapshot';
 import { io } from 'socket.io-client';
 
 const baseURL = window._env_?.VITE_AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || "http://localhost:8080/api";
