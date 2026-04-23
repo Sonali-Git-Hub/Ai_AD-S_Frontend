@@ -6,7 +6,7 @@ import {
     Settings, Bell, Sparkles, LayoutGrid,
     Database, Shield, Lock, User,
     X, ChevronDown, Play, Globe, Camera,
-    LogOut, Monitor, MonitorOff, Mic, Check, HelpCircle,
+    LogOut, Monitor, MonitorOff, Mic, Check, HelpCircle, Smartphone, Tablet,
     ChevronLeft, ChevronRight, Trash2, ShieldCheck, Mail, Volume2, Plus, MessageSquare, Send, Clock,
     Palette, Type, RefreshCcw, Languages, Crown, History, Calendar, CreditCard, Download, Search, Zap
 } from 'lucide-react';
@@ -770,7 +770,13 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-inner transition-transform group-hover:scale-110 ${
                                                 session.device === 'Mobile' ? 'bg-orange-500/10 text-orange-500' : 'bg-blue-500/10 text-blue-500'
                                             }`}>
-                                                {session.device === 'Mobile' ? <Monitor className="w-6 h-6 rotate-180" /> : <Monitor className="w-6 h-6" />}
+                                                {session.device === 'Mobile' ? (
+                                                    <Smartphone className="w-6 h-6" />
+                                                ) : session.device === 'Tablet' ? (
+                                                    <Tablet className="w-6 h-6" />
+                                                ) : (
+                                                    <Monitor className="w-6 h-6" />
+                                                )}
                                             </div>
                                             <div className="min-w-0">
                                                 <div className="flex items-center gap-2 mb-0.5">
