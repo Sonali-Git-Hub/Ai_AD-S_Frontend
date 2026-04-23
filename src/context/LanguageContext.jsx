@@ -468,6 +468,8 @@ export const LanguageProvider = ({ children }) => {
             newLoginDetected: "New Login Detected",
             successfullyLoggedInAt: "Successfully logged in at",
             checkBackLater: "Check back later for new updates and alerts.",
+            profileUpdatedSuccess: "Profile updated successfully ✨",
+            profileUpdatedLocally: "Profile updated locally (Syncing...)",
             noRecentChats: "No recent chats found.",
             view: "View",
             thisActionCannotBeUndone: "This action cannot be undone.",

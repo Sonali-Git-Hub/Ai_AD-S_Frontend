@@ -98,8 +98,8 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
     }, [chatSessions]);
 
     useEffect(() => {
-        setNicknameInput(personalizations.account?.nickname || '');
-    }, [personalizations.account?.nickname]);
+        setNicknameInput(personalizations.account?.nickname || user.name || '');
+    }, [personalizations.account?.nickname, user.name]);
 
     useEffect(() => {
         if (user?.token) {
@@ -215,13 +215,20 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
             updatePersonalization('account', { nickname: nicknameInput });
             try {
                 if (user?.token) {
-                    await axios.put(apis.profile, { name: nicknameInput }, {
+                    const res = await axios.put(apis.profile, { name: nicknameInput }, {
                         headers: { 'Authorization': `Bearer ${user.token}` }
                     });
+                    
+                    if (res.data) {
+                        // Update local state and storage
+                        const updatedUser = setUserData(res.data);
+                        setUserRecoil(prev => ({ ...prev, user: updatedUser }));
+                    }
                 }
                 toast.success(t('profileUpdatedSuccess') || 'Profile updated successfully');
             } catch (error) {
-                toast.success(t('profileUpdatedLocally') || 'Profile updated locally');
+                console.error("Profile update failed", error);
+                toast.error(error.response?.data?.error || 'Failed to update profile on server');
             }
         }
     };
@@ -1173,6 +1180,13 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         <AnimatePresence>
             <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-[2px]" onClick={onClose}>
                 <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="w-full sm:max-w-[850px] h-full sm:h-[85vh] bg-white dark:bg-[#161B2E] flex flex-col sm:flex-row shadow-2xl sm:rounded-[2rem] overflow-hidden" onClick={e => e.stopPropagation()}>
+                    <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        onChange={handleImageUpload} 
+                        accept="image/*" 
+                        style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }} 
+                    />
                     <div className={`w-full sm:w-[240px] bg-gray-50 dark:bg-black/20 flex flex-col border-r border-gray-100 dark:border-white/5 ${view === 'detail' ? 'hidden sm:flex' : 'flex'}`}>
                         <div className="p-5 flex justify-between items-center">
                             <h2 className="text-lg font-bold">Settings</h2>

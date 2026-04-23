@@ -3268,15 +3268,34 @@ const Chat = () => {
           resolve();
         };
 
-        await audio.play();
+        // Modern browsers require a user gesture. Since synthesis is async,
+        // we hope the browser still respects the original click gesture.
+        // If it fails, we catch it and fallback.
+        try {
+          await audio.play();
+        } catch (playErr) {
+          console.warn('[VOICE] Playback blocked by browser, trying fallback...', playErr);
+          if (!readableAttachment) fallbackSpeak(cleanTextForTTS(text), targetLang);
+          resolve();
+        }
 
       } catch (err) {
         console.error('[VOICE] Synthesis failed:', err);
         toast.dismiss('voice-loading');
+        
+        const isRestricted = err.response?.status === 403 || err.response?.status === 402;
+        const details = err.response?.data?.details || err.response?.data?.error || err.message;
+        
+        if (!isRestricted) {
+          toast.error(`Voice failed: ${details}`, { duration: 5000 });
+        } else {
+          console.log('[VOICE] AI Voice restricted (Premium feature). Falling back to standard browser voice.');
+        }
+
         // fallback logic...
         if (!attachments || attachments.length === 0) {
-          // simple fallback
-          // fallbackSpeak(...)
+          // If restricted, we use standard fallback without making it look like a "failure" to the user
+          fallbackSpeak(cleanTextForTTS(text), 'en-US');
         }
         resolve();
       }
@@ -7003,25 +7022,29 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                     })()}
                                     <div className="flex flex-col items-end gap-2 self-end sm:self-auto">
                                       <div className="flex items-center gap-3">
-                                        {!isMediaFeature && (
-                                          <button
-                                            onClick={() => {
-                                              // Language is auto-detected inside speakResponse / detectLanguageFromText
-                                              speakResponse(msg.content, null, msg.id, msg.attachments || [], true);
-                                            }}
-                                            className={`transition-colors p-1.5 rounded-lg ${speakingMessageId === msg.id
-                                              ? 'text-primary bg-primary/10'
-                                              : 'text-subtext hover:text-primary hover:bg-surface-hover'
-                                              }`}
-                                            title={speakingMessageId === msg.id && !isPaused ? "Pause" : "Speak"}
-                                          >
-                                            {speakingMessageId === msg.id && !isPaused ? (
-                                              <Pause className="w-3.5 h-3.5" />
-                                            ) : (
-                                              <Volume2 className="w-3.5 h-3.5" />
-                                            )}
-                                          </button>
-                                        )}
+                                        {!isMediaFeature && (() => {
+                                          const msgIdentifier = (msg.id || msg._id || idx).toString();
+                                          const isSpeaking = speakingMessageId === msgIdentifier;
+                                          return (
+                                            <button
+                                              onClick={() => {
+                                                // Language is auto-detected inside speakResponse / detectLanguageFromText
+                                                speakResponse(msg.content, null, msgIdentifier, msg.attachments || [], true);
+                                              }}
+                                              className={`transition-colors p-1.5 rounded-lg ${isSpeaking
+                                                ? 'text-primary bg-primary/10'
+                                                : 'text-subtext hover:text-primary hover:bg-surface-hover'
+                                                }`}
+                                              title={isSpeaking && !isPaused ? "Pause" : "Speak"}
+                                            >
+                                              {isSpeaking && !isPaused ? (
+                                                <Pause className="w-3.5 h-3.5" />
+                                              ) : (
+                                                <Volume2 className="w-3.5 h-3.5" />
+                                              )}
+                                            </button>
+                                          );
+                                        })()}
                                         {!isMediaFeature && (
                                           <button
                                             onClick={() => handleCopyMessage(msg.content)}
