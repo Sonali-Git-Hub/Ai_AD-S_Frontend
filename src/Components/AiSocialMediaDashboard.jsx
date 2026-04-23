@@ -169,7 +169,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   const [visualGenRowId, setVisualGenRowId] = useState(null); // tracks which card is actively generating
 
   // Gen Post Format Modal
-  const [genPostModal, setGenPostModal] = useState({ open: false, entry: null, format: 'single' });
+  const [genPostModal, setGenPostModal] = useState({ open: false, entry: null, format: 'single', aspectRatio: '1:1' });
 
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState(null);
@@ -1240,7 +1240,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
    * 2. Vertex AI Imagen 3/4 renders the high-quality visual
    * 3. Polls for completion, then auto-redirects to Post Generation tab
    */
-  const handleVisualPostGeneration = async (entry, postFormat = 'single') => {
+  const handleVisualPostGeneration = async (entry, postFormat = 'single', aspectRatio = '1:1') => {
     if (!workspace || !entry) return;
 
     console.log("[AISA] Visual Gen - Plan check:", { isPremium, userPlan });
@@ -1261,7 +1261,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     setVisualGenRowId(entryId);
 
     const toastId = toast.loading(
-      `🖼️ Engineering prompt for "${entry.title || 'Post'}"...`,
+      `🖼️ Engineering prompt for "${entry.title || 'Post'}" [${aspectRatio}]...`,
       { duration: 30000 }
     );
 
@@ -1270,8 +1270,9 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       const res = await apiService.generateVisualPost(
         workspace._id,
         entryId,
-        undefined, // modelId — use backend default
-        postFormat  // 'single' | 'carousel'
+        undefined,   // modelId — use backend default
+        postFormat,  // 'single' | 'carousel'
+        aspectRatio  // '1:1' | '4:3' | '16:9' | '9:16'
       );
 
       if (!res?.success || !res?.jobId) {
@@ -2651,32 +2652,64 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                         <div className="grid grid-cols-2 gap-3 mt-auto pt-6 border-t border-slate-100 dark:border-white/5">
                           {/* DYNAMIC ISOLATION: Check for visual artifacts separately from content status */}
                           {(assets && assets.some(a => a.calendarEntryId === entry._id)) ? (
-                            <button
-                              onClick={() => {
-                                const generatedAsset = assets?.find(a => a.calendarEntryId === entry._id);
-                                if (generatedAsset) setSelectedAsset(generatedAsset);
-                                setActiveTab('assets');
-                              }}
-                              className="h-11 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-lg bg-emerald-500 text-white shadow-emerald-500/20"
-                            >
-                              <Layers className="w-3 h-3" /> View Post
-                            </button>
+                            <>
+                              <button
+                                onClick={() => {
+                                  const generatedAsset = assets?.find(a => a.calendarEntryId === entry._id);
+                                  if (generatedAsset) setSelectedAsset(generatedAsset);
+                                  setActiveTab('assets');
+                                }}
+                                className="h-11 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-lg bg-emerald-500 text-white shadow-emerald-500/20"
+                              >
+                                <Layers className="w-3 h-3" /> View Post
+                              </button>
+                              <button
+                                onClick={() => setGenPostModal({ open: true, entry, format: 'single' })}
+                                disabled={!!visualGenRowId}
+                                className={`h-11 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-lg disabled:opacity-50 ${
+                                  visualGenRowId === String(entry._id)
+                                    ? 'bg-indigo-600 text-white shadow-indigo-500/20 cursor-not-allowed'
+                                    : 'bg-slate-800 dark:bg-white/10 text-white shadow-lg'
+                                }`}
+                              >
+                                {visualGenRowId === String(entry._id) ? (
+                                  <><RefreshCw className="w-3 h-3 animate-spin" /> Regen...</>
+                                ) : (
+                                  <><RefreshCw className="w-3 h-3" /> Regenerate</>
+                                )}
+                              </button>
+                            </>
                           ) : (
-                            <button
-                              onClick={() => setGenPostModal({ open: true, entry, format: 'single' })}
-                              disabled={!!visualGenRowId}
-                              className={`h-11 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-lg disabled:opacity-50 ${
-                                visualGenRowId === String(entry._id)
-                                  ? 'bg-indigo-600 text-white shadow-indigo-500/20 cursor-not-allowed'
-                                  : 'bg-primary text-white shadow-primary/10'
-                              }`}
-                            >
-                              {visualGenRowId === String(entry._id) ? (
-                                <><RefreshCw className="w-3 h-3 animate-spin" /> Generating...</>
-                              ) : (
-                                <><Sparkles className="w-3 h-3" /> Gen Post</>
-                              )}
-                            </button>
+                            <>
+                              <button
+                                onClick={() => setGenPostModal({ open: true, entry, format: 'single' })}
+                                disabled={!!visualGenRowId}
+                                className={`col-span-1 h-11 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-lg disabled:opacity-50 ${
+                                  visualGenRowId === String(entry._id)
+                                    ? 'bg-indigo-600 text-white shadow-indigo-500/20 cursor-not-allowed'
+                                    : 'bg-primary text-white shadow-primary/10'
+                                }`}
+                              >
+                                {visualGenRowId === String(entry._id) ? (
+                                  <><RefreshCw className="w-3 h-3 animate-spin" /> Generating...</>
+                                ) : (
+                                  <><Sparkles className="w-3 h-3" /> Gen Post</>
+                                )}
+                              </button>
+
+                              <button
+                                onClick={() => handleRegeneratePost(entry._id)}
+                                disabled={isProcessing}
+                                className="col-span-1 h-11 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-lg bg-slate-800 dark:bg-white/10 text-white shadow-lg disabled:opacity-50"
+                                title="Regenerate the text content for this post"
+                              >
+                                {isProcessing ? (
+                                  <><RefreshCw className="w-3 h-3 animate-spin" /> Regen...</>
+                                ) : (
+                                  <><RefreshCw className="w-3 h-3" /> Regenerate</>
+                                )}
+                              </button>
+                            </>
                           )}
                         </div>
                         
@@ -4259,6 +4292,14 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     if (!open || !entry) return null;
 
     const isGeneratingThis = visualGenRowId === String(entry._id);
+
+    const ASPECT_RATIOS = [
+      { id: '1:1',  label: '1:1',  desc: 'Square', note: 'Instagram / Facebook Feed' },
+      { id: '4:3',  label: '4:3',  desc: 'Standard', note: 'Presentations / Facebook' },
+      { id: '16:9', label: '16:9', desc: 'Landscape', note: 'LinkedIn / YouTube' },
+      { id: '9:16', label: '9:16', desc: 'Portrait', note: 'Reels / TikTok / Stories' },
+    ];
+
     const postFormats = [
       {
         id: 'single',
@@ -4279,7 +4320,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
         {/* Backdrop */}
         <div
           className="absolute inset-0 bg-black/70 backdrop-blur-md"
-          onClick={() => !isGeneratingThis && setGenPostModal({ open: false, entry: null, format: 'single' })}
+          onClick={() => !isGeneratingThis && setGenPostModal({ open: false, entry: null, format: 'single', aspectRatio: '1:1' })}
         />
 
         {/* Modal Card */}
@@ -4310,7 +4351,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
               </div>
             </div>
             <button
-              onClick={() => setGenPostModal({ open: false, entry: null, format: 'single' })}
+              onClick={() => setGenPostModal({ open: false, entry: null, format: 'single', aspectRatio: '1:1' })}
               disabled={isGeneratingThis}
               className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white transition-all hover:scale-110 disabled:opacity-40 flex-shrink-0 mt-1"
             >
@@ -4319,7 +4360,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
           </div>
 
           {/* Format Selector */}
-          <div className="px-8 py-6">
+          <div className="px-8 pt-6 pb-0">
             <p className="text-[9px] font-black text-slate-400 uppercase tracking-[3px] mb-4">Choose Post Format</p>
             <div className="grid grid-cols-2 gap-3">
               {postFormats.map(f => (
@@ -4346,14 +4387,46 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                 </button>
               ))}
             </div>
+          </div>
 
-
+          {/* Aspect Ratio Selector */}
+          <div className="px-8 pt-5 pb-6">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[3px] mb-3">Image Aspect Ratio</p>
+            <div className="grid grid-cols-4 gap-2">
+              {ASPECT_RATIOS.map(r => (
+                <button
+                  key={r.id}
+                  onClick={() => setGenPostModal(prev => ({ ...prev, aspectRatio: r.id }))}
+                  title={r.note}
+                  className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border-2 transition-all duration-200 hover:scale-[1.03] active:scale-95 ${
+                    genPostModal.aspectRatio === r.id
+                      ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-md shadow-primary/10'
+                      : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] hover:border-primary/40'
+                  }`}
+                >
+                  {/* Visual preview of the ratio */}
+                  <div className="flex items-center justify-center h-7 w-full">
+                    {r.id === '1:1' && <div className={`w-6 h-6 rounded border-2 ${genPostModal.aspectRatio === r.id ? 'border-primary' : 'border-slate-400'}`} />}
+                    {r.id === '4:3' && <div className={`w-7 h-5 rounded border-2 ${genPostModal.aspectRatio === r.id ? 'border-primary' : 'border-slate-400'}`} />}
+                    {r.id === '16:9' && <div className={`w-8 h-[18px] rounded border-2 ${genPostModal.aspectRatio === r.id ? 'border-primary' : 'border-slate-400'}`} />}
+                    {r.id === '9:16' && <div className={`w-[18px] h-7 rounded border-2 ${genPostModal.aspectRatio === r.id ? 'border-primary' : 'border-slate-400'}`} />}
+                  </div>
+                  <p className={`text-[9px] font-black tracking-widest ${
+                    genPostModal.aspectRatio === r.id ? 'text-primary' : 'text-slate-600 dark:text-slate-300'
+                  }`}>{r.label}</p>
+                  <p className="text-[7px] font-bold text-slate-400 leading-tight text-center">{r.desc}</p>
+                </button>
+              ))}
+            </div>
+            <p className="text-[8px] font-bold text-slate-400 mt-2 text-center">
+              {ASPECT_RATIOS.find(r => r.id === genPostModal.aspectRatio)?.note}
+            </p>
           </div>
 
           {/* Footer Actions */}
           <div className="px-8 pb-8 flex gap-3">
             <button
-              onClick={() => setGenPostModal({ open: false, entry: null, format: 'single' })}
+              onClick={() => setGenPostModal({ open: false, entry: null, format: 'single', aspectRatio: '1:1' })}
               disabled={isGeneratingThis}
               className="flex-1 h-12 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl font-black text-[9px] uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-all disabled:opacity-40"
             >
@@ -4363,8 +4436,9 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
               onClick={() => {
                 const currentEntry = genPostModal.entry;
                 const currentFormat = genPostModal.format;
-                setGenPostModal({ open: false, entry: null, format: 'single' });
-                handleVisualPostGeneration(currentEntry, currentFormat);
+                const currentAspectRatio = genPostModal.aspectRatio || '1:1';
+                setGenPostModal({ open: false, entry: null, format: 'single', aspectRatio: '1:1' });
+                handleVisualPostGeneration(currentEntry, currentFormat, currentAspectRatio);
               }}
               disabled={isGeneratingThis}
               className="flex-1 h-12 bg-primary text-white rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"

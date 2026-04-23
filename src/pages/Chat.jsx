@@ -6671,7 +6671,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                       <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-100 sm:opacity-0 sm:group-hover/generated:opacity-100 transition-opacity">
                                         <div className="flex items-center gap-2">
                                           <Sparkles className="w-4 h-4 text-primary animate-pulse" />
-                                          <span className="text-[10px] font-bold text-white uppercase tracking-widest">AI Ads Generated Asset</span>
+                                          <span className="text-[10px] font-bold text-white uppercase tracking-widest">AISA™ Generated Asset</span>
                                         </div>
                                       </div>
                                       <img

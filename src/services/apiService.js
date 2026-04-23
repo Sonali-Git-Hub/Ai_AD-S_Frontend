@@ -340,13 +340,14 @@ export const apiService = {
    * GPT-4 Prompt Engineering → Vertex AI Imagen 3/4 → GCS → Asset
    * Returns { jobId } immediately; poll getSocialAgentJobStatus for result.
    */
-  async generateVisualPost(workspaceId, calendarEntryId, modelId = 'imagen-3.0-generate-001', postFormat = 'single') {
+  async generateVisualPost(workspaceId, calendarEntryId, modelId = 'imagen-3.0-generate-001', postFormat = 'single', aspectRatio = '1:1') {
     try {
       const response = await apiClient.post('/social-agent/generate/visual-post', {
         workspaceId,
         calendarEntryId,
         modelId,
         postFormat, // 'single' | 'carousel'
+        aspectRatio, // '1:1' | '4:3' | '16:9' | '9:16'
       }, { timeout: 180000 }); // 3-min timeout — pipeline can take up to 90s
       return response.data;
     } catch (error) {
