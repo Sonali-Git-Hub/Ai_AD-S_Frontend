@@ -16,8 +16,8 @@ import SharedChat from './pages/SharedChat';
 
 
 import { AppRoute } from './types';
-import { Menu, Bell } from 'lucide-react';
-import NeuralBackground from './Components/NeuralBackground.jsx';
+import { Menu, Bell, Sun, Moon, LogIn, User } from 'lucide-react';
+import { useTheme } from './context/ThemeContext';
 import { useRecoilState } from 'recoil';
 import { toggleState, getUserData } from './userStore/userData';
 import { usePersonalization } from './context/PersonalizationContext';
@@ -122,6 +122,7 @@ const DashboardLayout = () => {
   const user = getUserData() || { name: 'Guest' };
   const token = getUserData()?.token;
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
   const [isNotifOpen, setIsNotifOpen] = useState(false);
 
   return (
@@ -130,13 +131,11 @@ const DashboardLayout = () => {
       <div className="fixed inset-0 -z-10 overflow-hidden">
         {/* Light mode gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#f8fafc] via-[#eef2ff] to-[#fce7f3] dark:opacity-0 transition-opacity duration-500" />
-        {/* Dark mode deep space */}
+        {/* Dark mode deep black space */}
         <div className="absolute inset-0 opacity-0 dark:opacity-100 transition-opacity duration-500"
-          style={{ background: 'radial-gradient(ellipse at 15% 20%, rgba(139,92,246,0.14) 0%, transparent 55%), radial-gradient(ellipse at 85% 80%, rgba(59,130,246,0.12) 0%, transparent 55%), linear-gradient(160deg, #050816 0%, #0a0f2e 50%, #060b20 100%)' }} />
+          style={{ background: 'radial-gradient(ellipse at 15% 20%, rgba(139,92,246,0.08) 0%, transparent 55%), radial-gradient(ellipse at 85% 80%, rgba(59,130,246,0.06) 0%, transparent 55%), #000000' }} />
         {/* Dark mode neural background */}
-        <div className="dark:block hidden">
-          <NeuralBackground />
-        </div>
+        {/* Neural background removed as per user request */}
         {/* Light mode orbs */}
         <motion.div
           animate={{ y: [0, 30, 0], x: [0, 20, 0], scale: [1, 1.1, 1] }}
@@ -161,7 +160,7 @@ const DashboardLayout = () => {
 
         {/* Unified Mobile Header (Hides when sidebar is open to prevent overlap) */}
         {!isFullScreen && !isSidebarOpen && (
-          <div className="lg:hidden flex items-center justify-start px-6 py-4 bg-white/40 dark:bg-black/40 backdrop-blur-xl border-b border-white/20 dark:border-white/5 shrink-0 z-[1001] shadow-xl">
+          <div className="lg:hidden flex items-center justify-between px-6 py-2 bg-white/10 dark:bg-black/20 backdrop-blur-md border-b border-white/10 dark:border-white/5 shrink-0 z-[1001]">
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => setIsSidebarOpen(true)}
@@ -169,6 +168,38 @@ const DashboardLayout = () => {
             >
               <Menu className="w-6 h-6 stroke-[2.5]" />
             </motion.button>
+
+            <div className="flex items-center gap-2">
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="w-10 h-10 flex items-center justify-center bg-primary/10 rounded-xl border border-primary/30 text-primary"
+              >
+                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+              </motion.button>
+
+              {token ? (
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => navigate('/dashboard/chat')}
+                  className="w-10 h-10 flex items-center justify-center bg-primary/10 rounded-xl border border-primary/30 text-primary overflow-hidden"
+                >
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt="P" className="w-full h-full object-cover" />
+                  ) : (
+                    <User size={20} />
+                  )}
+                </motion.button>
+              ) : (
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => navigate('/login')}
+                  className="px-4 h-10 flex items-center justify-center bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20"
+                >
+                  Login
+                </motion.button>
+              )}
+            </div>
           </div>
         )}
 

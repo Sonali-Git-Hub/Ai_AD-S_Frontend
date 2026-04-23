@@ -914,13 +914,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-3">
                   <User className="w-6 h-6 text-primary" />
                 </div>
-                <p className="text-xs text-subtext mb-2">{t('loginToSaveHistory')}</p>
-                <button
-                  onClick={() => navigate('/login')}
-                  className="text-xs font-bold text-primary hover:underline"
-                >
-                  {t('logInNow')}
-                </button>
+                <p className="text-xs text-subtext">{t('loginToSaveHistory')}</p>
               </div>
             )}
           </div>
@@ -930,19 +924,6 @@ const Sidebar = ({ isOpen, onClose }) => {
         <div className="p-4 border-t border-white/5 relative z-20 space-y-3">
 
 
-          {!token && (
-            <div
-              onClick={() => navigate(AppRoute.LOGIN)}
-              className="rounded-xl border border-transparent hover:bg-white/20 dark:hover:bg-white/10 transition-all cursor-pointer flex items-center gap-3 px-3 py-2 group relative z-10"
-            >
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs uppercase shrink-0 border border-primary/10 group-hover:bg-primary/20 transition-colors">
-                <User className="w-4 h-4" />
-              </div>
-              <div className="font-bold text-maintext text-xs group-hover:text-primary transition-colors">
-                {t('logIn')}
-              </div>
-            </div>
-          )}
 
 
           <div className="flex flex-col gap-1 px-4 pt-4 border-t border-white/5">

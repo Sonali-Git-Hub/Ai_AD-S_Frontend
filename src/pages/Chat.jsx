@@ -5914,26 +5914,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
   }, [isAudioConvertMode]);
 
   return (
-    <div className="flex w-full bg-secondary relative overflow-hidden aisa-scalable-text h-full">
-      {/* 🌟 Premium Minimalist Background Wrapper 🌟 */}
-      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none bg-[#f8f9fc] dark:bg-[#0b0c15]">
-        {/* Universal Ambient Glows: Animated Blobs for Depth */}
-        <div className="absolute inset-0">
-          {/* Light Mode: Soft, elegant radial hints */}
-          <div className="absolute inset-0 dark:hidden">
-            <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-indigo-50/50 rounded-full blur-[140px]" />
-            <div className="absolute bottom-[10%] right-[-10%] w-[50%] h-[50%] bg-blue-50/40 rounded-full blur-[160px]" />
-            <div className="absolute top-[30%] right-[-5%] w-[40%] h-[40%] bg-purple-50/30 rounded-full blur-[120px]" />
-          </div>
-
-          {/* Dark Mode: Deep, matte professional depth */}
-          <div className="absolute inset-0 hidden dark:block">
-            <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/5 rounded-full blur-[140px]" />
-            <div className="absolute bottom-[10%] right-[-10%] w-[45%] h-[45%] bg-blue-500/5 rounded-full blur-[160px]" />
-          </div>
-        </div>
-
-      </div>
+    <div className="flex w-full bg-transparent relative overflow-hidden aisa-scalable-text h-full">
+      {/* Redundant background removed to prevent flicker - using global layout background */}
 
 
       {/* Delete Confirmation Modal */}
@@ -6088,7 +6070,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
       {/* Main Area */}
       <div
-        className="flex-1 flex flex-col relative bg-transparent w-full min-w-0 pt-4"
+        className="flex-1 flex flex-col relative bg-transparent w-full min-w-0 pt-2 lg:pt-4"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -6100,8 +6082,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
           </div>
         )}
 
-        {/* Header - Minimalist with Profile and Theme */}
-        <div className="absolute top-4 right-6 z-[100] flex items-center gap-3">
+        {/* Header - Minimalist with Profile and Theme - Hidden on mobile as it's now in the navbar */}
+        <div className="hidden lg:flex absolute top-4 right-6 z-[100] items-center gap-3">
           {/* Theme Toggle */}
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -6114,8 +6096,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
             {theme === 'dark' ? <Sun className="w-[18px] h-[18px] group-hover/theme:rotate-90 transition-transform duration-500" /> : <Moon className="w-[18px] h-[18px] group-hover/theme:-rotate-12 transition-transform duration-500" />}
           </button>
 
-          {/* Profile Menu */}
-          {token && (
+          {/* Profile Menu or Login Button */}
+          {token ? (
             <div className="relative profile-menu-container">
               <button
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
@@ -6143,6 +6125,15 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 )}
               </AnimatePresence>
             </div>
+          ) : (
+            <motion.button
+              whileHover={{ y: -2, scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => navigate('/login')}
+              className="px-6 py-2 bg-primary text-white rounded-xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-primary/25 hover:shadow-primary/40 transition-all border border-white/10"
+            >
+              Login
+            </motion.button>
           )}
         </div>
 

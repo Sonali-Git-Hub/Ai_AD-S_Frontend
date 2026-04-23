@@ -49,14 +49,14 @@
 
   :root.dark,
   .dark {
-    --background: 227 39% 9%;
-    /* #0E1220 - Deep Calm Charcoal/Navy */
+    --background: 0 0% 0%;
+    /* Pure Black #000000 */
     --foreground: 210 20% 90%;
     /* Soft Off-White for Headings */
-    --card: 228 35% 13%;
-    /* #161B2E - Matte Dark Card */
+    --card: 0 0% 4%;
+    /* Very Dark Gray #0a0a0a - Matte Dark Card */
     --card-foreground: 210 15% 80%;
-    --popover: 227 39% 9%;
+    --popover: 0 0% 0%;
     --popover-foreground: 210 15% 80%;
     --primary: 225 60% 55%;
     --primary-light: 225 60% 70%;
@@ -64,19 +64,19 @@
     --primary-bg: 225 30% 12%;
     --primary-border: 225 60% 55% / 0.15;
     --primary-foreground: 210 40% 98%;
-    --secondary: 228 30% 18%;
-    /* Subtle darker surface */
+    --secondary: 0 0% 6%;
+    /* Subtle darker surface #0f0f0f */
     --secondary-foreground: 210 20% 90%;
-    --muted: 228 30% 18%;
+    --muted: 0 0% 8%;
     --muted-foreground: 215 15% 65%;
     /* Muted Gray for body text */
-    --accent: 228 30% 18%;
+    --accent: 0 0% 6%;
     --accent-foreground: 210 20% 90%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 228 30% 18%;
+    --border: 0 0% 10%;
     /* Subtle border, blending in */
-    --input: 228 30% 18%;
+    --input: 0 0% 8%;
     --ring: 225 60% 55%;
   }
 }
