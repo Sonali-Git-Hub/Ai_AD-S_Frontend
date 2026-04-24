@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, X, Sparkles, MessageSquare, FileText, Image, Cloud, Camera, Mic, Share2, Scan, FileDiff, FileType, Search, Video, Globe, Headphones, Code, Wand2, TrendingUp, PlaySquare, Megaphone } from 'lucide-react';
+import { Bot, X, Info, MessageSquare, FileText, Image, Cloud, Camera, Mic, Share2, Scan, FileDiff, FileType, Search, Video, Globe, Headphones, Code, Wand2, TrendingUp, PlaySquare, Megaphone } from 'lucide-react';
 import LegalLogo from '../Components/LegalLogo';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
@@ -24,7 +24,7 @@ const AboutAISA = ({ isOpen, onClose }) => {
         },
         {
             title: t('whyAisaExists'),
-            icon: <Sparkles className="w-5 h-5 text-blue-500" />,
+            icon: <Info className="w-5 h-5 text-blue-500" />,
             content: t('whyAisaExistsDesc')
         }
     ];
@@ -97,7 +97,7 @@ const AboutAISA = ({ isOpen, onClose }) => {
                                 borderColor: isDarkMode ? 'rgba(59,130,246,0.3)' : 'rgba(99,102,241,0.2)'
                             }}
                         >
-                            <Sparkles className="w-3 h-3 text-blue-400" />
+                            <Info className="w-3 h-3 text-blue-400" />
                             <span className="text-[9px] font-black tracking-[0.2em] uppercase text-blue-400">{t('nextGenPlatform')}</span>
                         </motion.div>
                         

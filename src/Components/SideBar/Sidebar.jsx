@@ -32,7 +32,8 @@ import {
   Briefcase,
   Gavel,
   PlusCircle,
-  Database
+  Database,
+  Info
 } from 'lucide-react';
 import { apis, AppRoute } from '../../types';
 import ShareModal from '../ShareModal';
@@ -960,7 +961,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 className="flex flex-col items-center gap-2 group transition-all active:scale-95"
               >
                 <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-colors group-hover:bg-primary/30">
-                  <Sparkles className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
+                  <Info className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
                 </div>
                 <span className="text-[10px] font-black text-primary uppercase tracking-wider">About</span>
               </button>
