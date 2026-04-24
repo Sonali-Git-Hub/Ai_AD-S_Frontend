@@ -7,9 +7,9 @@ import Signup from './pages/Signup';
 import VerificationForm from './pages/VerificationForm';
 import Chat from './pages/Chat';
 import Sidebar from './Components/SideBar/Sidebar.jsx';
-import AiPersonalAssistantDashboard from './pages/AiPersonalAssistant/Dashboard';
+import AiPersonalAssistantDashboard from './Tools/AI_Personal_Assistant/Dashboard';
 import Pricing from './landingpage/Pricing';
-import SocialAgentPage from './pages/SocialAgentPage.jsx';
+import SocialAgentPage from './Tools/AI_Social_Media/SocialAgentPage.jsx';
 import CreditUpsellPopup from './Components/CreditUpsellPopup';
 import SharedChat from './pages/SharedChat';
 
@@ -32,6 +32,7 @@ import CookiePolicy from './landingpage/CookiePolicy.jsx';
 import { AnimatePresence, motion } from 'framer-motion';
 import { lazy, Suspense } from 'react';
 import ProtectedRoute from './Components/ProtectedRoute/ProtectedRoute.jsx';
+const AiBase = lazy(() => import('./Tools/AI_Base/AI_Base').catch(() => ({ default: () => <div className="flex h-full items-center justify-center text-subtext">AI Base Module not found.</div> })));
 
 // Vendor Imports Removed
 // import VendorLayout from './Components/Vendor/VendorLayout';
@@ -328,6 +329,7 @@ const NavigateProvider = () => {
           <Route path="chat/:sessionId?" element={<Chat />} />
           <Route path="social-agent" element={<ProtectedRoute><SocialAgentPage /></ProtectedRoute>} />
           <Route path="ai-personal-assistant" element={<ProtectedRoute><AiPersonalAssistantDashboard /></ProtectedRoute>} />
+          <Route path="ai-base" element={<ProtectedRoute><Suspense fallback={<div className="flex h-full items-center justify-center">Loading AI Base...</div>}><AiBase /></Suspense></ProtectedRoute>} />
 
           <Route path="admin" element={
             <Suspense fallback={<div className="flex items-center justify-center h-full">Loading...</div>}>

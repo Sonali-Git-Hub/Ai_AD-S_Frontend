@@ -132,10 +132,10 @@ const AboutAISA = ({ isOpen, onClose }) => {
                         className="text-center max-w-3xl mx-auto"
                     >
                         <p 
-                            className="text-xl md:text-2xl leading-[1.6] font-medium"
+                            className="text-lg md:text-xl leading-[1.8]"
                             style={{ 
-                                fontFamily: "'Times New Roman', Times, serif",
-                                color: isDarkMode ? 'rgba(203, 213, 225, 0.9)' : '#1e1b4b'
+                                color: isDarkMode ? 'rgba(255, 255, 255, 0.85)' : '#000000',
+                                letterSpacing: '0.01em'
                             }}
                             dangerouslySetInnerHTML={{ __html: t('aboutIntro') }}
                         />
@@ -229,33 +229,6 @@ const AboutAISA = ({ isOpen, onClose }) => {
                     </motion.div>
                 </div>
 
-                {/* Premium Footer CTA */}
-                <div className="p-8 border-t flex flex-col md:flex-row justify-between items-center gap-6 shrink-0" 
-                     style={{ borderTopColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(99, 102, 241, 0.1)', background: isDarkMode ? 'rgba(10, 12, 20, 0.5)' : 'rgba(238, 242, 255, 0.5)' }}>
-                    <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                        <p className="text-xs font-bold tracking-wide" style={{ color: isDarkMode ? 'rgba(255,255,255,0.4)' : '#64748B' }}>
-                            {t('oneAssistant')}
-                        </p>
-                    </div>
-                    
-                    <button
-                        onClick={() => {
-                            onClose();
-                            navigate('/dashboard/chat/new');
-                        }}
-                        className="w-full md:w-auto px-10 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-sm tracking-widest uppercase shadow-[0_10px_30px_rgba(37,99,235,0.3)] hover:shadow-[0_15px_40px_rgba(37,99,235,0.4)] transition-all active:scale-95 flex items-center justify-center gap-3 group"
-                        style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)' }}
-                    >
-                        {t('exploreAisa')}
-                        <motion.div
-                            animate={{ x: [0, 5, 0] }}
-                            transition={{ repeat: Infinity, duration: 1.5 }}
-                        >
-                            <Sparkles className="w-4 h-4" />
-                        </motion.div>
-                    </button>
-                </div>
             </motion.div>
         </div>
     );

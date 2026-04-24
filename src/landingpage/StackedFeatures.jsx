@@ -4,13 +4,14 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import {
   Search, ImageIcon, Video, Globe, Code2, ArrowRight,
-  Bot, User, ExternalLink, Terminal, CheckCircle2, Sparkles, Zap
+  Bot, User, ExternalLink, Terminal, CheckCircle2, Sparkles, Zap,
+  Scale, TrendingUp, Megaphone
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const NUM_SLIDES = 5;
+const NUM_SLIDES = 8;
 import { useLanguage } from '../context/LanguageContext';
 
 /* ════════════════════════════════════════════
@@ -469,6 +470,132 @@ def google_search(query, n=10):
   );
 };
 
+/* ── 6. AI Legal Panel ── */
+const AiLegalDemo = ({ active }) => {
+  const { t } = useLanguage();
+  const [step, setStep] = useState(0);
+  const color = '#fb7185';
+
+  useEffect(() => {
+    if (!active) { setStep(0); return; }
+    let t1 = setTimeout(() => setStep(1), 800);
+    let t2 = setTimeout(() => setStep(2), 2000);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [active]);
+
+  return (
+    <div style={panelStyle('#fb7185')}>
+      <PanelChrome color={color} label="Legal AI" />
+      <div style={{ flex: 1, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', borderRadius: 10, background: 'rgba(251,113,133,0.08)', border: `1px solid ${color}30` }}>
+          <Scale size={12} style={{ color }} />
+          <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.65)' }}>Analyze service agreement.pdf</span>
+        </div>
+        {step >= 1 && (
+          <div style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', animation: 'sfBIn 0.3s ease' }}>
+            <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>Clause 4.2 Analysis</div>
+            <div style={{ height: 4, background: color, width: '70%', borderRadius: 2, marginBottom: 6 }} />
+            <div style={{ fontSize: '0.7rem', color: '#fda4af' }}>Potential high-risk liability detected.</div>
+          </div>
+        )}
+        {step >= 2 && (
+          <div style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(251,113,133,0.05)', border: `1px solid ${color}20`, animation: 'sfBIn 0.3s ease' }}>
+            <div style={{ fontSize: '0.7rem', color, fontWeight: 700, marginBottom: 4 }}>Legal Recommendation</div>
+            <p style={{ margin: 0, fontSize: '0.68rem', color: 'rgba(203,213,225,0.8)', lineHeight: 1.5 }}>
+              Amend section 4.2 to limit aggregate liability to 100% of fees paid.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ── 7. AI Cashflow Panel ── */
+const AiCashflowDemo = ({ active }) => {
+  const color = '#34d399';
+  const [dots, setDots] = useState([]);
+
+  useEffect(() => {
+    if (!active) { setDots([]); return; }
+    const newDots = Array.from({ length: 8 }, (_, i) => ({
+      h: 30 + Math.random() * 60,
+      delay: i * 0.1
+    }));
+    setDots(newDots);
+  }, [active]);
+
+  return (
+    <div style={panelStyle('#34d399')}>
+      <PanelChrome color={color} label="Finance AI" />
+      <div style={{ flex: 1, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)' }}>Monthly Revenue</div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#f0fdf4' }}>$42,850.00</div>
+          </div>
+          <TrendingUp size={24} style={{ color, opacity: 0.5 }} />
+        </div>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 60, padding: '0 4px' }}>
+          {dots.map((d, i) => (
+            <div key={i} style={{
+              flex: 1, height: `${d.h}%`, borderRadius: '3px 3px 0 0',
+              background: `linear-gradient(to top, ${color}22, ${color})`,
+              animation: `sfvp 0.6s ease ${d.delay}s both`
+            }} />
+          ))}
+        </div>
+        <div style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(52,211,153,0.05)', border: `1px solid ${color}20` }}>
+          <div style={{ fontSize: '0.65rem', color, fontWeight: 700 }}>Cashflow Forecast</div>
+          <div style={{ fontSize: '0.68rem', color: 'rgba(203,213,225,0.6)' }}>Positive trend continues. Projected 12% growth.</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ── 8. AI Ads Panel ── */
+const AiAdsDemo = ({ active }) => {
+  const color = '#6366f1';
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    if (!active) { setStep(0); return; }
+    let t1 = setTimeout(() => setStep(1), 1000);
+    return () => clearTimeout(t1);
+  }, [active]);
+
+  return (
+    <div style={panelStyle('#6366f1')}>
+      <PanelChrome color={color} label="Ad Agent" />
+      <div style={{ flex: 1, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', borderRadius: 10, background: 'rgba(99,102,241,0.08)', border: `1px solid ${color}30` }}>
+          <Megaphone size={12} style={{ color }} />
+          <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.65)' }}>Create FB ad for Vegan Pizza</span>
+        </div>
+        <div style={{ flex: 1, borderRadius: 10, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', position: 'relative', overflow: 'hidden', padding: 8 }}>
+          {step === 0 ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'rgba(255,255,255,0.2)', fontSize: '0.65rem' }}>
+              <div style={{ width: 10, height: 10, border: `2px solid ${color}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'sfSpin 0.8s linear infinite' }} />
+              Generating creative copies...
+            </div>
+          ) : (
+            <div style={{ animation: 'sfBIn 0.4s ease' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#fff', marginBottom: 4 }}>Slice of Heaven 🍕</div>
+              <p style={{ margin: 0, fontSize: '0.65rem', color: 'rgba(203,213,225,0.7)', lineHeight: 1.4 }}>
+                100% Plant-based. 100% Delicious. Order now for 20% off your first vegan delight!
+              </p>
+              <div style={{ marginTop: 8, height: 40, borderRadius: 6, background: 'linear-gradient(45deg, #6366f1, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 900, color: '#fff' }}>
+                SHOP NOW
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ── Tiny syntax highlight ── */
 const SyntaxHighlight = ({ code }) => {
   const tokens = code.split(/(import|from|def|return|try|except|for|in|if|else)\b/);
@@ -532,6 +659,9 @@ const features = [
   { id:2, title:'Video Generation', description:'Create cinematic AI videos from text or images. The future of content creation is here.',              icon:Video,    bgFrom:'rgba(60,0,30,1)',  bgTo:'rgba(30,0,15,1)', accentColor:'#f472b6', accentGlow:'rgba(236,72,153,0.35)', Demo:VideoGenDemo    },
   { id:3, title:'Web Search',       description:'Smart AI web browsing that surfaces the most relevant real-time information instantly.',               icon:Globe,    bgFrom:'rgba(0,50,40,1)',  bgTo:'rgba(0,25,20,1)', accentColor:'#2dd4bf', accentGlow:'rgba(45,212,191,0.3)',   Demo:WebBrowseDemo   },
   { id:4, title:'Code Builder',     description:'Generate, explain, and debug code across any language with a powerful AI coding assistant.',           icon:Code2,    bgFrom:'rgba(10,10,60,1)', bgTo:'rgba(5,5,30,1)',  accentColor:'#818cf8', accentGlow:'rgba(99,102,241,0.35)', Demo:CodeBuilderDemo },
+  { id:5, title:'AI Legal',        description:'Advanced legal intelligence for document analysis, risk detection, and professional drafting.',         icon:Scale,    bgFrom:'rgba(60,20,40,1)', bgTo:'rgba(30,10,20,1)', accentColor:'#fb7185', accentGlow:'rgba(251,113,133,0.35)', Demo:AiLegalDemo    },
+  { id:6, title:'AI Cashflow',     description:'Intelligent financial forecasting and real-time revenue analysis for modern businesses.',              icon:TrendingUp, bgFrom:'rgba(10,50,30,1)', bgTo:'rgba(5,25,15,1)',  accentColor:'#34d399', accentGlow:'rgba(52,211,153,0.35)', Demo:AiCashflowDemo },
+  { id:7, title:'AI Ads',          description:'Automated high-conversion ad campaign generation and creative copywriting for social media.',          icon:Megaphone, bgFrom:'rgba(20,20,60,1)', bgTo:'rgba(10,10,30,1)', accentColor:'#6366f1', accentGlow:'rgba(99,102,241,0.35)', Demo:AiAdsDemo     },
 ];
 
 /* ════════════════════════════════════════════
@@ -616,7 +746,10 @@ const StackedFeatures = () => {
               'Image Generation': { title: 'imageGenTitle', desc: 'imageGenLongDesc' },
               'Video Generation': { title: 'videoGenTitle', desc: 'videoGenLongDesc' },
               'Web Search': { title: 'webSearchTitle', desc: 'webSearchLongDesc' },
-              'Code Builder': { title: 'codeBuilderTitle', desc: 'codeBuilderLongDesc' }
+              'Code Builder': { title: 'codeBuilderTitle', desc: 'codeBuilderLongDesc' },
+              'AI Legal': { title: 'Legal AI', desc: 'Advanced legal intelligence for document analysis and risk detection.' },
+              'AI Cashflow': { title: 'Finance AI', desc: 'Intelligent financial forecasting and real-time revenue analysis.' },
+              'AI Ads': { title: 'Ad Agent', desc: 'Automated high-conversion ad campaign generation and creative copywriting.' }
             };
             const Icon = feat.icon;
             const { Demo } = feat;
@@ -685,7 +818,10 @@ const StackedFeatures = () => {
                             'Image Generation': 'imagegen',
                             'Video Generation': 'videogen',
                             'Web Search': 'websearch',
-                            'Code Builder': 'coding'
+                            'Code Builder': 'coding',
+                            'AI Legal': 'ailegal',
+                            'AI Cashflow': 'aicashflow',
+                            'AI Ads': 'aiadagent'
                           };
                           const mode = modeMap[feat.title] || 'chat';
                           navigate(`/dashboard/chat?mode=${mode}`);

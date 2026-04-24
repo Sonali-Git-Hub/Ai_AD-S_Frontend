@@ -14,9 +14,9 @@ import {
 } from 'lucide-react';
 import { Dialog, Transition, Menu, Listbox } from '@headlessui/react';
 import toast from 'react-hot-toast';
-import { apiService } from '../services/apiService';
-import { API } from '../types.js';
-import { getUserData, updateUser } from '../userStore/userData';
+import { apiService } from '../../services/apiService';
+import { API } from '../../types.js';
+import { getUserData, updateUser } from '../../userStore/userData';
 
 /**
  * Safely wraps a URL through the backend media proxy.

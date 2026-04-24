@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Download, FastForward, Rewind, Loader2 } from 'lucide-react';
-import { apiService } from '../services/apiService';
-import { logo } from '../constants';
+import { apiService } from '../../services/apiService';
+import { logo } from '../../constants';
 
 const CustomVideoPlayer = ({ src, compact = false }) => {
     const videoRef = useRef(null);

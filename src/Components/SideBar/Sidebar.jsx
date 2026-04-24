@@ -31,7 +31,8 @@ import {
   Share2,
   Briefcase,
   Gavel,
-  PlusCircle
+  PlusCircle,
+  Database
 } from 'lucide-react';
 import { apis, AppRoute } from '../../types';
 import ShareModal from '../ShareModal';
@@ -922,39 +923,48 @@ const Sidebar = ({ isOpen, onClose }) => {
 
 
 
-          <div className="flex flex-col gap-1 px-4 pt-4 border-t border-white/5">
-            <div className="flex gap-1.5">
-              <button 
-                onClick={() => setShowTerms(true)}
-                className="flex-1 px-3 py-1.5 rounded-xl bg-primary text-[9px] font-bold uppercase tracking-wider text-white hover:opacity-90 transition-all shadow-lg shadow-primary/10 active:scale-95"
-              >
-                Terms
-              </button>
-              <button 
-                onClick={() => setShowPrivacy(true)}
-                className="flex-1 px-3 py-1.5 rounded-xl bg-primary text-[9px] font-bold uppercase tracking-wider text-white hover:opacity-90 transition-all shadow-lg shadow-primary/10 active:scale-95"
-              >
-                Privacy
-              </button>
-            </div>
-            
+          <div className="px-6 py-4 border-t border-white/5 relative z-20">
             {isAdmin && (
               <button
                 onClick={() => { navigate('/dashboard/admin'); onClose(); }}
-                className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-white bg-primary hover:opacity-90 transition-all text-[10px] font-bold border border-white/10 shadow-lg shadow-primary/20 w-full active:scale-95"
+                className="w-full h-10 flex items-center justify-center gap-2 mb-5 rounded-xl text-primary bg-primary/10 hover:bg-primary/20 transition-all text-[10px] font-black uppercase tracking-widest border border-primary/20 active:scale-95"
               >
                 <Shield className="w-3.5 h-3.5" />
                 <span>{t('admin')}</span>
               </button>
             )}
 
-            <button 
-              onClick={() => setIsAboutOpen(true)}
-              className="w-full px-3 py-1.5 rounded-xl bg-primary text-[10px] font-black uppercase tracking-[0.2em] text-white hover:opacity-90 transition-all flex items-center justify-center gap-2 group/about shadow-lg shadow-primary/10 active:scale-[0.98]"
-            >
-              <Sparkles className="w-3.5 h-3.5 group-hover/about:rotate-12 transition-transform" />
-              About AISA
-            </button>
+            <div className="flex items-center justify-between px-2">
+              <button 
+                onClick={() => setShowTerms(true)}
+                className="flex flex-col items-center gap-2 group transition-all active:scale-95"
+              >
+                <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-colors group-hover:bg-primary/30">
+                  <FileText className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
+                </div>
+                <span className="text-[10px] font-black text-primary uppercase tracking-wider">{t('terms') || 'Terms'}</span>
+              </button>
+
+              <button 
+                onClick={() => setShowPrivacy(true)}
+                className="flex flex-col items-center gap-2 group transition-all active:scale-95"
+              >
+                <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-colors group-hover:bg-primary/30">
+                  <Shield className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
+                </div>
+                <span className="text-[10px] font-black text-primary uppercase tracking-wider">{t('privacy') || 'Privacy'}</span>
+              </button>
+
+              <button 
+                onClick={() => setIsAboutOpen(true)}
+                className="flex flex-col items-center gap-2 group transition-all active:scale-95"
+              >
+                <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-colors group-hover:bg-primary/30">
+                  <Sparkles className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
+                </div>
+                <span className="text-[10px] font-black text-primary uppercase tracking-wider">About</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

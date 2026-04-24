@@ -8,7 +8,7 @@ import {
   MessageCircle, ArrowRight, X, ChevronDown, Zap, Maximize2, Minimize2, Gavel, Briefcase
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import LegalLogo from './LegalLogo';
+import LegalLogo from '../../Components/LegalLogo';
 
 const SECTIONS = {
   CORE: ['legal_draft_maker', 'legal_contract_analyzer', 'legal_case_predictor'],

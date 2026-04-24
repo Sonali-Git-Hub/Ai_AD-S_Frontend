@@ -5,9 +5,9 @@ import {
     Layers, PauseCircle, PlayCircle, AlertCircle,
     ChevronRight, ExternalLink, Loader
 } from 'lucide-react';
-import { apiService } from '../services/apiService';
+import { apiService } from '../../services/apiService';
 import toast from 'react-hot-toast';
-import DeleteConfirmModal from '../Components/DeleteConfirmModal';
+import DeleteConfirmModal from '../../Components/DeleteConfirmModal';
 
 const KnowledgeSourceManager = () => {
     const [sources, setSources] = useState([]);

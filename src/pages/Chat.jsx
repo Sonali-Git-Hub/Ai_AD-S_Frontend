@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, Fragment } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Send, SendHorizontal, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe, Sliders, PlayCircle, Brain, ImagePlus, PlaySquare, RefreshCcw, TrendingUp, Zap, Gavel, Navigation, Rocket, Megaphone, Scale, ArrowLeft, ChevronRight, Briefcase, Calendar, Users, FolderOpen, Save, Sun, Moon } from 'lucide-react';
-import LegalLogo from '../Tools/AI_Legal/LegalLogo';
+import LegalLogo from '../Components/LegalLogo';
 import { logo } from '../constants';
 import { renderAsync } from 'docx-preview';
 import * as XLSX from 'xlsx';
@@ -20,13 +20,14 @@ import toast from 'react-hot-toast';
 import LiveAI from '../Components/LiveAI';
 import { apiService } from '../services/apiService';
 
-import ImageEditor from '../Components/ImageEditor';
-import CustomVideoPlayer from '../Components/CustomVideoPlayer';
+const ImageEditor = React.lazy(() => import('../Tools/AI_Image_Generator/ImageEditor').catch(() => ({ default: () => null })));
+const CustomVideoPlayer = React.lazy(() => import('../Tools/AI_Video_Generator/CustomVideoPlayer').catch(() => ({ default: () => null })));
 import ModelSelector from '../Components/ModelSelector';
-import MagicToolSettingsCard from '../Components/MagicToolSettingsCard';
-import CashFlowStockModal from '../Components/CashFlowStockModal';
-import CashFlowChartWidget from '../Components/CashFlowChartWidget';
-import LegalToolkitCard, { PREMIUM_TOOLS } from '../Tools/AI_Legal/LegalToolkitCard';
+const MagicToolSettingsCard = React.lazy(() => import('../Tools/MagicTools/MagicToolSettingsCard').catch(() => ({ default: () => null })));
+const CashFlowStockModal = React.lazy(() => import('../Tools/AI_Cashflow/CashFlowStockModal').catch(() => ({ default: () => null })));
+const CashFlowChartWidget = React.lazy(() => import('../Tools/AI_Cashflow/CashFlowChartWidget').catch(() => ({ default: () => null })));
+const LegalToolkitCard = React.lazy(() => import('../Tools/AI_Legal/LegalToolkitCard').catch(() => ({ default: () => null })));
+import { PREMIUM_TOOLS } from '../constants/legalTools';
 import axios from 'axios';
 import { apis, API } from '../types';
 import { jsPDF } from 'jspdf';
@@ -37,14 +38,15 @@ import { userData, getUserData, clearUser, sessionsData, toggleState, memoryData
 import { usePersonalization } from '../context/PersonalizationContext';
 import OnboardingModal from '../Components/OnboardingModal';
 import PremiumUpsellModal from '../Components/PremiumUpsellModal';
-import MagicVideoGenModal from '../Components/MagicVideoGenModal';
-import MagicImageEditModal from '../Components/MagicImageEditModal';
+const MagicVideoGenModal = React.lazy(() => import('../Tools/AI_Video_Generator/MagicVideoGenModal').catch(() => ({ default: () => null })));
+const MagicImageEditModal = React.lazy(() => import('../Tools/AI_Image_Generator/MagicImageEditModal').catch(() => ({ default: () => null })));
+const AiSocialMediaDashboard = React.lazy(() => import('../Tools/AI_Social_Media/AiSocialMediaDashboard').catch(() => ({ default: () => null })));
 import DeleteConfirmModal from '../Components/DeleteConfirmModal';
 import { getSubscriptionDetails } from '../services/pricingService';
 import IntentSuggestionBanner from '../Components/IntentSuggestionBanner';
 import { detectIntent, mapModeToToolState } from '../services/intentService';
 import LoginRequiredModal from '../Components/LoginRequiredModal';
-import AiSocialMediaDashboard from '../Components/AiSocialMediaDashboard';
+
 import FuturisticToolCards from '../landingpage/FuturisticToolCards';
 import AisaTypingIndicator from '../Components/AisaTypingIndicator';
 import GmailConnectedModal from '../Components/GmailConnectedModal';
@@ -639,26 +641,10 @@ const Chat = () => {
     const toolParam = params.get('tool')?.toLowerCase();
 
     if (modeParam || toolParam) {
-      // Deactivate all first
-      setIsDeepSearch(false); setIsWebSearch(false); setIsImageGeneration(false);
-      setIsVideoGeneration(false); setIsCodeWriter(false); setIsFileAnalysis(false);
-      setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsMagicEditing(false);
-      setActiveLegalToolkit(false);
-
-      // Map params to states
-      if (modeParam === 'deepsearch' || toolParam === 'deepsearch') setIsDeepSearch(true);
-      else if (modeParam === 'websearch' || modeParam === 'webbrowse' || toolParam === 'websearch') setIsWebSearch(true);
-      else if (modeParam === 'imagegen' || modeParam === 'image' || toolParam === 'imagegen') { setIsImageGeneration(true); }
-      else if (modeParam === 'videogen' || modeParam === 'video' || toolParam === 'videogen') { setIsVideoGeneration(true); }
-      else if (modeParam === 'coding' || modeParam === 'code' || toolParam === 'coding') setIsCodeWriter(true);
-      else if (modeParam === 'ailegal' || modeParam === 'legal' || toolParam === 'ailegal') { setActiveLegalToolkit(true); setCurrentMode('LEGAL_TOOLKIT'); }
-      else if (modeParam === 'aicashflow' || modeParam === 'finance' || toolParam === 'aicashflow') { setIsFileAnalysis(true); alert("AICASHFLOW analysis mode active. Please upload your ledger/data file."); } // Heuristic for now
-
-      // Clear params to avoid re-triggering if user refreshes but wants to keep state manually? 
-      // Actually usually better to keep them or clear them. 
-      // navigate(location.pathname, { replace: true });
+      // Simply clear params and land in chat without any popups or auto-activations
+      navigate(location.pathname, { replace: true });
     }
-  }, [location.search]);
+  }, [location.search, navigate, location.pathname]);
 
   // Tool Persistence
   useEffect(() => {
@@ -6632,7 +6618,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                       {msg.content || msg.text || ""}
                                     </ReactMarkdown>
                                     {msg.cashflowData && (
+                                    <React.Suspense fallback={<div className="h-48 w-full bg-surface-hover animate-pulse rounded-xl" />}>
                                       <CashFlowChartWidget data={msg.cashflowData} />
+                                    </React.Suspense>
                                     )}
                                   </div>
                                   {/* Sources List (ONLY for Web Search, HIDE for RAG as requested) */}
@@ -6670,7 +6658,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                                   {msg.videoUrl && (
                                     <div className="relative mt-4 mb-2 w-fit max-w-full">
-                                      <CustomVideoPlayer src={msg.videoUrl} compact={true} />
+                                      <React.Suspense fallback={<div className="w-full aspect-video bg-black/20 animate-pulse rounded-xl" />}>
+                                        <CustomVideoPlayer src={msg.videoUrl} compact={true} />
+                                      </React.Suspense>
                                     </div>
                                   )}
 
@@ -7491,7 +7481,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 </h3>
                               </div>
                             </div>
-                            <div className="p-1.5 pb-12 space-y-1 overflow-y-auto scrollbar-hide" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+                            <div className="p-1.5 pb-12 space-y-1 overflow-y-auto scrollbar-hide scroll-smooth will-change-transform" style={{ maxHeight: 'calc(100vh - 220px)' }}>
 
                               <button
                                 type="button"
@@ -8946,80 +8936,81 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         </Dialog>
       </Transition>
 
-      <PremiumUpsellModal />
-      {renderNewCaseModal()}
-      <MagicImageEditModal
-        isOpen={isMagicEditing}
-        onClose={() => setIsMagicEditing(false)}
-        onImageGenerated={(imageUrl) => {
-          setImagePreview(imageUrl);
-          setIsImageGeneration(true);
-        }}
-      />
-      <MagicVideoGenModal
-        isOpen={isMagicVideoModalOpen}
-        onClose={() => {
-          setIsMagicVideoModalOpen(false);
-          setIsVideoGeneration(false); // Reset video mode when closing magic video gen
-        }}
-        onVideoGenerated={(videoUrl) => {
-          setVideoPreview(videoUrl);
-          setIsVideoGeneration(true);
-        }}
-        onCreditDeduction={(credits) => console.log('deducted', credits)}
-      />
+      <React.Suspense fallback={null}>
+        <PremiumUpsellModal />
+        {renderNewCaseModal()}
+        <MagicImageEditModal
+          isOpen={isMagicEditing}
+          onClose={() => setIsMagicEditing(false)}
+          onImageGenerated={(imageUrl) => {
+            setImagePreview(imageUrl);
+            setIsImageGeneration(true);
+          }}
+        />
+        <MagicVideoGenModal
+          isOpen={isMagicVideoModalOpen}
+          onClose={() => {
+            setIsMagicVideoModalOpen(false);
+            setIsVideoGeneration(false); // Reset video mode when closing magic video gen
+          }}
+          onVideoGenerated={(videoUrl) => {
+            setVideoPreview(videoUrl);
+            setIsVideoGeneration(true);
+          }}
+          onCreditDeduction={(credits) => console.log('deducted', credits)}
+        />
 
 
-      <MagicToolSettingsCard
-        isOpen={isMagicSettingsOpen}
-        onClose={() => setIsMagicSettingsOpen(false)}
-        referenceImage={editRefImage}
-        toolType={isMagicEditing ? 'edit' : isImageGeneration ? 'image' : isVideoGeneration ? 'video' : ''}
-        config={
-          isMagicEditing
-            ? { modelId: editModelId }
-            : isImageGeneration
-              ? { aspectRatio: imageAspectRatio, modelId: imageModelId }
-              : isVideoGeneration
-                ? { aspectRatio: videoAspectRatio, resolution: videoResolution, modelId: videoModelId }
-                : {}
-        }
-        onChange={(key, value) => {
-          if (isMagicEditing) {
-            if (key === 'modelId') setEditModelId(value);
-          } else if (isImageGeneration) {
-            if (key === 'aspectRatio') setImageAspectRatio(value);
-            if (key === 'modelId') setImageModelId(value);
-          } else if (isVideoGeneration) {
-            if (key === 'aspectRatio') setVideoAspectRatio(value);
-            if (key === 'modelId') setVideoModelId(value);
-            if (key === 'resolution') setVideoResolution(value);
+        <MagicToolSettingsCard
+          isOpen={isMagicSettingsOpen}
+          onClose={() => setIsMagicSettingsOpen(false)}
+          referenceImage={editRefImage}
+          toolType={isMagicEditing ? 'edit' : isImageGeneration ? 'image' : isVideoGeneration ? 'video' : ''}
+          config={
+            isMagicEditing
+              ? { modelId: editModelId }
+              : isImageGeneration
+                ? { aspectRatio: imageAspectRatio, modelId: imageModelId }
+                : isVideoGeneration
+                  ? { aspectRatio: videoAspectRatio, resolution: videoResolution, modelId: videoModelId }
+                  : {}
           }
-        }}
-        onContentSelect={(content) => {
-          setInputValue(content);
-          // Auto-focus input if possible for immediate refinement
-          const inputEl = document.querySelector('textarea');
-          if (inputEl) inputEl.focus();
-        }}
-        pricing={TOOL_PRICING}
-      />
-      <AiSocialMediaDashboard
-        isOpen={isSocialMediaDashboardOpen}
-        onClose={() => setIsSocialMediaDashboardOpen(false)}
-        userPlan={userPlanName}
-        isPremium={isPremiumUser}
-        isAdmin={isAdminUser}
-      />
-      <CashFlowStockModal
-        isOpen={isStockModalOpen}
-        onClose={() => setIsStockModalOpen(false)}
-        onSelect={(stock) => handleStockAnalysis(stock)}
-        isDarkMode={isDarkMode}
-      />
+          onChange={(key, value) => {
+            if (isMagicEditing) {
+              if (key === 'modelId') setEditModelId(value);
+            } else if (isImageGeneration) {
+              if (key === 'aspectRatio') setImageAspectRatio(value);
+              if (key === 'modelId') setImageModelId(value);
+            } else if (isVideoGeneration) {
+              if (key === 'aspectRatio') setVideoAspectRatio(value);
+              if (key === 'modelId') setVideoModelId(value);
+              if (key === 'resolution') setVideoResolution(value);
+            }
+          }}
+          onContentSelect={(content) => {
+            setInputValue(content);
+            // Auto-focus input if possible for immediate refinement
+            const inputEl = document.querySelector('textarea');
+            if (inputEl) inputEl.focus();
+          }}
+          pricing={TOOL_PRICING}
+        />
+        <AiSocialMediaDashboard
+          isOpen={isSocialMediaDashboardOpen}
+          onClose={() => setIsSocialMediaDashboardOpen(false)}
+          userPlan={userPlanName}
+          isPremium={isPremiumUser}
+          isAdmin={isAdminUser}
+        />
+        <CashFlowStockModal
+          isOpen={isStockModalOpen}
+          onClose={() => setIsStockModalOpen(false)}
+          onSelect={(stock) => handleStockAnalysis(stock)}
+          isDarkMode={isDarkMode}
+        />
 
 
-      <LegalToolkitCard
+        <LegalToolkitCard
         isOpen={activeLegalToolkit}
         onClose={() => setActiveLegalToolkit(false)}
         isAdmin={isAdminUser}
@@ -9090,6 +9081,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
           });
         }}
       />
+      </React.Suspense>
 
       {/* Gmail Connected Feature Showcase Modal */}
       <GmailConnectedModal

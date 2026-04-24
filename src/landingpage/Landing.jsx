@@ -24,7 +24,7 @@ import Hero from './Hero';
 import StackedFeatures from './StackedFeatures';
 import DemoSection from './DemoSection';
 import AiLegalDemoSection from '../Tools/AI_Legal/AiLegalDemoSection';
-import ComingSoonSurprise from './ComingSoonSurprise';
+
 import FlowingAICreature from './FlowingAICreature';
 import { useLanguage } from '../context/LanguageContext';
 import ErrorBoundary from '../Components/ErrorBoundary';
@@ -152,8 +152,7 @@ const Landing = () => {
             {/* ── AILEGAL Specialization Showcase ── */}
             <AiLegalDemoSection />
 
-            {/* ── Upcoming Features Surprise ── */}
-            <ComingSoonSurprise />
+
 
             {/* ── Main Conversion Section (Glassmorphism) ── */}
             <motion.main

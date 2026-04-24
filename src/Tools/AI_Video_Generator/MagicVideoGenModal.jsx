@@ -4,7 +4,7 @@ import { X, Upload, Wand2, Download, Video as VideoIcon, Loader2, History, Arrow
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import CustomVideoPlayer from './CustomVideoPlayer';
-import PromptLibraryModal from './PromptLibraryModal';
+import PromptLibraryModal from '../../Components/PromptLibraryModal';
 
 const baseURL = window._env_?.VITE_AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || "http://localhost:8080/api";
 

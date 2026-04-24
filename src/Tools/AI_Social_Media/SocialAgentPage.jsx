@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import AiSocialMediaDashboard from '../Components/AiSocialMediaDashboard';
+import AiSocialMediaDashboard from './AiSocialMediaDashboard';
 
 /**
  * SocialAgentPage — mounts the AI Ads Social Agent Dashboard as a full routed page.

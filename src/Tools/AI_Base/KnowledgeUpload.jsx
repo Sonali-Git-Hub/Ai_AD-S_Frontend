@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UploadCloud, File, CheckCircle, X, Loader, Trash2, ExternalLink, Link as LinkIcon, Globe } from 'lucide-react';
-import { apiService } from '../services/apiService';
+import { apiService } from '../../services/apiService';
 
 const KnowledgeUpload = ({ onUploadSuccess }) => {
     const [activeTab, setActiveTab] = useState('file'); // 'file' | 'url'

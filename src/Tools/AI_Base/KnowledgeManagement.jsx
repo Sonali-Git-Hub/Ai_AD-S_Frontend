@@ -5,9 +5,9 @@ import {
     MoreVertical, ExternalLink, Download, CheckCircle, 
     Clock, AlertCircle, Loader2, ChevronDown, BookOpen, X
 } from 'lucide-react';
-import { apiService } from '../services/apiService';
+import { apiService } from '../../services/apiService';
 import toast from 'react-hot-toast';
-import DeleteConfirmModal from '../Components/DeleteConfirmModal';
+import DeleteConfirmModal from '../../Components/DeleteConfirmModal';
 
 const KnowledgeManagement = () => {
     const [loading, setLoading] = useState(true);

@@ -534,13 +534,14 @@ const Hero = () => {
           animate={introStage === 'finished' ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={{ duration: 1, delay: 0.1 }}
           style={{
-            fontSize: 'clamp(1.1rem, 2.5vw, 1.35rem)',
-            color: isDarkMode ? 'rgba(203, 213, 225, 0.85)' : '#64748B',
-            maxWidth: '720px',
-            margin: '0 auto 2.2rem',
-            lineHeight: 1.7,
+            fontSize: 'clamp(1rem, 2vw, 1.25rem)',
+            color: isDarkMode ? 'rgba(255, 255, 255, 0.75)' : '#000000',
+            maxWidth: '800px',
+            margin: '0 auto 2.5rem',
+            lineHeight: 1.8,
             fontWeight: 400,
-            fontFamily: "'Times New Roman', Times, serif"
+            letterSpacing: '0.01em',
+            textAlign: 'center'
           }}
         >
           <span dangerouslySetInnerHTML={{ __html: t('heroSubtitle') }} />

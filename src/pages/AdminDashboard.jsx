@@ -16,8 +16,8 @@ import { logo } from '../constants.js';
 import toast from 'react-hot-toast';
 import { COOKIE_POLICY_DEFAULTS, TERMS_OF_SERVICE_DEFAULTS, PRIVACY_POLICY_DEFAULTS } from '../constants/legalDefaults';
 import AdminHelpDesk from '../Components/AdminHelpDesk';
-import KnowledgeUpload from '../Components/KnowledgeUpload';
-import KnowledgeManagement from '../Components/KnowledgeManagement';
+const KnowledgeUpload = React.lazy(() => import('../Tools/AI_Base/KnowledgeUpload').catch(() => ({ default: () => <div className="p-8 text-center text-subtext">AI Base Module not found.</div> })));
+const KnowledgeManagement = React.lazy(() => import('../Tools/AI_Base/KnowledgeManagement').catch(() => ({ default: () => <div className="p-8 text-center text-subtext">AI Base Module not found.</div> })));
 import DeleteConfirmModal from '../Components/DeleteConfirmModal';
 const ADMIN_EMAIL = 'admin@uwo24.com';
 const LoadingSpinner = () => (
@@ -1281,16 +1281,18 @@ const KnowledgeBaseTab = () => {
 
     return (
         <div className="space-y-6">
-            <SectionCard
-                title={t('ingestNewKnowledge')}
-                action={<span className="text-xs text-subtext font-medium">{t('addFilesWebsitesRAG')}</span>}
-            >
-                <KnowledgeUpload onUploadSuccess={handleUploadSuccess} />
-            </SectionCard>
+            <Suspense fallback={<div className="p-8 text-center"><div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" /></div>}>
+                <SectionCard
+                    title={t('ingestNewKnowledge')}
+                    action={<span className="text-xs text-subtext font-medium">{t('addFilesWebsitesRAG')}</span>}
+                >
+                    <KnowledgeUpload onUploadSuccess={handleUploadSuccess} />
+                </SectionCard>
 
-            <SectionCard title={t('knowledgeAssetsManagement')}>
-                <KnowledgeManagement key={refreshTrigger} />
-            </SectionCard>
+                <SectionCard title={t('knowledgeAssetsManagement')}>
+                    <KnowledgeManagement key={refreshTrigger} />
+                </SectionCard>
+            </Suspense>
         </div>
     );
 };
