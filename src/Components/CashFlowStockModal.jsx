@@ -187,77 +187,105 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode }) => {
       }
    };
 
-   // Main data coordination
-   useEffect(() => {
-      if (!isOpen || !selectedStock) return;
+    // Main data coordination
+    useEffect(() => {
+       if (!isOpen || !selectedStock) return;
+ 
+       const token = JSON.parse(localStorage.getItem('user') || '{}')?.token;
+       const headers = { 'Authorization': `Bearer ${token}` };
+       const params = { symbol: selectedStock.symbol };
+ 
+       if (activeTab === 'Realtime chart') {
+          // Check if we already have intraday data for this stock to prevent double deduction
+          if (tabData['Realtime chart']?.intraday) {
+             // We have data, but we might still want to subscribe to the socket for live price updates
+             if (socket) {
+                socket.emit('subscribe_realtime', { symbol: selectedStock.symbol });
+                const handleRealtime = (data) => {
+                   setTabData(prev => ({
+                      ...prev,
+                      'Realtime chart': { quote: data.quote, intraday: prev['Realtime chart']?.intraday || [] }
+                   }));
+                };
+                socket.on('realtime_update', handleRealtime);
+                return () => socket.off('realtime_update', handleRealtime);
+             }
+             return;
+          }
 
-      const token = JSON.parse(localStorage.getItem('user') || '{}')?.token;
-      const headers = { 'Authorization': `Bearer ${token}` };
-      const params = { symbol: selectedStock.symbol };
+          setIsLoadingTab(true);
+          setTabError(null);
 
-      if (activeTab === 'Realtime chart') {
-         // HTTP for Intraday (Chart Area)
-         axios.get(`${baseURL}/stock/intraday`, { params, headers })
-            .then(res => setTabData(prev => ({ ...prev, 'Realtime chart': { quote: prev['Realtime chart']?.quote, intraday: res.data.intraday } })))
-            .catch((err) => { 
+          // HTTP for Intraday (Chart Area)
+          axios.get(`${baseURL}/stock/intraday`, { params, headers })
+             .then(res => {
+                setTabData(prev => ({ ...prev, 'Realtime chart': { quote: prev['Realtime chart']?.quote, intraday: res.data.intraday } }));
+                setIsLoadingTab(false);
+             })
+             .catch((err) => { 
+                 setIsLoadingTab(false);
+                 if (err.response?.status === 403 && err.response?.data?.code === 'OUT_OF_CREDITS') {
+                    setTabError(`Insufficient Credits (Required: 5)`);
+                 } else {
+                    setTabError(`Failed to load intraday data.`);
+                 }
+             });
+ 
+          if (socket) {
+             socket.emit('subscribe_realtime', { symbol: selectedStock.symbol });
+ 
+             const handleRealtime = (data) => {
+                setIsLoadingTab(false);
+                setTabData(prev => ({
+                   ...prev,
+                   'Realtime chart': { quote: data.quote, intraday: prev['Realtime chart']?.intraday || [] }
+                }));
+             };
+             socket.on('realtime_update', handleRealtime);
+ 
+             return () => socket.off('realtime_update', handleRealtime);
+          }
+       } else if (activeTab === 'Historical chart') {
+          if (tabData['Historical chart']?.historical) return; // Already cached
+          
+          if (socket) {
+             setIsLoadingTab(true);
+             setTabError(null);
+             socket.emit('request_historical', { symbol: selectedStock.symbol });
+ 
+             const handleHistorical = (data) => {
+                setIsLoadingTab(false);
+                if (data.error) setTabError(data.error);
+                else setTabData(prev => ({ ...prev, 'Historical chart': { historical: data.historical } }));
+             };
+             socket.on('historical_data_response', handleHistorical);
+ 
+             return () => socket.off('historical_data_response', handleHistorical);
+          }
+       } else {
+          // Other tabs via traditional HTTP
+          if (tabData[activeTab]) return; // Already cached
+          setIsLoadingTab(true);
+          setTabError(null);
+ 
+          let promise = null;
+          if (activeTab === 'News') promise = axios.get(`${baseURL}/stock/news`, { params, headers }).then(r => ({ news: r.data.news }));
+          else if (activeTab === 'Advisory') promise = axios.get(`${baseURL}/stock/advisory`, { params, headers }).then(r => ({ advisory: r.data.advisory }));
+          else if (activeTab === 'Research and recommendation') promise = axios.get(`${baseURL}/stock/research`, { params: { symbol: selectedStock.symbol }, headers }).then(r => ({ research: r.data.research }));
+ 
+          if (promise) {
+             promise.then(result => {
+                setTabData(prev => ({ ...prev, [activeTab]: result }));
+             }).catch(err => {
                 if (err.response?.status === 403 && err.response?.data?.code === 'OUT_OF_CREDITS') {
                    setTabError(`Insufficient Credits (Required: 5)`);
+                } else {
+                   setTabError(`Failed to load ${activeTab}.`);
                 }
-            });
-
-         if (socket) {
-            setIsLoadingTab(!tabData['Realtime chart']?.quote); // Only load if absolutely no quote
-            socket.emit('subscribe_realtime', { symbol: selectedStock.symbol });
-
-            const handleRealtime = (data) => {
-               setIsLoadingTab(false);
-               setTabData(prev => ({
-                  ...prev,
-                  'Realtime chart': { quote: data.quote, intraday: prev['Realtime chart']?.intraday || [] }
-               }));
-            };
-            socket.on('realtime_update', handleRealtime);
-
-            return () => socket.off('realtime_update', handleRealtime);
-         }
-      } else if (activeTab === 'Historical chart') {
-         if (socket) {
-            if (!tabData['Historical chart']) setIsLoadingTab(true);
-            socket.emit('request_historical', { symbol: selectedStock.symbol });
-
-            const handleHistorical = (data) => {
-               setIsLoadingTab(false);
-               if (data.error) setTabError(data.error);
-               else setTabData(prev => ({ ...prev, 'Historical chart': { historical: data.historical } }));
-            };
-            socket.on('historical_data_response', handleHistorical);
-
-            return () => socket.off('historical_data_response', handleHistorical);
-         }
-      } else {
-         // Other tabs via traditional HTTP
-         if (tabData[activeTab]) return; // Already cached
-         setIsLoadingTab(true);
-         setTabError(null);
-
-         let promise = null;
-         if (activeTab === 'News') promise = axios.get(`${baseURL}/stock/news`, { params, headers }).then(r => ({ news: r.data.news }));
-         else if (activeTab === 'Advisory') promise = axios.get(`${baseURL}/stock/advisory`, { params, headers }).then(r => ({ advisory: r.data.advisory }));
-         else if (activeTab === 'Research and recommendation') promise = axios.get(`${baseURL}/stock/research`, { params: { symbol: selectedStock.symbol }, headers }).then(r => ({ research: r.data.research }));
-
-         if (promise) {
-            promise.then(result => {
-               setTabData(prev => ({ ...prev, [activeTab]: result }));
-            }).catch(err => {
-               if (err.response?.status === 403 && err.response?.data?.code === 'OUT_OF_CREDITS') {
-                  setTabError(`Insufficient Credits (Required: 5)`);
-               } else {
-                  setTabError(`Failed to load ${activeTab}.`);
-               }
-            }).finally(() => setIsLoadingTab(false));
-         }
-      }
-   }, [activeTab, selectedStock, isOpen, socket]);
+             }).finally(() => setIsLoadingTab(false));
+          }
+       }
+    }, [activeTab, selectedStock, isOpen, socket]);
 
    const handleFinalSelect = () => {
       onSelect(selectedStock);
