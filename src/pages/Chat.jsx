@@ -308,10 +308,37 @@ const ImageViewer = ({ src, alt }) => {
           }}
         />
       </div>
-
-
     </div>
   );
+};
+
+/* ─── Mode Branding Helper ──────────────────────────────────── */
+
+const getModeInfo = (mode) => {
+  switch (mode) {
+    case MODES.DEEP_SEARCH:
+      return { label: "AI Deep Search", icon: Search, color: "text-sky-500", bg: "bg-sky-500/10", border: "border-sky-500/20" };
+    case MODES.WEB_SEARCH:
+      return { label: "AI Web Search", icon: Globe, color: "text-cyan-500", bg: "bg-cyan-500/10", border: "border-cyan-500/20" };
+    case MODES.IMAGE_GENERATION:
+      return { label: "AI Image Generation", icon: ImagePlus, color: "text-violet-500", bg: "bg-violet-500/10", border: "border-violet-500/20" };
+    case MODES.VIDEO_GENERATION:
+      return { label: "AI Video Generation", icon: Video, color: "text-orange-500", bg: "bg-orange-500/10", border: "border-orange-500/20" };
+    case MODES.IMAGE_EDIT:
+      return { label: "AI Magic Edit", icon: Wand2, color: "text-rose-500", bg: "bg-rose-500/10", border: "border-rose-500/20" };
+    case MODES.CODING_HELP:
+      return { label: "AI Code Writer", icon: Code, color: "text-indigo-500", bg: "bg-indigo-500/10", border: "border-indigo-500/20" };
+    case MODES.DOCUMENT_CONVERT:
+      return { label: "AI Doc Convert", icon: FileText, color: "text-blue-500", bg: "bg-blue-500/10", border: "border-blue-500/20" };
+    case MODES.FILE_ANALYSIS:
+      return { label: "AI File Analysis", icon: Search, color: "text-blue-500", bg: "bg-blue-500/10", border: "border-blue-500/20" };
+    case MODES.LEGAL_TOOLKIT:
+      return { label: "AI Legal Toolkit", icon: Scale, color: "text-indigo-600", bg: "bg-indigo-600/10", border: "border-indigo-600/20" };
+    case MODES.CASHFLOW:
+      return { label: "AI CashFlow", icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20" };
+    default:
+      return null;
+  }
 };
 
 // Global messaging lock to prevent duplicate sends during navigation re-mounts
@@ -2164,7 +2191,8 @@ const Chat = () => {
         isGenerating: true,
         content: `🎬 Generating video from prompt: "${prompt}"\n\nPlease wait, this may take a moment...`, // Use content
         timestamp: new Date(),
-        projectId: currentProjectId
+        projectId: currentProjectId,
+        mode: MODES.VIDEO_GENERATION
       };
 
       setMessages(prev => [...prev, userMsg, newMessage]);
@@ -2295,7 +2323,8 @@ const Chat = () => {
         isGenerating: true,
         content: `✨ **AISA generating...**\n🎨 Generating high-quality poster from your prompt: "${prompt}"\n\nIntelligently refining text detection, placement, and cinematic styling...`, // Use content
         timestamp: new Date(),
-        projectId: currentProjectId
+        projectId: currentProjectId,
+        mode: MODES.IMAGE_GENERATION
       };
 
       setMessages(prev => [...prev, userMsg, newMessage]);
@@ -2441,6 +2470,7 @@ const Chat = () => {
         content: `🪄 **Advanced Precision Editor Active**\n🔧 Executing Photoshop-level modifications for: "${prompt}"\n\nPreserving original composition, art style, and character-perfect text rendering...`,
         timestamp: new Date(),
         projectId: currentProjectId,
+        mode: MODES.IMAGE_EDIT
       };
 
       setMessages(prev => [...prev, userMsg, newMessage]);
@@ -3268,10 +3298,10 @@ const Chat = () => {
       } catch (err) {
         console.error('[VOICE] Synthesis failed:', err);
         toast.dismiss('voice-loading');
-        
+
         const isRestricted = err.response?.status === 403 || err.response?.status === 402;
         const details = err.response?.data?.details || err.response?.data?.error || err.message;
-        
+
         if (!isRestricted) {
           toast.error(`Voice failed: ${details}`, { duration: 5000 });
         } else {
@@ -6297,6 +6327,20 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           </div>
 
                           <div className="flex-1 chatgpt-text">
+                             {/* Mode Badge - Integrated Tool Indicator */}
+                             {msg.role === 'user' && msg.mode && getModeInfo(msg.mode) && (
+                               <motion.div
+                                 initial={{ opacity: 0, scale: 0.9 }}
+                                 animate={{ opacity: 1, scale: 1 }}
+                                 className={`inline-flex !flex-row !items-center w-fit gap-2 px-3 py-1 rounded-full border shadow-sm ${getModeInfo(msg.mode).bg} ${getModeInfo(msg.mode).border} ${getModeInfo(msg.mode).color} mb-3`}
+                               >
+                                 {(() => {
+                                   const Icon = getModeInfo(msg.mode).icon;
+                                   return <Icon size={12} className="shrink-0" strokeWidth={3} />;
+                                 })()}
+                                 <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap leading-none">{getModeInfo(msg.mode).label}</span>
+                               </motion.div>
+                             )}
 
 
 
@@ -6642,9 +6686,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                       {msg.content || msg.text || ""}
                                     </ReactMarkdown>
                                     {msg.cashflowData && (
-                                    <React.Suspense fallback={<div className="h-48 w-full bg-surface-hover animate-pulse rounded-xl" />}>
-                                      <CashFlowChartWidget data={msg.cashflowData} />
-                                    </React.Suspense>
+                                      <React.Suspense fallback={<div className="h-48 w-full bg-surface-hover animate-pulse rounded-xl" />}>
+                                        <CashFlowChartWidget data={msg.cashflowData} />
+                                      </React.Suspense>
                                     )}
                                   </div>
                                   {/* Sources List (ONLY for Web Search, HIDE for RAG as requested) */}
@@ -7182,16 +7226,10 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     );
                   })}
 
-                  {isLoading && !typingMessageId && (
+                  {isLoading && !typingMessageId && !isWebSearch && !isDeepSearch && !isImageGeneration && !isVideoGeneration && !isMagicEditing && !isCashFlowMode && !isFileAnalysis && !isCodeWriter && (
                     <AisaTypingIndicator
                       visible={true}
-                      message={
-                        isImageGeneration ? "AISA Generating..." :
-                          isVideoGeneration ? "Generating cinematic video..." :
-                            isMagicEditing ? "Processing image edit..." :
-                              isDeepSearch ? "Deep searching..." :
-                                "AISA is thinking"
-                      }
+                      message="AISA is thinking"
                     />
                   )}
                 </>
@@ -7241,9 +7279,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         {/* Welcome Screen - Integrated Hub */}
         <AnimatePresence>
           {messages.length === 0 &&
-            currentMode !== 'LEGAL_TOOLKIT' &&
-            (!currentCase || selectedLegalTool?.id !== 'legal_my_case') &&
-            !(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || activeLegalToolkit) && (
+            (!currentCase || selectedLegalTool?.id !== 'legal_my_case') && (
               <motion.div
                 key="welcome-screen"
                 initial={{ opacity: 0 }}
@@ -7934,7 +7970,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         </motion.button>
                       </div>
 
-                      <div className="relative hidden sm:block">
+                      <div className="relative">
                         <motion.button
                           type="button"
                           ref={toolsBtnRef}
@@ -7957,7 +7993,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         {(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') && (
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto w-[calc(100vw-24px)] max-w-5xl px-6 z-[100] justify-start sm:justify-start">
                             {isCashFlowMode && (
-                              <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
+                              <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-row items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
                                 <TrendingUp size={12} strokeWidth={3} /> <span className="hidden sm:inline">AI CashFlow</span>
                                 <button onClick={() => setIsCashFlowMode(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
                               </motion.div>
@@ -7967,11 +8003,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="flex items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
+                                className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
                               >
                                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
-                                <div className="flex items-center gap-2 relative z-10">
-                                  <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
+                                <div className="flex flex-row items-center gap-2 relative z-10">
+                                  <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex flex-row items-center justify-center shadow-lg shadow-primary/40 text-white">
                                     <Globe size={14} strokeWidth={3} />
                                   </div>
                                   <span className="uppercase tracking-widest text-[9px] font-black">Web Search</span>
@@ -7990,10 +8026,10 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="flex items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
+                                className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
                               >
                                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
-                                <div className="flex items-center gap-2 relative z-10">
+                                <div className="flex flex-row items-center gap-2 relative z-10">
                                   <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
                                     <Search size={14} strokeWidth={3} />
                                   </div>
@@ -8013,12 +8049,12 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="flex items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
+                                className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
                               >
                                 {/* Glossy Reflection Effect */}
                                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
 
-                                <div className="flex items-center gap-2 relative z-10">
+                                <div className="flex flex-row items-center gap-2 relative z-10">
                                   <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
                                     <ImageIcon size={14} strokeWidth={3} />
                                   </div>
@@ -8030,7 +8066,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 <button
                                   type="button"
                                   onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
-                                  className="flex items-center gap-1.5 hover:text-primary dark:hover:text-primary transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
+                                  className="flex flex-row items-center gap-1.5 hover:text-primary dark:hover:text-primary transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
                                 >
                                   <span className="text-[10px] font-extrabold opacity-90">{imageAspectRatio}</span>
                                   <span className="text-[10px] font-black truncate max-w-[60px] sm:max-w-[100px] tracking-tight">
@@ -8054,11 +8090,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="flex items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
+                                className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
                               >
                                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
 
-                                <div className="flex items-center gap-2 relative z-10">
+                                <div className="flex flex-row items-center gap-2 relative z-10">
                                   <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
                                     <Video size={14} strokeWidth={3} />
                                   </div>
@@ -8070,7 +8106,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 <button
                                   type="button"
                                   onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
-                                  className="flex items-center gap-1.5 hover:text-primary dark:hover:text-primary transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
+                                  className="flex flex-row items-center gap-1.5 hover:text-primary dark:hover:text-primary transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
                                 >
                                   <span className="text-[10px] font-extrabold opacity-90">{videoAspectRatio || 'D'}</span>
                                   <span className="text-[10px] font-black tracking-tight ml-1">{videoResolution}</span>
@@ -8089,9 +8125,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             {isVoiceMode && (
                               <motion.div
                                 initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                className="flex items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
+                                className="flex flex-row items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
                               >
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-row items-center gap-2">
                                   <div className="w-5 h-5 rounded-lg bg-primary/20 flex items-center justify-center">
                                     <Volume2 size={14} strokeWidth={2.5} />
                                   </div>
@@ -8109,9 +8145,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             {isAudioConvertMode && (
                               <motion.div
                                 initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                className="flex items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
+                                className="flex flex-row items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
                               >
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-row items-center gap-2">
                                   <div className="w-5 h-5 rounded-lg bg-primary/20 flex items-center justify-center">
                                     <Headphones size={14} strokeWidth={2.5} />
                                   </div>
@@ -8145,9 +8181,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             {(activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') && (
                               <motion.div
                                 initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                className="flex items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
+                                className="flex flex-row items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
                               >
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-row items-center gap-2">
                                   <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
                                     <LegalLogo size={14} showText={false} color="white" />
                                   </div>
@@ -8200,11 +8236,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="flex items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
+                                className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
                               >
                                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
 
-                                <div className="flex items-center gap-2 relative z-10">
+                                <div className="flex flex-row items-center gap-2 relative z-10">
                                   <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
                                     <Wand2 size={14} strokeWidth={3} />
                                   </div>
@@ -8216,7 +8252,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 <button
                                   type="button"
                                   onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
-                                  className="flex items-center gap-1.5 hover:text-primary dark:hover:text-primary transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
+                                  className="flex flex-row items-center gap-1.5 hover:text-primary dark:hover:text-primary transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
                                 >
                                   <span className="text-[10px] font-extrabold opacity-90">{imageAspectRatio}</span>
                                   <span className="text-[10px] font-black truncate max-w-[60px] sm:max-w-[100px] tracking-tight">
@@ -8237,9 +8273,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             {isFileAnalysis && (
                               <motion.div
                                 initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                className="flex items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
+                                className="flex flex-row items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
                               >
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-row items-center gap-2">
                                   <div className="w-5 h-5 rounded-lg bg-primary/20 flex items-center justify-center">
                                     <FileText size={14} strokeWidth={2.5} />
                                   </div>
@@ -9099,76 +9135,76 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
 
         <LegalToolkitCard
-        isOpen={activeLegalToolkit}
-        onClose={() => setActiveLegalToolkit(false)}
-        isAdmin={isAdminUser}
-        unlockedTools={unlockedTools}
-        onSelect={(tool, isUnlocked) => {
-          if (tool.id === 'legal_free_chat') {
-            setSelectedLegalTool(tool);
+          isOpen={activeLegalToolkit}
+          onClose={() => setActiveLegalToolkit(false)}
+          isAdmin={isAdminUser}
+          unlockedTools={unlockedTools}
+          onSelect={(tool, isUnlocked) => {
+            if (tool.id === 'legal_free_chat') {
+              setSelectedLegalTool(tool);
 
-            setCurrentMode('LEGAL_TOOLKIT');
-            setLegalView('CHAT'); // Ensure chat view is active
-            setActiveLegalToolkit(false);
-            toast.success("Legal Chat Activated ⚖️", {
-              icon: '⚖️',
-              style: {
-                background: '#eff6ff',
-                color: '#1d4ed8',
-                borderRadius: '16px',
-                border: '1px solid #bfdbfe',
-                fontWeight: 'bold'
-              }
-            });
-            if (inputRef.current) inputRef.current.focus();
-            return;
-          }
+              setCurrentMode('LEGAL_TOOLKIT');
+              setLegalView('CHAT'); // Ensure chat view is active
+              setActiveLegalToolkit(false);
+              toast.success("Legal Chat Activated ⚖️", {
+                icon: '⚖️',
+                style: {
+                  background: '#eff6ff',
+                  color: '#1d4ed8',
+                  borderRadius: '16px',
+                  border: '1px solid #bfdbfe',
+                  fontWeight: 'bold'
+                }
+              });
+              if (inputRef.current) inputRef.current.focus();
+              return;
+            }
 
-          if (!isUnlocked) {
-            setMessages(prev => [...prev, {
-              id: Date.now().toString(),
-              role: 'user',
-              content: `Use ${tool.name}`,
-              timestamp: Date.now()
-            }, {
-              id: (Date.now() + 1).toString(),
-              role: 'assistant',
-              content: `**Premium Mode Restricted**\n\nThe **${tool.name}** tool is part of our Premium AI Legal Toolkit.\n\n**To access this tool:**\n1. Select "Unlock All" to get full toolkit access.\n2. Or upgrade your subscription to the **FOUNDER PLAN**.\n\n*Would you like to see pricing for the AI Legal Archive?*`,
-              isPremiumRestricted: true,
-              timestamp: Date.now()
-            }]);
-            setActiveLegalToolkit(false);
-            return;
-          }
+            if (!isUnlocked) {
+              setMessages(prev => [...prev, {
+                id: Date.now().toString(),
+                role: 'user',
+                content: `Use ${tool.name}`,
+                timestamp: Date.now()
+              }, {
+                id: (Date.now() + 1).toString(),
+                role: 'assistant',
+                content: `**Premium Mode Restricted**\n\nThe **${tool.name}** tool is part of our Premium AI Legal Toolkit.\n\n**To access this tool:**\n1. Select "Unlock All" to get full toolkit access.\n2. Or upgrade your subscription to the **FOUNDER PLAN**.\n\n*Would you like to see pricing for the AI Legal Archive?*`,
+                isPremiumRestricted: true,
+                timestamp: Date.now()
+              }]);
+              setActiveLegalToolkit(false);
+              return;
+            }
 
-          if (tool.id === 'legal_my_case') {
-            setLegalView('DASHBOARD');
+            if (tool.id === 'legal_my_case') {
+              setLegalView('DASHBOARD');
+              setSelectedLegalTool({ id: tool.id, name: tool.name });
+              setCurrentMode('LEGAL_TOOLKIT');
+              setActiveLegalToolkit(false);
+              fetchLegalCases();
+              return;
+            }
+
             setSelectedLegalTool({ id: tool.id, name: tool.name });
             setCurrentMode('LEGAL_TOOLKIT');
+            setLegalView('CHAT'); // Ensure chat view is active for specific tools
             setActiveLegalToolkit(false);
-            fetchLegalCases();
-            return;
-          }
-
-          setSelectedLegalTool({ id: tool.id, name: tool.name });
-          setCurrentMode('LEGAL_TOOLKIT');
-          setLegalView('CHAT'); // Ensure chat view is active for specific tools
-          setActiveLegalToolkit(false);
-          if (inputRef.current) inputRef.current.focus();
-          toast.success(`✅ AI Legal Activated: ${tool.name} ✨`, {
-            position: 'top-right',
-            style: {
-              background: '#F0FDF4',
-              color: '#166534',
-              borderRadius: '16px',
-              padding: '16px 24px',
-              fontWeight: 'bold',
-              border: '1px solid #BBF7D0',
-              boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
-            }
-          });
-        }}
-      />
+            if (inputRef.current) inputRef.current.focus();
+            toast.success(`✅ AI Legal Activated: ${tool.name} ✨`, {
+              position: 'top-right',
+              style: {
+                background: '#F0FDF4',
+                color: '#166534',
+                borderRadius: '16px',
+                padding: '16px 24px',
+                fontWeight: 'bold',
+                border: '1px solid #BBF7D0',
+                boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
+              }
+            });
+          }}
+        />
       </React.Suspense>
 
       {/* Gmail Connected Feature Showcase Modal */}
