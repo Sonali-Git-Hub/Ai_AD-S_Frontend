@@ -7934,7 +7934,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         </motion.button>
                       </div>
 
-                      <div className="relative hidden sm:block">
+                      <div className="relative">
                         <motion.button
                           type="button"
                           ref={toolsBtnRef}
