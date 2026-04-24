@@ -3268,10 +3268,10 @@ const Chat = () => {
       } catch (err) {
         console.error('[VOICE] Synthesis failed:', err);
         toast.dismiss('voice-loading');
-        
+
         const isRestricted = err.response?.status === 403 || err.response?.status === 402;
         const details = err.response?.data?.details || err.response?.data?.error || err.message;
-        
+
         if (!isRestricted) {
           toast.error(`Voice failed: ${details}`, { duration: 5000 });
         } else {
@@ -6642,9 +6642,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                       {msg.content || msg.text || ""}
                                     </ReactMarkdown>
                                     {msg.cashflowData && (
-                                    <React.Suspense fallback={<div className="h-48 w-full bg-surface-hover animate-pulse rounded-xl" />}>
-                                      <CashFlowChartWidget data={msg.cashflowData} />
-                                    </React.Suspense>
+                                      <React.Suspense fallback={<div className="h-48 w-full bg-surface-hover animate-pulse rounded-xl" />}>
+                                        <CashFlowChartWidget data={msg.cashflowData} />
+                                      </React.Suspense>
                                     )}
                                   </div>
                                   {/* Sources List (ONLY for Web Search, HIDE for RAG as requested) */}
@@ -9099,76 +9099,76 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
 
         <LegalToolkitCard
-        isOpen={activeLegalToolkit}
-        onClose={() => setActiveLegalToolkit(false)}
-        isAdmin={isAdminUser}
-        unlockedTools={unlockedTools}
-        onSelect={(tool, isUnlocked) => {
-          if (tool.id === 'legal_free_chat') {
-            setSelectedLegalTool(tool);
+          isOpen={activeLegalToolkit}
+          onClose={() => setActiveLegalToolkit(false)}
+          isAdmin={isAdminUser}
+          unlockedTools={unlockedTools}
+          onSelect={(tool, isUnlocked) => {
+            if (tool.id === 'legal_free_chat') {
+              setSelectedLegalTool(tool);
 
-            setCurrentMode('LEGAL_TOOLKIT');
-            setLegalView('CHAT'); // Ensure chat view is active
-            setActiveLegalToolkit(false);
-            toast.success("Legal Chat Activated ⚖️", {
-              icon: '⚖️',
-              style: {
-                background: '#eff6ff',
-                color: '#1d4ed8',
-                borderRadius: '16px',
-                border: '1px solid #bfdbfe',
-                fontWeight: 'bold'
-              }
-            });
-            if (inputRef.current) inputRef.current.focus();
-            return;
-          }
+              setCurrentMode('LEGAL_TOOLKIT');
+              setLegalView('CHAT'); // Ensure chat view is active
+              setActiveLegalToolkit(false);
+              toast.success("Legal Chat Activated ⚖️", {
+                icon: '⚖️',
+                style: {
+                  background: '#eff6ff',
+                  color: '#1d4ed8',
+                  borderRadius: '16px',
+                  border: '1px solid #bfdbfe',
+                  fontWeight: 'bold'
+                }
+              });
+              if (inputRef.current) inputRef.current.focus();
+              return;
+            }
 
-          if (!isUnlocked) {
-            setMessages(prev => [...prev, {
-              id: Date.now().toString(),
-              role: 'user',
-              content: `Use ${tool.name}`,
-              timestamp: Date.now()
-            }, {
-              id: (Date.now() + 1).toString(),
-              role: 'assistant',
-              content: `**Premium Mode Restricted**\n\nThe **${tool.name}** tool is part of our Premium AI Legal Toolkit.\n\n**To access this tool:**\n1. Select "Unlock All" to get full toolkit access.\n2. Or upgrade your subscription to the **FOUNDER PLAN**.\n\n*Would you like to see pricing for the AI Legal Archive?*`,
-              isPremiumRestricted: true,
-              timestamp: Date.now()
-            }]);
-            setActiveLegalToolkit(false);
-            return;
-          }
+            if (!isUnlocked) {
+              setMessages(prev => [...prev, {
+                id: Date.now().toString(),
+                role: 'user',
+                content: `Use ${tool.name}`,
+                timestamp: Date.now()
+              }, {
+                id: (Date.now() + 1).toString(),
+                role: 'assistant',
+                content: `**Premium Mode Restricted**\n\nThe **${tool.name}** tool is part of our Premium AI Legal Toolkit.\n\n**To access this tool:**\n1. Select "Unlock All" to get full toolkit access.\n2. Or upgrade your subscription to the **FOUNDER PLAN**.\n\n*Would you like to see pricing for the AI Legal Archive?*`,
+                isPremiumRestricted: true,
+                timestamp: Date.now()
+              }]);
+              setActiveLegalToolkit(false);
+              return;
+            }
 
-          if (tool.id === 'legal_my_case') {
-            setLegalView('DASHBOARD');
+            if (tool.id === 'legal_my_case') {
+              setLegalView('DASHBOARD');
+              setSelectedLegalTool({ id: tool.id, name: tool.name });
+              setCurrentMode('LEGAL_TOOLKIT');
+              setActiveLegalToolkit(false);
+              fetchLegalCases();
+              return;
+            }
+
             setSelectedLegalTool({ id: tool.id, name: tool.name });
             setCurrentMode('LEGAL_TOOLKIT');
+            setLegalView('CHAT'); // Ensure chat view is active for specific tools
             setActiveLegalToolkit(false);
-            fetchLegalCases();
-            return;
-          }
-
-          setSelectedLegalTool({ id: tool.id, name: tool.name });
-          setCurrentMode('LEGAL_TOOLKIT');
-          setLegalView('CHAT'); // Ensure chat view is active for specific tools
-          setActiveLegalToolkit(false);
-          if (inputRef.current) inputRef.current.focus();
-          toast.success(`✅ AI Legal Activated: ${tool.name} ✨`, {
-            position: 'top-right',
-            style: {
-              background: '#F0FDF4',
-              color: '#166534',
-              borderRadius: '16px',
-              padding: '16px 24px',
-              fontWeight: 'bold',
-              border: '1px solid #BBF7D0',
-              boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
-            }
-          });
-        }}
-      />
+            if (inputRef.current) inputRef.current.focus();
+            toast.success(`✅ AI Legal Activated: ${tool.name} ✨`, {
+              position: 'top-right',
+              style: {
+                background: '#F0FDF4',
+                color: '#166534',
+                borderRadius: '16px',
+                padding: '16px 24px',
+                fontWeight: 'bold',
+                border: '1px solid #BBF7D0',
+                boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
+              }
+            });
+          }}
+        />
       </React.Suspense>
 
       {/* Gmail Connected Feature Showcase Modal */}

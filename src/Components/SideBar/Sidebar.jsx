@@ -435,7 +435,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           sidebar-glass flex flex-col transition-all duration-500 ease-in-out 
           lg:relative lg:translate-x-0 
           shadow-[0_8px_32px_0_rgba(0,0,0,0.2)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.5)]
-          lg:shadow-none overflow-hidden group
+          lg:shadow-none overflow-hidden
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
@@ -938,32 +938,32 @@ const Sidebar = ({ isOpen, onClose }) => {
             <div className="flex items-center justify-between px-2">
               <button 
                 onClick={() => setShowTerms(true)}
-                className="flex flex-col items-center gap-2 group transition-all active:scale-95"
+                className="flex flex-col items-center gap-2 transition-all active:scale-95"
               >
-                <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-colors group-hover:bg-primary/30">
+                <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
                   <FileText className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
                 </div>
-                <span className="text-[10px] font-black text-primary uppercase tracking-wider">{t('terms') || 'Terms'}</span>
+                <span className="text-[10px] font-black text-primary/70 uppercase tracking-wider transition-colors">{t('terms') || 'Terms'}</span>
               </button>
 
               <button 
                 onClick={() => setShowPrivacy(true)}
-                className="flex flex-col items-center gap-2 group transition-all active:scale-95"
+                className="flex flex-col items-center gap-2 transition-all active:scale-95"
               >
-                <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-colors group-hover:bg-primary/30">
+                <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
                   <Shield className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
                 </div>
-                <span className="text-[10px] font-black text-primary uppercase tracking-wider">{t('privacy') || 'Privacy'}</span>
+                <span className="text-[10px] font-black text-primary/70 uppercase tracking-wider transition-colors">{t('privacy') || 'Privacy'}</span>
               </button>
 
               <button 
                 onClick={() => setIsAboutOpen(true)}
-                className="flex flex-col items-center gap-2 group transition-all active:scale-95"
+                className="flex flex-col items-center gap-2 transition-all active:scale-95"
               >
-                <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-colors group-hover:bg-primary/30">
+                <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
                   <Info className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
                 </div>
-                <span className="text-[10px] font-black text-primary uppercase tracking-wider">About</span>
+                <span className="text-[10px] font-black text-primary/70 uppercase tracking-wider transition-colors">About</span>
               </button>
             </div>
           </div>
