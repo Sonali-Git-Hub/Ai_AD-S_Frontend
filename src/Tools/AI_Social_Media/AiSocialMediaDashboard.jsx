@@ -9,7 +9,7 @@ import {
   LayoutDashboard, Palette, CalendarRange, Library, CheckSquare, Clock, Monitor,
   ChevronRight, Plus, HelpCircle, AlertCircle, Info, Filter, Search,
   Instagram, Facebook, Linkedin, Twitter, Youtube, Send, Save, Globe, CheckCircle2, Mic2,
-  Eye, Target, Zap, Hash, Copy, Sparkle, User, User2, Briefcase, History, Activity, Tag, 
+  Eye, Target, Zap, Hash, Copy, Sparkle, User, User2, Briefcase, History, Activity, Tag,
   Server, BrainCircuit, AlertTriangle, Building2, ShoppingBag, Cpu, Utensils, Camera, HeartPulse, UserCircle, ShoppingCart, ArrowRight, AlignLeft, Lock, Crown
 } from 'lucide-react';
 import { Dialog, Transition, Menu, Listbox } from '@headlessui/react';
@@ -95,7 +95,7 @@ const CustomSelect = ({ value, onChange, options, color = 'indigo', className = 
 const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin }) => {
   const [currentUser, setCurrentUser] = useState(getUserData());
   const [searchParams, setSearchParams] = useSearchParams();
-  
+
   // Single source of truth: URL determines the active tab
   const activeTab = searchParams.get('tab') || 'overview';
 
@@ -206,14 +206,14 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   const [isOnboardingFetching, setIsOnboardingFetching] = useState(false);
   const [showOnboardingGuide, setShowOnboardingGuide] = useState(false);
   const [isRapidTestingEnabled, setIsRapidTestingEnabled] = useState(false);
-  
+
   useEffect(() => {
     if (showOnboarding && !localStorage.getItem('aisa_guide_v3_shown')) {
       const timer = setTimeout(() => {
         setShowOnboardingGuide(true);
         // We set it here so it doesn't pop up again even if they refresh before closing
         localStorage.setItem('aisa_guide_v3_shown', 'true');
-      }, 1500); 
+      }, 1500);
       return () => clearTimeout(timer);
     }
   }, [showOnboarding]);
@@ -247,8 +247,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   const [logoPreviewUrl, setLogoPreviewUrl] = useState(null);
   const [overviewFiles, setOverviewFiles] = useState([]); // Support multiple docs
   const [onboardingFiles, setOnboardingFiles] = useState([]); // Isolated onboarding docs
-  const [syncedLogos, setSyncedLogos] = useState([]); 
-  
+  const [syncedLogos, setSyncedLogos] = useState([]);
+
   // Defensive fallbacks for legacy/hidden references
   if (typeof window !== 'undefined' && !window.overviewFile) {
     window.overviewFile = null;
@@ -258,7 +258,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   const [showCompanyInfoPanel, setShowCompanyInfoPanel] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const dashboardRef = useRef(null); // Ref to stop Headless UI FocusTrap from stealing focus on keystrokes
-  
+
   const handleSyncProfile = async () => {
     const toastId = toast.loading('Syncing with social profile...');
     try {
@@ -267,10 +267,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
         // Update local user store and state
         const updated = updateUser({ avatar: res.avatar });
         setCurrentUser(updated);
-        
+
         // Refresh all workspaces to catch the updated profile image across the UI
         initWorkspace(true);
-        
+
         toast.success(res.message || 'Profile synchronized!', { id: toastId });
       } else {
         toast.error(res.message || 'No new photo found.', { id: toastId });
@@ -292,10 +292,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
   // Derived state for the "Content Calendar" brands - Used in both Calendar tab and Generation tab
   const calendarWorkspaces = React.useMemo(() => {
-    return allWorkspaces.filter(ws => 
+    return allWorkspaces.filter(ws =>
       !ws.isPersonalProfile && (
-        (ws.calendarEntryCount > 0) || 
-        (ws.onboarding?.calendarCount > 0) || 
+        (ws.calendarEntryCount > 0) ||
+        (ws.onboarding?.calendarCount > 0) ||
         (ws._id === workspace?._id && (calendarEntries.length > 0 || (pipelineRows && pipelineRows.length > 0)))
       )
     );
@@ -392,7 +392,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
               // Await the critical data refresh before updating the UI table
               await initWorkspace();
               if (selectedPipelineId) await fetchPipelineRows(selectedPipelineId);
-              
+
               if (res.job.status === 'completed') toast.success("AI Generation Complete!");
               else toast.error("Some tasks failed in the generation job.");
             }
@@ -460,7 +460,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       const proxyUrl = toProxyUrl(url);
       const response = await fetch(proxyUrl);
       const blob = await response.blob();
-      
+
       // AISA standard: Convert to PNG if not already, for clipboard compatibility
       const pngBlob = blob.type === 'image/png' ? blob : await new Promise((resolve) => {
         const img = new Image();
@@ -599,7 +599,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
             <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">{title} Restricted</h2>
             <p className="text-slate-500 dark:text-slate-400 leading-relaxed">{description || "This module is only accessible for active Brand Workspaces. Please connect a business or create a brand identity using the Brand Setup tab first."}</p>
           </div>
-          <button 
+          <button
             onClick={() => setActiveTab('brand')}
             className="px-10 py-5 bg-indigo-600 text-white rounded-[24px] font-black text-xs uppercase tracking-[3px] shadow-2xl shadow-indigo-600/30 hover:scale-105 transition-all"
           >
@@ -736,7 +736,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
             setShowOnboarding(true);
           }
         }
-        
+
         toast.success("Brand Profile fully deleted", { id: toastId });
       } else {
         toast.error("Deletion failed", { id: toastId });
@@ -750,7 +750,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
   const handleCompleteOnboarding = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
-    
+
     let targetWs = workspace;
     if (!targetWs) {
       setIsOnboardingSaving(true);
@@ -794,7 +794,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     return String(id);
   };
 
-   const handleRegeneratePost = async (entryId, toneNudge = "") => {
+  const handleRegeneratePost = async (entryId, toneNudge = "") => {
     setIsProcessing(true);
     const toastId = toast.loading("AI is rethinking this post...");
     try {
@@ -879,7 +879,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
   const handleDeleteEntry = async (entryId) => {
     if (!window.confirm("Are you sure you want to permanently delete this scheduled post?")) return;
-    
+
     const toastId = toast.loading("Removing entry from pipeline...");
     try {
       const res = await apiService.deleteSocialAgentCalendarEntry(entryId);
@@ -942,10 +942,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
         setGeneratedPosts(prev => [res.post, ...prev]);
         // Update calendar entry status locally
         setCalendarEntries(prev => prev.map(e => e._id === entryId ? { ...e, status: 'generated' } : e));
-        
+
         // Refresh library and artifacts to sync content everywhere
         await fetchWorkspaceData(workspace?._id, true);
-        
+
         toast.success("Content Synthesized! Find it in your feed.", { id: toastId });
       } else {
         toast.error(res.error || "Generation failed", { id: toastId });
@@ -998,29 +998,29 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       formData.append('website', brandProfile.website || '');
       formData.append('targetEthnicity', brandProfile.targetEthnicity || 'Global');
       formData.append('extractedBrandSummary', brandProfile.extractedBrandSummary || '');
-      
+
       // NEW STRATEGIC FIELDS
       formData.append('targetIndustry', brandProfile.targetIndustry || '');
       formData.append('targetAudience', brandProfile.targetAudience || '');
       formData.append('contentObjective', brandProfile.contentObjective || '');
-      
+
       // SOCIAL LINKS
       if (brandProfile.socialMediaLinks) {
         formData.append('socialMediaLinks', JSON.stringify(brandProfile.socialMediaLinks));
       }
       formData.append('campaignMonth', brandProfile.campaignMonth || '');
       formData.append('postingFrequency', brandProfile.postingFrequency || '');
-      
+
       if (brandProfile.brandColors && brandProfile.brandColors.length > 0) {
         formData.append('brandColors', JSON.stringify(brandProfile.brandColors));
       }
-      
+
       if (brandLogo) {
         formData.append('logo', brandLogo);
       } else if (brandProfile.logoUrl) {
         formData.append('logoUrl', brandProfile.logoUrl);
       }
-      
+
       if (overviewFiles && overviewFiles.length > 0) {
         overviewFiles.forEach(file => {
           formData.append('overview', file);
@@ -1053,7 +1053,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
               await initWorkspace(false, wsId);
               setActiveTab('calendar');
               setShowPreviewModal(true);
-              
+
               // Automatically trigger Excel Download for the user's records
               await handleExportExcel(wsId);
             }, 1000);
@@ -1061,9 +1061,9 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
         } catch (genErr) {
           console.error("AI Generation Chain Failed:", genErr);
           if (genErr.message?.includes('unlimited strategies')) {
-             toast.dismiss(activeToast);
+            toast.dismiss(activeToast);
           } else {
-             toast.error("Strategist encountered an error. Please try again in the Content Generation tab.", { id: activeToast });
+            toast.error("Strategist encountered an error. Please try again in the Content Generation tab.", { id: activeToast });
           }
         }
 
@@ -1170,17 +1170,17 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     if (!workspace || !entryId) return;
     setIsGenerating(true);
     setActiveGenerationRowId(entryId); // Pivot to synthesis view immediately
-    
+
     try {
       const row = calendarEntries.find(r => ensureStringId(r._id) === ensureStringId(entryId));
       const topic = row?.title || row?.rawData?.Title || "Content Strategy";
-      
+
       // Step 1: Trigger Direct LLM Synthesis
       const res = await apiService.generateFromCalendar(workspace._id, entryId);
-      
+
       if (res.success) {
         toast.success("Neural Content Synthesized!");
-        
+
         // Step 2: Refresh local data to show the new variations in the table
         await fetchWorkspaceData(workspace._id);
       }
@@ -1195,7 +1195,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
   const handleGenerateContent = async (customMode = null, customCount = null, entryIds = null) => {
     if (!workspace) return;
-    
+
     // Check if we should use the Direct Synthesis flow for single rows
     if (entryIds && entryIds.length === 1 && activeTab === 'generation') {
       return handleDirectSynthesis(entryIds[0]);
@@ -1248,11 +1248,11 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     // Centralized Frontend Premium Gate for Visual Generation
     if (!isPremium && !isAdmin) {
       console.log("[AISA] Blocking visual gen - Premium required");
-      window.dispatchEvent(new CustomEvent('premium_required', { 
-        detail: { 
+      window.dispatchEvent(new CustomEvent('premium_required', {
+        detail: {
           toolName: 'AI Ads Visuals',
           customMessage: 'Visual post rendering is a premium feature. Upgrade to Pro to generate stunning AI assets for your brand.'
-        } 
+        }
       }));
       return;
     }
@@ -1313,7 +1313,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       if (workspace?._id) {
         apiService.getSocialAgentAssets(workspace._id)
           .then(data => { if (data?.assets) setAssets(data.assets); })
-          .catch(() => {});
+          .catch(() => { });
       }
 
       // Auto-redirect to Post Generation tab after short delay
@@ -1474,7 +1474,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
               </div>
               <h4 className={`text-xl md:text-2xl font-black mb-1 ${stat.pulse ? 'text-primary' : 'text-slate-800 dark:text-white'}`}>{stat.val}</h4>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
-              
+
               {stat.id === 'pulse' && activeJob && (
                 <div className="w-full h-1 bg-slate-100 dark:bg-white/5 rounded-full mt-4 overflow-hidden">
                   <motion.div initial={{ width: 0 }} animate={{ width: `${activeJob.progress || 0}%` }} className="h-full bg-primary" />
@@ -1563,113 +1563,113 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
           {/* Action Tasks (Matches Sidebar Options) */}
           <div className="lg:col-span-2 space-y-8">
-             <div className="flex items-center justify-between px-2">
-                <h3 className="text-xl font-black tracking-tight text-slate-800 dark:text-white uppercase">AGENT TASKS FOR <span className="normal-case">AI Ads™ Agent</span></h3>
-             </div>
-             
-             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {[
-                  { title: 'Brand Setup', val: activeProfile ? '1 Optimized' : '0 Connected', desc: 'Identity Snapshot', icon: Palette, tab: 'brand', color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
-                  { title: 'Content Calendar', val: `${pipelines.length} Active Plan${pipelines.length !== 1 ? 's' : ''}`, desc: 'Strategy Orchestration', icon: CalendarRange, tab: 'calendar', color: 'text-amber-500', bg: 'bg-amber-500/10' },
-                  { title: 'Content Generation', val: `${generatedPosts.length} Drafts`, desc: 'AI Creative Hub', icon: Sparkles, tab: 'generation', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-                  { title: 'Post Generation', val: `${(assets || []).filter(a => a.assetSource === 'generated').length} Artifacts`, desc: 'Generated Media', icon: Library, tab: 'assets', color: 'text-primary', bg: 'bg-primary/10' },
-                  { title: 'Hashtag Studio', val: 'Viral Clusters', desc: 'Trending Insights', icon: Hash, tab: 'hashtags', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-                ].map((action, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setActiveTab(action.tab)}
-                    className="p-8 rounded-[40px] bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 hover:border-primary transition-all text-left shadow-sm flex flex-col justify-between group h-full"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <div className={`w-14 h-14 rounded-2xl ${action.bg} ${action.color} flex items-center justify-center group-hover:scale-110 transition-all duration-500 shadow-sm`}>
-                        <action.icon className="w-7 h-7" />
-                      </div>
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                         <ChevronRight className={`w-6 h-6 ${action.color}`} />
-                      </div>
+            <div className="flex items-center justify-between px-2">
+              <h3 className="text-xl font-black tracking-tight text-slate-800 dark:text-white uppercase">AGENT TASKS FOR <span className="normal-case">AI Ads™ Agent</span></h3>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {[
+                { title: 'Brand Setup', val: activeProfile ? '1 Optimized' : '0 Connected', desc: 'Identity Snapshot', icon: Palette, tab: 'brand', color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+                { title: 'Content Calendar', val: `${pipelines.length} Active Plan${pipelines.length !== 1 ? 's' : ''}`, desc: 'Strategy Orchestration', icon: CalendarRange, tab: 'calendar', color: 'text-amber-500', bg: 'bg-amber-500/10' },
+                { title: 'Content Generation', val: `${generatedPosts.length} Drafts`, desc: 'AI Creative Hub', icon: Sparkles, tab: 'generation', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+                { title: 'Post Generation', val: `${(assets || []).filter(a => a.assetSource === 'generated').length} Artifacts`, desc: 'Generated Media', icon: Library, tab: 'assets', color: 'text-primary', bg: 'bg-primary/10' },
+                { title: 'Hashtag Studio', val: 'Viral Clusters', desc: 'Trending Insights', icon: Hash, tab: 'hashtags', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+              ].map((action, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActiveTab(action.tab)}
+                  className="p-8 rounded-[40px] bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 hover:border-primary transition-all text-left shadow-sm flex flex-col justify-between group h-full"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`w-14 h-14 rounded-2xl ${action.bg} ${action.color} flex items-center justify-center group-hover:scale-110 transition-all duration-500 shadow-sm`}>
+                      <action.icon className="w-7 h-7" />
                     </div>
-                    <div>
-                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{action.title}</h4>
-                      <p className="text-lg font-black text-slate-800 dark:text-white">{action.val}</p>
-                      <p className="text-[9px] font-black text-slate-400 mt-1 uppercase tracking-widest opacity-60">{action.desc}</p>
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <ChevronRight className={`w-6 h-6 ${action.color}`} />
                     </div>
-                  </button>
-                ))}
-             </div>
+                  </div>
+                  <div>
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{action.title}</h4>
+                    <p className="text-lg font-black text-slate-800 dark:text-white">{action.val}</p>
+                    <p className="text-[9px] font-black text-slate-400 mt-1 uppercase tracking-widest opacity-60">{action.desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
 
         {/* ── SECTION 6: Intelligence & Visual Vault ─────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-           {/* Hashtag Intelligence Summary */}
-           <div className="p-8 rounded-[40px] bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 shadow-sm">
-             <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-3">
-                  <Hash className="w-5 h-5 text-emerald-500" />
-                  <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-white">Hashtag Intelligence</h3>
-                </div>
-                <button onClick={() => setActiveTab('hashtags')} className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">Scan topics &rarr;</button>
-             </div>
-             
-             {hashtagInsights?.brandSpecific?.length > 0 ? (
-               <div className="flex flex-wrap gap-2">
-                 {hashtagInsights.brandSpecific.slice(0, 10).map(tag => (
-                   <span key={tag} className="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 text-[10px] font-black uppercase tracking-widest border border-emerald-500/20">{tag}</span>
-                 ))}
-               </div>
-             ) : (
-                <div className="opacity-40 text-center py-6">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">No insights scanned yet.</p>
-                </div>
-             )}
-           </div>
+          {/* Hashtag Intelligence Summary */}
+          <div className="p-8 rounded-[40px] bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 shadow-sm">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <Hash className="w-5 h-5 text-emerald-500" />
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-white">Hashtag Intelligence</h3>
+              </div>
+              <button onClick={() => setActiveTab('hashtags')} className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">Scan topics &rarr;</button>
+            </div>
 
-           {/* Content Pipeline Status */}
-           <div className="p-8 rounded-[40px] bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 shadow-sm">
-             <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-3">
-                  <Sparkles className="w-5 h-5 text-primary" />
-                  <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-white">Recent Drafts</h3>
-                </div>
-                <button onClick={() => setActiveTab('generation')} className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">Review all &rarr;</button>
-             </div>
-             
-             <div className="space-y-4">
-                {(generatedPosts || []).slice(0, 2).map((post, idx) => (
-                  <div key={idx} className="p-3 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 group hover:border-primary/20 transition-all">
-                    <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 line-clamp-2 italic mb-2">"{post.hook || post.captionLong?.slice(0, 40) + '...'}"</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[9px] font-black text-primary uppercase tracking-[2px]">{post.platform}</span>
-                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                    </div>
-                  </div>
+            {hashtagInsights?.brandSpecific?.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {hashtagInsights.brandSpecific.slice(0, 10).map(tag => (
+                  <span key={tag} className="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 text-[10px] font-black uppercase tracking-widest border border-emerald-500/20">{tag}</span>
                 ))}
-                {generatedPosts.length === 0 && <p className="text-[10px] font-black text-slate-400 uppercase text-center py-6 opacity-40">No drafts in laboratory.</p>}
-             </div>
-           </div>
+              </div>
+            ) : (
+              <div className="opacity-40 text-center py-6">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">No insights scanned yet.</p>
+              </div>
+            )}
+          </div>
 
-           {/* Post Generation QuickView */}
-           <div className="p-8 rounded-[40px] bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 shadow-sm">
-             <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-3">
-                  <Library className="w-5 h-5 text-primary" />
-                  <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-white">Recent Visuals</h3>
+          {/* Content Pipeline Status */}
+          <div className="p-8 rounded-[40px] bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 shadow-sm">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <Sparkles className="w-5 h-5 text-primary" />
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-white">Recent Drafts</h3>
+              </div>
+              <button onClick={() => setActiveTab('generation')} className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">Review all &rarr;</button>
+            </div>
+
+            <div className="space-y-4">
+              {(generatedPosts || []).slice(0, 2).map((post, idx) => (
+                <div key={idx} className="p-3 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 group hover:border-primary/20 transition-all">
+                  <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 line-clamp-2 italic mb-2">"{post.hook || post.captionLong?.slice(0, 40) + '...'}"</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-black text-primary uppercase tracking-[2px]">{post.platform}</span>
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                  </div>
                 </div>
-                <button onClick={() => setActiveTab('assets')} className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">Open Vault &rarr;</button>
-             </div>
-             
-             <div className="grid grid-cols-3 gap-2">
-               {(assets || []).filter(a => a.assetSource === 'generated').slice(0, 6).map((asset, i) => (
-                 <div key={i} className="aspect-square rounded-xl overflow-hidden bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-white/5 group relative">
-                   <img src={asset.gcsUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Artifact" />
-                 </div>
-               ))}
-               {(assets || []).filter(a => a.assetSource === 'generated').length === 0 && Array.from({ length: 6 }).map((_, i) => (
-                 <div key={i} className="aspect-square rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-dashed border-slate-200 dark:border-white/5" />
-               ))}
-             </div>
-           </div>
+              ))}
+              {generatedPosts.length === 0 && <p className="text-[10px] font-black text-slate-400 uppercase text-center py-6 opacity-40">No drafts in laboratory.</p>}
+            </div>
+          </div>
+
+          {/* Post Generation QuickView */}
+          <div className="p-8 rounded-[40px] bg-white dark:bg-zinc-900 border border-slate-100 dark:border-white/5 shadow-sm">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <Library className="w-5 h-5 text-primary" />
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-white">Recent Visuals</h3>
+              </div>
+              <button onClick={() => setActiveTab('assets')} className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">Open Vault &rarr;</button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              {(assets || []).filter(a => a.assetSource === 'generated').slice(0, 6).map((asset, i) => (
+                <div key={i} className="aspect-square rounded-xl overflow-hidden bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-white/5 group relative">
+                  <img src={asset.gcsUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Artifact" />
+                </div>
+              ))}
+              {(assets || []).filter(a => a.assetSource === 'generated').length === 0 && Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="aspect-square rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-dashed border-slate-200 dark:border-white/5" />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -1725,34 +1725,34 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
           <div className="w-full xl:w-[500px] group relative">
             <div className="absolute -inset-1 bg-gradient-to-r from-primary via-indigo-500 to-purple-600 rounded-3xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
             <div className="relative bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-slate-100 dark:border-white/5 shadow-2xl overflow-hidden">
-               <div className="flex items-center gap-4 mb-5">
-                 <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-                    <Zap className="w-6 h-6 text-primary" />
-                 </div>
-                 <div>
-                    <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider">Magic Auto-Pilot</h4>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Sync EVERYTHING in one click</p>
-                 </div>
-               </div>
-               
-               <div className="flex flex-col sm:flex-row gap-2">
-                 <div className="relative w-full sm:flex-1">
-                    <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input 
-                      value={brandProfile.website || ''}
-                      onChange={(e) => setBrandProfile({ ...brandProfile, website: e.target.value })}
-                      placeholder="Enter Brand URL"
-                      className="w-full h-14 pl-12 pr-4 bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold outline-none focus:border-primary transition-all"
-                    />
+              <div className="flex items-center gap-4 mb-5">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-primary" />
                 </div>
-                 <button 
-                   onClick={() => handleAiFetch(brandProfile.website)}
-                   disabled={!brandProfile.website || isExtracting}
-                   className="w-full sm:w-auto h-14 px-8 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
-                 >
-                   Activate
-                 </button>
-               </div>
+                <div>
+                  <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider">Magic Auto-Pilot</h4>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Sync EVERYTHING in one click</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="relative w-full sm:flex-1">
+                  <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    value={brandProfile.website || ''}
+                    onChange={(e) => setBrandProfile({ ...brandProfile, website: e.target.value })}
+                    placeholder="Enter Brand URL"
+                    className="w-full h-14 pl-12 pr-4 bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold outline-none focus:border-primary transition-all"
+                  />
+                </div>
+                <button
+                  onClick={() => handleAiFetch(brandProfile.website)}
+                  disabled={!brandProfile.website || isExtracting}
+                  className="w-full sm:w-auto h-14 px-8 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
+                >
+                  Activate
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1770,21 +1770,21 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* CARD 1: CORE IDENTITY */}
               <div className="bg-white dark:bg-zinc-900 rounded-[32px] md:rounded-[40px] p-6 sm:p-8 md:p-10 border border-slate-100 dark:border-white/5 shadow-sm space-y-6 sm:space-y-8 hover:border-primary/20 transition-all duration-500 group">
-               <div className="flex items-center justify-between">
-                   <div className="flex items-center gap-4">
-                     <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center group-hover:bg-indigo-500 group-hover:rotate-[10deg] transition-all duration-500 relative">
-                        <User2 className="w-6 h-6 text-indigo-500 group-hover:text-white" />
-                        <span className="absolute -top-2 -right-2 w-5 h-5 bg-indigo-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-zinc-900">1</span>
-                     </div>
-                     <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Core Identity</h3>
-                   </div>
-                   {completionSteps[0].done && <CheckCircle2 className="w-6 h-6 text-emerald-500" />}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center group-hover:bg-indigo-500 group-hover:rotate-[10deg] transition-all duration-500 relative">
+                      <User2 className="w-6 h-6 text-indigo-500 group-hover:text-white" />
+                      <span className="absolute -top-2 -right-2 w-5 h-5 bg-indigo-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-zinc-900">1</span>
+                    </div>
+                    <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Core Identity</h3>
+                  </div>
+                  {completionSteps[0].done && <CheckCircle2 className="w-6 h-6 text-emerald-500" />}
                 </div>
 
                 <div className="space-y-6">
                   <div className="space-y-2 col-span-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Legal Brand Name</label>
-                    <input 
+                    <input
                       value={brandProfile.companyName || ''}
                       onChange={(e) => setBrandProfile({ ...brandProfile, companyName: e.target.value })}
                       placeholder="e.g. Tesla Inc"
@@ -1794,7 +1794,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Target Industry</label>
-                    <input 
+                    <input
                       value={brandProfile.targetIndustry || ''}
                       onChange={(e) => setBrandProfile({ ...brandProfile, targetIndustry: e.target.value })}
                       placeholder="e.g. Tech & AI"
@@ -1818,14 +1818,14 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
               {/* CARD 2: VOICE & PERSONALITY */}
               <div className="bg-white dark:bg-zinc-900 rounded-[32px] md:rounded-[40px] p-6 sm:p-8 md:p-10 border border-slate-100 dark:border-white/5 shadow-sm space-y-6 sm:space-y-8 hover:border-primary/20 transition-all duration-500 group">
                 <div className="flex items-center justify-between">
-                   <div className="flex items-center gap-4">
-                     <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500 group-hover:rotate-[-10deg] transition-all duration-500 relative">
-                        <Mic2 className="w-6 h-6 text-amber-500 group-hover:text-white" />
-                        <span className="absolute -top-2 -right-2 w-5 h-5 bg-amber-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-zinc-900">2</span>
-                     </div>
-                     <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Vocal Signature</h3>
-                   </div>
-                   {completionSteps[1].done && <CheckCircle2 className="w-6 h-6 text-emerald-500" />}
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500 group-hover:rotate-[-10deg] transition-all duration-500 relative">
+                      <Mic2 className="w-6 h-6 text-amber-500 group-hover:text-white" />
+                      <span className="absolute -top-2 -right-2 w-5 h-5 bg-amber-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-zinc-900">2</span>
+                    </div>
+                    <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Vocal Signature</h3>
+                  </div>
+                  {completionSteps[1].done && <CheckCircle2 className="w-6 h-6 text-emerald-500" />}
                 </div>
 
                 <div className="space-y-6">
@@ -1863,15 +1863,15 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Archetype (Voice)</label>
                     <div className="grid grid-cols-2 gap-2">
-                       {['Professional', 'Casual', 'Bold', 'Friendly'].map(tone => (
-                         <button 
-                           key={tone}
-                           onClick={() => setBrandProfile({ ...brandProfile, toneOfVoice: tone })}
-                           className={`h-10 sm:h-11 rounded-[14px] sm:rounded-2xl text-[8px] sm:text-[9px] font-black uppercase tracking-wider sm:tracking-widest border transition-all ${brandProfile.toneOfVoice === tone ? 'bg-amber-500 text-white border-amber-600 shadow-md' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5 hover:border-amber-500/30'}`}
-                         >
-                           {tone}
-                         </button>
-                       ))}
+                      {['Professional', 'Casual', 'Bold', 'Friendly'].map(tone => (
+                        <button
+                          key={tone}
+                          onClick={() => setBrandProfile({ ...brandProfile, toneOfVoice: tone })}
+                          className={`h-10 sm:h-11 rounded-[14px] sm:rounded-2xl text-[8px] sm:text-[9px] font-black uppercase tracking-wider sm:tracking-widest border transition-all ${brandProfile.toneOfVoice === tone ? 'bg-amber-500 text-white border-amber-600 shadow-md' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5 hover:border-amber-500/30'}`}
+                        >
+                          {tone}
+                        </button>
+                      ))}
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -1894,351 +1894,351 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
             {/* ROW 2: VISUAL IDENTITY (FULL WIDTH) */}
             <div className="bg-white dark:bg-zinc-900 rounded-[32px] md:rounded-[40px] p-6 sm:p-8 md:p-10 border border-slate-100 dark:border-white/5 shadow-sm space-y-8 sm:space-y-10 hover:border-primary/20 transition-all duration-500 group">
-                <div className="flex items-center justify-between">
-                   <div className="flex items-center gap-4">
-                     <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:scale-110 transition-all duration-500 relative">
-                        <Palette className="w-6 h-6 text-primary group-hover:text-white" />
-                        <span className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-zinc-900">3</span>
-                     </div>
-                     <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Visual Artifacts</h3>
-                   </div>
-                   {completionSteps[2].done && <CheckCircle2 className="w-6 h-6 text-emerald-500" />}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                   {/* Logo Upload */}
-                   <div className="space-y-4">
-                     <div className="flex items-center justify-between">
-                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Brand Symbol (Logo)</label>
-                       <span className="text-[8px] text-slate-400 uppercase tracking-widest font-black">AI extracted prefered</span>
-                     </div>
-                     <input type="file" id="logo-upload" className="hidden" onChange={(e) => setBrandLogo(e.target.files[0])} accept="image/*" />
-                     <label 
-                       htmlFor="logo-upload"
-                       className="w-full aspect-video rounded-[36px] bg-slate-50 dark:bg-black/20 border-2 border-dashed border-slate-200 dark:border-white/5 hover:border-primary/50 transition-all cursor-pointer flex flex-col items-center justify-center overflow-hidden group/logo shadow-inner relative"
-                     >
-                       <AnimatePresence>
-                         {(logoPreviewUrl || brandProfile.logoUrl) ? (
-                           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-4">
-                              <img 
-                                src={logoPreviewUrl || toProxyUrl(brandProfile.logoUrl)} 
-                                className="w-full h-full object-contain p-6 group-hover/logo:scale-105 transition-transform duration-700" 
-                              />
-                           </motion.div>
-                         ) : (
-                           <div className="flex flex-col items-center gap-4">
-                             <div className="w-16 h-16 rounded-2xl bg-white dark:bg-zinc-800 flex items-center justify-center shadow-lg group-hover/logo:scale-110 transition-all">
-                                <Upload className="w-7 h-7 text-slate-400 group-hover/logo:text-primary" />
-                             </div>
-                             <p className="text-[10px] font-black uppercase tracking-[3px] text-slate-400 group-hover/logo:text-primary">Click to Deploy Logo</p>
-                           </div>
-                         )}
-                       </AnimatePresence>
-                     </label>
-                   </div>
-
-                   {/* Color Palette */}
-                   <div className="space-y-4">
-                     <div className="flex items-center justify-between">
-                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Master Palette</label>
-                       <button 
-                         onClick={() => setBrandProfile({ ...brandProfile, brandColors: [...(brandProfile.brandColors || []), '#3B82F6'] })}
-                         className="w-6 h-6 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center hover:bg-primary hover:text-white transition-all shadow-sm"
-                       >
-                         <Plus className="w-4 h-4" />
-                       </button>
-                     </div>
-                     <div className="grid grid-cols-4 gap-4 p-8 bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-[40px] shadow-inner min-h-[200px] content-start">
-                        {(!brandProfile.brandColors || brandProfile.brandColors.length === 0) ? (
-                          <div className="col-span-4 flex flex-col items-center justify-center py-6 opacity-30 italic text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">
-                             Awaiting AI chromatic extraction...
-                          </div>
-                        ) : (
-                          brandProfile.brandColors.map((color, i) => (
-                            <div key={i} className="group/color relative aspect-square">
-                               <div 
-                                 className="w-full h-full rounded-[20px] shadow-xl border-4 border-white dark:border-zinc-800 group-hover/color:scale-110 group-hover/color:rotate-[5deg] transition-all cursor-pointer flex items-center justify-center overflow-hidden" 
-                                 style={{ backgroundColor: color }}
-                               >
-                                  <input 
-                                    type="color" 
-                                    value={color}
-                                    onChange={(e) => {
-                                      const newColors = [...brandProfile.brandColors];
-                                      newColors[i] = e.target.value;
-                                      setBrandProfile({ ...brandProfile, brandColors: newColors });
-                                    }}
-                                    className="absolute inset-0 opacity-0 cursor-pointer"
-                                  />
-                               </div>
-                               <button 
-                                 onClick={() => {
-                                   const newColors = brandProfile.brandColors.filter((_, idx) => idx !== i);
-                                   setBrandProfile({ ...brandProfile, brandColors: newColors });
-                                 }}
-                                 className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover/color:opacity-100 transition-all scale-75 group-hover/color:scale-100 shadow-md"
-                               >
-                                 <X className="w-3 h-3" />
-                               </button>
-                            </div>
-                          ))
-                        )}
-                     </div>
-                   </div>
-                </div>
-            </div>
-
-
-            {/* REDESIGNED MASTER SAVE BUTTON */}
-            <div className="pt-4 space-y-4">
-               {calendarEntries.length === 0 && (
-                 <div className="p-6 bg-primary/5 rounded-[32px] border border-primary/20 flex flex-col sm:flex-row gap-3 items-center">
-                    <div className="flex-1 w-full">
-                       <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-2 ml-1">Optional: Sync from URL</p>
-                       <div className="relative">
-                          <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/60" />
-                          <input 
-                            placeholder="https://yourbrand.com"
-                            autoComplete="off"
-                            className="w-full h-12 pl-12 pr-4 bg-white dark:bg-zinc-800 border border-primary/20 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all"
-                            value={brandProfile.website || ''}
-                            onChange={(e) => setBrandProfile({ ...brandProfile, website: e.target.value })}
-                          />
-                       </div>
-                    </div>
-                    <button 
-                      onClick={() => handleAiFetch(brandProfile.website)}
-                      disabled={!brandProfile.website || isExtracting}
-                      className="h-12 px-6 bg-primary text-white rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-all disabled:opacity-50"
-                    >
-                      {isExtracting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                      Sync Brand
-                    </button>
-                 </div>
-               )}
-
-               <button 
-                 onClick={handleSaveBrand}
-                 disabled={isSaving}
-                 className="group relative w-full h-20 sm:h-24 overflow-hidden rounded-[32px] sm:rounded-[40px] bg-zinc-900 shadow-2xl transition-all hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
-               >
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary to-indigo-600 opacity-90 transition-all group-hover:scale-110"></div>
-                  <div className="relative z-10 flex flex-col items-center justify-center">
-                     {isSaving ? (
-                       <RefreshCw className="w-6 h-6 sm:w-8 sm:h-8 text-white animate-spin" />
-                     ) : (
-                       <>
-                         <div className="flex items-center gap-2 sm:gap-3">
-                            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white animate-pulse" />
-                            <span className="text-base sm:text-xl font-black text-white uppercase tracking-[2px] sm:tracking-[4px]">Activate Strategy Hub</span>
-                            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white animate-pulse" />
-                         </div>
-                         <p className="text-[8px] sm:text-[10px] text-white/60 font-black uppercase tracking-[2px] sm:tracking-[3px] mt-1">Initiating AI Generation Pulse</p>
-                       </>
-                     )}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:scale-110 transition-all duration-500 relative">
+                    <Palette className="w-6 h-6 text-primary group-hover:text-white" />
+                    <span className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-zinc-900">3</span>
                   </div>
-               </button>
-            </div>
+                  <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Visual Artifacts</h3>
+                </div>
+                {completionSteps[2].done && <CheckCircle2 className="w-6 h-6 text-emerald-500" />}
+              </div>
 
-          </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                {/* Logo Upload */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Brand Symbol (Logo)</label>
+                    <span className="text-[8px] text-slate-400 uppercase tracking-widest font-black">AI extracted prefered</span>
+                  </div>
+                  <input type="file" id="logo-upload" className="hidden" onChange={(e) => setBrandLogo(e.target.files[0])} accept="image/*" />
+                  <label
+                    htmlFor="logo-upload"
+                    className="w-full aspect-video rounded-[36px] bg-slate-50 dark:bg-black/20 border-2 border-dashed border-slate-200 dark:border-white/5 hover:border-primary/50 transition-all cursor-pointer flex flex-col items-center justify-center overflow-hidden group/logo shadow-inner relative"
+                  >
+                    <AnimatePresence>
+                      {(logoPreviewUrl || brandProfile.logoUrl) ? (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-4">
+                          <img
+                            src={logoPreviewUrl || toProxyUrl(brandProfile.logoUrl)}
+                            className="w-full h-full object-contain p-6 group-hover/logo:scale-105 transition-transform duration-700"
+                          />
+                        </motion.div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-4">
+                          <div className="w-16 h-16 rounded-2xl bg-white dark:bg-zinc-800 flex items-center justify-center shadow-lg group-hover/logo:scale-110 transition-all">
+                            <Upload className="w-7 h-7 text-slate-400 group-hover/logo:text-primary" />
+                          </div>
+                          <p className="text-[10px] font-black uppercase tracking-[3px] text-slate-400 group-hover/logo:text-primary">Click to Deploy Logo</p>
+                        </div>
+                      )}
+                    </AnimatePresence>
+                  </label>
+                </div>
 
-          <div className="sticky top-8 space-y-6 w-full xl:min-w-[350px]">
-            
-            {/* THE BRAND CARTRIDGE (PASSPORT) */}
-            <div className="relative group perspective-1000">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-purple-600 rounded-[50px] blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
-              <div className="relative holographic-card rounded-[48px] overflow-hidden bg-white/10 backdrop-blur-3xl border border-white/20 p-1">
-                <div className="p-8 space-y-8 bg-zinc-900/40 rounded-[44px] border border-white/5 shadow-2xl">
-                   <div className="flex items-center justify-between">
-                      <div className="w-8 h-8 rounded-full border-2 border-primary/40 flex items-center justify-center">
-                         <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                {/* Color Palette */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Master Palette</label>
+                    <button
+                      onClick={() => setBrandProfile({ ...brandProfile, brandColors: [...(brandProfile.brandColors || []), '#3B82F6'] })}
+                      className="w-6 h-6 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center hover:bg-primary hover:text-white transition-all shadow-sm"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-4 gap-4 p-8 bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-[40px] shadow-inner min-h-[200px] content-start">
+                    {(!brandProfile.brandColors || brandProfile.brandColors.length === 0) ? (
+                      <div className="col-span-4 flex flex-col items-center justify-center py-6 opacity-30 italic text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">
+                        Awaiting AI chromatic extraction...
                       </div>
-                      <span className="text-[10px] font-black text-white/40 uppercase tracking-[4px]">Verified DNA</span>
-                   </div>
-
-                   <div className="space-y-6">
-                      <div className="w-28 h-28 mx-auto bg-white/10 backdrop-blur-2xl rounded-[40px] border border-white/20 flex items-center justify-center p-6 shadow-3xl group-hover:rotate-6 transition-transform duration-1000 relative">
-                         <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent rounded-[40px]" />
-                         {logoPreviewUrl || brandProfile.logoUrl ? (
-                           <img 
-                             src={logoPreviewUrl || toProxyUrl(brandProfile.logoUrl)} 
-                             className="w-full h-full object-contain relative z-10" 
-                           />
-                         ) : (
-                           <Palette className="w-10 h-10 text-white/20 relative z-10" />
-                         )}
-                      </div>
-
-                      <div className="text-center">
-                         <h2 className="text-3xl font-black text-white uppercase tracking-tighter leading-none">{brandProfile.companyName || 'Awaiting Sync'}</h2>
-                         <p className="text-[10px] text-primary font-bold uppercase tracking-widest mt-2">{brandProfile.website || 'No Source connected'}</p>
-                      </div>
-                   </div>
-
-                   <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 rounded-3xl bg-white/5 border border-white/10">
-                         <p className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-2">Vocal Tone</p>
-                         <p className="text-sm font-bold text-white uppercase truncate">{brandProfile.toneOfVoice || 'Neutral'}</p>
-                      </div>
-                      <div className="p-4 rounded-3xl bg-white/5 border border-white/10">
-                         <p className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-2">Engagement</p>
-                         <p className="text-sm font-bold text-indigo-400 uppercase truncate">{brandProfile.ctaStyle || 'Dynamic'}</p>
-                      </div>
-                   </div>
-
-                   <div className="pt-4 border-t border-white/5 text-center">
-                      <div className="flex justify-center gap-2">
-                        {(brandProfile.brandColors || []).slice(0, 5).map((c, i) => (
-                           <div key={i} className="w-6 h-6 rounded-lg shadow-xl" style={{ backgroundColor: c }} />
-                        ))}
-                      </div>
-                      <div className="flex items-center justify-center gap-2 pt-6">
-                        <Zap className="w-3 h-3 text-primary" />
-                        <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">Autonomous Core Active</span>
-                      </div>
-                   </div>
+                    ) : (
+                      brandProfile.brandColors.map((color, i) => (
+                        <div key={i} className="group/color relative aspect-square">
+                          <div
+                            className="w-full h-full rounded-[20px] shadow-xl border-4 border-white dark:border-zinc-800 group-hover/color:scale-110 group-hover/color:rotate-[5deg] transition-all cursor-pointer flex items-center justify-center overflow-hidden"
+                            style={{ backgroundColor: color }}
+                          >
+                            <input
+                              type="color"
+                              value={color}
+                              onChange={(e) => {
+                                const newColors = [...brandProfile.brandColors];
+                                newColors[i] = e.target.value;
+                                setBrandProfile({ ...brandProfile, brandColors: newColors });
+                              }}
+                              className="absolute inset-0 opacity-0 cursor-pointer"
+                            />
+                          </div>
+                          <button
+                            onClick={() => {
+                              const newColors = brandProfile.brandColors.filter((_, idx) => idx !== i);
+                              setBrandProfile({ ...brandProfile, brandColors: newColors });
+                            }}
+                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover/color:opacity-100 transition-all scale-75 group-hover/color:scale-100 shadow-md"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
 
-             {/* STEP 4: INTELLIGENCE CORE (MATCHED TO REFERENCE) */}
-             <div className="p-6 sm:p-8 md:p-10 rounded-[32px] md:rounded-[48px] bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 space-y-6 sm:space-y-8 hover:border-emerald-500/20 transition-all duration-500 group">
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 md:gap-0">
-                   <div className="flex flex-col">
-                      <div className="flex items-center gap-2">
-                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                         <h4 className="text-[13px] font-black text-slate-800 dark:text-white uppercase tracking-[2px]">Intelligence Core</h4>
-                      </div>
-                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Strategy Evolution Hub</p>
-                   </div>
-                   
-                   {/* Action Hub */}
-                   <div className="flex flex-col gap-3 w-full md:w-auto">
-                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-                         <button 
-                           onClick={() => document.getElementById('overview-upload-core').click()}
-                           className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-[9px] font-black uppercase tracking-[2px] text-slate-600 dark:text-slate-300 hover:border-primary/40 hover:text-primary transition-all shadow-sm active:scale-95 w-full sm:w-auto"
-                         >
-                            <Upload className="w-3.5 h-3.5" />
-                            {overviewFiles.length > 0 ? `${overviewFiles.length} Docs Ready` : 'Upload Docs'}
-                         </button>
-                         <input 
-                           type="file" 
-                           id="overview-upload-core" 
-                           className="hidden" 
-                           multiple
-                           onChange={(e) => setOverviewFiles(prev => [...prev, ...Array.from(e.target.files)])} 
-                           accept=".pdf,.doc,.docx" 
-                         />
-                         
-                         <button 
-                           onClick={() => handleAiFetch(brandProfile.website)}
-                           disabled={isSyncing || !brandProfile.website}
-                           className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-2xl bg-primary text-white text-[9px] font-black uppercase tracking-[2px] transition-all shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 disabled:opacity-50 w-full sm:w-auto"
-                         >
-                            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-                            {isSyncing ? 'Syncing...' : 'Fetch Web'}
-                         </button>
-                      </div>
-
-                      {/* File List for Visual Feedback */}
-                      {overviewFiles.length > 0 && (
-                        <div className="flex flex-wrap gap-2 pt-2">
-                           {overviewFiles.map((f, i) => (
-                             <div key={i} className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-                                <FileText className="w-3 h-3 text-emerald-500" />
-                                <span className="text-[8px] font-black text-emerald-600 dark:text-emerald-400 truncate max-w-[80px]">{f.name}</span>
-                                <X 
-                                  className="w-3 h-3 text-emerald-500 cursor-pointer hover:scale-120" 
-                                  onClick={() => setOverviewFiles(prev => prev.filter((_, idx) => idx !== i))}
-                                />
-                             </div>
-                           ))}
-                        </div>
-                      )}
-                   </div>
-                </div>
-
-                <div className="space-y-4">
-                   <div className="relative">
-                      <textarea 
-                        value={brandProfile.extractedBrandSummary || ''}
-                        onChange={(e) => setBrandProfile({ ...brandProfile, extractedBrandSummary: e.target.value })}
-                        placeholder="Type manual brand notes / USP / mission... (OR use the 'Fetch Web' button to automatically synthesize from your URL)"
-                        className="w-full h-48 sm:h-56 px-6 sm:px-8 py-6 sm:py-8 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-[32px] sm:rounded-[40px] text-xs sm:text-[13px] font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-emerald-500 transition-all leading-relaxed resize-none shadow-[0_10px_30px_rgba(0,0,0,0.02)]"
+            {/* REDESIGNED MASTER SAVE BUTTON */}
+            <div className="pt-4 space-y-4">
+              {calendarEntries.length === 0 && (
+                <div className="p-6 bg-primary/5 rounded-[32px] border border-primary/20 flex flex-col sm:flex-row gap-3 items-center">
+                  <div className="flex-1 w-full">
+                    <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-2 ml-1">Optional: Sync from URL</p>
+                    <div className="relative">
+                      <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/60" />
+                      <input
+                        placeholder="https://yourbrand.com"
+                        autoComplete="off"
+                        className="w-full h-12 pl-12 pr-4 bg-white dark:bg-zinc-800 border border-primary/20 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all"
+                        value={brandProfile.website || ''}
+                        onChange={(e) => setBrandProfile({ ...brandProfile, website: e.target.value })}
                       />
-                      <div className="absolute bottom-6 right-8 flex items-center gap-2 opacity-30">
-                        <span className="text-[8px] font-black uppercase tracking-widest">Global DNA Bank</span>
-                        <Target className="w-3 h-3" />
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleAiFetch(brandProfile.website)}
+                    disabled={!brandProfile.website || isExtracting}
+                    className="h-12 px-6 bg-primary text-white rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-all disabled:opacity-50"
+                  >
+                    {isExtracting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                    Sync Brand
+                  </button>
+                </div>
+              )}
+
+              <button
+                onClick={handleSaveBrand}
+                disabled={isSaving}
+                className="group relative w-full h-20 sm:h-24 overflow-hidden rounded-[32px] sm:rounded-[40px] bg-zinc-900 shadow-2xl transition-all hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-primary to-indigo-600 opacity-90 transition-all group-hover:scale-110"></div>
+                <div className="relative z-10 flex flex-col items-center justify-center">
+                  {isSaving ? (
+                    <RefreshCw className="w-6 h-6 sm:w-8 sm:h-8 text-white animate-spin" />
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white animate-pulse" />
+                        <span className="text-base sm:text-xl font-black text-white uppercase tracking-[2px] sm:tracking-[4px]">Activate Strategy Hub</span>
+                        <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white animate-pulse" />
                       </div>
-                   </div>
+                      <p className="text-[8px] sm:text-[10px] text-white/60 font-black uppercase tracking-[2px] sm:tracking-[3px] mt-1">Initiating AI Generation Pulse</p>
+                    </>
+                  )}
+                </div>
+              </button>
+            </div>
+
+          </div>
+
+          <div className="sticky top-8 space-y-6 w-full xl:min-w-[350px]">
+
+            {/* THE BRAND CARTRIDGE (PASSPORT) */}
+            <div className="relative group perspective-1000">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-purple-600 rounded-[50px] blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+              <div className="relative holographic-card rounded-[48px] overflow-hidden bg-white/10 backdrop-blur-3xl border border-white/20 p-1">
+                <div className="p-8 space-y-8 bg-zinc-900/40 rounded-[44px] border border-white/5 shadow-2xl">
+                  <div className="flex items-center justify-between">
+                    <div className="w-8 h-8 rounded-full border-2 border-primary/40 flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    </div>
+                    <span className="text-[10px] font-black text-white/40 uppercase tracking-[4px]">Verified DNA</span>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="w-28 h-28 mx-auto bg-white/10 backdrop-blur-2xl rounded-[40px] border border-white/20 flex items-center justify-center p-6 shadow-3xl group-hover:rotate-6 transition-transform duration-1000 relative">
+                      <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent rounded-[40px]" />
+                      {logoPreviewUrl || brandProfile.logoUrl ? (
+                        <img
+                          src={logoPreviewUrl || toProxyUrl(brandProfile.logoUrl)}
+                          className="w-full h-full object-contain relative z-10"
+                        />
+                      ) : (
+                        <Palette className="w-10 h-10 text-white/20 relative z-10" />
+                      )}
+                    </div>
+
+                    <div className="text-center">
+                      <h2 className="text-3xl font-black text-white uppercase tracking-tighter leading-none">{brandProfile.companyName || 'Awaiting Sync'}</h2>
+                      <p className="text-[10px] text-primary font-bold uppercase tracking-widest mt-2">{brandProfile.website || 'No Source connected'}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 rounded-3xl bg-white/5 border border-white/10">
+                      <p className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-2">Vocal Tone</p>
+                      <p className="text-sm font-bold text-white uppercase truncate">{brandProfile.toneOfVoice || 'Neutral'}</p>
+                    </div>
+                    <div className="p-4 rounded-3xl bg-white/5 border border-white/10">
+                      <p className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-2">Engagement</p>
+                      <p className="text-sm font-bold text-indigo-400 uppercase truncate">{brandProfile.ctaStyle || 'Dynamic'}</p>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-white/5 text-center">
+                    <div className="flex justify-center gap-2">
+                      {(brandProfile.brandColors || []).slice(0, 5).map((c, i) => (
+                        <div key={i} className="w-6 h-6 rounded-lg shadow-xl" style={{ backgroundColor: c }} />
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-center gap-2 pt-6">
+                      <Zap className="w-3 h-3 text-primary" />
+                      <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">Autonomous Core Active</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+
+            {/* STEP 4: INTELLIGENCE CORE (MATCHED TO REFERENCE) */}
+            <div className="p-6 sm:p-8 md:p-10 rounded-[32px] md:rounded-[48px] bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 space-y-6 sm:space-y-8 hover:border-emerald-500/20 transition-all duration-500 group">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 md:gap-0">
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <h4 className="text-[13px] font-black text-slate-800 dark:text-white uppercase tracking-[2px]">Intelligence Core</h4>
+                  </div>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Strategy Evolution Hub</p>
                 </div>
 
-                {/* SOCIAL ENGINE CONFIG (NEW) */}
-                <div className="pt-4 border-t border-slate-100 dark:border-white/5 space-y-4">
-                   <div className="flex items-center gap-2 mb-2">
-                      <Zap className="w-3 h-3 text-primary" />
-                      <span className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-widest">Social Engine</span>
-                   </div>
-                   <div className="grid grid-cols-1 gap-4">
-                      <div className="space-y-1">
-                         <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Campaign Month</label>
-                         <CustomSelect
-                           value={brandProfile.campaignMonth || 'April'}
-                           onChange={(val) => setBrandProfile({ ...brandProfile, campaignMonth: val })}
-                           options={['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(m => ({ label: m.toUpperCase(), value: m }))}
-                           color="primary"
-                           className="h-12 px-6 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-2xl text-[10px] uppercase outline-none focus:border-primary"
-                         />
-                      </div>
-                      <div className="space-y-1">
-                         <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Posting Frequency</label>
-                         <CustomSelect
-                           value={brandProfile.postingFrequency || '3x per week'}
-                           onChange={(val) => setBrandProfile({ ...brandProfile, postingFrequency: val })}
-                           options={[
-                             { label: '1x per week', value: '1x per week' },
-                             { label: '3x per week', value: '3x per week' },
-                             { label: 'Daily', value: 'Daily' },
-                             { label: '2x Daily (High Growth)', value: '2x Daily' }
-                           ]}
-                           color="primary"
-                           className="h-10 px-4 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-xl text-[10px] outline-none focus:border-primary"
-                         />
-                      </div>
-                   </div>
+                {/* Action Hub */}
+                <div className="flex flex-col gap-3 w-full md:w-auto">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+                    <button
+                      onClick={() => document.getElementById('overview-upload-core').click()}
+                      className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-[9px] font-black uppercase tracking-[2px] text-slate-600 dark:text-slate-300 hover:border-primary/40 hover:text-primary transition-all shadow-sm active:scale-95 w-full sm:w-auto"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      {overviewFiles.length > 0 ? `${overviewFiles.length} Docs Ready` : 'Upload Docs'}
+                    </button>
+                    <input
+                      type="file"
+                      id="overview-upload-core"
+                      className="hidden"
+                      multiple
+                      onChange={(e) => setOverviewFiles(prev => [...prev, ...Array.from(e.target.files)])}
+                      accept=".pdf,.doc,.docx"
+                    />
+
+                    <button
+                      onClick={() => handleAiFetch(brandProfile.website)}
+                      disabled={isSyncing || !brandProfile.website}
+                      className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-2xl bg-primary text-white text-[9px] font-black uppercase tracking-[2px] transition-all shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 disabled:opacity-50 w-full sm:w-auto"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                      {isSyncing ? 'Syncing...' : 'Fetch Web'}
+                    </button>
+                  </div>
+
+                  {/* File List for Visual Feedback */}
+                  {overviewFiles.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {overviewFiles.map((f, i) => (
+                        <div key={i} className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                          <FileText className="w-3 h-3 text-emerald-500" />
+                          <span className="text-[8px] font-black text-emerald-600 dark:text-emerald-400 truncate max-w-[80px]">{f.name}</span>
+                          <X
+                            className="w-3 h-3 text-emerald-500 cursor-pointer hover:scale-120"
+                            onClick={() => setOverviewFiles(prev => prev.filter((_, idx) => idx !== i))}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="relative">
+                  <textarea
+                    value={brandProfile.extractedBrandSummary || ''}
+                    onChange={(e) => setBrandProfile({ ...brandProfile, extractedBrandSummary: e.target.value })}
+                    placeholder="Type manual brand notes / USP / mission... (OR use the 'Fetch Web' button to automatically synthesize from your URL)"
+                    className="w-full h-48 sm:h-56 px-6 sm:px-8 py-6 sm:py-8 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-[32px] sm:rounded-[40px] text-xs sm:text-[13px] font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-emerald-500 transition-all leading-relaxed resize-none shadow-[0_10px_30px_rgba(0,0,0,0.02)]"
+                  />
+                  <div className="absolute bottom-6 right-8 flex items-center gap-2 opacity-30">
+                    <span className="text-[8px] font-black uppercase tracking-widest">Global DNA Bank</span>
+                    <Target className="w-3 h-3" />
+                  </div>
+                </div>
+              </div>
+
+              {/* SOCIAL ENGINE CONFIG (NEW) */}
+              <div className="pt-4 border-t border-slate-100 dark:border-white/5 space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap className="w-3 h-3 text-primary" />
+                  <span className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-widest">Social Engine</span>
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Campaign Month</label>
+                    <CustomSelect
+                      value={brandProfile.campaignMonth || 'April'}
+                      onChange={(val) => setBrandProfile({ ...brandProfile, campaignMonth: val })}
+                      options={['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(m => ({ label: m.toUpperCase(), value: m }))}
+                      color="primary"
+                      className="h-12 px-6 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-2xl text-[10px] uppercase outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Posting Frequency</label>
+                    <CustomSelect
+                      value={brandProfile.postingFrequency || '3x per week'}
+                      onChange={(val) => setBrandProfile({ ...brandProfile, postingFrequency: val })}
+                      options={[
+                        { label: '1x per week', value: '1x per week' },
+                        { label: '3x per week', value: '3x per week' },
+                        { label: 'Daily', value: 'Daily' },
+                        { label: '2x Daily (High Growth)', value: '2x Daily' }
+                      ]}
+                      color="primary"
+                      className="h-10 px-4 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-xl text-[10px] outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
 
             {/* AI SYSTEM INSIGHT */}
             <div className="p-8 rounded-[40px] bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 space-y-6">
-               <div className="flex items-center gap-3">
-                 <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Sparkles className="w-4 h-4 text-primary" />
-                 </div>
-                 <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest">Strategist Insights</h4>
-               </div>
-               
-               <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                     <div className={`w-1.5 h-1.5 rounded-full mt-1.5 ${completionSteps[0].done ? 'bg-emerald-500' : 'bg-slate-300 animate-pulse'}`} />
-                     <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                        {completionSteps[0].done ? 'Brand Identity core has been established. Foundation is stable.' : 'Link your website to allow AI to analyze your competitor landscape.'}
-                     </p>
-                  </div>
-               </div>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                </div>
+                <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest">Strategist Insights</h4>
+              </div>
 
-               <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-                  <div className="flex items-center justify-between mb-2">
-                     <span className="text-[9px] font-black text-primary uppercase tracking-widest">Maturity</span>
-                     <span className="text-[10px] font-black text-primary">{completionPct}%</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden">
-                     <div className="h-full bg-primary transition-all duration-1000" style={{ width: `${completionPct}%` }} />
-                  </div>
-               </div>
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className={`w-1.5 h-1.5 rounded-full mt-1.5 ${completionSteps[0].done ? 'bg-emerald-500' : 'bg-slate-300 animate-pulse'}`} />
+                  <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                    {completionSteps[0].done ? 'Brand Identity core has been established. Foundation is stable.' : 'Link your website to allow AI to analyze your competitor landscape.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[9px] font-black text-primary uppercase tracking-widest">Maturity</span>
+                  <span className="text-[10px] font-black text-primary">{completionPct}%</span>
+                </div>
+                <div className="h-1.5 w-full bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-full bg-primary transition-all duration-1000" style={{ width: `${completionPct}%` }} />
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -2490,25 +2490,25 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                     <div key={entry._id || idx} className="bg-white dark:bg-zinc-900 rounded-[32px] border border-slate-100 dark:border-white/5 overflow-hidden group hover:shadow-xl transition-all hover:border-primary/20 flex flex-col shadow-sm animate-in fade-in slide-in-from-bottom-4" style={{ animationDelay: `${idx * 50}ms` }}>
                       <div className="p-8 flex-1 flex flex-col">
                         <div className="flex justify-between items-start mb-6">
-                           <div className="flex flex-wrap gap-2">
-                             <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full border border-primary/20">
-                               <Calendar className="w-3 h-3" />
-                               <span className="text-[10px] font-black uppercase tracking-widest">{new Date(entry.scheduledDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
-                             </div>
-                             <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border ${entry.postType === 'Video' ? 'bg-amber-100 dark:bg-amber-500/10 text-amber-600 border-amber-200' :
-                               entry.postType === 'Carousel' ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 border-indigo-200' :
-                                 'bg-blue-100 dark:bg-primary/10 text-primary border-blue-200'
-                               }`}>
-                               {entry.postType}
-                             </span>
-                           </div>
-                           <button 
-                             onClick={(e) => { e.stopPropagation(); handleDeleteEntry(entry._id); }}
-                             className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
-                             title="Hard Delete"
-                           >
-                             <Trash2 className="w-4 h-4" />
-                           </button>
+                          <div className="flex flex-wrap gap-2">
+                            <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-full border border-primary/20">
+                              <Calendar className="w-3 h-3" />
+                              <span className="text-[10px] font-black uppercase tracking-widest">{new Date(entry.scheduledDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border ${entry.postType === 'Video' ? 'bg-amber-100 dark:bg-amber-500/10 text-amber-600 border-amber-200' :
+                              entry.postType === 'Carousel' ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 border-indigo-200' :
+                                'bg-blue-100 dark:bg-primary/10 text-primary border-blue-200'
+                              }`}>
+                              {entry.postType}
+                            </span>
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeleteEntry(entry._id); }}
+                            className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
+                            title="Hard Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
 
                         <div className="flex-1 mb-8">
@@ -2524,7 +2524,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                               {entry.heading_hook || entry.title || 'Strategizing...'}
                             </h4>
                           </div>
-                          
+
                           {/* SUB-HEADING */}
                           <div className="group/field relative">
                             <div className="flex items-center justify-between mb-1">
@@ -2537,7 +2537,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                               "{entry.subHeading || entry.sub_heading || entry.hook || 'No sub-heading provided'}"
                             </p>
                           </div>
-                          
+
                           {/* METADATA GRID */}
                           <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-8 p-5 bg-slate-50 dark:bg-white/[0.02] rounded-3xl border border-slate-100 dark:border-white/5">
                             <div className="overflow-hidden">
@@ -2616,11 +2616,11 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                   <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                                     <Hash className="w-3 h-3" /> HASHTAGS
                                   </p>
-                                  <button onClick={(e) => { 
-                                    e.stopPropagation(); 
+                                  <button onClick={(e) => {
+                                    e.stopPropagation();
                                     const tags = Array.isArray(entry.hashtags) ? entry.hashtags.map(t => t.startsWith('#') ? t : `#${t}`).join(' ') : String(entry.hashtags);
-                                    navigator.clipboard.writeText(tags || ''); 
-                                    toast.success('Copied!'); 
+                                    navigator.clipboard.writeText(tags || '');
+                                    toast.success('Copied!');
                                   }} className="opacity-0 group-hover/field:opacity-100 transition-opacity focus:outline-none">
                                     <Copy className="w-3 h-3 text-slate-400 hover:text-primary transition-colors" />
                                   </button>
@@ -2666,11 +2666,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                               <button
                                 onClick={() => setGenPostModal({ open: true, entry, format: 'single' })}
                                 disabled={!!visualGenRowId}
-                                className={`h-11 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-lg disabled:opacity-50 ${
-                                  visualGenRowId === String(entry._id)
+                                className={`h-11 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-lg disabled:opacity-50 ${visualGenRowId === String(entry._id)
                                     ? 'bg-indigo-600 text-white shadow-indigo-500/20 cursor-not-allowed'
                                     : 'bg-slate-800 dark:bg-white/10 text-white shadow-lg'
-                                }`}
+                                  }`}
                               >
                                 {visualGenRowId === String(entry._id) ? (
                                   <><RefreshCw className="w-3 h-3 animate-spin" /> Regen...</>
@@ -2684,11 +2683,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                               <button
                                 onClick={() => setGenPostModal({ open: true, entry, format: 'single' })}
                                 disabled={!!visualGenRowId}
-                                className={`col-span-1 h-11 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-lg disabled:opacity-50 ${
-                                  visualGenRowId === String(entry._id)
+                                className={`col-span-1 h-11 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-lg disabled:opacity-50 ${visualGenRowId === String(entry._id)
                                     ? 'bg-indigo-600 text-white shadow-indigo-500/20 cursor-not-allowed'
                                     : 'bg-primary text-white shadow-primary/10'
-                                }`}
+                                  }`}
                               >
                                 {visualGenRowId === String(entry._id) ? (
                                   <><RefreshCw className="w-3 h-3 animate-spin" /> Generating...</>
@@ -2712,18 +2710,18 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                             </>
                           )}
                         </div>
-                        
+
                         <div className="flex items-center justify-between mt-4 px-1">
-                           <button
-                             onClick={() => {
-                               setHashtagTopic(entry.title || entry.hook);
-                               setActiveTab('hashtags');
-                             }}
-                             className="text-[8px] font-black text-slate-400 hover:text-indigo-500 uppercase tracking-widest flex items-center gap-1.5 transition-colors"
-                           >
-                             <Hash className="w-3 h-3" /> Viral Tags
-                           </button>
-                         </div>
+                          <button
+                            onClick={() => {
+                              setHashtagTopic(entry.title || entry.hook);
+                              setActiveTab('hashtags');
+                            }}
+                            className="text-[8px] font-black text-slate-400 hover:text-indigo-500 uppercase tracking-widest flex items-center gap-1.5 transition-colors"
+                          >
+                            <Hash className="w-3 h-3" /> Viral Tags
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -2889,7 +2887,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                     </div>
                   </div>
 
-                   <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={() => handleApprove(post._id)}
                       disabled={isProcessing}
@@ -3078,7 +3076,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
             <div className="max-w-md w-full">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-[3px] block mb-4">Select Target Brand Strategy</label>
-              <CustomSelect 
+              <CustomSelect
                 value={calendarWorkspaces.some(w => w._id === workspace?._id) ? workspace?._id : ''}
                 onChange={(val) => {
                   const ws = allWorkspaces.find(b => b._id === val);
@@ -3103,10 +3101,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
               <div className="flex items-center gap-6 p-4 bg-slate-50 dark:bg-white/5 rounded-[32px] border border-slate-100 dark:border-white/5">
                 <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 flex items-center justify-center p-2">
                   {(activeProfile?.logoUrl || workspace?.brandProfile?.logoUrl || workspace?.onboarding?.profileImageUrl) ? (
-                    <img 
-                      src={toProxyUrl(activeProfile?.logoUrl || workspace?.brandProfile?.logoUrl || workspace?.onboarding?.profileImageUrl)} 
-                      className="w-full h-full object-contain" 
-                      alt="Logo" 
+                    <img
+                      src={toProxyUrl(activeProfile?.logoUrl || workspace?.brandProfile?.logoUrl || workspace?.onboarding?.profileImageUrl)}
+                      className="w-full h-full object-contain"
+                      alt="Logo"
                     />
                   ) : (
                     <div className="w-full h-full bg-primary text-white flex items-center justify-center text-xl font-black">
@@ -3181,7 +3179,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                 <div className="flex flex-wrap gap-2 mt-2">
                   {(workspace?.currentStrategy?.weekly_themes || []).slice(0, 3).map((theme, i) => (
                     <span key={i} className="text-[8px] font-black bg-slate-100 dark:bg-white/5 text-slate-500 px-2 py-1 rounded-lg border border-slate-200 dark:border-white/10">
-                      {typeof theme === 'object' ? (theme.theme || theme.content_focus || `Week ${theme.week || i+1}`) : theme}
+                      {typeof theme === 'object' ? (theme.theme || theme.content_focus || `Week ${theme.week || i + 1}`) : theme}
                     </span>
                   ))}
                   {(!workspace?.currentStrategy?.weekly_themes || workspace.currentStrategy.weekly_themes.length === 0) && (
@@ -3271,22 +3269,21 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                           </div>
                         </td>
                         <td className="p-4">
-                          <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase border ${
-                            (row.postType || row.format || row.rawData?.Format) === 'Video' ? 'bg-amber-100 dark:bg-amber-500/10 text-amber-600 border-amber-200/50' :
-                            (row.postType || row.format || row.rawData?.Format) === 'Carousel' ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 border-indigo-200/50' :
-                            'bg-blue-100 dark:bg-primary/10 text-primary border-blue-200/50'
-                          }`}>
+                          <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase border ${(row.postType || row.format || row.rawData?.Format) === 'Video' ? 'bg-amber-100 dark:bg-amber-500/10 text-amber-600 border-amber-200/50' :
+                              (row.postType || row.format || row.rawData?.Format) === 'Carousel' ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 border-indigo-200/50' :
+                                'bg-blue-100 dark:bg-primary/10 text-primary border-blue-200/50'
+                            }`}>
                             {row.postType || row.format || row.rawData?.Format}
                           </span>
                         </td>
                         <td className="p-4 text-right">
                           <div className="flex justify-end gap-2">
                             {row.status === 'generated' ? (
-                              <button 
+                              <button
                                 onClick={() => {
                                   const post = generatedPosts.find(p => ensureStringId(p.calendarEntryId) === ensureStringId(row._id));
-                                  const asset = assets?.find(a => 
-                                    (post && ensureStringId(a.postId) === ensureStringId(post._id)) || 
+                                  const asset = assets?.find(a =>
+                                    (post && ensureStringId(a.postId) === ensureStringId(post._id)) ||
                                     ensureStringId(a.calendarEntryId) === ensureStringId(row._id)
                                   );
                                   if (asset) {
@@ -3301,7 +3298,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                 <Eye className="w-3 h-3" /> View
                               </button>
                             ) : (
-                              <button 
+                              <button
                                 onClick={() => handleGenerateContent('single', 1, [row._id])}
                                 disabled={isGenerating}
                                 className="h-9 px-4 bg-primary text-white rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all flex items-center gap-2"
@@ -3335,11 +3332,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                             <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1.5 py-0.5 bg-white dark:bg-zinc-800 rounded border border-slate-200 dark:border-white/10">
                               {row.phase || row.rawData?.Phase || "Awareness"}
                             </span>
-                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase border ${
-                              (row.postType || row.format || row.rawData?.Format) === 'Video' ? 'bg-amber-100 dark:bg-amber-500/10 text-amber-600 border-amber-200/50' :
-                              (row.postType || row.format || row.rawData?.Format) === 'Carousel' ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 border-indigo-200/50' :
-                              'bg-blue-100 dark:bg-primary/10 text-primary border-blue-200/50'
-                            }`}>
+                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase border ${(row.postType || row.format || row.rawData?.Format) === 'Video' ? 'bg-amber-100 dark:bg-amber-500/10 text-amber-600 border-amber-200/50' :
+                                (row.postType || row.format || row.rawData?.Format) === 'Carousel' ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 border-indigo-200/50' :
+                                  'bg-blue-100 dark:bg-primary/10 text-primary border-blue-200/50'
+                              }`}>
                               {row.postType || row.format || row.rawData?.Format}
                             </span>
                           </div>
@@ -3361,7 +3357,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                         })}
                       </div>
                     </div>
-                    
+
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed italic border-l-2 border-primary/20 pl-3">
                       {row.sub_heading || row.hook || row.rawData?.Hook || "Defining direction..."}
                     </p>
@@ -3373,13 +3369,13 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                           {row.status === 'generated' ? 'Ready' : 'Pending Gen'}
                         </span>
                       </div>
-                      
+
                       {row.status === 'generated' ? (
-                        <button 
+                        <button
                           onClick={() => {
                             const post = generatedPosts.find(p => ensureStringId(p.calendarEntryId) === ensureStringId(row._id));
-                            const asset = assets?.find(a => 
-                              (post && ensureStringId(a.postId) === ensureStringId(post._id)) || 
+                            const asset = assets?.find(a =>
+                              (post && ensureStringId(a.postId) === ensureStringId(post._id)) ||
                               ensureStringId(a.calendarEntryId) === ensureStringId(row._id)
                             );
                             if (asset) {
@@ -3394,7 +3390,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                           <Eye className="w-3.5 h-3.5" /> View
                         </button>
                       ) : (
-                        <button 
+                        <button
                           onClick={() => handleGenerateContent('single', 1, [row._id])}
                           disabled={isGenerating}
                           className="h-10 px-6 bg-primary text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all flex items-center gap-2"
@@ -3558,14 +3554,14 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     const generatedAssets = (assets || []).filter(a => {
       const isGenerated = a.assetSource === 'generated';
       if (!isGenerated) return false;
-      
+
       if (!assetSearchQuery) return true;
-      
+
       const query = assetSearchQuery.toLowerCase().trim();
       const assetType = (a.assetType || '').toLowerCase().replace('_', ' ');
       const dateStr = (a.dateString || '').toLowerCase();
       const originalName = (a.originalName || '').toLowerCase();
-      
+
       // Keywords mapping for easier search
       const isSingleQuery = query === 'single' || query === 'post' || query === 'single post';
       const isCarouselQuery = query === 'carousel' || query === 'multi';
@@ -3574,29 +3570,29 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       if (isCarouselQuery) return assetType.includes('carousel');
 
       return (
-        assetType.includes(query) || 
-        dateStr.includes(query) || 
+        assetType.includes(query) ||
+        dateStr.includes(query) ||
         originalName.includes(query)
       );
     });
 
     return (
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 h-full flex flex-col space-y-6 pb-20">
-        
+
 
         {/* ── Studio Toolbox ────────────────────────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
           <div className="lg:col-span-3 bg-white dark:bg-[#080808]/80 backdrop-blur-xl p-6 sm:p-8 rounded-[32px] sm:rounded-[40px] border border-slate-100 dark:border-white/5 shadow-xl flex items-center">
             <div className="relative group w-full">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input 
+              <input
                 value={assetSearchQuery}
                 onChange={(e) => setAssetSearchQuery(e.target.value)}
-                placeholder="Search by date, single post, or carousel..." 
-                className="h-14 pl-12 pr-6 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all w-full md:w-80" 
+                placeholder="Search by date, single post, or carousel..."
+                className="h-14 pl-12 pr-6 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all w-full md:w-80"
               />
               {assetSearchQuery && (
-                <button 
+                <button
                   onClick={() => setAssetSearchQuery('')}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
                 >
@@ -3607,14 +3603,14 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
           </div>
 
           <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 p-8 rounded-[40px] shadow-xl shadow-indigo-500/20 flex items-center justify-between group cursor-pointer overflow-hidden relative">
-             <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-from)_0%,_transparent_70%)] opacity-20" />
-             <div className="relative z-10">
-               <h4 className="text-white font-black uppercase text-[10px] tracking-widest mb-1">Total Assets</h4>
-               <p className="text-3xl font-black text-white">{assets?.length || 0}</p>
-             </div>
-             <div className="relative z-10 w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/20 group-hover:rotate-12 transition-transform">
-               <Layers className="w-6 h-6" />
-             </div>
+            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-from)_0%,_transparent_70%)] opacity-20" />
+            <div className="relative z-10">
+              <h4 className="text-white font-black uppercase text-[10px] tracking-widest mb-1">Total Assets</h4>
+              <p className="text-3xl font-black text-white">{assets?.length || 0}</p>
+            </div>
+            <div className="relative z-10 w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/20 group-hover:rotate-12 transition-transform">
+              <Layers className="w-6 h-6" />
+            </div>
           </div>
         </div>
 
@@ -3723,9 +3719,9 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
   const renderAssetPreviewModal = () => {
     if (!selectedAsset) return null;
-    
-    const post = generatedPosts.find(p => 
-      ensureStringId(p._id) === ensureStringId(selectedAsset.postId) || 
+
+    const post = generatedPosts.find(p =>
+      ensureStringId(p._id) === ensureStringId(selectedAsset.postId) ||
       ensureStringId(p.calendarEntryId) === ensureStringId(selectedAsset.calendarEntryId)
     );
     const variations = post?.variations || [];
@@ -3746,10 +3742,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
               <div className="flex items-center gap-6">
                 <div className="w-14 h-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary border border-primary/10 shadow-sm overflow-hidden">
                   {activeProfile?.logoUrl ? (
-                    <img 
-                      src={toProxyUrl(activeProfile.logoUrl)} 
-                      className="w-full h-full object-contain p-2" 
-                      alt="Brand Logo" 
+                    <img
+                      src={toProxyUrl(activeProfile.logoUrl)}
+                      className="w-full h-full object-contain p-2"
+                      alt="Brand Logo"
                     />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-primary to-indigo-600 text-white flex items-center justify-center text-xl font-black uppercase">
@@ -3762,11 +3758,11 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                     <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter truncate max-w-md">{selectedAsset?.originalName || 'AI Masterpiece'}</h3>
                     <div className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[8px] font-black text-emerald-600 uppercase tracking-widest">Post Synchronized</div>
                   </div>
-                  </div>
+                </div>
               </div>
               <div className="flex items-center gap-4">
-                <button 
-                  onClick={() => setSelectedAsset(null)} 
+                <button
+                  onClick={() => setSelectedAsset(null)}
                   className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all border border-slate-200"
                 >
                   <X className="w-6 h-6" />
@@ -3776,113 +3772,113 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
             {/* Neural Content Hub Body */}
             <div className="flex-1 overflow-y-auto bg-slate-50/30 p-12 custom-scrollbar">
-                {/* Visual Identity Hero */}
-                {selectedAsset?.assetType === 'carousel' && selectedAsset?.metadata?.slides?.length ? (
-                  <div className="w-full relative py-4">
-                    <div className="flex items-center justify-between mb-4 px-4">
-                      <h4 className="text-xl font-black text-slate-800 uppercase tracking-tight">Carousel Sequence</h4>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{selectedAsset.metadata.slides.length} Slides</span>
-                    </div>
-                    <div className="flex gap-6 overflow-x-auto snap-x custom-scrollbar pb-6 px-4">
-                      {selectedAsset.metadata.slides.map((url, i) => (
-                        <div key={i} className="snap-center relative shrink-0 w-80 group/slide rounded-[32px] overflow-hidden border-4 border-white shadow-xl aspect-square bg-zinc-900 flex items-center justify-center">
-                          <img 
-                            src={toProxyUrl(url)} 
-                            className="w-full h-full object-contain cursor-zoom-in transition-transform duration-700 group-hover/slide:scale-[1.05]" 
-                            alt={`Slide ${i + 1}`}
-                            onClick={() => setExpandedImage(toProxyUrl(url))}
-                          />
-                          {/* Slide number badge */}
-                          <div className="absolute top-4 left-4 w-8 h-8 rounded-full bg-black/60 text-white font-black flex items-center justify-center text-xs backdrop-blur-md">
-                            {i+1}
-                          </div>
-                          {/* Per-slide action buttons Ã¢â‚¬â€ visible on hover */}
-                          <div className="absolute bottom-4 right-4 flex flex-col gap-2 opacity-0 group-hover/slide:opacity-100 transition-all duration-300 translate-y-2 group-hover/slide:translate-y-0">
-                            {/* Download */}
-                            <button
-                              title="Download Slide"
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                try {
-                                  const response = await fetch(toProxyUrl(url));
-                                  const blob = await response.blob();
-                                  const blobUrl = URL.createObjectURL(blob);
-                                  const a = document.createElement('a');
-                                  a.href = blobUrl;
-                                  a.download = `carousel_slide_${i+1}.png`;
-                                  a.click();
-                                  URL.revokeObjectURL(blobUrl);
-                                  toast.success(`Slide ${i+1} downloaded!`);
-                                } catch { toast.error('Download failed'); }
-                              }}
-                              className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 text-white flex items-center justify-center hover:bg-white hover:text-slate-800 transition-all shadow-lg"
-                            >
-                              <Download className="w-4 h-4" />
-                            </button>
-                            {/* Copy image to clipboard */}
-                            <button
-                              title="Copy Image to Clipboard"
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                try {
-                                  const response = await fetch(toProxyUrl(url));
-                                  const blob = await response.blob();
-                                  await navigator.clipboard.write([
-                                    new ClipboardItem({ 'image/png': blob })
-                                  ]);
-                                  toast.success(`Slide ${i+1} copied to clipboard!`);
-                                } catch { 
-                                  navigator.clipboard.writeText(url);
-                                  toast.success(`Slide ${i+1} URL copied!`); 
-                                }
-                              }}
-                              className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 text-white flex items-center justify-center hover:bg-primary hover:border-primary transition-all shadow-lg"
-                            >
-                              <Copy className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+              {/* Visual Identity Hero */}
+              {selectedAsset?.assetType === 'carousel' && selectedAsset?.metadata?.slides?.length ? (
+                <div className="w-full relative py-4">
+                  <div className="flex items-center justify-between mb-4 px-4">
+                    <h4 className="text-xl font-black text-slate-800 uppercase tracking-tight">Carousel Sequence</h4>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{selectedAsset.metadata.slides.length} Slides</span>
                   </div>
-                ) : (
-                  <div className="relative group/hero rounded-[40px] overflow-hidden border-4 border-white shadow-2xl aspect-[16/10] bg-zinc-900 flex items-center justify-center">
-                    {selectedAsset.gcsUrl ? (
-                      <>
-                        <img 
-                          src={toProxyUrl(selectedAsset.gcsUrl)} 
-                          className="w-full h-full object-contain cursor-zoom-in transition-transform duration-700 group-hover/hero:scale-[1.02]" 
-                          alt="Artifact Full Preview"
-                          onClick={() => setExpandedImage(toProxyUrl(selectedAsset.gcsUrl))}
+                  <div className="flex gap-6 overflow-x-auto snap-x custom-scrollbar pb-6 px-4">
+                    {selectedAsset.metadata.slides.map((url, i) => (
+                      <div key={i} className="snap-center relative shrink-0 w-80 group/slide rounded-[32px] overflow-hidden border-4 border-white shadow-xl aspect-square bg-zinc-900 flex items-center justify-center">
+                        <img
+                          src={toProxyUrl(url)}
+                          className="w-full h-full object-contain cursor-zoom-in transition-transform duration-700 group-hover/slide:scale-[1.05]"
+                          alt={`Slide ${i + 1}`}
+                          onClick={() => setExpandedImage(toProxyUrl(url))}
                         />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/hero:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                          <div className="px-6 py-3 bg-white/20 backdrop-blur-md rounded-2xl border border-white/30 text-white font-black text-xs uppercase tracking-[4px]">Click for Full Dimension</div>
+                        {/* Slide number badge */}
+                        <div className="absolute top-4 left-4 w-8 h-8 rounded-full bg-black/60 text-white font-black flex items-center justify-center text-xs backdrop-blur-md">
+                          {i + 1}
                         </div>
-                      </>
-                    ) : (
-                      <div className="flex flex-col items-center gap-6 text-center p-12">
-                         <div className="w-24 h-24 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center animate-pulse">
-                            <Layers className="w-10 h-10 text-slate-500" />
-                         </div>
-                         <div>
-                            <h4 className="text-xl font-black text-white uppercase tracking-tighter mb-2">Visual Core Pending</h4>
-                            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest max-w-xs">
-                               Textual content has been synthesized. Generate a Post Visual to activate the primary artifact layer.
-                            </p>
-                         </div>
+                        {/* Per-slide action buttons Ã¢â‚¬â€ visible on hover */}
+                        <div className="absolute bottom-4 right-4 flex flex-col gap-2 opacity-0 group-hover/slide:opacity-100 transition-all duration-300 translate-y-2 group-hover/slide:translate-y-0">
+                          {/* Download */}
+                          <button
+                            title="Download Slide"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                const response = await fetch(toProxyUrl(url));
+                                const blob = await response.blob();
+                                const blobUrl = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = blobUrl;
+                                a.download = `carousel_slide_${i + 1}.png`;
+                                a.click();
+                                URL.revokeObjectURL(blobUrl);
+                                toast.success(`Slide ${i + 1} downloaded!`);
+                              } catch { toast.error('Download failed'); }
+                            }}
+                            className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 text-white flex items-center justify-center hover:bg-white hover:text-slate-800 transition-all shadow-lg"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                          {/* Copy image to clipboard */}
+                          <button
+                            title="Copy Image to Clipboard"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                const response = await fetch(toProxyUrl(url));
+                                const blob = await response.blob();
+                                await navigator.clipboard.write([
+                                  new ClipboardItem({ 'image/png': blob })
+                                ]);
+                                toast.success(`Slide ${i + 1} copied to clipboard!`);
+                              } catch {
+                                navigator.clipboard.writeText(url);
+                                toast.success(`Slide ${i + 1} URL copied!`);
+                              }
+                            }}
+                            className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 text-white flex items-center justify-center hover:bg-primary hover:border-primary transition-all shadow-lg"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                    )}
+                    ))}
                   </div>
-                )}
+                </div>
+              ) : (
+                <div className="relative group/hero rounded-[40px] overflow-hidden border-4 border-white shadow-2xl aspect-[16/10] bg-zinc-900 flex items-center justify-center">
+                  {selectedAsset.gcsUrl ? (
+                    <>
+                      <img
+                        src={toProxyUrl(selectedAsset.gcsUrl)}
+                        className="w-full h-full object-contain cursor-zoom-in transition-transform duration-700 group-hover/hero:scale-[1.02]"
+                        alt="Artifact Full Preview"
+                        onClick={() => setExpandedImage(toProxyUrl(selectedAsset.gcsUrl))}
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/hero:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                        <div className="px-6 py-3 bg-white/20 backdrop-blur-md rounded-2xl border border-white/30 text-white font-black text-xs uppercase tracking-[4px]">Click for Full Dimension</div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center gap-6 text-center p-12">
+                      <div className="w-24 h-24 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center animate-pulse">
+                        <Layers className="w-10 h-10 text-slate-500" />
+                      </div>
+                      <div>
+                        <h4 className="text-xl font-black text-white uppercase tracking-tighter mb-2">Visual Core Pending</h4>
+                        <p className="text-slate-500 text-xs font-bold uppercase tracking-widest max-w-xs">
+                          Textual content has been synthesized. Generate a Post Visual to activate the primary artifact layer.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
-                <div className="max-w-6xl mx-auto space-y-12">
+              <div className="max-w-6xl mx-auto space-y-12">
 
                 {/* Ã¢â€â‚¬Ã¢â€â‚¬ GENERATED CONTENT PANEL Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
                 {(() => {
                   const ce = selectedAsset?.calendarEntry || calendarEntries.find(e => ensureStringId(e._id) === ensureStringId(selectedAsset?.calendarEntryId));
                   // Dynamic Content Visibility: Ensure space is empty if content isn't yet synthesized
-                  const isGenerated = ce?.status === 'generated' || post; 
-                  
+                  const isGenerated = ce?.status === 'generated' || post;
+
                   if (!ce) return null;
                   if (!isGenerated) return null; // Empty as requested
 
@@ -3979,7 +3975,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                             <div className="flex items-center justify-between mb-4">
                               <span className="text-[9px] font-black text-slate-400 uppercase tracking-[4px]">Hashtags</span>
                               <button
-                                onClick={() => { navigator.clipboard.writeText(hashtags.map(h => `#${h.replace('#','')}`).join(' ')); toast.success('All hashtags copied!'); }}
+                                onClick={() => { navigator.clipboard.writeText(hashtags.map(h => `#${h.replace('#', '')}`).join(' ')); toast.success('All hashtags copied!'); }}
                                 className="px-4 h-8 bg-primary text-white text-[9px] font-black uppercase tracking-widest rounded-xl hover:scale-105 transition-all shadow-sm flex items-center gap-2"
                               >
                                 <Copy className="w-3 h-3" /> Copy All
@@ -3989,7 +3985,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                               {hashtags.map((tag, i) => (
                                 <button
                                   key={i}
-                                  onClick={() => { navigator.clipboard.writeText(`#${String(tag).replace('#','')}`); toast.success(`Copied!`); }}
+                                  onClick={() => { navigator.clipboard.writeText(`#${String(tag).replace('#', '')}`); toast.success(`Copied!`); }}
                                   className="px-4 py-2 bg-slate-50 hover:bg-primary/5 border border-slate-100 hover:border-primary/30 rounded-xl text-[10px] font-bold text-slate-500 hover:text-primary transition-all"
                                 >
                                   #{String(tag).replace('#', '')}
@@ -4014,9 +4010,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Creative Variations & Angles</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="px-3 py-1 rounded-full bg-primary/5 border border-primary/10 text-[9px] font-black text-primary uppercase tracking-widest">GPT-4 Turbo Enabled</div>
-                  </div>
+                  
                 </div>
 
                 {/* Variations Grid */}
@@ -4032,9 +4026,9 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                     <div key={i} className="group bg-white p-8 rounded-[40px] border border-slate-100 hover:border-primary/30 transition-all duration-500 shadow-sm hover:shadow-xl relative flex flex-col h-full">
                       <div className="flex justify-between items-start mb-6">
                         <span className="px-4 py-1.5 rounded-full bg-primary/5 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/10">
-                          {v.type || `Variation ${i+1}`}
+                          {v.type || `Variation ${i + 1}`}
                         </span>
-                        <button 
+                        <button
                           onClick={() => { navigator.clipboard.writeText(v.text); toast.success("Variation Copied!"); }}
                           className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:bg-primary hover:text-white transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 shadow-sm"
                         >
@@ -4045,17 +4039,17 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                         {v.text || v}
                       </p>
                       <div className="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between opacity-40">
-                         <span className="text-[9px] font-black uppercase tracking-widest">Optimized for Platform</span>
-                         <Sparkles className="w-3 h-3" />
+                        <span className="text-[9px] font-black uppercase tracking-widest">Optimized for Platform</span>
+                        <Sparkles className="w-3 h-3" />
                       </div>
                     </div>
                   )) : (
                     <div className="col-span-full p-20 bg-white border border-dashed border-slate-200 rounded-[50px] text-center">
-                       <div className="w-20 h-20 rounded-full bg-slate-50 mx-auto flex items-center justify-center text-slate-300 mb-6">
-                         <BrainCircuit className="w-10 h-10 opacity-20" />
-                       </div>
-                       <h3 className="text-sm font-black text-slate-400 uppercase tracking-[4px]">Awaiting Content Generation</h3>
-                       <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest mt-2">Trigger regeneration to see fresh angles.</p>
+                      <div className="w-20 h-20 rounded-full bg-slate-50 mx-auto flex items-center justify-center text-slate-300 mb-6">
+                        <BrainCircuit className="w-10 h-10 opacity-20" />
+                      </div>
+                      <h3 className="text-sm font-black text-slate-400 uppercase tracking-[4px]">Awaiting Content Generation</h3>
+                      <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest mt-2">Trigger regeneration to see fresh angles.</p>
                     </div>
                   )}
                 </div>
@@ -4073,7 +4067,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Topic Contextual Intelligence</p>
                       </div>
                     </div>
-                    <button 
+                    <button
                       onClick={() => {
                         const all = [...new Set([...suggestedTags, ...brandTags])].join(' ');
                         navigator.clipboard.writeText(all);
@@ -4088,7 +4082,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
                   <div className="flex flex-wrap gap-3">
                     {[...new Set([...suggestedTags, ...brandTags])].map((tag, i) => (
-                      <button 
+                      <button
                         key={i}
                         onClick={() => {
                           navigator.clipboard.writeText(tag);
@@ -4294,8 +4288,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     const isGeneratingThis = visualGenRowId === String(entry._id);
 
     const ASPECT_RATIOS = [
-      { id: '1:1',  label: '1:1',  desc: 'Square', note: 'Instagram / Facebook Feed' },
-      { id: '4:3',  label: '4:3',  desc: 'Standard', note: 'Presentations / Facebook' },
+      { id: '1:1', label: '1:1', desc: 'Square', note: 'Instagram / Facebook Feed' },
+      { id: '4:3', label: '4:3', desc: 'Standard', note: 'Presentations / Facebook' },
       { id: '16:9', label: '16:9', desc: 'Landscape', note: 'LinkedIn / YouTube' },
       { id: '9:16', label: '9:16', desc: 'Portrait', note: 'Reels / TikTok / Stories' },
     ];
@@ -4367,16 +4361,14 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                 <button
                   key={f.id}
                   onClick={() => setGenPostModal(prev => ({ ...prev, format: f.id }))}
-                  className={`p-4 rounded-2xl border-2 text-left transition-all duration-200 hover:scale-[1.02] active:scale-95 ${
-                    format === f.id
+                  className={`p-4 rounded-2xl border-2 text-left transition-all duration-200 hover:scale-[1.02] active:scale-95 ${format === f.id
                       ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-lg shadow-primary/10'
                       : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] hover:border-primary/40'
-                  }`}
+                    }`}
                 >
                   <span className="text-2xl block mb-2">{f.icon}</span>
-                  <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${
-                    format === f.id ? 'text-primary' : 'text-slate-700 dark:text-white'
-                  }`}>{f.label}</p>
+                  <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${format === f.id ? 'text-primary' : 'text-slate-700 dark:text-white'
+                    }`}>{f.label}</p>
                   <p className="text-[9px] font-medium text-slate-400 leading-relaxed">{f.desc}</p>
                   {format === f.id && (
                     <div className="mt-2 flex items-center gap-1">
@@ -4398,11 +4390,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   key={r.id}
                   onClick={() => setGenPostModal(prev => ({ ...prev, aspectRatio: r.id }))}
                   title={r.note}
-                  className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border-2 transition-all duration-200 hover:scale-[1.03] active:scale-95 ${
-                    genPostModal.aspectRatio === r.id
+                  className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border-2 transition-all duration-200 hover:scale-[1.03] active:scale-95 ${genPostModal.aspectRatio === r.id
                       ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-md shadow-primary/10'
                       : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] hover:border-primary/40'
-                  }`}
+                    }`}
                 >
                   {/* Visual preview of the ratio */}
                   <div className="flex items-center justify-center h-7 w-full">
@@ -4411,9 +4402,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                     {r.id === '16:9' && <div className={`w-8 h-[18px] rounded border-2 ${genPostModal.aspectRatio === r.id ? 'border-primary' : 'border-slate-400'}`} />}
                     {r.id === '9:16' && <div className={`w-[18px] h-7 rounded border-2 ${genPostModal.aspectRatio === r.id ? 'border-primary' : 'border-slate-400'}`} />}
                   </div>
-                  <p className={`text-[9px] font-black tracking-widest ${
-                    genPostModal.aspectRatio === r.id ? 'text-primary' : 'text-slate-600 dark:text-slate-300'
-                  }`}>{r.label}</p>
+                  <p className={`text-[9px] font-black tracking-widest ${genPostModal.aspectRatio === r.id ? 'text-primary' : 'text-slate-600 dark:text-slate-300'
+                    }`}>{r.label}</p>
                   <p className="text-[7px] font-bold text-slate-400 leading-tight text-center">{r.desc}</p>
                 </button>
               ))}
@@ -4512,13 +4502,13 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     const ow = allWorkspaces.find(w => w.onboarding?.completed) || workspace;
     const bp = ow?.brandProfile;
     const brandName = bp?.companyName || ow?.onboarding?.brandName || ow?.workspaceName || '—';
-    const logoUrl   = bp?.logoUrl || null;
-    const colors    = bp?.brandColors?.length ? bp.brandColors : (ow?.onboarding?.brandColors || []);
-    const desc      = bp?.extractedBrandSummary || bp?.companyOverviewText || ow?.onboarding?.businessDescription || '';
-    const site      = bp?.website || (ow?.onboarding?.noWebsite ? null : ow?.onboarding?.website) || '';
-    const role      = ow?.onboarding?.role || '';
-    const industry  = ow?.onboarding?.industry || bp?.targetIndustry || '';
-    
+    const logoUrl = bp?.logoUrl || null;
+    const colors = bp?.brandColors?.length ? bp.brandColors : (ow?.onboarding?.brandColors || []);
+    const desc = bp?.extractedBrandSummary || bp?.companyOverviewText || ow?.onboarding?.businessDescription || '';
+    const site = bp?.website || (ow?.onboarding?.noWebsite ? null : ow?.onboarding?.website) || '';
+    const role = ow?.onboarding?.role || '';
+    const industry = ow?.onboarding?.industry || bp?.targetIndustry || '';
+
     // User data
     const personalWs = allWorkspaces.find(w => w.isPersonalProfile) || workspace;
     const userName = personalWs?.onboarding?.customName || currentUser?.name || 'User Profile';
@@ -4545,7 +4535,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
             <div className="flex items-center gap-6 relative z-10">
               <div className="relative">
                 {userAvatar ? (
-                  <img src={toProxyUrl(userAvatar)} alt="User" className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-zinc-800 shadow-lg" onError={e => e.target.style.display='none'} />
+                  <img src={toProxyUrl(userAvatar)} alt="User" className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-zinc-800 shadow-lg" onError={e => e.target.style.display = 'none'} />
                 ) : (
                   <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border-4 border-white dark:border-zinc-800 shadow-lg flex items-center justify-center text-3xl font-black text-white">
                     {userName.charAt(0).toUpperCase()}
@@ -4558,7 +4548,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                 <div className="flex items-center gap-2 mt-2">
                   <span className="px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest rounded-full">Active</span>
                   <span className="text-xs text-slate-400 font-bold">{currentUser?._id?.substring(0, 8) || 'Member'}</span>
-                  <button 
+                  <button
                     onClick={handleSyncProfile}
                     className="ml-2 flex items-center gap-1.5 px-3 py-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-full transition-all group/sync"
                     title="Sync with social profile"
@@ -4585,7 +4575,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
               <div className="bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-900/10 dark:to-transparent border border-indigo-100 dark:border-indigo-500/10 p-6 rounded-[24px]">
                 <div className="flex items-center gap-4 mb-6">
                   {logoUrl ? (
-                    <img src={toProxyUrl(logoUrl)} alt="Logo" className="w-16 h-16 rounded-2xl object-contain bg-white p-1 border border-slate-100 dark:border-white/10 shadow-sm" onError={e => e.target.style.display='none'} />
+                    <img src={toProxyUrl(logoUrl)} alt="Logo" className="w-16 h-16 rounded-2xl object-contain bg-white p-1 border border-slate-100 dark:border-white/10 shadow-sm" onError={e => e.target.style.display = 'none'} />
                   ) : (
                     <div className="w-16 h-16 rounded-2xl bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center text-2xl font-black text-indigo-600 dark:text-indigo-400">
                       {brandName.charAt(0).toUpperCase()}
@@ -4712,7 +4702,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {guideSteps.map((s, i) => (
                   <div key={i} className="p-6 rounded-[32px] bg-slate-50 border border-slate-100 group hover:border-primary/30 transition-all">
-<div className="w-10 h-10 rounded-2xl bg-white shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <div className="w-10 h-10 rounded-2xl bg-white shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                       <s.icon className="w-5 h-5 text-primary" />
                     </div>
                     <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-wider mb-2">{s.title}</h4>
@@ -4943,59 +4933,59 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
           {onboardingStep === 3 && (
             <div className="space-y-6">
               <div className="space-y-2">
-                 <label htmlFor="businessDescription" className="text-xs font-black uppercase tracking-widest text-slate-500">Business Description</label>
-                 <textarea
-                   id="businessDescription"
-                   rows={5}
-                   placeholder={`Describe what ${onboardingData.brandName || 'your company'} does, who you serve, and what makes you unique...\n\ne.g. We are a health supplement brand focused on Indian athletes and fitness enthusiasts...`}
-                   value={onboardingData.businessDescription || ''}
-                   onChange={e => setOnboardingData({ ...onboardingData, businessDescription: e.target.value })}
-                   className="w-full p-5 rounded-2xl border-2 border-slate-200 focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none text-sm font-semibold text-slate-800 transition-all bg-white shadow-sm resize-none leading-relaxed"
-                 />
+                <label htmlFor="businessDescription" className="text-xs font-black uppercase tracking-widest text-slate-500">Business Description</label>
+                <textarea
+                  id="businessDescription"
+                  rows={5}
+                  placeholder={`Describe what ${onboardingData.brandName || 'your company'} does, who you serve, and what makes you unique...\n\ne.g. We are a health supplement brand focused on Indian athletes and fitness enthusiasts...`}
+                  value={onboardingData.businessDescription || ''}
+                  onChange={e => setOnboardingData({ ...onboardingData, businessDescription: e.target.value })}
+                  className="w-full p-5 rounded-2xl border-2 border-slate-200 focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none text-sm font-semibold text-slate-800 transition-all bg-white shadow-sm resize-none leading-relaxed"
+                />
               </div>
 
               <div className="p-6 rounded-3xl bg-slate-50 border-2 border-dashed border-slate-200 space-y-4">
-                 <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] font-black text-slate-800 uppercase tracking-widest">Brand Guidelines / Documents</p>
-                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">PDF or Word (More docs = Better AI)</p>
-                    </div>
-                    <button 
-                      onClick={() => document.getElementById('onboarding-docs').click()}
-                      className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-[9px] font-black uppercase tracking-widest text-primary hover:bg-primary/5 transition-all shadow-sm"
-                    >
-                      + Add Documents
-                    </button>
-                    <input 
-                      type="file" 
-                      id="onboarding-docs" 
-                      className="hidden" 
-                      multiple 
-                      onChange={(e) => {
-                        const files = Array.from(e.target.files);
-                        setOnboardingFiles(prev => [...prev, ...files]);
-                        // This triggers the useEffect global scan
-                      }} 
-                      accept=".pdf,.doc,.docx" 
-                    />
-                 </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-black text-slate-800 uppercase tracking-widest">Brand Guidelines / Documents</p>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">PDF or Word (More docs = Better AI)</p>
+                  </div>
+                  <button
+                    onClick={() => document.getElementById('onboarding-docs').click()}
+                    className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-[9px] font-black uppercase tracking-widest text-primary hover:bg-primary/5 transition-all shadow-sm"
+                  >
+                    + Add Documents
+                  </button>
+                  <input
+                    type="file"
+                    id="onboarding-docs"
+                    className="hidden"
+                    multiple
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files);
+                      setOnboardingFiles(prev => [...prev, ...files]);
+                      // This triggers the useEffect global scan
+                    }}
+                    accept=".pdf,.doc,.docx"
+                  />
+                </div>
 
-                 {onboardingFiles.length > 0 && (
-                   <div className="flex flex-wrap gap-2 pt-2">
-                     {onboardingFiles.map((f, i) => (
-                        <div key={i} className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-xl">
-                          <FileText className="w-3 h-3 text-primary" />
-                          <span className="text-[8px] font-black text-primary truncate max-w-[100px]">{f.name}</span>
-                          <X 
-                            className="w-3 h-3 text-primary cursor-pointer hover:scale-120" 
-                            onClick={() => setOnboardingFiles(prev => prev.filter((_, idx) => idx !== i))}
-                          />
-                        </div>
-                     ))}
-                   </div>
-                 )}
+                {onboardingFiles.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    {onboardingFiles.map((f, i) => (
+                      <div key={i} className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-xl">
+                        <FileText className="w-3 h-3 text-primary" />
+                        <span className="text-[8px] font-black text-primary truncate max-w-[100px]">{f.name}</span>
+                        <X
+                          className="w-3 h-3 text-primary cursor-pointer hover:scale-120"
+                          onClick={() => setOnboardingFiles(prev => prev.filter((_, idx) => idx !== i))}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              
+
               <p className="text-[10px] text-slate-400 font-medium italic">AI Ads™ uses these documents to extract your brand's unique voice, unique selling points, and target demographics automatically.</p>
             </div>
           )}
@@ -5009,10 +4999,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                 <div className="flex items-center gap-4">
                   <div className="w-20 h-20 border-2 border-dashed border-slate-300 rounded-2xl flex items-center justify-center hover:border-primary hover:bg-indigo-50/50 transition-all cursor-pointer group shadow-sm bg-white overflow-hidden relative shrink-0">
                     {onboardingData.brandLogoPreview ? (
-                      <img 
-                        src={toProxyUrl(onboardingData.brandLogoPreview)} 
-                        className="w-full h-full object-contain p-2" 
-                        alt="Logo" 
+                      <img
+                        src={toProxyUrl(onboardingData.brandLogoPreview)}
+                        className="w-full h-full object-contain p-2"
+                        alt="Logo"
                       />
                     ) : (
                       <Upload className="w-6 h-6 text-slate-300 group-hover:text-primary transition-colors" />
@@ -5027,7 +5017,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   <div>
                     <p className="text-sm font-bold text-slate-700">Brand identity symbol</p>
                     <p className="text-xs text-slate-400 mt-1">Found on your site or manual upload · Used in AI Creatives</p>
-                    {onboardingData.brandLogoPreview && <p className="text-[10px] font-bold text-emerald-600 mt-2 flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Identity Synced</p>}
+                    {onboardingData.brandLogoPreview && <p className="text-[10px] font-bold text-emerald-600 mt-2 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Identity Synced</p>}
                   </div>
                 </div>
               </div>
@@ -5218,12 +5208,12 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                       try {
                         const res = await apiService.getSocialHashtagInsights(workspace._id, topic);
                         if (res.success && res.hashtags) {
-                          const newTags = Array.isArray(res.hashtags) 
-                            ? res.hashtags.slice(0, 30) 
+                          const newTags = Array.isArray(res.hashtags)
+                            ? res.hashtags.slice(0, 30)
                             : [
-                                ...(res.hashtags?.viralClusters || []).flatMap(c => c.tags || []),
-                                ...(res.hashtags?.brandSpecific || [])
-                              ].slice(0, 30);
+                              ...(res.hashtags?.viralClusters || []).flatMap(c => c.tags || []),
+                              ...(res.hashtags?.brandSpecific || [])
+                            ].slice(0, 30);
                           setHashtagInsights(prev => {
                             const existing = Array.isArray(prev?.[rowId]) ? prev[rowId] : (prev?.[rowId]?.hashtags || []);
                             return {
@@ -5324,7 +5314,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                       {/* Consolidated Captions Card */}
                       {(associatedPost.captionLong || associatedPost.captionShort) && (
                         <div className="bg-slate-50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 rounded-2xl p-5 relative group hover:border-primary/20 hover:bg-white dark:hover:bg-white/[0.05] transition-all flex flex-col justify-center gap-5">
-                          
+
                           {associatedPost.captionLong && (
                             <div className="flex flex-col gap-2">
                               <div className="flex justify-between items-center">
@@ -5336,11 +5326,11 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                               <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed select-all font-medium">{associatedPost.captionLong}</p>
                             </div>
                           )}
-                          
+
                           {associatedPost.captionLong && associatedPost.captionShort && (
                             <div className="w-full h-px bg-slate-200/60 dark:bg-white/10" />
                           )}
- 
+
                           {associatedPost.captionShort && (
                             <div className="flex flex-col gap-2">
                               <div className="flex justify-between items-center">
@@ -5385,8 +5375,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       case 'calendar': return renderContentCalendar();
       case 'generation': return renderContentOrchestration();
       case 'assets': return renderAssetLibrary();
-      case 'hashtags': 
-        return renderContentOrchestration(); 
+      case 'hashtags':
+        return renderContentOrchestration();
       case 'usage': return renderUsageBilling();
       case 'settings': return renderSettings();
       default: return renderComingSoon(activeTab);
@@ -5398,422 +5388,419 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       <Transition.Root show={isOpen} as={Fragment}>
         <Dialog as="div" className="relative z-[100]" onClose={onClose}>
           <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-md" />
-        </Transition.Child>
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-md" />
+          </Transition.Child>
 
-<div className="fixed inset-0 z-[110] overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-              enterTo="opacity-100 translate-y-0 sm:scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-              leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-            >
-              <Dialog.Panel
-                ref={dashboardRef}
-                className="relative transform overflow-hidden bg-background text-foreground shadow-2xl transition-all w-full h-[100dvh] flex"
-                style={{
-                  '--background': '45 26% 91%',
-                  '--primary': '216 39% 48%',
-                  '--accent': '216 46% 70%',
-                  '--secondary': '0 0% 100%'
-                }}
+          <div className="fixed inset-0 z-[110] overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                enterTo="opacity-100 translate-y-0 sm:scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
               >
+                <Dialog.Panel
+                  ref={dashboardRef}
+                  className="relative transform overflow-hidden bg-background text-foreground shadow-2xl transition-all w-full h-[100dvh] flex"
+                  style={{
+                    '--background': '45 26% 91%',
+                    '--primary': '216 39% 48%',
+                    '--accent': '216 46% 70%',
+                    '--secondary': '0 0% 100%'
+                  }}
+                >
 
-                <AnimatePresence mode="wait">
-                  {showSplash && (
-                    <DashboardSplash
-                      onComplete={() => {
-                        localStorage.setItem('aisa_aiads_splash_seen', 'true');
-                        setShowSplash(false);
-                      }}
-                    />
-                  )}
-                  {showOnboarding && !showSplash && renderOnboardingUI()}
-                </AnimatePresence>
-
-                {/* Always allow onboarding guide to show */}
-                {showOnboardingGuide && renderOnboardingGuideModal()}
-
-                {/* Dashboard UI - Only show if splash is gone and onboarding is not active and check is done */}
-                {!showSplash && !showOnboarding && !isCheckingOnboarding && (
-                  <>
-                    {/* Mobile Overlay */}
-                    {isMobileMenuOpen && (
-                      <div 
-                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[130] lg:hidden"
-                        onClick={() => setIsMobileMenuOpen(false)}
+                  <AnimatePresence mode="wait">
+                    {showSplash && (
+                      <DashboardSplash
+                        onComplete={() => {
+                          localStorage.setItem('aisa_aiads_splash_seen', 'true');
+                          setShowSplash(false);
+                        }}
                       />
                     )}
+                    {showOnboarding && !showSplash && renderOnboardingUI()}
+                  </AnimatePresence>
 
-                    {/* Dashboard Sidebar */}
-                    <div className={`
+                  {/* Always allow onboarding guide to show */}
+                  {showOnboardingGuide && renderOnboardingGuideModal()}
+
+                  {/* Dashboard UI - Only show if splash is gone and onboarding is not active and check is done */}
+                  {!showSplash && !showOnboarding && !isCheckingOnboarding && (
+                    <>
+                      {/* Mobile Overlay */}
+                      {isMobileMenuOpen && (
+                        <div
+                          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[130] lg:hidden"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        />
+                      )}
+
+                      {/* Dashboard Sidebar */}
+                      <div className={`
                       fixed lg:relative inset-y-0 left-0 z-[140] transform transition-transform duration-500 ease-in-out
                       ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
                       ${isSidebarCollapsed ? 'lg:w-24' : 'lg:w-[280px]'}
                       w-[280px] flex bg-white dark:bg-[#080808] border-r border-slate-200 dark:border-white/5 flex-col p-6 lg:p-8 shrink-0 group/sidebar
                     `}>
 
-                  {/* Collapse Toggle */}
-                  <button
-                    onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                    className="absolute -right-3 top-28 w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center shadow-lg border border-white dark:border-zinc-800 z-50 hover:scale-110 transition-all opacity-0 group-hover/sidebar:opacity-100"
-                  >
-                    {isSidebarCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
-                  </button>
-
-                  {/* Ã¢â€â‚¬Ã¢â€â‚¬ WORKSPACE HEADER Ã¢â€â‚¬Ã¢â€â‚¬ */}
-                  {(() => {
-                    const onboardedWs = allWorkspaces.find(w => w.onboarding?.completed);
-                    const companyName  = onboardedWs?.onboarding?.customName || currentUser?.name || 'My Company';
-                    const companyAvatarUrl = onboardedWs?.onboarding?.profileImageUrl || currentUser?.avatar;
-                    const activeBrandName = activeProfile?.companyName || workspace?.workspaceName || '';
-
-
-                    return (
-                      <Menu as="div" className="relative mb-8">
-                        <Menu.Button
-                          className={`w-full flex items-center gap-3 p-2.5 rounded-2xl group/ws hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-start ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}
-                          title={isSidebarCollapsed ? companyName : ''}
+                        {/* Collapse Toggle */}
+                        <button
+                          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                          className="absolute -right-3 top-28 w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center shadow-lg border border-white dark:border-zinc-800 z-50 hover:scale-110 transition-all opacity-0 group-hover/sidebar:opacity-100"
                         >
-                          <div className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-md shadow-primary/5 shrink-0 overflow-hidden">
-                            {companyAvatarUrl ? (
-                              <img src={toProxyUrl(companyAvatarUrl)} alt={companyName} className="w-full h-full object-cover" onError={e => { e.currentTarget.style.display = 'none'; }} />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-primary to-indigo-600 text-white flex items-center justify-center text-lg font-black uppercase">
-                                {companyName.charAt(0)}
-                              </div>
-                            )}
-                          </div>
-                          {!isSidebarCollapsed && (
-                            <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-left-2">
-                              <p className="text-[12px] font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-tight break-words group-hover/ws:text-primary transition-colors">
-                                {companyName}
-                              </p>
-                              {activeBrandName && (
-                                <p className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 truncate mt-0.5 leading-none">
-                                  {activeBrandName}
-                                </p>
-                              )}
-                            </div>
-                          )}
-                          {!isSidebarCollapsed && (
-                            <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0 group-hover/ws:text-primary transition-all" />
-                          )}
-                        </Menu.Button>
-                        <Transition
-                          as={Fragment}
-                          enter="transition ease-out duration-100"
-                          enterFrom="transform opacity-0 scale-95"
-                          enterTo="transform opacity-100 scale-100"
-                          leave="transition ease-in duration-75"
-                          leaveFrom="transform opacity-100 scale-100"
-                          leaveTo="transform opacity-0 scale-95"
-                        >
-                          <Menu.Items className="absolute left-0 mt-1 w-[270px] origin-top-left bg-white dark:bg-zinc-900 rounded-[24px] shadow-2xl ring-1 ring-black/5 dark:ring-white/5 focus:outline-none z-[130] p-3 border border-slate-100 dark:border-white/5 animate-in slide-in-from-top-2">
-                            <div className="flex items-center gap-3 px-4 py-2.5 mb-1">
-                              <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
-                                {companyAvatarUrl ? (
-                                  <img src={toProxyUrl(companyAvatarUrl)} alt={companyName} className="w-full h-full object-cover" onError={e => { e.currentTarget.style.display = 'none'; }} />
-                                ) : (
-                                  <div className="w-full h-full bg-gradient-to-br from-primary to-indigo-600 text-white flex items-center justify-center text-xs font-black uppercase">
-                                    {companyName.charAt(0)}
+                          {isSidebarCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
+                        </button>
+
+                        {/* Ã¢â€â‚¬Ã¢â€â‚¬ WORKSPACE HEADER Ã¢â€â‚¬Ã¢â€â‚¬ */}
+                        {(() => {
+                          const onboardedWs = allWorkspaces.find(w => w.onboarding?.completed);
+                          const companyName = onboardedWs?.onboarding?.customName || currentUser?.name || 'My Company';
+                          const companyAvatarUrl = onboardedWs?.onboarding?.profileImageUrl || currentUser?.avatar;
+                          const activeBrandName = activeProfile?.companyName || workspace?.workspaceName || '';
+
+
+                          return (
+                            <Menu as="div" className="relative mb-8">
+                              <Menu.Button
+                                className={`w-full flex items-center gap-3 p-2.5 rounded-2xl group/ws hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-start ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}
+                                title={isSidebarCollapsed ? companyName : ''}
+                              >
+                                <div className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-md shadow-primary/5 shrink-0 overflow-hidden">
+                                  {companyAvatarUrl ? (
+                                    <img src={toProxyUrl(companyAvatarUrl)} alt={companyName} className="w-full h-full object-cover" onError={e => { e.currentTarget.style.display = 'none'; }} />
+                                  ) : (
+                                    <div className="w-full h-full bg-gradient-to-br from-primary to-indigo-600 text-white flex items-center justify-center text-lg font-black uppercase">
+                                      {companyName.charAt(0)}
+                                    </div>
+                                  )}
+                                </div>
+                                {!isSidebarCollapsed && (
+                                  <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-left-2">
+                                    <p className="text-[12px] font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-tight break-words group-hover/ws:text-primary transition-colors">
+                                      {companyName}
+                                    </p>
+                                    {activeBrandName && (
+                                      <p className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 truncate mt-0.5 leading-none">
+                                        {activeBrandName}
+                                      </p>
+                                    )}
                                   </div>
                                 )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">{companyName}</p>
-                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{allWorkspaces.length} {allWorkspaces.length === 1 ? 'Brand' : 'Brands'}</p>
-                              </div>
-                            </div>
-                            <div className="h-px bg-slate-100 dark:bg-white/5 mx-4 mb-2" />
-                            <p className="text-[7px] font-black text-slate-400 uppercase tracking-[2px] px-4 mb-1.5">Switch Brand</p>
-                            <div className="max-h-52 overflow-y-auto custom-scrollbar space-y-0.5 px-1">
-                              {allWorkspaces.map(ws => {
-                                const wsLogo = ws.brandProfile?.logoUrl;
-                                const isActive = workspace?._id === ws._id;
-                                return (
-                                  <Menu.Item key={ws._id}>
+                                {!isSidebarCollapsed && (
+                                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0 group-hover/ws:text-primary transition-all" />
+                                )}
+                              </Menu.Button>
+                              <Transition
+                                as={Fragment}
+                                enter="transition ease-out duration-100"
+                                enterFrom="transform opacity-0 scale-95"
+                                enterTo="transform opacity-100 scale-100"
+                                leave="transition ease-in duration-75"
+                                leaveFrom="transform opacity-100 scale-100"
+                                leaveTo="transform opacity-0 scale-95"
+                              >
+                                <Menu.Items className="absolute left-0 mt-1 w-[270px] origin-top-left bg-white dark:bg-zinc-900 rounded-[24px] shadow-2xl ring-1 ring-black/5 dark:ring-white/5 focus:outline-none z-[130] p-3 border border-slate-100 dark:border-white/5 animate-in slide-in-from-top-2">
+                                  <div className="flex items-center gap-3 px-4 py-2.5 mb-1">
+                                    <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
+                                      {companyAvatarUrl ? (
+                                        <img src={toProxyUrl(companyAvatarUrl)} alt={companyName} className="w-full h-full object-cover" onError={e => { e.currentTarget.style.display = 'none'; }} />
+                                      ) : (
+                                        <div className="w-full h-full bg-gradient-to-br from-primary to-indigo-600 text-white flex items-center justify-center text-xs font-black uppercase">
+                                          {companyName.charAt(0)}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">{companyName}</p>
+                                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{allWorkspaces.length} {allWorkspaces.length === 1 ? 'Brand' : 'Brands'}</p>
+                                    </div>
+                                  </div>
+                                  <div className="h-px bg-slate-100 dark:bg-white/5 mx-4 mb-2" />
+                                  <p className="text-[7px] font-black text-slate-400 uppercase tracking-[2px] px-4 mb-1.5">Switch Brand</p>
+                                  <div className="max-h-52 overflow-y-auto custom-scrollbar space-y-0.5 px-1">
+                                    {allWorkspaces.map(ws => {
+                                      const wsLogo = ws.brandProfile?.logoUrl;
+                                      const isActive = workspace?._id === ws._id;
+                                      return (
+                                        <Menu.Item key={ws._id}>
+                                          {({ active }) => (
+                                            <button
+                                              onClick={() => switchWorkspace(ws)}
+                                              className={`w-full flex items-center justify-between gap-3 px-3 h-11 rounded-2xl text-[10px] font-black uppercase tracking-wide transition-all ${active || isActive ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400'}`}
+                                            >
+                                              <div className="flex items-center gap-2.5 min-w-0">
+                                                <div className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center shrink-0 overflow-hidden">
+                                                  {wsLogo ? (
+                                                    <img src={toProxyUrl(wsLogo)} alt="" className="w-full h-full object-contain p-0.5" onError={e => { e.currentTarget.style.display = 'none'; }} />
+                                                  ) : (
+                                                    <span className="text-[9px] font-black">{ws.workspaceName?.charAt(0) || 'B'}</span>
+                                                  )}
+                                                </div>
+                                                <span className="truncate">{ws.workspaceName}</span>
+                                              </div>
+                                              <div className="flex items-center gap-1.5 shrink-0">
+                                                {ws.calendarEntryCount > 0 && (
+                                                  <span className="text-[8px] font-black px-1.5 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/10">{ws.calendarEntryCount}</span>
+                                                )}
+                                                {isActive && <Check className="w-3 h-3 text-primary" />}
+                                              </div>
+                                            </button>
+                                          )}
+                                        </Menu.Item>
+                                      );
+                                    })}
+                                  </div>
+
+                                  <div className="h-px bg-slate-100 dark:bg-white/5 mx-4 my-2" />
+                                  <Menu.Item>
                                     {({ active }) => (
                                       <button
-                                        onClick={() => switchWorkspace(ws)}
-                                        className={`w-full flex items-center justify-between gap-3 px-3 h-11 rounded-2xl text-[10px] font-black uppercase tracking-wide transition-all ${active || isActive ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400'}`}
+                                        onClick={() => setShowCompanyInfoPanel(true)}
+                                        className={`w-full flex items-center gap-3 px-4 h-10 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${active ? 'bg-indigo-500/5 text-indigo-500' : 'text-slate-500 dark:text-slate-400'}`}
                                       >
-                                        <div className="flex items-center gap-2.5 min-w-0">
-                                          <div className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center shrink-0 overflow-hidden">
-                                            {wsLogo ? (
-                                              <img src={toProxyUrl(wsLogo)} alt="" className="w-full h-full object-contain p-0.5" onError={e => { e.currentTarget.style.display = 'none'; }} />
-                                            ) : (
-                                              <span className="text-[9px] font-black">{ws.workspaceName?.charAt(0) || 'B'}</span>
-                                            )}
-                                          </div>
-                                          <span className="truncate">{ws.workspaceName}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 shrink-0">
-                                          {ws.calendarEntryCount > 0 && (
-                                            <span className="text-[8px] font-black px-1.5 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/10">{ws.calendarEntryCount}</span>
-                                          )}
-                                          {isActive && <Check className="w-3 h-3 text-primary" />}
-                                        </div>
+                                        <User2 className="w-3.5 h-3.5" />
+                                        Company Info
                                       </button>
                                     )}
                                   </Menu.Item>
-                                );
-                              })}
-                            </div>
+                                </Menu.Items>
+                              </Transition>
+                            </Menu>
+                          );
+                        })()}
 
-                             <div className="h-px bg-slate-100 dark:bg-white/5 mx-4 my-2" />
-                             <Menu.Item>
-                               {({ active }) => (
-                                 <button
-                                   onClick={() => setShowCompanyInfoPanel(true)}
-                                   className={`w-full flex items-center gap-3 px-4 h-10 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${active ? 'bg-indigo-500/5 text-indigo-500' : 'text-slate-500 dark:text-slate-400'}`}
-                                 >
-                                   <User2 className="w-3.5 h-3.5" />
-                                   Company Info
-                                 </button>
-                               )}
-                             </Menu.Item>
-                          </Menu.Items>
-                        </Transition>
-                      </Menu>
-                    );
-                  })()}
+                        <div className="flex-1 space-y-2 overflow-y-auto custom-scrollbar pr-2">
+                          {tabs.map((tab, idx) => {
+                            const isPast = tabs.findIndex(t => t.id === activeTab) > idx;
+                            const isActive = activeTab === tab.id;
 
-                  <div className="flex-1 space-y-2 overflow-y-auto custom-scrollbar pr-2">
-                    {tabs.map((tab, idx) => {
-                      const isPast = tabs.findIndex(t => t.id === activeTab) > idx;
-                      const isActive = activeTab === tab.id;
-                      
-                      return (
-                      <button
-                        key={tab.id}
-                        onClick={() => {
-                          if (!tab.comingSoon) {
-                            setActiveTab(tab.id);
-                            setIsMobileMenuOpen(false);
-                          }
-                        }}
-                        className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-5' : 'justify-between px-4 py-3'} rounded-2xl transition-all group ${
-                          isActive
-                            ? 'bg-primary/10 border border-primary/20 shadow-sm'
-                            : 'hover:bg-slate-50 dark:hover:bg-white/5'
-                        } ${tab.comingSoon ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
-                        title={isSidebarCollapsed ? tab.name : ''}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-6 h-6 flex items-center justify-center rounded-full border text-[9px] font-black shrink-0 transition-all ${
-                            isActive 
-                              ? 'bg-primary text-white border-primary shadow-[0_0_10px_rgba(99,102,241,0.4)]' 
-                              : isPast 
-                                ? 'bg-emerald-500 text-white border-emerald-500'
-                                : 'bg-slate-100 dark:bg-white/5 text-slate-400 border-slate-200 dark:border-white/10'
-                          }`}>
-                            {isPast ? <Check className="w-3 h-3" /> : (idx + 1)}
-                          </div>
-                          {!isSidebarCollapsed && (
-                            <tab.icon className={`w-4 h-4 ${isActive ? 'text-primary' : isPast ? 'text-emerald-500' : 'text-slate-400 group-hover:text-primary'} transition-colors shrink-0`} />
-                          )}
-                          {!isSidebarCollapsed && (
-                            <span className={`text-[10px] sm:text-xs font-black uppercase tracking-widest animate-in fade-in slide-in-from-left-2 ${
-                              isActive ? 'text-primary' : isPast ? 'text-emerald-500' : 'text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300'
-                            }`}>
-                              {tab.name}
-                            </span>
-                          )}
-                        </div>
-                        {(!tab.comingSoon || !isSidebarCollapsed) && tab.comingSoon && <span className="text-[7px] font-black bg-slate-200 dark:bg-white/10 px-1.5 py-0.5 rounded text-slate-500 uppercase">Soon</span>}
-                      </button>
-                      );
-                    })}
-                  </div>
-
-
-                </div>
-
-                  {/* Main Content Area */}
-                  <div className="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-zinc-950 overflow-hidden relative">
-                  {/* Header */}
-                  <header className="h-16 lg:h-24 bg-white/80 dark:bg-[#080808]/80 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 px-4 lg:px-10 flex items-center justify-between z-20 shrink-0">
-                    <div className="flex items-center gap-2 lg:gap-4">
-                      <button 
-                        onClick={() => setIsMobileMenuOpen(true)}
-                        className="lg:hidden w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center hover:bg-slate-200 active:scale-95 transition-all text-slate-800 dark:text-white shrink-0"
-                      >
-                        <AlignLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-                      </button>
-                      <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter truncate max-w-[120px] sm:max-w-none">
-                        {tabs.find(t => t.id === activeTab)?.name}
-                      </h2>
-                      <div className="hidden sm:block h-4 w-px bg-slate-200 dark:bg-white/10 mx-1 lg:mx-2" />
-                      <div className="hidden sm:flex flex-col items-center ml-1 lg:ml-2">
-                        <div className="flex -space-x-2">
-                          {[
-                            { id: 'Instagram', Icon: Instagram, color: 'bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500' },
-                            { id: 'LinkedIn', Icon: Linkedin, color: 'bg-blue-600' },
-                            { id: 'Twitter', Icon: Twitter, color: 'bg-black' },
-                            { id: 'Facebook', Icon: Facebook, color: 'bg-blue-500' },
-                            { id: 'YouTube', Icon: Youtube, color: 'bg-red-600' }
-                          ].map((item, idx) => {
-                            const hasLink = brandProfile?.socialMediaLinks?.[item.id.toLowerCase()];
                             return (
-                              <div 
-                                key={idx} 
+                              <button
+                                key={tab.id}
                                 onClick={() => {
-                                  if (hasLink) {
-                                    window.open(hasLink.startsWith('http') ? hasLink : `https://${hasLink}`, '_blank');
-                                  } else {
-                                    const url = window.prompt(`Enter your ${item.id} profile URL:`);
-                                    if (url && url.trim()) {
-                                      const updatedLinks = { ...(brandProfile?.socialMediaLinks || {}), [item.id.toLowerCase()]: url.trim() };
-                                      setBrandProfile(prev => ({ ...prev, socialMediaLinks: updatedLinks }));
-                                      
-                                      const formData = new FormData();
-                                      formData.append('workspaceId', currentEditingBrandId || workspace?._id);
-                                      formData.append('socialMediaLinks', JSON.stringify(updatedLinks));
-                                      apiService.uploadSocialAgentBrand(formData)
-                                        .then(() => toast.success(`${item.id} link saved!`))
-                                        .catch(() => toast.error(`Failed to save ${item.id} link`));
-                                    }
+                                  if (!tab.comingSoon) {
+                                    setActiveTab(tab.id);
+                                    setIsMobileMenuOpen(false);
                                   }
                                 }}
-                                className={`w-6 h-6 lg:w-8 lg:h-8 rounded-full border-2 border-white dark:border-zinc-950 flex items-center justify-center text-white p-1 lg:p-1.5 shadow-sm ${item.color} hover:scale-110 hover:z-10 transition-transform cursor-pointer relative group`}
+                                className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-5' : 'justify-between px-4 py-3'} rounded-2xl transition-all group ${isActive
+                                    ? 'bg-primary/10 border border-primary/20 shadow-sm'
+                                    : 'hover:bg-slate-50 dark:hover:bg-white/5'
+                                  } ${tab.comingSoon ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+                                title={isSidebarCollapsed ? tab.name : ''}
                               >
-                                <item.Icon className="w-full h-full" />
-                                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[9px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none transition-opacity z-50">
-                                  {hasLink ? `Visit ${item.id}` : `Add ${item.id} Link`}
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-6 h-6 flex items-center justify-center rounded-full border text-[9px] font-black shrink-0 transition-all ${isActive
+                                      ? 'bg-primary text-white border-primary shadow-[0_0_10px_rgba(99,102,241,0.4)]'
+                                      : isPast
+                                        ? 'bg-emerald-500 text-white border-emerald-500'
+                                        : 'bg-slate-100 dark:bg-white/5 text-slate-400 border-slate-200 dark:border-white/10'
+                                    }`}>
+                                    {isPast ? <Check className="w-3 h-3" /> : (idx + 1)}
+                                  </div>
+                                  {!isSidebarCollapsed && (
+                                    <tab.icon className={`w-4 h-4 ${isActive ? 'text-primary' : isPast ? 'text-emerald-500' : 'text-slate-400 group-hover:text-primary'} transition-colors shrink-0`} />
+                                  )}
+                                  {!isSidebarCollapsed && (
+                                    <span className={`text-[10px] sm:text-xs font-black uppercase tracking-widest animate-in fade-in slide-in-from-left-2 ${isActive ? 'text-primary' : isPast ? 'text-emerald-500' : 'text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300'
+                                      }`}>
+                                      {tab.name}
+                                    </span>
+                                  )}
                                 </div>
-                              </div>
+                                {(!tab.comingSoon || !isSidebarCollapsed) && tab.comingSoon && <span className="text-[7px] font-black bg-slate-200 dark:bg-white/10 px-1.5 py-0.5 rounded text-slate-500 uppercase">Soon</span>}
+                              </button>
                             );
                           })}
                         </div>
-                        <span className="text-[7px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mt-1">Quick Access</span>
+
+
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-2 lg:gap-4 shrink-0">
-                      <button onClick={onClose} className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center hover:bg-slate-200 transition-all active:scale-95 shadow-sm">
-                        <X className="w-4 h-4 lg:w-5 lg:h-5 text-slate-600 dark:text-slate-400" />
-                      </button>
-                    </div>
-                  </header>
+                      {/* Main Content Area */}
+                      <div className="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-zinc-950 overflow-hidden relative">
+                        {/* Header */}
+                        <header className="h-16 lg:h-24 bg-white/80 dark:bg-[#080808]/80 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 px-4 lg:px-10 flex items-center justify-between z-20 shrink-0">
+                          <div className="flex items-center gap-2 lg:gap-4">
+                            <button
+                              onClick={() => setIsMobileMenuOpen(true)}
+                              className="lg:hidden w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center hover:bg-slate-200 active:scale-95 transition-all text-slate-800 dark:text-white shrink-0"
+                            >
+                              <AlignLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                            </button>
+                            <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter truncate max-w-[120px] sm:max-w-none">
+                              {tabs.find(t => t.id === activeTab)?.name}
+                            </h2>
+                            <div className="hidden sm:block h-4 w-px bg-slate-200 dark:bg-white/10 mx-1 lg:mx-2" />
+                            <div className="hidden sm:flex flex-col items-center ml-1 lg:ml-2">
+                              <div className="flex -space-x-2">
+                                {[
+                                  { id: 'Instagram', Icon: Instagram, color: 'bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500' },
+                                  { id: 'LinkedIn', Icon: Linkedin, color: 'bg-blue-600' },
+                                  { id: 'Twitter', Icon: Twitter, color: 'bg-black' },
+                                  { id: 'Facebook', Icon: Facebook, color: 'bg-blue-500' },
+                                  { id: 'YouTube', Icon: Youtube, color: 'bg-red-600' }
+                                ].map((item, idx) => {
+                                  const hasLink = brandProfile?.socialMediaLinks?.[item.id.toLowerCase()];
+                                  return (
+                                    <div
+                                      key={idx}
+                                      onClick={() => {
+                                        if (hasLink) {
+                                          window.open(hasLink.startsWith('http') ? hasLink : `https://${hasLink}`, '_blank');
+                                        } else {
+                                          const url = window.prompt(`Enter your ${item.id} profile URL:`);
+                                          if (url && url.trim()) {
+                                            const updatedLinks = { ...(brandProfile?.socialMediaLinks || {}), [item.id.toLowerCase()]: url.trim() };
+                                            setBrandProfile(prev => ({ ...prev, socialMediaLinks: updatedLinks }));
 
-
-                  {/* Scrollable Content */}
-                  <main className={`flex-1 overflow-y-auto ${activeTab === 'generation' ? 'p-4 lg:p-10' : 'p-6 lg:p-12'} custom-scrollbar relative mesh-bg`} data-lenis-prevent>
-                    {renderContent()}
-                  </main>
-                </div>
-
-                {renderGenerationWizard()}
-                {renderPostHistoryDrawer()}
-                {renderOneOffAssetModal()}
-                {renderGenPostModal()}
-
-
-
-                <AnimatePresence>
-                  {showCompanyInfoPanel && renderCompanyInfoPanel()}
-                </AnimatePresence>
-
-
-
-                {activeJob && (
-                  <div className="fixed bottom-10 right-10 z-[120] w-80 bg-white dark:bg-zinc-900 rounded-[32px] border border-slate-100 dark:border-white/5 shadow-2xl p-6 overflow-hidden animate-in slide-in-from-right-10 duration-500">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none"><Sparkles className="w-20 h-20 text-primary" /></div>
-                    <div className="relative z-10">
-                      <div className="flex justify-between items-center mb-4">
-                        <span className="text-[10px] font-black text-primary uppercase tracking-widest">Pipeline Active</span>
-                        <RefreshCw className="w-4 h-4 text-primary animate-spin" />
-                      </div>
-                      <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight mb-4">Synthesizing {activeJob.count} Content DNAs...</h4>
-                      <div className="h-1.5 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden border border-white/5">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${activeJob.progress || 10}%` }}
-                          className="h-full bg-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]"
-                        />
-                      </div>
-                      <div className="flex justify-between mt-3">
-                        <span className="text-[8px] font-black text-slate-400 uppercase">Calibrating Neural Variations...</span>
-                        <span className="text-[8px] font-black text-primary uppercase">{activeJob.progress || 10}% Complete</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {renderAssetPreviewModal()}
-
-                {/* ── Embedded Premium Upsell Modal (fixes Headless UI stacking context) ── */}
-                {localPremiumModal.open && (
-                  <div
-                    className="fixed inset-0 z-[99999] bg-black/70 backdrop-blur-sm flex justify-center items-center p-4"
-                    onClick={() => setLocalPremiumModal({ open: false, toolName: '', customMessage: '' })}
-                  >
-                    <div
-                      className="relative bg-[#0f0f0f] border border-white/10 rounded-3xl p-8 max-w-sm w-full shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-amber-500/20 blur-3xl pointer-events-none" />
-                      <div className="absolute -bottom-12 -left-12 w-40 h-40 rounded-full bg-purple-500/20 blur-3xl pointer-events-none" />
-                      <button
-                        onClick={() => setLocalPremiumModal({ open: false, toolName: '', customMessage: '' })}
-                        className="absolute top-4 right-4 p-1.5 text-white/40 hover:text-white/80 hover:bg-white/10 rounded-full transition-all"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                      <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg shadow-amber-500/30 mb-5 relative">
-                        <Lock className="w-7 h-7 text-white" />
-                        <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-amber-300 flex items-center justify-center border-2 border-[#0f0f0f]">
-                          <Crown className="w-2.5 h-2.5 text-amber-800" />
-                        </div>
-                      </div>
-                      <h3 className="text-xl font-black text-white mb-1">Premium Feature</h3>
-                      <p className="text-white/50 text-sm mb-1 capitalize font-semibold">{localPremiumModal.toolName}</p>
-                      <p className="text-white/40 text-sm mb-6 leading-relaxed">
-                        {localPremiumModal.customMessage || (
-                          <>This magic tool is only available for <span className="text-amber-400 font-bold">paid plan users</span>. Upgrade your plan to unlock all AI magic tools.</>
-                        )}
-                      </p>
-                      <div className="flex flex-col gap-2 mb-6">
-                        {['Generate Images & Videos', 'Web & Deep Search', 'Convert to Audio & Doc', 'Code Writer Mode'].map(f => (
-                          <div key={f} className="flex items-center gap-2.5 text-sm text-white/60">
-                            <div className="w-4 h-4 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
-                              <Zap className="w-2.5 h-2.5 text-amber-400" />
+                                            const formData = new FormData();
+                                            formData.append('workspaceId', currentEditingBrandId || workspace?._id);
+                                            formData.append('socialMediaLinks', JSON.stringify(updatedLinks));
+                                            apiService.uploadSocialAgentBrand(formData)
+                                              .then(() => toast.success(`${item.id} link saved!`))
+                                              .catch(() => toast.error(`Failed to save ${item.id} link`));
+                                          }
+                                        }
+                                      }}
+                                      className={`w-6 h-6 lg:w-8 lg:h-8 rounded-full border-2 border-white dark:border-zinc-950 flex items-center justify-center text-white p-1 lg:p-1.5 shadow-sm ${item.color} hover:scale-110 hover:z-10 transition-transform cursor-pointer relative group`}
+                                    >
+                                      <item.Icon className="w-full h-full" />
+                                      <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[9px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none transition-opacity z-50">
+                                        {hasLink ? `Visit ${item.id}` : `Add ${item.id} Link`}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              <span className="text-[7px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mt-1">Quick Access</span>
                             </div>
-                            {f}
                           </div>
-                        ))}
-                      </div>
-                      <button
-                        onClick={() => { setLocalPremiumModal({ open: false, toolName: '', customMessage: '' }); window.location.href = '/pricing'; }}
-                        className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-600 text-black font-black text-sm hover:shadow-lg hover:shadow-amber-500/30 transition-all active:scale-95 flex items-center justify-center gap-2"
-                      >
-                        <Sparkles className="w-4 h-4" />
-                        Upgrade Now
-                      </button>
-                      <button
-                        onClick={() => setLocalPremiumModal({ open: false, toolName: '', customMessage: '' })}
-                        className="w-full mt-3 py-2.5 text-xs font-semibold text-white/30 hover:text-white/60 transition-colors"
-                      >
-                        Maybe Later
-                      </button>
-                    </div>
-                  </div>
-                )}
 
-                  </>
-                )}
+                          <div className="flex items-center gap-2 lg:gap-4 shrink-0">
+                            <button onClick={onClose} className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center hover:bg-slate-200 transition-all active:scale-95 shadow-sm">
+                              <X className="w-4 h-4 lg:w-5 lg:h-5 text-slate-600 dark:text-slate-400" />
+                            </button>
+                          </div>
+                        </header>
+
+
+                        {/* Scrollable Content */}
+                        <main className={`flex-1 overflow-y-auto ${activeTab === 'generation' ? 'p-4 lg:p-10' : 'p-6 lg:p-12'} custom-scrollbar relative mesh-bg`} data-lenis-prevent>
+                          {renderContent()}
+                        </main>
+                      </div>
+
+                      {renderGenerationWizard()}
+                      {renderPostHistoryDrawer()}
+                      {renderOneOffAssetModal()}
+                      {renderGenPostModal()}
+
+
+
+                      <AnimatePresence>
+                        {showCompanyInfoPanel && renderCompanyInfoPanel()}
+                      </AnimatePresence>
+
+
+
+                      {activeJob && (
+                        <div className="fixed bottom-10 right-10 z-[120] w-80 bg-white dark:bg-zinc-900 rounded-[32px] border border-slate-100 dark:border-white/5 shadow-2xl p-6 overflow-hidden animate-in slide-in-from-right-10 duration-500">
+                          <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none"><Sparkles className="w-20 h-20 text-primary" /></div>
+                          <div className="relative z-10">
+                            <div className="flex justify-between items-center mb-4">
+                              <span className="text-[10px] font-black text-primary uppercase tracking-widest">Pipeline Active</span>
+                              <RefreshCw className="w-4 h-4 text-primary animate-spin" />
+                            </div>
+                            <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight mb-4">Synthesizing {activeJob.count} Content DNAs...</h4>
+                            <div className="h-1.5 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden border border-white/5">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${activeJob.progress || 10}%` }}
+                                className="h-full bg-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]"
+                              />
+                            </div>
+                            <div className="flex justify-between mt-3">
+                              <span className="text-[8px] font-black text-slate-400 uppercase">Calibrating Neural Variations...</span>
+                              <span className="text-[8px] font-black text-primary uppercase">{activeJob.progress || 10}% Complete</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {renderAssetPreviewModal()}
+
+                      {/* ── Embedded Premium Upsell Modal (fixes Headless UI stacking context) ── */}
+                      {localPremiumModal.open && (
+                        <div
+                          className="fixed inset-0 z-[99999] bg-black/70 backdrop-blur-sm flex justify-center items-center p-4"
+                          onClick={() => setLocalPremiumModal({ open: false, toolName: '', customMessage: '' })}
+                        >
+                          <div
+                            className="relative bg-[#0f0f0f] border border-white/10 rounded-3xl p-8 max-w-sm w-full shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-amber-500/20 blur-3xl pointer-events-none" />
+                            <div className="absolute -bottom-12 -left-12 w-40 h-40 rounded-full bg-purple-500/20 blur-3xl pointer-events-none" />
+                            <button
+                              onClick={() => setLocalPremiumModal({ open: false, toolName: '', customMessage: '' })}
+                              className="absolute top-4 right-4 p-1.5 text-white/40 hover:text-white/80 hover:bg-white/10 rounded-full transition-all"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                            <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg shadow-amber-500/30 mb-5 relative">
+                              <Lock className="w-7 h-7 text-white" />
+                              <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-amber-300 flex items-center justify-center border-2 border-[#0f0f0f]">
+                                <Crown className="w-2.5 h-2.5 text-amber-800" />
+                              </div>
+                            </div>
+                            <h3 className="text-xl font-black text-white mb-1">Premium Feature</h3>
+                            <p className="text-white/50 text-sm mb-1 capitalize font-semibold">{localPremiumModal.toolName}</p>
+                            <p className="text-white/40 text-sm mb-6 leading-relaxed">
+                              {localPremiumModal.customMessage || (
+                                <>This magic tool is only available for <span className="text-amber-400 font-bold">paid plan users</span>. Upgrade your plan to unlock all AI magic tools.</>
+                              )}
+                            </p>
+                            <div className="flex flex-col gap-2 mb-6">
+                              {['Generate Images & Videos', 'Web & Deep Search', 'Convert to Audio & Doc', 'Code Writer Mode'].map(f => (
+                                <div key={f} className="flex items-center gap-2.5 text-sm text-white/60">
+                                  <div className="w-4 h-4 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                                    <Zap className="w-2.5 h-2.5 text-amber-400" />
+                                  </div>
+                                  {f}
+                                </div>
+                              ))}
+                            </div>
+                            <button
+                              onClick={() => { setLocalPremiumModal({ open: false, toolName: '', customMessage: '' }); window.location.href = '/pricing'; }}
+                              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-600 text-black font-black text-sm hover:shadow-lg hover:shadow-amber-500/30 transition-all active:scale-95 flex items-center justify-center gap-2"
+                            >
+                              <Sparkles className="w-4 h-4" />
+                              Upgrade Now
+                            </button>
+                            <button
+                              onClick={() => setLocalPremiumModal({ open: false, toolName: '', customMessage: '' })}
+                              className="w-full mt-3 py-2.5 text-xs font-semibold text-white/30 hover:text-white/60 transition-colors"
+                            >
+                              Maybe Later
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                    </>
+                  )}
                 </Dialog.Panel>
               </Transition.Child>
             </div>
@@ -5833,7 +5820,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
               style={{ position: 'fixed', inset: 0, zIndex: 999999, background: 'rgba(0,0,0,0.95)', backdropFilter: 'blur(20px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', cursor: 'zoom-out' }}
               onClick={() => setExpandedImage(null)}
             >
-              <button 
+              <button
                 style={{ position: 'absolute', top: '24px', right: '24px', width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}
                 onClick={(e) => { e.stopPropagation(); setExpandedImage(null); }}
               >

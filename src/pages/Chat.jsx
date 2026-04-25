@@ -663,17 +663,33 @@ const Chat = () => {
     }
   }, [location.search]);
 
-  // ─── Direct Feature Link Handling ───
+  // ─── Direct Feature Link Handling & Persistence ───
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const modeParam = params.get('mode')?.toLowerCase();
     const toolParam = params.get('tool')?.toLowerCase();
 
+    if (toolParam === 'ai_ads') {
+      setIsSocialMediaDashboardOpen(true);
+      return; // Do not clear the URL parameter so it persists on refresh
+    }
+
     if (modeParam || toolParam) {
-      // Simply clear params and land in chat without any popups or auto-activations
+      // Simply clear other params and land in chat without any popups or auto-activations
       navigate(location.pathname, { replace: true });
     }
   }, [location.search, navigate, location.pathname]);
+
+  // Sync AI Ads Dashboard state to the URL so it persists on refresh
+  useEffect(() => {
+    const url = new URL(window.location);
+    if (isSocialMediaDashboardOpen) {
+      url.searchParams.set('tool', 'ai_ads');
+    } else {
+      url.searchParams.delete('tool');
+    }
+    window.history.replaceState({}, '', url);
+  }, [isSocialMediaDashboardOpen]);
 
   // Tool Persistence
   useEffect(() => {
@@ -7279,12 +7295,13 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         {/* Welcome Screen - Integrated Hub */}
         <AnimatePresence>
           {messages.length === 0 &&
+            legalView !== 'DASHBOARD' &&
             (!currentCase || selectedLegalTool?.id !== 'legal_my_case') && (
               <motion.div
                 key="welcome-screen"
                 initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
+                animate={{ opacity: 1, pointerEvents: 'auto' }}
+                exit={{ opacity: 0, y: -20, filter: 'blur(10px)', pointerEvents: 'none' }}
                 className="absolute inset-0 z-10 pointer-events-auto flex flex-col items-center overflow-y-auto overflow-x-hidden pt-20 lg:pt-8 pb-48 sm:pt-12 md:pb-60 scrollbar-hide"
               >
                 <div className="relative z-10 flex flex-col items-center w-full max-w-5xl mx-auto px-4 sm:px-6">
