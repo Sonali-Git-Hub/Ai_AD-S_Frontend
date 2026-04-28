@@ -495,9 +495,16 @@ const Chat = () => {
   const [showHistory, setShowHistory] = useState(false);
   const messagesEndRef = useRef(null);
   const [currentSessionId, setCurrentSessionId] = useState(sessionId || 'new');
+  const handleSendMessageRef = useRef(null);
+  useEffect(() => {
+    handleSendMessageRef.current = handleSendMessage;
+  });
+
   useEffect(() => {
     window.handleAisaAction = (text) => {
-      handleSendMessage(null, text);
+      if (handleSendMessageRef.current) {
+        handleSendMessageRef.current(null, text);
+      }
     };
     return () => {
       delete window.handleAisaAction;
