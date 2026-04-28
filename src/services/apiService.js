@@ -44,16 +44,19 @@ apiClient.interceptors.response.use(
       window.dispatchEvent(new CustomEvent('out_of_credits'));
     }
 
-    if (error.response?.status === 403 && (error.response?.data?.code === 'PREMIUM_ONLY' || error.response?.data?.code === 'PLAN_RESTRICTED' || error.response?.data?.code === 'CALENDAR_LIMIT_REACHED')) {
-      const isLimit = error.response?.data?.code === 'CALENDAR_LIMIT_REACHED';
+    if (error.response?.status === 403 && (error.response?.data?.code === 'PREMIUM_ONLY' || error.response?.data?.code === 'PLAN_RESTRICTED' || error.response?.data?.code === 'CALENDAR_LIMIT_REACHED' || error.response?.data?.code === 'UPGRADE_REQUIRED')) {
+      const code = error.response?.data?.code;
       const backendMessage = error.response?.data?.message || error.response?.data?.error;
       
+      let toolName = 'AI Ads Agent (Visual Render)';
+      if (code === 'CALENDAR_LIMIT_REACHED') toolName = 'AI Ads Agent (Unlimited Strategy)';
+      else if (code === 'UPGRADE_REQUIRED') toolName = 'AI Ads Agent (Unlimited Scraping)';
+      else if (backendMessage?.includes('extraction') || backendMessage?.includes('scrape')) toolName = 'AI Ads Agent (AI Fetch)';
+
       window.dispatchEvent(new CustomEvent('premium_required', { 
         detail: { 
-          toolName: isLimit ? 'AI Ads Agent (Unlimited Strategy)' : (backendMessage?.includes('extraction') ? 'AI Ads Agent (AI Fetch)' : 'AI Ads Agent (Visual Render)'),
-          customMessage: backendMessage || (isLimit 
-            ? 'Free plan users are limited to one calendar generation. Upgrade to Pro for unlimited AI strategies.'
-            : 'High-end visual generation via GPT-4 and Imagen 3 is exclusive to paid plans.')
+          toolName,
+          customMessage: backendMessage || 'This feature requires a paid plan. Please upgrade to continue.'
         } 
       }));
     }
@@ -195,7 +198,10 @@ export const apiService = {
       return response.data;
     } catch (error) {
       const msg = error.response?.data?.error || error.message || 'Brand fetch failed';
-      throw new Error(msg);
+      const code = error.response?.data?.code || '';
+      const err = new Error(msg);
+      err.code = code;
+      throw err;
     }
   },
 

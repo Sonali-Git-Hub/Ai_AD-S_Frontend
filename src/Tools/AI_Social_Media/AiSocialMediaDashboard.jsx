@@ -53,7 +53,11 @@ const CustomSelect = ({ value, onChange, options, color = 'indigo', className = 
   const selectedLabel = options.find(o => (o.value !== undefined ? o.value : o) === value)?.label || value;
 
   return (
-    <Listbox value={value} onChange={onChange}>
+    <Listbox value={value} onChange={(val) => {
+      const opt = options.find(o => (o.value !== undefined ? o.value : o) === val);
+      if (opt?.disabled) return; // Block disabled options
+      onChange(val);
+    }}>
       <div className="relative w-full">
         <Listbox.Button className={`w-full flex items-center justify-between text-left cursor-pointer outline-none transition-all shadow-inner hover:bg-white dark:hover:bg-white/5 truncate pr-10 ${className}`}>
           <span className="block truncate font-black">{selectedLabel}</span>
@@ -66,15 +70,24 @@ const CustomSelect = ({ value, onChange, options, color = 'indigo', className = 
             {options.map((option, idx) => {
               const optValue = typeof option === 'string' ? option : option.value;
               const optLabel = typeof option === 'string' ? option : option.label;
+              const isDisabled = option.disabled === true;
               return (
                 <Listbox.Option
                   key={idx}
-                  className={({ active }) => `relative cursor-pointer select-none py-3 sm:py-4 pl-10 pr-4 transition-colors font-bold ${active ? colorMap[color].split(' ').slice(2).join(' ') : 'text-slate-900 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5'}`}
+                  className={({ active }) => `relative select-none py-3 sm:py-4 pl-10 pr-4 transition-colors font-bold ${
+                    isDisabled 
+                      ? 'opacity-40 cursor-not-allowed'
+                      : `cursor-pointer ${active ? colorMap[color].split(' ').slice(2).join(' ') : 'text-slate-900 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5'}`
+                  }`}
                   value={optValue}
+                  disabled={isDisabled}
                 >
                   {({ selected }) => (
                     <>
-                      <span className={`block truncate ${selected ? 'font-black' : 'font-bold'}`}>{optLabel}</span>
+                      <span className={`block truncate ${selected ? 'font-black' : 'font-bold'}`}>
+                        {optLabel}
+                        {isDisabled && <span className="ml-2 text-[9px] text-amber-500 font-black">🔒 PRO</span>}
+                      </span>
                       {selected ? (
                         <span className={`absolute inset-y-0 left-0 flex items-center pl-3 ${colorMap[color].split(' ')[1]}`}>
                           <Check className="h-4 w-4" />
@@ -123,7 +136,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     targetAudience: '',
     contentObjective: 'Awareness',
     campaignMonth: 'January',
-    postingFrequency: '3x per week'
+    postingFrequency: isPremium ? '3x per week' : '7 Days'
   });
   const [activeProfile, setActiveProfile] = useState(null);
   const [calendarEntries, setCalendarEntries] = useState([]);
@@ -670,7 +683,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
         targetAudience: bp.targetAudience || '',
         contentObjective: bp.contentObjective || 'Awareness',
         campaignMonth: bp.campaignMonth || 'January',
-        postingFrequency: bp.postingFrequency || '3x per week'
+        postingFrequency: bp.postingFrequency || (isPremium ? '3x per week' : '7 Days')
       });
       setCurrentEditingBrandId(workspace._id);
     }
@@ -2174,13 +2187,14 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   <div className="space-y-1">
                     <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Posting Frequency</label>
                     <CustomSelect
-                      value={brandProfile.postingFrequency || '3x per week'}
+                      value={brandProfile.postingFrequency || (isPremium ? '3x per week' : '7 Days')}
                       onChange={(val) => setBrandProfile({ ...brandProfile, postingFrequency: val })}
                       options={[
-                        { label: '1x per week', value: '1x per week' },
-                        { label: '3x per week', value: '3x per week' },
-                        { label: 'Daily', value: 'Daily' },
-                        { label: '2x Daily (High Growth)', value: '2x Daily' }
+                        { label: '7 Days (Starter)', value: '7 Days' },
+                        { label: '1x per week', value: '1x per week', disabled: !isPremium },
+                        { label: '3x per week', value: '3x per week', disabled: !isPremium },
+                        { label: 'Daily', value: 'Daily', disabled: !isPremium },
+                        { label: '2x Daily (High Growth)', value: '2x Daily', disabled: !isPremium }
                       ]}
                       color="primary"
                       className="h-10 px-4 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-xl text-[10px] outline-none focus:border-primary"
