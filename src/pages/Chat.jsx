@@ -4976,6 +4976,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
   const [feedbackDetails, setFeedbackDetails] = useState("");
   const [loadingText, setLoadingText] = useState("Thinking..."); // New state for loading status text
   const [messageFeedback, setMessageFeedback] = useState({}); // { [msgId]: { type: 'up' | 'down', categories: [], details: '' } }
+  const [downloadedMessages, setDownloadedMessages] = useState({}); // Tracks which messages have been downloaded
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
 
   const toggleFeedback = (msgId, feedbackData) => {
@@ -5358,6 +5359,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+        setDownloadedMessages(prev => ({ ...prev, [msg.id]: true }));
         if (processToastId) toast.success("PDF Downloaded", { id: processToastId });
       } else if (action === 'open') {
         const url = URL.createObjectURL(blob);
@@ -7320,7 +7322,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                             !isMediaFeature && (
                                               <button
                                                 onClick={() => handlePdfAction('download', msg)}
-                                                className="text-red-500 hover:text-red-600 transition-all p-1.5 hover:bg-red-50/10 rounded-lg flex items-center gap-1 active:scale-95 group/pdf"
+                                                className={`transition-all p-1.5 rounded-lg flex items-center gap-1 active:scale-95 group/pdf ${
+                                                  downloadedMessages[msg.id]
+                                                    ? 'text-primary bg-primary/10 hover:bg-primary/20'
+                                                    : 'text-subtext hover:text-primary hover:bg-surface-hover'
+                                                }`}
                                                 title="Download Ready-Made PDF Report"
                                               >
                                                 <FileText className="w-3.5 h-3.5 group-hover/pdf:scale-110 transition-transform" />
