@@ -90,7 +90,7 @@ const COUNTRIES = [
    { code: 'HK', name: 'Hong Kong', flag: '🇭🇰' },
 ];
 
-const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode }) => {
+const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStock }) => {
    const [searchTerm, setSearchTerm] = useState('');
    const [searchResults, setSearchResults] = useState([]);
    const [isSearching, setIsSearching] = useState(false);
@@ -136,6 +136,13 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode }) => {
          setSocket(null);
       }
    }, [isOpen]);
+
+   // Sync with external initialStock if provided
+   useEffect(() => {
+      if (isOpen && initialStock) {
+         setSelectedStock(initialStock);
+      }
+   }, [isOpen, initialStock]);
 
    // Clear data only when symbol changes to prevent jarring UI
    useEffect(() => {

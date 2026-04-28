@@ -30,26 +30,34 @@ const CookieConsentBanner = () => {
             return;
         }
 
-        // Only show for non-registered (not logged in) users who haven't given consent
         const user = getUserData();
         const hasToken = user && user.token;
         const consent = localStorage.getItem(COOKIE_CONSENT_KEY);
 
-        if (!hasToken && !consent) {
+        if (hasToken) {
+            // User is logged in — auto-accept cookies silently and hide the banner
+            if (!consent) {
+                localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify({
+                    accepted: true,
+                    analytics: true,
+                    preferences: true,
+                    functional: true,
+                    essential: true,
+                    timestamp: new Date().toISOString()
+                }));
+            }
+            setIsVisible(false);
+            return;
+        }
+
+        // Only show for non-logged-in users who haven't given consent
+        if (!consent) {
             setIsVisible(true);
         }
     }, [location.pathname, isLegalPage]);
 
-    useEffect(() => {
-        if (isVisible && !isLegalPage) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = 'unset';
-        }
-        return () => {
-            document.body.style.overflow = 'unset';
-        };
-    }, [isVisible, isLegalPage]);
+    // Scroll is intentionally NOT blocked — users can scroll and browse freely
+    // before accepting cookies. Only login-gated features are restricted.
 
     const saveConsent = (data) => {
         localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify({
@@ -111,15 +119,7 @@ const CookieConsentBanner = () => {
 
     return (
         <>
-            {/* Full-screen blocking overlay — user MUST choose an option */}
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[9998] bg-black/50 backdrop-blur-sm"
-            />
-
-            {/* Cookie consent card */}
+            {/* Cookie consent card — non-blocking, user can still scroll */}
             <motion.div
                 initial={{ y: 100, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}

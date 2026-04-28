@@ -29,6 +29,20 @@ const Login = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [socialVerifying, setSocialVerifying] = useState(null);
 
+  // Auto-accept cookies on login — user has agreed to platform use by signing in
+  const autoAcceptCookies = () => {
+    if (!localStorage.getItem('aisa_cookie_consent')) {
+      localStorage.setItem('aisa_cookie_consent', JSON.stringify({
+        accepted: true,
+        analytics: true,
+        preferences: true,
+        functional: true,
+        essential: true,
+        timestamp: new Date().toISOString()
+      }));
+    }
+  };
+
   // Handle Social Auth Callback from Backend
   React.useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -60,6 +74,7 @@ const Login = () => {
       localStorage.setItem("userId", userId);
       localStorage.setItem("token", token);
       localStorage.setItem("provider", provider || "local");
+      autoAcceptCookies();
 
       const from = location.state?.from || AppRoute.DASHBOARD;
       navigate(from, { replace: true });
@@ -84,6 +99,7 @@ const Login = () => {
       setUserRecoil({ user: res.data });
       localStorage.setItem("userId", res.data.id);
       localStorage.setItem("token", res.data.token);
+      autoAcceptCookies();
 
       navigate(from, { replace: true });
     } catch (err) {
@@ -123,6 +139,7 @@ const Login = () => {
       setUserRecoil({ user: res.data });
       localStorage.setItem("userId", res.data.id);
       localStorage.setItem("token", res.data.token);
+      autoAcceptCookies();
 
       navigate(from, { replace: true });
     } catch (err) {

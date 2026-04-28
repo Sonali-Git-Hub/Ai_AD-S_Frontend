@@ -8,7 +8,7 @@ import {
     X, ChevronDown, Play, Globe, Camera,
     LogOut, Monitor, MonitorOff, Mic, Check, HelpCircle, Smartphone, Tablet,
     ChevronLeft, ChevronRight, Trash2, ShieldCheck, Mail, Volume2, Plus, MessageSquare, Send, Clock,
-    Palette, Type, RefreshCcw, Languages, Crown, History, Calendar, CreditCard, Download, Search, Zap
+    Palette, Type, RefreshCcw, Languages, Crown, History, Calendar, CreditCard, Download, Search, Zap, FileText, Info
 } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import { usePersonalization } from '../../context/PersonalizationContext';
@@ -484,8 +484,11 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         { id: 'notifications', label: t('notifications'), icon: Bell },
         { id: 'data', label: t('dataControls'), icon: Database },
         { id: 'account', label: t('account'), icon: User },
-        { id: 'connectors', label: 'Connectors', icon: LayoutGrid },
-        { id: 'help', label: t('helpFaq') || 'Help & FAQ', icon: HelpCircle }
+        { id: 'help', label: t('helpFaq') || 'Help & FAQ', icon: HelpCircle },
+        { id: 'feedback', label: 'Feedback', icon: MessageSquare },
+        { id: 'terms', label: 'Terms', icon: FileText },
+        { id: 'privacy', label: 'Privacy', icon: Shield },
+        { id: 'about', label: 'About', icon: Info },
     ];
 
     const renderSettingRow = (label, description, control) => (
@@ -605,6 +608,78 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                 </div>
                             )) : <div className="py-20 text-center opacity-40"><p>{t('noNotifications')}</p></div>}
                         </div>
+                    </div>
+                );
+            case 'feedback':
+                return (
+                    <div className="space-y-6">
+                        <div className="bg-primary/5 rounded-2xl p-6 border border-primary/10">
+                            <h3 className="text-lg font-bold mb-2">Share your feedback</h3>
+                            <p className="text-sm text-subtext mb-4">How can we improve AISA for you?</p>
+                            <textarea
+                                rows={4}
+                                value={issueText}
+                                onChange={(e) => setIssueText(e.target.value)}
+                                placeholder="Tell us what's on your mind..."
+                                className="w-full bg-white dark:bg-zinc-800 rounded-xl p-4 text-sm focus:outline-none border border-border focus:border-primary transition-all text-maintext resize-none"
+                            />
+                            <button
+                                onClick={handleSupportSubmit}
+                                disabled={isSending || !issueText.trim()}
+                                className="mt-4 px-6 py-2.5 bg-primary text-white rounded-xl text-sm font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all disabled:opacity-50"
+                            >
+                                {isSending ? 'Sending...' : 'Submit Feedback'}
+                            </button>
+                        </div>
+                    </div>
+                );
+            case 'terms':
+                return (
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-bold">Terms of Service</h3>
+                        <div className="prose dark:prose-invert max-w-none text-sm text-subtext leading-relaxed">
+                            <p>By using AISA, you agree to our terms of service. Our platform provides AI-powered tools for legal, financial, and creative tasks.</p>
+                            <h4 className="text-maintext font-bold mt-4">1. Use of Service</h4>
+                            <p>You agree to use AISA for lawful purposes only and in accordance with these Terms.</p>
+                            <h4 className="text-maintext font-bold mt-4">2. AI Output</h4>
+                            <p>AI-generated content should be reviewed for accuracy. We do not provide professional legal or financial advice.</p>
+                            <Link to="/terms-of-service" className="inline-block mt-6 text-primary font-bold hover:underline" onClick={onClose}>Read full Terms of Service →</Link>
+                        </div>
+                    </div>
+                );
+            case 'privacy':
+                return (
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-bold">Privacy Policy</h3>
+                        <div className="prose dark:prose-invert max-w-none text-sm text-subtext leading-relaxed">
+                            <p>Your privacy is important to us. We collect minimal data to provide and improve our services.</p>
+                            <h4 className="text-maintext font-bold mt-4">1. Data Collection</h4>
+                            <p>We collect information you provide directly and automated technical data.</p>
+                            <h4 className="text-maintext font-bold mt-4">2. Data Security</h4>
+                            <p>We implement industry-standard security measures to protect your information.</p>
+                            <Link to="/privacy-policy" className="inline-block mt-6 text-primary font-bold hover:underline" onClick={onClose}>Read full Privacy Policy →</Link>
+                        </div>
+                    </div>
+                );
+            case 'about':
+                return (
+                    <div className="space-y-6">
+                        <div className="flex flex-col items-center text-center py-8">
+                            <img src={logo} alt="AISA" className="h-16 mb-4 drop-shadow-xl" />
+                            <h3 className="text-2xl font-black bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">AISA ™</h3>
+                            <p className="text-sm text-subtext mt-2 max-w-sm">Advanced Intelligence & Synthetic Assistant. The next generation of AI-powered productivity.</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="p-4 bg-gray-50 dark:bg-zinc-800 rounded-2xl border border-border">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-primary">Version</span>
+                                <p className="text-lg font-bold">3.1.4 (Stable)</p>
+                            </div>
+                            <div className="p-4 bg-gray-50 dark:bg-zinc-800 rounded-2xl border border-border">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-primary">Region</span>
+                                <p className="text-lg font-bold">Global / Asia</p>
+                            </div>
+                        </div>
+                        <p className="text-[10px] text-center text-subtext opacity-50 mt-8">© 2026 AISA Intelligence. All rights reserved.</p>
                     </div>
                 );
             case 'data':
@@ -1241,12 +1316,6 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                         </nav>
 
                         <div className="p-4 space-y-1 border-t border-gray-100 dark:border-white/5">
-                            <button
-                                onClick={() => { setActiveTab('credits'); setView('detail'); }}
-                                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-cyan-500 to-blue-500 hover:opacity-90 shadow-md shadow-cyan-500/20 mb-1"
-                            >
-                                <CreditCard className="w-4 h-4" /> ✦ Credits & Plans
-                            </button>
                             <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-red-500 hover:bg-red-50 font-bold transition-all"><LogOut className="w-4 h-4" /> {t('logOut')}</button>
                         </div>
                     </div>

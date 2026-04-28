@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Outlet, Navigate, BrowserRouter, useNavigate, useLocation, Link } from 'react-router-dom';
 
 import Landing from './landingpage/Landing';
@@ -130,39 +130,56 @@ const DashboardLayout = () => {
 
   // ─── Scroll Direction Logic for Auto-Hide Navbar ───
   const [isVisible, setIsVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const lastScrollYRef = useRef(0); // useRef avoids stale closure in the scroll handler
   const scrollThreshold = 15; // px
 
   useEffect(() => {
     const handleScroll = (e) => {
-      // Support both window scroll and element scroll via capture
-      const currentScrollY = e.target === document ? window.scrollY : (e.target.scrollTop || 0);
+      // Only track scroll on the main scrollable areas to avoid interference from nested scrollable elements
+      const isDocument = e.target === document;
+      const isMain = e.target.tagName === 'MAIN';
+      const isChatContainer = e.target.classList && e.target.classList.contains('chatgpt-container');
 
-      // Avoid jitter at the very top
+      if (!isDocument && !isMain && !isChatContainer) return;
+
+      const currentScrollY = isDocument ? window.scrollY : (e.target.scrollTop || 0);
+
+      // Always show header at the very top
       if (currentScrollY < 10) {
         setIsVisible(true);
-        setLastScrollY(currentScrollY);
+        lastScrollYRef.current = currentScrollY;
         return;
       }
 
-      const diff = currentScrollY - lastScrollY;
+      const diff = currentScrollY - lastScrollYRef.current;
 
       if (Math.abs(diff) > scrollThreshold) {
-        if (diff > 0 && isVisible) {
-          // Scrolling Down
+        if (diff > 0) {
+          // Scrolling Down — hide header
           setIsVisible(false);
-        } else if (diff < 0 && !isVisible) {
-          // Scrolling Up
+        } else {
+          // Scrolling Up — show header
           setIsVisible(true);
         }
-        setLastScrollY(currentScrollY);
+        lastScrollYRef.current = currentScrollY;
       }
     };
 
     // Use capture: true to catch scroll events from any nested scrollable container (like Chat.jsx)
     window.addEventListener('scroll', handleScroll, true);
     return () => window.removeEventListener('scroll', handleScroll, true);
-  }, [lastScrollY, isVisible]);
+  }, []); // Empty deps — lastScrollYRef is always current via ref, no re-registration needed
+
+  // Sync CSS variable so child pages (Chat) can transition their top-padding in lockstep
+  useEffect(() => {
+    // Only applies below lg (1024px) — desktop uses lg:pt-6 via Tailwind class
+    if (window.innerWidth < 1024) {
+      document.documentElement.style.setProperty(
+        '--mobile-nav-h',
+        isVisible ? '64px' : '0px'
+      );
+    }
+  }, [isVisible]);
 
   return (
     <div className="fixed inset-0 flex bg-transparent text-maintext overflow-hidden aisa-scalable-text">
@@ -193,7 +210,11 @@ const DashboardLayout = () => {
         />
       </div>
 
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      <Sidebar 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)} 
+        onOpenSettings={() => setIsProfileMenuOpen(true)}
+      />
 
       <div className="flex-1 flex flex-col min-w-0 bg-transparent h-full relative">
 
@@ -242,16 +263,7 @@ const DashboardLayout = () => {
                     )}
                   </motion.button>
                   <AnimatePresence>
-                    {isProfileMenuOpen && (
-                      <ProfileSettingsDropdown
-                        onClose={() => setIsProfileMenuOpen(false)}
-                        onLogout={() => {
-                          clearUser();
-                          navigate('/login');
-                          setIsProfileMenuOpen(false);
-                        }}
-                      />
-                    )}
+                    {/* The mobile header used to render ProfileSettingsDropdown here, but it's been moved to the root to support desktop Sidebar trigger */}
                   </AnimatePresence>
                 </div>
               ) : (
@@ -273,6 +285,18 @@ const DashboardLayout = () => {
           <Outlet />
         </main>
       </div>
+      <AnimatePresence>
+        {isProfileMenuOpen && (
+          <ProfileSettingsDropdown
+            onClose={() => setIsProfileMenuOpen(false)}
+            onLogout={() => {
+              clearUser();
+              navigate('/login');
+              setIsProfileMenuOpen(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

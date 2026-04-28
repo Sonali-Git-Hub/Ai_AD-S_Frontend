@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useInView, useMotionValue, useSpring, useTransform } from 'framer-motion';
-import { ImagePlus, PlaySquare, Headphones, Code, Sparkles, Zap, Search, Globe, FileText, Wand2, PlayCircle, Scale, Video, Brain, TrendingUp, Megaphone, Lock } from 'lucide-react';
+import { ImagePlus, PlaySquare, Headphones, Code, Sparkles, Zap, Search, Globe, FileText, Wand2, PlayCircle, Scale, Video, Brain, TrendingUp, Megaphone, Lock, Target, AlignLeft, Mic2, UserCircle } from 'lucide-react';
 import LegalLogo from '../Components/LegalLogo';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -216,23 +216,34 @@ const ToolCard = ({ tool, onToolSelect, index }) => {
   const themeContext = useTheme();
   const theme = themeContext?.theme || 'dark';
   const isDark = theme.toLowerCase() === 'dark';
-  const [isFlipped, setIsFlipped] = useState(false);
   const cardRef = useRef(null);
   const { icon: Icon } = tool;
-
+  const [isFlipped, setIsFlipped] = useState(false);
+  
   // Mouse-tracked 3D tilt
   const x = useMotionValue(0);
   const y = useMotionValue(0);
-  // Using direct transform in style is better than animate for performance and stability with MotionValues
   const tiltX = useSpring(useTransform(y, [-70, 70], [15, -15]), { stiffness: 100, damping: 20 });
   const tiltY = useSpring(useTransform(x, [-70, 70], [-15, 15]), { stiffness: 100, damping: 20 });
 
+  // Spotlight effect
+  const spotlightX = useMotionValue(0);
+  const spotlightY = useMotionValue(0);
+
   // Flip rotation
   const handleMouseMove = (e) => {
-    if (!cardRef.current || isFlipped) return;
+    if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
-    x.set(e.clientX - rect.left - rect.width / 2);
-    y.set(e.clientY - rect.top - rect.height / 2);
+    
+    // Tilt values
+    if (!isFlipped) {
+      x.set(e.clientX - rect.left - rect.width / 2);
+      y.set(e.clientY - rect.top - rect.height / 2);
+    }
+    
+    // Spotlight values
+    spotlightX.set(e.clientX - rect.left);
+    spotlightY.set(e.clientY - rect.top);
   };
 
   const handleMouseLeave = () => {
@@ -258,7 +269,7 @@ const ToolCard = ({ tool, onToolSelect, index }) => {
 
   return (
     <div 
-      className="relative w-full h-[145px] sm:h-[155px]"
+      className="relative w-full h-[85px] sm:h-[155px]"
       style={{ perspective: '1200px' }}
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
@@ -288,12 +299,16 @@ const ToolCard = ({ tool, onToolSelect, index }) => {
         style={{ 
           transformStyle: 'preserve-3d',
           rotateX: isFlipped ? 0 : tiltX,
+          rotateY: isFlipped ? 0 : tiltY,
         }}
         onClick={handleCardClick}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        onMouseEnter={handleMouseEnter}
       >
         {/* FRONT SIDE */}
         <div 
-          className={`absolute inset-0 w-full h-full rounded-[20px] border p-3 sm:p-5 transition-all duration-300 flex flex-col justify-between backface-hidden ${
+          className={`absolute inset-0 w-full h-full rounded-[20px] border p-3 sm:p-5 transition-all duration-300 flex flex-col justify-between backface-hidden overflow-hidden ${
             isActive 
               ? (isDark ? 'bg-primary/10 border-primary shadow-[0_0_30px_rgba(var(--primary-rgb),0.3)] backdrop-blur-xl' : 'bg-blue-50 border-primary shadow-[0_0_25px_rgba(var(--primary-rgb),0.15)]')
               : (isDark 
@@ -302,9 +317,28 @@ const ToolCard = ({ tool, onToolSelect, index }) => {
           }`}
           style={{ backfaceVisibility: 'hidden' }}
         >
-          <div className="flex items-center justify-between mb-3">
+          {/* Spotlight Effect Layer */}
+          <motion.div
+            className="absolute inset-0 pointer-events-none transition-opacity duration-300 group-hover:opacity-100 opacity-0"
+            style={{
+              background: useTransform(
+                [spotlightX, spotlightY],
+                ([latestX, latestY]) => `radial-gradient(600px circle at ${latestX}px ${latestY}px, rgba(255,255,255,0.06), transparent 80%)`
+              ),
+            }}
+          />
+          <motion.div
+            className="absolute inset-0 pointer-events-none opacity-[0.03]"
+            style={{
+              background: useTransform(
+                [spotlightX, spotlightY],
+                ([latestX, latestY]) => `radial-gradient(400px circle at ${latestX}px ${latestY}px, var(--primary), transparent 80%)`
+              ),
+            }}
+          />
+          <div className="flex items-center justify-between mb-1 sm:mb-3">
             <div 
-              className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500"
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all duration-500"
               style={{ 
                 background: isActive ? 'var(--primary)' : (isDark ? `${tool.color}15` : `${tool.color}10`),
                 border: isDark ? `1px solid ${tool.color}30` : `1px solid ${tool.color}20`,
@@ -312,7 +346,8 @@ const ToolCard = ({ tool, onToolSelect, index }) => {
               }}
             >
               <Icon 
-                size={18} 
+                size={16} 
+                className="sm:w-[18px] sm:h-[18px]"
                 showText={tool.id === 'legal'} 
                 style={{ color: isActive ? '#fff' : tool.color }} 
               />
@@ -339,10 +374,10 @@ const ToolCard = ({ tool, onToolSelect, index }) => {
           </div>
 
           <div className="space-y-0.5">
-            <h3 className={`text-[13px] sm:text-[14px] font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+            <h3 className={`text-[11px] sm:text-[14px] font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
               {tool.label}
             </h3>
-            <p className={`text-[9.5px] sm:text-[10px] leading-snug line-clamp-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            <p className={`hidden sm:block text-[9.5px] sm:text-[10px] leading-snug line-clamp-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               {tool.desc}
             </p>
           </div>
@@ -383,8 +418,8 @@ const ToolCard = ({ tool, onToolSelect, index }) => {
             </div>
 
             {/* Review Section */}
-            <div className="flex-1 p-2.5 flex flex-col justify-between bg-white/40 dark:bg-[#1a1e2e]/40 backdrop-blur-sm">
-              <div>
+            <div className="flex-1 p-1.5 sm:p-2.5 flex flex-col justify-between bg-white/40 dark:bg-[#1a1e2e]/40 backdrop-blur-sm">
+              <div className="hidden sm:block">
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-0.5">
                     {[...Array(5)].map((_, i) => (
@@ -411,7 +446,7 @@ const ToolCard = ({ tool, onToolSelect, index }) => {
                    e.stopPropagation();
                    onToolSelect(tool.id);
                  }}
-                 className="bg-primary text-white text-[8px] font-black uppercase tracking-widest py-1.5 rounded-lg flex items-center justify-center gap-2 shadow-lg shadow-primary/20 cursor-pointer"
+                 className="bg-primary text-white text-[8px] font-black uppercase tracking-widest py-1 sm:py-1.5 rounded-lg flex items-center justify-center gap-2 shadow-lg shadow-primary/20 cursor-pointer h-full sm:h-auto"
               >
                 <Zap size={9} fill="white" />
                 {t('liveTry')}
@@ -488,9 +523,9 @@ const FuturisticToolCards = ({ onToolSelect, activeToolId, isAdmin = false }) =>
   };
 
   return (
-    <div className="w-full py-2 sm:py-4 px-2 sm:px-3 flex justify-center" ref={ref}>
+    <div className="w-full py-4 sm:py-8 px-4 sm:px-6 flex flex-col items-center gap-4 sm:gap-8" ref={ref}>
       <motion.div
-        className="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4 max-w-6xl"
+        className="w-full grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-8 max-w-7xl"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
