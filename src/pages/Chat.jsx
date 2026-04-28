@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Send, SendHorizontal, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe, Sliders, PlayCircle, Brain, ImagePlus, PlaySquare, RefreshCcw, TrendingUp, Zap, Gavel, Navigation, Rocket, Megaphone, Scale, ArrowLeft, ChevronRight, Briefcase, Calendar, Users, FolderOpen, Save, Sun, Moon } from 'lucide-react';
 import LegalLogo from '../Components/LegalLogo';
+import CaseIntelligencePanel from '../Components/Legal/CaseIntelligencePanel';
 import { logo } from '../constants';
 import { renderAsync } from 'docx-preview';
 import * as XLSX from 'xlsx';
@@ -494,6 +495,15 @@ const Chat = () => {
   const [showHistory, setShowHistory] = useState(false);
   const messagesEndRef = useRef(null);
   const [currentSessionId, setCurrentSessionId] = useState(sessionId || 'new');
+  useEffect(() => {
+    window.handleAisaAction = (text) => {
+      handleSendMessage(null, text);
+    };
+    return () => {
+      delete window.handleAisaAction;
+    };
+  }, []);
+
   const [tglState, setTglState] = useRecoilState(toggleState);
   const [memory, setMemoryRecoil] = useRecoilState(memoryData);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -730,6 +740,21 @@ const Chat = () => {
   const isManualStopRef = useRef(false); // Track manual stop to avoid recursive loops
   const isDetectionPausedRef = useRef(false); // Pause detection after explicit dismissal
   const [currentProjectId, setCurrentProjectId] = useRecoilState(activeProjectIdData);
+  
+  // Listen for 'forceGlobal' navigation state to reset case context
+  useEffect(() => {
+    if (location.state?.forceGlobal) {
+      console.log("[Navigation] Force Global Dashboard requested. Resetting context.");
+      setCurrentProjectId('default');
+      setCurrentCase(null);
+      setCurrentMode('NORMAL_CHAT');
+      setSelectedLegalTool(null);
+      
+      // Clear the state so it doesn't re-fire on other renders
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate, setCurrentProjectId, setCurrentMode, setSelectedLegalTool]);
+
   const [intentSuggestion, setIntentSuggestion] = useState(null);
   const [isIntentLoading, setIsIntentLoading] = useState(false);
   const [expandedMessageIds, setExpandedMessageIds] = useState(new Set());
@@ -842,9 +867,17 @@ const Chat = () => {
         }
       } else {
         const newCase = await apiService.createProject(payload);
-        toast.success("Case created successfully!", { id: tid });
-        // Select the new case and switch to chat
-        handleOpenCase(newCase, true); // Added true for 'isNew' flag
+        
+        // Step 4: Auto Analyze Flow
+        try {
+          const analyzedCase = await apiService.analyzeProject(newCase._id);
+          toast.success("Case created and analyzed!", { id: tid });
+          handleOpenCase(analyzedCase, true);
+        } catch (err) {
+          console.error("Auto-analyze failed:", err);
+          toast.success("Case created successfully!", { id: tid });
+          handleOpenCase(newCase, true);
+        }
       }
 
       setIsNewCaseModalOpen(false);
@@ -879,10 +912,10 @@ const Chat = () => {
           content: `Welcome to the legal workspace for **${c.name}**. I've initialized your case folder. \n\nHow would you like to proceed?`,
           timestamp: Date.now(),
           suggestions: [
-            "🔍 Analyze Case Details",
-            "📄 Draft Initial Notice",
-            "⚖️ Predict Case Outcome",
-            "📅 Generate Timeline"
+            "⚖️ Open Case Intelligence",
+            "🔍 Auto-Analyze Case",
+            "📄 Draft Legal Notice",
+            "📅 View Timeline"
           ]
         }]);
       }, 500);
@@ -1152,28 +1185,33 @@ const Chat = () => {
 
                     <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1 whitespace-nowrap">Case Type</label>
-                      <select
-                        value={newCaseForm.caseType}
-                        onChange={e => {
-                          const val = e.target.value;
-                          setNewCaseForm({
-                            ...newCaseForm,
-                            caseType: val,
-                            otherCaseType: val === 'Other' ? newCaseForm.otherCaseType : ''
-                          });
-                        }}
-                        className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-bold appearance-none cursor-pointer"
-                      >
-                        <option value="">Select Case Type</option>
-                        <option value="Civil Case">Civil Case</option>
-                        <option value="Criminal Case">Criminal Case</option>
-                        <option value="Divorce Case">Divorce Case</option>
-                        <option value="Property Dispute">Property Dispute</option>
-                        <option value="Corporate Legal">Corporate Legal</option>
-                        <option value="Consumer Court">Consumer Court</option>
-                        <option value="Labor Dispute">Labor Dispute</option>
-                        <option value="Other">Other</option>
-                      </select>
+                      <div className="relative group">
+                        <select
+                          value={newCaseForm.caseType}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setNewCaseForm({
+                              ...newCaseForm,
+                              caseType: val,
+                              otherCaseType: val === 'Other' ? newCaseForm.otherCaseType : ''
+                            });
+                          }}
+                          className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-bold appearance-none cursor-pointer"
+                        >
+                          <option value="">Select Case Type</option>
+                          <option value="Civil Case">Civil Case</option>
+                          <option value="Criminal Case">Criminal Case</option>
+                          <option value="Divorce Case">Divorce Case</option>
+                          <option value="Property Dispute">Property Dispute</option>
+                          <option value="Corporate Legal">Corporate Legal</option>
+                          <option value="Consumer Court">Consumer Court</option>
+                          <option value="Labor Dispute">Labor Dispute</option>
+                          <option value="Other">Other</option>
+                        </select>
+                        <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-subtext group-focus-within:text-indigo-500 transition-colors">
+                          <ChevronDown size={18} strokeWidth={3} />
+                        </div>
+                      </div>
 
                       <AnimatePresence>
                         {newCaseForm.caseType === 'Other' && (
@@ -1247,6 +1285,14 @@ const Chat = () => {
         return;
       }
 
+      // Validate MongoDB ObjectId format (24 hex chars) before calling API
+      const isValidObjectId = /^[a-f\d]{24}$/i.test(currentProjectId);
+      if (!isValidObjectId) {
+        console.warn(`[Case] Invalid project ID format, clearing: ${currentProjectId}`);
+        setCurrentProjectId(null);
+        return;
+      }
+
       // Optimization: If currentCase already has the right project, just ensure mode is correct and skip fetch
       if (currentCase?._id === currentProjectId) {
         if (currentCase.isLegalCase && currentMode !== 'LEGAL_TOOLKIT') {
@@ -1261,28 +1307,33 @@ const Chat = () => {
         const response = await apiService.getProject(currentProjectId);
         if (response) {
           setCurrentCase(response);
-          // If the project is a legal case, we automatically open the legal toolkit and its specific view
           if (response.isLegalCase) {
             setCurrentMode('LEGAL_TOOLKIT');
             setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
             setLegalView('CHAT');
 
-            // If we are currently on a 'new' chat path, try to auto-navigate to history
             if (location.pathname === '/dashboard/chat/new') {
               try {
                 const caseSessions = await chatStorageService.getSessions(currentProjectId);
                 if (Array.isArray(caseSessions) && caseSessions.length > 0) {
-                  const lastSession = caseSessions[0];
-                  navigate(`/dashboard/chat/${lastSession.sessionId}`);
+                  navigate(`/dashboard/chat/${caseSessions[0].sessionId}`);
                 }
               } catch (sessionErr) {
-                console.error("Failed to fetch case sessions for auto-navigation:", sessionErr);
+                console.error("Failed to fetch case sessions:", sessionErr);
               }
             }
           }
         }
       } catch (err) {
-        console.error("Failed to fetch case details:", err);
+        if (err?.response?.status === 404) {
+          // Stale project ID — clear it from state
+          console.warn(`[Case] Project ${currentProjectId} not found (404). Clearing stale ID.`);
+          setCurrentProjectId(null);
+          setCurrentCase(null);
+          setCurrentMode('NORMAL_CHAT');
+        } else {
+          console.error("Failed to fetch case details:", err);
+        }
       }
     };
     fetchCaseDetails();
@@ -1350,7 +1401,7 @@ const Chat = () => {
     }
 
     // Heuristic: Check for action keywords before calling expensive LLM
-    const actionKeywords = ['make', 'create', 'search', 'find', 'convert', 'write', 'draw', 'video', 'music', 'banao', 'dalo', 'edit', 'animate', 'code', 'optimize', 'debug', 'refactor', 'script'];
+    const actionKeywords = ['make', 'create', 'search', 'find', 'convert', 'write', 'draw', 'video', 'music', 'banao', 'dalo', 'edit', 'animate', 'code', 'optimize', 'debug', 'refactor', 'script', 'legal', 'notice', 'draft', 'agreement', 'affidavit', 'case', 'court', 'analyze', 'summarize'];
     const hasKeyword = actionKeywords.some(k => text.toLowerCase().includes(k));
     if (!hasKeyword) return;
 
@@ -3584,13 +3635,9 @@ const Chat = () => {
         // This ensures the mode stays active as requested by the user until manually cancelled.
         if (!currentProjectId || currentProjectId === 'default' || currentProjectId === 'all') {
           setCurrentCase(null);
-          // Only reset if NOT in legal mode or if explicitly requested elsewhere
-          if (currentMode !== 'LEGAL_TOOLKIT') {
-            setCurrentMode('NORMAL_CHAT');
-            setSelectedLegalTool(null);
-          }
+          setCurrentMode('NORMAL_CHAT');
+          setSelectedLegalTool(null);
         } else if (currentCase?.isLegalCase) {
-
           // Ensure legal mode is maintained for legal cases
           setCurrentMode('LEGAL_TOOLKIT');
           setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
@@ -3662,14 +3709,19 @@ const Chat = () => {
   };
 
   const scrollToBottom = (force = false, behavior = 'auto') => {
-    if ((force || shouldAutoScrollRef.current) && chatContainerRef.current) {
-      const { scrollHeight, clientHeight } = chatContainerRef.current;
-      const maxScrollTop = Math.max(0, scrollHeight - clientHeight);
+    if (chatContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 350;
+      
+      shouldAutoScrollRef.current = isNearBottom;
 
-      if (behavior === 'smooth') {
-        chatContainerRef.current.scrollTo({ top: maxScrollTop + 100, behavior: 'smooth' }); // Add a bit of padding to be safe
-      } else {
-        chatContainerRef.current.scrollTop = maxScrollTop + 500; // Extra buffer to over-scroll
+      if (force || isNearBottom) {
+        const maxScrollTop = Math.max(0, scrollHeight - clientHeight);
+        if (behavior === 'smooth') {
+          chatContainerRef.current.scrollTo({ top: maxScrollTop + 100, behavior: 'smooth' });
+        } else {
+          chatContainerRef.current.scrollTop = maxScrollTop + 500;
+        }
       }
     }
   };
@@ -3681,7 +3733,10 @@ const Chat = () => {
   }, [messages, isLoading]);
 
   const handleNewChat = async () => {
-    navigate('/dashboard/chat/new');
+    setCurrentProjectId('default');
+    setCurrentMode('NORMAL_CHAT');
+    setSelectedLegalTool(null);
+    navigate('/dashboard/chat/new', { state: { forceGlobal: true } });
     setShowHistory(false);
   };
 
@@ -3707,6 +3762,46 @@ const Chat = () => {
   const isSendingRef = useRef(false);
 
 
+  const activateToolWithTypingEffect = (toolKey, toolName) => {
+    setCurrentMode('LEGAL_TOOLKIT');
+    
+    const TOOL_NAMES = {
+      legal_draft_maker: "Draft Maker",
+      legal_case_predictor: "Case Predictor",
+      legal_argument_builder: "Argument Builder",
+      legal_evidence_checker: "Evidence Analyst",
+      legal_contract_analyzer: "Contract Analyzer",
+      legal_strategy_engine: "Strategy Engine",
+      legal_case_law_research: "Research Assistant",
+      legal_compliance_checker: "Compliance Checker"
+    };
+    const finalToolName = toolName || TOOL_NAMES[toolKey] || toolKey;
+    
+    if (selectedLegalTool?.id !== 'legal_my_case') {
+      setSelectedLegalTool({ id: toolKey, name: finalToolName });
+    }
+    setActiveTool(finalToolName);
+
+    inputRef.current?.focus();
+
+    const successMsg = (currentCase && selectedLegalTool?.id === 'legal_my_case')
+      ? `✅ ${finalToolName} activated for ${currentCase.clientName || 'this case'} ✨`
+      : `✅ AI Legal Activated: ${finalToolName} ✨`;
+
+    toast.success(successMsg, {
+      position: 'top-right',
+      style: {
+        background: '#F0FDF4',
+        color: '#166534',
+        borderRadius: '16px',
+        padding: '16px 24px',
+        fontWeight: 'bold',
+        border: '1px solid #BBF7D0',
+        boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
+      }
+    });
+  };
+
   const handleSuggestionClick = (text) => {
     // 1. Check for Legal Tool Redirection
     if (currentProjectId && currentProjectId !== 'default') {
@@ -3727,22 +3822,9 @@ const Chat = () => {
       for (const [phrase, toolId] of Object.entries(toolMap)) {
         if (lowerText.includes(phrase)) {
           console.log(`[LegalRedirect] Redirecting to tool: ${toolId}`);
-
-          // Switch mode to Legal Toolkit
-          setCurrentMode('LEGAL_TOOLKIT');
-
-          // Find and select the tool in PREMIUM_TOOLS (imported or defined in LegalToolkitCard context)
-          // Actually, we can just set the active tool if we have access to the state
+          
           const legalTool = PREMIUM_TOOLS.find(t => t.id === toolId);
-          if (legalTool) {
-            setSelectedLegalTool(legalTool);
-            setActiveTool(legalTool.name);
-          }
-
-          toast.success(`Opening ${legalTool?.name || 'Legal Tool'}...`);
-
-          // Trigger the tool immediately with context
-          handleSendMessage(null, `Please proceed with ${legalTool?.name || text} using the current case context.`, toolId);
+          activateToolWithTypingEffect(toolId, legalTool?.name);
           return;
         }
       }
@@ -3777,6 +3859,22 @@ const Chat = () => {
 
     if (longTextPreview) setLongTextPreview(null);
     setIsAutoPreviewDisabled(false);
+
+    // --- LEGAL ACTION INTERCEPTORS ---
+    if (currentMode === 'LEGAL_TOOLKIT' && currentCase) {
+      if (contentToSend === "⚖️ Open Case Intelligence") {
+        setIsCasePanelOpen(true);
+        isSendingRef.current = false;
+        return;
+      }
+      if (contentToSend === "🔍 Auto-Analyze Case") {
+        setIsCasePanelOpen(true);
+        // We can't easily trigger the button inside the component from here, 
+        // but opening the panel is the first step.
+        isSendingRef.current = false;
+        return;
+      }
+    }
 
     // LOCK IMMEDIATELY
     isGlobalSending = true;
@@ -3905,10 +4003,22 @@ const Chat = () => {
       // Handle AI Legal Mode (Specific Tool Execution)
       const isLegalOverride = toolOverride && toolOverride.startsWith('legal_');
       if ((currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool) || isLegalOverride) {
-        const activeToolId = isLegalOverride ? toolOverride : selectedLegalTool.id;
-        const activeToolName = isLegalOverride ?
+        let activeToolId = isLegalOverride ? toolOverride : selectedLegalTool.id;
+        let activeToolName = isLegalOverride ?
           (toolOverride.replace('legal_', '').split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')) :
           selectedLegalTool.name;
+
+        // Smart Tool Routing: If in general case assistant but requesting a specific draft/notice
+        if (activeToolId === 'legal_my_case') {
+          const lowerMsg = contentToSend.toLowerCase();
+          if (lowerMsg.includes('notice') || lowerMsg.includes('legal notice')) {
+            activeToolId = 'legal_notice_generator';
+            activeToolName = 'Legal Notice';
+          } else if (lowerMsg.includes('draft') || lowerMsg.includes('agreement') || lowerMsg.includes('affidavit')) {
+            activeToolId = 'legal_draft_maker';
+            activeToolName = 'Draft Maker';
+          }
+        }
 
         setLoadingText(`${activeToolName}... ⚖️`);
         try {
@@ -3916,7 +4026,9 @@ const Chat = () => {
           const newUserMsg = {
             id: userMsgId,
             role: 'user',
-            content: contentToSend,
+            content: (contentToSend === 'legal drafting engine' || contentToSend === 'DRAFT NOTICE') 
+              ? 'Drafting Legal Notice for the case... 📄⚖️' 
+              : contentToSend,
             timestamp: new Date(),
             attachments: filePreviews.map(fp => ({
               url: fp.url,
@@ -3927,6 +4039,7 @@ const Chat = () => {
             }))
           };
           setMessages(prev => [...prev, newUserMsg]);
+          setTimeout(() => scrollToBottom(true, 'smooth'), 50);
           setInputValue('');
           handleRemoveFile();
 
@@ -3944,18 +4057,52 @@ const Chat = () => {
 
           if (res.data.success) {
             const aiMsgId = (Date.now() + 1).toString();
+            const fullReply = res.data.reply;
+            
             const aiMsg = {
               id: aiMsgId,
               role: 'model',
-              content: res.data.reply,
+              content: '', // Start empty for typewriter effect
               timestamp: new Date(),
               toolUsed: res.data.toolUsed || activeToolId,
               mode: MODES.LEGAL_TOOLKIT
             };
+            
             if (res.data.toolUsed) setActiveTool(res.data.toolUsed);
             setMessages(prev => [...prev, aiMsg]);
+            setTypingMessageId(aiMsgId);
+            
+            // ⚖️ CHUNK-BY-CHUNK STREAMING LOGIC FOR LEGAL TOOLS
+            // Split by newlines or sentences to simulate realistic reading/typing flow
+            const chunks = fullReply.match(/.*?[.\n!?](?:\s|$)|.+/g) || [fullReply];
+            let displayedContent = '';
+            
+            isStreamingRef.current = true;
+            
+            for (let i = 0; i < chunks.length; i++) {
+              if (!isSendingRef.current) break;
+              
+              displayedContent += chunks[i];
+              setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: displayedContent } : m));
+              
+              // Delay: simulate real-time typing (NOT instant) per chunk
+              const delay = Math.min(400, Math.max(80, chunks[i].length * 3));
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+            
+            isStreamingRef.current = false;
+            setTypingMessageId(null);
+            
+            if (!isSendingRef.current) {
+              setIsLoading(false);
+              return;
+            }
+            
+            const finalAiMsg = { ...aiMsg, content: fullReply };
+            setMessages(prev => prev.map(m => m.id === aiMsgId ? finalAiMsg : m));
+
             await chatStorageService.saveMessage(activeSessionId, newUserMsg, null, currentProjectId);
-            await chatStorageService.saveMessage(activeSessionId, aiMsg, null, currentProjectId);
+            await chatStorageService.saveMessage(activeSessionId, finalAiMsg, null, currentProjectId);
             refreshSubscription();
           } else {
             throw new Error(res.data.error || 'Execution failed');
@@ -6545,12 +6692,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                                     return;
                                                   }
 
-                                                  setSelectedLegalTool({ id: toolKey, name: toolName });
-                                                  setActiveTool(toolName);
-
-                                                  setTimeout(() => {
-                                                    handleSendMessage(null, `Please proceed with ${toolName} using the current case context. Generate the full response for this task immediately without asking for further details if possible.`, toolKey);
-                                                  }, 150);
+                                                  activateToolWithTypingEffect(toolKey, toolName);
                                                 }}
                                                 className={`inline-flex mt-2 items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0 ${isLocked ? 'bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20' : 'bg-gradient-to-r from-primary/10 to-primary-dark/10 border border-primary/20 text-primary hover:bg-primary/20 hover:border-primary/40'}`}
                                               >
@@ -8200,21 +8342,21 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             {(activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') && (
                               <motion.div
                                 initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                className="flex flex-row items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
+                                className="flex flex-row items-center gap-1.5 sm:gap-2.5 px-2 py-1 sm:px-3 sm:py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-[9px] sm:text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
                               >
-                                <div className="flex flex-row items-center gap-2">
-                                  <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
-                                    <LegalLogo size={14} showText={false} color="white" />
+                                <div className="flex flex-row items-center gap-1.5 sm:gap-2">
+                                  <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
+                                    <LegalLogo size={12} showText={false} color="white" />
                                   </div>
                                   <span
-                                    className="uppercase tracking-wide text-[10px] font-black truncate max-w-[120px] cursor-pointer hover:text-primary transition-colors"
+                                    className="uppercase tracking-wide text-[8px] sm:text-[10px] font-black truncate max-w-[80px] sm:max-w-[120px] cursor-pointer hover:text-primary transition-colors"
                                     onClick={() => setActiveLegalToolkit(true)}
                                     title="Open AI Legal Toolkit"
                                   >
-                                    AI Legal
-                                    {(selectedLegalTool || activeTool) && (
+                                    {currentCase ? 'My Case' : 'AI Legal'}
+                                    {((selectedLegalTool && selectedLegalTool?.id !== 'legal_my_case') || activeTool) && (
                                       <span className="opacity-70 ml-1.5 font-bold border-l border-primary/30 pl-1.5">
-                                        {(selectedLegalTool?.name || selectedLegalTool || activeTool)}
+                                        {selectedLegalTool?.id !== 'legal_my_case' && selectedLegalTool ? selectedLegalTool.name : activeTool}
                                       </span>
                                     )}
                                   </span>
@@ -8227,9 +8369,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                     setSelectedLegalTool(null);
                                     setActiveTool(null);
                                   }}
-                                  className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary dark:text-primary transition-all hover:rotate-90"
+                                  className="ml-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary dark:text-primary transition-all hover:rotate-90"
                                 >
-                                  <X size={14} strokeWidth={3} />
+                                  <X size={12} strokeWidth={3} />
                                 </button>
                               </motion.div>
                             )}
@@ -8240,14 +8382,14 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
                                 onClick={() => setIsCasePanelOpen(!isCasePanelOpen)}
-                                className="flex items-center gap-2.5 px-4 py-1.5 bg-gradient-to-r from-primary to-primary-dark text-white rounded-full text-xs font-bold shadow-lg shadow-primary/30 cursor-pointer hover:scale-105 active:scale-95 transition-all whitespace-nowrap shrink-0 group"
+                                className="flex items-center gap-1.5 sm:gap-2.5 px-2.5 py-1 sm:px-4 sm:py-1.5 bg-gradient-to-r from-primary to-primary-dark text-white rounded-full text-[9px] sm:text-xs font-bold shadow-lg shadow-primary/30 cursor-pointer hover:scale-105 active:scale-95 transition-all whitespace-nowrap shrink-0 group"
                               >
-                                <Briefcase size={14} className="group-hover:rotate-12 transition-transform" />
+                                <Briefcase size={12} className="sm:w-[14px] sm:h-[14px] group-hover:rotate-12 transition-transform" />
                                 <div className="flex flex-col items-start leading-none gap-0.5">
-                                  <span className="text-[8px] font-black uppercase tracking-widest opacity-80">ACTIVE CASE</span>
-                                  <span className="text-[10px] font-bold truncate max-w-[100px]">{currentCase.clientName || 'Untitled Case'}</span>
+                                  <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest opacity-80">ACTIVE CASE</span>
+                                  <span className="text-[9px] sm:text-[10px] font-bold truncate max-w-[60px] sm:max-w-[100px]">{currentCase.clientName || 'Untitled Case'}</span>
                                 </div>
-                                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse ml-1" />
+                                <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-green-400 animate-pulse ml-0.5 sm:ml-1" />
                               </motion.div>
                             )}
                             {isMagicEditing && (
@@ -9205,23 +9347,12 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
               return;
             }
 
-            setSelectedLegalTool({ id: tool.id, name: tool.name });
-            setCurrentMode('LEGAL_TOOLKIT');
+            // If we are currently inside a specific case (My Case context), stay in that context visually
+            // rather than switching to a generic tool card.
+            activateToolWithTypingEffect(tool.id, tool.name);
+            
             setLegalView('CHAT'); // Ensure chat view is active for specific tools
             setActiveLegalToolkit(false);
-            if (inputRef.current) inputRef.current.focus();
-            toast.success(`✅ AI Legal Activated: ${tool.name} ✨`, {
-              position: 'top-right',
-              style: {
-                background: '#F0FDF4',
-                color: '#166534',
-                borderRadius: '16px',
-                padding: '16px 24px',
-                fontWeight: 'bold',
-                border: '1px solid #BBF7D0',
-                boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
-              }
-            });
           }}
         />
       </React.Suspense>
@@ -9245,176 +9376,17 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         sessionTitle={messages[0]?.content || "Shared Chat"}
         sessionId={currentSessionId}
       />
-      {/* My Case CRM Panel */}
-      <AnimatePresence>
-        {isCasePanelOpen && currentCase && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsCasePanelOpen(false)}
-              className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[110]"
-            />
-
-            {/* Slide-out Panel */}
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white dark:bg-zinc-900 shadow-2xl z-[120] flex flex-col border-l border-border"
-            >
-              {/* Header */}
-              <div className="p-6 border-b border-border bg-gradient-to-r from-indigo-600 to-blue-600 text-white flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-white/20 rounded-xl">
-                    <Briefcase className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-black tracking-tight leading-none">Case Intelligence</h2>
-                    <p className="text-[10px] uppercase font-bold tracking-widest opacity-80 mt-1">My Case CRM Folder</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setIsCasePanelOpen(false)}
-                  className="p-2 hover:bg-white/20 rounded-full transition-colors"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              {/* Form Content */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-                {/* Client Name */}
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Client Name</label>
-                  <input
-                    type="text"
-                    value={currentCase.clientName || ''}
-                    onChange={(e) => setCurrentCase({ ...currentCase, clientName: e.target.value })}
-                    placeholder="Enter client name..."
-                    className="w-full bg-slate-50 dark:bg-black/20 border border-border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
-                  />
-                </div>
-
-                {/* Case Summary */}
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Case Summary</label>
-                  <textarea
-                    value={currentCase.caseSummary || ''}
-                    onChange={(e) => setCurrentCase({ ...currentCase, caseSummary: e.target.value })}
-                    placeholder="Briefly describe the case background..."
-                    rows={4}
-                    className="w-full bg-slate-50 dark:bg-black/20 border border-border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none resize-none"
-                  />
-                </div>
-
-                {/* Key Issues */}
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Key Legal Issues</label>
-                  <textarea
-                    value={currentCase.keyIssue || ''}
-                    onChange={(e) => setCurrentCase({ ...currentCase, keyIssue: e.target.value })}
-                    placeholder="List the primary legal questions or points of law..."
-                    rows={3}
-                    className="w-full bg-slate-50 dark:bg-black/20 border border-border rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none resize-none"
-                  />
-                </div>
-
-                {/* Important Dates */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between ml-1">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-subtext">Important Dates</label>
-                    <button
-                      onClick={() => {
-                        const dates = currentCase.importantDates || [];
-                        setCurrentCase({
-                          ...currentCase,
-                          importantDates: [...dates, { label: 'Hearing', date: new Date().toISOString() }]
-                        });
-                      }}
-                      className="text-[10px] font-bold text-primary hover:underline"
-                    >
-                      + Add Date
-                    </button>
-                  </div>
-
-                  <div className="space-y-2">
-                    {(currentCase.importantDates || []).map((d, index) => (
-                      <div key={index} className="flex gap-2 items-center bg-slate-50 dark:bg-black/20 p-2 rounded-xl border border-border">
-                        <input
-                          type="text"
-                          value={d.label}
-                          onChange={(e) => {
-                            const newDates = [...currentCase.importantDates];
-                            newDates[index] = { ...newDates[index], label: e.target.value };
-                            setCurrentCase({ ...currentCase, importantDates: newDates });
-                          }}
-                          className="flex-1 bg-transparent border-0 text-[11px] font-bold focus:ring-0 outline-none px-2"
-                        />
-                        <input
-                          type="date"
-                          value={d.date ? new Date(d.date).toISOString().split('T')[0] : ''}
-                          onChange={(e) => {
-                            const newDates = [...currentCase.importantDates];
-                            newDates[index] = { ...newDates[index], date: e.target.value };
-                            setCurrentCase({ ...currentCase, importantDates: newDates });
-                          }}
-                          className="bg-transparent border-0 text-[11px] focus:ring-0 outline-none"
-                        />
-                        <button
-                          onClick={() => {
-                            const newDates = currentCase.importantDates.filter((_, i) => i !== index);
-                            setCurrentCase({ ...currentCase, importantDates: newDates });
-                          }}
-                          className="p-1 hover:text-red-500"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    ))}
-                    {(!currentCase.importantDates || currentCase.importantDates.length === 0) && (
-                      <div className="text-center py-4 bg-slate-50/50 dark:bg-black/10 rounded-xl border border-dashed border-border">
-                        <p className="text-[10px] text-subtext font-medium italic">No dates tracked yet.</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="p-6 border-t border-border bg-slate-50/80 dark:bg-black/20 backdrop-blur-md">
-                <button
-                  onClick={async () => {
-                    const tid = toast.loading("Saving Case Intelligence...");
-                    try {
-                      await apiService.updateProject(currentProjectId, currentCase);
-                      toast.success("Case details synchronized!", { id: tid });
-                      setIsCasePanelOpen(false);
-
-                      // Inject knowledge into chat - simple message from AI
-                      setMessages(prev => [...prev, {
-                        id: `case-update-${Date.now()}`,
-                        role: 'model',
-                        content: `✅ **Case Details Updated.** I have synchronized the repository for **${currentCase.clientName}**. \n\nI am now better prepared to assist you with the specific legal issues and summary provided. How would you like to proceed?`,
-                        timestamp: Date.now()
-                      }]);
-                    } catch (err) {
-                      toast.error("Failed to sync case data.", { id: tid });
-                    }
-                  }}
-                  className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-sm shadow-xl shadow-indigo-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
-                >
-                  <Save className="w-5 h-5" />
-                  <span>Synchronize Case Folder</span>
-                </button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      {/* My Case Intelligence Dashboard Panel */}
+      <CaseIntelligencePanel
+        isOpen={isCasePanelOpen}
+        onClose={() => setIsCasePanelOpen(false)}
+        currentCase={currentCase}
+        onUpdate={(updated) => {
+          setCurrentCase(updated);
+          // Sync with the legalCases list if needed
+          setLegalCases(prev => prev.map(c => c._id === updated._id ? updated : c));
+        }}
+      />
     </div>
 
   );

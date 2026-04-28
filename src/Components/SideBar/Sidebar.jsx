@@ -44,6 +44,7 @@ import { clearUser, getUserData, setUserData, toggleState, userData, sessionsDat
 import axios from 'axios';
 import { useLanguage } from '../../context/LanguageContext';
 import { useTheme } from '../../context/ThemeContext';
+import { usePersonalization } from '../../context/PersonalizationContext';
 
 
 import { chatStorageService } from '../../services/chatStorageService';
@@ -62,6 +63,7 @@ import DeleteConfirmModal from '../DeleteConfirmModal.jsx';
 const Sidebar = ({ isOpen, onClose }) => {
   const { t } = useLanguage();
   const { theme, setTheme } = useTheme();
+  const { addNotification } = usePersonalization();
 
   const getFlagUrl = (code) => `https://flagcdn.com/w40/${code.toLowerCase()}.png`;
 
@@ -175,7 +177,38 @@ const Sidebar = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (token) {
       apiService.getProjects().then(data => {
-        setProjects(Array.isArray(data) ? data : []);
+        const projectsData = Array.isArray(data) ? data : [];
+        setProjects(projectsData);
+
+        // Check for hearing reminders
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        projectsData.forEach(p => {
+          if (p.isLegalCase && p.hearings) {
+            p.hearings.forEach(h => {
+              if (h.status !== 'Upcoming') return;
+              const hDate = new Date(h.date);
+              hDate.setHours(0, 0, 0, 0);
+
+              if (hDate.getTime() === today.getTime()) {
+                addNotification({
+                  title: `Hearing Today: ${p.name}`,
+                  desc: `Scheduled for ${h.time || 'today'} at ${h.courtName || 'Court'}.`,
+                  type: 'alert'
+                });
+              } else if (hDate.getTime() === tomorrow.getTime()) {
+                addNotification({
+                  title: `Upcoming Hearing Tomorrow`,
+                  desc: `Case: ${p.name}. Location: ${h.location || h.courtName || 'Scheduled Court'}.`,
+                  type: 'info'
+                });
+              }
+            });
+          }
+        });
       }).catch(err => console.error("Failed to fetch projects:", err));
     }
   }, [token]);
@@ -257,20 +290,29 @@ const Sidebar = ({ isOpen, onClose }) => {
       setIsCreatingProject(false);
       setIsCreatingCase(false);
       setNewProjectName('');
-      toast.success(isLegal ? "Case created successfully!" : "Project created successfully!");
+      toast.success(isLegal ? t('caseCreated') : t('projectCreated'));
       navigate('/dashboard/chat/new');
     } catch (err) {
       console.error("Failed to create:", err);
-      toast.error(isLegal ? "Failed to create case" : "Failed to create project");
+      toast.error(isLegal ? t('failedToCreateCase') : t('failedToCreateProject'));
     }
   };
 
   const handleNewChat = () => {
+    const isInsideCase = projects.find(p => p._id === currentProjectId)?.isLegalCase;
+
     // Reset to global context
     setCurrentProjectId('default');
-    // Don't force reset mode here, let it persist if user hasn't cancelled it
-    navigate('/dashboard/chat/new');
-    onClose();
+
+    if (isInsideCase) {
+      // If we were inside a case, force reset to Global AI Dashboard
+      setMode('NORMAL_CHAT');
+      setLegalTool(null);
+    }
+
+    // Navigate to fresh chat with forceGlobal flag to ensure context reset
+    navigate('/dashboard/chat/new', { state: { forceGlobal: true } });
+    if (onClose) onClose();
   };
 
 
@@ -356,10 +398,12 @@ const Sidebar = ({ isOpen, onClose }) => {
     try {
       const updated = await apiService.renameProject(projectId, renameProjectName.trim());
       setProjects(prev => prev.map(p => p._id === projectId ? { ...p, name: updated.name } : p));
-      toast.success(t('projectRenamedSuccessfully'));
+      const isCase = projects.find(p => p._id === projectId)?.isLegalCase;
+      toast.success(isCase ? t('caseRenamedSuccessfully') : t('projectRenamedSuccessfully'));
     } catch (error) {
       console.error("Failed to rename project:", error);
-      toast.error(t('failedToRenameProject'));
+      const isCase = projects.find(p => p._id === projectId)?.isLegalCase;
+      toast.error(isCase ? t('failedToRenameCase') : t('failedToRenameProject'));
     } finally {
       setEditingProjectId(null);
     }
@@ -374,16 +418,17 @@ const Sidebar = ({ isOpen, onClose }) => {
   const confirmDeleteProject = async () => {
     if (!projectToDelete) return;
 
+    const isCase = projects.find(p => p._id === projectToDelete)?.isLegalCase;
     try {
       await apiService.deleteProject(projectToDelete);
       setProjects(prev => prev.filter(p => p._id !== projectToDelete));
       if (currentProjectId === projectToDelete) {
         handleSwitchProject(null);
       }
-      toast.success(t('projectDeletedSuccessfully'));
+      toast.success(isCase ? t('caseDeletedSuccessfully') : t('projectDeletedSuccessfully'));
     } catch (error) {
       console.error("Failed to delete project:", error);
-      toast.error(t('failedToDeleteProject'));
+      toast.error(isCase ? t('failedToDeleteCase') : t('failedToDeleteProject'));
     } finally {
       setIsDeleteModalOpen(false);
       setProjectToDelete(null);
@@ -720,7 +765,18 @@ const Sidebar = ({ isOpen, onClose }) => {
                                         : 'text-subtext hover:bg-white/20 dark:hover:bg-white/10 hover:text-maintext'}`}
                                     >
                                       <Folder className={`w-4 h-4 shrink-0 transition-transform duration-300 ${currentProjectId === p._id ? 'scale-110 text-primary ring-4 ring-primary/10 rounded-full' : 'group-hover/proj:scale-110'}`} />
-                                      <span className="truncate font-bold text-[13px] text-left pr-4">{highlightMatch(p.name, searchQuery)}</span>
+                                      <div className="flex flex-col items-start min-w-0 pr-4">
+                                        <span className="truncate font-bold text-[13px] text-left">{highlightMatch(p.name, searchQuery)}</span>
+                                        {(() => {
+                                          const today = new Date(); today.setHours(0,0,0,0);
+                                          const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+                                          const hasToday = p.hearings?.some(h => new Date(h.date).toDateString() === today.toDateString() && h.status === 'Upcoming');
+                                          if (hasToday) return <span className="text-[8px] font-black uppercase text-red-500 animate-pulse">🔴 Hearing Today</span>;
+                                          const hasTomorrow = p.hearings?.some(h => new Date(h.date).toDateString() === tomorrow.toDateString() && h.status === 'Upcoming');
+                                          if (hasTomorrow) return <span className="text-[8px] font-black uppercase text-amber-500">🟠 Tomorrow</span>;
+                                          return null;
+                                        })()}
+                                      </div>
                                     </button>
                                     <div className="absolute right-2 opacity-0 group-hover/proj:opacity-100 flex items-center gap-1 transition-all duration-300 translate-x-2 group-hover/proj:translate-x-0">
                                       <button onClick={(e) => { e.stopPropagation(); setEditingProjectId(p._id); setRenameProjectName(p.name); }} className="p-1.5 text-subtext hover:text-primary transition-all bg-white/10 rounded-lg border border-white/5 shadow-sm">
@@ -975,9 +1031,9 @@ const Sidebar = ({ isOpen, onClose }) => {
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={confirmDeleteProject}
-        title={t('deleteProjectTitle')}
-        description={t('deleteProjectDesc')}
-        confirmText={t('deleteProjectLabel')}
+        title={projects.find(p => p._id === projectToDelete)?.isLegalCase ? t('deleteCaseTitle') : t('deleteProjectTitle')}
+        description={projects.find(p => p._id === projectToDelete)?.isLegalCase ? t('deleteCaseDesc') : t('deleteProjectDesc')}
+        confirmText={projects.find(p => p._id === projectToDelete)?.isLegalCase ? t('deleteCaseLabel') : t('deleteProjectLabel')}
       />
 
       <ShareModal
