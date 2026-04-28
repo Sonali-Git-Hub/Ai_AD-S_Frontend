@@ -135,7 +135,7 @@ export const PersonalizationProvider = ({ children }) => {
     const markNotificationRead = async (id) => {
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
         try {
-            if (user?.token) {
+            if (user?.token && !id.startsWith('local_')) {
                 await axios.put(`${apis.notifications}/${id}/read`, {}, {
                     headers: { 'Authorization': `Bearer ${user.token}` }
                 });
@@ -143,6 +143,47 @@ export const PersonalizationProvider = ({ children }) => {
         } catch (error) {
             console.error('Failed to mark read', error);
         }
+    };
+
+    const addNotification = (notif) => {
+        // Prevent duplicate local notifications for the same thing today
+        const today = new Date().toDateString();
+        const isDuplicate = notifications.some(n => n.title === notif.title && new Date(n.time).toDateString() === today);
+        if (isDuplicate) return;
+
+        const newNotif = {
+            id: 'local_' + Date.now(),
+            time: new Date().toISOString(),
+            isRead: false,
+            type: 'alert',
+            ...notif
+        };
+        setNotifications(prev => [newNotif, ...prev]);
+        
+        toast.custom((tObj) => (
+            <div className={`${tObj.visible ? 'animate-enter' : 'animate-leave'} max-w-sm w-full bg-white dark:bg-zinc-900 shadow-2xl rounded-2xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 border border-indigo-500/20 overflow-hidden`}>
+                <div className="flex-1 w-0 p-4">
+                    <div className="flex items-start">
+                        <div className="ml-0 flex-1">
+                            <p className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <span className="text-indigo-500">⚖️</span> {notif.title}
+                            </p>
+                            <p className="mt-1 text-[10px] text-gray-500 dark:text-gray-400">
+                                {notif.desc}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div className="flex border-l border-gray-100 dark:border-white/5">
+                    <button
+                        onClick={() => toast.dismiss(tObj.id)}
+                        className="w-full border border-transparent rounded-none rounded-r-2xl px-4 flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/10 focus:outline-none"
+                    >
+                        Dismiss
+                    </button>
+                </div>
+            </div>
+        ), { duration: 6000 });
     };
 
 
@@ -406,6 +447,7 @@ export const PersonalizationProvider = ({ children }) => {
             isLoading,
             notifications,
             markNotificationRead,
+            addNotification,
             deleteNotification,
             clearAllNotifications,
             chatSessions,

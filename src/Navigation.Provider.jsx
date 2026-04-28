@@ -129,22 +129,23 @@ const DashboardLayout = () => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   // ─── Scroll Direction Logic for Auto-Hide Navbar ───
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(false); // hidden by default on mobile, reveals on scroll-up
   const lastScrollYRef = useRef(0); // useRef avoids stale closure in the scroll handler
   const scrollThreshold = 15; // px
 
   useEffect(() => {
     const handleScroll = (e) => {
-      // Only track scroll on the main scrollable areas to avoid interference from nested scrollable elements
-      const isDocument = e.target === document;
-      const isMain = e.target.tagName === 'MAIN';
-      const isChatContainer = e.target.classList && e.target.classList.contains('chatgpt-container');
+      // Only apply on mobile (lg and above use desktop sidebar — no mobile header)
+      if (window.innerWidth >= 1024) return;
 
-      if (!isDocument && !isMain && !isChatContainer) return;
+      // Get scroll position from any scrollable element
+      const target = e.target;
+      const currentScrollY =
+        target === document || target === document.documentElement
+          ? window.scrollY
+          : (target.scrollTop ?? 0);
 
-      const currentScrollY = isDocument ? window.scrollY : (e.target.scrollTop || 0);
-
-      // Always show header at the very top
+      // Always show header when at the very top
       if (currentScrollY < 10) {
         setIsVisible(true);
         lastScrollYRef.current = currentScrollY;
@@ -154,21 +155,15 @@ const DashboardLayout = () => {
       const diff = currentScrollY - lastScrollYRef.current;
 
       if (Math.abs(diff) > scrollThreshold) {
-        if (diff > 0) {
-          // Scrolling Down — hide header
-          setIsVisible(false);
-        } else {
-          // Scrolling Up — show header
-          setIsVisible(true);
-        }
+        setIsVisible(diff < 0); // true = scrolling up → show; false = scrolling down → hide
         lastScrollYRef.current = currentScrollY;
       }
     };
 
-    // Use capture: true to catch scroll events from any nested scrollable container (like Chat.jsx)
-    window.addEventListener('scroll', handleScroll, true);
-    return () => window.removeEventListener('scroll', handleScroll, true);
-  }, []); // Empty deps — lastScrollYRef is always current via ref, no re-registration needed
+    // capture: true catches scroll from ALL nested containers (Chat internal scroll, window, etc.)
+    window.addEventListener('scroll', handleScroll, { capture: true, passive: true });
+    return () => window.removeEventListener('scroll', handleScroll, { capture: true, passive: true });
+  }, []);
 
   // Sync CSS variable so child pages (Chat) can transition their top-padding in lockstep
   useEffect(() => {

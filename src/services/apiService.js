@@ -340,7 +340,7 @@ export const apiService = {
    * GPT-4 Prompt Engineering → Vertex AI Imagen 3/4 → GCS → Asset
    * Returns { jobId } immediately; poll getSocialAgentJobStatus for result.
    */
-  async generateVisualPost(workspaceId, calendarEntryId, modelId = 'imagen-3.0-generate-001', postFormat = 'single', aspectRatio = '1:1') {
+  async generateVisualPost(workspaceId, calendarEntryId, modelId = 'imagen-3.0-generate-001', postFormat = 'single', aspectRatio = '1:1', carouselCount = 3) {
     try {
       const response = await apiClient.post('/social-agent/generate/visual-post', {
         workspaceId,
@@ -348,6 +348,7 @@ export const apiService = {
         modelId,
         postFormat, // 'single' | 'carousel'
         aspectRatio, // '1:1' | '4:3' | '16:9' | '9:16'
+        carouselCount
       }, { timeout: 180000 }); // 3-min timeout — pipeline can take up to 90s
       return response.data;
     } catch (error) {
@@ -1487,13 +1488,11 @@ export const apiService = {
 
   async updateProject(projectId, data) {
     try {
-      const response = await apiClient.post(`/projects/${projectId}`, data);
-      return response.data;
-    } catch (error) {
-       // Support both PUT and POST if backend allows, but let's stick to update logic
-       // Wait, backend had router.put('/:id', ...). Let's use PUT as viewed.
       const response = await apiClient.put(`/projects/${projectId}`, data);
       return response.data;
+    } catch (error) {
+      console.error("Failed to update project:", error);
+      throw error;
     }
   },
 
@@ -1514,6 +1513,35 @@ export const apiService = {
       return response.data;
     } catch (error) {
       console.error("Failed to delete project:", error);
+      throw error;
+    }
+  },
+
+  async analyzeProject(projectId, rawText = null) {
+    try {
+      console.log(`[Frontend] Running AI analysis for project: ${projectId}`);
+      const response = await apiClient.post(`/projects/${projectId}/analyze`, { rawText });
+      console.log(`[Frontend] Analysis complete. Strength: ${response.data?.intelligence?.strengthScore}`);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] analyzeProject failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async autoAnalyzeCase(caseId, rawText = null) {
+    try {
+      console.log(`[Frontend] POST /api/projects/${caseId}/analyze`);
+      const response = await apiClient.post(`/projects/${caseId}/analyze`, { rawText });
+      console.log(`[Frontend] Auto-analyze success:`, {
+        strength: response.data?.intelligence?.strengthScore,
+        win: response.data?.intelligence?.winProbability,
+        tasks: response.data?.tasks?.length,
+        evidence: response.data?.evidence?.length,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] autoAnalyzeCase failed:', error?.response?.data || error.message);
       throw error;
     }
   }

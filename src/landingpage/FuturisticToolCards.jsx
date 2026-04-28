@@ -211,14 +211,13 @@ const ToolPreviewContent = ({ id, prompt, active }) => {
 
 /* ─── 3D Tilt Card ─────────────────────────────────────────── */
 
-const ToolCard = ({ tool, onToolSelect, index }) => {
+const ToolCard = ({ tool, onToolSelect, index, isFlipped, onFlip, onUnflip }) => {
   const { t } = useLanguage();
   const themeContext = useTheme();
   const theme = themeContext?.theme || 'dark';
   const isDark = theme.toLowerCase() === 'dark';
   const cardRef = useRef(null);
   const { icon: Icon } = tool;
-  const [isFlipped, setIsFlipped] = useState(false);
   
   // Mouse-tracked 3D tilt
   const x = useMotionValue(0);
@@ -248,18 +247,18 @@ const ToolCard = ({ tool, onToolSelect, index }) => {
 
   const handleMouseLeave = () => {
     x.set(0); y.set(0);
-    setIsFlipped(false);
+    onUnflip();
   };
 
   const handleMouseEnter = () => {
-      if (tool.comingSoon) return;
-      setIsFlipped(true);
+    if (tool.comingSoon) return;
+    onFlip();
   };
 
   const handleCardClick = () => {
     if (tool.comingSoon) return;
     if (!isFlipped) {
-      setIsFlipped(true);
+      onFlip();
     } else {
       onToolSelect(tool.id);
     }
@@ -485,6 +484,8 @@ const FuturisticToolCards = ({ onToolSelect, activeToolId, isAdmin = false }) =>
   const { t } = useLanguage();
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-60px' });
+  // Only one card can be flipped at a time
+  const [flippedCardId, setFlippedCardId] = useState(null);
 
   /* ─── Tools Data ───────────────────────────────── */
 
@@ -503,22 +504,8 @@ const FuturisticToolCards = ({ onToolSelect, activeToolId, isAdmin = false }) =>
     { id: 'aiad_agent', label: t('aiAds') || 'AI ADS™', badge: t('badgeAds') || 'ADS', desc: 'Social Media Orchestration', icon: Megaphone, color: '#eab308', prompt: "Generate a 30-day social media campaign for AISA...", review: { rating: 5, count: "18k", text: "Automated my entire month's content in under 5 minutes. The hashtags are perfectly optimized for trends." } },
   ];
 
-  // Map the visual tool IDs to the IDs used in state
   const getToolActiveStatus = (toolId) => {
     if (!activeToolId) return false;
-    // Map of library IDs to state IDs
-    const mapping = {
-       'image': 'isImageGeneration',
-       'video': 'isVideoGeneration',
-       'image_to_video': 'isMagicVideoModalOpen',
-       'edit_image': 'isMagicEditing',
-       'deep_search': 'isDeepSearch',
-       'web_search': 'isWebSearch',
-       'document': 'isFileAnalysis',
-       'code': 'isCodeWriter',
-       'audio': 'isAudioConvertMode',
-       'legal': 'activeLegalToolkit'
-    };
     return activeToolId === toolId;
   };
 
@@ -542,7 +529,13 @@ const FuturisticToolCards = ({ onToolSelect, activeToolId, isAdmin = false }) =>
                 active: getToolActiveStatus(tool.id)
               }}
               index={index}
-              onToolSelect={onToolSelect}
+              isFlipped={flippedCardId === tool.id}
+              onFlip={() => setFlippedCardId(tool.id)}
+              onUnflip={() => setFlippedCardId(prev => prev === tool.id ? null : prev)}
+              onToolSelect={(id) => {
+                setFlippedCardId(null); // collapse the card immediately on activation
+                onToolSelect(id);
+              }}
             />
           </motion.div>
         ))}
