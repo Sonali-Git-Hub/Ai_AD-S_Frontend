@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, Fragment } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Send, SendHorizontal, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe, Sliders, PlayCircle, Brain, ImagePlus, PlaySquare, RefreshCcw, TrendingUp, Zap, Gavel, Navigation, Rocket, Megaphone, Scale, ArrowLeft, ChevronRight, Briefcase, Calendar, Users, FolderOpen, Save, Sun, Moon } from 'lucide-react';
+import { Send, SendHorizontal, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe, Sliders, PlayCircle, Brain, ImagePlus, PlaySquare, RefreshCcw, TrendingUp, Zap, Gavel, Navigation, Rocket, Megaphone, Scale, ArrowLeft, ChevronRight, Briefcase, Calendar, Users, FolderOpen, Save, Sun, Moon, LayoutDashboard } from 'lucide-react';
 import LegalLogo from '../Components/LegalLogo';
 import CaseIntelligencePanel from '../Components/Legal/CaseIntelligencePanel';
 import { logo } from '../constants';
@@ -898,28 +898,13 @@ const Chat = () => {
       setCurrentMode('LEGAL_TOOLKIT');
       setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
       setLegalView('CHAT');
+      setIsCasePanelOpen(false); // Default to Workspace view (Screenshot 3) instead of opening the dashboard directly
     }
 
     // Clear messages for a fresh start when switching cases to prevent stale content
     setMessages([]);
 
-    // If it's a new case, show initial analysis suggestion
-    if (isNew) {
-      setTimeout(() => {
-        setMessages([{
-          id: Date.now().toString(),
-          role: 'model',
-          content: `Welcome to the legal workspace for **${c.name}**. I've initialized your case folder. \n\nHow would you like to proceed?`,
-          timestamp: Date.now(),
-          suggestions: [
-            "⚖️ Open Case Intelligence",
-            "🔍 Auto-Analyze Case",
-            "📄 Draft Legal Notice",
-            "📅 View Timeline"
-          ]
-        }]);
-      }, 500);
-    }
+
 
     // Load the most recent session for this case so history is preserved
     try {
@@ -1298,7 +1283,8 @@ const Chat = () => {
         if (currentCase.isLegalCase && currentMode !== 'LEGAL_TOOLKIT') {
           setCurrentMode('LEGAL_TOOLKIT');
           setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
-          setLegalView('CHAT');
+          // If we are already in a case, don't force-switch view to CHAT if they are in DASHBOARD
+          if (legalView !== 'DASHBOARD') setLegalView('CHAT');
         }
         return;
       }
@@ -3621,11 +3607,7 @@ const Chat = () => {
 
         if (processedHistory && processedHistory.length > 0) {
           const lastMsg = processedHistory[processedHistory.length - 1];
-          if (lastMsg.suggestions) {
-            setSuggestions(lastMsg.suggestions);
-          } else {
-            setSuggestions([]);
-          }
+          setSuggestions([]);
           console.log(`[DEBUG] First message role: ${processedHistory[0].role}, content preview: ${processedHistory[0].content?.substring(0, 20)}`);
         }
         setMessages(processedHistory);
@@ -3658,11 +3640,7 @@ const Chat = () => {
               const name = mem.name || user.name || "friend";
               const business = mem.businessType;
 
-              setSuggestions([
-                "Explain in simple terms",
-                "Give examples",
-                "Summarize this"
-              ]);
+              // setSuggestions removed as per user request
 
               // If critical info is missing, show onboarding
               if (!mem.name && !mem.businessType && sessionId === 'new') {
@@ -3785,7 +3763,7 @@ const Chat = () => {
     inputRef.current?.focus();
 
     const successMsg = (currentCase && selectedLegalTool?.id === 'legal_my_case')
-      ? `✅ ${finalToolName} activated for ${currentCase.clientName || 'this case'} ✨`
+      ? `✅ ${finalToolName} activated for ${currentCase?.clientName || 'this case'} ✨`
       : `✅ AI Legal Activated: ${finalToolName} ✨`;
 
     toast.success(successMsg, {
@@ -4382,7 +4360,7 @@ ${activeAgent.category ? `Your specialization is in ${activeAgent.category}.` : 
 
 ${currentCase ? `
 ### ACTIVE CASE CONTEXT (MY CASE CRM):
-- **Client Name**: ${currentCase.clientName || 'Not specified'}
+- **Client Name**: ${currentCase?.clientName || 'Not specified'}
 - **Case Summary**: ${currentCase.caseSummary || 'No summary provided yet.'}
 - **Key Issues**: ${currentCase.keyIssue || 'No specific issues identified.'}
 ${currentCase.importantDates && currentCase.importantDates.length > 0 ? `- **Important Dates**: ${currentCase.importantDates.map(d => `${d.label}: ${new Date(d.date).toLocaleDateString()}`).join(', ')}` : ''}
@@ -6421,7 +6399,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none truncate">{currentCase.name}</h2>
                               <p className="text-xs text-subtext font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
                                 <Users size={12} className="text-indigo-500" />
-                                {currentCase.clientName || 'Private Client'}
+                                {currentCase?.clientName || 'Private Client'}
                               </p>
                             </>
                           )}
@@ -7405,26 +7383,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     <p className="max-w-md text-subtext font-medium leading-relaxed mb-8">
                       This case is now active. You can analyze documents, predict outcomes, or draft legal papers specifically for this case.
                     </p>
-                    <div className="flex flex-wrap justify-center gap-3">
-                      <button
-                        onClick={() => {
-                          setInputValue("Analyze this case for me");
-                          inputRef.current?.focus();
-                        }}
-                        className="px-5 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:border-primary hover:text-primary transition-all shadow-sm"
-                      >
-                        Analyze Case
-                      </button>
-                      <button
-                        onClick={() => {
-                          setInputValue("Draft a legal summary for this case");
-                          inputRef.current?.focus();
-                        }}
-                        className="px-5 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:border-primary hover:text-primary transition-all shadow-sm"
-                      >
-                        Draft Summary
-                      </button>
-                    </div>
+
                   </div>
                 </div>
               )}
@@ -8381,15 +8340,19 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                onClick={() => setIsCasePanelOpen(!isCasePanelOpen)}
+                                onClick={() => {
+                                  setIsCasePanelOpen(true);
+                                  if (legalView !== 'CHAT') setLegalView('CHAT');
+                                }}
                                 className="flex items-center gap-1.5 sm:gap-2.5 px-2.5 py-1 sm:px-4 sm:py-1.5 bg-gradient-to-r from-primary to-primary-dark text-white rounded-full text-[9px] sm:text-xs font-bold shadow-lg shadow-primary/30 cursor-pointer hover:scale-105 active:scale-95 transition-all whitespace-nowrap shrink-0 group"
                               >
                                 <Briefcase size={12} className="sm:w-[14px] sm:h-[14px] group-hover:rotate-12 transition-transform" />
                                 <div className="flex flex-col items-start leading-none gap-0.5">
                                   <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest opacity-80">ACTIVE CASE</span>
-                                  <span className="text-[9px] sm:text-[10px] font-bold truncate max-w-[60px] sm:max-w-[100px]">{currentCase.clientName || 'Untitled Case'}</span>
+                                  <span className="text-[9px] sm:text-[10px] font-bold truncate max-w-[60px] sm:max-w-[100px]">{currentCase?.clientName || 'Untitled Case'}</span>
                                 </div>
                                 <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-green-400 animate-pulse ml-0.5 sm:ml-1" />
+                                <LayoutDashboard size={12} className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
                               </motion.div>
                             )}
                             {isMagicEditing && (

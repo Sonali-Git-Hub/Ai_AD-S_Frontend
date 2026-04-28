@@ -84,8 +84,13 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
   };
 
   // Robust mapping to handle both DB fields and potential raw AI keys
-  const strengthScore = caseData.intelligence?.strengthScore ?? caseData.case_strength ?? 0;
-  const winProbability = caseData.intelligence?.winProbability ?? caseData.win_probability ?? 0;
+  const rawStrength = caseData.intelligence?.strengthScore ?? caseData.case_strength ?? 0;
+  const rawWinProb = caseData.intelligence?.winProbability ?? caseData.win_probability ?? 0;
+
+  // Normalize scores: if they are <= 1 and > 0, assume they are decimals (e.g., 0.85 -> 85)
+  // This handles AI models that return normalized floats instead of percentages.
+  const strengthScore = (rawStrength > 0 && rawStrength <= 1) ? Math.round(rawStrength * 100) : rawStrength;
+  const winProbability = (rawWinProb > 0 && rawWinProb <= 1) ? Math.round(rawWinProb * 100) : rawWinProb;
 
   const strengthData = [
     { name: 'Strength', value: strengthScore },
@@ -102,6 +107,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
 
   const tabs = [
     { id: 'overview', name: 'Overview', icon: LayoutDashboard },
+    { id: 'communication', name: 'Communication', icon: MessageSquare },
     { id: 'hearings', name: 'Hearings', icon: Gavel },
     { id: 'parties', name: 'Parties', icon: Users },
     { id: 'timeline', name: 'Timeline', icon: History },
@@ -117,7 +123,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
       <div className="bg-slate-50 dark:bg-zinc-800/50 rounded-2xl p-5 border border-slate-200 dark:border-zinc-700/50">
         <div className="flex items-center gap-2 mb-3 text-indigo-600 dark:text-indigo-400">
           <FileText size={18} />
-          <h4 className="text-xs font-black uppercase tracking-wider">Executive Summary</h4>
+          <h4 className="text-xs font-black uppercase tracking-wider">Case Summary</h4>
         </div>
         <textarea
           value={caseData.caseSummary || ''}
@@ -224,24 +230,36 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
         />
       </div>
 
-      {/* Communication Logs */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between ml-1">
-          <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-            <MessageSquare size={18} />
-            <h4 className="text-xs font-black uppercase tracking-wider">Communication & Notes</h4>
-          </div>
-          <button 
-            onClick={() => setCaseData({...caseData, communicationLogs: [...(caseData.communicationLogs || []), {type: 'Note', date: new Date().toISOString(), summary: ''}]})}
-            className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline"
-          >
-            + Add Log
-          </button>
+    </div>
+  );
+
+  const renderCommunication = () => (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <div className="flex items-center justify-between mb-2 px-1">
+        <div>
+          <h3 className="text-lg font-black text-slate-800 dark:text-white">Communication Dashboard</h3>
+          <p className="text-[10px] font-bold text-subtext uppercase tracking-widest mt-1">Track all client interactions and internal case notes</p>
         </div>
-        <div className="space-y-3">
-          {(caseData.communicationLogs || []).map((log, i) => (
-            <div key={i} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm">
-               <div className="flex justify-between items-center mb-2">
+        <button 
+          onClick={() => setCaseData({...caseData, communicationLogs: [{type: 'Note', date: new Date().toISOString(), summary: ''}, ...(caseData.communicationLogs || [])]})}
+          className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all"
+        >
+          <Plus size={14} />
+          Add New Log
+        </button>
+      </div>
+
+      <div className="space-y-4">
+        {(caseData.communicationLogs || []).map((log, i) => (
+          <div key={i} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+            <div className={`absolute top-0 left-0 w-1 h-full ${
+              log.type === 'Call' ? 'bg-blue-500' : 
+              log.type === 'Email' ? 'bg-amber-500' : 
+              log.type === 'Meeting' ? 'bg-emerald-500' : 'bg-indigo-500'
+            }`} />
+            
+            <div className="flex justify-between items-center mb-4">
+               <div className="flex items-center gap-3">
                   <select 
                     value={log.type}
                     onChange={(e) => {
@@ -249,31 +267,47 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
                       newLogs[i].type = e.target.value;
                       setCaseData({...caseData, communicationLogs: newLogs});
                     }}
-                    className="bg-slate-100 dark:bg-black/40 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md border-none outline-none"
+                    className="bg-slate-100 dark:bg-black/40 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border-none outline-none focus:ring-1 focus:ring-indigo-500"
                   >
                     <option value="Call">Call</option>
                     <option value="Email">Email</option>
                     <option value="Meeting">Meeting</option>
-                    <option value="Note">Note</option>
+                    <option value="Note">Internal Note</option>
                   </select>
-                  <span className="text-[10px] text-subtext font-bold">{new Date(log.date).toLocaleDateString()}</span>
+                  <span className="text-[10px] text-subtext font-black uppercase tracking-widest bg-slate-50 dark:bg-white/5 px-2 py-1 rounded border border-slate-100 dark:border-white/5">
+                    {new Date(log.date).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                  </span>
                </div>
-               <textarea
-                 value={log.summary}
-                 onChange={(e) => {
-                    const newLogs = [...caseData.communicationLogs];
-                    newLogs[i].summary = e.target.value;
-                    setCaseData({...caseData, communicationLogs: newLogs});
-                 }}
-                 className="w-full bg-transparent border-none text-[11px] text-slate-700 dark:text-slate-300 focus:ring-0 p-0 resize-none"
-                 placeholder="Summary of communication..."
-               />
+               <button 
+                 onClick={() => setCaseData({...caseData, communicationLogs: caseData.communicationLogs.filter((_, idx) => idx !== i)})}
+                 className="p-2 text-subtext hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+               >
+                 <Trash2 size={14} />
+               </button>
             </div>
-          ))}
-          {(!caseData.communicationLogs || caseData.communicationLogs.length === 0) && (
-            <div className="text-center py-6 text-subtext italic text-[11px] bg-slate-50 dark:bg-zinc-800/50 rounded-xl border border-dashed border-slate-200 dark:border-zinc-800">No communication logs tracked.</div>
-          )}
-        </div>
+            
+            <textarea
+              value={log.summary}
+              onChange={(e) => {
+                 const newLogs = [...caseData.communicationLogs];
+                 newLogs[i].summary = e.target.value;
+                 setCaseData({...caseData, communicationLogs: newLogs});
+              }}
+              className="w-full bg-slate-50/50 dark:bg-black/20 border border-slate-100 dark:border-zinc-800/50 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500/20 p-4 min-h-[80px] resize-none"
+              placeholder="What was discussed? Enter details here..."
+            />
+          </div>
+        ))}
+
+        {(!caseData.communicationLogs || caseData.communicationLogs.length === 0) && (
+          <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-zinc-900/30 rounded-3xl border-2 border-dashed border-slate-200 dark:border-zinc-800">
+            <div className="p-5 bg-slate-50 dark:bg-zinc-800 rounded-full mb-4">
+              <MessageSquare size={32} className="text-subtext opacity-40" />
+            </div>
+            <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest">No Logs Found</h4>
+            <p className="text-[11px] text-subtext mt-2 max-w-[240px] text-center font-medium">Start tracking your case communications by clicking the 'Add New Log' button above.</p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -794,36 +828,36 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
 
         {/* Panel */}
         <motion.div
-          initial={{ x: '100%' }}
-          animate={{ x: 0 }}
-          exit={{ x: '100%' }}
-          transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-          className="absolute right-0 top-0 bottom-0 w-full max-w-4xl bg-white dark:bg-[#0b0c15] shadow-2xl flex flex-col pointer-events-auto border-l border-white/10"
+          initial={{ scale: 0.9, opacity: 0, x: '-50%', y: '-50%' }}
+          animate={{ scale: 1, opacity: 1, x: '-50%', y: '-50%' }}
+          exit={{ scale: 0.9, opacity: 0, x: '-50%', y: '-50%' }}
+          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+          className="fixed left-1/2 top-1/2 w-[98%] sm:w-[95%] max-w-5xl h-[85vh] sm:h-[90vh] bg-white dark:bg-[#0b0c15] shadow-2xl flex flex-col pointer-events-auto rounded-[1.5rem] sm:rounded-[2.5rem] overflow-hidden border border-white/10"
         >
           {/* Header */}
           <div className="relative shrink-0 overflow-hidden">
             <div className="absolute inset-0 bg-indigo-600 dark:bg-indigo-600/90 z-0" />
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 z-0" />
             
-            <div className="relative z-10 p-4 sm:p-6 flex items-center justify-between text-white">
-              <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
-                <div className="p-2 sm:p-3 bg-white/20 backdrop-blur-md rounded-xl sm:rounded-2xl border border-white/20 shrink-0">
-                  <Briefcase className="w-5 h-5 sm:w-6 sm:h-6" />
+            <div className="relative z-10 p-3 sm:p-6 flex items-center justify-between text-white">
+              <div className="flex items-center gap-2 sm:gap-4 overflow-hidden">
+                <div className="p-1.5 sm:p-3 bg-white/20 backdrop-blur-md rounded-lg sm:rounded-2xl border border-white/20 shrink-0">
+                  <Briefcase className="w-4 h-4 sm:w-6 sm:h-6" />
                 </div>
                 <div className="overflow-hidden">
-                  <h2 className="text-lg sm:text-xl font-black tracking-tight leading-tight uppercase truncate max-w-[200px] sm:max-w-[280px]">{caseData.name}</h2>
+                  <h2 className="text-sm sm:text-xl font-black tracking-tight leading-tight uppercase truncate max-w-[160px] sm:max-w-[280px]">{caseData.name}</h2>
                   <div className="flex items-center gap-1 sm:gap-2 mt-0.5 sm:mt-1 overflow-hidden">
-                    <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-wider sm:tracking-[0.2em] opacity-80 whitespace-nowrap">AI Legal Intelligence</span>
+                    <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-wider sm:tracking-[0.2em] opacity-80 whitespace-nowrap">AI Intelligence</span>
                     <span className="w-1 h-1 bg-white/40 rounded-full shrink-0" />
-                    <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-wider sm:tracking-[0.2em] opacity-80 truncate">{caseData.caseType || 'Uncategorized'}</span>
+                    <span className="text-[7px] sm:text-[10px] font-black uppercase tracking-wider sm:tracking-[0.2em] opacity-80 truncate">{caseData.caseType || 'Legal'}</span>
                   </div>
                 </div>
               </div>
               <button 
                 onClick={onClose}
-                className="p-2 hover:bg-white/10 rounded-full transition-all active:scale-90 shrink-0"
+                className="p-1.5 hover:bg-white/10 rounded-full transition-all active:scale-90 shrink-0"
               >
-                <X size={20} className="sm:w-6 sm:h-6" />
+                <X size={18} className="sm:w-6 sm:h-6" />
               </button>
             </div>
           </div>
@@ -847,8 +881,9 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
           </div>
 
           {/* Content Area */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 pb-48 sm:pb-32 bg-slate-50/30 dark:bg-transparent">
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 pb-64 sm:pb-80 bg-slate-50/30 dark:bg-transparent">
              {activeTab === 'overview' && renderOverview()}
+             {activeTab === 'communication' && renderCommunication()}
              {activeTab === 'hearings' && renderHearings()}
              {activeTab === 'parties' && renderParties()}
              {activeTab === 'timeline' && renderTimeline()}
@@ -999,8 +1034,8 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
           </div>
 
           {/* Quick Actions & Footer */}
-          <div className="p-4 sm:p-6 border-t border-slate-200 dark:border-zinc-800 bg-white/80 dark:bg-[#0b0c15]/80 backdrop-blur-xl absolute bottom-0 left-0 right-0 z-[210] safe-area-bottom">
-             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
+          <div className="p-3 sm:p-6 border-t border-slate-200 dark:border-zinc-800 bg-white/80 dark:bg-[#0b0c15]/80 backdrop-blur-xl absolute bottom-0 left-0 right-0 z-[210] safe-area-bottom">
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 mb-2 sm:mb-4">
                 <button 
                   onClick={handleAutoAnalyze}
                   disabled={isAnalyzing}
@@ -1025,7 +1060,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
              </div>
              <button
                onClick={handleSave}
-               className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-sm shadow-xl shadow-indigo-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+               className="w-full py-3 sm:py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl sm:rounded-2xl font-black text-[11px] sm:text-sm shadow-xl shadow-indigo-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
              >
                <Save size={20} />
                Synchronize Case Folder
