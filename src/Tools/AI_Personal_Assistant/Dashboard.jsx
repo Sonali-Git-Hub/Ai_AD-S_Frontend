@@ -187,7 +187,7 @@ const Dashboard = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-[#0f0f0f] p-3 md:p-6 lg:p-8 font-sans transition-all">
+        <div className="min-h-screen bg-gray-50 dark:bg-[#0f0f0f] text-gray-900 dark:text-gray-100 p-3 md:p-6 lg:p-8 font-sans transition-all">
             <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
 
                 {/* Header */}
@@ -216,41 +216,41 @@ const Dashboard = () => {
 
                 {/* Stats / Dashboard */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                    <div className="bg-white/80 dark:bg-[#1A1A1A]/90 backdrop-blur-xl p-4 md:p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 border-t-4 border-t-blue-500 relative overflow-hidden group hover:shadow-lg transition-all">
+                    <div className="bg-white dark:bg-[#1A1A1A] backdrop-blur-xl p-4 md:p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 border-t-4 border-t-blue-500 relative overflow-hidden group hover:shadow-lg transition-all">
                         <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
                             <CalendarIcon className="w-14 h-14 md:w-16 md:h-16 text-blue-500" />
                         </div>
-                        <p className="text-gray-500 text-sm font-medium">{t('todayTasks')}</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">{t('todayTasks')}</p>
                         <h3 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mt-2">
                             {tasks.filter(t => new Date(t.datetime).toDateString() === new Date().toDateString()).length}
                         </h3>
                     </div>
 
-                    <div className="bg-white/80 dark:bg-[#1A1A1A]/90 backdrop-blur-xl p-4 md:p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 border-t-4 border-t-blue-500 relative overflow-hidden group hover:shadow-lg transition-all">
+                    <div className="bg-white dark:bg-[#1A1A1A] backdrop-blur-xl p-4 md:p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 border-t-4 border-t-blue-500 relative overflow-hidden group hover:shadow-lg transition-all">
                         <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
                             <Clock className="w-12 h-12 md:w-14 md:h-14 text-blue-500" />
                         </div>
-                        <p className="text-gray-500 text-xs md:text-sm font-medium">{t('pending')}</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm font-medium">{t('pending')}</p>
                         <h3 className="text-2xl md:text-3xl font-bold text-blue-500 mt-1">
                             {tasks.filter(t => t.status === 'pending' || t.status === 'missed').length}
                         </h3>
                     </div>
 
-                    <div className="bg-white/80 dark:bg-[#1A1A1A]/90 backdrop-blur-xl p-4 md:p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 border-t-4 border-t-green-500 relative overflow-hidden group hover:shadow-lg transition-all">
+                    <div className="bg-white dark:bg-[#1A1A1A] backdrop-blur-xl p-4 md:p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 border-t-4 border-t-green-500 relative overflow-hidden group hover:shadow-lg transition-all">
                         <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
                             <CheckCircle className="w-12 h-12 md:w-14 md:h-14 text-green-500" />
                         </div>
-                        <p className="text-gray-500 text-xs md:text-sm font-medium">{t('completed')}</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm font-medium">{t('completed')}</p>
                         <h3 className="text-2xl md:text-3xl font-bold text-green-500 mt-1">
                             {tasks.filter(t => t.status === 'completed').length}
                         </h3>
                     </div>
 
-                    <div className="bg-white/80 dark:bg-[#1A1A1A]/90 backdrop-blur-xl p-4 md:p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 border-t-4 border-t-primary relative overflow-hidden group hover:shadow-lg transition-all">
+                    <div className="bg-white dark:bg-[#1A1A1A] backdrop-blur-xl p-4 md:p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 border-t-4 border-t-primary relative overflow-hidden group hover:shadow-lg transition-all">
                         <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
                             <Settings2 className="w-12 h-12 md:w-14 md:h-14 text-primary" />
                         </div>
-                        <p className="text-gray-500 text-xs md:text-sm font-medium">{t('totalRoutines')}</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm font-medium">{t('totalRoutines')}</p>
                         <h3 className="text-2xl md:text-3xl font-bold text-primary mt-1">
                             {tasks.length}
                         </h3>
@@ -314,7 +314,7 @@ const Dashboard = () => {
                                 </div>
                                 <div className="grid gap-4">
                                     {items.map(task => (
-                                        <div key={task._id} className={`group bg-white/80 dark:bg-[#1A1A1A]/90 backdrop-blur-sm p-3 md:p-4 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col md:flex-row items-start md:items-center gap-3 transition-all hover:shadow-md hover:scale-[1.002] hover:border-primary/30 ${task.isUrgent ? 'border-l-4 border-l-red-500 bg-red-50/30' : ''}`}>
+                                        <div key={task._id} className={`group bg-white dark:bg-[#1A1A1A] backdrop-blur-sm p-3 md:p-4 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col md:flex-row items-start md:items-center gap-3 transition-all hover:shadow-md hover:scale-[1.002] hover:border-primary/30 ${task.isUrgent ? 'border-l-4 border-l-red-500 bg-red-50/30 dark:bg-red-900/10' : ''}`}>
 
                                             <button
                                                 onClick={() => toggleComplete(task)}
