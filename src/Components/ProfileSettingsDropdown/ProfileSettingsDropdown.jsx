@@ -98,8 +98,8 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
     }, [chatSessions]);
 
     useEffect(() => {
-        setNicknameInput(personalizations.account?.nickname || user.name || '');
-    }, [personalizations.account?.nickname, user.name]);
+        setNicknameInput(personalizations.account?.nickname || user?.name || '');
+    }, [personalizations.account?.nickname, user?.name]);
 
     useEffect(() => {
         if (user?.token) {
@@ -200,7 +200,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         if (updated.length === 0) {
             onLogout();
             onClose();
-        } else if (user.email === email) {
+        } else if (user?.email === email) {
             window.location.reload();
         }
     };
@@ -216,7 +216,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
             try {
                 if (user?.token) {
                     const res = await axios.put(apis.profile, { name: nicknameInput }, {
-                        headers: { 'Authorization': `Bearer ${user.token}` }
+                        headers: { 'Authorization': `Bearer ${user?.token}` }
                     });
                     
                     if (res.data) {
@@ -268,7 +268,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
 
         try {
             const croppedBlob = await getCroppedImgBlob(imageToCrop, croppedAreaPixels, rotation);
-            const truncatedName = (user.name || 'avatar').substring(0, 10).replace(/\s+/g, '-');
+            const truncatedName = (user?.name || 'avatar').substring(0, 10).replace(/\s+/g, '-');
             const file = new File([croppedBlob], `${truncatedName}-avatar.jpg`, { type: 'image/jpeg' });
 
             const formData = new FormData();
@@ -276,7 +276,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
 
             const res = await axios.post(apis.uploadAvatar, formData, {
                 headers: {
-                    'Authorization': `Bearer ${user.token}`,
+                    'Authorization': `Bearer ${user?.token}`,
                     'Content-Type': 'multipart/form-data'
                 }
             });
@@ -303,7 +303,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         try {
             const res = await axios.delete(apis.removeAvatar, {
                 headers: {
-                    'Authorization': `Bearer ${user.token}`
+                    'Authorization': `Bearer ${user?.token}`
                 }
             });
 
@@ -324,7 +324,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
     const handleSendOtp = async () => {
         setResetLoading(true);
         try {
-            await axios.post(apis.forgotPassword, { email: user.email });
+            await axios.post(apis.forgotPassword, { email: user?.email });
             toast.success('OTP sent to your email');
             setResetStep(2);
         } catch (error) {
@@ -337,7 +337,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
     const handleConnectGmail = async () => {
         try {
             const res = await axios.get(`${API}/connectors/gmail/auth`, {
-                headers: { 'Authorization': `Bearer ${user.token}` }
+                headers: { 'Authorization': `Bearer ${user?.token}` }
             });
             if (res.data && res.data.url) {
                 window.location.href = res.data.url;
@@ -351,7 +351,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         const loadingToast = toast.loading("Disconnecting Gmail...");
         try {
             await axios.delete(`${API}/connectors/gmail/disconnect`, {
-                headers: { 'Authorization': `Bearer ${user.token}` }
+                headers: { 'Authorization': `Bearer ${user?.token}` }
             });
 
             // Properly deep-copy to avoid mutating the original reference
@@ -359,7 +359,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
             const updatedUser = {
                 ...user,
                 personalizations: {
-                    ...user.personalizations,
+                    ...user?.personalizations,
                     apps: updatedApps
                 }
             };
@@ -382,7 +382,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         setDeleteLoading(true);
         try {
             await axios.delete(apis.deleteAccount, {
-                headers: { 'Authorization': `Bearer ${user.token}` }
+                headers: { 'Authorization': `Bearer ${user?.token}` }
             });
             toast.success('Account deleted successfully');
             setShowDeleteModal(false);
@@ -400,7 +400,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         
         try {
             await axios.delete(`${API}/chat/${sessionId}`, {
-                headers: { 'Authorization': `Bearer ${user.token}` }
+                headers: { 'Authorization': `Bearer ${user?.token}` }
             });
             toast.success(t('chatDeleted') || 'Chat deleted');
             refreshChatSessions(); // Refresh list via context
@@ -419,7 +419,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
             // Let's see if we can do bulk. For now, individual is safer if no bulk exists.
             await Promise.all(chatSessions.map(s => 
                 axios.delete(`${API}/chat/${s.sessionId}`, {
-                    headers: { 'Authorization': `Bearer ${user.token}` }
+                    headers: { 'Authorization': `Bearer ${user?.token}` }
                 })
             ));
             
@@ -440,7 +440,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         setResetLoading(true);
         try {
             await axios.post(apis.resetPassword, {
-                email: user.email,
+                email: user?.email,
                 otp: resetOtp,
                 newPassword: newPassword
             });
@@ -458,18 +458,22 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
 
     const handleSupportSubmit = async () => {
         if (!issueText.trim()) return;
+        if (!user?.token) {
+            toast.error("Please log in to submit a support request.");
+            return;
+        }
         setIsSending(true);
         setSendStatus(null);
         try {
-            await axios.post(apis.submitTicket, {
-                email: user.email,
-                type: issueType,
+            await axios.post(apis.support, {
+                email: user?.email,
+                issueType: issueType,
                 message: issueText
             }, {
-                headers: { 'Authorization': `Bearer ${user.token}` }
+                headers: { 'Authorization': `Bearer ${user?.token}` }
             });
             setSendStatus('success');
-            toast.success("Support ticket submitted!");
+            toast.success("Feedback submitted!");
             setIssueText('');
             setTimeout(() => setSendStatus(null), 3000);
         } catch (error) {
@@ -489,7 +493,12 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         { id: 'terms', label: 'Terms', icon: FileText },
         { id: 'privacy', label: 'Privacy', icon: Shield },
         { id: 'about', label: 'About', icon: Info },
-    ];
+    ].filter(tab => {
+        if (!user?.token) {
+            return !['notifications', 'data', 'account', 'feedback'].includes(tab.id);
+        }
+        return true;
+    });
 
     const renderSettingRow = (label, description, control) => (
         <div className="flex flex-wrap items-center justify-between py-4 border-b border-gray-100 dark:border-white/5 last:border-0 gap-4">
@@ -736,6 +745,25 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                     </div>
                 );
             case 'account':
+                if (!user?.token) {
+                    return (
+                        <div className="flex flex-col items-center justify-center py-20 gap-6 text-center">
+                            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
+                                <User className="w-10 h-10 text-primary" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-black text-gray-800 dark:text-white mb-2">You're not logged in</h3>
+                                <p className="text-sm text-subtext max-w-xs">Please log in to access your account settings, sessions, and profile information.</p>
+                            </div>
+                            <button
+                                onClick={() => { onClose(); window.location.href = '/login'; }}
+                                className="px-8 py-3 bg-primary text-white font-black rounded-2xl shadow-lg shadow-primary/30 hover:opacity-90 transition-all uppercase tracking-widest text-xs"
+                            >
+                                Log In
+                            </button>
+                        </div>
+                    );
+                }
                 return (
                     <div className="space-y-6">
                         {/* Profile Header Card */}
@@ -1274,7 +1302,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                 const loading = toast.loading("Syncing with social profile...");
                                 try {
                                     const res = await axios.get(apis.syncProfile, {
-                                        headers: { 'Authorization': `Bearer ${user.token}` }
+                                        headers: { 'Authorization': `Bearer ${user?.token}` }
                                     });
                                     if (res.data.avatar) {
                                         const updatedUser = { ...user, avatar: res.data.avatar };
@@ -1315,9 +1343,11 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
 
                         </nav>
 
-                        <div className="p-4 space-y-1 border-t border-gray-100 dark:border-white/5">
-                            <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-red-500 hover:bg-red-50 font-bold transition-all"><LogOut className="w-4 h-4" /> {t('logOut')}</button>
-                        </div>
+                        {user?.token && (
+                            <div className="p-4 space-y-1 border-t border-gray-100 dark:border-white/5">
+                                <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-red-500 hover:bg-red-50 font-bold transition-all"><LogOut className="w-4 h-4" /> {t('logOut')}</button>
+                            </div>
+                        )}
                     </div>
 
                     <div className={`flex-1 flex flex-col min-w-0 bg-white dark:bg-[#161B2E] overflow-hidden ${view === 'sidebar' ? 'hidden sm:flex' : 'flex'}`}>
