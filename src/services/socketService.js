@@ -13,7 +13,7 @@ export const initSocket = (token) => {
 
     socket = io(socketUrl, {
         auth: { token },
-        transports: ['websocket'],
+        transports: ['polling', 'websocket'],
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000

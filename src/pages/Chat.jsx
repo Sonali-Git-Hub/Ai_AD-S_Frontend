@@ -8070,9 +8070,23 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         {(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') && (
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto w-[calc(100vw-24px)] max-w-5xl px-6 z-[100] justify-start sm:justify-start">
                             {isCashFlowMode && (
-                              <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-row items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
+                              <motion.div
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setIsStockModalOpen(true)}
+                                className="flex flex-row items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0 cursor-pointer hover:bg-primary/20 transition-all"
+                              >
                                 <TrendingUp size={12} strokeWidth={3} /> <span className="hidden sm:inline">AI CashFlow</span>
-                                <button onClick={() => setIsCashFlowMode(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsCashFlowMode(false);
+                                  }}
+                                  className="ml-1 hover:text-primary/80 p-0.5"
+                                >
+                                  <X size={12} />
+                                </button>
                               </motion.div>
                             )}
                             {isWebSearch && (
