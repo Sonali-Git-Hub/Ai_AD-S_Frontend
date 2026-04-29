@@ -489,6 +489,26 @@ const Hero = () => {
           </motion.h1>
         </div>
 
+        {/* Mission Statement – visible to users and Google's automated review */}
+        <motion.p
+          id="aisa-mission-statement"
+          initial={{ opacity: 0, y: 16 }}
+          animate={introStage === 'finished' ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
+          transition={{ duration: 1, delay: 0.05 }}
+          style={{
+            fontSize: 'clamp(1.05rem, 2.2vw, 1.3rem)',
+            color: isDarkMode ? 'rgba(255, 255, 255, 0.92)' : '#1e1b4b',
+            maxWidth: '860px',
+            margin: '0 auto 1.25rem',
+            lineHeight: 1.7,
+            fontWeight: 600,
+            letterSpacing: '0.01em',
+            textAlign: 'center',
+          }}
+        >
+          AISA™ is an advanced AI platform designed to empower users with intelligent tools for comprehensive research, creative content generation, and insightful data analysis. To provide a seamless experience, AISA™ optionally requests basic Google account access to securely authenticate users and personalize their workspace.
+        </motion.p>
+
         {/* Subtitle */}
         <motion.p
           initial={{ opacity: 0, y: 20 }}
