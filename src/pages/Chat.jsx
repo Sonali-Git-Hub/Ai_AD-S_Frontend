@@ -35,7 +35,7 @@ import { jsPDF } from 'jspdf';
 import { toCanvas } from 'html-to-image';
 import html2canvas from 'html2canvas';
 import { detectMode, getModeName, getModeIcon, getModeColor, MODES } from '../utils/modeDetection';
-import { userData, getUserData, clearUser, sessionsData, toggleState, memoryData, activeProjectIdData, activeModeData, activeLegalToolData } from '../userStore/userData';
+import { userData, getUserData, clearUser, sessionsData, toggleState, memoryData, activeProjectIdData, activeModeData, activeLegalToolData, activeProjectsData } from '../userStore/userData';
 import { usePersonalization } from '../context/PersonalizationContext';
 import OnboardingModal from '../Components/OnboardingModal';
 import PremiumUpsellModal from '../Components/PremiumUpsellModal';
@@ -55,6 +55,12 @@ import AISnapshot from '../landingpage/AISnapshot';
 import ShareModal from '../Components/ShareModal';
 import ProfileSettingsDropdown from '../Components/ProfileSettingsDropdown/ProfileSettingsDropdown.jsx';
 import { useTheme } from '../context/ThemeContext';
+
+// AI Legal Modular Components
+import LegalDashboard from '../Tools/AI_Legal/components/LegalDashboard';
+import LegalWorkspaceHeader from '../Tools/AI_Legal/components/LegalWorkspaceHeader';
+import LegalWorkspaceWelcome from '../Tools/AI_Legal/components/LegalWorkspaceWelcome';
+
 
 
 const SendRipple = ({ onComplete }) => {
@@ -612,6 +618,39 @@ const Chat = () => {
 
   // Attachment Menu State
   const [isAttachMenuOpen, setIsAttachMenuOpen] = useState(false);
+
+  // Cases (Projects) Feature State
+  const [projects, setProjects] = useState([]);
+  const [currentCase, setCurrentCase] = useState(null);
+  const [isCasePanelOpen, setIsCasePanelOpen] = useState(false);
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
+  const [isDownloadingUrl, setIsDownloadingUrl] = useState(null);
+  const [expandedMessages, setExpandedMessages] = useState({}); // { [msgId]: true/false }
+  const USER_MSG_COLLAPSE_CHARS = 200; // Collapse threshold
+
+  // --- MY CASE CRM STATES ---
+  const [legalView, setLegalView] = useState(() => localStorage.getItem('aisa_legal_view') || 'CHAT'); // 'DASHBOARD' | 'CHAT'
+  
+  useEffect(() => {
+    if (legalView) {
+      localStorage.setItem('aisa_legal_view', legalView);
+    }
+  }, [legalView]);
+
+  const [allProjects, setAllProjects] = useRecoilState(activeProjectsData);
+  const legalCases = allProjects.filter(p => p.isLegalCase);
+  const [isNewCaseModalOpen, setIsNewCaseModalOpen] = useState(false);
+  const [editingCaseId, setEditingCaseId] = useState(null);
+  const [newCaseForm, setNewCaseForm] = useState({
+    clientName: '',
+    caseType: '',
+    otherCaseType: '',
+    accused: '',
+    caseSummary: ''
+  });
+  const [isRenamingCase, setIsRenamingCase] = useState(null); // ID of case being renamed
+  const [renameValue, setRenameValue] = useState('');
   const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [listeningTime, setListeningTime] = useState(0);
@@ -740,6 +779,8 @@ const Chat = () => {
     }
   }, [activeTool]);
 
+
+
   const inputRef = useRef(null); // Ref for textarea input
   const welcomeSearchRef = useRef(null); // Ref for welcome screen search bar
   const [welcomeInputValue, setWelcomeInputValue] = useState('');
@@ -756,11 +797,33 @@ const Chat = () => {
       setCurrentCase(null);
       setCurrentMode('NORMAL_CHAT');
       setSelectedLegalTool(null);
+      setMessages([]);
+      setLegalView('CHAT');
       
       // Clear the state so it doesn't re-fire on other renders
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location.state, location.pathname, navigate, setCurrentProjectId, setCurrentMode, setSelectedLegalTool]);
+  }, [location.state, location.pathname, navigate, setCurrentProjectId, setCurrentMode, setSelectedLegalTool, setMessages, setLegalView]);
+
+  // ─── Direct Case Dashboard Route Handler ───
+  // This ensures that navigating to /dashboard/cases always clears case context
+  // and forces the "My Cases" dashboard view without flickers.
+  useEffect(() => {
+    if (location.pathname === '/dashboard/cases') {
+      console.log("[Navigation] Case Dashboard route detected. Clearing case context.");
+      
+      // Reset all case-related states synchronously
+      setCurrentProjectId(null);
+      setCurrentCase(null);
+      setMessages([]);
+      setLegalView('DASHBOARD');
+      setCurrentMode('LEGAL_TOOLKIT');
+      setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
+      
+      // Fetch cases for the dashboard
+      fetchLegalCases();
+    }
+  }, [location.pathname, setCurrentProjectId, setCurrentMode, setSelectedLegalTool]);
 
   const [intentSuggestion, setIntentSuggestion] = useState(null);
   const [isIntentLoading, setIsIntentLoading] = useState(false);
@@ -776,31 +839,6 @@ const Chat = () => {
   };
   const lastDetectedTextRef = useRef('');
 
-  // Cases (Projects) Feature State
-
-  const [projects, setProjects] = useState([]);
-  const [currentCase, setCurrentCase] = useState(null);
-  const [isCasePanelOpen, setIsCasePanelOpen] = useState(false);
-  const [isCreatingProject, setIsCreatingProject] = useState(false);
-  const [newProjectName, setNewProjectName] = useState('');
-  const [isDownloadingUrl, setIsDownloadingUrl] = useState(null);
-  const [expandedMessages, setExpandedMessages] = useState({}); // { [msgId]: true/false }
-  const USER_MSG_COLLAPSE_CHARS = 200; // Collapse threshold
-
-  // --- MY CASE CRM STATES ---
-  const [legalView, setLegalView] = useState('CHAT'); // 'DASHBOARD' | 'CHAT'
-  const [legalCases, setLegalCases] = useState([]);
-  const [isNewCaseModalOpen, setIsNewCaseModalOpen] = useState(false);
-  const [editingCaseId, setEditingCaseId] = useState(null);
-  const [newCaseForm, setNewCaseForm] = useState({
-    clientName: '',
-    caseType: '',
-    otherCaseType: '',
-    accused: '',
-    caseSummary: ''
-  });
-  const [isRenamingCase, setIsRenamingCase] = useState(null); // ID of case being renamed
-  const [renameValue, setRenameValue] = useState('');
 
   const handleOpenEditModal = (c) => {
     setEditingCaseId(c._id);
@@ -817,12 +855,30 @@ const Chat = () => {
     setIsNewCaseModalOpen(true);
   };
 
+  const handleBackToDashboard = () => {
+    // Prevent re-navigation if already there
+    if (location.pathname === '/dashboard/cases') return;
+
+    // Deterministically reset all state BEFORE route change
+    setCurrentCase(null);
+    setCurrentProjectId(null);
+    setMessages([]);
+    setLegalView('DASHBOARD');
+    setCurrentMode('LEGAL_TOOLKIT');
+    setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
+
+    // Use replace to avoid history stacking and double-back issues
+    navigate('/dashboard/cases', { replace: true });
+
+    // Background fetch
+    fetchLegalCases();
+  };
+
   // Fetch all legal cases for dashboard
   const fetchLegalCases = async () => {
     try {
-      const allProjects = await apiService.getProjects();
-      const cases = allProjects.filter(p => p.isLegalCase);
-      setLegalCases(cases);
+      const all = await apiService.getProjects();
+      setAllProjects(all);
     } catch (err) {
       console.error("Failed to fetch legal cases:", err);
     }
@@ -919,17 +975,17 @@ const Chat = () => {
       if (Array.isArray(caseSessions) && caseSessions.length > 0) {
         // Sessions are sorted newest-first by the service
         const lastSession = caseSessions[0];
-        navigate(`/dashboard/chat/${lastSession.sessionId}`);
+        navigate(`/dashboard/chat/${lastSession.sessionId}`, { replace: true });
       } else if (!isNew) {
         // No previous session — open a fresh chat for this case
-        navigate('/dashboard/chat/new');
+        navigate('/dashboard/chat/new', { replace: true });
       } else {
         // New case, we stay on 'new' but it's now bound to the projectId
-        navigate('/dashboard/chat/new');
+        navigate('/dashboard/chat/new', { replace: true });
       }
     } catch (err) {
       console.error('Failed to load case sessions:', err);
-      navigate('/dashboard/chat/new');
+      navigate('/dashboard/chat/new', { replace: true });
     }
 
     // Focus input for immediate interaction
@@ -950,7 +1006,7 @@ const Chat = () => {
           setCurrentProjectId(null);
           setCurrentCase(null);
           setLegalView('DASHBOARD');
-          navigate('/dashboard/chat/new');
+          navigate('/dashboard/cases', { replace: true });
         }
       } catch (err) {
         toast.error("Delete failed");
@@ -980,146 +1036,24 @@ const Chat = () => {
   };
 
   // --- CRM RENDER HELPERS ---
-  const renderCaseDashboard = () => {
-    return (
-      <div className="flex-1 flex flex-col w-full h-full overflow-hidden aisa-scalable-text bg-slate-50/30 dark:bg-transparent absolute inset-0">
-        {/* Dashboard Header - Sticky */}
-        <div className="w-full px-4 sm:px-10 pt-6 sm:pt-8 pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 border-b border-slate-200/60 dark:border-zinc-800/60 bg-slate-50/80 dark:bg-[#0b0c15]/80 backdrop-blur-xl">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="p-2.5 sm:p-3 bg-indigo-600 rounded-xl sm:rounded-2xl shadow-xl shadow-indigo-500/30 text-white">
-              <Briefcase className="w-6 h-6 sm:w-7 sm:h-7" />
-            </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">My Cases</h1>
-              <p className="text-[10px] sm:text-xs text-subtext font-medium mt-0.5">Manage your legal repositories with AISA Intelligence</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <button
-              onClick={() => setActiveLegalToolkit(true)}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-3.5 bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800 text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-zinc-800 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm transition-all active:scale-95 shadow-xl shadow-indigo-500/5 whitespace-nowrap"
-            >
-              <Scale className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span>Legal Toolkit</span>
-            </button>
-            <button
-              onClick={() => {
-                setEditingCaseId(null);
-                setNewCaseForm({ clientName: '', caseType: '', otherCaseType: '', accused: '', caseSummary: '' });
-                setIsNewCaseModalOpen(true);
-              }}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm transition-all active:scale-95 shadow-xl shadow-indigo-500/20 whitespace-nowrap"
-            >
-              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span>New Case</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Case Grid - Scrollable */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar px-6 sm:px-10 py-8">
-          {legalCases.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {legalCases.map((c) => (
-                <motion.div
-                  key={c._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  whileHover={{ y: -6, scale: 1.01 }}
-                  className="group relative bg-white dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm hover:shadow-2xl hover:shadow-indigo-500/15 transition-all cursor-pointer"
-                  onClick={() => handleOpenCase(c)}
-                >
-                  <div className="flex justify-between items-start mb-5">
-                    <div className={`p-4 rounded-2xl ${currentProjectId === c._id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-indigo-50 dark:bg-zinc-800 text-indigo-600'} transition-colors`}>
-                      <FolderOpen className="w-6 h-6" />
-                    </div>
-                    <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenEditModal(c);
-                        }}
-                        className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl text-subtext transition-colors bg-white/50 dark:bg-black/20 sm:bg-transparent"
-                        title="Edit Case"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteCase(c._id);
-                        }}
-                        className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl text-red-500 transition-colors bg-white/50 dark:bg-black/20 sm:bg-transparent"
-                        title="Delete Case"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5 mb-5">
-                    {isRenamingCase === c._id ? (
-                      <div className="flex gap-2" onClick={e => e.stopPropagation()}>
-                        <input
-                          autoFocus
-                          value={renameValue}
-                          onChange={e => setRenameValue(e.target.value)}
-                          className="bg-slate-50 dark:bg-black/20 border border-primary rounded-lg px-2 py-1 text-sm font-bold w-full outline-none"
-                          onKeyDown={e => e.key === 'Enter' && handleRenameCase(c._id)}
-                        />
-                        <button onClick={() => handleRenameCase(c._id)} className="p-1 text-green-500"><Check size={16} /></button>
-                        <button onClick={() => setIsRenamingCase(null)} className="p-1 text-slate-400"><X size={16} /></button>
-                      </div>
-                    ) : (
-                      <h3 className="text-base font-black text-slate-800 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{c.name}</h3>
-                    )}
-                    <div className="flex flex-col gap-1">
-                      <p className="text-xs text-subtext font-bold uppercase tracking-widest flex items-center gap-1.5">
-                        <Users size={11} />
-                        {c.clientName || 'Private Client'}
-                      </p>
-                      {c.caseType && (
-                        <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-black uppercase tracking-widest flex items-center gap-1.5">
-                          <Scale size={11} />
-                          {c.caseType}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-zinc-800">
-                    <span className="text-[10px] text-subtext font-bold uppercase tracking-tighter">
-                      {new Date(c.updatedAt || Date.now()).toLocaleDateString()}
-                    </span>
-                    <div className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 group-hover:translate-x-1 transition-transform">
-                      <span className="text-[10px] font-black uppercase tracking-widest">Open Case</span>
-                      <ChevronRight size={14} />
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center space-y-4">
-              <div className="p-6 bg-slate-100 dark:bg-zinc-800/50 rounded-full text-slate-400">
-                <FolderOpen className="w-14 h-14" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-black text-slate-800 dark:text-white">No active cases found</h3>
-                <p className="text-sm text-subtext mt-2 max-w-sm">Start by creating your first legal case folder to begin collaboration with AISA Intelligence.</p>
-              </div>
-              <button
-                onClick={() => setIsNewCaseModalOpen(true)}
-                className="mt-2 px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-sm hover:scale-105 transition-all shadow-xl shadow-indigo-500/20"
-              >
-                Initialize First Case
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
+  const renderCaseDashboard = () => (
+    <LegalDashboard
+      legalCases={legalCases}
+      currentProjectId={currentProjectId}
+      handleOpenCase={handleOpenCase}
+      handleOpenEditModal={handleOpenEditModal}
+      handleDeleteCase={handleDeleteCase}
+      isRenamingCase={isRenamingCase}
+      renameValue={renameValue}
+      setRenameValue={setRenameValue}
+      handleRenameCase={handleRenameCase}
+      setIsRenamingCase={setIsRenamingCase}
+      setIsNewCaseModalOpen={setIsNewCaseModalOpen}
+      setEditingCaseId={setEditingCaseId}
+      setNewCaseForm={setNewCaseForm}
+      setActiveLegalToolkit={setActiveLegalToolkit}
+    />
+  );
 
   const renderNewCaseModal = () => {
     return (
@@ -1269,11 +1203,15 @@ const Chat = () => {
   // Fetch Case Details when currentProjectId changes
   useEffect(() => {
     const fetchCaseDetails = async () => {
-      if (!currentProjectId || currentProjectId === 'default' || currentProjectId === 'all') {
+      // Disable auto-fetch if we are explicitly on the dashboard route
+      if (!currentProjectId || currentProjectId === 'default' || currentProjectId === 'all' || location.pathname === '/dashboard/cases') {
         setCurrentCase(null);
-        setCurrentMode('NORMAL_CHAT');
-        setSelectedLegalTool(null);
-        setLegalView('CHAT');
+        // Preserve LEGAL_TOOLKIT mode if we are just going back to the dashboard
+        if (currentMode !== 'LEGAL_TOOLKIT') {
+          setCurrentMode('NORMAL_CHAT');
+          setSelectedLegalTool(null);
+          setLegalView('CHAT');
+        }
         return;
       }
 
@@ -1298,23 +1236,16 @@ const Chat = () => {
 
       try {
         const response = await apiService.getProject(currentProjectId);
+        
+        // Safety: If we navigated away while fetching, abort
+        if (location.pathname === '/dashboard/cases') return;
+
         if (response) {
           setCurrentCase(response);
           if (response.isLegalCase) {
             setCurrentMode('LEGAL_TOOLKIT');
             setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
             setLegalView('CHAT');
-
-            if (location.pathname === '/dashboard/chat/new') {
-              try {
-                const caseSessions = await chatStorageService.getSessions(currentProjectId);
-                if (Array.isArray(caseSessions) && caseSessions.length > 0) {
-                  navigate(`/dashboard/chat/${caseSessions[0].sessionId}`);
-                }
-              } catch (sessionErr) {
-                console.error("Failed to fetch case sessions:", sessionErr);
-              }
-            }
           }
         }
       } catch (err) {
@@ -1330,7 +1261,7 @@ const Chat = () => {
       }
     };
     fetchCaseDetails();
-  }, [currentProjectId]);
+  }, [currentProjectId, location.pathname]);
 
   const [deleteConfig, setDeleteConfig] = useState({
     isOpen: false,
@@ -3547,9 +3478,18 @@ const Chat = () => {
       }
 
       if (sessionId && sessionId !== 'new') {
+        const currentSession = sessionId;
         setCurrentSessionId(sessionId);
+        setMessages([]); // Clear previous messages while loading new history to prevent flickering
         console.log(`[DEBUG] Initializing chat for session: ${sessionId}`);
         const sessionData = await chatStorageService.getHistory(sessionId);
+        
+        // Safety Check: If sessionId has changed since we started fetching, abort state updates
+        if (currentSession !== sessionId) {
+          console.warn(`[Navigation] Session changed during load (${currentSession} -> ${sessionId}). Aborting context sync.`);
+          return;
+        }
+
         console.log(`[DEBUG] Received history:`, sessionData);
 
         // --- CONTEXT SYNC ---
@@ -3619,19 +3559,23 @@ const Chat = () => {
         }
         setMessages(processedHistory);
       } else {
+        setMessages([]); // Clear messages immediately for fresh context
         setCurrentSessionId('new');
         // Fix: Don't automatically reset mode to NORMAL_CHAT if it's already in LEGAL_TOOLKIT
         // This ensures the mode stays active as requested by the user until manually cancelled.
         if (!currentProjectId || currentProjectId === 'default' || currentProjectId === 'all') {
           setCurrentCase(null);
-          setCurrentMode('NORMAL_CHAT');
-          setSelectedLegalTool(null);
+          // Preserve LEGAL_TOOLKIT mode and legal view if user was on the dashboard
+          if (currentMode !== 'LEGAL_TOOLKIT') {
+            setCurrentMode('NORMAL_CHAT');
+            setSelectedLegalTool(null);
+          }
         } else if (currentCase?.isLegalCase) {
           // Ensure legal mode is maintained for legal cases
           setCurrentMode('LEGAL_TOOLKIT');
           setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
         }
-        setLegalView('CHAT');
+        // Avoid forcing setLegalView('CHAT') here so we don't overwrite the user's dashboard view on refresh
 
         // --- SMART WELCOME ---
         const user = getUserData();
@@ -3721,6 +3665,7 @@ const Chat = () => {
     setCurrentProjectId('default');
     setCurrentMode('NORMAL_CHAT');
     setSelectedLegalTool(null);
+    setMessages([]); // Clear messages immediately for instant transition
     navigate('/dashboard/chat/new', { state: { forceGlobal: true } });
     setShowHistory(false);
   };
@@ -6360,83 +6305,43 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         <div
           ref={chatContainerRef}
           onScroll={handleScroll}
-          className={`relative flex-1 aisa-scalable-text ${legalView === 'DASHBOARD' && currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id === 'legal_my_case'
+          className={`relative flex-1 aisa-scalable-text ${!currentCase && currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id === 'legal_my_case'
             ? 'overflow-hidden'
             : 'overflow-y-auto chatgpt-container pt-20 lg:pt-6 pb-64 md:pb-72 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent'
             }`}
         >
-          {legalView === 'DASHBOARD' && currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id === 'legal_my_case' ? (
-            renderCaseDashboard()
-          ) : (
-            <>
+          <AnimatePresence mode="wait">
+            {!currentCase && currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id === 'legal_my_case' ? (
+              <motion.div
+                key="legal-dashboard"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="flex-1 flex flex-col w-full"
+              >
+                {renderCaseDashboard()}
+              </motion.div>
+            ) : (
+              <motion.div
+                key="legal-workspace"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="flex-1 flex flex-col w-full"
+              >
               {currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id === 'legal_my_case' && (
-                <div className="w-full px-6 sm:px-12 pt-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-zinc-800/50 pb-6">
-                  <div className="flex flex-col gap-4">
-                    <button
-                      onClick={() => setLegalView('DASHBOARD')}
-                      className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-black text-[10px] uppercase tracking-widest bg-indigo-50 dark:bg-indigo-900/20 px-4 py-2 rounded-full transition-all hover:gap-3 w-fit"
-                    >
-                      <ArrowLeft size={14} />
-                      Back to Case List
-                    </button>
-
-                    {currentCase && (
-                      <div className="flex items-center gap-4 ml-1">
-                        <div className="p-3 bg-indigo-600 rounded-2xl text-white shadow-xl shadow-indigo-500/30">
-                          <Briefcase size={20} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          {isRenamingCase === currentCase._id ? (
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="text"
-                                value={renameValue}
-                                onChange={(e) => setRenameValue(e.target.value)}
-                                onBlur={() => handleRenameCase(currentCase._id)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') handleRenameCase(currentCase._id);
-                                  if (e.key === 'Escape') setIsRenamingCase(null);
-                                }}
-                                className="bg-slate-50 dark:bg-black/20 border border-indigo-500 rounded-xl px-3 py-1.5 text-lg font-black w-full outline-none text-slate-900 dark:text-white"
-                                autoFocus
-                              />
-                            </div>
-                          ) : (
-                            <>
-                              <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none truncate">{currentCase.name}</h2>
-                              <p className="text-xs text-subtext font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
-                                <Users size={12} className="text-indigo-500" />
-                                {currentCase?.clientName || 'Private Client'}
-                              </p>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {currentCase && (
-                    <div className="flex items-center gap-2 self-end sm:self-center">
-                      <button
-                        onClick={() => {
-                          setRenameValue(currentCase.name);
-                          setIsRenamingCase(currentCase._id);
-                        }}
-                        className="p-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-slate-400 rounded-2xl hover:bg-slate-50 dark:hover:bg-zinc-800/80 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all shadow-sm group"
-                        title="Rename Case"
-                      >
-                        <Edit2 size={18} className="group-hover:scale-110 transition-transform" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteCase(currentCase._id)}
-                        className="p-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-400 hover:text-red-500 rounded-2xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-all shadow-sm group"
-                        title="Delete Case"
-                      >
-                        <Trash2 size={18} className="group-hover:scale-110 transition-transform" />
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <LegalWorkspaceHeader
+                  currentCase={currentCase}
+                  isRenamingCase={isRenamingCase}
+                  renameValue={renameValue}
+                  setRenameValue={setRenameValue}
+                  handleRenameCase={handleRenameCase}
+                  setIsRenamingCase={setIsRenamingCase}
+                  handleDeleteCase={handleDeleteCase}
+                  handleBackToDashboard={handleBackToDashboard}
+                />
               )}
               {messages.length > 0 && (
                 <>
@@ -7368,43 +7273,36 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       </div>
                     );
                   })}
-
-                  {isLoading && !typingMessageId && !isWebSearch && !isDeepSearch && !isImageGeneration && !isVideoGeneration && !isMagicEditing && !isCashFlowMode && !isFileAnalysis && !isCodeWriter && (
-                    <AisaTypingIndicator
-                      visible={true}
-                      message="AISA is thinking"
-                    />
-                  )}
                 </>
+
               )}
-
-              {messages.length === 0 && currentCase && selectedLegalTool?.id === 'legal_my_case' && (
-                <div className="flex-1 flex flex-col items-center justify-center py-12 px-6 text-center animate-in fade-in zoom-in duration-500 absolute inset-0 pointer-events-none">
-                  <div className="pointer-events-auto flex flex-col items-center">
-                    <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mb-6 shadow-inner ring-1 ring-primary/20">
-                      <Briefcase className="w-10 h-10 text-primary" />
-                    </div>
-                    <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-3 tracking-tight">
-                      {currentCase.name} <span className="text-primary">Workspace</span>
-                    </h2>
-                    <p className="max-w-md text-subtext font-medium leading-relaxed mb-8">
-                      This case is now active. You can analyze documents, predict outcomes, or draft legal papers specifically for this case.
-                    </p>
-
-                  </div>
+              
+              {isLoading && !typingMessageId && !isWebSearch && !isDeepSearch && !isImageGeneration && !isVideoGeneration && !isMagicEditing && !isCashFlowMode && !isFileAnalysis && !isCodeWriter && (
+                <div className="pb-24 sm:pb-32">
+                  <AisaTypingIndicator
+                    visible={true}
+                    message="AISA is thinking"
+                  />
                 </div>
               )}
 
-              <div ref={messagesEndRef} />
-            </>
-          )}
+              {messages.length === 0 && currentCase && selectedLegalTool?.id === 'legal_my_case' && location.pathname !== '/dashboard/cases' && (
+                <LegalWorkspaceWelcome currentCase={currentCase} />
+              )}
+
+                <div ref={messagesEndRef} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Welcome Screen - Integrated Hub */}
         <AnimatePresence>
           {messages.length === 0 &&
             legalView !== 'DASHBOARD' &&
-            (!currentCase || selectedLegalTool?.id !== 'legal_my_case') && (
+            !currentCase &&
+            (!currentProjectId || currentProjectId === 'default' || currentProjectId === 'all') &&
+            currentMode !== 'LEGAL_TOOLKIT' && (
               <motion.div
                 key="welcome-screen"
                 initial={{ opacity: 0 }}
@@ -9354,7 +9252,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         onUpdate={(updated) => {
           setCurrentCase(updated);
           // Sync with the legalCases list if needed
-          setLegalCases(prev => prev.map(c => c._id === updated._id ? updated : c));
+          setAllProjects(prev => prev.map(c => c._id === updated._id ? updated : c));
         }}
       />
     </div>

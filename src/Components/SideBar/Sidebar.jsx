@@ -40,7 +40,7 @@ import ShareModal from '../ShareModal';
 import { faqs, logo } from '../../constants';
 import NotificationBar from '../NotificationBar/NotificationBar.jsx';
 import { useRecoilState } from 'recoil';
-import { clearUser, getUserData, setUserData, toggleState, userData, sessionsData, activeProjectIdData, activeModeData, activeLegalToolData } from '../../userStore/userData';
+import { clearUser, getUserData, setUserData, toggleState, userData, sessionsData, activeProjectIdData, activeModeData, activeLegalToolData, activeProjectsData } from '../../userStore/userData';
 import axios from 'axios';
 import { useLanguage } from '../../context/LanguageContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -87,7 +87,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   const [planName, setPlanName] = useState("Free Plan");
 
   // --- Project State ---
-  const [projects, setProjects] = useState([]);
+  const [projects, setProjects] = useRecoilState(activeProjectsData);
   const [currentProjectId, setCurrentProjectId] = useRecoilState(activeProjectIdData);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [isCreatingCase, setIsCreatingCase] = useState(false);
@@ -299,18 +299,12 @@ const Sidebar = ({ isOpen, onClose }) => {
   };
 
   const handleNewChat = () => {
-    const isInsideCase = projects.find(p => p._id === currentProjectId)?.isLegalCase;
-
-    // Reset to global context
+    // Reset to global context immediately
     setCurrentProjectId('default');
+    setMode('NORMAL_CHAT');
+    setLegalTool(null);
 
-    if (isInsideCase) {
-      // If we were inside a case, force reset to Global AI Dashboard
-      setMode('NORMAL_CHAT');
-      setLegalTool(null);
-    }
-
-    // Navigate to fresh chat with forceGlobal flag to ensure context reset
+    // Navigate to fresh chat with forceGlobal flag to ensure deep context reset in Chat component
     navigate('/dashboard/chat/new', { state: { forceGlobal: true } });
     if (onClose) onClose();
   };

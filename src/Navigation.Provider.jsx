@@ -327,6 +327,7 @@ const NavigateProvider = () => {
         >
           <Route index element={<Navigate to="chat" replace />} />
           <Route path="chat/:sessionId?" element={<Chat />} />
+          <Route path="cases" element={<Chat />} />
           <Route path="social-agent" element={<ProtectedRoute><SocialAgentPage /></ProtectedRoute>} />
           <Route path="ai-personal-assistant" element={<ProtectedRoute><AiPersonalAssistantDashboard /></ProtectedRoute>} />
           <Route path="ai-base" element={<ProtectedRoute><Suspense fallback={<div className="flex h-full items-center justify-center">Loading AI Base...</div>}><AiBase /></Suspense></ProtectedRoute>} />

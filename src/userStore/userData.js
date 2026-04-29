@@ -135,3 +135,7 @@ export const activeLegalToolData = atom({
   default: null
 })
 
+export const activeProjectsData = atom({
+  key: 'activeProjectsData',
+  default: []
+})
