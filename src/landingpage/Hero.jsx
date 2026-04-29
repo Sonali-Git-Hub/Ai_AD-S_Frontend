@@ -339,7 +339,7 @@ const Hero = () => {
                 className="drop-shadow-[0_0_40px_rgba(99,102,241,0.6)] relative transition-all duration-500"
               />
             </div>
-            <span style={{
+            <span aria-label="AISA™" style={{
               fontSize: window.innerWidth < 640 ? '0.6rem' : '0.75rem',
               fontWeight: 900,
               letterSpacing: '0.25em',
@@ -351,7 +351,7 @@ const Hero = () => {
               transition: 'all 0.3s',
               display: 'inline-block'
             }}>
-              AISA<span style={{ fontSize: '0.6em', verticalAlign: 'super', marginLeft: '2px' }}>™</span>
+              AISA<span aria-hidden="true" style={{ fontSize: '0.6em', verticalAlign: 'super', marginLeft: '2px' }}>™</span>
             </span>
           </motion.div>
 
