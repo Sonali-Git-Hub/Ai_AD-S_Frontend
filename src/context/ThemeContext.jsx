@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { usePersonalization } from './PersonalizationContext';
 
 const ThemeContext = createContext();
@@ -12,6 +12,24 @@ const ACCENT_COLORS = {
     'Pink': '330 81% 60%',
     'Red': '0 84% 60%',
     'Black': '0 0% 0%'
+};
+
+// ── Reliable dark mode hook: watches the actual DOM class ──────────────────
+export const useIsDark = () => {
+    const [isDark, setIsDark] = useState(() =>
+        document.documentElement.classList.contains('dark')
+    );
+
+    useEffect(() => {
+        const root = document.documentElement;
+        const observer = new MutationObserver(() => {
+            setIsDark(root.classList.contains('dark'));
+        });
+        observer.observe(root, { attributes: true, attributeFilter: ['class'] });
+        return () => observer.disconnect();
+    }, []);
+
+    return isDark;
 };
 
 export const ThemeProvider = ({ children }) => {
@@ -100,3 +118,5 @@ export const ThemeProvider = ({ children }) => {
 };
 
 export const useTheme = () => useContext(ThemeContext);
+
+

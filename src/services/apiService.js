@@ -1036,6 +1036,16 @@ export const apiService = {
     }
   },
 
+  async getPublicFeatureCosts() {
+    try {
+      const response = await apiClient.get('/pricing/feature-costs');
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch public feature costs:", error);
+      return { success: false, features: [] };
+    }
+  },
+
   async createPlan(data) {
     try {
       const response = await apiClient.post('/admin/plans', data);

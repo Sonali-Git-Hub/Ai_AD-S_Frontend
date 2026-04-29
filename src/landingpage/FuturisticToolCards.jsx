@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useInView, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { ImagePlus, PlaySquare, Headphones, Code, Sparkles, Zap, Search, Globe, FileText, Wand2, PlayCircle, Scale, Video, Brain, TrendingUp, Megaphone, Lock, Target, AlignLeft, Mic2, UserCircle } from 'lucide-react';
 import LegalLogo from '../Components/LegalLogo';
-import { useTheme } from '../context/ThemeContext';
+import { useIsDark } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 
 /* ─── Typewriter Engine ────────────────────────────────────── */
@@ -47,9 +47,7 @@ const TypewriterPrompt = ({ text, active }) => {
 
 const ToolPreviewContent = ({ id, prompt, active }) => {
   const { t } = useLanguage();
-  const themeContext = useTheme();
-  const theme = themeContext?.theme || 'dark';
-  const isDark = theme.toLowerCase() === 'dark';
+  const isDark = useIsDark();
   const [phase, setPhase] = useState('typing'); // typing -> generating -> result
 
   useEffect(() => {
@@ -213,9 +211,7 @@ const ToolPreviewContent = ({ id, prompt, active }) => {
 
 const ToolCard = ({ tool, onToolSelect, index, isFlipped, onFlip, onUnflip }) => {
   const { t } = useLanguage();
-  const themeContext = useTheme();
-  const theme = themeContext?.theme || 'dark';
-  const isDark = theme.toLowerCase() === 'dark';
+  const isDark = useIsDark();
   const cardRef = useRef(null);
   const { icon: Icon } = tool;
   

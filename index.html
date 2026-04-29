@@ -7,6 +7,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AISA™</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Blocking theme script: prevents flash of wrong theme on load/refresh -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('personalizations');
+        var theme = 'system';
+        if (saved) {
+          var prefs = JSON.parse(saved);
+          theme = (prefs && prefs.general && prefs.general.theme) ? prefs.general.theme.toLowerCase() : 'system';
+        }
+        var root = document.documentElement;
+        root.classList.remove('light', 'dark');
+        if (theme === 'dark') {
+          root.classList.add('dark');
+        } else if (theme === 'light') {
+          root.classList.add('light');
+        } else {
+          // system
+          if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            root.classList.add('dark');
+          } else {
+            root.classList.add('light');
+          }
+        }
+      } catch (e) {}
+    })();
+  </script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script src="/env-config.js"></script>
   <!-- Google tag (gtag.js) -->

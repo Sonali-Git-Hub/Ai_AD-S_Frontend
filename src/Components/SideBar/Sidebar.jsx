@@ -46,7 +46,7 @@ import { useRecoilState } from 'recoil';
 import { clearUser, getUserData, setUserData, toggleState, userData, sessionsData, activeProjectIdData, activeModeData, activeLegalToolData, activeProjectsData } from '../../userStore/userData';
 import axios from 'axios';
 import { useLanguage } from '../../context/LanguageContext';
-import { useTheme } from '../../context/ThemeContext';
+import { useTheme, useIsDark } from '../../context/ThemeContext';
 import { usePersonalization } from '../../context/PersonalizationContext';
 import { Menu, Transition, Dialog } from '@headlessui/react';
 
@@ -63,6 +63,7 @@ import DeleteConfirmModal from '../DeleteConfirmModal.jsx';
 const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
   const { t } = useLanguage();
   const { theme, setTheme } = useTheme();
+  const isDark = useIsDark();
   const { addNotification } = usePersonalization();
 
   const getFlagUrl = (code) => `https://flagcdn.com/w40/${code.toLowerCase()}.png`;
@@ -481,7 +482,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
       {isOpen && (
         <div
           className={`fixed inset-0 z-[90] backdrop-blur-[6px] lg:hidden animate-in fade-in duration-300
-            ${theme === 'dark' ? 'bg-black/60' : 'bg-slate-900/40'}`}
+            ${isDark ? 'bg-black/60' : 'bg-slate-900/40'}`}
           onClick={onClose}
         />
       )}
@@ -525,7 +526,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
           <button
             onClick={onClose}
             className={`lg:hidden p-2.5 rounded-2xl transition-all border shadow-sm active:scale-95
-              ${theme === 'dark'
+              ${isDark
                 ? 'text-subtext hover:text-white bg-white/5 hover:bg-white/10 border-white/10'
                 : 'text-slate-500 hover:text-primary bg-slate-100 hover:bg-slate-200 border-slate-200'}`}
           >
@@ -600,14 +601,14 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
           <div className="px-5 pt-2 relative z-10">
             <div className="relative group/search">
               <div className="absolute inset-0 bg-primary/10 blur-xl opacity-0 group-focus-within/search:opacity-100 transition-opacity pointer-events-none" />
-              <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${theme === 'dark' ? 'text-subtext/60' : 'text-slate-500'} group-focus-within/search:text-primary group-focus-within/search:scale-110 transition-all duration-300`} />
+              <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-subtext/60' : 'text-slate-500'} group-focus-within/search:text-primary group-focus-within/search:scale-110 transition-all duration-300`} />
               <input
                 type="text"
                 placeholder={t('findASession')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className={`w-full backdrop-blur-3xl border focus:ring-[6px] rounded-[20px] py-3 pl-11 pr-4 text-sm outline-none transition-all font-semibold shadow-sm 
-                  ${theme === 'dark'
+                  ${isDark
                     ? 'bg-black/40 border-white/10 focus:border-primary/50 focus:bg-black/60 focus:ring-primary/10 placeholder:text-subtext/40 text-white'
                     : 'bg-white/80 border-slate-200 focus:border-primary/40 focus:bg-white focus:ring-primary/10 placeholder:text-slate-500 text-slate-900 shadow-inner'}`}
               />
@@ -642,9 +643,9 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
               >
                 <div className="flex items-center gap-2">
                   <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] group-hover/header:text-primary transition-colors 
-                    ${theme === 'dark' ? 'text-subtext/60' : 'text-slate-900'}`}>PROJECTS</h3>
+                    ${isDark ? 'text-subtext/60' : 'text-slate-900'}`}>PROJECTS</h3>
                   <div className={`h-[1px] w-8 transition-all group-hover/header:w-12 group-hover/header:bg-primary/30 
-                    ${theme === 'dark' ? 'bg-subtext/20' : 'bg-slate-300'}`}></div>
+                    ${isDark ? 'bg-subtext/20' : 'bg-slate-300'}`}></div>
                 </div>
                 <ChevronDown className={`w-3.5 h-3.5 text-subtext/40 transition-transform duration-300 ${isProjectsExpanded ? '' : '-rotate-90'}`} />
               </div>
@@ -700,13 +701,13 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                     {/* CASES Nested Folder Item */}
                     <div
                       onClick={(e) => { e.stopPropagation(); setIsCasesExpanded(!isCasesExpanded); }}
-                      className={`mx-3 px-3 py-2 rounded-lg flex items-center justify-between cursor-pointer transition-all ${theme === 'dark' ? 'hover:bg-white/5 text-subtext/80' : 'hover:bg-slate-100 text-slate-900 border border-transparent shadow-sm'}`}
+                      className={`mx-3 px-3 py-2 rounded-lg flex items-center justify-between cursor-pointer transition-all ${isDark ? 'hover:bg-white/5 text-subtext/80' : 'hover:bg-slate-100 text-slate-900 border border-transparent shadow-sm'}`}
                     >
                       <div className="flex items-center gap-2.5">
                         <FolderOpen className={`w-4 h-4 text-primary transition-transform duration-300 ${isCasesExpanded ? 'scale-110' : ''}`} />
-                        <span className={`text-[11px] font-black uppercase tracking-[0.15em] ${theme === 'dark' ? 'text-subtext/90' : 'text-slate-900'}`}>CASES</span>
+                        <span className={`text-[11px] font-black uppercase tracking-[0.15em] ${isDark ? 'text-subtext/90' : 'text-slate-900'}`}>CASES</span>
                       </div>
-                      <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isCasesExpanded ? '' : '-rotate-90'} ${theme === 'dark' ? 'text-subtext/40' : 'text-slate-400'}`} />
+                      <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isCasesExpanded ? '' : '-rotate-90'} ${isDark ? 'text-subtext/40' : 'text-slate-400'}`} />
                     </div>
 
                     <AnimatePresence>
@@ -818,8 +819,8 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
             {token ? (
               <>
                 <div className="px-1 py-4 flex items-center justify-between">
-                  <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] ${theme === 'dark' ? 'text-subtext/40' : 'text-slate-500'}`}>{t('activityLog')}</h3>
-                  <div className={`h-[1px] flex-1 ml-4 ${theme === 'dark' ? 'bg-gradient-to-r from-subtext/10 to-transparent' : 'bg-gradient-to-r from-slate-300 to-transparent'}`}></div>
+                  <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? 'text-subtext/40' : 'text-slate-500'}`}>{t('activityLog')}</h3>
+                  <div className={`h-[1px] flex-1 ml-4 ${isDark ? 'bg-gradient-to-r from-subtext/10 to-transparent' : 'bg-gradient-to-r from-slate-300 to-transparent'}`}></div>
                 </div>
 
                 {(() => {
@@ -865,7 +866,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                       {groupKey !== 'Today' && (
                         <button 
                           onClick={() => toggleHistoryGroup(groupKey)}
-                          className={`w-full flex items-center justify-between px-3 py-1.5 mb-1 group transition-colors rounded-lg ${theme === 'dark' ? 'text-subtext/60 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-900 hover:bg-black/5'}`}
+                          className={`w-full flex items-center justify-between px-3 py-1.5 mb-1 group transition-colors rounded-lg ${isDark ? 'text-subtext/60 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-900 hover:bg-black/5'}`}
                         >
                           <span className="text-[10px] font-black uppercase tracking-widest">{groupKey}</span>
                           <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${expandedHistoryGroups[groupKey] ? 'rotate-180' : ''}`} />
@@ -918,8 +919,8 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                                       }}
                                       className={`sidebar-chat-item group/item transition-all duration-500 mx-2 cursor-pointer
                                     ${currentSessionId === session.sessionId
-                                          ? (theme === 'dark' ? 'bg-white/[0.08] text-white border border-white/10 shadow-2xl backdrop-blur-3xl' : 'bg-white text-primary border border-primary/20 shadow-lg shadow-primary/10 backdrop-blur-3xl ring-4 ring-primary/5')
-                                          : (theme === 'dark' ? 'text-subtext/60 hover:bg-white/[0.04] hover:text-white border border-transparent' : 'text-slate-700 hover:bg-white hover:text-slate-900 border border-transparent hover:shadow-md hover:scale-[1.01]')
+                                          ? (isDark ? 'bg-white/[0.08] text-white border border-white/10 shadow-2xl backdrop-blur-3xl' : 'bg-white text-primary border border-primary/20 shadow-lg shadow-primary/10 backdrop-blur-3xl ring-4 ring-primary/5')
+                                          : (isDark ? 'text-subtext/60 hover:bg-white/[0.04] hover:text-white border border-transparent' : 'text-slate-700 hover:bg-white hover:text-slate-900 border border-transparent hover:shadow-md hover:scale-[1.01]')
                                         }
                                   `}
                                     >
