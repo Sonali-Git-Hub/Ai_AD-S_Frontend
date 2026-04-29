@@ -6389,9 +6389,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     handleBackToDashboard={handleBackToDashboard}
                   />
                 )}
-              </motion.div>
-            )}
-          </AnimatePresence>
               {messages.length > 0 && (
                 <>
                   {/* Top Spacer */}
