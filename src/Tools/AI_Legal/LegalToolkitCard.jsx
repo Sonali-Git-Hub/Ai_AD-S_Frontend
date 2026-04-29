@@ -10,6 +10,7 @@ import {
 import toast from 'react-hot-toast';
 import LegalLogo from '../../Components/LegalLogo';
 import { useIsDark } from '../../context/ThemeContext';
+import apiService from '../../services/apiService';
 
 const SECTIONS = {
   CORE: ['legal_draft_maker', 'legal_contract_analyzer', 'legal_case_predictor'],
@@ -117,7 +118,7 @@ export const PREMIUM_TOOLS = [
 ];
 
 
-const ToolCard = ({ tool, isPrimary = false, size = 'md', onClose, onSelect, isDark }) => {
+const ToolCard = ({ tool, isPrimary = false, size = 'md', onClose, onSelect, isDark, creditCost }) => {
   const isUnlocked = true;
   const Icon = tool.icon;
   const [showWorkflow, setShowWorkflow] = useState(false);
@@ -234,7 +235,23 @@ const ToolCard = ({ tool, isPrimary = false, size = 'md', onClose, onSelect, isD
 
 const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdmin = false }) => {
   const [isMaximized, setIsMaximized] = useState(false);
+  const [aiLegalCost, setAiLegalCost] = useState(50);
   const isDark = useIsDark();
+
+  useEffect(() => {
+    const fetchCost = async () => {
+      try {
+        const res = await apiService.getPublicFeatureCosts();
+        if (res.success && res.features) {
+          const legalFeature = res.features.find(f => f.featureKey === 'ai_legal');
+          if (legalFeature) setAiLegalCost(legalFeature.cost);
+        }
+      } catch (err) {
+        console.error("Failed to load legal cost", err);
+      }
+    };
+    if (isOpen) fetchCost();
+  }, [isOpen]);
 
   useEffect(() => {
     const handleEsc = (e) => {
@@ -420,7 +437,7 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
                 <SectionTitle>Professional Legal Engines</SectionTitle>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                   {PREMIUM_TOOLS.map((tool, idx) => (
-                    <ToolCard key={tool.id} tool={tool} index={idx} isDark={isDark} onClose={onClose} onSelect={onSelect} />
+                    <ToolCard key={tool.id} tool={tool} index={idx} isDark={isDark} creditCost={aiLegalCost} onClose={onClose} onSelect={onSelect} />
                   ))}
                 </div>
 
