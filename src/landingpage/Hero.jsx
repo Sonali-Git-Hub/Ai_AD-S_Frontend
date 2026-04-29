@@ -506,7 +506,7 @@ const Hero = () => {
             textAlign: 'center',
           }}
         >
-          AISA™ is an advanced AI platform designed to empower users with intelligent tools for comprehensive research, creative content generation, and insightful data analysis.
+          AISA™ is an advanced AI platform designed to empower users with intelligent tools for comprehensive research, creative content generation, and insightful data analysis. To provide a seamless experience, AISA™ optionally requests basic Google account access to securely authenticate users and personalize their workspace.
         </motion.p>
 
         {/* Subtitle */}
