@@ -136,7 +136,20 @@ STRICT RULES:
 3. LENGTH: 5–10 words max.
 4. FORMAT: Return ONLY a JSON array: ["S1", "S2", "S3"]`;
 
-        const response = await generateChatResponse([], prompt, systemInstruction, [], 'English');
+        // Use skipSession:true so the backend does NOT create a ghost chat session for this internal call
+        const token = getUserData()?.token;
+        const headers = { 'X-Device-Fingerprint': getDeviceFingerprint() };
+        if (token && token !== 'undefined' && token !== 'null') headers.Authorization = `Bearer ${token}`;
+        const raw = await axios.post(apis.chatAgent, {
+            content: prompt,
+            history: [],
+            systemInstruction,
+            image: [],
+            document: [],
+            language: 'English',
+            skipSession: true
+        }, { headers, withCredentials: true, timeout: 15000 });
+        const response = raw.data;
 
         // Handle both object {reply: "..."} and direct string responses
         const replyText = response?.reply || (typeof response === 'string' ? response : null);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, Fragment } from 'react';
 import { NavLink, useNavigate, Link } from 'react-router-dom';
 import { AnimatePresence, motion, useMotionValue, useSpring } from 'framer-motion';
 import {
@@ -33,9 +33,11 @@ import {
   Gavel,
   PlusCircle,
   Database,
-  Info
+  Info,
+  Home,
+  CreditCard
 } from 'lucide-react';
-import { apis, AppRoute } from '../../types';
+import { apis, AppRoute, API } from '../../types';
 import ShareModal from '../ShareModal';
 import { faqs, logo } from '../../constants';
 import NotificationBar from '../NotificationBar/NotificationBar.jsx';
@@ -45,6 +47,7 @@ import axios from 'axios';
 import { useLanguage } from '../../context/LanguageContext';
 import { useTheme } from '../../context/ThemeContext';
 import { usePersonalization } from '../../context/PersonalizationContext';
+import { Menu, Transition, Dialog } from '@headlessui/react';
 
 
 import { chatStorageService } from '../../services/chatStorageService';
@@ -52,15 +55,11 @@ import { useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import ProfileSettingsDropdown from '../ProfileSettingsDropdown/ProfileSettingsDropdown.jsx';
 import { getSubscriptionDetails } from '../../services/pricingService';
-import TermsOfServiceModal from '../../landingpage/PolicyModals/TermsOfServiceModal';
-import PrivacyPolicyModal from '../../landingpage/PolicyModals/PrivacyPolicyModal';
-import AboutAISA from '../../landingpage/AboutAISA.jsx';
-
 import apiService from '../../services/apiService';
 import DeleteConfirmModal from '../DeleteConfirmModal.jsx';
 
 
-const Sidebar = ({ isOpen, onClose }) => {
+const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
   const { t } = useLanguage();
   const { theme, setTheme } = useTheme();
   const { addNotification } = usePersonalization();
@@ -72,9 +71,11 @@ const Sidebar = ({ isOpen, onClose }) => {
   const [currentUserData, setUserRecoil] = useRecoilState(userData);
   const user = currentUserData.user || getUserData() || { name: "Loading...", email: "...", role: "user" };
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [showTerms, setShowTerms] = useState(false);
-  const [showPrivacy, setShowPrivacy] = useState(false);
-  const [isAboutOpen, setIsAboutOpen] = useState(false);
+  // New States
+  const [isConnectorsOpen, setIsConnectorsOpen] = useState(false);
+  const [isCreditsOpen, setIsCreditsOpen] = useState(false);
+  const [creditLogs, setCreditLogs] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
 
   const [sessions, setSessions] = useRecoilState(sessionsData);
@@ -172,6 +173,28 @@ const Sidebar = ({ isOpen, onClose }) => {
       }).catch(err => console.log(err));
     }
   }, [token]);
+
+  const fetchCreditLogs = async () => {
+    try {
+      setLoadingHistory(true);
+      const res = await axios.get(`${API}/subscription/credit-history`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.data.success) {
+        setCreditLogs(res.data.logs);
+      }
+    } catch (error) {
+      console.error("Failed to fetch credit logs", error);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isCreditsOpen && token) {
+      fetchCreditLogs();
+    }
+  }, [isCreditsOpen, token]);
 
   // Fetch projects for logged-in users
   useEffect(() => {
@@ -437,11 +460,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   const currentProject = projects.find(p => p._id === currentProjectId);
 
 
-  const navItemClass = ({ isActive }) =>
-    `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group font-medium border border-transparent ${isActive
-      ? 'bg-primary/10 text-primary border-primary/10'
-      : 'text-subtext hover:bg-surface hover:text-maintext'
-    }`;
+
 
   return (
     <>
@@ -563,7 +582,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                       {t('cancel')}
                     </button>
                     <button
-                      onClick={handleCreateProject}
+                      onClick={() => handleCreateProject(false)}
                       disabled={!newProjectName.trim()}
                       className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-primary hover:opacity-90 transition-all shadow-lg shadow-primary/20 disabled:opacity-40 disabled:cursor-not-allowed"
                     >
@@ -974,7 +993,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
 
 
-          <div className="px-6 py-4 border-t border-white/5 relative z-20">
+          <div className="px-2 py-4 border-t border-white/5 relative z-20">
             {isAdmin && (
               <button
                 onClick={() => { navigate('/dashboard/admin'); onClose(); }}
@@ -985,35 +1004,35 @@ const Sidebar = ({ isOpen, onClose }) => {
               </button>
             )}
 
-            <div className="flex items-center justify-between px-2">
-              <button 
-                onClick={() => setShowTerms(true)}
-                className="flex flex-col items-center gap-2 transition-all active:scale-95"
+            <div className="grid grid-cols-3 gap-1 px-1">
+              <button
+                onClick={() => setIsConnectorsOpen(true)}
+                className="flex flex-col items-center gap-2 transition-all active:scale-95 group/fbtn"
               >
                 <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
-                  <FileText className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
+                  <LayoutGrid className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
                 </div>
-                <span className="text-[10px] font-black text-primary/70 uppercase tracking-wider transition-colors">{t('terms') || 'Terms'}</span>
+                <span className="text-[9px] font-black text-primary/70 uppercase tracking-tight group-hover/fbtn:text-primary transition-colors">Connectors</span>
               </button>
 
-              <button 
-                onClick={() => setShowPrivacy(true)}
-                className="flex flex-col items-center gap-2 transition-all active:scale-95"
+              <button
+                onClick={() => setIsCreditsOpen(true)}
+                className="flex flex-col items-center gap-2 transition-all active:scale-95 group/fbtn"
               >
                 <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
-                  <Shield className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
+                  <CreditCard className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
                 </div>
-                <span className="text-[10px] font-black text-primary/70 uppercase tracking-wider transition-colors">{t('privacy') || 'Privacy'}</span>
+                <span className="text-[9px] font-black text-primary/70 uppercase tracking-tight group-hover/fbtn:text-primary transition-colors">Credits</span>
               </button>
 
-              <button 
-                onClick={() => setIsAboutOpen(true)}
-                className="flex flex-col items-center gap-2 transition-all active:scale-95"
+              <button
+                onClick={onOpenSettings}
+                className="flex flex-col items-center gap-2 transition-all active:scale-95 group/fbtn"
               >
                 <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
-                  <Info className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
+                  <Settings2 className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
                 </div>
-                <span className="text-[10px] font-black text-primary/70 uppercase tracking-wider transition-colors">About</span>
+                <span className="text-[9px] font-black text-primary/70 uppercase tracking-tight group-hover/fbtn:text-primary transition-colors">Settings</span>
               </button>
             </div>
           </div>
@@ -1037,20 +1056,132 @@ const Sidebar = ({ isOpen, onClose }) => {
         sessionTitle={sessionToShare?.title || "Shared Chat"}
       />
 
-      <TermsOfServiceModal
-        isOpen={showTerms}
-        onClose={() => setShowTerms(false)}
-      />
+      {/* Credits Modal */}
+      <Transition appear show={isCreditsOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-[2000]" onClose={() => setIsCreditsOpen(false)}>
+          <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
+          </Transition.Child>
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center">
+              <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
+                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 p-8 text-left align-middle shadow-2xl transition-all border border-zinc-200 dark:border-zinc-800">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-black text-maintext">Credits & Usage</h3>
+                    <button onClick={() => setIsCreditsOpen(false)} className="text-subtext hover:text-maintext p-1 rounded-lg hover:bg-black/5 transition-all"><X size={20} /></button>
+                  </div>
+                  <div className="space-y-6">
+                    <div className="p-6 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20">
+                      <h4 className="text-xs font-bold text-primary uppercase tracking-widest mb-1">{t('currentPlan')}</h4>
+                      <h2 className="text-3xl font-black mb-4">{planName}</h2>
+                      <div className="flex items-center justify-between bg-white/40 dark:bg-black/40 backdrop-blur-md rounded-xl p-4 border border-white/20">
+                        <div>
+                          <p className="text-[10px] font-bold text-subtext uppercase tracking-wider">{t('availableCredits')}</p>
+                          <p className="text-2xl font-black text-primary">{user?.credits || 0}</p>
+                        </div>
+                        <button onClick={() => { window.location.href = '/pricing'; }} className="px-4 py-2 bg-primary text-white rounded-lg text-xs font-bold shadow-lg">Buy More</button>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('recentCreditUsage')}</h4>
+                      <div className="space-y-2 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                        {creditLogs.length > 0 ? creditLogs.map(log => (
+                          <div key={log._id} className="flex items-center justify-between p-3 bg-gray-50/50 dark:bg-zinc-800/30 rounded-xl border border-border">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${log.credits < 0 ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}><Zap size={14} /></div>
+                              <div>
+                                <p className="text-xs font-bold truncate max-w-[150px]">{log.description}</p>
+                                <p className="text-[9px] text-subtext">{new Date(log.createdAt).toLocaleDateString()}</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className={`text-xs font-bold ${log.credits < 0 ? 'text-red-500' : 'text-green-500'}`}>{log.credits > 0 ? '+' : ''}{log.credits}</p>
+                            </div>
+                          </div>
+                        )) : <p className="text-center py-10 opacity-40 text-sm">No credit history found</p>}
+                      </div>
+                    </div>
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
 
-      <PrivacyPolicyModal
-        isOpen={showPrivacy}
-        onClose={() => setShowPrivacy(false)}
-      />
-
-      <AboutAISA
-        isOpen={isAboutOpen}
-        onClose={() => setIsAboutOpen(false)}
-      />
+      {/* Connectors Modal */}
+      <Transition appear show={isConnectorsOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-[2000]" onClose={() => setIsConnectorsOpen(false)}>
+          <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
+          </Transition.Child>
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center">
+              <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
+                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 p-8 text-left align-middle shadow-2xl transition-all border border-zinc-200 dark:border-zinc-800">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-black text-maintext">Apps & Connectors</h3>
+                    <button onClick={() => setIsConnectorsOpen(false)} className="text-subtext hover:text-maintext p-1 rounded-lg hover:bg-black/5 transition-all"><X size={20} /></button>
+                  </div>
+                  <div className="space-y-6">
+                    {(() => {
+                      const gmailApp = user?.personalizations?.apps?.find(a => a.name === 'Gmail');
+                      return (
+                        <div className={`p-5 rounded-2xl border transition-all ${gmailApp ? 'border-primary/30 bg-primary/5' : 'border-border'}`}>
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 rounded-xl bg-white dark:bg-[#1E2438] border border-border flex items-center justify-center shadow-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="w-8 h-8">
+                                  <path fill="#4caf50" d="M45,16.2l-5,2.75l-5,4.75L35,40h7c1.657,0,3-1.343,3-3V16.2z"/>
+                                  <path fill="#1e88e5" d="M3,16.2l3.614,1.71L13,23.7V40H6c-1.657,0-3-1.343-3-3V16.2z"/>
+                                  <polygon fill="#e53935" points="35,11.2 24,19.45 13,11.2 12,17 13,23.7 24,31.95 35,23.7 36,17"/>
+                                  <path fill="#c62828" d="M3,12.298V16.2l10,7.5V11.2L9.876,8.859C9.132,8.301,8.228,8,7.298,8h0 C4.924,8,3,9.924,3,12.298z"/>
+                                  <path fill="#fbc02d" d="M45,12.298V16.2l-10,7.5V11.2l3.124-2.341C38.868,8.301,39.772,8,40.702,8h0 C43.076,8,45,9.924,45,12.298z"/>
+                                </svg>
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-sm">Gmail</h4>
+                                <p className="text-[10px] text-subtext">{gmailApp ? (gmailApp.tokens?.email_address || 'Connected') : 'Connect your Gmail'}</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={async () => {
+                                if (gmailApp) {
+                                  // Disconnect
+                                  const tid = toast.loading("Disconnecting...");
+                                  try {
+                                    await axios.delete(`${API}/connectors/gmail/disconnect`, { headers: { Authorization: `Bearer ${token}` } });
+                                    const updatedUser = { ...user, personalizations: { ...user.personalizations, apps: user.personalizations.apps.filter(a => a.name !== 'Gmail') } };
+                                    setUserRecoil({ user: updatedUser });
+                                    toast.success("Disconnected!", { id: tid });
+                                  } catch (e) { toast.error("Failed", { id: tid }); }
+                                } else {
+                                  // Connect
+                                  try {
+                                    const res = await axios.get(`${API}/connectors/gmail/auth`, { headers: { Authorization: `Bearer ${token}` } });
+                                    if (res.data.url) window.location.href = res.data.url;
+                                  } catch (e) { toast.error("Failed to initiate"); }
+                                }
+                              }}
+                              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg transition-all ${gmailApp ? 'bg-primary/10 text-primary hover:bg-primary/20' : 'bg-primary text-white hover:opacity-90'}`}
+                            >
+                              {gmailApp ? 'Disconnect' : 'Connect'}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    <div className="rounded-2xl border border-dashed border-primary/20 p-5 text-center opacity-60">
+                      <p className="text-[10px] font-black text-primary/60 uppercase tracking-widest">More coming soon</p>
+                      <p className="text-[9px] text-subtext mt-1">Drive · Notion · Slack · Calendar</p>
+                    </div>
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
 
     </>
   );

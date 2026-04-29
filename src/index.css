@@ -407,6 +407,15 @@
 :root {
   --aisa-font-size: 16px;
   --aisa-scale: 1;
+  /* Mobile navbar height — updated dynamically by Navigation.Provider.jsx */
+  --mobile-nav-h: 64px;
+}
+
+/* On desktop (lg+) the mobile header doesn't exist, so no offset needed */
+@media (min-width: 1024px) {
+  :root {
+    --mobile-nav-h: 0px;
+  }
 }
 
 /* Global Scaling System */

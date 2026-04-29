@@ -597,6 +597,8 @@ const Chat = () => {
     return () => clearTimeout(timeoutId);
   }, [discoveryIndex]);
   const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false);
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const lastScrollTopRef = useRef(0);
 
   const [isLiveMode, setIsLiveMode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -621,7 +623,12 @@ const Chat = () => {
 
   // Cases (Projects) Feature State
   const [projects, setProjects] = useState([]);
-  const [currentCase, setCurrentCase] = useState(null);
+  const [currentCase, setCurrentCase] = useState(() => {
+    try {
+      const saved = localStorage.getItem('aisa_current_case');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) { return null; }
+  });
   const [isCasePanelOpen, setIsCasePanelOpen] = useState(false);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
@@ -669,9 +676,14 @@ const Chat = () => {
   const [isDocumentConvert, setIsDocumentConvert] = useState(false);
   const [isCodeWriter, setIsCodeWriter] = useState(false);
   const [isFileAnalysis, setIsFileAnalysis] = useState(false);
-  const [isCashFlowMode, setIsCashFlowMode] = useState(false);
-  const [isStockModalOpen, setIsStockModalOpen] = useState(false);
-  const [selectedStock, setSelectedStock] = useState(null);
+  const [isCashFlowMode, setIsCashFlowMode] = useState(() => localStorage.getItem('aisa_cashflow_mode') === 'true');
+  const [isStockModalOpen, setIsStockModalOpen] = useState(() => localStorage.getItem('aisa_stock_modal_open') === 'true');
+  const [selectedStock, setSelectedStock] = useState(() => {
+    try {
+      const saved = localStorage.getItem('aisa_selected_stock');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) { return null; }
+  });
   const [stockSearchResults, setStockSearchResults] = useState([]);
   const [isSearchingStocks, setIsSearchingStocks] = useState(false);
   const [isVideoGeneration, setIsVideoGeneration] = useState(false);
@@ -736,48 +748,7 @@ const Chat = () => {
     }
   }, [location.search, navigate, location.pathname]);
 
-  // Sync AI Ads Dashboard state to the URL so it persists on refresh
-  useEffect(() => {
-    const url = new URL(window.location);
-    if (isSocialMediaDashboardOpen) {
-      url.searchParams.set('tool', 'ai_ads');
-    } else {
-      url.searchParams.delete('tool');
-    }
-    window.history.replaceState({}, '', url);
-  }, [isSocialMediaDashboardOpen]);
 
-  // Tool Persistence
-  useEffect(() => {
-    if (currentMode) {
-      localStorage.setItem('aisa_active_mode', currentMode);
-    } else {
-      localStorage.removeItem('aisa_active_mode');
-    }
-  }, [currentMode]);
-
-  useEffect(() => {
-    if (selectedLegalTool) {
-      localStorage.setItem('aisa_active_legal_tool_data', JSON.stringify(selectedLegalTool));
-    } else {
-      localStorage.removeItem('aisa_active_legal_tool_data');
-    }
-  }, [selectedLegalTool]);
-
-  useEffect(() => {
-    const savedTool = localStorage.getItem('aisa_active_legal_tool');
-    if (savedTool && currentMode === 'LEGAL_TOOLKIT') {
-      setActiveTool(savedTool);
-    }
-  }, [currentMode]);
-
-  useEffect(() => {
-    if (activeTool) {
-      localStorage.setItem('aisa_active_legal_tool', activeTool);
-    } else {
-      localStorage.removeItem('aisa_active_legal_tool');
-    }
-  }, [activeTool]);
 
 
 
@@ -840,6 +811,7 @@ const Chat = () => {
   const lastDetectedTextRef = useRef('');
 
 
+
   const handleOpenEditModal = (c) => {
     setEditingCaseId(c._id);
     const standardTypes = ['Civil Case', 'Criminal Case', 'Divorce Case', 'Property Dispute', 'Corporate Legal', 'Consumer Court', 'Labor Dispute'];
@@ -889,6 +861,61 @@ const Chat = () => {
       fetchLegalCases();
     }
   }, [currentMode, selectedLegalTool]);
+
+  // ─── Tool & Dashboard State Persistence (Survive Refresh) ─────────────────
+
+  // SAVE: persist mode states whenever they change
+  useEffect(() => {
+    if (currentMode) {
+      localStorage.setItem('aisa_active_mode', currentMode);
+    } else {
+      localStorage.removeItem('aisa_active_mode');
+    }
+  }, [currentMode]);
+
+  useEffect(() => {
+    if (selectedLegalTool) {
+      localStorage.setItem('aisa_active_legal_tool_data', JSON.stringify(selectedLegalTool));
+    } else {
+      localStorage.removeItem('aisa_active_legal_tool_data');
+    }
+  }, [selectedLegalTool]);
+
+  useEffect(() => {
+    localStorage.setItem('aisa_cashflow_mode', JSON.stringify(isCashFlowMode));
+  }, [isCashFlowMode]);
+
+  useEffect(() => {
+    localStorage.setItem('aisa_stock_modal_open', JSON.stringify(isStockModalOpen));
+  }, [isStockModalOpen]);
+
+  useEffect(() => {
+    localStorage.setItem('aisa_legal_view', legalView);
+  }, [legalView]);
+
+  useEffect(() => {
+    if (currentCase) {
+      localStorage.setItem('aisa_current_case', JSON.stringify(currentCase));
+    } else {
+      localStorage.removeItem('aisa_current_case');
+    }
+  }, [currentCase]);
+
+  useEffect(() => {
+    if (selectedStock) {
+      localStorage.setItem('aisa_selected_stock', JSON.stringify(selectedStock));
+    } else {
+      localStorage.removeItem('aisa_selected_stock');
+    }
+  }, [selectedStock]);
+
+  useEffect(() => {
+    if (activeTool) {
+      localStorage.setItem('aisa_active_legal_tool', activeTool);
+    } else {
+      localStorage.removeItem('aisa_active_legal_tool');
+    }
+  }, [activeTool]);
 
   const handleCreateNewCase = async () => {
     if (!newCaseForm.clientName.trim()) {
@@ -1058,7 +1085,7 @@ const Chat = () => {
   const renderNewCaseModal = () => {
     return (
       <Transition appear show={isNewCaseModalOpen} as={Fragment}>
-        <Dialog as="div" className="relative z-[200]" onClose={() => setIsNewCaseModalOpen(false)}>
+        <Dialog as="div" className="relative z-[200000]" onClose={() => setIsNewCaseModalOpen(false)}>
           <Transition.Child
             as={Fragment}
             enter="ease-out duration-300"
@@ -1111,7 +1138,7 @@ const Chat = () => {
 
                     <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1 whitespace-nowrap">Case Type</label>
-                      <div className="relative group">
+                      <div className="relative">
                         <select
                           value={newCaseForm.caseType}
                           onChange={e => {
@@ -1122,7 +1149,7 @@ const Chat = () => {
                               otherCaseType: val === 'Other' ? newCaseForm.otherCaseType : ''
                             });
                           }}
-                          className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-bold appearance-none cursor-pointer"
+                          className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none font-bold appearance-none cursor-pointer pr-10"
                         >
                           <option value="">Select Case Type</option>
                           <option value="Civil Case">Civil Case</option>
@@ -1134,9 +1161,7 @@ const Chat = () => {
                           <option value="Labor Dispute">Labor Dispute</option>
                           <option value="Other">Other</option>
                         </select>
-                        <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-subtext group-focus-within:text-indigo-500 transition-colors">
-                          <ChevronDown size={18} strokeWidth={3} />
-                        </div>
+                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                       </div>
 
                       <AnimatePresence>
@@ -1307,7 +1332,7 @@ const Chat = () => {
     if (isCashFlowMode) { setIsImageGeneration(false); setIsDeepSearch(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsVideoGeneration(false); setIsMagicEditing(false); setIsFileAnalysis(false); setIsMagicVideoModalOpen(false); setActiveLegalToolkit(false); setCurrentMode(null); setSelectedLegalTool(null); }
   }, [isCashFlowMode]);
   useEffect(() => {
-    if (activeLegalToolkit) { setIsImageGeneration(false); setIsDeepSearch(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsVideoGeneration(false); setIsMagicEditing(false); setIsFileAnalysis(false); setIsMagicVideoModalOpen(false); setIsCashFlowMode(false); }
+    if (activeLegalToolkit) { setIsImageGeneration(false); setIsDeepSearch(false); setIsWebSearch(false); setIsAudioConvertMode(false); setIsDocumentConvert(false); setIsCodeWriter(false); setIsVideoGeneration(false); setIsMagicEditing(false); setIsFileAnalysis(false); setIsMagicVideoModalOpen(false); setIsCashFlowMode(false); setIsStockModalOpen(false); }
   }, [activeLegalToolkit]);
 
   // ─── Intent Detection Logic (Routing System) ──────────────────────────────
@@ -3631,6 +3656,14 @@ const Chat = () => {
   const handleScroll = () => {
     if (chatContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      
+      if (scrollTop > lastScrollTopRef.current && scrollTop > 50) {
+        setIsHeaderVisible(false);
+      } else if (scrollTop < lastScrollTopRef.current) {
+        setIsHeaderVisible(true);
+      }
+      lastScrollTopRef.current = scrollTop <= 0 ? 0 : scrollTop;
+
       // Increased threshold (250px) to be less sensitive to minor scroll movements or large images
       const isNearBottom = scrollHeight - scrollTop - clientHeight < 350;
       shouldAutoScrollRef.current = isNearBottom;
@@ -4896,6 +4929,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
   const [feedbackDetails, setFeedbackDetails] = useState("");
   const [loadingText, setLoadingText] = useState("Thinking..."); // New state for loading status text
   const [messageFeedback, setMessageFeedback] = useState({}); // { [msgId]: { type: 'up' | 'down', categories: [], details: '' } }
+  const [downloadedMessages, setDownloadedMessages] = useState({}); // Tracks which messages have been downloaded
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
 
   const toggleFeedback = (msgId, feedbackData) => {
@@ -5278,6 +5312,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+        setDownloadedMessages(prev => ({ ...prev, [msg.id]: true }));
         if (processToastId) toast.success("PDF Downloaded", { id: processToastId });
       } else if (action === 'open') {
         const url = URL.createObjectURL(blob);
@@ -5355,22 +5390,19 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
     }
   }, [inputValue]);
 
-  // ===== AUTO PRE-GENERATE PDF for latest AI message =====
-  // Start PDF generation in background right after AI responds
-  // so by the time user clicks the PDF icon, it's already ready (instant share!)
-  useEffect(() => {
-    const lastMsg = messages[messages.length - 1];
-    if (!lastMsg || lastMsg.role !== 'model' || !lastMsg.content) return;
-    if (pregeneratedPdfs[lastMsg.id]) return; // Already generated
-    if (typingMessageId === lastMsg.id) return; // Wait for typing animation to finish
-
-    // Wait 1.5s for DOM to fully render, then silently pre-generate
-    const timer = setTimeout(() => {
-      handlePdfAction('pregenerate', lastMsg);
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, [messages, typingMessageId, pregeneratedPdfs]);
+  // ===== AUTO PRE-GENERATE PDF — DISABLED =====
+  // PDF generation now only triggers on explicit user action (download/share/copy click).
+  // Background pregeneration caused unnecessary processing on every AI response.
+  // useEffect(() => {
+  //   const lastMsg = messages[messages.length - 1];
+  //   if (!lastMsg || lastMsg.role !== 'model' || !lastMsg.content) return;
+  //   if (pregeneratedPdfs[lastMsg.id]) return;
+  //   if (typingMessageId === lastMsg.id) return;
+  //   const timer = setTimeout(() => {
+  //     handlePdfAction('pregenerate', lastMsg);
+  //   }, 1500);
+  //   return () => clearTimeout(timer);
+  // }, [messages, typingMessageId, pregeneratedPdfs]);
 
   const handleThumbsDown = (msgId) => {
     setFeedbackMsgId(msgId);
@@ -6236,59 +6268,69 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         )}
 
         {/* Header - Minimalist with Profile and Theme - Hidden on mobile as it's now in the navbar */}
-        <div className="hidden lg:flex absolute top-4 right-6 z-[100] items-center gap-3">
-          {/* Theme Toggle */}
-          <button
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className={`w-10 h-10 rounded-xl border transition-all duration-300 group/theme flex items-center justify-center
-              ${theme === 'dark'
-                ? 'bg-zinc-900/50 border-white/10 text-slate-400 hover:text-primary hover:bg-primary/10 backdrop-blur-md'
-                : 'bg-white/50 border-slate-200 text-slate-600 hover:text-primary hover:bg-white shadow-sm backdrop-blur-md'}`}
-            title={theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
-          >
-            {theme === 'dark' ? <Sun className="w-[18px] h-[18px] group-hover/theme:rotate-90 transition-transform duration-500" /> : <Moon className="w-[18px] h-[18px] group-hover/theme:-rotate-12 transition-transform duration-500" />}
-          </button>
-
-          {/* Profile Menu or Login Button */}
-          {token ? (
-            <div className="relative profile-menu-container">
+        <AnimatePresence>
+          {isHeaderVisible && (
+            <motion.div
+              initial={{ y: -50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -50, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="hidden lg:flex absolute top-4 right-6 z-[100] items-center gap-3"
+            >
+              {/* Theme Toggle */}
               <button
-                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                className={`w-10 h-10 rounded-xl border transition-all duration-300 flex items-center justify-center
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className={`w-10 h-10 rounded-xl border transition-all duration-300 group/theme flex items-center justify-center
                   ${theme === 'dark'
                     ? 'bg-zinc-900/50 border-white/10 text-slate-400 hover:text-primary hover:bg-primary/10 backdrop-blur-md'
                     : 'bg-white/50 border-slate-200 text-slate-600 hover:text-primary hover:bg-white shadow-sm backdrop-blur-md'}`}
+                title={theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
               >
-                {user?.avatar ? (
-                  <img src={user.avatar} alt="P" className="w-[24px] h-[24px] object-cover rounded-lg" />
-                ) : (
-                  <User className="w-[18px] h-[18px]" />
-                )}
+                {theme === 'dark' ? <Sun className="w-[18px] h-[18px] group-hover/theme:rotate-90 transition-transform duration-500" /> : <Moon className="w-[18px] h-[18px] group-hover/theme:-rotate-12 transition-transform duration-500" />}
               </button>
-              <AnimatePresence>
-                {isProfileMenuOpen && (
-                  <ProfileSettingsDropdown
-                    onClose={() => setIsProfileMenuOpen(false)}
-                    onLogout={() => {
-                      clearUser();
-                      navigate('/login');
-                      setIsProfileMenuOpen(false);
-                    }}
-                  />
-                )}
-              </AnimatePresence>
-            </div>
-          ) : (
-            <motion.button
-              whileHover={{ y: -2, scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => navigate('/login')}
-              className="px-6 py-2 bg-primary text-white rounded-xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-primary/25 hover:shadow-primary/40 transition-all border border-white/10"
-            >
-              Login
-            </motion.button>
+
+              {/* Profile Menu or Login Button */}
+              {token ? (
+                <div className="relative profile-menu-container">
+                  <button
+                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                    className={`w-10 h-10 rounded-xl border transition-all duration-300 flex items-center justify-center
+                      ${theme === 'dark'
+                        ? 'bg-zinc-900/50 border-white/10 text-slate-400 hover:text-primary hover:bg-primary/10 backdrop-blur-md'
+                        : 'bg-white/50 border-slate-200 text-slate-600 hover:text-primary hover:bg-white shadow-sm backdrop-blur-md'}`}
+                  >
+                    {user?.avatar ? (
+                      <img src={user.avatar} alt="P" className="w-[24px] h-[24px] object-cover rounded-lg" />
+                    ) : (
+                      <User className="w-[18px] h-[18px]" />
+                    )}
+                  </button>
+                  <AnimatePresence>
+                    {isProfileMenuOpen && (
+                      <ProfileSettingsDropdown
+                        onClose={() => setIsProfileMenuOpen(false)}
+                        onLogout={() => {
+                          clearUser();
+                          navigate('/login');
+                          setIsProfileMenuOpen(false);
+                        }}
+                      />
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : (
+                <motion.button
+                  whileHover={{ y: -2, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => navigate('/login')}
+                  className="px-6 py-2 bg-primary text-white rounded-xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-primary/25 hover:shadow-primary/40 transition-all border border-white/10"
+                >
+                  Login
+                </motion.button>
+              )}
+            </motion.div>
           )}
-        </div>
+        </AnimatePresence>
 
 
 
@@ -6305,9 +6347,13 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         <div
           ref={chatContainerRef}
           onScroll={handleScroll}
+          style={!currentCase && currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id === 'legal_my_case'
+            ? undefined
+            : { paddingTop: 'var(--mobile-nav-h, 64px)', transition: 'padding-top 0.3s ease' }
+          }
           className={`relative flex-1 aisa-scalable-text ${!currentCase && currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id === 'legal_my_case'
             ? 'overflow-hidden'
-            : 'overflow-y-auto chatgpt-container pt-20 lg:pt-6 pb-64 md:pb-72 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent'
+            : 'overflow-y-auto chatgpt-container lg:pt-6 pb-64 md:pb-72 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent'
             }`}
         >
           <AnimatePresence mode="wait">
@@ -6331,18 +6377,21 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 transition={{ duration: 0.2 }}
                 className="flex-1 flex flex-col w-full"
               >
-              {currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id === 'legal_my_case' && (
-                <LegalWorkspaceHeader
-                  currentCase={currentCase}
-                  isRenamingCase={isRenamingCase}
-                  renameValue={renameValue}
-                  setRenameValue={setRenameValue}
-                  handleRenameCase={handleRenameCase}
-                  setIsRenamingCase={setIsRenamingCase}
-                  handleDeleteCase={handleDeleteCase}
-                  handleBackToDashboard={handleBackToDashboard}
-                />
-              )}
+                {currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id === 'legal_my_case' && (
+                  <LegalWorkspaceHeader
+                    currentCase={currentCase}
+                    isRenamingCase={isRenamingCase}
+                    renameValue={renameValue}
+                    setRenameValue={setRenameValue}
+                    handleRenameCase={handleRenameCase}
+                    setIsRenamingCase={setIsRenamingCase}
+                    handleDeleteCase={handleDeleteCase}
+                    handleBackToDashboard={handleBackToDashboard}
+                  />
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
               {messages.length > 0 && (
                 <>
                   {/* Top Spacer */}
@@ -7184,17 +7233,19 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                               title="Download Code Project (ZIP)"
                                             >
                                               <FileText className="w-3.5 h-3.5 group-hover/code:scale-110 transition-transform" />
-                                              <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.6)]" />
                                             </button>
                                           ) : (
                                             !isMediaFeature && (
                                               <button
                                                 onClick={() => handlePdfAction('download', msg)}
-                                                className="text-red-500 hover:text-red-600 transition-all p-1.5 hover:bg-red-50/10 rounded-lg flex items-center gap-1 active:scale-95 group/pdf"
+                                                className={`transition-all p-1.5 rounded-lg flex items-center gap-1 active:scale-95 group/pdf ${
+                                                  downloadedMessages[msg.id]
+                                                    ? 'text-primary bg-primary/10 hover:bg-primary/20'
+                                                    : 'text-subtext hover:text-primary hover:bg-surface-hover'
+                                                }`}
                                                 title="Download Ready-Made PDF Report"
                                               >
                                                 <FileText className="w-3.5 h-3.5 group-hover/pdf:scale-110 transition-transform" />
-                                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
                                               </button>
                                             )
                                           )}
@@ -7298,7 +7349,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
         {/* Welcome Screen - Integrated Hub */}
         <AnimatePresence>
-          {messages.length === 0 &&
+          {messages.length === 0 && 
             legalView !== 'DASHBOARD' &&
             !currentCase &&
             (!currentProjectId || currentProjectId === 'default' || currentProjectId === 'all') &&
@@ -7306,11 +7357,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
               <motion.div
                 key="welcome-screen"
                 initial={{ opacity: 0 }}
-                animate={{ opacity: 1, pointerEvents: 'auto' }}
-                exit={{ opacity: 0, y: -20, filter: 'blur(10px)', pointerEvents: 'none' }}
-                className="absolute inset-0 z-10 pointer-events-auto flex flex-col items-center overflow-y-auto overflow-x-hidden pt-20 lg:pt-8 pb-48 sm:pt-12 md:pb-60 scrollbar-hide"
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
+                className="absolute inset-0 z-10 pointer-events-auto flex flex-col items-center overflow-y-auto lg:overflow-hidden overflow-x-hidden pt-20 lg:pt-2 pb-40 sm:pt-8 md:pb-48 scrollbar-hide"
               >
-                <div className="relative z-10 flex flex-col items-center w-full max-w-5xl mx-auto px-4 sm:px-6">
+                <div className="relative z-10 flex flex-col items-center w-full max-w-7xl mx-auto px-4 sm:px-6">
                   <motion.div
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
@@ -7323,7 +7374,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       className="w-16 h-12 sm:w-20 sm:h-16 mx-auto object-cover object-top drop-shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.4)] transition-all duration-700 hover:scale-110"
                     />
                   </motion.div>
-                  <section className="w-full px-1 sm:px-2 md:px-0">
+                  <section className="w-full px-1 sm:px-2 md:px-0 mt-2 sm:mt-0">
                     <FuturisticToolCards
                       isAdmin={isAdminUser}
                       activeToolId={
@@ -7337,7 +7388,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                       isMagicEditing ? 'edit_image' :
                                         isMagicVideoModalOpen ? 'image_to_video' :
                                           isStockModalOpen ? 'ai_cashflow' :
-                                            (activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') ? 'legal' : null
+                                            isSocialMediaDashboardOpen ? 'aiad_agent' :
+                                              (activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') ? 'legal' : null
                       }
                       onToolSelect={(id) => {
                         setIsImageGeneration(false);
@@ -7410,6 +7462,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           toast.success("AI ADS™ Active");
                         } else if (id === 'legal') {
                           if (!checkPremiumTool('AI Legal')) return;
+                          setIsCashFlowMode(false);
+                          setIsStockModalOpen(false);
                           setActiveLegalToolkit(true);
                           setCurrentMode('LEGAL_TOOLKIT');
                           // Removed setLegalView('DASHBOARD') to keep input box visible behind modal
@@ -8366,9 +8420,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             }
                           }
                         }}
-                        placeholder={isLimitReached ? t('limitReached') || "Chat limit reached. Sign in to continue." : (isVideoGeneration ? t('describeVideo') || "Describe the video you want to generate..." : isAudioConvertMode ? t('enterTextToConvert') || "Enter text to convert..." : isDocumentConvert ? t('uploadFileToConvert') || "Upload file & ask to convert..." : currentMode === 'LEGAL_TOOLKIT' ? (selectedLegalTool?.placeholder || "⚖️ Ask your legal question or provide case details...") : typedPlaceholder)}
+                        placeholder={isLimitReached ? t('limitReached') || "Chat limit reached. Sign in to continue." : (isVideoGeneration ? t('describeVideo') || "Describe the video you want to generate..." : isAudioConvertMode ? t('enterTextToConvert') || "Enter text to convert..." : isDocumentConvert ? t('uploadFileToConvert') || "Upload file & ask to convert..." : currentMode === 'LEGAL_TOOLKIT' ? (selectedLegalTool?.placeholder || "⚖️ Ask your legal question or provide case details...") : (window.innerWidth < 768 ? "Write what’s on your mind…" : typedPlaceholder))}
                         rows={1}
-                        className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none px-2 py-2 sm:px-3 sm:py-2.5 text-slate-800 dark:text-zinc-100 text-left placeholder-slate-400 dark:placeholder-zinc-500 resize-none overflow-y-auto custom-scrollbar font-normal leading-[1.6] text-[15px] sm:text-[16px] ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
+                        className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none px-2 py-2 sm:px-3 sm:py-2.5 text-slate-800 dark:text-zinc-100 text-left placeholder-slate-400 dark:placeholder-zinc-500 resize-none overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] font-normal leading-[1.6] text-[15px] sm:text-[16px] ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
                         style={{ minHeight: '40px', height: '40px', maxHeight: '140px' }}
                       />
                     </div>
@@ -8382,7 +8436,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         </div>
                       )}
 
-                      {!isListening && (
+                      {!isListening && !inputValue && (
                         <>
                           {getAgentCapabilities(activeAgent.agentName, activeAgent.category).canVoice && (
                             <div className="relative">
@@ -9160,6 +9214,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
           onClose={() => setIsStockModalOpen(false)}
           onSelect={(stock) => handleStockAnalysis(stock)}
           isDarkMode={isDarkMode}
+          initialStock={selectedStock}
         />
 
 
@@ -9171,10 +9226,17 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
           onSelect={(tool, isUnlocked) => {
             if (tool.id === 'legal_free_chat') {
               setSelectedLegalTool(tool);
-
               setCurrentMode('LEGAL_TOOLKIT');
-              setLegalView('CHAT'); // Ensure chat view is active
+              setLegalView('CHAT');
               setActiveLegalToolkit(false);
+              if (currentCase) {
+                setMessages([{
+                  id: Date.now().toString(),
+                  role: 'model',
+                  content: `Legal chat activated for **${currentCase.name}**. Ask me anything about this case ⚖️`,
+                  timestamp: Date.now(),
+                }]);
+              }
               toast.success("Legal Chat Activated ⚖️", {
                 icon: '⚖️',
                 style: {
@@ -9207,6 +9269,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
             }
 
             if (tool.id === 'legal_my_case') {
+              setIsCashFlowMode(false);
+              setIsStockModalOpen(false);
               setLegalView('DASHBOARD');
               setSelectedLegalTool({ id: tool.id, name: tool.name });
               setCurrentMode('LEGAL_TOOLKIT');
@@ -9221,6 +9285,30 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
             
             setLegalView('CHAT'); // Ensure chat view is active for specific tools
             setActiveLegalToolkit(false);
+            // If a case is active, clear messages so the new tool starts fresh within that case
+            if (currentCase) {
+              setMessages([{
+                id: Date.now().toString(),
+                role: 'model',
+                content: `You've activated **${tool.name}** within the case **${currentCase.name}**.\n\nAll context from this case is available. How would you like to proceed?`,
+                timestamp: Date.now(),
+              }]);
+            } else {
+              setMessages([]);
+            }
+            if (inputRef.current) inputRef.current.focus();
+            toast.success(`✅ ${tool.name} Activated for ${currentCase ? currentCase.name : 'AI Legal'} ✨`, {
+              position: 'top-right',
+              style: {
+                background: '#F0FDF4',
+                color: '#166534',
+                borderRadius: '16px',
+                padding: '16px 24px',
+                fontWeight: 'bold',
+                border: '1px solid #BBF7D0',
+                boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
+              }
+            });
           }}
         />
       </React.Suspense>
