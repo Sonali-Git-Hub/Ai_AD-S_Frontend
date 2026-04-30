@@ -987,6 +987,10 @@ const Chat = () => {
     }
 
     const tid = toast.loading(editingCaseId ? "Updating legal case..." : "Creating legal case...");
+    
+    // Close modal immediately for better UX
+    setIsNewCaseModalOpen(false);
+
     try {
       // Use clientName as the project name if no specific name provided
       const caseName = newCaseForm.accused
@@ -1028,11 +1032,12 @@ const Chat = () => {
         }
       }
 
-      setIsNewCaseModalOpen(false);
       setEditingCaseId(null);
       setNewCaseForm({ clientName: '', caseType: '', otherCaseType: '', accused: '', caseSummary: '' });
     } catch (err) {
       toast.error(editingCaseId ? "Failed to update case" : "Failed to create case", { id: tid });
+      // Re-open if failed so user doesn't lose their data
+      setIsNewCaseModalOpen(true);
     }
   };
 
