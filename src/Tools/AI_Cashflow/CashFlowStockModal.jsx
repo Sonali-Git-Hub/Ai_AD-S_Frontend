@@ -6,6 +6,7 @@ import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import AISnapshot from '../../landingpage/AISnapshot';
 import { io } from 'socket.io-client';
+import apiService from '../../services/apiService';
 
 const baseURL = window._env_?.VITE_AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || "http://localhost:8080/api";
 
@@ -101,6 +102,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
    const [isStockSelectOpen, setIsStockSelectOpen] = useState(false);
    const [chartInterval, setChartInterval] = useState('D');
    const [fullScreenChart, setFullScreenChart] = useState(null);
+   const [cashflowCost, setCashflowCost] = useState(100);
 
    // Tab-specific data states
    const [tabData, setTabData] = useState({
@@ -143,6 +145,22 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
          setSelectedStock(initialStock);
       }
    }, [isOpen, initialStock]);
+
+   // Fetch Dynamic Cashflow Credit Cost
+   useEffect(() => {
+      const fetchCost = async () => {
+         try {
+            const res = await apiService.getPublicFeatureCosts();
+            if (res.success && res.features) {
+               const feature = res.features.find(f => f.featureKey === 'ai_cashflow');
+               if (feature) setCashflowCost(feature.cost);
+            }
+         } catch (err) {
+            console.error("Failed to load cashflow cost", err);
+         }
+      };
+      if (isOpen) fetchCost();
+   }, [isOpen]);
 
    // Clear data only when symbol changes to prevent jarring UI
    useEffect(() => {
@@ -232,7 +250,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
              .catch((err) => { 
                  setIsLoadingTab(false);
                  if (err.response?.status === 403 && err.response?.data?.code === 'OUT_OF_CREDITS') {
-                    setTabError(`Insufficient Credits (Required: 5)`);
+                    setTabError(`Insufficient Credits (Required: ${cashflowCost})`);
                  } else {
                     setTabError(`Failed to load intraday data.`);
                  }
@@ -285,7 +303,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
                 setTabData(prev => ({ ...prev, [activeTab]: result }));
              }).catch(err => {
                 if (err.response?.status === 403 && err.response?.data?.code === 'OUT_OF_CREDITS') {
-                   setTabError(`Insufficient Credits (Required: 5)`);
+                   setTabError(`Insufficient Credits (Required: ${cashflowCost})`);
                 } else {
                    setTabError(`Failed to load ${activeTab}.`);
                 }

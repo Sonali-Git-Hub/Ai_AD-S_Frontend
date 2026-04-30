@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+// import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText, Shield, FileCheck, Scale, Binary,
   Mail, PenTool, AlertTriangle, Edit3, Brain,
@@ -97,13 +98,9 @@ const ToolCard = ({ tool, isPrimary = false, size = 'md', onClose, onSelect, t }
     <motion.div
       whileHover={{ y: -4, scale: 1.01 }}
       onClick={() => { if (isUnlocked) { onClose(); onSelect(tool, isUnlocked); } }}
-      className={`group relative cursor-pointer rounded-[1.4rem] p-4 transition-all duration-300 border overflow-hidden`}
-      style={{
-        background: 'rgba(255,255,255,0.65)',
-        border: '1px solid rgba(255,255,255,0.75)',
-        backdropFilter: 'blur(12px)',
-        boxShadow: '0 4px 16px rgba(99,102,241,0.06)',
-      }}
+      className={`group relative cursor-pointer rounded-[1.4rem] p-4 transition-all duration-300 border overflow-hidden
+        bg-white/65 border-white/75 backdrop-blur-[12px] shadow-[0_4px_16px_rgba(99,102,241,0.06)]
+        dark:bg-zinc-800/40 dark:border-white/10 dark:shadow-none`}
     >
       {/* Workflow Overlay */}
       <AnimatePresence>
@@ -162,12 +159,12 @@ const ToolCard = ({ tool, isPrimary = false, size = 'md', onClose, onSelect, t }
               <Icon className={`w-5.5 h-5.5 ${isUnlocked ? 'text-white' : 'text-slate-400'}`} />
             </div>
             {tool.id === 'legal_case_predictor' && (
-              <span className={`text-[6px] font-black uppercase tracking-[0.1em] transition-colors ${isUnlocked ? 'text-indigo-600' : 'text-slate-400'}`}>सत्यमेव जयते</span>
+              <span className={`text-[6px] font-black uppercase tracking-[0.1em] transition-colors ${isUnlocked ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`}>सत्यमेव जयते</span>
             )}
           </div>
           <button
             onClick={(e) => { e.stopPropagation(); setShowWorkflow(true); }}
-            className="p-2 transition-all text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg"
+            className="p-2 transition-all text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-white/5 rounded-lg"
             title="How it works"
           >
             <Sparkles className="w-4 h-4" />
@@ -176,16 +173,16 @@ const ToolCard = ({ tool, isPrimary = false, size = 'md', onClose, onSelect, t }
 
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <h5 className="font-bold text-slate-900 group-hover:text-indigo-700 transition-colors tracking-tight text-[14px]">
+            <h5 className="font-bold text-slate-900 dark:text-white group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors tracking-tight text-[14px]">
               {tool.name}
             </h5>
             {isUnlocked ? (
-              <span className="text-[7.5px] font-black text-indigo-600 bg-indigo-50/80 px-1.5 py-0.5 rounded-full border border-indigo-100 uppercase tracking-tighter">Unlocked</span>
+              <span className="text-[7.5px] font-black text-indigo-600 bg-indigo-50/80 dark:bg-indigo-500/20 px-1.5 py-0.5 rounded-full border border-indigo-100 dark:border-indigo-500/30 uppercase tracking-tighter">Unlocked</span>
             ) : (
-              <span className="text-[7.5px] font-black text-slate-400 bg-white/70 px-1.5 py-0.5 rounded-full border border-white/80 uppercase tracking-tighter">Pro</span>
+              <span className="text-[7.5px] font-black text-slate-400 bg-white/70 dark:bg-zinc-800/70 px-1.5 py-0.5 rounded-full border border-white/80 dark:border-white/10 uppercase tracking-tighter">Pro</span>
             )}
           </div>
-          <p className="text-slate-500 text-[11px] leading-relaxed font-medium line-clamp-2">
+          <p className="text-slate-500 dark:text-slate-400 text-[11px] leading-relaxed font-medium line-clamp-2">
             {tool.desc}
           </p>
         </div>
@@ -234,8 +231,8 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
   const SectionTitle = ({ children }) => (
     <div className="flex items-center gap-4 mb-5 mt-8 first:mt-0">
       <div className="w-1 h-1 rounded-full bg-slate-500" />
-      <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-[0.28em] whitespace-nowrap">{children}</h4>
-      <div className="h-[1px] flex-1 bg-black/[0.06]" />
+      <h4 className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.28em] whitespace-nowrap">{children}</h4>
+      <div className="h-[1px] flex-1 bg-black/[0.06] dark:bg-white/10" />
     </div>
   );
 
@@ -435,13 +432,7 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="mt-12 p-8 rounded-[2rem] flex flex-col sm:flex-row items-center justify-between gap-6"
-                    style={{
-                      background: 'rgba(255,255,255,0.02)',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      backdropFilter: 'blur(20px)',
-                      boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
-                    }}
+                    className="mt-12 p-8 rounded-[2rem] flex flex-col sm:flex-row items-center justify-between gap-6 bg-white/5 dark:bg-white/[0.02] border border-black/5 dark:border-white/10 backdrop-blur-2xl shadow-lg"
                   >
                     <div className="flex items-center gap-5">
                       <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-[1.2rem] flex items-center justify-center shadow-lg">

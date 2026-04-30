@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -1306,6 +1306,11 @@ const FeatureCreditsTab = () => {
     const [modifiedFeatures, setModifiedFeatures] = useState({});
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [showAiAdsModal, setShowAiAdsModal] = useState(false);
+    const AI_ADS_FEATURES = [
+        'ai_ads_agent', 'gemini_flash', 'activate_strategy', 'generate_content', 'regenerate_content',
+        'strategy_7days', 'strategy_1x_week', 'strategy_3x_week', 'strategy_daily', 'strategy_2x_daily'
+    ];
 
     const fetchFeatures = async () => {
         try {
@@ -1403,44 +1408,325 @@ const FeatureCreditsTab = () => {
                 </div>
             </div>
 
-            {Object.entries(grouped).map(([category, items]) => (
-                <SectionCard key={category} title={category}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {items.map(f => {
-                            const mod = modifiedFeatures[f._id] || {};
-                            const currentCost = mod.cost !== undefined ? mod.cost : f.cost;
-                            const currentLabel = mod.uiLabel !== undefined ? mod.uiLabel : f.uiLabel;
-                            const isChanged = mod.cost !== undefined || mod.uiLabel !== undefined;
-                            
-                            return (
-                                <div key={f._id} className={`bg-white/5 border rounded-xl p-4 relative flex flex-col justify-between transition-colors ${isChanged ? 'border-primary/50' : 'border-white/10'}`}>
+            {Object.entries(grouped).map(([category, items]) => {
+                const isAdvanceCategory = category === 'AISA Advance Feature';
+                const regularFeatures = isAdvanceCategory ? items.filter(f => !AI_ADS_FEATURES.includes(f.featureKey)) : items;
+                const aiAdsFeatures = isAdvanceCategory ? items.filter(f => AI_ADS_FEATURES.includes(f.featureKey)) : [];
+
+                return (
+                    <SectionCard key={category} title={category}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {/* Render AI ADS Combined Card first if applicable */}
+                            {isAdvanceCategory && aiAdsFeatures.length > 0 && (
+                                <div 
+                                    onClick={() => setShowAiAdsModal(true)}
+                                    className="bg-white/5 border border-white/10 rounded-xl p-4 relative flex flex-col justify-between hover:bg-white/10 hover:border-primary/50 transition-colors cursor-pointer group"
+                                >
                                     <div>
-                                        <p className="text-xs font-bold text-subtext uppercase tracking-wider mb-1">{f.featureKey}</p>
-                                        <input 
-                                            type="text" 
-                                            className="font-bold text-maintext bg-transparent border-none p-0 outline-none w-full"
-                                            value={currentLabel}
-                                            onChange={(e) => handleFeatureChange(f._id, 'uiLabel', e.target.value)}
-                                        />
+                                        <p className="text-xs font-bold text-subtext uppercase tracking-wider mb-1">AI_ADS_AGENT_SUITE</p>
+                                        <h3 className="font-bold text-maintext text-lg">AI ADS™ Credits</h3>
+                                        <p className="text-xs text-subtext mt-1.5">Manage credit costs for Visuals, Strategy, Content, and Brand Scraping.</p>
                                     </div>
-                                    <div className="mt-4 flex items-center justify-between">
-                                        <p className="text-xs text-subtext font-medium">Credit Cost</p>
-                                        <div className="flex items-center bg-black/20 rounded-lg w-24 overflow-hidden border border-transparent focus-within:border-primary/50 transition-colors">
-                                            <input
-                                                type="number"
-                                                className="bg-transparent border-none outline-none text-right font-black text-primary text-lg w-full p-2 no-spinner"
-                                                value={currentCost}
-                                                onChange={(e) => handleFeatureChange(f._id, 'cost', e.target.value)}
-                                                min="0"
-                                            />
+                                    <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-3">
+                                        <p className="text-xs text-primary font-bold group-hover:text-primary transition-colors">Configure {aiAdsFeatures.length} Features</p>
+                                        <div className="bg-primary/20 text-primary w-8 h-8 rounded-full flex items-center justify-center">
+                                            <Settings className="w-4 h-4 group-hover:rotate-90 transition-transform" />
                                         </div>
                                     </div>
                                 </div>
-                            );
-                        })}
+                            )}
+
+                            {/* Render Regular Features */}
+                            {regularFeatures.map(f => {
+                                const mod = modifiedFeatures[f._id] || {};
+                                const currentCost = mod.cost !== undefined ? mod.cost : f.cost;
+                                const currentLabel = mod.uiLabel !== undefined ? mod.uiLabel : f.uiLabel;
+                                const isChanged = mod.cost !== undefined || mod.uiLabel !== undefined;
+                                
+                                return (
+                                    <div key={f._id} className={`bg-white/5 border rounded-xl p-4 relative flex flex-col justify-between transition-colors ${isChanged ? 'border-primary/50' : 'border-white/10'}`}>
+                                        <div>
+                                            <p className="text-xs font-bold text-subtext uppercase tracking-wider mb-1">{f.featureKey}</p>
+                                            <input 
+                                                type="text" 
+                                                className="font-bold text-maintext bg-transparent border-none p-0 outline-none w-full"
+                                                value={currentLabel}
+                                                onChange={(e) => handleFeatureChange(f._id, 'uiLabel', e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="mt-4 flex items-center justify-between">
+                                            <p className="text-xs text-subtext font-medium">Credit Cost</p>
+                                            <div className="flex items-center bg-black/20 rounded-lg w-24 overflow-hidden border border-transparent focus-within:border-primary/50 transition-colors">
+                                                <input
+                                                    type="number"
+                                                    className="bg-transparent border-none outline-none text-right font-black text-primary text-lg w-full p-2 no-spinner"
+                                                    value={currentCost}
+                                                    onChange={(e) => handleFeatureChange(f._id, 'cost', e.target.value)}
+                                                    min="0"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </SectionCard>
+                );
+            })}
+
+            {/* AI ADS Credit System Modal */}
+            {showAiAdsModal && (() => {
+                // Pull live base costs from DB features (editable)
+                const getBase = (key) => {
+                    const f = features.find(f => f.featureKey === key);
+                    if (!f) return 0;
+                    const mod = modifiedFeatures[f._id];
+                    return mod?.cost !== undefined ? Number(mod.cost) : f.cost;
+                };
+                const baseScrape     = getBase('gemini_flash');
+                const baseStrategy   = getBase('activate_strategy');
+                const baseVisual     = getBase('ai_ads_agent');
+                const baseContent    = getBase('generate_content');
+                const baseRegen      = getBase('regenerate_content');
+
+                // Dynamic strategy costs (frequency-based)
+                const strategyRows = [
+                    { key: 'strategy_7days',    label: '7 Days (Starter)',      days: 7,  posts: 7,   freeOnly: true },
+                    { key: 'strategy_1x_week',  label: '1x per week',           days: 30, posts: 4,   freeOnly: false },
+                    { key: 'strategy_3x_week',  label: '3x per week',           days: 30, posts: 12,  freeOnly: false },
+                    { key: 'strategy_daily',    label: 'Daily',                 days: 30, posts: 30,  freeOnly: false },
+                    { key: 'strategy_2x_daily', label: '2x Daily (High Growth)', days: 30, posts: 60,  freeOnly: false },
+                ];
+
+                // Carousel costs (ai_ads_agent base × slides)
+                const carouselRows = [
+                    { slides: 2, credits: baseVisual * 2 },
+                    { slides: 3, credits: baseVisual * 3 },
+                    { slides: 4, credits: baseVisual * 4 },
+                ];
+
+                const FIXED_KEYS = [
+                    { key: 'brand_setup',        label: 'Brand Setup Save',         note: 'No AI call — always free' },
+                    { key: 'gemini_flash',        label: 'Website Scraping',         note: 'Per scrape (Gemini Flash)' },
+                    { key: 'generate_content',    label: 'Content Generation',       note: 'Per calendar row' },
+                    { key: 'regenerate_content',  label: 'Regeneration / Hashtags',  note: 'Per re-roll' },
+                    { key: 'ai_ads_agent',        label: 'Visual Post (Single)',      note: 'GPT-4 + Imagen 3 per image' },
+                ];
+
+                return (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+                        <div className="bg-surface dark:bg-[#0e0e0e] border border-border/50 dark:border-white/10 rounded-3xl shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-hidden flex flex-col">
+
+                            {/* Header */}
+                            <div className="p-5 sm:p-6 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-primary/10 to-transparent shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                                        <Zap className="w-5 h-5 text-primary" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-black text-maintext">AI ADS™ Credit System</h3>
+                                        <p className="text-xs text-subtext mt-0.5">Full pricing matrix — edit base costs, dynamic costs auto-calculate</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setShowAiAdsModal(false)} className="w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded-lg transition-colors text-subtext">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            {/* Body */}
+                            <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 custom-scrollbar">
+
+                                {/* ── SECTION 1: FIXED BASE COSTS ── */}
+                                <div>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <div className="w-1.5 h-4 bg-primary rounded-full" />
+                                        <h4 className="text-xs font-black uppercase tracking-widest text-maintext">Fixed Base Costs</h4>
+                                        <span className="text-[10px] text-subtext ml-1">(editable — saved to DB)</span>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {FIXED_KEYS.map(({ key, label, note }) => {
+                                            const f = features.find(f => f.featureKey === key);
+                                            if (!f) return null;
+                                            const mod = modifiedFeatures[f._id] || {};
+                                            const currentCost  = mod.cost !== undefined ? mod.cost : f.cost;
+                                            const isChanged    = mod.cost !== undefined || mod.uiLabel !== undefined;
+                                            const isFree       = key === 'brand_setup';
+                                            return (
+                                                <div key={f._id} className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3 border transition-all ${isChanged ? 'border-primary/50 bg-primary/5' : 'border-white/10 bg-white/5'}`}>
+                                                    <div className="min-w-0">
+                                                        <p className="text-[10px] font-black uppercase tracking-wider text-subtext">{key}</p>
+                                                        <p className="text-sm font-bold text-maintext truncate">{label}</p>
+                                                        <p className="text-[10px] text-subtext/70 mt-0.5">{note}</p>
+                                                    </div>
+                                                    <div className={`flex items-center gap-1.5 rounded-lg px-2 py-1 border shrink-0 ${isFree ? 'bg-green-500/10 border-green-500/20' : 'bg-black/20 border-transparent focus-within:border-primary/50'}`}>
+                                                        {isFree ? (
+                                                            <span className="text-green-400 font-black text-lg w-10 text-right">FREE</span>
+                                                        ) : (
+                                                            <>
+                                                                <input
+                                                                    type="number"
+                                                                    className="bg-transparent border-none outline-none text-right font-black text-primary text-xl w-16 no-spinner"
+                                                                    value={currentCost}
+                                                                    onChange={(e) => handleFeatureChange(f._id, 'cost', e.target.value)}
+                                                                    min="0"
+                                                                />
+                                                                <span className="text-[10px] text-subtext font-bold">cr</span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* ── SECTION 2: STRATEGY DYNAMIC COSTS ── */}
+                                <div>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <div className="w-1.5 h-4 bg-amber-400 rounded-full" />
+                                        <h4 className="text-xs font-black uppercase tracking-widest text-maintext">Strategy Activation — Dynamic Pricing</h4>
+                                        <span className="text-[10px] text-subtext ml-1">(editable — saved to DB)</span>
+                                    </div>
+                                    <div className="rounded-xl border border-white/10 overflow-hidden">
+                                        <table className="w-full text-sm">
+                                            <thead>
+                                                <tr className="bg-white/5 border-b border-white/10">
+                                                    <th className="text-left px-4 py-2.5 text-[10px] font-black uppercase tracking-wider text-subtext">Posting Frequency</th>
+                                                    <th className="text-center px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-subtext">Days</th>
+                                                    <th className="text-center px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-subtext">Posts</th>
+                                                    <th className="text-right px-4 py-2.5 text-[10px] font-black uppercase tracking-wider text-subtext">Credits</th>
+                                                    <th className="text-center px-3 py-2.5 text-[10px] font-black uppercase tracking-wider text-subtext">Plan</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {strategyRows.map((row, i) => {
+                                                    const f = features.find(feat => feat.featureKey === row.key);
+                                                    if (!f) return null;
+                                                    const mod = modifiedFeatures[f._id] || {};
+                                                    const currentCost = mod.cost !== undefined ? mod.cost : f.cost;
+                                                    return (
+                                                    <tr key={i} className={`border-b border-white/5 last:border-0 ${row.freeOnly ? 'bg-green-500/5' : ''}`}>
+                                                        <td className="px-4 py-3">
+                                                            <span className="font-bold text-maintext text-sm">{row.label}</span>
+                                                        </td>
+                                                        <td className="px-3 py-3 text-center text-subtext text-xs font-medium">{row.days}d</td>
+                                                        <td className="px-3 py-3 text-center text-subtext text-xs font-medium">{row.posts}</td>
+                                                        <td className="px-4 py-3 text-right">
+                                                            <div className="flex items-center justify-end gap-1">
+                                                                <input
+                                                                    type="number"
+                                                                    className="bg-black/20 border border-transparent focus:border-primary/50 outline-none text-right font-black text-primary text-base w-16 px-2 py-1 rounded no-spinner"
+                                                                    value={currentCost}
+                                                                    onChange={(e) => handleFeatureChange(f._id, 'cost', e.target.value)}
+                                                                    min="0"
+                                                                />
+                                                                <span className="text-subtext text-[10px]">cr</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-3 py-3 text-center">
+                                                            {row.freeOnly
+                                                                ? <span className="px-2 py-0.5 rounded-full bg-green-500/15 text-green-400 text-[10px] font-black">FREE + PRO</span>
+                                                                : <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-black">🔒 PRO</span>
+                                                            }
+                                                        </td>
+                                                    </tr>
+                                                )})}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <p className="text-[10px] text-subtext mt-2 ml-1">
+                                        ⚠️ Free plan users are always forced to <strong>7 Days = 14 credits</strong>. Other frequencies require a paid plan.
+                                    </p>
+                                </div>
+
+                                {/* ── SECTION 3: CAROUSEL DYNAMIC COSTS ── */}
+                                <div>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <div className="w-1.5 h-4 bg-violet-400 rounded-full" />
+                                        <h4 className="text-xs font-black uppercase tracking-widest text-maintext">Carousel — Dynamic Pricing</h4>
+                                        <span className="text-[10px] text-subtext ml-1">(Visual base × slide count)</span>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        {carouselRows.map((row) => (
+                                            <div key={row.slides} className="rounded-xl border border-white/10 bg-white/5 p-4 text-center">
+                                                <div className="flex justify-center gap-0.5 mb-2">
+                                                    {Array.from({ length: row.slides }).map((_, i) => (
+                                                        <div key={i} className="w-4 h-6 rounded bg-primary/30 border border-primary/20" />
+                                                    ))}
+                                                </div>
+                                                <p className="text-[10px] text-subtext font-bold uppercase tracking-wide mb-1">{row.slides} Slides</p>
+                                                <p className="text-2xl font-black text-primary">{row.credits}</p>
+                                                <p className="text-[10px] text-subtext">credits</p>
+                                                <p className="text-[10px] text-subtext/50 mt-1">{baseVisual} × {row.slides}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <p className="text-[10px] text-subtext mt-2 ml-1">❌ Carousel posts are <strong>blocked</strong> for free plan users.</p>
+                                </div>
+
+                                {/* ── SECTION 4: FREE PLAN RULES ── */}
+                                <div>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <div className="w-1.5 h-4 bg-red-400 rounded-full" />
+                                        <h4 className="text-xs font-black uppercase tracking-widest text-maintext">Free Plan Rules (500 Credits)</h4>
+                                        <span className="text-[10px] text-subtext ml-1">(enforced in backend middleware)</span>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {[
+                                            { icon: '🌐', rule: 'Website Scraping', limit: 'Max 2 scrapes (lifetime)', action: '3rd attempt → UPGRADE_REQUIRED → Upgrade modal', color: 'amber' },
+                                            { icon: '📅', rule: 'Content Calendar', limit: 'Hard-capped at 7 days', action: 'Backend forces maxDays=7 regardless of selection', color: 'blue' },
+                                            { icon: '🎨', rule: 'Visual Posts', limit: 'Completely blocked', action: 'PLAN_RESTRICTED 403 → Upgrade modal', color: 'red' },
+                                            { icon: '🖼️', rule: 'Carousel Posts', limit: 'Completely blocked', action: 'Same as visual posts', color: 'red' },
+                                            { icon: '📊', rule: 'Posting Frequency', limit: 'Only "7 Days (Starter)"', action: 'Other options show 🔒 PRO lock in dropdown', color: 'violet' },
+                                        ].map((item, i) => (
+                                            <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/10">
+                                                <span className="text-base shrink-0 mt-0.5">{item.icon}</span>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <p className="text-sm font-bold text-maintext">{item.rule}</p>
+                                                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                                                            item.color === 'red' ? 'bg-red-500/15 text-red-400' :
+                                                            item.color === 'amber' ? 'bg-amber-500/15 text-amber-400' :
+                                                            item.color === 'blue' ? 'bg-blue-500/15 text-blue-400' :
+                                                            'bg-violet-500/15 text-violet-400'
+                                                        }`}>{item.limit}</span>
+                                                    </div>
+                                                    <p className="text-[10px] text-subtext mt-0.5">{item.action}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            {/* Footer */}
+                            <div className="p-4 sm:p-5 border-t border-white/10 bg-white/[0.02] flex items-center justify-between gap-3 shrink-0">
+                                <p className="text-[10px] text-subtext">
+                                    {Object.keys(modifiedFeatures).length > 0
+                                        ? <span className="text-amber-400 font-bold">⚠ {Object.keys(modifiedFeatures).length} unsaved changes — click Save to apply</span>
+                                        : 'Changes to base costs are reflected in all dynamic calculations above.'}
+                                </p>
+                                <div className="flex gap-2 shrink-0">
+                                    <button onClick={() => setShowAiAdsModal(false)} className="px-4 py-2 rounded-xl font-bold text-sm bg-white/10 text-maintext hover:bg-white/20 transition-colors">
+                                        Close
+                                    </button>
+                                    {Object.keys(modifiedFeatures).length > 0 && (
+                                        <button
+                                            onClick={() => { handleSaveChanges(); setShowAiAdsModal(false); }}
+                                            disabled={saving}
+                                            className="px-5 py-2 rounded-xl font-bold text-sm bg-primary text-white shadow-lg shadow-primary/30 hover:opacity-90 transition-all flex items-center gap-2 disabled:opacity-50"
+                                        >
+                                            {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                            Save Changes
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </SectionCard>
-            ))}
+                );
+            })()}
         </div>
     );
 };

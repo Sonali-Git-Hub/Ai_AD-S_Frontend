@@ -537,6 +537,7 @@ const Chat = () => {
   const [waUploading, setWaUploading] = useState(false);
   const [waMsgContent, setWaMsgContent] = useState('');
   const [isMagicEditing, setIsMagicEditing] = useState(false);
+  const [isMagicImageModalOpen, setIsMagicImageModalOpen] = useState(false);
   const [editRefImage, setEditRefImage] = useState(null);
   const [isMagicVideoModalOpen, setIsMagicVideoModalOpen] = useState(false);
   const [isSocialMediaDashboardOpen, setIsSocialMediaDashboardOpen] = useState(false);
@@ -7468,9 +7469,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
-                className="absolute inset-0 z-10 pointer-events-auto flex flex-col items-center overflow-y-auto lg:overflow-hidden overflow-x-hidden pt-20 lg:pt-2 pb-40 sm:pt-8 md:pb-48 scrollbar-hide"
+                className="absolute inset-0 z-10 pointer-events-auto flex flex-col items-center overflow-y-auto overflow-x-hidden pt-20 lg:pt-2 pb-40 sm:pt-8 md:pb-48 scrollbar-hide"
               >
-                <div className="relative z-10 flex flex-col items-center w-full max-w-7xl mx-auto px-4 sm:px-6">
+                <div className="relative z-10 flex flex-col items-center w-full max-w-7xl mx-auto px-4 sm:px-6 h-max">
                   <motion.div
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
@@ -7555,7 +7556,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         } else if (id === 'edit_image') {
                           if (!checkPremiumTool('Edit Image')) return;
                           setIsMagicEditing(true);
-                          toast.success("Image Editor Active");
+                          if (!editRefImage && messages.length > 0) {
+                            const lastImg = [...messages].reverse().find(m => m.imageUrl);
+                            if (lastImg) setEditRefImage({ url: lastImg.imageUrl, name: 'Last Generated', type: 'image' });
+                          }
+                          toast.success("Image Editing Mode Active");
                         } else if (id === 'image_to_video') {
                           if (!checkPremiumTool('Image to Video')) return;
                           setIsMagicVideoModalOpen(true);
@@ -7990,8 +7995,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               onClick={() => {
                                 if (!checkPremiumTool('Edit Image')) return;
                                 setIsToolsMenuOpen(false);
-                                const newMode = !isMagicEditing;
-                                setIsMagicEditing(newMode);
+                                const newMode = !isMagicImageModalOpen;
+                                setIsMagicImageModalOpen(newMode);
 
                                 if (newMode && !editRefImage && messages.length > 0) {
                                   const lastImg = [...messages].reverse().find(m => m.imageUrl);
@@ -8012,9 +8017,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                   toast.success("Image Editing Enabled");
                                 }
                               }}
-                              className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isMagicEditing ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
+                              className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isMagicImageModalOpen ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
                             >
-                              <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isMagicEditing ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
+                              <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isMagicImageModalOpen ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
                                 <Wand2 className="w-5.5 h-5.5" />
                               </div>
                               <div className="flex-1 min-w-0">
@@ -8181,9 +8186,23 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         {(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || currentMode === 'LEGAL_TOOLKIT') && (
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto w-[calc(100vw-24px)] max-w-5xl px-6 z-[100] justify-start sm:justify-start">
                             {isCashFlowMode && (
-                              <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-row items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
+                              <motion.div
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setIsStockModalOpen(true)}
+                                className="flex flex-row items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0 cursor-pointer hover:bg-primary/20 transition-all"
+                              >
                                 <TrendingUp size={12} strokeWidth={3} /> <span className="hidden sm:inline">AI CashFlow</span>
-                                <button onClick={() => setIsCashFlowMode(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsCashFlowMode(false);
+                                  }}
+                                  className="ml-1 hover:text-primary/80 p-0.5"
+                                >
+                                  <X size={12} />
+                                </button>
                               </motion.div>
                             )}
                             {isWebSearch && (
@@ -9256,8 +9275,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         <PremiumUpsellModal />
         {renderNewCaseModal()}
         <MagicImageEditModal
-          isOpen={isMagicEditing}
-          onClose={() => setIsMagicEditing(false)}
+          isOpen={isMagicImageModalOpen}
+          onClose={() => setIsMagicImageModalOpen(false)}
           onImageGenerated={(imageUrl) => {
             setImagePreview(imageUrl);
             setIsImageGeneration(true);
