@@ -266,9 +266,6 @@ const ToolCard = ({ tool, onToolSelect, index, isFlipped, onFlip, onUnflip }) =>
     <div 
       className="relative w-full h-[85px] sm:h-[155px]"
       style={{ perspective: '1200px' }}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
     >
       {/* Active Glow Backdrop */}
       {isActive && (
@@ -285,6 +282,7 @@ const ToolCard = ({ tool, onToolSelect, index, isFlipped, onFlip, onUnflip }) =>
         className={`w-full h-full relative cursor-pointer z-10 ${isActive ? 'ring-2 ring-primary ring-offset-2 ring-offset-transparent' : ''} rounded-[20px]`}
         animate={{ 
           rotateY: isFlipped ? 180 : 0,
+          scale: isFlipped ? 1.02 : 1
         }}
         transition={{ 
           type: "spring", 
@@ -312,6 +310,9 @@ const ToolCard = ({ tool, onToolSelect, index, isFlipped, onFlip, onUnflip }) =>
           }`}
           style={{ backfaceVisibility: 'hidden' }}
         >
+          {/* Invisible Buffer for hover stability */}
+          <div className="absolute inset-[-4px] z-[-1] pointer-events-auto" />
+
           {/* Spotlight Effect Layer */}
           <motion.div
             className="absolute inset-0 pointer-events-none transition-opacity duration-300 group-hover:opacity-100 opacity-0"
@@ -331,7 +332,7 @@ const ToolCard = ({ tool, onToolSelect, index, isFlipped, onFlip, onUnflip }) =>
               ),
             }}
           />
-          <div className="flex items-center justify-between mb-1 sm:mb-3">
+          <div className="flex items-center justify-between mb-1 sm:mb-3 pointer-events-none">
             <div 
               className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all duration-500"
               style={{ 
@@ -368,7 +369,7 @@ const ToolCard = ({ tool, onToolSelect, index, isFlipped, onFlip, onUnflip }) =>
             </div>
           </div>
 
-          <div className="space-y-0.5">
+          <div className="space-y-0.5 pointer-events-none">
             <h3 className={`text-[11px] sm:text-[14px] font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
               {tool.label}
             </h3>
@@ -378,7 +379,7 @@ const ToolCard = ({ tool, onToolSelect, index, isFlipped, onFlip, onUnflip }) =>
           </div>
 
           {tool.comingSoon && (
-            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 dark:bg-black/40 backdrop-blur-[1px] rounded-[20px]">
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 dark:bg-black/40 backdrop-blur-[1px] rounded-[20px] pointer-events-none">
               <div className={`px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest ${
                 isDark ? 'bg-[#1a1c2e] border-white/10 text-slate-400' : 'bg-white border-slate-200 text-slate-500 shadow-sm'
               }`}>
@@ -403,8 +404,20 @@ const ToolCard = ({ tool, onToolSelect, index, isFlipped, onFlip, onUnflip }) =>
           }}
         >
           <div className="flex flex-col h-full relative z-10">
+            {/* Back Side Label */}
+            <div className="px-3 py-1.5 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30 pointer-events-none">
+               <span className={`text-[9px] font-black uppercase tracking-tighter ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
+                 {tool.label}
+               </span>
+               <div className="flex gap-0.5">
+                 {[...Array(3)].map((_, i) => (
+                   <div key={i} className={`w-1 h-1 rounded-full ${isDark ? 'bg-primary/40' : 'bg-primary/30'}`} />
+                 ))}
+               </div>
+            </div>
+
             {/* Live Demo Animation Section */}
-            <div className="h-[40%] w-full overflow-hidden border-b border-black/5 dark:border-white/5 bg-slate-50 dark:bg-slate-900/50">
+            <div className="flex-1 w-full overflow-hidden border-b border-black/5 dark:border-white/5 bg-slate-50 dark:bg-slate-900/50 pointer-events-none">
               <ToolPreviewContent 
                 id={tool.id} 
                 prompt={tool.prompt} 
@@ -412,23 +425,9 @@ const ToolCard = ({ tool, onToolSelect, index, isFlipped, onFlip, onUnflip }) =>
               />
             </div>
 
-            {/* Review Section */}
-            <div className="flex-1 p-1.5 sm:p-2.5 flex flex-col justify-between bg-white/40 dark:bg-[#1a1e2e]/40 backdrop-blur-sm">
-              <div className="hidden sm:block">
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-0.5">
-                    {[...Array(5)].map((_, i) => (
-                      <Sparkles 
-                        key={i} 
-                        size={7} 
-                        className={i < Math.floor(tool.review?.rating || 0) ? "text-yellow-400 fill-yellow-400" : "text-slate-300"} 
-                      />
-                    ))}
-                    <span className={`text-[7px] font-bold ml-1 ${isDark ? 'text-white/80' : 'text-slate-600'}`}>
-                      {tool.review?.rating || '5.0'}
-                    </span>
-                  </div>
-                </div>
+            {/* Review & Action Section */}
+            <div className="p-1.5 sm:p-2.5 flex flex-col justify-between bg-white/40 dark:bg-[#1a1e2e]/40 backdrop-blur-sm">
+              <div className="hidden sm:block mb-1.5 pointer-events-none">
                 <p className={`text-[8.5px] leading-tight italic font-medium line-clamp-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                   "{tool.review?.text || "Revolutionary AI tool that significantly improves my workflow efficiency."}"
                 </p>
@@ -441,7 +440,7 @@ const ToolCard = ({ tool, onToolSelect, index, isFlipped, onFlip, onUnflip }) =>
                    e.stopPropagation();
                    onToolSelect(tool.id);
                  }}
-                 className="bg-primary text-white text-[8px] font-black uppercase tracking-widest py-1 sm:py-1.5 rounded-lg flex items-center justify-center gap-2 shadow-lg shadow-primary/20 cursor-pointer h-full sm:h-auto"
+                 className="bg-primary text-white text-[8px] font-black uppercase tracking-widest py-1.5 rounded-lg flex items-center justify-center gap-2 shadow-lg shadow-primary/20 cursor-pointer pointer-events-auto"
               >
                 <Zap size={9} fill="white" />
                 {t('liveTry')}
@@ -479,9 +478,24 @@ const cardVariants = {
 const FuturisticToolCards = ({ onToolSelect, activeToolId, isAdmin = false }) => {
   const { t } = useLanguage();
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: '-60px' });
-  // Only one card can be flipped at a time
-  const [flippedCardId, setFlippedCardId] = useState(null);
+  const isInView = useInView(ref, { once: true, margin: '-100px' });
+  
+  // Track the currently hovered card ID with debounce to prevent flickering
+  const [hoveredCardId, setHoveredCardId] = useState(null);
+  const hoverTimeoutRef = useRef(null);
+
+  const handleFlip = (id) => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    setHoveredCardId(id);
+  };
+
+  const handleUnflip = () => {
+    // Add a small delay before unflipping to stabilize the interaction
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredCardId(null);
+    }, 120); 
+  };
 
   /* ─── Tools Data ───────────────────────────────── */
 
@@ -525,11 +539,10 @@ const FuturisticToolCards = ({ onToolSelect, activeToolId, isAdmin = false }) =>
                 active: getToolActiveStatus(tool.id)
               }}
               index={index}
-              isFlipped={flippedCardId === tool.id}
-              onFlip={() => setFlippedCardId(tool.id)}
-              onUnflip={() => setFlippedCardId(prev => prev === tool.id ? null : prev)}
+              isFlipped={hoveredCardId === tool.id}
+              onFlip={() => handleFlip(tool.id)}
+              onUnflip={() => handleUnflip()}
               onToolSelect={(id) => {
-                setFlippedCardId(null); // collapse the card immediately on activation
                 onToolSelect(id);
               }}
             />
