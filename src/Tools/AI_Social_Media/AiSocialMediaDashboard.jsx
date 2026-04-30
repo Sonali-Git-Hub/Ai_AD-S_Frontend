@@ -74,11 +74,10 @@ const CustomSelect = ({ value, onChange, options, color = 'indigo', className = 
               return (
                 <Listbox.Option
                   key={idx}
-                  className={({ active }) => `relative select-none py-3 sm:py-4 pl-10 pr-4 transition-colors font-bold ${
-                    isDisabled 
+                  className={({ active }) => `relative select-none py-3 sm:py-4 pl-10 pr-4 transition-colors font-bold ${isDisabled
                       ? 'opacity-40 cursor-not-allowed'
                       : `cursor-pointer ${active ? colorMap[color].split(' ').slice(2).join(' ') : 'text-slate-900 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5'}`
-                  }`}
+                    }`}
                   value={optValue}
                   disabled={isDisabled}
                 >
@@ -1274,7 +1273,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       while (attempts < maxAttempts) {
         await new Promise(r => setTimeout(r, 3000));
         const statusRes = await apiService.getSocialAgentJobStatus(jobId);
-        
+
         if (postFormat === 'carousel' && statusRes?.job) {
           const completed = statusRes.job.completedCount || 0;
           const requested = statusRes.job.requestedCount || carouselCount;
@@ -2660,8 +2659,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                 onClick={() => setGenPostModal({ open: true, entry, format: 'single' })}
                                 disabled={!!visualGenRowId}
                                 className={`h-11 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-lg disabled:opacity-50 ${visualGenRowId === String(entry._id)
-                                    ? 'bg-indigo-600 text-white shadow-indigo-500/20 cursor-not-allowed'
-                                    : 'bg-slate-800 dark:bg-white/10 text-white shadow-lg'
+                                  ? 'bg-indigo-600 text-white shadow-indigo-500/20 cursor-not-allowed'
+                                  : 'bg-slate-800 dark:bg-white/10 text-white shadow-lg'
                                   }`}
                               >
                                 {visualGenRowId === String(entry._id) ? (
@@ -2677,8 +2676,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                 onClick={() => setGenPostModal({ open: true, entry, format: 'single' })}
                                 disabled={!!visualGenRowId}
                                 className={`col-span-1 h-11 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-lg disabled:opacity-50 ${visualGenRowId === String(entry._id)
-                                    ? 'bg-indigo-600 text-white shadow-indigo-500/20 cursor-not-allowed'
-                                    : 'bg-primary text-white shadow-primary/10'
+                                  ? 'bg-indigo-600 text-white shadow-indigo-500/20 cursor-not-allowed'
+                                  : 'bg-primary text-white shadow-primary/10'
                                   }`}
                               >
                                 {visualGenRowId === String(entry._id) ? (
@@ -3263,8 +3262,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                         </td>
                         <td className="p-4">
                           <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase border ${(row.postType || row.format || row.rawData?.Format) === 'Video' ? 'bg-amber-100 dark:bg-amber-500/10 text-amber-600 border-amber-200/50' :
-                              (row.postType || row.format || row.rawData?.Format) === 'Carousel' ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 border-indigo-200/50' :
-                                'bg-blue-100 dark:bg-primary/10 text-primary border-blue-200/50'
+                            (row.postType || row.format || row.rawData?.Format) === 'Carousel' ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 border-indigo-200/50' :
+                              'bg-blue-100 dark:bg-primary/10 text-primary border-blue-200/50'
                             }`}>
                             {row.postType || row.format || row.rawData?.Format}
                           </span>
@@ -3326,8 +3325,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                               {row.phase || row.rawData?.Phase || "Awareness"}
                             </span>
                             <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase border ${(row.postType || row.format || row.rawData?.Format) === 'Video' ? 'bg-amber-100 dark:bg-amber-500/10 text-amber-600 border-amber-200/50' :
-                                (row.postType || row.format || row.rawData?.Format) === 'Carousel' ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 border-indigo-200/50' :
-                                  'bg-blue-100 dark:bg-primary/10 text-primary border-blue-200/50'
+                              (row.postType || row.format || row.rawData?.Format) === 'Carousel' ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 border-indigo-200/50' :
+                                'bg-blue-100 dark:bg-primary/10 text-primary border-blue-200/50'
                               }`}>
                               {row.postType || row.format || row.rawData?.Format}
                             </span>
@@ -4003,7 +4002,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Creative Variations & Angles</p>
                     </div>
                   </div>
-                  
+
                 </div>
 
                 {/* Variations Grid */}
@@ -4355,8 +4354,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   key={f.id}
                   onClick={() => setGenPostModal(prev => ({ ...prev, format: f.id }))}
                   className={`p-4 rounded-2xl border-2 text-left transition-all duration-200 hover:scale-[1.02] active:scale-95 ${format === f.id
-                      ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-lg shadow-primary/10'
-                      : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] hover:border-primary/40'
+                    ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-lg shadow-primary/10'
+                    : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] hover:border-primary/40'
                     }`}
                 >
                   <span className="text-2xl block mb-2">{f.icon}</span>
@@ -4399,8 +4398,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   onClick={() => setGenPostModal(prev => ({ ...prev, aspectRatio: r.id }))}
                   title={r.note}
                   className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border-2 transition-all duration-200 hover:scale-[1.03] active:scale-95 ${genPostModal.aspectRatio === r.id
-                      ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-md shadow-primary/10'
-                      : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] hover:border-primary/40'
+                    ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-md shadow-primary/10'
+                    : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] hover:border-primary/40'
                     }`}
                 >
                   {/* Visual preview of the ratio */}
@@ -5605,17 +5604,17 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                   }
                                 }}
                                 className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-5' : 'justify-between px-4 py-3'} rounded-2xl transition-all group ${isActive
-                                    ? 'bg-primary/10 border border-primary/20 shadow-sm'
-                                    : 'hover:bg-slate-50 dark:hover:bg-white/5'
+                                  ? 'bg-primary/10 border border-primary/20 shadow-sm'
+                                  : 'hover:bg-slate-50 dark:hover:bg-white/5'
                                   } ${tab.comingSoon ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
                                 title={isSidebarCollapsed ? tab.name : ''}
                               >
                                 <div className="flex items-center gap-3">
                                   <div className={`w-6 h-6 flex items-center justify-center rounded-full border text-[9px] font-black shrink-0 transition-all ${isActive
-                                      ? 'bg-primary text-white border-primary shadow-[0_0_10px_rgba(99,102,241,0.4)]'
-                                      : isPast
-                                        ? 'bg-emerald-500 text-white border-emerald-500'
-                                        : 'bg-slate-100 dark:bg-white/5 text-slate-400 border-slate-200 dark:border-white/10'
+                                    ? 'bg-primary text-white border-primary shadow-[0_0_10px_rgba(99,102,241,0.4)]'
+                                    : isPast
+                                      ? 'bg-emerald-500 text-white border-emerald-500'
+                                      : 'bg-slate-100 dark:bg-white/5 text-slate-400 border-slate-200 dark:border-white/10'
                                     }`}>
                                     {isPast ? <Check className="w-3 h-3" /> : (idx + 1)}
                                   </div>
