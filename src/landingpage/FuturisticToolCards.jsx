@@ -334,11 +334,11 @@ const ToolCard = ({ tool, onToolSelect, index, isFlipped, onFlip, onUnflip }) =>
           <div className="flex items-center justify-between mb-1 sm:mb-3 pointer-events-none">
             <div
               className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all duration-500"
-              style={{
-                background: isActive ? 'var(--primary)' : (isDark ? `${tool.color}15` : `${tool.color}10`),
-                border: isDark ? `1px solid ${tool.color}30` : `1px solid ${tool.color}20`,
-                boxShadow: isActive ? '0 0 15px var(--primary)' : 'none'
-              }}
+                style={{
+                  background: isActive ? 'var(--primary)' : (isDark ? `${tool.color}15` : `${tool.color}10`),
+                  border: isDark ? `1px solid ${tool.color}30` : `1px solid ${tool.color}20`,
+                  boxShadow: isActive && !isDark ? '0 0 15px var(--primary)' : 'none'
+                }}
             >
               <Icon
                 size={16}

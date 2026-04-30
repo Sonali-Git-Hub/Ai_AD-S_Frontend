@@ -1,7 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useIsDark } from '../context/ThemeContext';
 
 const RobotMascot = ({ isPasswordFocused, isPasswordVisible, emailLength }) => {
+    const isDark = useIsDark();
     // Eye tracking
     const eyeX = Math.min(Math.max((emailLength / 30) * 12 - 6, -6), 6);
 
@@ -9,12 +11,13 @@ const RobotMascot = ({ isPasswordFocused, isPasswordVisible, emailLength }) => {
         <div className="relative w-full max-w-[600px] h-[600px] flex flex-col items-center justify-center scale-90 md:scale-100 pointer-events-none select-none">
             {/* Robot Body Container */}
             <motion.div
-                className="relative w-full flex flex-col items-center"
-                animate={{ y: [0, -15, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className="relative flex flex-col items-center"
             >
-                {/* Head - Premium 3D Glossy Style */}
-                <div className="relative w-80 h-64 bg-gradient-to-b from-white to-slate-100 rounded-[5.5rem] shadow-[inset_-10px_-10px_20px_rgba(0,0,0,0.05),inset_10px_10px_20px_rgba(255,255,255,0.8),0_25px_50px_-12px_rgba(0,0,0,0.15)] border border-white/80 flex flex-col items-center justify-center overflow-visible z-20">
+                {/* Robot Head (Main Body) */}
+                <div className={`relative w-80 h-64 bg-gradient-to-b ${isDark ? 'from-zinc-800 to-zinc-900' : 'from-white to-slate-100'} rounded-[5.5rem] shadow-[inset_-10px_-10px_20px_rgba(0,0,0,0.05),inset_10px_10px_20px_rgba(255,255,255,${isDark ? '0.05' : '0.8'}),0_25px_50px_-12px_rgba(0,0,0,0.15)] border ${isDark ? 'border-white/10' : 'border-white/80'} flex flex-col items-center justify-center overflow-visible z-20`}>
 
                     {/* Head Gloss Reflection - Left */}
                     <div className="absolute top-8 left-10 w-24 h-16 bg-gradient-to-br from-white/80 to-transparent rounded-full opacity-60 blur-sm rotate-[-15deg]" />

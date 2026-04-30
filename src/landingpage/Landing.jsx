@@ -7,6 +7,7 @@ import {
     Sun, Moon, X, ChevronDown, ChevronUp, HelpCircle, Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useIsDark } from '../context/ThemeContext';
 import { logo, name, faqs } from '../constants';
 import { getUserData } from '../userStore/userData';
 import { AppRoute, apis } from '../types';
@@ -43,6 +44,7 @@ const Landing = () => {
     const navigate = useNavigate();
     const user = getUserData();
     const { theme } = useTheme();
+    const isDark = useIsDark();
     const normalizedTheme = typeof theme === 'string' ? theme.toLowerCase() : 'system';
     const isDarkMode = normalizedTheme === 'dark' || (normalizedTheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 

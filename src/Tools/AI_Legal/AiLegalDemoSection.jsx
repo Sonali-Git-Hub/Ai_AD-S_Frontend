@@ -536,7 +536,7 @@ const AiLegalDemoSection = () => {
               width: '100%',
               borderRadius: 24,
               overflow: 'hidden',
-              boxShadow: '0 40px 80px -15px rgba(79,70,229,0.30), inset 0 2px 4px rgba(255,255,255,0.85)',
+              boxShadow: isDarkMode ? '0 40px 80px -15px rgba(0,0,0,0.5)' : '0 40px 80px -15px rgba(79,70,229,0.30), inset 0 2px 4px rgba(255,255,255,0.85)',
               transformStyle: 'preserve-3d',
               perspective: '1200px',
             }}
@@ -571,7 +571,7 @@ const AiLegalDemoSection = () => {
             />
 
             {/* Glass border shine */}
-            <div style={{ position: 'absolute', inset: 0, borderRadius: 24, border: '1px solid rgba(255,255,255,0.55)', zIndex: 3, pointerEvents: 'none', boxShadow: 'inset 0 1px 3px rgba(255,255,255,0.8)' }} />
+            <div style={{ position: 'absolute', inset: 0, borderRadius: 24, border: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.55)', zIndex: 3, pointerEvents: 'none', boxShadow: isDarkMode ? 'none' : 'inset 0 1px 3px rgba(255,255,255,0.8)' }} />
 
             {/* Chrome Bar */}
             <div style={{

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionTemplate, useMotionValue } from 'framer-motion';
+import { useIsDark } from '../../context/ThemeContext';
 import { X, Upload, Wand2, Download, Video as VideoIcon, Loader2, History, ArrowLeft, RotateCw, ChevronDown, Check, Sparkles } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -105,6 +106,7 @@ const CustomSelect = ({ value, onChange, options, disabled }) => {
 };
 
 const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
+    const isDark = useIsDark();
     const [selectedImage, setSelectedImage] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
     const [prompt, setPrompt] = useState("");
@@ -120,7 +122,6 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
     const [isLibraryOpen, setIsLibraryOpen] = useState(false);
     const fileInputRef = useRef(null);
 
-    // Spotlight Logic
     const mouseX = useMotionValue(0);
     const mouseY = useMotionValue(0);
     const [isHovering, setIsHovering] = useState(false);
@@ -304,10 +305,8 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
         <AnimatePresence>
             {isOpen && (
             <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-                {/* Outer wrapper for animated border & halo */}
                 <div className="relative w-full max-w-3xl">
 
-                    {/* Animated Color-Cycling Outer Halo - indigo/blue/violet */}
                     <motion.div
                         animate={{
                             background: [
@@ -322,7 +321,6 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
                         className="absolute -inset-[14px] rounded-[46px] pointer-events-none z-0 blur-[22px]"
                     />
 
-                    {/* Animated Color-Cycling Border Gradient */}
                     <motion.div
                         animate={{
                             background: [
@@ -346,13 +344,14 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
                     animate={{ opacity: 1, scale: 1, y: 0, rotateX: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20, rotateX: -10 }}
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                    className="relative w-full rounded-[32px] overflow-hidden flex flex-col max-h-[90vh] z-[2] shadow-[0_40px_80px_-15px_rgba(79,70,229,0.35),inset_0_2px_4px_rgba(255,255,255,0.85)]"
-                    style={{ transformStyle: "preserve-3d" }}
+                    className="relative w-full rounded-[32px] overflow-hidden flex flex-col max-h-[90vh] z-[2]"
+                    style={{ 
+                        transformStyle: "preserve-3d",
+                        boxShadow: isDark ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)' : '0 20px 50px rgba(99, 102, 241, 0.08), inset 0 1px 0 rgba(255,255,255,0.8)'
+                    }}
                 >
-                    {/* ── Main frosted glass layer */}
-                    <div className="absolute inset-0 bg-white/80 backdrop-blur-[60px] z-0 rounded-[32px]" />
+                    <div className={`absolute inset-0 backdrop-blur-[60px] z-0 rounded-[32px] ${isDark ? 'bg-zinc-900/90' : 'bg-white/80'}`} />
 
-                    {/* ── Color-cycling cinematic blobs (mix-blend-multiply tints the white glass) */}
                     <motion.div
                         animate={{
                             backgroundColor: ["#3730a3","#4338ca","#6366f1","#4f46e5","#3730a3"],
@@ -378,18 +377,14 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
                         className="absolute top-[25%] right-[5%] w-[50%] h-[55%] rounded-full opacity-[0.30] mix-blend-multiply pointer-events-none z-[1] blur-[70px]"
                     />
 
-                    {/* ── Spotlight follow (desktop only) */}
                     <motion.div
                         className="pointer-events-none hidden md:block absolute inset-0 z-[6] rounded-[32px] mix-blend-soft-light"
                         style={{ background: isHovering && (typeof window !== 'undefined' && window.innerWidth >= 768) ? backgroundSpotlight : 'transparent' }}
                     />
-                    {/* ── Soft noise texture */}
                     <div className="absolute inset-0 z-[2] opacity-[0.015] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }} />
-                    {/* ── Glass border shine */}
-                    <div className="absolute inset-0 rounded-[32px] border border-white/55 z-[3] pointer-events-none shadow-[inset_0_1px_3px_rgba(255,255,255,0.8)]" />
+                    <div className={`absolute inset-0 rounded-[32px] border ${isDark ? 'border-white/10' : 'border-white/55'} z-[3] pointer-events-none`} />
 
-                    {/* Header */}
-                    <div className="relative z-[8] px-6 py-5 border-b border-black/[0.05] flex items-center justify-between bg-white/35 backdrop-blur-md shrink-0">
+                    <div className={`relative z-[8] px-6 py-5 border-b border-black/[0.05] flex items-center justify-between backdrop-blur-md shrink-0 ${isDark ? 'bg-zinc-900/40' : 'bg-white/35'}`}>
                         <div className="absolute top-0 right-10 w-[200px] h-full bg-gradient-to-l from-white/30 to-transparent pointer-events-none blur-xl" />
                         <div className="flex items-center gap-3.5 relative">
                             <div className="relative">
@@ -399,7 +394,7 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
                                 </motion.div>
                             </div>
                             <div>
-                                <h2 className="text-[16px] font-black text-slate-900 tracking-tight leading-none mb-1">
+                                <h2 className="text-[16px] font-black text-slate-900 dark:text-white tracking-tight leading-none mb-1">
                                     {showHistory ? 'Your Video History' : 'Image to Video Magic'}
                                 </h2>
                                 <p className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em]">
@@ -473,11 +468,9 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
                     ) : (
                         <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar flex flex-col gap-6 relative z-[8]">
 
-                            {/* Preview Area */}
                             <div className={`grid grid-cols-1 ${isGenerating || resultVideoUrl ? 'md:grid-cols-2' : ''} gap-4`}>
-                                {/* Source Image */}
                                 <div className={`flex flex-col gap-2 ${!isGenerating && !resultVideoUrl ? 'max-w-sm mx-auto w-full' : ''}`}>
-                                    <span className="text-[9px] font-black text-slate-700 uppercase tracking-[0.25em] self-start ml-1">Source Image</span>
+                                    <span className="text-[9px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-[0.25em] self-start ml-1">Source Image</span>
                                     {previewUrl ? (
                                         <div className="relative group w-full aspect-square bg-white/40 rounded-[20px] overflow-hidden border border-white/70 shadow-sm">
                                             <img src={previewUrl} alt="Original" className="w-full h-full object-contain" />
@@ -511,11 +504,10 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
                                     )}
                                 </div>
 
-                                {/* Result Video */}
                                 {(isGenerating || resultVideoUrl) && (
                                     <div className="flex flex-col gap-2">
-                                        <span className="text-[9px] font-black text-slate-700 uppercase tracking-[0.25em] self-start ml-1">Video Result</span>
-                                        <div className={`relative w-full aspect-square rounded-[20px] overflow-hidden border ${isGenerating ? 'border-primary/40 shadow-[0_0_20px_rgba(99,102,241,0.2)]' : 'border-white/70'} flex items-center justify-center bg-white/40 shadow-sm`}>
+                                        <span className="text-[9px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-[0.25em] self-start ml-1">Video Result</span>
+                                        <div className={`relative w-full aspect-square rounded-[20px] overflow-hidden border ${isGenerating ? 'border-primary/40 shadow-[0_0_20px_rgba(99,102,241,0.2)]' : 'border-white/70'} flex items-center justify-center bg-white/40 shadow-sm ${isDark ? 'from-zinc-800 to-zinc-900 border-white/10' : 'from-white to-slate-100'}`}>
                                             {isGenerating ? (
                                                 <div className="flex flex-col items-center gap-4 text-primary animate-in fade-in duration-500">
                                                     <Loader2 className="w-8 h-8 animate-spin" />
