@@ -478,7 +478,7 @@ const Chat = () => {
             <span className="text-[10px] opacity-80 leading-tight">Your browser security blocked the action even through the master proxy. Please **right-click** and **"Copy Image"** instead.</span>
           </span>
         ),
-        { duration: 6000 }
+        { duration: 4000 }
       );
     }
   };
@@ -729,7 +729,7 @@ const Chat = () => {
       // Clean the URL so modal doesn't re-fire on refresh
       navigate(location.pathname, { replace: true });
     } else if (connectorError) {
-      toast.error('Failed to connect Gmail. Please try again from Settings > Connectors.', { duration: 5000 });
+      toast.error('Failed to connect Gmail. Please try again from Settings > Connectors.', { duration: 3000 });
       navigate(location.pathname, { replace: true });
     }
   }, [location.search]);
@@ -2240,6 +2240,7 @@ const Chat = () => {
         }
       }
 
+      setLoadingText("Generating Video... 🎥");
       setIsLoading(true);
       // isSendingRef.current = true; // Mark as sending // This variable is not defined in the provided context
 
@@ -2371,6 +2372,7 @@ const Chat = () => {
       }
 
       const prompt = overridePrompt || inputRef.current.value;
+      setLoadingText("Generating Image... 🎨");
       setIsLoading(true);
 
       // 1. Add User Message to UI
@@ -2684,6 +2686,7 @@ const Chat = () => {
       }
 
       const query = inputRef.current.value;
+      setLoadingText("Writing Code... 💻");
       setIsLoading(true);
 
       // Show a message that deep search is in progress
@@ -3379,7 +3382,7 @@ const Chat = () => {
         const details = err.response?.data?.details || err.response?.data?.error || err.message;
 
         if (!isRestricted) {
-          toast.error(`Voice failed: ${details}`, { duration: 5000 });
+          toast.error(`Voice failed: ${details}`, { duration: 3000 });
         } else {
           console.log('[VOICE] AI Voice restricted (Premium feature). Falling back to standard browser voice.');
         }
@@ -3838,7 +3841,7 @@ const Chat = () => {
         <p className="text-[11px] text-slate-500 font-medium ml-6">{feedbackMsg}</p>
       </div>,
       {
-        duration: 4000,
+        duration: 2000,
         style: {
           background: '#FFFFFF',
           color: '#1E293B',
@@ -4330,7 +4333,7 @@ const Chat = () => {
       } else if (codeWriterActive) {
         setLoadingText("Writing Code... 💻");
       } else {
-        setLoadingText("Thinking...");
+        setLoadingText("AISA is thinking...");
       }
 
       handleRemoveFile(); // Clear file after sending
@@ -5020,7 +5023,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
   const [feedbackCategory, setFeedbackCategory] = useState([]);
   const [activeMessageId, setActiveMessageId] = useState(null);
   const [feedbackDetails, setFeedbackDetails] = useState("");
-  const [loadingText, setLoadingText] = useState("Thinking..."); // New state for loading status text
+  const [loadingText, setLoadingText] = useState("AISA is thinking..."); // New state for loading status text
   const [messageFeedback, setMessageFeedback] = useState({}); // { [msgId]: { type: 'up' | 'down', categories: [], details: '' } }
   const [downloadedMessages, setDownloadedMessages] = useState({}); // Tracks which messages have been downloaded
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
@@ -7447,11 +7450,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 </>
 
               )}
-              {isLoading && !typingMessageId && !isWebSearch && !isDeepSearch && !isImageGeneration && !isVideoGeneration && !isMagicEditing && !isCashFlowMode && !isFileAnalysis && !isCodeWriter && (
+              {isLoading && !typingMessageId && (
                 <div className="pb-24 sm:pb-32">
                   <AisaTypingIndicator
                     visible={true}
-                    message="AISA is thinking"
+                    message={loadingText}
                   />
                 </div>
               )}
@@ -7469,8 +7472,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         {/* Welcome Screen - Integrated Hub */}
         <AnimatePresence>
           {messages.length === 0 &&
-            legalView !== 'DASHBOARD' &&
-            legalView !== 'PRECEDENTS' &&
             !currentCase &&
             (!currentProjectId || currentProjectId === 'default' || currentProjectId === 'all') &&
             currentMode !== 'LEGAL_TOOLKIT' && (
@@ -7522,6 +7523,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         setIsMagicEditing(false);
                         setIsMagicVideoModalOpen(false);
                         setIsCashFlowMode(false);
+
+                        // Clear ALL legal states regardless of selection to prevent race conditions
+                        // We only re-enable specific legal states below if id === 'legal'
                         if (id !== 'legal') {
                           setActiveLegalToolkit(false);
                           setCurrentMode(null);
@@ -7586,11 +7590,16 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           toast.success("AI ADS™ Active");
                         } else if (id === 'legal') {
                           if (!checkPremiumTool('AI Legal')) return;
+                          
+                          // ENSURE FRESH START: Clear any active sub-tools or modes
+                          setCurrentMode(MODES.NORMAL_CHAT);
+                          setSelectedLegalTool(null);
+                          setLegalView('DASHBOARD'); // Force dashboard view for the toolkit card
+                          
                           setIsCashFlowMode(false);
                           setIsStockModalOpen(false);
                           setActiveLegalToolkit(true);
-                          // Removed setCurrentMode('LEGAL_TOOLKIT') to wait for explicit tool selection
-                          // Removed setLegalView('DASHBOARD') to keep input box visible behind modal
+                          
                           toast.success("AI Legal Toolkit Active ⚖️");
                         }
                       }}
@@ -8082,7 +8091,16 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               onClick={() => {
                                 if (!checkPremiumTool('AI Legal')) return;
                                 setIsToolsMenuOpen(false);
+                                
                                 const newMode = !activeLegalToolkit;
+                                
+                                // RESET LOGIC: If we are opening the toolkit, clear sub-states
+                                if (newMode) {
+                                  setCurrentMode(MODES.NORMAL_CHAT);
+                                  setSelectedLegalTool(null);
+                                  setLegalView('DASHBOARD');
+                                }
+                                
                                 setActiveLegalToolkit(newMode);
                                 setIsImageGeneration(false);
                                 setIsVideoGeneration(false);
@@ -9358,7 +9376,15 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
         <LegalToolkitCard
           isOpen={activeLegalToolkit}
-          onClose={() => setActiveLegalToolkit(false)}
+          onClose={() => {
+            setActiveLegalToolkit(false);
+            // RESET ALL: Ensure we go back to the main dashboard definitively
+            setCurrentMode(MODES.NORMAL_CHAT);
+            setLegalView('CHAT');
+            setSelectedLegalTool(null);
+            setActiveTool(null);
+            localStorage.setItem('aisa_legal_view', 'CHAT');
+          }}
           isAdmin={isAdminUser}
           unlockedTools={unlockedTools}
           onSelect={(tool, isUnlocked) => {
@@ -9431,7 +9457,12 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 timestamp: Date.now(),
               }]);
             } else {
-              setMessages([]);
+              setMessages([{
+                id: Date.now().toString(),
+                role: 'model',
+                content: `**${tool.name} Activated** ⚖️\n\nI am ready to assist you. You can upload relevant documents or describe your situation to get started.`,
+                timestamp: Date.now(),
+              }]);
             }
             if (inputRef.current) inputRef.current.focus();
           }}

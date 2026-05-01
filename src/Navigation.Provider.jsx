@@ -321,7 +321,13 @@ const NavigateProvider = () => {
 
   return (
     <>
-      <Toaster position="top-right" containerStyle={{ zIndex: 99999 }} />
+      <Toaster 
+        position="top-right" 
+        containerStyle={{ zIndex: 99999 }} 
+        toastOptions={{
+          duration: 2500, // Reduced from default to meet user request for 2-3 sec auto-close
+        }}
+      />
       <CreditUpsellPopup />
       <CookieConsentBanner />
       <Routes>
