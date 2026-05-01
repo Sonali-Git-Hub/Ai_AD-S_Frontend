@@ -74,11 +74,10 @@ const CustomSelect = ({ value, onChange, options, color = 'indigo', className = 
               return (
                 <Listbox.Option
                   key={idx}
-                  className={({ active }) => `relative select-none py-3 sm:py-4 pl-10 pr-4 transition-colors font-bold ${
-                    isDisabled 
+                  className={({ active }) => `relative select-none py-3 sm:py-4 pl-10 pr-4 transition-colors font-bold ${isDisabled
                       ? 'opacity-40 cursor-not-allowed'
                       : `cursor-pointer ${active ? colorMap[color].split(' ').slice(2).join(' ') : 'text-slate-900 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5'}`
-                  }`}
+                    }`}
                   value={optValue}
                   disabled={isDisabled}
                 >
@@ -1265,16 +1264,16 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       const toastDuration = postFormat === 'carousel' ? 360000 : 120000;
       toast.loading(`🤔 AISA™ generating post visual...${postFormat === 'carousel' ? ` (0/${carouselCount})` : ''}`, { id: toastId, duration: toastDuration });
 
-      // Step 2: Poll for job completion (max 90s)
+      // Step 2: Poll for job completion (max 9 mins for single, 12 mins for carousel)
       const jobId = res.jobId;
       let attempts = 0;
-      const maxAttempts = postFormat === 'carousel' ? 120 : 30; // 120 * 3s = 360s (6 mins), 30 * 3s = 90s
+      const maxAttempts = postFormat === 'carousel' ? 240 : 180; // 240 * 3s = 720s (12 mins), 180 * 3s = 540s (9 mins)
       let jobResult = null;
 
       while (attempts < maxAttempts) {
         await new Promise(r => setTimeout(r, 3000));
         const statusRes = await apiService.getSocialAgentJobStatus(jobId);
-        
+
         if (postFormat === 'carousel' && statusRes?.job) {
           const completed = statusRes.job.completedCount || 0;
           const requested = statusRes.job.requestedCount || carouselCount;
@@ -1714,31 +1713,31 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
           <div className="w-full xl:w-[500px] group relative">
             <div className="absolute -inset-1 bg-gradient-to-r from-primary via-indigo-500 to-purple-600 rounded-3xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
-            <div className="relative bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-slate-100 dark:border-white/5 shadow-2xl overflow-hidden">
-              <div className="flex items-center gap-4 mb-5">
-                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-                  <Zap className="w-6 h-6 text-primary" />
+            <div className="relative bg-white dark:bg-zinc-900 rounded-[24px] p-5 border border-slate-100 dark:border-white/5 shadow-xl overflow-hidden">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider">Magic Auto-Pilot</h4>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Sync EVERYTHING in one click</p>
+                  <h4 className="text-[13px] font-black text-slate-800 dark:text-white uppercase tracking-wider">Magic Auto-Pilot</h4>
+                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Sync EVERYTHING in one click</p>
                 </div>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-2">
                 <div className="relative w-full sm:flex-1">
-                  <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     value={brandProfile.website || ''}
                     onChange={(e) => setBrandProfile({ ...brandProfile, website: e.target.value })}
                     placeholder="Enter Brand URL"
-                    className="w-full h-14 pl-12 pr-4 bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold outline-none focus:border-primary transition-all"
+                    className="w-full h-11 pl-10 pr-4 bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold outline-none focus:border-primary transition-all"
                   />
                 </div>
                 <button
                   onClick={() => handleAiFetch(brandProfile.website)}
                   disabled={!brandProfile.website || isExtracting}
-                  className="w-full sm:w-auto h-14 px-8 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
+                  className="w-full sm:w-auto h-11 px-6 bg-primary text-white rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
                 >
                   Activate
                 </button>
@@ -1748,79 +1747,79 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
         </div>
 
 
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_350px] gap-10 items-start">
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-6 items-start">
 
 
 
           {/* ── CENTER: FORM SECTIONS ─────────────────────────────────────────────────────────────────── */}
-          <div className="space-y-8 min-w-0">
+          <div className="space-y-5 min-w-0 flex flex-col">
 
 
             {/* ROW 1: CORE & VOICE */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* CARD 1: CORE IDENTITY */}
-              <div className="bg-white dark:bg-zinc-900 rounded-[32px] md:rounded-[40px] p-6 sm:p-8 md:p-10 border border-slate-100 dark:border-white/5 shadow-sm space-y-6 sm:space-y-8 hover:border-primary/20 transition-all duration-500 group">
+              <div className="bg-white dark:bg-zinc-900 rounded-[16px] p-4 border border-slate-100 dark:border-white/5 shadow-sm space-y-4 hover:border-primary/20 transition-all duration-500 group">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center group-hover:bg-indigo-500 group-hover:rotate-[10deg] transition-all duration-500 relative">
-                      <User2 className="w-6 h-6 text-indigo-500 group-hover:text-white" />
-                      <span className="absolute -top-2 -right-2 w-5 h-5 bg-indigo-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-zinc-900">1</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center group-hover:bg-indigo-500 group-hover:rotate-[10deg] transition-all duration-500 relative">
+                      <User2 className="w-4 h-4 text-indigo-500 group-hover:text-white" />
+                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-indigo-500 text-white text-[7px] font-bold rounded-full flex items-center justify-center shadow-md border border-white dark:border-zinc-900">1</span>
                     </div>
-                    <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Core Identity</h3>
+                    <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Core Identity</h3>
                   </div>
-                  {completionSteps[0].done && <CheckCircle2 className="w-6 h-6 text-emerald-500" />}
+                  {completionSteps[0].done && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
                 </div>
 
-                <div className="space-y-6">
-                  <div className="space-y-2 col-span-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Legal Brand Name</label>
+                <div className="space-y-3">
+                  <div className="space-y-1 col-span-2">
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Legal Brand Name</label>
                     <input
                       value={brandProfile.companyName || ''}
                       onChange={(e) => setBrandProfile({ ...brandProfile, companyName: e.target.value })}
                       placeholder="e.g. Tesla Inc"
                       autoComplete="off"
-                      className="w-full h-14 sm:h-16 px-4 sm:px-6 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl text-base sm:text-lg font-black outline-none focus:border-indigo-500 transition-all shadow-inner"
+                      className="w-full h-8 sm:h-9 px-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-lg text-[10px] sm:text-xs font-black outline-none focus:border-indigo-500 transition-all shadow-inner"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Target Industry</label>
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Target Industry</label>
                     <input
                       value={brandProfile.targetIndustry || ''}
                       onChange={(e) => setBrandProfile({ ...brandProfile, targetIndustry: e.target.value })}
                       placeholder="e.g. Tech & AI"
                       autoComplete="off"
-                      className="w-full h-12 sm:h-14 px-4 sm:px-6 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl text-sm font-bold outline-none focus:border-indigo-500 transition-all shadow-inner"
+                      className="w-full h-8 sm:h-9 px-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-lg text-[10px] sm:text-xs font-bold outline-none focus:border-indigo-500 transition-all shadow-inner"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Priority Region</label>
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Priority Region</label>
                     <CustomSelect
                       value={brandProfile.targetEthnicity || 'Global'}
                       onChange={(val) => setBrandProfile({ ...brandProfile, targetEthnicity: val })}
                       options={['Global', 'Indian', 'American', 'European']}
                       color="indigo"
-                      className="h-12 sm:h-14 px-4 sm:px-6 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl text-sm outline-none focus:border-indigo-500"
+                      className="h-8 sm:h-9 px-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-lg text-[10px] sm:text-xs outline-none focus:border-indigo-500"
                     />
                   </div>
                 </div>
               </div>
 
               {/* CARD 2: VOICE & PERSONALITY */}
-              <div className="bg-white dark:bg-zinc-900 rounded-[32px] md:rounded-[40px] p-6 sm:p-8 md:p-10 border border-slate-100 dark:border-white/5 shadow-sm space-y-6 sm:space-y-8 hover:border-primary/20 transition-all duration-500 group">
+              <div className="bg-white dark:bg-zinc-900 rounded-[16px] p-4 border border-slate-100 dark:border-white/5 shadow-sm space-y-4 hover:border-primary/20 transition-all duration-500 group">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500 group-hover:rotate-[-10deg] transition-all duration-500 relative">
-                      <Mic2 className="w-6 h-6 text-amber-500 group-hover:text-white" />
-                      <span className="absolute -top-2 -right-2 w-5 h-5 bg-amber-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-zinc-900">2</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500 group-hover:rotate-[-10deg] transition-all duration-500 relative">
+                      <Mic2 className="w-4 h-4 text-amber-500 group-hover:text-white" />
+                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-amber-500 text-white text-[7px] font-bold rounded-full flex items-center justify-center shadow-md border border-white dark:border-zinc-900">2</span>
                     </div>
-                    <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Vocal Signature</h3>
+                    <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Vocal Signature</h3>
                   </div>
-                  {completionSteps[1].done && <CheckCircle2 className="w-6 h-6 text-emerald-500" />}
+                  {completionSteps[1].done && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
                 </div>
 
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Target Audience</label>
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Target Audience</label>
                     <CustomSelect
                       value={brandProfile.targetAudience || 'Business Owner'}
                       onChange={(val) => setBrandProfile({ ...brandProfile, targetAudience: val })}
@@ -1832,11 +1831,11 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                         { label: 'RETIRED', value: 'Retired' }
                       ]}
                       color="amber"
-                      className="h-14 sm:h-16 px-6 sm:px-8 lg:px-10 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-3xl sm:rounded-[32px] text-sm sm:text-base outline-none focus:border-amber-500"
+                      className="h-8 sm:h-9 px-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-lg text-[10px] sm:text-xs outline-none focus:border-amber-500"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Content Objective</label>
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Content Objective</label>
                     <CustomSelect
                       value={brandProfile.contentObjective || 'Awareness'}
                       onChange={(val) => setBrandProfile({ ...brandProfile, contentObjective: val })}
@@ -1847,25 +1846,25 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                         { label: 'SALES', value: 'Sales' }
                       ]}
                       color="amber"
-                      className="h-14 sm:h-16 px-6 sm:px-8 lg:px-10 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-3xl sm:rounded-[32px] text-sm sm:text-base outline-none focus:border-amber-500"
+                      className="h-8 sm:h-9 px-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-lg text-[10px] sm:text-xs outline-none focus:border-amber-500"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Archetype (Voice)</label>
-                    <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Archetype (Voice)</label>
+                    <div className="grid grid-cols-2 gap-1.5">
                       {['Professional', 'Casual', 'Bold', 'Friendly'].map(tone => (
                         <button
                           key={tone}
                           onClick={() => setBrandProfile({ ...brandProfile, toneOfVoice: tone })}
-                          className={`h-10 sm:h-11 rounded-[14px] sm:rounded-2xl text-[8px] sm:text-[9px] font-black uppercase tracking-wider sm:tracking-widest border transition-all ${brandProfile.toneOfVoice === tone ? 'bg-amber-500 text-white border-amber-600 shadow-md' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5 hover:border-amber-500/30'}`}
+                          className={`h-7 sm:h-8 rounded-md text-[7px] font-black uppercase tracking-wider border transition-all ${brandProfile.toneOfVoice === tone ? 'bg-amber-500 text-white border-amber-600 shadow-sm' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5 hover:border-amber-500/30'}`}
                         >
                           {tone}
                         </button>
                       ))}
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Conversion CTA Style</label>
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Conversion CTA Style</label>
                     <CustomSelect
                       value={brandProfile.ctaStyle || 'Direct'}
                       onChange={(val) => setBrandProfile({ ...brandProfile, ctaStyle: val })}
@@ -1875,7 +1874,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                         { label: 'Narrative & Educational', value: 'Storytelling' }
                       ]}
                       color="amber"
-                      className="h-12 sm:h-14 px-4 sm:px-6 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl text-sm outline-none focus:border-amber-500"
+                      className="h-8 sm:h-9 px-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-lg text-[10px] sm:text-xs outline-none focus:border-amber-500"
                     />
                   </div>
                 </div>
@@ -1883,29 +1882,29 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
             </div>
 
             {/* ROW 2: VISUAL IDENTITY (FULL WIDTH) */}
-            <div className="bg-white dark:bg-zinc-900 rounded-[32px] md:rounded-[40px] p-6 sm:p-8 md:p-10 border border-slate-100 dark:border-white/5 shadow-sm space-y-8 sm:space-y-10 hover:border-primary/20 transition-all duration-500 group">
+            <div className="bg-white dark:bg-zinc-900 rounded-[16px] p-4 border border-slate-100 dark:border-white/5 shadow-sm space-y-4 hover:border-primary/20 transition-all duration-500 group">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:scale-110 transition-all duration-500 relative">
-                    <Palette className="w-6 h-6 text-primary group-hover:text-white" />
-                    <span className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-zinc-900">3</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:scale-110 transition-all duration-500 relative">
+                    <Palette className="w-4 h-4 text-primary group-hover:text-white" />
+                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-primary text-white text-[7px] font-bold rounded-full flex items-center justify-center shadow-md border border-white dark:border-zinc-900">3</span>
                   </div>
-                  <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Visual Artifacts</h3>
+                  <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Visual Artifacts</h3>
                 </div>
-                {completionSteps[2].done && <CheckCircle2 className="w-6 h-6 text-emerald-500" />}
+                {completionSteps[2].done && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Logo Upload */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Brand Symbol (Logo)</label>
-                    <span className="text-[8px] text-slate-400 uppercase tracking-widest font-black">AI extracted prefered</span>
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Brand Symbol (Logo)</label>
+                    <span className="text-[7px] text-slate-400 uppercase tracking-widest font-black">AI extracted prefered</span>
                   </div>
                   <input type="file" id="logo-upload" className="hidden" onChange={(e) => setBrandLogo(e.target.files[0])} accept="image/*" />
                   <label
                     htmlFor="logo-upload"
-                    className="w-full aspect-video rounded-[36px] bg-slate-50 dark:bg-black/20 border-2 border-dashed border-slate-200 dark:border-white/5 hover:border-primary/50 transition-all cursor-pointer flex flex-col items-center justify-center overflow-hidden group/logo shadow-inner relative"
+                    className="w-full aspect-[3/1] rounded-[16px] bg-slate-50 dark:bg-black/20 border-2 border-dashed border-slate-200 dark:border-white/5 hover:border-primary/50 transition-all cursor-pointer flex flex-col items-center justify-center overflow-hidden group/logo shadow-inner relative"
                   >
                     <AnimatePresence>
                       {(logoPreviewUrl || brandProfile.logoUrl) ? (
@@ -1916,11 +1915,11 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                           />
                         </motion.div>
                       ) : (
-                        <div className="flex flex-col items-center gap-4">
-                          <div className="w-16 h-16 rounded-2xl bg-white dark:bg-zinc-800 flex items-center justify-center shadow-lg group-hover/logo:scale-110 transition-all">
-                            <Upload className="w-7 h-7 text-slate-400 group-hover/logo:text-primary" />
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-10 h-10 rounded-lg bg-white dark:bg-zinc-800 flex items-center justify-center shadow-md group-hover/logo:scale-110 transition-all">
+                            <Upload className="w-4 h-4 text-slate-400 group-hover/logo:text-primary" />
                           </div>
-                          <p className="text-[10px] font-black uppercase tracking-[3px] text-slate-400 group-hover/logo:text-primary">Click to Deploy Logo</p>
+                          <p className="text-[8px] font-black uppercase tracking-[2px] text-slate-400 group-hover/logo:text-primary">Deploy Logo</p>
                         </div>
                       )}
                     </AnimatePresence>
@@ -1928,17 +1927,17 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                 </div>
 
                 {/* Color Palette */}
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Master Palette</label>
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Master Palette</label>
                     <button
                       onClick={() => setBrandProfile({ ...brandProfile, brandColors: [...(brandProfile.brandColors || []), '#3B82F6'] })}
-                      className="w-6 h-6 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center hover:bg-primary hover:text-white transition-all shadow-sm"
+                      className="w-5 h-5 rounded-md bg-slate-100 dark:bg-white/5 flex items-center justify-center hover:bg-primary hover:text-white transition-all shadow-sm"
                     >
-                      <Plus className="w-4 h-4" />
+                      <Plus className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <div className="grid grid-cols-4 gap-4 p-8 bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-[40px] shadow-inner min-h-[200px] content-start">
+                  <div className="grid grid-cols-5 gap-2 p-3 bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-[16px] shadow-inner min-h-[80px] content-start">
                     {(!brandProfile.brandColors || brandProfile.brandColors.length === 0) ? (
                       <div className="col-span-4 flex flex-col items-center justify-center py-6 opacity-30 italic text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">
                         Awaiting AI chromatic extraction...
@@ -1978,56 +1977,33 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
               </div>
             </div>
 
-
-            {/* REDESIGNED MASTER SAVE BUTTON */}
-            <div className="pt-4 space-y-4">
-              {calendarEntries.length === 0 && (
-                <div className="p-6 bg-primary/5 rounded-[32px] border border-primary/20 flex flex-col sm:flex-row gap-3 items-center">
-                  <div className="flex-1 w-full">
-                    <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-2 ml-1">Optional: Sync from URL</p>
-                    <div className="relative">
-                      <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/60" />
-                      <input
-                        placeholder="https://yourbrand.com"
-                        autoComplete="off"
-                        className="w-full h-12 pl-12 pr-4 bg-white dark:bg-zinc-800 border border-primary/20 rounded-2xl text-xs font-bold outline-none focus:border-primary transition-all"
-                        value={brandProfile.website || ''}
-                        onChange={(e) => setBrandProfile({ ...brandProfile, website: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleAiFetch(brandProfile.website)}
-                    disabled={!brandProfile.website || isExtracting}
-                    className="h-12 px-6 bg-primary text-white rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-all disabled:opacity-50"
-                  >
-                    {isExtracting ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                    Sync Brand
-                  </button>
+            {/* AI SYSTEM INSIGHT */}
+            <div className="p-4 rounded-[16px] bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">
+                  <Sparkles className="w-2.5 h-2.5 text-primary" />
                 </div>
-              )}
+                <h4 className="text-[9px] font-black text-slate-800 dark:text-white uppercase tracking-widest">Strategist Insights</h4>
+              </div>
 
-              <button
-                onClick={handleSaveBrand}
-                disabled={isSaving}
-                className="group relative w-full h-20 sm:h-24 overflow-hidden rounded-[32px] sm:rounded-[40px] bg-zinc-900 shadow-2xl transition-all hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-primary to-indigo-600 opacity-90 transition-all group-hover:scale-110"></div>
-                <div className="relative z-10 flex flex-col items-center justify-center">
-                  {isSaving ? (
-                    <RefreshCw className="w-6 h-6 sm:w-8 sm:h-8 text-white animate-spin" />
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white animate-pulse" />
-                        <span className="text-base sm:text-xl font-black text-white uppercase tracking-[2px] sm:tracking-[4px]">Activate Strategy Hub</span>
-                        <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white animate-pulse" />
-                      </div>
-                      <p className="text-[8px] sm:text-[10px] text-white/60 font-black uppercase tracking-[2px] sm:tracking-[3px] mt-1">Initiating AI Generation Pulse</p>
-                    </>
-                  )}
+              <div className="space-y-2">
+                <div className="flex items-start gap-1.5">
+                  <div className={`w-1 h-1 rounded-full mt-1 ${completionSteps[0].done ? 'bg-emerald-500' : 'bg-slate-300 animate-pulse'}`} />
+                  <p className="text-[9px] text-slate-500 font-medium leading-relaxed">
+                    {completionSteps[0].done ? 'Brand Identity core has been established. Foundation is stable.' : 'Link your website to allow AI to analyze your competitor landscape.'}
+                  </p>
                 </div>
-              </button>
+              </div>
+
+              <div className="p-2.5 rounded-[10px] bg-primary/5 border border-primary/10">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[7px] font-black text-primary uppercase tracking-widest">Maturity</span>
+                  <span className="text-[8px] font-black text-primary">{completionPct}%</span>
+                </div>
+                <div className="h-1 w-full bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-full bg-primary transition-all duration-1000" style={{ width: `${completionPct}%` }} />
+                </div>
+              </div>
             </div>
 
           </div>
@@ -2036,55 +2012,55 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
             {/* THE BRAND CARTRIDGE (PASSPORT) */}
             <div className="relative group perspective-1000">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-purple-600 rounded-[50px] blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
-              <div className="relative holographic-card rounded-[48px] overflow-hidden bg-white/10 backdrop-blur-3xl border border-white/20 p-1">
-                <div className="p-8 space-y-8 bg-zinc-900/40 rounded-[44px] border border-white/5 shadow-2xl">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-purple-600 rounded-[20px] blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+              <div className="relative holographic-card rounded-[20px] overflow-hidden bg-white/10 backdrop-blur-3xl border border-white/20 p-1">
+                <div className="p-5 space-y-4 bg-zinc-900/40 rounded-[16px] border border-white/5 shadow-xl">
                   <div className="flex items-center justify-between">
-                    <div className="w-8 h-8 rounded-full border-2 border-primary/40 flex items-center justify-center">
-                      <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    <div className="w-5 h-5 rounded-full border border-primary/40 flex items-center justify-center">
+                      <div className="w-1 h-1 rounded-full bg-primary animate-pulse" />
                     </div>
-                    <span className="text-[10px] font-black text-white/40 uppercase tracking-[4px]">Verified DNA</span>
+                    <span className="text-[8px] font-black text-white/40 uppercase tracking-[2px]">Verified DNA</span>
                   </div>
 
-                  <div className="space-y-6">
-                    <div className="w-28 h-28 mx-auto bg-white/10 backdrop-blur-2xl rounded-[40px] border border-white/20 flex items-center justify-center p-6 shadow-3xl group-hover:rotate-6 transition-transform duration-1000 relative">
-                      <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent rounded-[40px]" />
+                  <div className="space-y-3">
+                    <div className="w-16 h-16 mx-auto bg-white/10 backdrop-blur-2xl rounded-[16px] border border-white/20 flex items-center justify-center p-3 shadow-lg group-hover:rotate-6 transition-transform duration-1000 relative">
+                      <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent rounded-[16px]" />
                       {logoPreviewUrl || brandProfile.logoUrl ? (
                         <img
                           src={logoPreviewUrl || toProxyUrl(brandProfile.logoUrl)}
                           className="w-full h-full object-contain relative z-10"
                         />
                       ) : (
-                        <Palette className="w-10 h-10 text-white/20 relative z-10" />
+                        <Palette className="w-6 h-6 text-white/20 relative z-10" />
                       )}
                     </div>
 
                     <div className="text-center">
-                      <h2 className="text-3xl font-black text-white uppercase tracking-tighter leading-none">{brandProfile.companyName || 'Awaiting Sync'}</h2>
-                      <p className="text-[10px] text-primary font-bold uppercase tracking-widest mt-2">{brandProfile.website || 'No Source connected'}</p>
+                      <h2 className="text-lg font-black text-white uppercase tracking-tighter leading-none">{brandProfile.companyName || 'Awaiting Sync'}</h2>
+                      <p className="text-[8px] text-primary font-bold uppercase tracking-widest mt-1">{brandProfile.website || 'No Source connected'}</p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 rounded-3xl bg-white/5 border border-white/10">
-                      <p className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-2">Vocal Tone</p>
-                      <p className="text-sm font-bold text-white uppercase truncate">{brandProfile.toneOfVoice || 'Neutral'}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-2.5 rounded-[12px] bg-white/5 border border-white/10">
+                      <p className="text-[6px] font-black text-white/30 uppercase tracking-widest mb-1">Vocal Tone</p>
+                      <p className="text-[10px] font-bold text-white uppercase truncate">{brandProfile.toneOfVoice || 'Neutral'}</p>
                     </div>
-                    <div className="p-4 rounded-3xl bg-white/5 border border-white/10">
-                      <p className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-2">Engagement</p>
-                      <p className="text-sm font-bold text-indigo-400 uppercase truncate">{brandProfile.ctaStyle || 'Dynamic'}</p>
+                    <div className="p-2.5 rounded-[12px] bg-white/5 border border-white/10">
+                      <p className="text-[6px] font-black text-white/30 uppercase tracking-widest mb-1">Engagement</p>
+                      <p className="text-[10px] font-bold text-indigo-400 uppercase truncate">{brandProfile.ctaStyle || 'Dynamic'}</p>
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-white/5 text-center">
-                    <div className="flex justify-center gap-2">
+                  <div className="pt-2 border-t border-white/5 text-center">
+                    <div className="flex justify-center gap-1.5">
                       {(brandProfile.brandColors || []).slice(0, 5).map((c, i) => (
-                        <div key={i} className="w-6 h-6 rounded-lg shadow-xl" style={{ backgroundColor: c }} />
+                        <div key={i} className="w-4 h-4 rounded-md shadow-sm" style={{ backgroundColor: c }} />
                       ))}
                     </div>
-                    <div className="flex items-center justify-center gap-2 pt-6">
-                      <Zap className="w-3 h-3 text-primary" />
-                      <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">Autonomous Core Active</span>
+                    <div className="flex items-center justify-center gap-1.5 pt-3">
+                      <Zap className="w-2 h-2 text-primary" />
+                      <span className="text-[6px] font-black text-white/40 uppercase tracking-widest">Autonomous Core Active</span>
                     </div>
                   </div>
                 </div>
@@ -2093,24 +2069,24 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
 
             {/* STEP 4: INTELLIGENCE CORE (MATCHED TO REFERENCE) */}
-            <div className="p-6 sm:p-8 md:p-10 rounded-[32px] md:rounded-[48px] bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 space-y-6 sm:space-y-8 hover:border-emerald-500/20 transition-all duration-500 group">
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 md:gap-0">
+            <div className="p-4 rounded-[16px] bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 space-y-4 hover:border-emerald-500/20 transition-all duration-500 group">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-0">
                 <div className="flex flex-col">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <h4 className="text-[13px] font-black text-slate-800 dark:text-white uppercase tracking-[2px]">Intelligence Core</h4>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                    <h4 className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-[2px]">Intelligence Core</h4>
                   </div>
-                  <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">Strategy Evolution Hub</p>
+                  <p className="text-[7px] text-slate-400 font-bold uppercase tracking-widest mt-1">Strategy Evolution Hub</p>
                 </div>
 
                 {/* Action Hub */}
-                <div className="flex flex-col gap-3 w-full md:w-auto">
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+                <div className="flex flex-col gap-2 w-full md:w-auto">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5">
                     <button
                       onClick={() => document.getElementById('overview-upload-core').click()}
-                      className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-[9px] font-black uppercase tracking-[2px] text-slate-600 dark:text-slate-300 hover:border-primary/40 hover:text-primary transition-all shadow-sm active:scale-95 w-full sm:w-auto"
+                      className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-[7px] font-black uppercase tracking-[1px] text-slate-600 dark:text-slate-300 hover:border-primary/40 hover:text-primary transition-all shadow-sm active:scale-95 w-full sm:w-auto"
                     >
-                      <Upload className="w-3.5 h-3.5" />
+                      <Upload className="w-2.5 h-2.5" />
                       {overviewFiles.length > 0 ? `${overviewFiles.length} Docs Ready` : 'Upload Docs'}
                     </button>
                     <input
@@ -2125,22 +2101,22 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                     <button
                       onClick={() => handleAiFetch(brandProfile.website)}
                       disabled={isSyncing || !brandProfile.website}
-                      className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-2xl bg-primary text-white text-[9px] font-black uppercase tracking-[2px] transition-all shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 disabled:opacity-50 w-full sm:w-auto"
+                      className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-[7px] font-black uppercase tracking-[1px] transition-all shadow-md shadow-primary/20 hover:scale-[1.02] active:scale-95 disabled:opacity-50 w-full sm:w-auto"
                     >
-                      <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                      <RefreshCw className={`w-2.5 h-2.5 ${isSyncing ? 'animate-spin' : ''}`} />
                       {isSyncing ? 'Syncing...' : 'Fetch Web'}
                     </button>
                   </div>
 
                   {/* File List for Visual Feedback */}
                   {overviewFiles.length > 0 && (
-                    <div className="flex flex-wrap gap-2 pt-2">
+                    <div className="flex flex-wrap gap-1.5 pt-1">
                       {overviewFiles.map((f, i) => (
-                        <div key={i} className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-                          <FileText className="w-3 h-3 text-emerald-500" />
-                          <span className="text-[8px] font-black text-emerald-600 dark:text-emerald-400 truncate max-w-[80px]">{f.name}</span>
+                        <div key={i} className="flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-md">
+                          <FileText className="w-2 h-2 text-emerald-500" />
+                          <span className="text-[6px] font-black text-emerald-600 dark:text-emerald-400 truncate max-w-[50px]">{f.name}</span>
                           <X
-                            className="w-3 h-3 text-emerald-500 cursor-pointer hover:scale-120"
+                            className="w-2 h-2 text-emerald-500 cursor-pointer hover:scale-125"
                             onClick={() => setOverviewFiles(prev => prev.filter((_, idx) => idx !== i))}
                           />
                         </div>
@@ -2150,17 +2126,17 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-2">
                 <div className="relative">
                   <textarea
                     value={brandProfile.extractedBrandSummary || ''}
                     onChange={(e) => setBrandProfile({ ...brandProfile, extractedBrandSummary: e.target.value })}
                     placeholder="Type manual brand notes / USP / mission... (OR use the 'Fetch Web' button to automatically synthesize from your URL)"
-                    className="w-full h-48 sm:h-56 px-6 sm:px-8 py-6 sm:py-8 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-[32px] sm:rounded-[40px] text-xs sm:text-[13px] font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-emerald-500 transition-all leading-relaxed resize-none shadow-[0_10px_30px_rgba(0,0,0,0.02)]"
+                    className="w-full h-24 px-4 py-3 bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-[12px] text-[10px] font-bold text-slate-700 dark:text-slate-300 outline-none focus:border-emerald-500 transition-all leading-relaxed resize-none shadow-[0_10px_30px_rgba(0,0,0,0.02)]"
                   />
-                  <div className="absolute bottom-6 right-8 flex items-center gap-2 opacity-30">
-                    <span className="text-[8px] font-black uppercase tracking-widest">Global DNA Bank</span>
-                    <Target className="w-3 h-3" />
+                  <div className="absolute bottom-3 right-4 flex items-center gap-1 opacity-30">
+                    <span className="text-[6px] font-black uppercase tracking-widest">Global DNA Bank</span>
+                    <Target className="w-2 h-2" />
                   </div>
                 </div>
               </div>
@@ -2168,24 +2144,24 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
 
               {/* SOCIAL ENGINE CONFIG (NEW) */}
-              <div className="pt-4 border-t border-slate-100 dark:border-white/5 space-y-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Zap className="w-3 h-3 text-primary" />
-                  <span className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-widest">Social Engine</span>
+              <div className="pt-2 border-t border-slate-100 dark:border-white/5 space-y-2">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Zap className="w-2 h-2 text-primary" />
+                  <span className="text-[8px] font-black text-slate-800 dark:text-white uppercase tracking-widest">Social Engine</span>
                 </div>
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 gap-2">
                   <div className="space-y-1">
-                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Campaign Month</label>
+                    <label className="text-[6px] font-black text-slate-400 uppercase tracking-widest ml-1">Campaign Month</label>
                     <CustomSelect
                       value={brandProfile.campaignMonth || 'April'}
                       onChange={(val) => setBrandProfile({ ...brandProfile, campaignMonth: val })}
                       options={['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(m => ({ label: m.toUpperCase(), value: m }))}
                       color="primary"
-                      className="h-12 px-6 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-2xl text-[10px] uppercase outline-none focus:border-primary"
+                      className="h-8 px-3 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-lg text-[8px] uppercase outline-none focus:border-primary"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Posting Frequency</label>
+                    <label className="text-[6px] font-black text-slate-400 uppercase tracking-widest ml-1">Posting Frequency</label>
                     <CustomSelect
                       value={brandProfile.postingFrequency || (isPremium ? '3x per week' : '7 Days')}
                       onChange={(val) => setBrandProfile({ ...brandProfile, postingFrequency: val })}
@@ -2197,45 +2173,65 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                         { label: '2x Daily (High Growth)', value: '2x Daily', disabled: !isPremium }
                       ]}
                       color="primary"
-                      className="h-10 px-4 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-xl text-[10px] outline-none focus:border-primary"
+                      className="h-8 px-3 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-lg text-[8px] outline-none focus:border-primary"
                     />
                   </div>
-                </div>
-              </div>
-            </div>
-
-
-            {/* AI SYSTEM INSIGHT */}
-            <div className="p-8 rounded-[40px] bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 space-y-6">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                </div>
-                <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest">Strategist Insights</h4>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className={`w-1.5 h-1.5 rounded-full mt-1.5 ${completionSteps[0].done ? 'bg-emerald-500' : 'bg-slate-300 animate-pulse'}`} />
-                  <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-                    {completionSteps[0].done ? 'Brand Identity core has been established. Foundation is stable.' : 'Link your website to allow AI to analyze your competitor landscape.'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[9px] font-black text-primary uppercase tracking-widest">Maturity</span>
-                  <span className="text-[10px] font-black text-primary">{completionPct}%</span>
-                </div>
-                <div className="h-1.5 w-full bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-primary transition-all duration-1000" style={{ width: `${completionPct}%` }} />
                 </div>
               </div>
             </div>
           </div>
         </div>
 
+        {/* REDESIGNED MASTER SAVE BUTTON */}
+        <div className="pt-8 space-y-3 max-w-5xl mx-auto w-full">
+          {calendarEntries.length === 0 && (
+            <div className="p-4 bg-primary/5 rounded-[20px] border border-primary/20 flex flex-col sm:flex-row gap-3 items-center">
+              <div className="flex-1 w-full">
+                <p className="text-[8px] font-black text-primary uppercase tracking-widest mb-1.5 ml-1">Optional: Sync from URL</p>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-primary/60" />
+                  <input
+                    placeholder="https://yourbrand.com"
+                    autoComplete="off"
+                    className="w-full h-9 pl-9 pr-4 bg-white dark:bg-zinc-800 border border-primary/20 rounded-xl text-[10px] font-bold outline-none focus:border-primary transition-all"
+                    value={brandProfile.website || ''}
+                    onChange={(e) => setBrandProfile({ ...brandProfile, website: e.target.value })}
+                  />
+                </div>
+              </div>
+              <button
+                onClick={() => handleAiFetch(brandProfile.website)}
+                disabled={!brandProfile.website || isExtracting}
+                className="h-9 px-5 bg-primary text-white rounded-xl font-black text-[8px] uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-all disabled:opacity-50 mt-4 sm:mt-0"
+              >
+                {isExtracting ? <RefreshCw className="w-2.5 h-2.5 animate-spin" /> : <Sparkles className="w-2.5 h-2.5" />}
+                Sync Brand
+              </button>
+            </div>
+          )}
+
+          <button
+            onClick={handleSaveBrand}
+            disabled={isSaving}
+            className="group relative w-full h-14 sm:h-16 overflow-hidden rounded-[20px] sm:rounded-[24px] bg-zinc-900 shadow-xl transition-all hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-primary to-indigo-600 opacity-90 transition-all group-hover:scale-110"></div>
+            <div className="relative z-10 flex flex-col items-center justify-center">
+              {isSaving ? (
+                <RefreshCw className="w-5 h-5 sm:w-6 sm:h-6 text-white animate-spin" />
+              ) : (
+                <>
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-white animate-pulse" />
+                    <span className="text-sm sm:text-base font-black text-white uppercase tracking-[1px] sm:tracking-[2px]">Activate Strategy Hub</span>
+                    <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-white animate-pulse" />
+                  </div>
+                  <p className="text-[7px] sm:text-[8px] text-white/60 font-black uppercase tracking-[1px] sm:tracking-[2px] mt-0.5">Initiating AI Generation Pulse</p>
+                </>
+              )}
+            </div>
+          </button>
+        </div>
         {/* Brand Detail Modal */}
         {selectedBrandView && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-20">
@@ -2660,8 +2656,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                 onClick={() => setGenPostModal({ open: true, entry, format: 'single' })}
                                 disabled={!!visualGenRowId}
                                 className={`h-11 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-lg disabled:opacity-50 ${visualGenRowId === String(entry._id)
-                                    ? 'bg-indigo-600 text-white shadow-indigo-500/20 cursor-not-allowed'
-                                    : 'bg-slate-800 dark:bg-white/10 text-white shadow-lg'
+                                  ? 'bg-indigo-600 text-white shadow-indigo-500/20 cursor-not-allowed'
+                                  : 'bg-slate-800 dark:bg-white/10 text-white shadow-lg'
                                   }`}
                               >
                                 {visualGenRowId === String(entry._id) ? (
@@ -2677,8 +2673,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                 onClick={() => setGenPostModal({ open: true, entry, format: 'single' })}
                                 disabled={!!visualGenRowId}
                                 className={`col-span-1 h-11 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-lg disabled:opacity-50 ${visualGenRowId === String(entry._id)
-                                    ? 'bg-indigo-600 text-white shadow-indigo-500/20 cursor-not-allowed'
-                                    : 'bg-primary text-white shadow-primary/10'
+                                  ? 'bg-indigo-600 text-white shadow-indigo-500/20 cursor-not-allowed'
+                                  : 'bg-primary text-white shadow-primary/10'
                                   }`}
                               >
                                 {visualGenRowId === String(entry._id) ? (
@@ -3263,8 +3259,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                         </td>
                         <td className="p-4">
                           <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase border ${(row.postType || row.format || row.rawData?.Format) === 'Video' ? 'bg-amber-100 dark:bg-amber-500/10 text-amber-600 border-amber-200/50' :
-                              (row.postType || row.format || row.rawData?.Format) === 'Carousel' ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 border-indigo-200/50' :
-                                'bg-blue-100 dark:bg-primary/10 text-primary border-blue-200/50'
+                            (row.postType || row.format || row.rawData?.Format) === 'Carousel' ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 border-indigo-200/50' :
+                              'bg-blue-100 dark:bg-primary/10 text-primary border-blue-200/50'
                             }`}>
                             {row.postType || row.format || row.rawData?.Format}
                           </span>
@@ -3326,8 +3322,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                               {row.phase || row.rawData?.Phase || "Awareness"}
                             </span>
                             <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase border ${(row.postType || row.format || row.rawData?.Format) === 'Video' ? 'bg-amber-100 dark:bg-amber-500/10 text-amber-600 border-amber-200/50' :
-                                (row.postType || row.format || row.rawData?.Format) === 'Carousel' ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 border-indigo-200/50' :
-                                  'bg-blue-100 dark:bg-primary/10 text-primary border-blue-200/50'
+                              (row.postType || row.format || row.rawData?.Format) === 'Carousel' ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 border-indigo-200/50' :
+                                'bg-blue-100 dark:bg-primary/10 text-primary border-blue-200/50'
                               }`}>
                               {row.postType || row.format || row.rawData?.Format}
                             </span>
@@ -4003,7 +3999,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Creative Variations & Angles</p>
                     </div>
                   </div>
-                  
+
                 </div>
 
                 {/* Variations Grid */}
@@ -4355,8 +4351,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   key={f.id}
                   onClick={() => setGenPostModal(prev => ({ ...prev, format: f.id }))}
                   className={`p-4 rounded-2xl border-2 text-left transition-all duration-200 hover:scale-[1.02] active:scale-95 ${format === f.id
-                      ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-lg shadow-primary/10'
-                      : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] hover:border-primary/40'
+                    ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-lg shadow-primary/10'
+                    : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] hover:border-primary/40'
                     }`}
                 >
                   <span className="text-2xl block mb-2">{f.icon}</span>
@@ -4399,8 +4395,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   onClick={() => setGenPostModal(prev => ({ ...prev, aspectRatio: r.id }))}
                   title={r.note}
                   className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border-2 transition-all duration-200 hover:scale-[1.03] active:scale-95 ${genPostModal.aspectRatio === r.id
-                      ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-md shadow-primary/10'
-                      : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] hover:border-primary/40'
+                    ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-md shadow-primary/10'
+                    : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] hover:border-primary/40'
                     }`}
                 >
                   {/* Visual preview of the ratio */}
@@ -5605,17 +5601,17 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                   }
                                 }}
                                 className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-5' : 'justify-between px-4 py-3'} rounded-2xl transition-all group ${isActive
-                                    ? 'bg-primary/10 border border-primary/20 shadow-sm'
-                                    : 'hover:bg-slate-50 dark:hover:bg-white/5'
+                                  ? 'bg-primary/10 border border-primary/20 shadow-sm'
+                                  : 'hover:bg-slate-50 dark:hover:bg-white/5'
                                   } ${tab.comingSoon ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
                                 title={isSidebarCollapsed ? tab.name : ''}
                               >
                                 <div className="flex items-center gap-3">
                                   <div className={`w-6 h-6 flex items-center justify-center rounded-full border text-[9px] font-black shrink-0 transition-all ${isActive
-                                      ? 'bg-primary text-white border-primary shadow-[0_0_10px_rgba(99,102,241,0.4)]'
-                                      : isPast
-                                        ? 'bg-emerald-500 text-white border-emerald-500'
-                                        : 'bg-slate-100 dark:bg-white/5 text-slate-400 border-slate-200 dark:border-white/10'
+                                    ? 'bg-primary text-white border-primary shadow-[0_0_10px_rgba(99,102,241,0.4)]'
+                                    : isPast
+                                      ? 'bg-emerald-500 text-white border-emerald-500'
+                                      : 'bg-slate-100 dark:bg-white/5 text-slate-400 border-slate-200 dark:border-white/10'
                                     }`}>
                                     {isPast ? <Check className="w-3 h-3" /> : (idx + 1)}
                                   </div>

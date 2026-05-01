@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence, useInView, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { motion, AnimatePresence, useInView, useMotionValue, useSpring, useTransform, animate } from 'framer-motion';
 import { ImagePlus, PlaySquare, Headphones, Code, Sparkles, Zap, Search, Globe, FileText, Wand2, PlayCircle, Scale, Video, Brain, TrendingUp, Megaphone, Lock, Target, AlignLeft, Mic2, UserCircle } from 'lucide-react';
-import LegalLogo from '../Tools/AI_Legal/components/LegalLogo';
-import { useIsDark } from '../context/ThemeContext';
-import { useLanguage } from '../context/LanguageContext';
+import LegalLogo from '../Tools/AI_Legal/components/LegalLogo.jsx';
+import { useIsDark } from '../context/ThemeContext.jsx';
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 /* ─── Typewriter Engine ────────────────────────────────────── */
 
@@ -225,18 +225,16 @@ const ToolCard = ({ tool, onToolSelect, index, isFlipped, onFlip, onUnflip }) =>
   const spotlightX = useMotionValue(0);
   const spotlightY = useMotionValue(0);
 
-  // Flip rotation
+  // Interaction handlers
   const handleMouseMove = (e) => {
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
 
-    // Tilt values
     if (!isFlipped) {
       x.set(e.clientX - rect.left - rect.width / 2);
       y.set(e.clientY - rect.top - rect.height / 2);
     }
 
-    // Spotlight values
     spotlightX.set(e.clientX - rect.left);
     spotlightY.set(e.clientY - rect.top);
   };
@@ -285,170 +283,176 @@ const ToolCard = ({ tool, onToolSelect, index, isFlipped, onFlip, onUnflip }) =>
           scale: isFlipped ? 1.02 : 1
         }}
         transition={{
-          type: "spring",
-          stiffness: 120,
-          damping: 20,
+          type: "spring", stiffness: 150, damping: 25
         }}
         style={{
           transformStyle: 'preserve-3d',
-          rotateX: isFlipped ? 0 : tiltX,
-          rotateY: isFlipped ? 0 : tiltY,
         }}
         onClick={handleCardClick}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         onMouseEnter={handleMouseEnter}
       >
-        {/* FRONT SIDE */}
-        <div
-          className={`absolute inset-0 w-full h-full rounded-[20px] border p-3 sm:p-5 transition-all duration-300 flex flex-col justify-between backface-hidden overflow-hidden ${isActive
+        {/* INNER TILT WRAPPER - This handles the mouse tilt separately from the 180-flip */}
+        <motion.div
+          className="w-full h-full relative"
+          style={{
+            transformStyle: 'preserve-3d',
+            rotateX: isFlipped ? 0 : tiltX,
+            rotateY: isFlipped ? 0 : tiltY,
+          }}
+        >
+          {/* FRONT SIDE */}
+          <div
+            className={`absolute inset-0 w-full h-full rounded-[20px] border p-3 sm:p-5 transition-all duration-300 flex flex-col justify-between backface-hidden overflow-hidden ${isActive
               ? (isDark ? 'bg-primary/10 border-primary shadow-[0_0_30px_rgba(var(--primary-rgb),0.3)] backdrop-blur-xl' : 'bg-blue-50 border-primary shadow-[0_0_25px_rgba(var(--primary-rgb),0.15)]')
               : (isDark
                 ? 'sidebar-glass border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]'
                 : 'bg-white border-slate-200/60 shadow-[0_4px_20px_rgba(0,0,0,0.05)]')
-            }`}
-          style={{ backfaceVisibility: 'hidden' }}
-        >
-          {/* Invisible Buffer for hover stability */}
-          <div className="absolute inset-[-4px] z-[-1] pointer-events-auto" />
+              }`}
+            style={{ backfaceVisibility: 'hidden' }}
+          >
+            {/* Invisible Buffer for hover stability */}
+            <div className="absolute inset-[-4px] z-[-1] pointer-events-auto" />
 
-          {/* Spotlight Effect Layer */}
-          <motion.div
-            className="absolute inset-0 pointer-events-none transition-opacity duration-300 group-hover:opacity-100 opacity-0"
-            style={{
-              background: useTransform(
-                [spotlightX, spotlightY],
-                ([latestX, latestY]) => `radial-gradient(600px circle at ${latestX}px ${latestY}px, rgba(255,255,255,0.06), transparent 80%)`
-              ),
-            }}
-          />
-          <motion.div
-            className="absolute inset-0 pointer-events-none opacity-[0.03]"
-            style={{
-              background: useTransform(
-                [spotlightX, spotlightY],
-                ([latestX, latestY]) => `radial-gradient(400px circle at ${latestX}px ${latestY}px, var(--primary), transparent 80%)`
-              ),
-            }}
-          />
-          <div className="flex items-center justify-between mb-1 sm:mb-3 pointer-events-none">
-            <div
-              className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all duration-500"
+            {/* Spotlight Effect Layer */}
+            <motion.div
+              className="absolute inset-0 pointer-events-none transition-opacity duration-300 group-hover:opacity-100 opacity-0"
+              style={{
+                background: useTransform(
+                  [spotlightX, spotlightY],
+                  ([latestX, latestY]) => `radial-gradient(600px circle at ${latestX}px ${latestY}px, rgba(255,255,255,0.06), transparent 80%)`
+                ),
+              }}
+            />
+            <motion.div
+              className="absolute inset-0 pointer-events-none opacity-[0.03]"
+              style={{
+                background: useTransform(
+                  [spotlightX, spotlightY],
+                  ([latestX, latestY]) => `radial-gradient(400px circle at ${latestX}px ${latestY}px, var(--primary), transparent 80%)`
+                ),
+              }}
+            />
+            <div className="flex items-center justify-between mb-1 sm:mb-3 pointer-events-none">
+              <div
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all duration-500"
                 style={{
                   background: isActive ? 'var(--primary)' : (isDark ? `${tool.color}15` : `${tool.color}10`),
                   border: isDark ? `1px solid ${tool.color}30` : `1px solid ${tool.color}20`,
-                  boxShadow: isActive && !isDark ? '0 0 15px var(--primary)' : 'none'
+                  boxShadow: isActive ? '0 0 15px var(--primary)' : 'none'
                 }}
-            >
-              <Icon
-                size={16}
-                className="sm:w-[18px] sm:h-[18px]"
-                showText={tool.id === 'legal'}
-                style={{ color: isActive ? '#fff' : tool.color }}
-              />
+              >
+                <Icon
+                  size={16}
+                  className="sm:w-[18px] sm:h-[18px]"
+                  showText={tool.id === 'legal'}
+                  style={{ color: isActive ? '#fff' : tool.color }}
+                />
 
-            </div>
+              </div>
 
-            <div className="flex items-center gap-1.5">
-              {isActive && (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="flex items-center gap-1 bg-primary text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg animate-pulse"
-                >
-                  <div className="w-1 h-1 rounded-full bg-white animate-ping" />
-                  {t('active')}
-                </motion.span>
-              )}
-              <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${isActive ? 'bg-primary/20 text-primary' : (isDark ? 'bg-white/5 text-white/40' : 'bg-slate-100 text-slate-500')
-                }`}>
-                {tool.badge}
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-0.5 pointer-events-none">
-            <h3 className={`text-[11px] sm:text-[14px] font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              {tool.label}
-            </h3>
-            <p className={`hidden sm:block text-[9.5px] sm:text-[10px] leading-snug line-clamp-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              {tool.desc}
-            </p>
-          </div>
-
-          {tool.comingSoon && (
-            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 dark:bg-black/40 backdrop-blur-[1px] rounded-[20px] pointer-events-none">
-              <div className={`px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest ${isDark ? 'bg-[#1a1c2e] border-white/10 text-slate-400' : 'bg-white border-slate-200 text-slate-500 shadow-sm'
-                }`}>
-                {t('soon')}
+              <div className="flex items-center gap-1.5">
+                {isActive && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="flex items-center gap-1 bg-primary text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg animate-pulse"
+                  >
+                    <div className="w-1 h-1 rounded-full bg-white animate-ping" />
+                    {t('active')}
+                  </motion.span>
+                )}
+                <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${isActive ? 'bg-primary/20 text-primary' : (isDark ? 'bg-white/5 text-white/40' : 'bg-slate-100 text-slate-500')
+                  }`}>
+                  {tool.badge}
+                </span>
               </div>
             </div>
-          )}
-        </div>
 
-        {/* BACK SIDE (Review & Preview) */}
-        <div
-          className={`absolute inset-0 w-full h-full rounded-[20px] border overflow-hidden flex flex-col backface-hidden transition-all duration-300 ${isActive
+            <div className="space-y-0.5 pointer-events-none">
+              <h3 className={`text-[11px] sm:text-[14px] font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                {tool.label}
+              </h3>
+              <p className={`hidden sm:block text-[9.5px] sm:text-[10px] leading-snug line-clamp-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                {tool.desc}
+              </p>
+            </div>
+
+            {tool.comingSoon && (
+              <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 dark:bg-black/40 backdrop-blur-[1px] rounded-[20px] pointer-events-none">
+                <div className={`px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest ${isDark ? 'bg-[#1a1c2e] border-white/10 text-slate-400' : 'bg-white border-slate-200 text-slate-500 shadow-sm'
+                  }`}>
+                  {t('soon')}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* BACK SIDE (Review & Preview) */}
+          <div
+            className={`absolute inset-0 w-full h-full rounded-[20px] border overflow-hidden flex flex-col backface-hidden transition-all duration-300 ${isActive
               ? (isDark ? 'bg-primary/20 border-primary shadow-[0_0_30px_rgba(var(--primary-rgb),0.4)] backdrop-blur-2xl' : 'bg-blue-50 border-primary shadow-[0_0_25px_rgba(var(--primary-rgb),0.2)]')
               : (isDark
                 ? 'sidebar-glass border-primary/30 shadow-[0_10px_40px_rgba(var(--primary-rgb),0.2)]'
                 : 'bg-white border-primary/20 shadow-[0_10px_40px_rgba(0,0,0,0.1)]')
-            }`}
-          style={{
-            backfaceVisibility: 'hidden',
-            transform: 'rotateY(180deg)',
-          }}
-        >
-          <div className="flex flex-col h-full relative z-10">
-            {/* Back Side Label */}
-            <div className="px-3 py-1.5 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30 pointer-events-none">
-              <span className={`text-[9px] font-black uppercase tracking-tighter ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
-                {tool.label}
-              </span>
-              <div className="flex gap-0.5">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className={`w-1 h-1 rounded-full ${isDark ? 'bg-primary/40' : 'bg-primary/30'}`} />
-                ))}
+              }`}
+            style={{
+              backfaceVisibility: 'hidden',
+              transform: 'rotateY(180deg)',
+            }}
+          >
+            <div className="flex flex-col h-full relative z-10">
+              {/* Back Side Label */}
+              <div className="px-3 py-1.5 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30 pointer-events-none">
+                <span className={`text-[9px] font-black uppercase tracking-tighter ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
+                  {tool.label}
+                </span>
+                <div className="flex gap-0.5">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className={`w-1 h-1 rounded-full ${isDark ? 'bg-primary/40' : 'bg-primary/30'}`} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Live Demo Animation Section */}
+              <div className="flex-1 w-full overflow-hidden border-b border-black/5 dark:border-white/5 bg-slate-50 dark:bg-slate-900/50 pointer-events-none">
+                <ToolPreviewContent
+                  id={tool.id}
+                  prompt={tool.prompt}
+                  active={isFlipped}
+                />
+              </div>
+
+              {/* Review & Action Section */}
+              <div className="p-1.5 sm:p-2.5 flex flex-col justify-between bg-white/40 dark:bg-[#1a1e2e]/40 backdrop-blur-sm">
+                <div className="hidden sm:block mb-1.5 pointer-events-none">
+                  <p className={`text-[8.5px] leading-tight italic font-medium line-clamp-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                    "{tool.review?.text || "Revolutionary AI tool that significantly improves my workflow efficiency."}"
+                  </p>
+                </div>
+
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToolSelect(tool.id);
+                  }}
+                  className="bg-primary text-white text-[8px] font-black uppercase tracking-widest py-1.5 rounded-lg flex items-center justify-center gap-2 shadow-lg shadow-primary/20 cursor-pointer pointer-events-auto"
+                >
+                  <Zap size={9} fill="white" />
+                  {t('liveTry')}
+                </motion.div>
               </div>
             </div>
 
-            {/* Live Demo Animation Section */}
-            <div className="flex-1 w-full overflow-hidden border-b border-black/5 dark:border-white/5 bg-slate-50 dark:bg-slate-900/50 pointer-events-none">
-              <ToolPreviewContent
-                id={tool.id}
-                prompt={tool.prompt}
-                active={isFlipped}
-              />
-            </div>
-
-            {/* Review & Action Section */}
-            <div className="p-1.5 sm:p-2.5 flex flex-col justify-between bg-white/40 dark:bg-[#1a1e2e]/40 backdrop-blur-sm">
-              <div className="hidden sm:block mb-1.5 pointer-events-none">
-                <p className={`text-[8.5px] leading-tight italic font-medium line-clamp-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                  "{tool.review?.text || "Revolutionary AI tool that significantly improves my workflow efficiency."}"
-                </p>
-              </div>
-
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToolSelect(tool.id);
-                }}
-                className="bg-primary text-white text-[8px] font-black uppercase tracking-widest py-1.5 rounded-lg flex items-center justify-center gap-2 shadow-lg shadow-primary/20 cursor-pointer pointer-events-auto"
-              >
-                <Zap size={9} fill="white" />
-                {t('liveTry')}
-              </motion.div>
+            {/* Subtle Neural Background for back side */}
+            <div className="absolute inset-0 pointer-events-none opacity-[0.03]">
+              <div className="bg-primary absolute inset-0 blur-3xl rounded-full translate-y-1/2" />
             </div>
           </div>
-
-          {/* Subtle Neural Background for back side */}
-          <div className="absolute inset-0 pointer-events-none opacity-[0.03]">
-            <div className="bg-primary absolute inset-0 blur-3xl rounded-full translate-y-1/2" />
-          </div>
-        </div>
+        </motion.div>
       </motion.div>
     </div>
   );

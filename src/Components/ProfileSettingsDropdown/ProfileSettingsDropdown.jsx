@@ -5,11 +5,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Settings, Bell, Sparkles, LayoutGrid,
     Database, Shield, Lock, User,
-    X, ChevronDown, Play, Globe, Camera,
+    X, ChevronDown, Play, Globe, Camera, Scale, DollarSign, AlertCircle, UserX, Eye, UserCheck,
     LogOut, Monitor, MonitorOff, Mic, Check, HelpCircle, Smartphone, Tablet,
     ChevronLeft, ChevronRight, Trash2, ShieldCheck, Mail, Volume2, Plus, MessageSquare, Send, Clock,
     Palette, Type, RefreshCcw, Languages, Crown, History, Calendar, CreditCard, Download, Search, Zap, FileText, Info
 } from 'lucide-react';
+import { apiService } from '../../services/apiService';
 import { jsPDF } from "jspdf";
 import { usePersonalization } from '../../context/PersonalizationContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -24,6 +25,8 @@ import MultiScheduleReminder from './MultiScheduleReminder';
 import Cropper from 'react-easy-crop';
 import { getCroppedImgBlob } from '../../utils/canvasUtils';
 import { logo, faqs } from '../../constants';
+import { TermsOfServiceContent } from '../../landingpage/PolicyModals/TermsOfServiceModal';
+import { PrivacyPolicyContent } from '../../landingpage/PolicyModals/PrivacyPolicyModal';
 
 const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
     const fileInputRef = useRef(null);
@@ -492,7 +495,6 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         { id: 'feedback', label: 'Feedback', icon: MessageSquare },
         { id: 'terms', label: 'Terms', icon: FileText },
         { id: 'privacy', label: 'Privacy', icon: Shield },
-        { id: 'about', label: 'About', icon: Info },
     ].filter(tab => {
         if (!user?.token) {
             return !['notifications', 'data', 'account', 'feedback'].includes(tab.id);
@@ -654,51 +656,40 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                 );
             case 'terms':
                 return (
-                    <div className="space-y-4">
-                        <h3 className="text-lg font-bold">Terms of Service</h3>
-                        <div className="prose dark:prose-invert max-w-none text-sm text-subtext leading-relaxed">
-                            <p>By using AISA, you agree to our terms of service. Our platform provides AI-powered tools for legal, financial, and creative tasks.</p>
-                            <h4 className="text-maintext font-bold mt-4">1. Use of Service</h4>
-                            <p>You agree to use AISA for lawful purposes only and in accordance with these Terms.</p>
-                            <h4 className="text-maintext font-bold mt-4">2. AI Output</h4>
-                            <p>AI-generated content should be reviewed for accuracy. We do not provide professional legal or financial advice.</p>
-                            <Link to="/terms-of-service" className="inline-block mt-6 text-primary font-bold hover:underline" onClick={onClose}>Read full Terms of Service →</Link>
+                    <div className="space-y-4 h-full flex flex-col">
+                        <div className="flex items-center justify-between mb-4 border-b border-border pb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                    <Scale className="w-6 h-6 text-primary" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-maintext">{t('termsOfService')}</h2>
+                                    <p className="text-xs text-subtext mt-0.5">{t('lastUpdated')}: January 22, 2026</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar max-h-[65vh]">
+                            <TermsOfServiceContent />
                         </div>
                     </div>
                 );
             case 'privacy':
                 return (
-                    <div className="space-y-4">
-                        <h3 className="text-lg font-bold">Privacy Policy</h3>
-                        <div className="prose dark:prose-invert max-w-none text-sm text-subtext leading-relaxed">
-                            <p>Your privacy is important to us. We collect minimal data to provide and improve our services.</p>
-                            <h4 className="text-maintext font-bold mt-4">1. Data Collection</h4>
-                            <p>We collect information you provide directly and automated technical data.</p>
-                            <h4 className="text-maintext font-bold mt-4">2. Data Security</h4>
-                            <p>We implement industry-standard security measures to protect your information.</p>
-                            <Link to="/privacy-policy" className="inline-block mt-6 text-primary font-bold hover:underline" onClick={onClose}>Read full Privacy Policy →</Link>
-                        </div>
-                    </div>
-                );
-            case 'about':
-                return (
-                    <div className="space-y-6">
-                        <div className="flex flex-col items-center text-center py-8">
-                            <img src={logo} alt="AISA" className="h-16 mb-4 drop-shadow-xl" />
-                            <h3 className="text-2xl font-black bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">AISA ™</h3>
-                            <p className="text-sm text-subtext mt-2 max-w-sm">Advanced Intelligence & Synthetic Assistant. The next generation of AI-powered productivity.</p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="p-4 bg-gray-50 dark:bg-zinc-800 rounded-2xl border border-border">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-primary">Version</span>
-                                <p className="text-lg font-bold">3.1.4 (Stable)</p>
-                            </div>
-                            <div className="p-4 bg-gray-50 dark:bg-zinc-800 rounded-2xl border border-border">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-primary">Region</span>
-                                <p className="text-lg font-bold">Global / Asia</p>
+                    <div className="space-y-4 h-full flex flex-col">
+                        <div className="flex items-center justify-between mb-4 border-b border-border pb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                    <Shield className="w-6 h-6 text-primary" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-maintext">{t('privacyPolicy')}</h2>
+                                    <p className="text-xs text-subtext mt-0.5">{t('lastUpdated')}: January 22, 2026</p>
+                                </div>
                             </div>
                         </div>
-                        <p className="text-[10px] text-center text-subtext opacity-50 mt-8">© 2026 AISA Intelligence. All rights reserved.</p>
+                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar max-h-[65vh]">
+                            <PrivacyPolicyContent />
+                        </div>
                     </div>
                 );
             case 'data':

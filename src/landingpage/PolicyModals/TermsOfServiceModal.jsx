@@ -7,16 +7,14 @@ import { apiService } from '../../services/apiService';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-const TermsOfServiceModal = ({ isOpen, onClose }) => {
+export const TermsOfServiceContent = () => {
     const { t } = useLanguage();
     const [dynamicSections, setDynamicSections] = React.useState(null);
     const [loading, setLoading] = React.useState(false);
 
     React.useEffect(() => {
-        if (isOpen) {
-            fetchTerms();
-        }
-    }, [isOpen]);
+        fetchTerms();
+    }, []);
 
     const fetchTerms = async () => {
         setLoading(true);
@@ -94,6 +92,92 @@ const TermsOfServiceModal = ({ isOpen, onClose }) => {
         }
     ];
 
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+                <p className="text-sm text-subtext animate-pulse">Loading Terms...</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6">
+            {dynamicSections ? (
+                <>
+                    {dynamicSections.map((section, index) => (
+                        <div key={index} className="bg-surface/30 rounded-2xl p-8 border border-border hover:border-primary/20 transition-all group">
+                            <div className="flex items-start gap-4 mb-8">
+                                <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <Scale className="w-6 h-6 text-primary" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-maintext pt-2">{section.title}</h3>
+                                    <div className="h-1 w-12 bg-primary/20 rounded-full mt-2 group-hover:w-20 transition-all" />
+                                </div>
+                            </div>
+                            <div className="space-y-10">
+                                {section.content.map((item, idx) => (
+                                    <div key={idx} className="space-y-4">
+                                        {item.subtitle && !['General Terms', 'Policy Overview', 'Introduction', 'N/A', ''].includes(item.subtitle) && (
+                                            <h4 className="text-lg font-bold text-maintext flex items-center gap-3">
+                                                <div className="w-1.5 h-6 bg-primary rounded-full" />
+                                                {item.subtitle}
+                                            </h4>
+                                        )}
+                                        <div className="prose dark:prose-invert max-w-none">
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                {item.text}
+                                            </ReactMarkdown>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </>
+            ) : (
+                <>
+                    <div className="bg-surface rounded-xl p-4 border border-border">
+                        <p className="text-sm text-maintext leading-relaxed">
+                            {t('tos_intro')}
+                        </p>
+                    </div>
+
+                    {sections.map((section, index) => (
+                        <div key={index} className="bg-surface rounded-xl p-5 border border-border hover:border-primary/30 transition-all">
+                            <div className="flex items-start gap-3 mb-4">
+                                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                                    <section.icon className="w-5 h-5 text-primary" />
+                                </div>
+                                <h3 className="text-lg font-bold text-maintext pt-1">{section.title}</h3>
+                            </div>
+                            <ul className="ml-1 sm:ml-14 space-y-2">
+                                {section.items.map((item, idx) => (
+                                    <li key={idx} className="flex items-start gap-2 text-sm text-subtext">
+                                        <span className="text-primary mt-1">•</span>
+                                        <span className="flex-1">{item}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ))}
+                </>
+            )}
+
+            <div className="bg-gradient-to-r from-primary/5 to-blue-500/5 rounded-xl p-5 border border-primary/20">
+                <h3 className="text-lg font-bold text-maintext mb-3">{t('tos_questions_title_terms')}</h3>
+                <div className="space-y-1.5 text-sm text-subtext">
+                    <p><strong className="text-maintext">Email:</strong> <a href="mailto:admin@uwo24.com" className="text-primary hover:underline">admin@uwo24.com</a></p>
+                    <p><strong className="text-maintext">Phone:</strong> <a href="tel:+918358990909" className="text-primary hover:underline">+91 83589 90909</a></p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const TermsOfServiceModal = ({ isOpen, onClose }) => {
+    const { t } = useLanguage();
     if (!isOpen) return null;
 
     return (
@@ -124,85 +208,8 @@ const TermsOfServiceModal = ({ isOpen, onClose }) => {
                         </button>
                     </div>
 
-                    {/* Content */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                        {loading ? (
-                            <div className="flex flex-col items-center justify-center py-20 gap-4">
-                                <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-                                <p className="text-sm text-subtext animate-pulse">Loading Terms...</p>
-                            </div>
-                        ) : dynamicSections ? (
-                            <>
-                                {dynamicSections.map((section, index) => (
-                                    <div key={index} className="bg-surface/30 rounded-2xl p-8 border border-border hover:border-primary/20 transition-all group">
-                                        <div className="flex items-start gap-4 mb-8">
-                                            <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                                <Scale className="w-6 h-6 text-primary" />
-                                            </div>
-                                            <div>
-                                                <h3 className="text-xl font-bold text-maintext pt-2">{section.title}</h3>
-                                                <div className="h-1 w-12 bg-primary/20 rounded-full mt-2 group-hover:w-20 transition-all" />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-10">
-                                            {section.content.map((item, idx) => (
-                                                <div key={idx} className="space-y-4">
-                                                    {item.subtitle && !['General Terms', 'Policy Overview', 'Introduction', 'N/A', ''].includes(item.subtitle) && (
-                                                        <h4 className="text-lg font-bold text-maintext flex items-center gap-3">
-                                                            <div className="w-1.5 h-6 bg-primary rounded-full" />
-                                                            {item.subtitle}
-                                                        </h4>
-                                                    )}
-                                                    <div className="prose dark:prose-invert">
-                                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                                            {item.text}
-                                                        </ReactMarkdown>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))}
-                            </>
-                        ) : (
-                            <>
-                                {/* Introduction */}
-                                <div className="bg-surface rounded-xl p-4 border border-border">
-                                    <p className="text-sm text-maintext leading-relaxed">
-                                        {t('tos_intro')}
-                                    </p>
-                                </div>
-
-                                {/* Default Sections */}
-                                {sections.map((section, index) => (
-                                    <div key={index} className="bg-surface rounded-xl p-5 border border-border hover:border-primary/30 transition-all">
-                                        <div className="flex items-start gap-3 mb-4">
-                                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                                                <section.icon className="w-5 h-5 text-primary" />
-                                            </div>
-                                            <h3 className="text-lg font-bold text-maintext pt-1">{section.title}</h3>
-                                        </div>
-                                        <ul className="ml-1 sm:ml-14 space-y-2">
-                                            {section.items.map((item, idx) => (
-                                                <li key={idx} className="flex items-start gap-2 text-sm text-subtext">
-                                                    <span className="text-primary mt-1">•</span>
-                                                    <span className="flex-1">{item}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                ))}
-                            </>
-                        )}
-
-                        {/* Contact */}
-                        <div className="bg-gradient-to-r from-primary/5 to-blue-500/5 rounded-xl p-5 border border-primary/20">
-                            <h3 className="text-lg font-bold text-maintext mb-3">{t('tos_questions_title_terms')}</h3>
-                            <div className="space-y-1.5 text-sm text-subtext">
-                                <p><strong className="text-maintext">Email:</strong> <a href="mailto:admin@uwo24.com" className="text-primary hover:underline">admin@uwo24.com</a></p>
-                                <p><strong className="text-maintext">Phone:</strong> <a href="tel:+918358990909" className="text-primary hover:underline">+91 83589 90909</a></p>
-                            </div>
-                        </div>
+                    <div className="flex-1 overflow-y-auto p-6">
+                        <TermsOfServiceContent />
                     </div>
 
                     {/* Footer */}

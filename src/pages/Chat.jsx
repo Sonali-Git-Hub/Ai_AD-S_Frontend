@@ -987,6 +987,10 @@ const Chat = () => {
     }
 
     const tid = toast.loading(editingCaseId ? "Updating legal case..." : "Creating legal case...");
+    
+    // Close modal immediately for better UX
+    setIsNewCaseModalOpen(false);
+
     try {
       // Use clientName as the project name if no specific name provided
       const caseName = newCaseForm.accused
@@ -1031,8 +1035,13 @@ const Chat = () => {
           handleOpenCase(newCase, true);
         }
       }
+
+      setEditingCaseId(null);
+      setNewCaseForm({ clientName: '', caseType: '', otherCaseType: '', accused: '', caseSummary: '' });
     } catch (err) {
       toast.error(editingCaseId ? "Failed to update case" : "Failed to create case", { id: tid });
+      // Re-open if failed so user doesn't lose their data
+      setIsNewCaseModalOpen(true);
     }
   };
 
@@ -5976,7 +5985,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         updatedMsg.content,
         SYSTEM_INSTRUCTION + getSystemPromptExtensions(),
         updatedMsg.attachments || (updatedMsg.attachment ? [updatedMsg.attachment] : []),
-        personalizations?.general?.language || 'English'
+        personalizations?.general?.language || 'English',
+        null, // abortSignal
+        currentMode,
+        sessionId,
+        currentProjectId
       );
 
       let reply = "";
@@ -6011,8 +6024,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
       console.error("Error regenerating response:", error);
       toast.error("Failed to regenerate response. Please try again.");
       // Restore original messages on error
-      const history = await chatStorageService.getHistory(sessionId);
-      setMessages(history);
+      const historyData = await chatStorageService.getHistory(sessionId);
+      setMessages(historyData.messages || (Array.isArray(historyData) ? historyData : []));
     } finally {
       setIsLoading(false);
     }
