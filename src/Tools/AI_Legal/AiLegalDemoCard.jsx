@@ -276,7 +276,7 @@ const AiLegalDemoCard = ({ onClick }) => {
                     y: { duration: 4, repeat: Infinity, ease: "easeInOut" },
                     scale: { duration: 0.4 }
                 }}
-                className="relative w-[280px] h-[400px] rounded-[20px] overflow-hidden cursor-pointer z-[2] shadow-[0_30px_60px_-15px_rgba(79,70,229,0.35),inset_0_2px_4px_rgba(255,255,255,0.85)]"
+                className="relative w-[280px] h-[400px] rounded-[20px] overflow-hidden cursor-pointer z-[2] shadow-[0_30px_60px_-15px_rgba(79,70,229,0.35),inset_0_2px_4px_rgba(255,255,255,0.85)] dark:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)]"
                 style={{ perspective: '1000px' }}
             >
                 {/* Frosted glass base */}
@@ -309,7 +309,7 @@ const AiLegalDemoCard = ({ onClick }) => {
                 />
 
                 {/* Glass border shine */}
-                <div className="absolute inset-0 rounded-[20px] border border-white/55 z-[3] pointer-events-none shadow-[inset_0_1px_3px_rgba(255,255,255,0.8)]" />
+                <div className="absolute inset-0 rounded-[20px] border border-white/55 dark:border-white/10 z-[3] pointer-events-none shadow-[inset_0_1px_3px_rgba(255,255,255,0.8)] dark:shadow-none" />
 
                 {/* Content */}
                 <div className="relative h-full w-full flex flex-col z-[8]">

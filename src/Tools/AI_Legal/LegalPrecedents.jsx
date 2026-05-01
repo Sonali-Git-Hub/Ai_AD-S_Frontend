@@ -419,44 +419,46 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
     return (
         <div className="precedent-module-container flex-1 flex flex-col min-h-0 bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-2xl m-4">
             {/* Header */}
-            <div className="precedent-header px-8 py-6 bg-white border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sticky top-0 z-20 backdrop-blur-md bg-white/90">
-                <div className="flex items-center gap-4">
+            <div className="precedent-header px-4 sm:px-8 py-4 sm:py-6 bg-white border-b border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between gap-4 sticky top-0 z-20 backdrop-blur-md bg-white/90">
+                <div className="flex items-start sm:items-center gap-3 sm:gap-4">
                     <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={handleLocalBack}
-                        className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                        className="p-2 hover:bg-slate-100 rounded-full transition-colors shrink-0 mt-1 sm:mt-0"
                     >
                         <ArrowLeft size={20} className="text-slate-600" />
                     </motion.button>
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <h2 className="text-xl font-black text-slate-900">{t('legalPrecedentsTitle')}</h2>
+                    <div className="min-w-0 flex-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1 sm:mb-0">
+                            <h2 className="text-lg sm:text-xl font-black text-slate-900 truncate">
+                                {t('legalPrecedentsTitle')}
+                            </h2>
                             {activeCase && mode === 'CURRENT' && (
-                                <div className="flex items-center gap-2 px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-lg">
-                                    <Briefcase size={12} className="text-indigo-600" />
-                                    <span className="text-[10px] font-black text-indigo-700 uppercase tracking-widest truncate max-w-[150px]">
+                                <div className="flex items-center gap-2 px-2.5 py-1 bg-indigo-50 border border-indigo-100 rounded-lg w-fit max-w-full">
+                                    <Briefcase size={10} className="text-indigo-600 shrink-0" />
+                                    <span className="text-[9px] sm:text-[10px] font-black text-indigo-700 uppercase tracking-widest truncate max-w-[120px] sm:max-w-[200px]">
                                         {activeCase.name}
                                     </span>
                                     <button
                                         onClick={() => setIsCaseListOpen(true)}
-                                        className="text-[9px] font-bold text-slate-400 hover:text-indigo-600 ml-1 transition-colors underline underline-offset-2"
+                                        className="text-[8px] sm:text-[9px] font-bold text-slate-400 hover:text-indigo-600 ml-1 transition-colors underline underline-offset-2 shrink-0"
                                     >
                                         Change
                                     </button>
                                 </div>
                             )}
                         </div>
-                        <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
+                        <p className="text-[10px] sm:text-xs text-slate-500 font-medium uppercase tracking-wider line-clamp-1">
                             {t('judgementDiscoveryEngine')}
                         </p>
                     </div>
                 </div>
 
-                <div className="mode-toggle flex bg-slate-100 p-1 rounded-xl border border-slate-200 w-fit">
+                <div className="mode-toggle flex bg-slate-100 p-1 rounded-xl border border-slate-200 w-full sm:w-fit overflow-x-auto no-scrollbar">
                     <button
                         onClick={() => { setMode('CURRENT'); if (!selectedProjectId) resetSelection(); }}
-                        className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center gap-2 ${mode === 'CURRENT'
+                        className={`px-3 sm:px-4 py-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2 flex-1 sm:flex-none whitespace-nowrap ${mode === 'CURRENT'
                             ? 'bg-white text-indigo-600 shadow-sm'
                             : 'text-slate-500 hover:text-slate-700'
                             }`}
@@ -465,7 +467,7 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
                     </button>
                     <button
                         onClick={() => setMode('MANUAL')}
-                        className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center gap-2 ${mode === 'MANUAL'
+                        className={`px-3 sm:px-4 py-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2 flex-1 sm:flex-none whitespace-nowrap ${mode === 'MANUAL'
                             ? 'bg-white text-indigo-600 shadow-sm'
                             : 'text-slate-500 hover:text-slate-700'
                             }`}
@@ -491,15 +493,15 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
                                                 onChange={(e) => setQuery(e.target.value)}
                                                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                                                 placeholder={t('searchPlaceholder')}
-                                                className="w-full relative z-10 bg-white border-2 border-slate-100 focus:border-indigo-500 rounded-2xl px-6 py-5 pl-14 text-sm font-medium shadow-sm transition-all outline-none"
+                                                className="w-full relative z-10 bg-white border-2 border-slate-100 focus:border-indigo-500 rounded-2xl px-4 sm:px-6 py-4 sm:py-5 pl-12 sm:pl-14 text-xs sm:text-sm font-medium shadow-sm transition-all outline-none"
                                             />
-                                            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors z-20" size={20} />
+                                            <Search className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors z-20" size={18} />
                                             <button
                                                 onClick={() => handleSearch()}
                                                 disabled={isLoading || !query}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 bg-slate-900 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 disabled:opacity-50 transition-all z-20"
+                                                className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 bg-slate-900 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 disabled:opacity-50 transition-all z-20"
                                             >
-                                                {isLoading ? 'Searching...' : 'Search'}
+                                                {isLoading ? '...' : 'Search'}
                                             </button>
                                         </div>
                                     </div>

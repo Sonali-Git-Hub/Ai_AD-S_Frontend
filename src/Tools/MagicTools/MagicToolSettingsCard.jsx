@@ -3,6 +3,7 @@ import { motion, AnimatePresence, LayoutGroup, useMotionTemplate, useMotionValue
 import { X, Layout, Monitor, Smartphone, Check, Zap, Shield, Rocket, Sparkles, Wand2, Brain } from 'lucide-react';
 import PromptLibraryModal from '../../Components/PromptLibraryModal';
 import { logo } from '../../constants';
+import { useIsDark } from '../../context/ThemeContext';
 
 // Simplified active state background for Aspect Ratio
 const ActiveFill = () => (
@@ -13,6 +14,7 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
     const [hoveredModel, setHoveredModel] = useState(null);
     const [isHovered, setIsHovered] = useState(false);
     const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+    const isDark = useIsDark();
     
     // Spotlight Effect logic
     let mouseX = useMotionValue(0);
@@ -106,7 +108,7 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
                                             <Wand2 className="w-[16px] sm:w-[18px] h-[16px] sm:h-[18px] text-white" />
                                         </div>
                                     <div>
-                                        <h3 className="text-[15px] sm:text-[16px] font-black text-slate-900 tracking-tight leading-none mb-1 shadow-sm">
+                                        <h3 className="text-[15px] sm:text-[16px] font-black text-slate-900 dark:text-white tracking-tight leading-none mb-1 shadow-sm">
                                             {getToolTitle()}
                                         </h3>
                                         <p className="text-[8.5px] sm:text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em] flex items-center gap-1 opacity-90">
@@ -130,10 +132,10 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
                                         </motion.button>
                                     )}
                                     <motion.button 
-                                        whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.7)", rotate: 90 }}
+                                        whileHover={{ scale: 1.1, backgroundColor: isDark ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.7)", rotate: 90 }}
                                         whileTap={{ scale: 0.9 }}
                                         onClick={onClose} 
-                                        className="w-7 h-7 rounded-full bg-white/50 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:shadow-md transition-all shadow-sm border border-white/50 relative z-10"
+                                        className="w-7 h-7 rounded-full bg-white/50 dark:bg-white/10 flex items-center justify-center text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-white hover:shadow-md transition-all shadow-sm border border-white/50 dark:border-white/10 relative z-10"
                                     >
                                         <X size={16} strokeWidth={2.5} />
                                     </motion.button>
@@ -150,11 +152,11 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
                                     {toolType === 'video' && (
                                         <div className="flex items-center gap-2 mb-3 ml-1">
                                             <div className="w-1 h-1 rounded-full bg-slate-800 shadow-[0_0_6px_rgba(0,0,0,0.5)]" />
-                                            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-800/80 drop-shadow-sm">Aspect Ratio</p>
+                                            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-800/80 dark:text-white/80 drop-shadow-sm">Aspect Ratio</p>
                                         </div>
                                     )}
 
-                                    <div className={`relative grid ${toolType === 'video' ? 'grid-cols-3' : 'grid-cols-4'} gap-1.5 bg-white/50 p-1.5 rounded-[16px] border border-white/60 shadow-[inset_0_2px_12px_rgba(0,0,0,0.03)] backdrop-blur-xl`}>
+                                    <div className={`relative grid ${toolType === 'video' ? 'grid-cols-3' : 'grid-cols-4'} gap-1.5 bg-white/50 dark:bg-white/5 p-1.5 rounded-[16px] border border-white/60 dark:border-white/10 shadow-[inset_0_2px_12px_rgba(0,0,0,0.03)] backdrop-blur-xl`}>
                                         <LayoutGroup id="aspectSwitch">
                                             {aspectRatios.map((ar) => {
                                                 const isActive = config.aspectRatio === ar.id;
@@ -182,7 +184,7 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
                                                                     }}
                                                                 />
                                                             </div>
-                                                            <span className={`text-[9.5px] font-black tracking-tighter ${isActive ? 'text-white' : 'text-slate-600 group-hover:text-slate-900'}`}>{ar.label}</span>
+                                                            <span className={`text-[9.5px] font-black tracking-tighter ${isActive ? 'text-white' : 'text-slate-600 dark:text-zinc-400 group-hover:text-slate-900 dark:group-hover:text-white'}`}>{ar.label}</span>
                                                         </div>
                                                     </motion.button>
                                                 );
@@ -197,7 +199,7 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
                                 <div className="space-y-3.5">
                                     <div className="flex items-center gap-2 mb-3 ml-1">
                                         <div className="w-1 h-1 rounded-full bg-slate-800 shadow-[0_0_6px_rgba(0,0,0,0.5)]" />
-                                        <p className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-800/80 drop-shadow-sm">Synthesis Core</p>
+                                        <p className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-800/80 dark:text-white/80 drop-shadow-sm">Synthesis Core</p>
                                     </div>
                                     <div className="space-y-3 relative">
                                         <AnimatePresence>
@@ -233,17 +235,17 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
                                                             <div className="flex items-center gap-3.5 relative z-10 w-full">
                                                                 <motion.div 
                                                                     animate={{ scale: isActive ? 1.1 : 1 }}
-                                                                    className={`w-[36px] h-[36px] rounded-[12px] flex items-center justify-center transition-all duration-500 shadow-inner shrink-0 ${isActive ? 'bg-gradient-to-br from-primary to-blue-600 text-white shadow-[0_8px_20px_rgba(var(--primary-rgb),0.4)] border border-primary/50' : 'bg-white text-slate-400 group-hover:text-primary'}`}
+                                                                    className={`w-[36px] h-[36px] rounded-[12px] flex items-center justify-center transition-all duration-500 shadow-inner shrink-0 ${isActive ? 'bg-gradient-to-br from-primary to-blue-600 text-white shadow-[0_8px_20px_rgba(var(--primary-rgb),0.4)] border border-primary/50' : 'bg-white dark:bg-zinc-700 text-slate-400 dark:text-zinc-400 group-hover:text-primary'}`}
                                                                 >
                                                                     {model.speed === 'Fast' ? <Rocket size={18} className={isActive ? 'drop-shadow-md' : ''} /> : <Zap size={18} className={isActive ? 'drop-shadow-md' : ''} />}
                                                                 </motion.div>
 
                                                                 <div className="flex-1 min-w-0">
                                                                     <div className="flex items-center justify-between mb-1">
-                                                                        <span className={`text-[14px] font-black truncate pr-2 transition-colors ${isActive ? 'text-slate-900' : 'text-slate-700'}`}>{model.name}</span>
+                                                                        <span className={`text-[14px] font-black truncate pr-2 transition-colors ${isActive ? (isDark ? 'text-white' : 'text-slate-900') : (isDark ? 'text-zinc-300' : 'text-slate-700')}`}>{model.name}</span>
                                                                         
                                                                         <div className="flex items-center gap-1.5 shrink-0">
-                                                                            <span className={`text-[8.5px] font-black uppercase tracking-[0.1em] transition-colors ${isActive ? 'text-primary' : 'text-slate-500'}`}>
+                                                                            <span className={`text-[8.5px] font-black uppercase tracking-[0.1em] transition-colors ${isActive ? 'text-primary' : (isDark ? 'text-zinc-500' : 'text-slate-500')}`}>
                                                                                 {model.price === 0 ? 'Free' : `${model.price} CR`}
                                                                             </span>
                                                                             
@@ -259,7 +261,7 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
                                                                             )}
                                                                         </div>
                                                                     </div>
-                                                                    <p className={`text-[10.5px] font-medium leading-snug transition-colors line-clamp-2 ${isActive ? 'text-slate-500' : 'text-slate-400 group-hover:text-slate-600'}`}>{model.description}</p>
+                                                                    <p className={`text-[10.5px] font-medium leading-snug transition-colors line-clamp-2 ${isActive ? (isDark ? 'text-zinc-400' : 'text-slate-500') : (isDark ? 'text-zinc-500' : 'text-slate-400 group-hover:text-slate-600')}`}>{model.description}</p>
                                                                 </div>
                                                             </div>
                                                         </button>

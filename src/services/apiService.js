@@ -1327,12 +1327,53 @@ export const apiService = {
     }
   },
 
-  async createProject(name) {
+  async getProject(projectId) {
     try {
-      const response = await apiClient.post('/projects', { name });
+      const response = await apiClient.get(`/projects/${projectId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch project:", error);
+      throw error;
+    }
+  },
+
+  async createProject(data) {
+    try {
+      const payload = typeof data === 'string' ? { name: data } : data;
+      const response = await apiClient.post('/projects', payload);
       return response.data;
     } catch (error) {
       console.error("Failed to create project:", error);
+      throw error;
+    }
+  },
+
+  async updateProject(projectId, data) {
+    try {
+      const response = await apiClient.put(`/projects/${projectId}`, data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to update project:", error);
+      throw error;
+    }
+  },
+
+  async deleteProject(projectId) {
+    try {
+      const response = await apiClient.delete(`/projects/${projectId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to delete project:", error);
+      throw error;
+    }
+  },
+
+  async renameProject(id, name) {
+    try {
+      const response = await apiClient.put(`/projects/${id}`, { name });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to rename project:", error);
       throw error;
     }
   },
@@ -1357,46 +1398,6 @@ export const apiService = {
     }
   },
 
-  // --- Project Management ---
-  async getProjects() {
-    try {
-      const response = await apiClient.get('/projects');
-      return response.data;
-    } catch (error) {
-      console.error("Failed to fetch projects:", error);
-      throw error;
-    }
-  },
-
-  async createProject(name) {
-    try {
-      const response = await apiClient.post('/projects', { name });
-      return response.data;
-    } catch (error) {
-      console.error("Failed to create project:", error);
-      throw error;
-    }
-  },
-
-  async renameProject(id, name) {
-    try {
-      const response = await apiClient.put(`/projects/${id}`, { name });
-      return response.data;
-    } catch (error) {
-      console.error("Failed to rename project:", error);
-      throw error;
-    }
-  },
-
-  async deleteProject(id) {
-    try {
-      const response = await apiClient.delete(`/projects/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error("Failed to delete project:", error);
-      throw error;
-    }
-  },
 
   async generateSocialAgentCalendar(workspaceId) {
     try {
@@ -1481,26 +1482,6 @@ export const apiService = {
     }
   },
 
-  // --- Projects / Cases ---
-  async getProjects() {
-    try {
-      const response = await apiClient.get('/projects');
-      return response.data;
-    } catch (error) {
-      console.error("Failed to fetch projects:", error);
-      throw error;
-    }
-  },
-
-  async getProject(projectId) {
-    try {
-      const response = await apiClient.get(`/projects/${projectId}`);
-      return response.data;
-    } catch (error) {
-      console.error("Failed to fetch project:", error);
-      throw error;
-    }
-  },
 
   async searchPrecedents(query, projectId = null, language = 'English') {
     try {
@@ -1544,36 +1525,6 @@ export const apiService = {
     }
   },
 
-  async updateProject(projectId, data) {
-    try {
-      const response = await apiClient.put(`/projects/${projectId}`, data);
-      return response.data;
-    } catch (error) {
-      console.error("Failed to update project:", error);
-      throw error;
-    }
-  },
-
-  async createProject(data) {
-    try {
-      const payload = typeof data === 'string' ? { name: data } : data;
-      const response = await apiClient.post('/projects', payload);
-      return response.data;
-    } catch (error) {
-      console.error("Failed to create project:", error);
-      throw error;
-    }
-  },
-
-  async deleteProject(projectId) {
-    try {
-      const response = await apiClient.delete(`/projects/${projectId}`);
-      return response.data;
-    } catch (error) {
-      console.error("Failed to delete project:", error);
-      throw error;
-    }
-  },
 
   async analyzeProject(projectId, rawText = null) {
     try {

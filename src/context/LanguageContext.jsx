@@ -297,10 +297,11 @@ export const LanguageProvider = ({ children }) => {
             magicImageEditor: "Sophisticated AI magic editor for creative visual refinements.",
             researchComplexTopics: "In-depth analysis and comprehensive data mining reports.",
             liveWebDataAccess: "Fast and accurate real-time web search and queries.",
-            chatWithPdfsDocs: "Summarize PDFs, extract data, and chat with your files.",
+            chatWithPdfsDocs: "Convert your documents from one format to another instantly.",
             writeDebugCode: "Generate, explain, and debug code across any language.",
             textDocsToVoice: "Convert any text or document into natural-sounding audio.",
             specializedAiLegalTools: "Professional AI legal tools for document analysis and research.",
+            aiLegalToolsCount: "9 specialized AI legal tools.",
             liveAnalysisReports: "Live stock market analysis and automated financial reports.",
             automateSocialMedia: "Automate 30 days of social media content and ad copy.",
             deepSearchDesc: "In-depth intelligence gathering that cross-references multiple sources to provide cited, comprehensive research reports.",
@@ -778,7 +779,7 @@ export const LanguageProvider = ({ children }) => {
             imageToVideo: "Image to Video",
             editImage: "Edit Image",
             realTimeSearch: "Real-Time Search",
-            analyzeDocument: "Analyze Document",
+            analyzeDocument: "Convert Document",
             codeWriter: "Code Writer",
             convertToAudio: "Convert to Audio",
             aiLegal: "AI Legal™",
@@ -794,7 +795,7 @@ export const LanguageProvider = ({ children }) => {
             badgeMagicEdit: "MAGIC EDIT",
             badgeIntelligence: "INTELLIGENCE",
             badgeRealTime: "REAL-TIME",
-            badgeDocument: "DOCUMENT",
+            badgeDocument: "CONVERT",
             badgeCode: "CODE",
             badgeAudio: "AUDIO",
             badgeLegal: "LEGAL",
@@ -1436,7 +1437,7 @@ export const LanguageProvider = ({ children }) => {
             imageToVideo: "छवि से वीडियो",
             editImage: "छवि संपादित करें",
             realTimeSearch: "रीयल-टाइम खोज",
-            analyzeDocument: "दस्तावेज़ विश्लेषण",
+            analyzeDocument: "दस्तावेज़ रूपांतरण",
             codeWriter: "कोड लेखक",
             convertToAudio: "ऑडियो में बदलें",
             aiLegal: "एआई लीगल™",
@@ -1448,10 +1449,11 @@ export const LanguageProvider = ({ children }) => {
             magicImageEditor: "जादुई छवि संपादक",
             researchComplexTopics: "जटिल विषयों पर शोध",
             liveWebDataAccess: "लाइव वेब डेटा एक्सेस",
-            chatWithPdfsDocs: "PDF और दस्तावेज़ों के साथ चैट करें",
+            chatWithPdfsDocs: "अपने दस्तावेज़ों को एक प्रारूप से दूसरे प्रारूप में तुरंत बदलें।",
             writeDebugCode: "कोड लिखें और डिबग करें",
             textDocsToVoice: "टेक्स्ट/दस्तावेज़ से आवाज",
             specializedAiLegalTools: "विशेष एआई कानूनी उपकरण",
+            aiLegalToolsCount: "9 विशेष एआई कानूनी उपकरण",
             liveAnalysisReports: "लाइव विश्लेषण और रिपोर्ट",
             comingSoon: "जल्द ही आ रहा है...",
             badgeImage: "छवि",
@@ -1460,7 +1462,7 @@ export const LanguageProvider = ({ children }) => {
             badgeMagicEdit: "मैजिक एडिट",
             badgeIntelligence: "इंटेलिजेंस",
             badgeRealTime: "रीयल-टाइम",
-            badgeDocument: "दस्तावेज़",
+            badgeDocument: "रूपांतरण",
             badgeCode: "कोड",
             badgeAudio: "ऑडियो",
             badgeLegal: "कानूनी",
@@ -7126,10 +7128,10 @@ export const LanguageProvider = ({ children }) => {
     };
 
     return (
-        <LanguageContext.Provider value={{ 
-            language, setLanguage, t, 
+        <LanguageContext.Provider value={{
+            language, setLanguage, t,
             toolkitLanguage, setToolkitLanguage, tLegal,
-            languages: uniqueLanguages, region, setRegion, regions, regionFlags, allTimezones, regionTimezones 
+            languages: uniqueLanguages, region, setRegion, regions, regionFlags, allTimezones, regionTimezones
         }}>
             {children}
         </LanguageContext.Provider>

@@ -69,8 +69,15 @@ export const removeAccount = (email) => {
   }
 }
 export const clearUser = () => {
-  localStorage.removeItem('user');
-  localStorage.removeItem('accounts');
+  const cookieConsent = localStorage.getItem('aisa_cookie_consent');
+  const appTheme = localStorage.getItem('app_theme');
+  const appAccent = localStorage.getItem('app_accent');
+  
+  localStorage.clear();
+  
+  if (cookieConsent) localStorage.setItem('aisa_cookie_consent', cookieConsent);
+  if (appTheme) localStorage.setItem('app_theme', appTheme);
+  if (appAccent) localStorage.setItem('app_accent', appAccent);
 }
 export const updateUser = (updates) => {
   const user = JSON.parse(localStorage.getItem('user') || '{}');

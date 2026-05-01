@@ -40,7 +40,7 @@ const FlowingAICreature = () => {
           
           {/* Internal Energy pulse */}
           <div className={`w-20 h-20 bg-white rounded-full blur-2xl animate-pulse transition-opacity duration-1000 ${isDarkMode ? 'opacity-40' : 'opacity-20'}`} />
-          <Sparkles className={`relative z-10 text-white w-12 h-12 drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] transition-opacity duration-1000 ${isDarkMode ? 'opacity-100' : 'opacity-70'}`} />
+          <Sparkles className={`relative z-10 text-white w-12 h-12 ${isDarkMode ? 'drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]' : 'drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]'} transition-opacity duration-1000 ${isDarkMode ? 'opacity-100' : 'opacity-70'}`} />
         </div>
         
         {/* Orbiting particles (CSS only) */}

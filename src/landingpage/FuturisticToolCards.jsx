@@ -90,10 +90,10 @@ const ToolPreviewContent = ({ id, prompt, active }) => {
         "Weather: Global temperatures stabilize near arctic regions."
       ],
       document: [
-        "Financial Report 2025.pdf analyzed.",
-        "Revenue: $12.4M (Up 14% YoY)",
-        "Top Risk: Supply chain volatility in Southeast Asia.",
-        "Action: Redundancy in logistics suggested."
+        "Source: Report_Final_v2.pdf",
+        "Target Format: Microsoft Word (.docx)",
+        "Status: 100% Conversion Successful",
+        "Download: Ready for local storage."
       ],
       code: [
         "import torch",
@@ -506,7 +506,7 @@ const FuturisticToolCards = ({ onToolSelect, activeToolId, isAdmin = false }) =>
     { id: 'edit_image', label: t('editImage'), badge: t('badgeMagicEdit'), desc: t('magicImageEditor'), icon: Wand2, color: '#f43f5e', prompt: "Modify the sky to be a neon-lit cyberpunk sunset...", review: { rating: 4.8, count: "15k", text: "Perfect for quick retouching. The AI infilling is seamless—you literally can't tell where the edit starts." } },
     { id: 'deep_search', label: t('deepSearch'), badge: t('badgeIntelligence'), desc: t('researchComplexTopics'), icon: Search, color: '#0ea5e9', prompt: "Analyze global market trends and future tech predictions...", review: { rating: 5, count: "21k", text: "Replaced my research team. It synthesizes 100+ papers into a 1-page brief perfectly. Extremely accurate indexing." } },
     { id: 'web_search', label: t('realTimeSearch'), badge: t('badgeRealTime'), desc: t('liveWebDataAccess'), icon: Globe, color: '#22d3ee', prompt: "Search for live updates on the latest SpaceX launch...", review: { rating: 4.9, count: "10k", text: "No more hallucinated news. AISA provides real-time citations and live feeds. Highly reliable for tech news." } },
-    { id: 'document', label: t('analyzeDocument'), badge: t('badgeDocument'), desc: t('chatWithPdfsDocs'), icon: FileText, color: '#3b82f6', prompt: "Summarize this 50-page legal PDF and identify risks...", review: { rating: 5, count: "7.4k", text: "I uploaded a 120-page contract and it found a hidden liability clause in seconds. Worth every credit." } },
+    { id: 'document', label: t('analyzeDocument'), badge: t('badgeDocument'), desc: t('chatWithPdfsDocs'), icon: FileText, color: '#3b82f6', prompt: "Convert this PDF file to DOCX format immediately...", review: { rating: 5, count: "7.4k", text: "I converted my 50-page PDF to a perfectly formatted Word document in seconds. Super efficient!" } },
     { id: 'code', label: t('codeWriter'), badge: t('badgeCode'), desc: t('writeDebugCode'), icon: Code, color: '#6366f1', prompt: "Write a robust Python script for a neural network...", review: { rating: 4.9, count: "14.2k", text: "Writes production-ready code with tests. It actually understands modern design patterns, not just snippets." } },
     { id: 'audio', label: t('convertToAudio'), badge: t('badgeAudio'), desc: t('textDocsToVoice'), icon: Headphones, color: '#34d399', prompt: "Synthesize this report into a natural sounding male voice...", review: { rating: 4.8, count: "6k", text: "The most human-like synthesis I've heard. Even the breathing and pauses feel natural. Perfect for podcasts." } },
     { id: 'legal', label: t('aiLegal'), badge: t('badgeLegal'), desc: t('specializedAiLegalTools'), icon: LegalLogo, color: '#818cf8', prompt: "Analyze this employment contract for potential loopholes...", review: { rating: 5, count: "3.2k", text: "AISA's legal reasoning is spookily good. It identified risks that our junior lawyers missed twice." } },

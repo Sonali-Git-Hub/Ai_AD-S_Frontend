@@ -45,6 +45,8 @@
     --ring: 240 100% 67%;
 
     --radius: 1rem;
+    --primary-rgb: 99, 102, 241;
+    --color-primary-rgb: 99, 102, 241;
   }
 
   :root.dark,
@@ -78,6 +80,8 @@
     /* Subtle border, blending in */
     --input: 0 0% 8%;
     --ring: 225 60% 55%;
+    --primary-rgb: 129, 140, 248;
+    --color-primary-rgb: 129, 140, 248;
   }
 }
 
@@ -596,6 +600,14 @@ body,
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
 }
 
+.tool-icon-premium {
+  box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.05), -4px -4px 10px rgba(255, 255, 255, 0.8);
+}
+
+.dark .tool-icon-premium {
+  box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5), inset 0 0 0 transparent !important;
+}
+
 .no-spinner::-webkit-inner-spin-button,
 .no-spinner::-webkit-outer-spin-button {
   -webkit-appearance: none;
@@ -820,15 +832,23 @@ html.lenis body {
   overflow-wrap: break-word;
   word-wrap: break-word;
   word-break: break-word;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  pointer-events: auto !important;
 }
 
 .chatgpt-message-content p,
 .chatgpt-message-content li,
-.chatgpt-message-content div {
+.chatgpt-message-content div,
+.chatgpt-text,
+.chatgpt-text * {
   overflow-wrap: break-word;
   word-wrap: break-word;
   word-break: break-word;
   max-width: 100%;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  pointer-events: auto !important;
 }
 
 /* Message Structure */

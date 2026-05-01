@@ -332,22 +332,22 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
                   </div>
 
                   <div className="flex items-center gap-2.5">
-                  <motion.button
-                    whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                    onClick={() => setIsMaximized(!isMaximized)}
-                    title={isMaximized ? 'Restore' : 'Maximize'}
-                    className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:shadow-md transition-all shadow-sm border border-black/5 dark:border-white/10"
-                  >
-                    {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}
-                    onClick={onClose}
-                    title="Close"
-                    className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-rose-500 hover:shadow-md transition-all shadow-sm border border-black/5 dark:border-white/10"
-                  >
-                    <X size={18} strokeWidth={2.5} />
-                  </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                      onClick={() => setIsMaximized(!isMaximized)}
+                      title={isMaximized ? 'Restore' : 'Maximize'}
+                      className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:shadow-md transition-all shadow-sm border border-black/5 dark:border-white/10"
+                    >
+                      {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}
+                      onClick={onClose}
+                      title="Close"
+                      className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-rose-500 hover:shadow-md transition-all shadow-sm border border-black/5 dark:border-white/10"
+                    >
+                      <X size={18} strokeWidth={2.5} />
+                    </motion.button>
                   </div>
                 </div>
               </div>
