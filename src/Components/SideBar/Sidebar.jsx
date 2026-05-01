@@ -35,7 +35,8 @@ import {
   Database,
   Info,
   Home,
-  CreditCard
+  CreditCard,
+  IndianRupee
 } from 'lucide-react';
 import { apis, AppRoute, API } from '../../types';
 import ShareModal from '../ShareModal';
@@ -1005,26 +1006,40 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
               </button>
             )}
 
-            <div className="grid grid-cols-3 gap-1 px-1">
-              <button
-                onClick={() => setIsConnectorsOpen(true)}
-                className="flex flex-col items-center gap-2 transition-all active:scale-95 group/fbtn"
-              >
-                <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
-                  <LayoutGrid className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
-                </div>
-                <span className="text-[9px] font-black text-primary/70 uppercase tracking-tight group-hover/fbtn:text-primary transition-colors">Connectors</span>
-              </button>
+            <div className={`grid ${token ? 'grid-cols-3' : 'grid-cols-2'} gap-1 px-1`}>
+              {token ? (
+                <>
+                  <button
+                    onClick={() => setIsConnectorsOpen(true)}
+                    className="flex flex-col items-center gap-2 transition-all active:scale-95 group/fbtn"
+                  >
+                    <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
+                      <LayoutGrid className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
+                    </div>
+                    <span className="text-[9px] font-black text-primary/70 uppercase tracking-tight group-hover/fbtn:text-primary transition-colors">Connectors</span>
+                  </button>
 
-              <button
-                onClick={() => setIsCreditsOpen(true)}
-                className="flex flex-col items-center gap-2 transition-all active:scale-95 group/fbtn"
-              >
-                <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
-                  <CreditCard className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
-                </div>
-                <span className="text-[9px] font-black text-primary/70 uppercase tracking-tight group-hover/fbtn:text-primary transition-colors">Credits</span>
-              </button>
+                  <button
+                    onClick={() => setIsCreditsOpen(true)}
+                    className="flex flex-col items-center gap-2 transition-all active:scale-95 group/fbtn"
+                  >
+                    <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
+                      <CreditCard className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
+                    </div>
+                    <span className="text-[9px] font-black text-primary/70 uppercase tracking-tight group-hover/fbtn:text-primary transition-colors">Credits</span>
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => navigate('/pricing')}
+                  className="flex flex-col items-center gap-2 transition-all active:scale-95 group/fbtn"
+                >
+                  <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
+                    <IndianRupee className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
+                  </div>
+                  <span className="text-[9px] font-black text-primary/70 uppercase tracking-tight group-hover/fbtn:text-primary transition-colors">Pricing</span>
+                </button>
+              )}
 
               <button
                 onClick={onOpenSettings}

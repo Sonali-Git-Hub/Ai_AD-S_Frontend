@@ -1,7 +1,8 @@
-import React from 'react';
 import { Briefcase } from 'lucide-react';
+import { useLanguage } from '../../../context/LanguageContext';
 
 const LegalWorkspaceWelcome = ({ currentCase }) => {
+  const { tLegal } = useLanguage();
   if (!currentCase) return null;
   
   return (
@@ -11,10 +12,10 @@ const LegalWorkspaceWelcome = ({ currentCase }) => {
           <Briefcase className="w-10 h-10 text-primary" />
         </div>
         <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-3 tracking-tight">
-          {currentCase.name} <span className="text-primary">Workspace</span>
+          {currentCase.name} <span className="text-primary">{tLegal('workspaceTitle')}</span>
         </h2>
         <p className="max-w-md text-subtext font-medium leading-relaxed mb-8">
-          This case is now active. You can analyze documents, predict outcomes, or draft legal papers specifically for this case.
+          {tLegal('caseIsNowActive')}
         </p>
       </div>
     </div>

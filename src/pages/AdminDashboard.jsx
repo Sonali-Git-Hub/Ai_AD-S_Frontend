@@ -14,7 +14,7 @@ import { getUserData } from '../userStore/userData';
 import { API } from '../types.js';
 import { logo } from '../constants.js';
 import toast from 'react-hot-toast';
-import { COOKIE_POLICY_DEFAULTS, TERMS_OF_SERVICE_DEFAULTS, PRIVACY_POLICY_DEFAULTS } from '../constants/legalDefaults';
+import { COOKIE_POLICY_DEFAULTS, TERMS_OF_SERVICE_DEFAULTS, PRIVACY_POLICY_DEFAULTS } from '../Tools/AI_Legal/constants/legalDefaults';
 import AdminHelpDesk from '../Components/AdminHelpDesk';
 const KnowledgeUpload = React.lazy(() => import('../Tools/AI_Base/KnowledgeUpload').catch(() => ({ default: () => <div className="p-8 text-center text-subtext">AI Base Module not found.</div> })));
 const KnowledgeManagement = React.lazy(() => import('../Tools/AI_Base/KnowledgeManagement').catch(() => ({ default: () => <div className="p-8 text-center text-subtext">AI Base Module not found.</div> })));

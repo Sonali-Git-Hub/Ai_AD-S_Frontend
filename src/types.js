@@ -117,6 +117,7 @@ const apis = {
     status: `${API}/ai-ad/status`,
   },
   imageProxy: `${API}/image/proxy`,
+  precedents: `${API}/precedents`,
 };
 
 export { API, apis };

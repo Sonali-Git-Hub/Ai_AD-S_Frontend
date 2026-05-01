@@ -4,7 +4,7 @@ import {
   Library, Clock, CheckCircle, ArrowLeftRight, Lock, Sparkles,
   MessageCircle, ArrowRight, X, ChevronDown, Zap, Maximize2, Minimize2, Gavel, Briefcase 
 } from 'lucide-react';
-import LegalLogo from '../Components/LegalLogo';
+import LegalLogo from '../components/LegalLogo';
 
 export const PREMIUM_TOOLS = [
   {

@@ -2,7 +2,7 @@ import React from 'react';
 
 const LegalLogo = ({ size = 24, color = 'currentColor', className = "", showText = false, style = {} }) => {
   const finalColor = style.color || color;
-  const iconSize = showText ? size * 0.85 : size;
+  const iconSize = showText ? size * 0.75 : size;
 
   return (
     <div className={`flex flex-col items-center justify-center ${className}`} style={{ ...style, color: finalColor }}>
@@ -43,8 +43,8 @@ const LegalLogo = ({ size = 24, color = 'currentColor', className = "", showText
           className="whitespace-nowrap font-black tracking-[0.05em]" 
           style={{ 
             color: finalColor,
-            fontSize: Math.max(iconSize / 4, 6.5) + 'px',
-            marginTop: '2.5px',
+            fontSize: Math.max(iconSize / 4.2, 5.5) + 'px',
+            marginTop: '1px',
             lineHeight: 1,
             textShadow: '0 1px 2px rgba(0,0,0,0.05)',
             fontFamily: 'inherit'

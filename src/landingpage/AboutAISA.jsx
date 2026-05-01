@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bot, X, Info, MessageSquare, FileText, Image, Cloud, Camera, Mic, Share2, Scan, FileDiff, FileType, Search, Video, Globe, Headphones, Code, Wand2, TrendingUp, PlaySquare, Megaphone } from 'lucide-react';
-import LegalLogo from '../Components/LegalLogo';
+import LegalLogo from '../Tools/AI_Legal/components/LegalLogo';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 

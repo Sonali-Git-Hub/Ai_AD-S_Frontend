@@ -1502,6 +1502,48 @@ export const apiService = {
     }
   },
 
+  async searchPrecedents(query, projectId = null, language = 'English') {
+    try {
+      const response = await apiClient.post('/precedents/search', { query, projectId, language });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to search precedents:", error);
+      throw error;
+    }
+  },
+
+  async analyzePrecedent(actionType, precedentData, projectId = null, language = 'English') {
+    try {
+      const response = await apiClient.post('/precedents/analyze', { actionType, precedentData, projectId, language });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to analyze precedent:", error);
+      throw error;
+    }
+  },
+
+  async reanalyzePrecedent(precedentData, projectId = null, language = 'English') {
+    try {
+      const response = await apiClient.post('/precedents/reanalyze', { precedentData, projectId, language });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to re-analyze precedent:", error);
+      throw error;
+    }
+  },
+
+  async generatePrecedentPDF(precedentData) {
+    try {
+      const response = await apiClient.post('/precedents/generate-pdf', { precedentData }, {
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to generate PDF:", error);
+      throw error;
+    }
+  },
+
   async updateProject(projectId, data) {
     try {
       const response = await apiClient.put(`/projects/${projectId}`, data);

@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect, Fragment } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Send, SendHorizontal, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe, Sliders, PlayCircle, Brain, ImagePlus, PlaySquare, RefreshCcw, TrendingUp, Zap, Gavel, Navigation, Rocket, Megaphone, Scale, ArrowLeft, ChevronRight, Briefcase, Calendar, Users, FolderOpen, Save, Sun, Moon, LayoutDashboard } from 'lucide-react';
-import LegalLogo from '../Components/LegalLogo';
-import CaseIntelligencePanel from '../Components/Legal/CaseIntelligencePanel';
+import LegalLogo from '../Tools/AI_Legal/components/LegalLogo';
+import CaseIntelligencePanel from '../Tools/AI_Legal/components/CaseIntelligencePanel';
 import { logo } from '../constants';
 import { renderAsync } from 'docx-preview';
 import * as XLSX from 'xlsx';
@@ -28,7 +28,8 @@ const MagicToolSettingsCard = React.lazy(() => import('../Tools/MagicTools/Magic
 const CashFlowStockModal = React.lazy(() => import('../Tools/AI_Cashflow/CashFlowStockModal').catch(() => ({ default: () => null })));
 const CashFlowChartWidget = React.lazy(() => import('../Tools/AI_Cashflow/CashFlowChartWidget').catch(() => ({ default: () => null })));
 const LegalToolkitCard = React.lazy(() => import('../Tools/AI_Legal/LegalToolkitCard').catch(() => ({ default: () => null })));
-import { PREMIUM_TOOLS } from '../constants/legalTools';
+import LegalPrecedents from '../Tools/AI_Legal/LegalPrecedents';
+import { PREMIUM_TOOLS } from '../Tools/AI_Legal/constants/legalTools';
 import axios from 'axios';
 import { apis, API } from '../types';
 import { jsPDF } from 'jspdf';
@@ -485,6 +486,7 @@ const Chat = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { personalizations, getSystemPromptExtensions, updatePersonalization } = usePersonalization();
+  const { language: currentLang, toolkitLanguage, t } = useLanguage();
   const isDarkMode = personalizations?.general?.theme === 'Dark' ||
     (personalizations?.general?.theme !== 'Light' &&
       window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -535,6 +537,7 @@ const Chat = () => {
   const [waUploading, setWaUploading] = useState(false);
   const [waMsgContent, setWaMsgContent] = useState('');
   const [isMagicEditing, setIsMagicEditing] = useState(false);
+  const [isMagicImageModalOpen, setIsMagicImageModalOpen] = useState(false);
   const [editRefImage, setEditRefImage] = useState(null);
   const [isMagicVideoModalOpen, setIsMagicVideoModalOpen] = useState(false);
   const [isSocialMediaDashboardOpen, setIsSocialMediaDashboardOpen] = useState(false);
@@ -749,6 +752,17 @@ const Chat = () => {
   }, [location.search, navigate, location.pathname]);
 
 
+  // Sync AI Ads Dashboard state to the URL so it persists on refresh
+  useEffect(() => {
+    const url = new URL(window.location);
+    if (isSocialMediaDashboardOpen) {
+      url.searchParams.set('tool', 'ai_ads');
+    } else {
+      url.searchParams.delete('tool');
+    }
+    window.history.replaceState({}, '', url);
+  }, [isSocialMediaDashboardOpen]);
+
 
 
 
@@ -759,7 +773,21 @@ const Chat = () => {
   const isManualStopRef = useRef(false); // Track manual stop to avoid recursive loops
   const isDetectionPausedRef = useRef(false); // Pause detection after explicit dismissal
   const [currentProjectId, setCurrentProjectId] = useRecoilState(activeProjectIdData);
-  
+
+  // ─── Deep Link Case Handling ───
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const caseIdInUrl = params.get('caseId');
+
+    if (caseIdInUrl) {
+      console.log(`[DeepLink] Case ID detected in URL: ${caseIdInUrl}`);
+      // Validate format
+      if (/^[a-f\d]{24}$/i.test(caseIdInUrl)) {
+        setCurrentProjectId(caseIdInUrl);
+      }
+    }
+  }, [location.search, setCurrentProjectId]);
+
   // Listen for 'forceGlobal' navigation state to reset case context
   useEffect(() => {
     if (location.state?.forceGlobal) {
@@ -770,7 +798,6 @@ const Chat = () => {
       setSelectedLegalTool(null);
       setMessages([]);
       setLegalView('CHAT');
-      
       // Clear the state so it doesn't re-fire on other renders
       navigate(location.pathname, { replace: true, state: {} });
     }
@@ -844,6 +871,37 @@ const Chat = () => {
 
     // Background fetch
     fetchLegalCases();
+  };
+
+  const handleUseInArgument = (argument) => {
+    setInputValue(argument);
+    setLegalView('CHAT');
+    // We don't necessarily want to reset the whole legal toolkit context, 
+    // but we want to show the chat where the argument is now inserted.
+    toast.success("✅ Argument inserted into chat", {
+      icon: '✍️',
+      style: { borderRadius: '10px', background: '#333', color: '#fff' }
+    });
+    
+    // Auto focus the input
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }, 100);
+  };
+
+  const handleLegalPrecedentsBack = () => {
+    // Reset all Legal Toolkit states to return to the main AI Dashboard
+    setLegalView('CHAT');
+    setCurrentMode('NORMAL_CHAT');
+    setSelectedLegalTool(null);
+    setCurrentCase(null);
+    setCurrentProjectId(null);
+    setMessages([]);
+    
+    // Navigate to the main chat dashboard
+    navigate('/dashboard/chat/new', { replace: true });
   };
 
   // Fetch all legal cases for dashboard
@@ -929,6 +987,10 @@ const Chat = () => {
     }
 
     const tid = toast.loading(editingCaseId ? "Updating legal case..." : "Creating legal case...");
+    
+    // Close modal immediately for better UX
+    setIsNewCaseModalOpen(false);
+
     try {
       // Use clientName as the project name if no specific name provided
       const caseName = newCaseForm.accused
@@ -957,7 +1019,7 @@ const Chat = () => {
         }
       } else {
         const newCase = await apiService.createProject(payload);
-        
+
         // Step 4: Auto Analyze Flow
         try {
           const analyzedCase = await apiService.analyzeProject(newCase._id);
@@ -970,11 +1032,12 @@ const Chat = () => {
         }
       }
 
-      setIsNewCaseModalOpen(false);
       setEditingCaseId(null);
       setNewCaseForm({ clientName: '', caseType: '', otherCaseType: '', accused: '', caseSummary: '' });
     } catch (err) {
       toast.error(editingCaseId ? "Failed to update case" : "Failed to create case", { id: tid });
+      // Re-open if failed so user doesn't lose their data
+      setIsNewCaseModalOpen(true);
     }
   };
 
@@ -1079,6 +1142,7 @@ const Chat = () => {
       setEditingCaseId={setEditingCaseId}
       setNewCaseForm={setNewCaseForm}
       setActiveLegalToolkit={setActiveLegalToolkit}
+      onBack={handleLegalPrecedentsBack}
     />
   );
 
@@ -1252,9 +1316,11 @@ const Chat = () => {
       if (currentCase?._id === currentProjectId) {
         if (currentCase.isLegalCase && currentMode !== 'LEGAL_TOOLKIT') {
           setCurrentMode('LEGAL_TOOLKIT');
-          setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
-          // If we are already in a case, don't force-switch view to CHAT if they are in DASHBOARD
-          if (legalView !== 'DASHBOARD') setLegalView('CHAT');
+          if (selectedLegalTool?.id !== 'legal_precedents' && selectedLegalTool?.id !== 'legal_case_law_research') {
+            setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
+          }
+          // If we are already in a case, don't force-switch view to CHAT if they are in DASHBOARD or PRECEDENTS
+          if (legalView !== 'DASHBOARD' && legalView !== 'PRECEDENTS') setLegalView('CHAT');
         }
         return;
       }
@@ -1269,8 +1335,23 @@ const Chat = () => {
           setCurrentCase(response);
           if (response.isLegalCase) {
             setCurrentMode('LEGAL_TOOLKIT');
-            setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
-            setLegalView('CHAT');
+            if (selectedLegalTool?.id !== 'legal_precedents' && selectedLegalTool?.id !== 'legal_case_law_research') {
+              setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
+            }
+            if (legalView !== 'PRECEDENTS') {
+              setLegalView('CHAT');
+
+              if (location.pathname === '/dashboard/chat/new') {
+                try {
+                  const caseSessions = await chatStorageService.getSessions(currentProjectId);
+                  if (Array.isArray(caseSessions) && caseSessions.length > 0) {
+                    navigate(`/dashboard/chat/${caseSessions[0].sessionId}`);
+                  }
+                } catch (sessionErr) {
+                  console.error("Failed to fetch case sessions:", sessionErr);
+                }
+              }
+            }
           }
         }
       } catch (err) {
@@ -1469,23 +1550,7 @@ const Chat = () => {
       return;
     }
 
-    setSelectedLegalTool({ id: toolId, name: toolName });
-    setActiveTool(toolName); // Set dynamic tool name
-    setActiveLegalToolkit(false); // Close toolkit if open
-    setCurrentMode('LEGAL_TOOLKIT');
-    setLegalView('CHAT'); // Ensure input box appears
-
-    if (inputRef.current) inputRef.current.focus();
-
-    toast.success(`✅ AI Legal Activated: ${toolName} ✨`, {
-      style: {
-        background: '#F0FDF4',
-        color: '#166534',
-        borderRadius: '16px',
-        fontWeight: 'bold',
-        border: '1px solid #BBF7D0',
-      }
-    });
+    activateToolWithTypingEffect(toolId, toolName);
   };
 
   const handleDismissSuggestion = () => {
@@ -3674,7 +3739,7 @@ const Chat = () => {
     if (chatContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
       const isNearBottom = scrollHeight - scrollTop - clientHeight < 350;
-      
+
       shouldAutoScrollRef.current = isNearBottom;
 
       if (force || isNearBottom) {
@@ -3703,7 +3768,7 @@ const Chat = () => {
     setShowHistory(false);
   };
 
-  const { language: currentLang, t } = useLanguage();
+
 
   const handleDriveClick = () => {
     setIsAttachMenuOpen(false);
@@ -3726,43 +3791,69 @@ const Chat = () => {
 
 
   const activateToolWithTypingEffect = (toolKey, toolName) => {
+    // 1. Set Primary Modes
     setCurrentMode('LEGAL_TOOLKIT');
-    
+    setActiveLegalToolkit(false); // Close the toolkit modal immediately
+
     const TOOL_NAMES = {
+      legal_my_case: "My Case Assistant",
+      legal_precedents: "Legal Precedents",
+      legal_case_law_research: "Legal Precedents",
       legal_draft_maker: "Draft Maker",
       legal_case_predictor: "Case Predictor",
       legal_argument_builder: "Argument Builder",
       legal_evidence_checker: "Evidence Analyst",
       legal_contract_analyzer: "Contract Analyzer",
       legal_strategy_engine: "Strategy Engine",
-      legal_case_law_research: "Research Assistant",
       legal_compliance_checker: "Compliance Checker"
     };
+
     const finalToolName = toolName || TOOL_NAMES[toolKey] || toolKey;
-    
-    if (selectedLegalTool?.id !== 'legal_my_case') {
-      setSelectedLegalTool({ id: toolKey, name: finalToolName });
-    }
+
+    // 2. Set Active Tool Context
+    setSelectedLegalTool({ id: toolKey, name: finalToolName });
     setActiveTool(finalToolName);
 
-    inputRef.current?.focus();
+    // 3. UI View Logic (Switch to specific panels if needed)
+    if (toolKey === 'legal_precedents' || toolKey === 'legal_case_law_research') {
+      setLegalView('PRECEDENTS');
+      fetchLegalCases();
+    } else if (toolKey === 'legal_my_case') {
+      setLegalView('DASHBOARD');
+      fetchLegalCases();
+    } else {
+      setLegalView('CHAT'); // Default to AI Chat Assistant view
+    }
 
-    const successMsg = (currentCase && selectedLegalTool?.id === 'legal_my_case')
-      ? `✅ ${finalToolName} activated for ${currentCase?.clientName || 'this case'} ✨`
-      : `✅ AI Legal Activated: ${finalToolName} ✨`;
+    // 4. Ensure Input Box is clean
+    setInputValue('');
+    if (inputRef.current) inputRef.current.focus();
 
-    toast.success(successMsg, {
-      position: 'top-right',
-      style: {
-        background: '#F0FDF4',
-        color: '#166534',
-        borderRadius: '16px',
-        padding: '16px 24px',
-        fontWeight: 'bold',
-        border: '1px solid #BBF7D0',
-        boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
+    // 5. Professional Activation Feedback (Toast)
+    const feedbackMsg = toolKey === 'legal_precedents' || toolKey === 'legal_case_law_research'
+      ? "Fetching relevant case laws..."
+      : "Initializing legal workflow...";
+
+    toast.success(
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-2">
+          <Scale size={14} className="text-indigo-600" />
+          <span className="font-black text-[13px] text-slate-900">⚖️ {finalToolName} Activated</span>
+        </div>
+        <p className="text-[11px] text-slate-500 font-medium ml-6">{feedbackMsg}</p>
+      </div>,
+      {
+        duration: 4000,
+        style: {
+          background: '#FFFFFF',
+          color: '#1E293B',
+          borderRadius: '20px',
+          padding: '12px 20px',
+          border: '1px solid rgba(79, 70, 229, 0.1)',
+          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+        }
       }
-    });
+    );
   };
 
   const handleSuggestionClick = (text) => {
@@ -3776,8 +3867,8 @@ const Chat = () => {
         'create a legal notice': 'legal_draft_maker',
         'analyze this document': 'legal_contract_analyzer',
         'analyze a contract': 'legal_contract_analyzer',
-        'search relevant case laws': 'legal_case_law_research',
-        'research case laws': 'legal_case_law_research',
+        'search relevant case laws': 'legal_precedents',
+        'research case laws': 'legal_precedents',
         'identify legal risks': 'legal_compliance_checker',
         'check compliance': 'legal_compliance_checker'
       };
@@ -3785,7 +3876,7 @@ const Chat = () => {
       for (const [phrase, toolId] of Object.entries(toolMap)) {
         if (lowerText.includes(phrase)) {
           console.log(`[LegalRedirect] Redirecting to tool: ${toolId}`);
-          
+
           const legalTool = PREMIUM_TOOLS.find(t => t.id === toolId);
           activateToolWithTypingEffect(toolId, legalTool?.name);
           return;
@@ -3989,8 +4080,8 @@ const Chat = () => {
           const newUserMsg = {
             id: userMsgId,
             role: 'user',
-            content: (contentToSend === 'legal drafting engine' || contentToSend === 'DRAFT NOTICE') 
-              ? 'Drafting Legal Notice for the case... 📄⚖️' 
+            content: (contentToSend === 'legal drafting engine' || contentToSend === 'DRAFT NOTICE')
+              ? 'Drafting Legal Notice for the case... 📄⚖️'
               : contentToSend,
             timestamp: new Date(),
             attachments: filePreviews.map(fp => ({
@@ -4013,7 +4104,8 @@ const Chat = () => {
             attachments: newUserMsg.attachments,
             conversationHistory: messages,
             caseContext: currentCase,
-            projectId: currentProjectId
+            projectId: currentProjectId,
+            language: toolkitLanguage || currentLang
           }, {
             headers: { Authorization: `Bearer ${getUserData()?.token}` }
           });
@@ -4021,7 +4113,7 @@ const Chat = () => {
           if (res.data.success) {
             const aiMsgId = (Date.now() + 1).toString();
             const fullReply = res.data.reply;
-            
+
             const aiMsg = {
               id: aiMsgId,
               role: 'model',
@@ -4030,37 +4122,37 @@ const Chat = () => {
               toolUsed: res.data.toolUsed || activeToolId,
               mode: MODES.LEGAL_TOOLKIT
             };
-            
+
             if (res.data.toolUsed) setActiveTool(res.data.toolUsed);
             setMessages(prev => [...prev, aiMsg]);
             setTypingMessageId(aiMsgId);
-            
+
             // ⚖️ CHUNK-BY-CHUNK STREAMING LOGIC FOR LEGAL TOOLS
             // Split by newlines or sentences to simulate realistic reading/typing flow
             const chunks = fullReply.match(/.*?[.\n!?](?:\s|$)|.+/g) || [fullReply];
             let displayedContent = '';
-            
+
             isStreamingRef.current = true;
-            
+
             for (let i = 0; i < chunks.length; i++) {
               if (!isSendingRef.current) break;
-              
+
               displayedContent += chunks[i];
               setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: displayedContent } : m));
-              
+
               // Delay: simulate real-time typing (NOT instant) per chunk
               const delay = Math.min(400, Math.max(80, chunks[i].length * 3));
               await new Promise(resolve => setTimeout(resolve, delay));
             }
-            
+
             isStreamingRef.current = false;
             setTypingMessageId(null);
-            
+
             if (!isSendingRef.current) {
               setIsLoading(false);
               return;
             }
-            
+
             const finalAiMsg = { ...aiMsg, content: fullReply };
             setMessages(prev => prev.map(m => m.id === aiMsgId ? finalAiMsg : m));
 
@@ -4339,6 +4431,9 @@ const Chat = () => {
           PERSONA_INSTRUCTION += `- FORMAT: Use shorter sentences and very clear structure for readability.\n`;
         }
 
+        // --- MULTILINGUAL TOOLKIT LOGIC ---
+        const effectiveLang = (currentMode === 'LEGAL_TOOLKIT') ? toolkitLanguage : currentLang;
+
         const SYSTEM_INSTRUCTION = `
 You are AISA™, the official AI assistant of the AISA™ platform. Powered by A-Series.
 ${activeAgent.category ? `Your specialization is in ${activeAgent.category}.` : ''}
@@ -4387,11 +4482,14 @@ Whenever a user mentions "AISA", "AISA AI", "AISA app", "your image", "your vide
 ${PERSONA_INSTRUCTION}
 
 ### CRITICAL LANGUAGE RULE:
-**MANDATORY: ALWAYS respond in the EXACT SAME LANGUAGE as the user's latest message.**
-- If user writes in ENGLISH, you MUST respond in ENGLISH. (Highest Priority)
-- If user writes in HINDI (Devanagari or Romanized), respond in HINDI (Romanized script).
-- Match the user's script and tongue exactly. Do NOT use Hinglish if they ask in pure English.
-- If user mixes languages, prioritize the dominant language.
+**MANDATORY: You MUST respond in ${effectiveLang}.**
+${effectiveLang === 'Hindi' ? 
+  (currentMode === 'LEGAL_TOOLKIT' ? 
+    '- Respond in Hindi using simple and clear legal language.\n- Use English legal terms in brackets where needed like: "अनुबंध (Contract)".' : 
+    '- You MUST use HINDI (Devanagari script) for the entire response.\n- Include English technical/legal terms in brackets like: "अनुबंध (Contract)".') : 
+  '- You MUST use ENGLISH for the entire response.'}
+- match the user's script and tone within the required language.
+- If user mixes languages, prioritize ${effectiveLang}.
 
 ### RESPONSE BEHAVIOR:
 - Answer the user's question directly without greeting messages
@@ -4491,7 +4589,7 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
           userMsg.content,
           SYSTEM_INSTRUCTION + getSystemPromptExtensions(),
           finalAttachments,
-          currentLang,
+          personalizations?.general?.language || 'English',
           abortControllerRef.current.signal,
           detectedMode,
           activeSessionId,
@@ -5880,7 +5978,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         updatedMsg.content,
         SYSTEM_INSTRUCTION + getSystemPromptExtensions(),
         updatedMsg.attachments || (updatedMsg.attachment ? [updatedMsg.attachment] : []),
-        currentLang
+        personalizations?.general?.language || 'English',
+        null, // abortSignal
+        currentMode,
+        sessionId,
+        currentProjectId
       );
 
       let reply = "";
@@ -5915,8 +6017,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
       console.error("Error regenerating response:", error);
       toast.error("Failed to regenerate response. Please try again.");
       // Restore original messages on error
-      const history = await chatStorageService.getHistory(sessionId);
-      setMessages(history);
+      const historyData = await chatStorageService.getHistory(sessionId);
+      setMessages(historyData.messages || (Array.isArray(historyData) ? historyData : []));
     } finally {
       setIsLoading(false);
     }
@@ -6347,17 +6449,37 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         <div
           ref={chatContainerRef}
           onScroll={handleScroll}
-          style={!currentCase && currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id === 'legal_my_case'
-            ? undefined
-            : { paddingTop: 'var(--mobile-nav-h, 64px)', transition: 'padding-top 0.3s ease' }
-          }
-          className={`relative flex-1 aisa-scalable-text ${!currentCase && currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id === 'legal_my_case'
-            ? 'overflow-hidden'
-            : 'overflow-y-auto chatgpt-container lg:pt-6 pb-64 md:pb-72 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent'
+          className={`relative flex-1 aisa-scalable-text ${(legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT'
+            ? 'z-20 h-full w-full overflow-hidden flex flex-col bg-slate-50'
+            : 'overflow-y-auto chatgpt-container pt-20 lg:pt-6 pb-64 md:pb-72 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent'
             }`}
         >
           <AnimatePresence mode="wait">
-            {!currentCase && currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id === 'legal_my_case' ? (
+            {legalView === 'PRECEDENTS' && currentMode === 'LEGAL_TOOLKIT' ? (
+              <motion.div
+                key="legal-precedents"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex-1 flex flex-col w-full h-full"
+              >
+                <LegalPrecedents
+                  projectId={currentCase?._id}
+                  onBack={handleLegalPrecedentsBack}
+                  cases={legalCases}
+                  onSelectCase={(c) => {
+                    setCurrentProjectId(c._id);
+                    setCurrentCase(c);
+                  }}
+                  onUpdateCase={(updated) => {
+                    setCurrentCase(updated);
+                    setAllProjects(prev => prev.map(c => c._id === updated._id ? updated : c));
+                  }}
+                  onCreateCase={() => setIsNewCaseModalOpen(true)}
+                  onUseInArgument={handleUseInArgument}
+                />
+              </motion.div>
+            ) : legalView === 'DASHBOARD' && currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id === 'legal_my_case' ? (
               <motion.div
                 key="legal-dashboard"
                 initial={{ opacity: 0 }}
@@ -6426,20 +6548,20 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           </div>
 
                           <div className="flex-1 chatgpt-text">
-                             {/* Mode Badge - Integrated Tool Indicator */}
-                             {msg.role === 'user' && msg.mode && getModeInfo(msg.mode) && (
-                               <motion.div
-                                 initial={{ opacity: 0, scale: 0.9 }}
-                                 animate={{ opacity: 1, scale: 1 }}
-                                 className={`inline-flex !flex-row !items-center w-fit gap-2 px-3 py-1 rounded-full border shadow-sm ${getModeInfo(msg.mode).bg} ${getModeInfo(msg.mode).border} ${getModeInfo(msg.mode).color} mb-3`}
-                               >
-                                 {(() => {
-                                   const Icon = getModeInfo(msg.mode).icon;
-                                   return <Icon size={12} className="shrink-0" strokeWidth={3} />;
-                                 })()}
-                                 <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap leading-none">{getModeInfo(msg.mode).label}</span>
-                               </motion.div>
-                             )}
+                            {/* Mode Badge - Integrated Tool Indicator */}
+                            {msg.role === 'user' && msg.mode && getModeInfo(msg.mode) && (
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className={`inline-flex !flex-row !items-center w-fit gap-2 px-3 py-1 rounded-full border shadow-sm ${getModeInfo(msg.mode).bg} ${getModeInfo(msg.mode).border} ${getModeInfo(msg.mode).color} mb-3`}
+                              >
+                                {(() => {
+                                  const Icon = getModeInfo(msg.mode).icon;
+                                  return <Icon size={12} className="shrink-0" strokeWidth={3} />;
+                                })()}
+                                <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap leading-none">{getModeInfo(msg.mode).label}</span>
+                              </motion.div>
+                            )}
 
 
 
@@ -6557,10 +6679,20 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             {editingMessageId === msg.id ? (
                               <div className="flex flex-col gap-3 min-w-[200px] w-full mt-2">
                                 <textarea
+                                  ref={(el) => {
+                                    if (el) {
+                                      el.style.height = 'auto';
+                                      el.style.height = `${el.scrollHeight}px`;
+                                    }
+                                  }}
                                   value={editContent}
-                                  onChange={(e) => setEditContent(e.target.value)}
-                                  className="w-full bg-black/5 dark:bg-white/10 text-slate-900 dark:text-white rounded-xl p-5 text-sm focus:outline-none border border-black/10 dark:border-white/20 placeholder-slate-400 dark:placeholder-white/50 min-h-[500px] lg:min-h-[650px] font-mono leading-[1.8] resize-y shadow-inner transition-all hover:border-primary/30"
-                                  rows={25}
+                                  onChange={(e) => {
+                                    setEditContent(e.target.value);
+                                    e.target.style.height = 'auto';
+                                    e.target.style.height = `${e.target.scrollHeight}px`;
+                                  }}
+                                  className="w-full bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white rounded-2xl p-4 text-[15px] focus:outline-none border border-slate-200 dark:border-white/10 placeholder-slate-400 dark:placeholder-white/40 min-h-[56px] max-h-[400px] leading-relaxed resize-none shadow-sm transition-all focus:border-primary/40 focus:ring-4 focus:ring-primary/10 overflow-y-auto scrollbar-thin"
+                                  rows={1}
                                   autoFocus
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter' && !e.shiftKey) {
@@ -7324,7 +7456,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 </>
 
               )}
-              
               {isLoading && !typingMessageId && !isWebSearch && !isDeepSearch && !isImageGeneration && !isVideoGeneration && !isMagicEditing && !isCashFlowMode && !isFileAnalysis && !isCodeWriter && (
                 <div className="pb-24 sm:pb-32">
                   <AisaTypingIndicator
@@ -7346,8 +7477,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
         {/* Welcome Screen - Integrated Hub */}
         <AnimatePresence>
-          {messages.length === 0 && 
+          {messages.length === 0 &&
             legalView !== 'DASHBOARD' &&
+            legalView !== 'PRECEDENTS' &&
             !currentCase &&
             (!currentProjectId || currentProjectId === 'default' || currentProjectId === 'all') &&
             currentMode !== 'LEGAL_TOOLKIT' && (
@@ -7443,7 +7575,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         } else if (id === 'edit_image') {
                           if (!checkPremiumTool('Edit Image')) return;
                           setIsMagicEditing(true);
-                          toast.success("Image Editor Active");
+                          if (!editRefImage && messages.length > 0) {
+                            const lastImg = [...messages].reverse().find(m => m.imageUrl);
+                            if (lastImg) setEditRefImage({ url: lastImg.imageUrl, name: 'Last Generated', type: 'image' });
+                          }
+                          toast.success("Image Editing Mode Active");
                         } else if (id === 'image_to_video') {
                           if (!checkPremiumTool('Image to Video')) return;
                           setIsMagicVideoModalOpen(true);
@@ -7462,7 +7598,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           setIsCashFlowMode(false);
                           setIsStockModalOpen(false);
                           setActiveLegalToolkit(true);
-                          setCurrentMode('LEGAL_TOOLKIT');
+                          // Removed setCurrentMode('LEGAL_TOOLKIT') to wait for explicit tool selection
                           // Removed setLegalView('DASHBOARD') to keep input box visible behind modal
                           toast.success("AI Legal Toolkit Active ⚖️");
                         }
@@ -7475,7 +7611,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         </AnimatePresence>
 
         {/* Unified Chat Input Container */}
-        {legalView !== 'DASHBOARD' && (
+        {legalView !== 'DASHBOARD' && legalView !== 'PRECEDENTS' && (
           <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none">
             {/* Gradient Mask to hide text scrolling behind/below input - Removed to eliminate white shade */}
 
@@ -7617,7 +7753,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           exit={{ opacity: 0, scale: 0.9, y: 10 }}
                           transition={{ duration: 0.2, ease: "easeOut" }}
                           ref={menuRef}
-                          className={`absolute bottom-full left-0 ${(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') ? 'mb-[60px]' : 'mb-4'} w-[min(85vw,220px)] bg-surface/95 dark:bg-[#1a1a1a]/95 border border-border/50 rounded-2xl shadow-2xl overflow-hidden z-[110] backdrop-blur-xl ring-1 ring-black/5`}
+                          className={`absolute bottom-full left-0 ${(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || currentMode === 'LEGAL_TOOLKIT') ? 'mb-[60px]' : 'mb-4'} w-[min(85vw,220px)] bg-surface/95 dark:bg-[#1a1a1a]/95 border border-border/50 rounded-2xl shadow-2xl overflow-hidden z-[110] backdrop-blur-xl ring-1 ring-black/5`}
                         >
                           <div className="p-2 space-y-1">
                             {getAgentCapabilities(activeAgent.agentName, activeAgent.category).canCamera && (
@@ -7658,7 +7794,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           exit={{ opacity: 0, scale: 0.9, y: 10 }}
                           transition={{ duration: 0.2, ease: "easeOut" }}
                           ref={toolsMenuRef}
-                          className={`absolute bottom-full left-0 ${(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') ? 'mb-[60px]' : 'mb-[16px]'} w-[min(94vw,310px)] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[36px] shadow-[0_40px_80px_-15px_rgba(0,0,0,0.2)] overflow-hidden z-[110] ring-1 ring-black/5`}
+                          className={`absolute bottom-full left-0 ${(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || currentMode === 'LEGAL_TOOLKIT') ? 'mb-[60px]' : 'mb-[16px]'} w-[min(94vw,310px)] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[36px] shadow-[0_40px_80px_-15px_rgba(0,0,0,0.2)] overflow-hidden z-[110] ring-1 ring-black/5`}
                           style={{ maxHeight: 'calc(100vh - 180px)' }}
                         >
                           <div className="px-6 py-5 bg-slate-50 dark:bg-zinc-800/80 border-b border-slate-100 dark:border-zinc-800 shrink-0">
@@ -7878,8 +8014,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               onClick={() => {
                                 if (!checkPremiumTool('Edit Image')) return;
                                 setIsToolsMenuOpen(false);
-                                const newMode = !isMagicEditing;
-                                setIsMagicEditing(newMode);
+                                const newMode = !isMagicImageModalOpen;
+                                setIsMagicImageModalOpen(newMode);
 
                                 if (newMode && !editRefImage && messages.length > 0) {
                                   const lastImg = [...messages].reverse().find(m => m.imageUrl);
@@ -7900,9 +8036,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                   toast.success("Image Editing Enabled");
                                 }
                               }}
-                              className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isMagicEditing ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
+                              className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isMagicImageModalOpen ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
                             >
-                              <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isMagicEditing ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
+                              <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isMagicImageModalOpen ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
                                 <Wand2 className="w-5.5 h-5.5" />
                               </div>
                               <div className="flex-1 min-w-0">
@@ -8066,12 +8202,26 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                     <div className="flex-1 flex items-center min-w-0 bg-transparent border-0 ring-0 focus:ring-0">
                       <AnimatePresence>
-                        {(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') && (
+                        {(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || currentMode === 'LEGAL_TOOLKIT') && (
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto w-[calc(100vw-24px)] max-w-5xl px-6 z-[100] justify-start sm:justify-start">
                             {isCashFlowMode && (
-                              <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-row items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
+                              <motion.div
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setIsStockModalOpen(true)}
+                                className="flex flex-row items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0 cursor-pointer hover:bg-primary/20 transition-all"
+                              >
                                 <TrendingUp size={12} strokeWidth={3} /> <span className="hidden sm:inline">AI CashFlow</span>
-                                <button onClick={() => setIsCashFlowMode(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsCashFlowMode(false);
+                                  }}
+                                  className="ml-1 hover:text-primary/80 p-0.5"
+                                >
+                                  <X size={12} />
+                                </button>
                               </motion.div>
                             )}
                             {isWebSearch && (
@@ -8254,7 +8404,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               </motion.div>
                             )}
 
-                            {(activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') && (
+                            {currentMode === 'LEGAL_TOOLKIT' && (
                               <motion.div
                                 initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                                 className="flex flex-row items-center gap-1.5 sm:gap-2.5 px-2 py-1 sm:px-3 sm:py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-[9px] sm:text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
@@ -9144,8 +9294,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         <PremiumUpsellModal />
         {renderNewCaseModal()}
         <MagicImageEditModal
-          isOpen={isMagicEditing}
-          onClose={() => setIsMagicEditing(false)}
+          isOpen={isMagicImageModalOpen}
+          onClose={() => setIsMagicImageModalOpen(false)}
           onImageGenerated={(imageUrl) => {
             setImagePreview(imageUrl);
             setIsImageGeneration(true);
@@ -9279,10 +9429,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
             // If we are currently inside a specific case (My Case context), stay in that context visually
             // rather than switching to a generic tool card.
             activateToolWithTypingEffect(tool.id, tool.name);
-            
-            setLegalView('CHAT'); // Ensure chat view is active for specific tools
-            setActiveLegalToolkit(false);
+
             // If a case is active, clear messages so the new tool starts fresh within that case
+
             if (currentCase) {
               setMessages([{
                 id: Date.now().toString(),
@@ -9294,18 +9443,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
               setMessages([]);
             }
             if (inputRef.current) inputRef.current.focus();
-            toast.success(`✅ ${tool.name} Activated for ${currentCase ? currentCase.name : 'AI Legal'} ✨`, {
-              position: 'top-right',
-              style: {
-                background: '#F0FDF4',
-                color: '#166534',
-                borderRadius: '16px',
-                padding: '16px 24px',
-                fontWeight: 'bold',
-                border: '1px solid #BBF7D0',
-                boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
-              }
-            });
           }}
         />
       </React.Suspense>
@@ -9334,6 +9471,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         isOpen={isCasePanelOpen}
         onClose={() => setIsCasePanelOpen(false)}
         currentCase={currentCase}
+        onUseInArgument={handleUseInArgument}
         onUpdate={(updated) => {
           setCurrentCase(updated);
           // Sync with the legalCases list if needed

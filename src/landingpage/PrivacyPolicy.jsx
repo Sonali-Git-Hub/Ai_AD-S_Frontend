@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { PRIVACY_POLICY_DEFAULTS } from '../constants/legalDefaults';
+import { PRIVACY_POLICY_DEFAULTS } from '../Tools/AI_Legal/constants/legalDefaults';
 import { Database, Lock, Shield, Eye, UserCheck, FileText, ArrowLeft } from 'lucide-react';
 import { apiService } from '../services/apiService';
 import { name } from '../constants';

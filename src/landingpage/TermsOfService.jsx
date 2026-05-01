@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { TERMS_OF_SERVICE_DEFAULTS } from '../constants/legalDefaults';
+import { TERMS_OF_SERVICE_DEFAULTS } from '../Tools/AI_Legal/constants/legalDefaults';
 import { FileText, Scale, DollarSign, Shield, AlertCircle, UserX, ArrowLeft } from 'lucide-react';
 import { apiService } from '../services/apiService';
 import { name } from '../constants';

@@ -102,7 +102,7 @@ const getUser = () => {
 }
 export const toggleState = atom({
   key: "toggle",
-  default: { subscripPgTgl: false, notify: false, sidebarOpen: false, platformSubTgl: false }
+  default: { subscripPgTgl: false, notify: false, sidebarOpen: false, platformSubTgl: false, focusMode: false }
 })
 
 export const userData = atom({

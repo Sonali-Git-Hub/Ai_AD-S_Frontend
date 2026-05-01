@@ -1,5 +1,5 @@
-import React from 'react';
 import { ArrowLeft, Briefcase, Users, Edit2, Trash2 } from 'lucide-react';
+import { useLanguage } from '../../../context/LanguageContext';
 
 const LegalWorkspaceHeader = ({
   currentCase,
@@ -11,6 +11,7 @@ const LegalWorkspaceHeader = ({
   handleDeleteCase,
   handleBackToDashboard
 }) => {
+  const { tLegal } = useLanguage();
   return (
     <div className="w-full px-6 sm:px-12 pt-4 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-zinc-800/50 pb-6">
       <div className="flex flex-col gap-4">
@@ -19,7 +20,7 @@ const LegalWorkspaceHeader = ({
           className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-black text-[10px] uppercase tracking-widest bg-indigo-50 dark:bg-indigo-900/20 px-4 py-2 rounded-full transition-all hover:gap-3 w-fit"
         >
           <ArrowLeft size={14} />
-          Back to Case List
+          {tLegal('backToCaseList')}
         </button>
 
         {currentCase && (
@@ -48,7 +49,7 @@ const LegalWorkspaceHeader = ({
                   <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none truncate">{currentCase.name}</h2>
                   <p className="text-xs text-subtext font-bold uppercase tracking-widest mt-2 flex items-center gap-2">
                     <Users size={12} className="text-indigo-500" />
-                    {currentCase?.clientName || 'Private Client'}
+                    {currentCase?.clientName || tLegal('privateClient')}
                   </p>
                 </>
               )}

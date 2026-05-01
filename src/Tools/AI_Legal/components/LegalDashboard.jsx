@@ -2,8 +2,9 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { 
   Briefcase, Scale, Plus, FolderOpen, Edit2, Trash2, 
-  Users, ChevronRight, Check, X 
+  Users, ChevronRight, Check, X, ArrowLeft
 } from 'lucide-react';
+import { useLanguage } from '../../../context/LanguageContext';
 
 const LegalDashboard = ({
   legalCases,
@@ -19,19 +20,32 @@ const LegalDashboard = ({
   setIsNewCaseModalOpen,
   setEditingCaseId,
   setNewCaseForm,
-  setActiveLegalToolkit
+  setActiveLegalToolkit,
+  onBack
 }) => {
+  const { tLegal } = useLanguage();
+
   return (
     <div className="flex-1 flex flex-col w-full h-full overflow-hidden aisa-scalable-text bg-slate-50/30 dark:bg-transparent relative">
       {/* Dashboard Header - Sticky */}
       <div className="w-full px-4 sm:px-10 pt-6 sm:pt-8 pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 border-b border-slate-200/60 dark:border-zinc-800/60 bg-slate-50/80 dark:bg-[#0b0c15]/80 backdrop-blur-xl">
         <div className="flex items-center gap-3 sm:gap-4">
-          <div className="p-2.5 sm:p-3 bg-indigo-600 rounded-xl sm:rounded-2xl shadow-xl shadow-indigo-500/30 text-white">
-            <Briefcase className="w-6 h-6 sm:w-7 sm:h-7" />
+          <div className="flex items-center gap-3">
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={onBack}
+              className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full transition-colors mr-1"
+            >
+              <ArrowLeft size={20} className="text-slate-600 dark:text-slate-400" />
+            </motion.button>
+            <div className="p-2.5 sm:p-3 bg-indigo-600 rounded-xl sm:rounded-2xl shadow-xl shadow-indigo-500/30 text-white">
+              <Briefcase className="w-6 h-6 sm:w-7 sm:h-7" />
+            </div>
           </div>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">My Cases</h1>
-            <p className="text-[10px] sm:text-xs text-subtext font-medium mt-0.5">Manage your legal repositories with AISA Intelligence</p>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">{tLegal('myCase')}</h1>
+            <p className="text-[10px] sm:text-xs text-subtext font-medium mt-0.5">{tLegal('manageReposDesc')}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
@@ -40,7 +54,7 @@ const LegalDashboard = ({
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-3.5 bg-white dark:bg-zinc-900 hover:bg-slate-50 dark:hover:bg-zinc-800 text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-zinc-800 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm transition-all active:scale-95 shadow-xl shadow-indigo-500/5 whitespace-nowrap"
           >
             <Scale className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span>Legal Toolkit</span>
+            <span>{tLegal('legalToolkitTitle')}</span>
           </button>
           <button
             onClick={() => {
@@ -51,7 +65,7 @@ const LegalDashboard = ({
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm transition-all active:scale-95 shadow-xl shadow-indigo-500/20 whitespace-nowrap"
           >
             <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span>New Case</span>
+            <span>{tLegal('newCaseBtn')}</span>
           </button>
         </div>
       </div>
@@ -132,7 +146,7 @@ const LegalDashboard = ({
                     {new Date(c.updatedAt || Date.now()).toLocaleDateString()}
                   </span>
                   <div className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 group-hover:translate-x-1 transition-transform">
-                    <span className="text-[10px] font-black uppercase tracking-widest">Open Case</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">{tLegal('openCaseBtn')}</span>
                     <ChevronRight size={14} />
                   </div>
                 </div>
@@ -145,14 +159,14 @@ const LegalDashboard = ({
               <FolderOpen className="w-14 h-14" />
             </div>
             <div>
-              <h3 className="text-2xl font-black text-slate-800 dark:text-white">No active cases found</h3>
-              <p className="text-sm text-subtext mt-2 max-w-sm">Start by creating your first legal case folder to begin collaboration with AISA Intelligence.</p>
+              <h3 className="text-2xl font-black text-slate-800 dark:text-white">{tLegal('noActiveCases')}</h3>
+              <p className="text-sm text-subtext mt-2 max-w-sm">{tLegal('startByCreatingCase')}</p>
             </div>
             <button
               onClick={() => setIsNewCaseModalOpen(true)}
               className="mt-2 px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-sm hover:scale-105 transition-all shadow-xl shadow-indigo-500/20"
             >
-              Initialize First Case
+              {tLegal('initializeFirstCase')}
             </button>
           </div>
         )}

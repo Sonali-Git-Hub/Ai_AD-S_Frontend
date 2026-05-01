@@ -5,11 +5,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Settings, Bell, Sparkles, LayoutGrid,
     Database, Shield, Lock, User,
-    X, ChevronDown, Play, Globe, Camera,
+    X, ChevronDown, Play, Globe, Camera, Scale, DollarSign, AlertCircle, UserX, Eye, UserCheck,
     LogOut, Monitor, MonitorOff, Mic, Check, HelpCircle, Smartphone, Tablet,
     ChevronLeft, ChevronRight, Trash2, ShieldCheck, Mail, Volume2, Plus, MessageSquare, Send, Clock,
     Palette, Type, RefreshCcw, Languages, Crown, History, Calendar, CreditCard, Download, Search, Zap, FileText, Info
 } from 'lucide-react';
+import { apiService } from '../../services/apiService';
 import { jsPDF } from "jspdf";
 import { usePersonalization } from '../../context/PersonalizationContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -24,6 +25,8 @@ import MultiScheduleReminder from './MultiScheduleReminder';
 import Cropper from 'react-easy-crop';
 import { getCroppedImgBlob } from '../../utils/canvasUtils';
 import { logo, faqs } from '../../constants';
+import { TermsOfServiceContent } from '../../landingpage/PolicyModals/TermsOfServiceModal';
+import { PrivacyPolicyContent } from '../../landingpage/PolicyModals/PrivacyPolicyModal';
 
 const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
     const fileInputRef = useRef(null);
@@ -99,7 +102,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
 
     useEffect(() => {
         setNicknameInput(personalizations.account?.nickname || user?.name || '');
-    }, [personalizations.account?.nickname, user.name]);
+    }, [personalizations.account?.nickname, user?.name]);
 
     useEffect(() => {
         if (user?.token) {
@@ -200,7 +203,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         if (updated.length === 0) {
             onLogout();
             onClose();
-        } else if (user.email === email) {
+        } else if (user?.email === email) {
             window.location.reload();
         }
     };
@@ -216,7 +219,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
             try {
                 if (user?.token) {
                     const res = await axios.put(apis.profile, { name: nicknameInput }, {
-                        headers: { 'Authorization': `Bearer ${user.token}` }
+                        headers: { 'Authorization': `Bearer ${user?.token}` }
                     });
                     
                     if (res.data) {
@@ -268,7 +271,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
 
         try {
             const croppedBlob = await getCroppedImgBlob(imageToCrop, croppedAreaPixels, rotation);
-            const truncatedName = (user.name || 'avatar').substring(0, 10).replace(/\s+/g, '-');
+            const truncatedName = (user?.name || 'avatar').substring(0, 10).replace(/\s+/g, '-');
             const file = new File([croppedBlob], `${truncatedName}-avatar.jpg`, { type: 'image/jpeg' });
 
             const formData = new FormData();
@@ -276,7 +279,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
 
             const res = await axios.post(apis.uploadAvatar, formData, {
                 headers: {
-                    'Authorization': `Bearer ${user.token}`,
+                    'Authorization': `Bearer ${user?.token}`,
                     'Content-Type': 'multipart/form-data'
                 }
             });
@@ -303,7 +306,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         try {
             const res = await axios.delete(apis.removeAvatar, {
                 headers: {
-                    'Authorization': `Bearer ${user.token}`
+                    'Authorization': `Bearer ${user?.token}`
                 }
             });
 
@@ -324,7 +327,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
     const handleSendOtp = async () => {
         setResetLoading(true);
         try {
-            await axios.post(apis.forgotPassword, { email: user.email });
+            await axios.post(apis.forgotPassword, { email: user?.email });
             toast.success('OTP sent to your email');
             setResetStep(2);
         } catch (error) {
@@ -337,7 +340,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
     const handleConnectGmail = async () => {
         try {
             const res = await axios.get(`${API}/connectors/gmail/auth`, {
-                headers: { 'Authorization': `Bearer ${user.token}` }
+                headers: { 'Authorization': `Bearer ${user?.token}` }
             });
             if (res.data && res.data.url) {
                 window.location.href = res.data.url;
@@ -351,7 +354,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         const loadingToast = toast.loading("Disconnecting Gmail...");
         try {
             await axios.delete(`${API}/connectors/gmail/disconnect`, {
-                headers: { 'Authorization': `Bearer ${user.token}` }
+                headers: { 'Authorization': `Bearer ${user?.token}` }
             });
 
             // Properly deep-copy to avoid mutating the original reference
@@ -359,7 +362,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
             const updatedUser = {
                 ...user,
                 personalizations: {
-                    ...user.personalizations,
+                    ...user?.personalizations,
                     apps: updatedApps
                 }
             };
@@ -382,7 +385,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         setDeleteLoading(true);
         try {
             await axios.delete(apis.deleteAccount, {
-                headers: { 'Authorization': `Bearer ${user.token}` }
+                headers: { 'Authorization': `Bearer ${user?.token}` }
             });
             toast.success('Account deleted successfully');
             setShowDeleteModal(false);
@@ -400,7 +403,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         
         try {
             await axios.delete(`${API}/chat/${sessionId}`, {
-                headers: { 'Authorization': `Bearer ${user.token}` }
+                headers: { 'Authorization': `Bearer ${user?.token}` }
             });
             toast.success(t('chatDeleted') || 'Chat deleted');
             refreshChatSessions(); // Refresh list via context
@@ -419,7 +422,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
             // Let's see if we can do bulk. For now, individual is safer if no bulk exists.
             await Promise.all(chatSessions.map(s => 
                 axios.delete(`${API}/chat/${s.sessionId}`, {
-                    headers: { 'Authorization': `Bearer ${user.token}` }
+                    headers: { 'Authorization': `Bearer ${user?.token}` }
                 })
             ));
             
@@ -440,7 +443,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         setResetLoading(true);
         try {
             await axios.post(apis.resetPassword, {
-                email: user.email,
+                email: user?.email,
                 otp: resetOtp,
                 newPassword: newPassword
             });
@@ -458,18 +461,22 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
 
     const handleSupportSubmit = async () => {
         if (!issueText.trim()) return;
+        if (!user?.token) {
+            toast.error("Please log in to submit a support request.");
+            return;
+        }
         setIsSending(true);
         setSendStatus(null);
         try {
-            await axios.post(apis.submitTicket, {
-                email: user.email,
-                type: issueType,
+            await axios.post(apis.support, {
+                email: user?.email,
+                issueType: issueType,
                 message: issueText
             }, {
-                headers: { 'Authorization': `Bearer ${user.token}` }
+                headers: { 'Authorization': `Bearer ${user?.token}` }
             });
             setSendStatus('success');
-            toast.success("Support ticket submitted!");
+            toast.success("Feedback submitted!");
             setIssueText('');
             setTimeout(() => setSendStatus(null), 3000);
         } catch (error) {
@@ -488,8 +495,12 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         { id: 'feedback', label: 'Feedback', icon: MessageSquare },
         { id: 'terms', label: 'Terms', icon: FileText },
         { id: 'privacy', label: 'Privacy', icon: Shield },
-        { id: 'about', label: 'About', icon: Info },
-    ];
+    ].filter(tab => {
+        if (!user?.token) {
+            return !['notifications', 'data', 'account', 'feedback'].includes(tab.id);
+        }
+        return true;
+    });
 
     const renderSettingRow = (label, description, control) => (
         <div className="flex flex-wrap items-center justify-between py-4 border-b border-gray-100 dark:border-white/5 last:border-0 gap-4">
@@ -536,6 +547,16 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                     {renderDropdown(accentColor, Object.keys(ACCENT_COLORS || {}), (e) => setAccentColor(e.target.value), Palette)}
                 </div>
             ))
+        });
+
+        // Region & Language
+        settings.push({
+            id: 'region', tab: 'personalization', label: t('region'), description: t('regionDesc'), keywords: 'country region location',
+            component: renderSettingRow(t('region'), t('regionDesc'), renderDropdown(region, Object.keys(regions), (e) => setRegion(e.target.value), Globe))
+        });
+        settings.push({
+            id: 'language', tab: 'personalization', label: t('language'), description: t('languageDesc'), keywords: 'language translation hindi english',
+            component: renderSettingRow(t('language'), t('languageDesc'), renderDropdown(language, regions[region] || [], (e) => setLanguage(e.target.value), Languages))
         });
 
         // Personalization
@@ -635,51 +656,40 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                 );
             case 'terms':
                 return (
-                    <div className="space-y-4">
-                        <h3 className="text-lg font-bold">Terms of Service</h3>
-                        <div className="prose dark:prose-invert max-w-none text-sm text-subtext leading-relaxed">
-                            <p>By using AISA, you agree to our terms of service. Our platform provides AI-powered tools for legal, financial, and creative tasks.</p>
-                            <h4 className="text-maintext font-bold mt-4">1. Use of Service</h4>
-                            <p>You agree to use AISA for lawful purposes only and in accordance with these Terms.</p>
-                            <h4 className="text-maintext font-bold mt-4">2. AI Output</h4>
-                            <p>AI-generated content should be reviewed for accuracy. We do not provide professional legal or financial advice.</p>
-                            <Link to="/terms-of-service" className="inline-block mt-6 text-primary font-bold hover:underline" onClick={onClose}>Read full Terms of Service →</Link>
+                    <div className="space-y-4 h-full flex flex-col">
+                        <div className="flex items-center justify-between mb-4 border-b border-border pb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                    <Scale className="w-6 h-6 text-primary" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-maintext">{t('termsOfService')}</h2>
+                                    <p className="text-xs text-subtext mt-0.5">{t('lastUpdated')}: January 22, 2026</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar max-h-[65vh]">
+                            <TermsOfServiceContent />
                         </div>
                     </div>
                 );
             case 'privacy':
                 return (
-                    <div className="space-y-4">
-                        <h3 className="text-lg font-bold">Privacy Policy</h3>
-                        <div className="prose dark:prose-invert max-w-none text-sm text-subtext leading-relaxed">
-                            <p>Your privacy is important to us. We collect minimal data to provide and improve our services.</p>
-                            <h4 className="text-maintext font-bold mt-4">1. Data Collection</h4>
-                            <p>We collect information you provide directly and automated technical data.</p>
-                            <h4 className="text-maintext font-bold mt-4">2. Data Security</h4>
-                            <p>We implement industry-standard security measures to protect your information.</p>
-                            <Link to="/privacy-policy" className="inline-block mt-6 text-primary font-bold hover:underline" onClick={onClose}>Read full Privacy Policy →</Link>
-                        </div>
-                    </div>
-                );
-            case 'about':
-                return (
-                    <div className="space-y-6">
-                        <div className="flex flex-col items-center text-center py-8">
-                            <img src={logo} alt="AISA" className="h-16 mb-4 drop-shadow-xl" />
-                            <h3 className="text-2xl font-black bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">AISA ™</h3>
-                            <p className="text-sm text-subtext mt-2 max-w-sm">Advanced Intelligence & Synthetic Assistant. The next generation of AI-powered productivity.</p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="p-4 bg-gray-50 dark:bg-zinc-800 rounded-2xl border border-border">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-primary">Version</span>
-                                <p className="text-lg font-bold">3.1.4 (Stable)</p>
-                            </div>
-                            <div className="p-4 bg-gray-50 dark:bg-zinc-800 rounded-2xl border border-border">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-primary">Region</span>
-                                <p className="text-lg font-bold">Global / Asia</p>
+                    <div className="space-y-4 h-full flex flex-col">
+                        <div className="flex items-center justify-between mb-4 border-b border-border pb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                    <Shield className="w-6 h-6 text-primary" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-maintext">{t('privacyPolicy')}</h2>
+                                    <p className="text-xs text-subtext mt-0.5">{t('lastUpdated')}: January 22, 2026</p>
+                                </div>
                             </div>
                         </div>
-                        <p className="text-[10px] text-center text-subtext opacity-50 mt-8">© 2026 AISA Intelligence. All rights reserved.</p>
+                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar max-h-[65vh]">
+                            <PrivacyPolicyContent />
+                        </div>
                     </div>
                 );
             case 'data':
@@ -736,6 +746,25 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                     </div>
                 );
             case 'account':
+                if (!user?.token) {
+                    return (
+                        <div className="flex flex-col items-center justify-center py-20 gap-6 text-center">
+                            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
+                                <User className="w-10 h-10 text-primary" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-black text-gray-800 dark:text-white mb-2">You're not logged in</h3>
+                                <p className="text-sm text-subtext max-w-xs">Please log in to access your account settings, sessions, and profile information.</p>
+                            </div>
+                            <button
+                                onClick={() => { onClose(); window.location.href = '/login'; }}
+                                className="px-8 py-3 bg-primary text-white font-black rounded-2xl shadow-lg shadow-primary/30 hover:opacity-90 transition-all uppercase tracking-widest text-xs"
+                            >
+                                Log In
+                            </button>
+                        </div>
+                    );
+                }
                 return (
                     <div className="space-y-6">
                         {/* Profile Header Card */}
@@ -1274,7 +1303,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                 const loading = toast.loading("Syncing with social profile...");
                                 try {
                                     const res = await axios.get(apis.syncProfile, {
-                                        headers: { 'Authorization': `Bearer ${user.token}` }
+                                        headers: { 'Authorization': `Bearer ${user?.token}` }
                                     });
                                     if (res.data.avatar) {
                                         const updatedUser = { ...user, avatar: res.data.avatar };
@@ -1315,9 +1344,11 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
 
                         </nav>
 
-                        <div className="p-4 space-y-1 border-t border-gray-100 dark:border-white/5">
-                            <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-red-500 hover:bg-red-50 font-bold transition-all"><LogOut className="w-4 h-4" /> {t('logOut')}</button>
-                        </div>
+                        {user?.token && (
+                            <div className="p-4 space-y-1 border-t border-gray-100 dark:border-white/5">
+                                <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-red-500 hover:bg-red-50 font-bold transition-all"><LogOut className="w-4 h-4" /> {t('logOut')}</button>
+                            </div>
+                        )}
                     </div>
 
                     <div className={`flex-1 flex flex-col min-w-0 bg-white dark:bg-[#161B2E] overflow-hidden ${view === 'sidebar' ? 'hidden sm:flex' : 'flex'}`}>

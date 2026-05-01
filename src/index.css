@@ -1263,3 +1263,25 @@ html.lenis body {
     gap: 0 !important;
   }
 }
+
+/* --- FOCUS MODE STYLES --- */
+body.focus-mode {
+  overflow: hidden !important;
+}
+
+/* Ensure no stray layout elements from parents interfere */
+body.focus-mode .sidebar-container,
+body.focus-mode .mobile-nav,
+body.focus-mode header {
+  display: none !important;
+  width: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Force main content to take full screen */
+body.focus-mode main {
+  width: 100% !important;
+  max-width: 100vw !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}

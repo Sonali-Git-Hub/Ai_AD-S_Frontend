@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { COOKIE_POLICY_DEFAULTS } from '../constants/legalDefaults';
+import { COOKIE_POLICY_DEFAULTS } from '../Tools/AI_Legal/constants/legalDefaults';
 import { Cookie, Settings2, Smartphone, BarChart3, Shield, FileText, ArrowLeft } from 'lucide-react';
 import { apiService } from '../services/apiService';
 import { name } from '../constants';

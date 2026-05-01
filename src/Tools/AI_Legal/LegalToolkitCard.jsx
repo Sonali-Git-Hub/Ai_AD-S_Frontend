@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+// import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText, Shield, FileCheck, Scale, Binary,
   Mail, PenTool, AlertTriangle, Edit3, Brain,
@@ -8,118 +9,88 @@ import {
   MessageCircle, ArrowRight, X, ChevronDown, Zap, Maximize2, Minimize2, Gavel, Briefcase
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import LegalLogo from '../../Components/LegalLogo';
-import { useIsDark } from '../../context/ThemeContext';
-import apiService from '../../services/apiService';
+import LegalLogo from './components/LegalLogo';
+import { useLanguage } from '../../context/LanguageContext';
+import { Globe } from 'lucide-react';
 
-const SECTIONS = {
-  CORE: ['legal_draft_maker', 'legal_contract_analyzer', 'legal_case_predictor'],
-  ADVANCED: ['legal_strategy_engine', 'legal_evidence_checker', 'legal_research_assistant', 'legal_argument_builder']
-};
-
-export const PREMIUM_TOOLS = [
+export const PREMIUM_TOOLS = (t) => [
   {
     id: 'legal_my_case',
-    name: 'My Case',
+    name: t('myCase'),
     icon: Briefcase,
-    desc: 'Personal Legal CRM & Case Intelligence System',
+    desc: t('myCaseDesc'),
     price: '₹1299',
-    workflow: [
-      'Select or create a legal case folder.',
-      'Input client details and case summary.',
-      'Chat with AI assistant focused strictly on case context.',
-      'Access specialized case tools (Drafting, Analysis, etc.)'
-    ]
+    workflow: t('myCaseWorkflow')
+  },
+  {
+    id: 'legal_precedents',
+    name: t('legalPrecedents'),
+    icon: Gavel,
+    desc: t('legalPrecedentsDesc'),
+    price: '₹999',
+    workflow: t('legalPrecedentsWorkflow')
   },
   {
     id: 'legal_draft_maker',
-    name: 'Draft Maker',
+    name: t('draftMaker'),
     icon: FileText,
-    desc: 'Notice, Affidavit, FIR & Legal Agreements Architect',
+    desc: t('draftMakerDesc'),
     price: '₹599',
-    workflow: [
-      'Describe the document you need (FIR, Notice, Agreement, etc.).',
-      'Provide key names, dates, and factual background.',
-      'AI generates a litigation-ready professional draft.'
-    ]
-  },
-  {
-    id: 'legal_contract_analyzer',
-    name: 'Contract Analyzer',
-    icon: FileCheck,
-    desc: 'Risk Scanning & Protective Clause Rewriter',
-    price: '₹799',
-    workflow: [
-      'Upload or paste your contract/agreement text.',
-      'AI scans for hidden risks, liabilities, and unfair clauses.',
-      'Get professional rewrites to protect your interests.'
-    ]
-  },
-  {
-    id: 'legal_case_predictor',
-    name: 'Case Predictor',
-    icon: LegalLogo,
-    desc: 'Outcome Probability & Case Strength Analyst',
-    price: '₹999',
-    workflow: [
-      'Input case facts, evidence, and legal claims.',
-      'AI evaluates scenarios against legal precedents.',
-      'Receive success probability and predicted judicial verdict.'
-    ]
-  },
-  {
-    id: 'legal_strategy_engine',
-    name: 'Strategy Engine',
-    icon: Brain,
-    desc: 'Tactical Planning & Case Journey Timeline',
-    price: '₹899',
-    workflow: [
-      'Brief the AI on your current legal dispute.',
-      'AI simulates opponent moves and creates counter-strategies.',
-      'Get aggressive, balanced, and safe tactical options.'
-    ]
+    workflow: t('draftMakerWorkflow')
   },
   {
     id: 'legal_evidence_checker',
-    name: 'Evidence Analyst',
+    name: t('evidenceAnalyst'),
     icon: Binary,
-    desc: 'Professional Strengths, Admissibility & Risk Reporting',
+    desc: t('evidenceAnalystDesc'),
     price: '₹599',
-    workflow: [
-      'Submit a list or description of your evidence.',
-      'AI checks admissibility under Section 65B and other laws.',
-      'AI identifies gaps and suggests ways to strengthen proof.'
-    ]
-  },
-  {
-    id: 'legal_research_assistant',
-    name: 'Research Assistant',
-    icon: Library,
-    desc: 'Statutory Interpetation & Case Law CITATIONS',
-    price: '₹699',
-    workflow: [
-      'Ask any complex legal query or situational question.',
-      'AI searches relevant statutes (IPC, BNS) and case laws.',
-      'Receive citations and strategic summaries for court use.'
-    ]
+    workflow: t('evidenceAnalystWorkflow')
   },
   {
     id: 'legal_argument_builder',
-    name: 'Argument Builder',
+    name: t('argumentBuilder'),
     icon: Gavel,
-    desc: 'Structure Courtroom-Ready Arguments & Cross-Exams',
+    desc: t('argumentBuilderDesc'),
     price: '₹999',
-    workflow: [
-      'Provide brief facts and the core dispute.',
-      'AI structures primary arguments and secondary rebuttals.',
-      'AI generates targeted cross-examination questions.'
-    ]
+    workflow: t('argumentBuilderWorkflow')
+  },
+  {
+    id: 'legal_case_predictor',
+    name: t('casePredictor'),
+    icon: LegalLogo,
+    desc: t('casePredictorDesc'),
+    price: '₹999',
+    workflow: t('casePredictorWorkflow')
+  },
+  {
+    id: 'legal_contract_analyzer',
+    name: t('contractAnalyzer'),
+    icon: FileCheck,
+    desc: t('contractAnalyzerDesc'),
+    price: '₹799',
+    workflow: t('contractAnalyzerWorkflow')
+  },
+  {
+    id: 'legal_strategy_engine',
+    name: t('strategyEngine'),
+    icon: Brain,
+    desc: t('strategyEngineDesc'),
+    price: '₹899',
+    workflow: t('strategyEngineWorkflow')
+  },
+  {
+    id: 'legal_research_assistant',
+    name: t('researchAssistant'),
+    icon: Library,
+    desc: t('researchAssistantDesc'),
+    price: '₹699',
+    workflow: t('researchAssistantWorkflow')
   }
 ];
 
 
-const ToolCard = ({ tool, isPrimary = false, size = 'md', onClose, onSelect, isDark, creditCost }) => {
-  const isUnlocked = true;
+const ToolCard = ({ tool, isPrimary = false, size = 'md', onClose, onSelect, t }) => {
+  const isUnlocked = true; // All legal tools are now available for ALL tiers (Free included)
   const Icon = tool.icon;
   const [showWorkflow, setShowWorkflow] = useState(false);
 
@@ -127,13 +98,9 @@ const ToolCard = ({ tool, isPrimary = false, size = 'md', onClose, onSelect, isD
     <motion.div
       whileHover={{ y: -4, scale: 1.01 }}
       onClick={() => { if (isUnlocked) { onClose(); onSelect(tool, isUnlocked); } }}
-      className={`group relative cursor-pointer rounded-[1.4rem] p-4 transition-all duration-300 border overflow-hidden`}
-      style={{
-        background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.65)',
-        border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(255,255,255,0.75)',
-        backdropFilter: 'blur(12px)',
-        boxShadow: isDark ? '0 4px 16px rgba(0,0,0,0.3)' : '0 4px 16px rgba(99,102,241,0.06)',
-      }}
+      className={`group relative cursor-pointer rounded-[1.4rem] p-4 transition-all duration-300 border overflow-hidden
+        bg-white/65 border-white/75 backdrop-blur-[12px] shadow-[0_4px_16px_rgba(99,102,241,0.06)]
+        dark:bg-zinc-800/40 dark:border-white/10 dark:shadow-none`}
     >
       {/* Workflow Overlay */}
       <AnimatePresence>
@@ -147,7 +114,7 @@ const ToolCard = ({ tool, isPrimary = false, size = 'md', onClose, onSelect, isD
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h6 className="text-white font-black text-[12px] uppercase tracking-widest flex items-center gap-2">
-                  <Zap className="w-4 h-4 fill-white" /> Workflow
+                  <Zap className="w-4 h-4 fill-white" /> {t('workflow')}
                 </h6>
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowWorkflow(false); }}
@@ -157,7 +124,7 @@ const ToolCard = ({ tool, isPrimary = false, size = 'md', onClose, onSelect, isD
                 </button>
               </div>
               <div className="space-y-2.5">
-                {tool.workflow.map((step, i) => (
+                {Array.isArray(tool.workflow) && tool.workflow.map((step, i) => (
                   <div key={i} className="flex gap-3">
                     <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-black text-white shrink-0">
                       {i + 1}
@@ -173,7 +140,7 @@ const ToolCard = ({ tool, isPrimary = false, size = 'md', onClose, onSelect, isD
               onClick={(e) => { e.stopPropagation(); if (isUnlocked) onClose(); onSelect(tool, isUnlocked); }}
               className="w-full py-2 bg-white text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-50 transition-colors shadow-lg"
             >
-              Launch Now
+              {t('launchNow')}
             </button>
           </motion.div>
         )}
@@ -188,16 +155,16 @@ const ToolCard = ({ tool, isPrimary = false, size = 'md', onClose, onSelect, isD
       <div className="flex flex-col gap-4 relative z-10">
         <div className="flex items-start justify-between">
           <div className="flex flex-col items-center gap-1">
-            <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-500 group-hover:scale-110 ${isUnlocked ? 'bg-gradient-to-br from-indigo-500 to-violet-600 shadow-[0_6px_16px_rgba(99,102,241,0.35)]' : 'bg-white/80 border border-white/80 shadow-sm'}`}>
+            <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-500 group-hover:scale-110 ${isUnlocked ? 'bg-gradient-to-br from-indigo-500 to-violet-600 shadow-[0_6_16px_rgba(99,102,241,0.35)]' : 'bg-white/80 border border-white/80 shadow-sm'}`}>
               <Icon className={`w-5.5 h-5.5 ${isUnlocked ? 'text-white' : 'text-slate-400'}`} />
             </div>
-            {tool.name === 'Case Predictor' && (
-              <span className={`text-[6px] font-black uppercase tracking-[0.1em] transition-colors ${isUnlocked ? 'text-indigo-600' : 'text-slate-400'}`}>सत्यमेव जयते</span>
+            {tool.id === 'legal_case_predictor' && (
+              <span className={`text-[6px] font-black uppercase tracking-[0.1em] transition-colors ${isUnlocked ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`}>सत्यमेव जयते</span>
             )}
           </div>
           <button
             onClick={(e) => { e.stopPropagation(); setShowWorkflow(true); }}
-            className="p-2 transition-all text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg"
+            className="p-2 transition-all text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-white/5 rounded-lg"
             title="How it works"
           >
             <Sparkles className="w-4 h-4" />
@@ -206,16 +173,16 @@ const ToolCard = ({ tool, isPrimary = false, size = 'md', onClose, onSelect, isD
 
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <h5 className={`font-bold group-hover:text-indigo-${isDark ? '400' : '700'} transition-colors tracking-tight text-[14px] ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+            <h5 className="font-bold text-slate-900 dark:text-white group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors tracking-tight text-[14px]">
               {tool.name}
             </h5>
             {isUnlocked ? (
-              <span className="text-[7.5px] font-black text-indigo-600 bg-indigo-50/80 px-1.5 py-0.5 rounded-full border border-indigo-100 uppercase tracking-tighter">Unlocked</span>
+              <span className="text-[7.5px] font-black text-indigo-600 bg-indigo-50/80 dark:bg-indigo-500/20 px-1.5 py-0.5 rounded-full border border-indigo-100 dark:border-indigo-500/30 uppercase tracking-tighter">Unlocked</span>
             ) : (
-              <span className="text-[7.5px] font-black text-slate-400 bg-white/70 px-1.5 py-0.5 rounded-full border border-white/80 uppercase tracking-tighter">Pro</span>
+              <span className="text-[7.5px] font-black text-slate-400 bg-white/70 dark:bg-zinc-800/70 px-1.5 py-0.5 rounded-full border border-white/80 dark:border-white/10 uppercase tracking-tighter">Pro</span>
             )}
           </div>
-          <p className={`text-[11px] leading-relaxed font-medium line-clamp-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+          <p className="text-slate-500 dark:text-slate-400 text-[11px] leading-relaxed font-medium line-clamp-2">
             {tool.desc}
           </p>
         </div>
@@ -234,24 +201,8 @@ const ToolCard = ({ tool, isPrimary = false, size = 'md', onClose, onSelect, isD
 };
 
 const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdmin = false }) => {
+  const { toolkitLanguage, setToolkitLanguage, tLegal } = useLanguage();
   const [isMaximized, setIsMaximized] = useState(false);
-  const [aiLegalCost, setAiLegalCost] = useState(50);
-  const isDark = useIsDark();
-
-  useEffect(() => {
-    const fetchCost = async () => {
-      try {
-        const res = await apiService.getPublicFeatureCosts();
-        if (res.success && res.features) {
-          const legalFeature = res.features.find(f => f.featureKey === 'ai_legal');
-          if (legalFeature) setAiLegalCost(legalFeature.cost);
-        }
-      } catch (err) {
-        console.error("Failed to load legal cost", err);
-      }
-    };
-    if (isOpen) fetchCost();
-  }, [isOpen]);
 
   useEffect(() => {
     const handleEsc = (e) => {
@@ -279,11 +230,27 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
 
   const SectionTitle = ({ children }) => (
     <div className="flex items-center gap-4 mb-5 mt-8 first:mt-0">
-      <div className={`w-1 h-1 rounded-full ${isDark ? 'bg-slate-500' : 'bg-slate-400'}`} />
-      <h4 className={`text-[9px] font-black uppercase tracking-[0.28em] whitespace-nowrap ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{children}</h4>
-      <div className={`h-[1px] flex-1 ${isDark ? 'bg-white/[0.06]' : 'bg-black/[0.06]'}`} />
+      <div className="w-1 h-1 rounded-full bg-slate-500" />
+      <h4 className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.28em] whitespace-nowrap">{children}</h4>
+      <div className="h-[1px] flex-1 bg-black/[0.06] dark:bg-white/10" />
     </div>
   );
+
+  const handleLanguageChange = (lang) => {
+    setToolkitLanguage(lang);
+    const messages = {
+      'Auto': 'Auto Language Detection Active 🌐',
+      'Hindi': 'भाषा बदलकर हिंदी कर दी गई है 🇮🇳',
+      'English': 'Language switched to English 🇺🇸',
+      'Hinglish': 'Language switched to Hinglish 🇮🇳'
+    };
+    toast.success(messages[lang] || `Language set to ${lang}`, {
+      icon: '🌐',
+      style: { borderRadius: '12px', background: '#333', color: '#fff', fontSize: '12px' }
+    });
+  };
+
+  const toolsList = PREMIUM_TOOLS(tLegal);
 
   return createPortal(
     <AnimatePresence mode="wait">
@@ -339,15 +306,32 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
                     </motion.div>
                   </div>
                   <div>
-                    <h1 className="text-[17px] font-black text-slate-900 dark:text-white leading-tight tracking-tight">AI Legal</h1>
+                    <h1 className="text-[17px] font-black text-slate-900 dark:text-white leading-tight tracking-tight">{tLegal('legalToolkitTitle')}</h1>
                     <div className="flex items-center gap-1">
                       <Sparkles className="w-2.5 h-2.5 text-indigo-500 animate-pulse" />
-                      <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.22em]">Professional Toolkit</span>
+                      <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.22em]">{tLegal('legalProfessionalToolkit')}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-4">
+                  {/* Toolkit Language Switcher */}
+                  <div className="hidden lg:flex items-center gap-1.5 bg-slate-100/50 dark:bg-zinc-800/50 p-1 rounded-xl border border-black/5 dark:border-white/5 mr-2">
+                    <button
+                      onClick={() => handleLanguageChange('English')}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${toolkitLanguage === 'English' ? 'bg-white dark:bg-zinc-700 text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                    >
+                      EN
+                    </button>
+                    <button
+                      onClick={() => handleLanguageChange('Hindi')}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${toolkitLanguage === 'Hindi' ? 'bg-white dark:bg-zinc-700 text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                    >
+                      हिंदी
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2.5">
                   <motion.button
                     whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                     onClick={() => setIsMaximized(!isMaximized)}
@@ -364,6 +348,7 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
                   >
                     <X size={18} strokeWidth={2.5} />
                   </motion.button>
+                  </div>
                 </div>
               </div>
 
@@ -372,7 +357,7 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
 
                 {!isMaximized && (
                   <div className="mb-6">
-                    <p className="text-[13px] text-slate-500 dark:text-slate-400 font-semibold">Advanced AI-driven professional suites for legal mastery.</p>
+                    <p className="text-[13px] text-slate-500 dark:text-slate-400 font-semibold">{tLegal('advancedSuitesDesc')}</p>
                   </div>
                 )}
 
@@ -381,7 +366,7 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   onClick={() => {
-                    onSelect({ id: 'legal_free_chat', name: 'General Legal Chat' }, true);
+                    onSelect({ id: 'legal_free_chat', name: tLegal('generalLegalChat') }, true);
                     onClose();
 
                     toast.success('Legal Chat Activated ⚖️', {
@@ -414,12 +399,12 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
 
                       <div className="flex-1 text-left space-y-0.5 sm:space-y-1.5">
                         <div className="flex items-center justify-start gap-1.5 sm:gap-2">
-                          <span className="px-2 sm:px-2.5 py-0.5 sm:py-1 bg-white/15 backdrop-blur-md border border-white/20 rounded-full text-[7px] sm:text-[8px] font-black text-white uppercase tracking-widest">Basic</span>
+                          <span className="px-2 sm:px-2.5 py-0.5 sm:py-1 bg-white/15 backdrop-blur-md border border-white/20 rounded-full text-[7px] sm:text-[8px] font-black text-white uppercase tracking-widest">{tLegal('basicStatus')}</span>
                           <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-400 fill-yellow-400" />
                         </div>
-                        <h2 className="text-[17px] leading-tight sm:text-2xl font-extrabold text-white tracking-tight">💬 General Legal Chat</h2>
+                        <h2 className="text-[17px] leading-tight sm:text-2xl font-extrabold text-white tracking-tight">💬 {tLegal('generalLegalChat')}</h2>
                         <p className="text-indigo-100 text-[10px] sm:text-[12px] font-medium leading-tight sm:leading-relaxed">
-                          Professional legal discourse, simple guidance, and Q&A.
+                          {tLegal('generalLegalChatDesc')}
                         </p>
                       </div>
                     </div>
@@ -428,16 +413,16 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
                       whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                       className="w-full sm:w-auto mt-0 sm:mt-0 px-4 py-2.5 sm:px-6 sm:py-3 bg-white text-indigo-700 font-black rounded-xl sm:rounded-2xl shadow-xl hover:shadow-2xl transition-all text-[10px] sm:text-[11px] uppercase tracking-[0.15em] shrink-0"
                     >
-                      Start Chat →
+                      {tLegal('startChatBtn')}
                     </motion.button>
                   </div>
                 </motion.div>
 
                 {/* Professional Legal Engines */}
-                <SectionTitle>Professional Legal Engines</SectionTitle>
+                <SectionTitle>{tLegal('professionalLegalEngines')}</SectionTitle>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {PREMIUM_TOOLS.map((tool, idx) => (
-                    <ToolCard key={tool.id} tool={tool} index={idx} isDark={isDark} creditCost={aiLegalCost} onClose={onClose} onSelect={onSelect} />
+                  {toolsList.map((tool, idx) => (
+                    <ToolCard key={tool.id} tool={tool} index={idx} onClose={onClose} onSelect={onSelect} t={tLegal} />
                   ))}
                 </div>
 
@@ -447,21 +432,15 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="mt-12 p-8 rounded-[2rem] flex flex-col sm:flex-row items-center justify-between gap-6"
-                    style={{
-                      background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(99,102,241,0.04)',
-                      border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(99,102,241,0.12)',
-                      backdropFilter: 'blur(20px)',
-                      boxShadow: isDark ? '0 10px 40px rgba(0,0,0,0.2)' : '0 10px 40px rgba(99,102,241,0.08)',
-                    }}
+                    className="mt-12 p-8 rounded-[2rem] flex flex-col sm:flex-row items-center justify-between gap-6 bg-white/5 dark:bg-white/[0.02] border border-black/5 dark:border-white/10 backdrop-blur-2xl shadow-lg"
                   >
                     <div className="flex items-center gap-5">
                       <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-[1.2rem] flex items-center justify-center shadow-lg">
                         <Shield className="w-7 h-7 text-white" />
                       </div>
                       <div>
-                        <h6 className="font-extrabold text-slate-900 dark:text-white text-[17px]">Full Legal Suite Access</h6>
-                        <p className="text-[12px] text-slate-500 dark:text-slate-400 font-semibold">Unlock 20+ advanced draft makers, predictors, and research tools.</p>
+                        <h6 className="font-extrabold text-slate-900 dark:text-white text-[17px]">{tLegal('fullLegalSuiteAccess')}</h6>
+                        <p className="text-[12px] text-slate-500 dark:text-slate-400 font-semibold">{tLegal('unlockAdvancedTools')}</p>
                       </div>
                     </div>
                     <motion.button
@@ -474,7 +453,7 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
                         transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
                         className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500 bg-[length:200%_auto]"
                       />
-                      <span className="relative z-10">Access Pro Suite</span>
+                      <span className="relative z-10">{tLegal('accessProSuite')}</span>
                     </motion.button>
                   </motion.div>
                 )}

@@ -200,6 +200,32 @@ export const chatStorageService = {
     await idbSet(historyKey, filtered);
   },
 
+  async truncateMessagesAfter(sessionId, messageId) {
+    // 1. Update Local (IndexedDB)
+    try {
+      const historyKey = `chat_history_${sessionId}`;
+      const messages = (await idbGet(historyKey)) || [];
+      const index = messages.findIndex(m => m.id === messageId);
+      if (index !== -1) {
+        // Keep messages up to the edited one
+        const truncated = messages.slice(0, index + 1);
+        await idbSet(historyKey, truncated);
+      }
+    } catch (localErr) {
+      console.error("Local truncate failed:", localErr);
+    }
+
+    // 2. Sync with Backend
+    try {
+      await axios.post(`${API_BASE_URL}/chat/${sessionId}/truncate/${messageId}`, {}, {
+        headers: getAuthHeaders(),
+        withCredentials: true
+      });
+    } catch (error) {
+      console.warn("Backend truncate failed:", error.response?.data || error.message);
+    }
+  },
+
   async updateMessage(sessionId, updatedMsg, projectId = null) {
     // 1. Update Local (IndexedDB)
     try {

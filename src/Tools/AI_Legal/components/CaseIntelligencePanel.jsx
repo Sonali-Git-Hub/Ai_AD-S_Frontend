@@ -7,18 +7,22 @@ import {
   ShieldCheck, AlertTriangle, Info, Download, Upload, Search,
   ClipboardList, BookOpen, UserMinus, UserPlus, ListTodo, History,
   LayoutDashboard, FileDigit, Target, Flame, Lightbulb, Check,
-  Clock, MapPin
+  Clock, MapPin, Bookmark, ExternalLink
 } from 'lucide-react';
 import { 
   PieChart, Pie, Cell
 } from 'recharts';
 import toast from 'react-hot-toast';
-import { apiService } from '../../services/apiService';
+import { apiService } from '../../../services/apiService';
+import { useLanguage } from '../../../context/LanguageContext';
+import { CaseDetailView, formatToBullets } from '../LegalPrecedents';
 
-const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
+const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate, onUseInArgument }) => {
+  const { tLegal } = useLanguage();
   const [activeTab, setActiveTab] = useState('overview');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [caseData, setCaseData] = useState(currentCase);
+  const [selectedPrecedent, setSelectedPrecedent] = useState(null);
 
   useEffect(() => {
     if (currentCase) {
@@ -106,15 +110,15 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
   const WIN_COLORS = ['#10b981', 'rgba(128,128,128,0.1)'];
 
   const tabs = [
-    { id: 'overview', name: 'Overview', icon: LayoutDashboard },
-    { id: 'communication', name: 'Communication', icon: MessageSquare },
-    { id: 'hearings', name: 'Hearings', icon: Gavel },
-    { id: 'parties', name: 'Parties', icon: Users },
-    { id: 'timeline', name: 'Timeline', icon: History },
-    { id: 'evidence', name: 'Evidence', icon: FileSearch },
-    { id: 'tasks', name: 'Process', icon: ListTodo },
-    { id: 'intelligence', name: 'AI Strategy', icon: Brain },
-    { id: 'research', name: 'Research', icon: BookOpen },
+    { id: 'overview', name: tLegal('overviewTab'), icon: LayoutDashboard },
+    { id: 'communication', name: tLegal('communicationTab'), icon: MessageSquare },
+    { id: 'hearings', name: tLegal('hearingsTab'), icon: Gavel },
+    { id: 'parties', name: tLegal('partiesTab'), icon: Users },
+    { id: 'timeline', name: tLegal('timelineTab'), icon: History },
+    { id: 'evidence', name: tLegal('evidenceTab'), icon: FileSearch },
+    { id: 'tasks', name: tLegal('processTab'), icon: ListTodo },
+    { id: 'intelligence', name: tLegal('aiStrategyTab'), icon: Brain },
+    { id: 'research', name: tLegal('researchTab'), icon: BookOpen },
   ];
 
   const renderOverview = () => (
@@ -123,13 +127,13 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
       <div className="bg-slate-50 dark:bg-zinc-800/50 rounded-2xl p-5 border border-slate-200 dark:border-zinc-700/50">
         <div className="flex items-center gap-2 mb-3 text-indigo-600 dark:text-indigo-400">
           <FileText size={18} />
-          <h4 className="text-xs font-black uppercase tracking-wider">Case Summary</h4>
+          <h4 className="text-xs font-black uppercase tracking-wider">{tLegal('caseSummary')}</h4>
         </div>
         <textarea
           value={caseData.caseSummary || ''}
           onChange={(e) => setCaseData({ ...caseData, caseSummary: e.target.value })}
           className="w-full bg-transparent border-none text-sm font-medium text-slate-700 dark:text-slate-300 focus:ring-0 resize-none min-h-[100px]"
-          placeholder="No summary provided yet. Click Auto-Analyze to generate one."
+          placeholder={tLegal('noSummaryYet')}
         />
       </div>
 
@@ -153,7 +157,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
               </span>
             </div>
           </div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-subtext mt-2">Case Strength</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-subtext mt-2">{tLegal('caseStrength')}</span>
         </div>
 
         <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-4 flex flex-col items-center justify-center text-center relative overflow-hidden">
@@ -174,41 +178,46 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
               </span>
             </div>
           </div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mt-2">Win Probability</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mt-2">{tLegal('winProbability')}</span>
         </div>
       </div>
 
       {/* Case Details Grid */}
       <div className="grid grid-cols-1 gap-4">
          <div className="space-y-2">
-           <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Current Stage</label>
+           <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">{tLegal('currentStage')}</label>
            <select 
              value={caseData.stage}
              onChange={(e) => setCaseData({...caseData, stage: e.target.value})}
              className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold appearance-none outline-none focus:ring-2 focus:ring-indigo-500/20"
            >
-             <option value="Pre-litigation">Pre-litigation</option>
-             <option value="Notice">Notice Stage</option>
-             <option value="Court">Court Proceedings</option>
-             <option value="Judgment">Judgment Pending</option>
-             <option value="Settled">Settled / Closed</option>
+             <option value="Pre-litigation">{tLegal('preLitigation')}</option>
+             <option value="Notice">{tLegal('noticeStage')}</option>
+             <option value="Court">{tLegal('courtProceedings')}</option>
+             <option value="Judgment">{tLegal('judgmentPending')}</option>
+             <option value="Settled">{tLegal('settledClosed')}</option>
            </select>
          </div>
 
          <div className="space-y-2">
-           <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Priority Level</label>
+           <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">{tLegal('priorityLevel')}</label>
            <div className="flex gap-2">
-             {['Low', 'Medium', 'High', 'Urgent'].map(p => (
+             {[
+               { id: 'Low', label: tLegal('lowPriority') },
+               { id: 'Medium', label: tLegal('mediumPriority') },
+               { id: 'High', label: tLegal('highPriority') },
+               { id: 'Urgent', label: tLegal('urgentPriority') }
+             ].map(p => (
                <button
-                 key={p}
-                 onClick={() => setCaseData({...caseData, priority: p})}
+                 key={p.id}
+                 onClick={() => setCaseData({...caseData, priority: p.id})}
                  className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
-                   caseData.priority === p 
+                   caseData.priority === p.id 
                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-500/20' 
                    : 'bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 text-subtext hover:border-indigo-500/50'
                  }`}
                >
-                 {p}
+                 {p.label}
                </button>
              ))}
            </div>
@@ -219,13 +228,13 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
       <div className="bg-amber-50/50 dark:bg-amber-900/10 rounded-2xl p-4 sm:p-5 border border-amber-200/50 dark:border-amber-900/20 overflow-hidden">
         <div className="flex items-center gap-2 mb-3 text-amber-600 dark:text-amber-400">
           <Target size={18} />
-          <h4 className="text-xs font-black uppercase tracking-wider">Your Claim</h4>
+          <h4 className="text-xs font-black uppercase tracking-wider">{tLegal('yourClaim')}</h4>
         </div>
         <textarea
           value={caseData.reliefGoals || ''}
           onChange={(e) => setCaseData({ ...caseData, reliefGoals: e.target.value })}
           className="w-full bg-transparent border-none text-sm font-bold text-slate-700 dark:text-slate-300 focus:ring-0 resize-none overflow-wrap-anywhere"
-          placeholder="What does the client want to achieve?"
+          placeholder={tLegal('whatClientWants')}
           rows={3}
         />
       </div>
@@ -237,15 +246,15 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
       <div className="flex items-center justify-between mb-2 px-1">
         <div>
-          <h3 className="text-lg font-black text-slate-800 dark:text-white">Communication Dashboard</h3>
-          <p className="text-[10px] font-bold text-subtext uppercase tracking-widest mt-1">Track all client interactions and internal case notes</p>
+          <h3 className="text-lg font-black text-slate-800 dark:text-white">{tLegal('commDashboard')}</h3>
+          <p className="text-[10px] font-bold text-subtext uppercase tracking-widest mt-1">{tLegal('trackInteractions')}</p>
         </div>
         <button 
           onClick={() => setCaseData({...caseData, communicationLogs: [{type: 'Note', date: new Date().toISOString(), summary: ''}, ...(caseData.communicationLogs || [])]})}
           className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all"
         >
           <Plus size={14} />
-          Add New Log
+          {tLegal('addNewLog')}
         </button>
       </div>
 
@@ -272,7 +281,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
                     <option value="Call">Call</option>
                     <option value="Email">Email</option>
                     <option value="Meeting">Meeting</option>
-                    <option value="Note">Internal Note</option>
+                    <option value="Note">{tLegal('internalNote')}</option>
                   </select>
                   <span className="text-[10px] text-subtext font-black uppercase tracking-widest bg-slate-50 dark:bg-white/5 px-2 py-1 rounded border border-slate-100 dark:border-white/5">
                     {new Date(log.date).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
@@ -294,7 +303,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
                  setCaseData({...caseData, communicationLogs: newLogs});
               }}
               className="w-full bg-slate-50/50 dark:bg-black/20 border border-slate-100 dark:border-zinc-800/50 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500/20 p-4 min-h-[80px] resize-none"
-              placeholder="What was discussed? Enter details here..."
+              placeholder={tLegal('whatDiscussed')}
             />
           </div>
         ))}
@@ -304,8 +313,8 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
             <div className="p-5 bg-slate-50 dark:bg-zinc-800 rounded-full mb-4">
               <MessageSquare size={32} className="text-subtext opacity-40" />
             </div>
-            <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest">No Logs Found</h4>
-            <p className="text-[11px] text-subtext mt-2 max-w-[240px] text-center font-medium">Start tracking your case communications by clicking the 'Add New Log' button above.</p>
+            <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest">{tLegal('noLogsFound')}</h4>
+            <p className="text-[11px] text-subtext mt-2 max-w-[240px] text-center font-medium">{tLegal('startTrackingComm')}</p>
           </div>
         )}
       </div>
@@ -320,7 +329,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
               <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg">
                 <UserPlus size={20} />
               </div>
-              <h4 className="text-sm font-black text-slate-800 dark:text-white">Client / Complainant</h4>
+              <h4 className="text-sm font-black text-slate-800 dark:text-white">{tLegal('clientComplainant')}</h4>
            </div>
            <input
              type="text"
@@ -336,7 +345,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
               <div className="p-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg">
                 <UserMinus size={20} />
               </div>
-              <h4 className="text-sm font-black text-slate-800 dark:text-white">Opponent / Accused</h4>
+              <h4 className="text-sm font-black text-slate-800 dark:text-white">{tLegal('opponentAccused')}</h4>
            </div>
            <input
              type="text"
@@ -353,7 +362,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
                 <div className="p-2 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg">
                   <Briefcase size={20} />
                 </div>
-                <h4 className="text-sm font-black text-slate-800 dark:text-white">Associated Lawyers</h4>
+                <h4 className="text-sm font-black text-slate-800 dark:text-white">{tLegal('associatedLawyers')}</h4>
               </div>
               <button 
                 onClick={() => setCaseData({...caseData, lawyers: [...(caseData.lawyers || []), {name: '', role: ''}]})}
@@ -372,7 +381,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
                       newL[idx].name = e.target.value;
                       setCaseData({...caseData, lawyers: newL});
                     }}
-                    placeholder="Lawyer Name"
+                    placeholder={tLegal('lawyerName')}
                     className="flex-1 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-[11px] font-bold outline-none"
                   />
                   <input
@@ -382,7 +391,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
                       newL[idx].role = e.target.value;
                       setCaseData({...caseData, lawyers: newL});
                     }}
-                    placeholder="Role"
+                    placeholder={tLegal('role')}
                     className="w-24 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-[11px] font-bold outline-none"
                   />
                   <button 
@@ -416,7 +425,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
                      <Gavel size={20} />
                   </div>
                   <div>
-                     <h5 className="text-[10px] font-black uppercase tracking-widest text-red-600 dark:text-red-400">🚨 Hearing Today</h5>
+                     <h5 className="text-[10px] font-black uppercase tracking-widest text-red-600 dark:text-red-400">{tLegal('hearingToday')}</h5>
                      <p className="text-sm font-black text-slate-800 dark:text-white">{hToday.time || 'Scheduled'} @ {hToday.courtName || 'the Court'}</p>
                   </div>
                 </div>
@@ -427,7 +436,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
                      <Clock size={20} />
                   </div>
                   <div>
-                     <h5 className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">📅 Upcoming Tomorrow</h5>
+                     <h5 className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">{tLegal('upcomingTomorrow')}</h5>
                      <p className="text-sm font-black text-slate-800 dark:text-white">{hTomorrow.time || 'Scheduled'} @ {hTomorrow.courtName || 'the Court'}</p>
                   </div>
                 </div>
@@ -440,7 +449,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
               <Scale size={18} />
-              <h4 className="text-xs font-black uppercase tracking-wider">⚖️ Case Hearings & Court Schedule</h4>
+              <h4 className="text-xs font-black uppercase tracking-wider">{tLegal('courtSchedule')}</h4>
             </div>
             <button 
               onClick={() => {
@@ -464,7 +473,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
               }}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-500/20"
             >
-              <Plus size={12} /> Add Hearing
+              <Plus size={12} /> {tLegal('addHearing')}
             </button>
           </div>
 
@@ -479,7 +488,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
 
               return (
                 <div className="space-y-3">
-                  <div className="text-[10px] font-black uppercase tracking-widest text-indigo-500 ml-1">Upcoming Hearings</div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-indigo-500 ml-1">{tLegal('upcomingHearings')}</div>
                   {upcoming.map((h, i) => (
                     <div key={`up-${i}`} className="bg-slate-50 dark:bg-black/20 rounded-xl p-4 border border-slate-200 dark:border-zinc-800 relative group">
                       <div className="flex justify-between items-start mb-3">
@@ -502,7 +511,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
                                <Clock size={12} className="text-subtext" />
                                <input 
                                  type="text" 
-                                 placeholder="Time (e.g. 10:30 AM)"
+                                 placeholder={tLegal('timePlaceholder')}
                                  value={h.time || ''}
                                  onChange={(e) => {
                                    const newH = [...caseData.hearings];
@@ -603,7 +612,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
 
               return (
                 <div className="space-y-3">
-                  <div className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1 opacity-60">Past Hearings</div>
+                   <div className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1 opacity-60">{tLegal('pastHearings')}</div>
                   {past.map((h, i) => (
                     <div key={`past-${i}`} className="bg-slate-50/50 dark:bg-black/10 rounded-xl p-3 border border-slate-100 dark:border-zinc-800 opacity-80 group">
                       <div className="flex justify-between items-center">
@@ -655,7 +664,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
 
             {(!caseData.hearings || caseData.hearings.length === 0) && (
               <div className="text-center py-8 text-subtext italic text-[11px] bg-slate-50/50 dark:bg-zinc-800/20 rounded-xl border border-dashed border-slate-200 dark:border-zinc-800">
-                No hearings scheduled yet.
+                 {tLegal('noHearingsScheduled')}
               </div>
             )}
           </div>
@@ -715,7 +724,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
             onClick={() => setCaseData({...caseData, facts: [...(caseData.facts || []), {event: 'New Event', date: new Date().toISOString(), description: ''}]})}
             className="w-full py-3 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-2xl text-[10px] font-black uppercase tracking-widest text-subtext hover:border-indigo-500 hover:text-indigo-500 transition-all"
           >
-            + Add Timeline Event
+            {tLegal('addTimelineEvent')}
           </button>
        </div>
     </div>
@@ -736,8 +745,8 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
                  <ShieldAlert size={20} />
               </div>
               <div>
-                 <h4 className="text-sm font-black tracking-tight">Case Risk Assessment</h4>
-                 <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">Currently flagged as {caseData.intelligence?.riskLevel || 'Medium'} Risk</p>
+                 <h4 className="text-sm font-black tracking-tight">{tLegal('caseRiskAssessment')}</h4>
+                 <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">{tLegal('currentlyFlaggedAs')} {caseData.intelligence?.riskLevel || 'Medium'} Risk</p>
                  {caseData.intelligence?.weakPoints?.[0] && (
                    <p className="text-[11px] mt-1 opacity-70 font-medium leading-snug">{caseData.intelligence.weakPoints[0]}</p>
                  )}
@@ -751,7 +760,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
           <div className="space-y-3">
              <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
                 <Flame size={18} />
-                <h4 className="text-xs font-black uppercase tracking-wider">Critical Vulnerabilities</h4>
+                <h4 className="text-xs font-black uppercase tracking-wider">{tLegal('criticalVulnerabilities')}</h4>
              </div>
              <div className="space-y-2">
                 {(caseData.intelligence?.weakPoints || []).map((w, i) => (
@@ -769,7 +778,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
           <div className="space-y-3">
              <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
                 <Lightbulb size={18} />
-                <h4 className="text-xs font-black uppercase tracking-wider">Opponent Strategy Prediction</h4>
+                <h4 className="text-xs font-black uppercase tracking-wider">{tLegal('opponentStrategyPrediction')}</h4>
              </div>
              <div className="space-y-2">
                 {(caseData.intelligence?.opponentStrategies || []).map((s, i) => (
@@ -784,32 +793,147 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
     </div>
   );
 
+  const handleRemovePrecedent = async (precedentId) => {
+    const updatedSaved = (caseData.savedPrecedents || []).filter(p => (p._id || p.case_identity?.case_name) !== precedentId);
+    const updated = { ...caseData, savedPrecedents: updatedSaved };
+    setCaseData(updated);
+    
+    try {
+      const result = await apiService.updateProject(caseData._id, updated);
+      if (onUpdate) onUpdate(result);
+      toast.success("Precedent removed from case");
+    } catch (err) {
+      toast.error("Failed to sync removal with backend");
+    }
+  };
+
+  const handleUsePrecedentInArgument = (caseItem) => {
+    if (!onUseInArgument) return;
+    
+    const { case_identity = {}, judgment_basis = {} } = caseItem;
+    const name = case_identity.case_name || "the cited case";
+    const principle = judgment_basis.principles_applied?.[0] || "the established legal principles";
+    const reasoning = judgment_basis.legal_reasoning;
+    const reasoningText = Array.isArray(reasoning) ? reasoning[0] : (reasoning?.slice(0, 150) || "the court's reasoning");
+
+    const argumentTemplate = `As held in ${name}, the court established that ${principle}. Specifically, it was observed that "${reasoningText}...". This principle directly applies to the current matter because...`;
+
+    onUseInArgument(argumentTemplate);
+    onClose(); 
+  };
+
   const renderResearch = () => (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300 pb-10">
+       {/* 🏛️ SAVED PRECEDENTS SECTION */}
        <div className="space-y-4">
-          {(caseData.research || []).map((r, i) => (
-            <div key={i} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-sm group">
-               <div className="flex justify-between items-start mb-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                     <div className="px-2 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-md text-[10px] font-black uppercase tracking-wider">{r.lawName || 'Law Reference'}</div>
-                     {r.section && <span className="text-sm font-black text-slate-800 dark:text-white">Section {r.section}</span>}
+          <div className="flex items-center gap-2 px-1 text-indigo-600 dark:text-indigo-400">
+             <Scale size={18} />
+             <h4 className="text-xs font-black uppercase tracking-[0.2em]">Saved Precedents</h4>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             {(caseData.savedPrecedents || []).map((p, i) => {
+                const id = p._id || p.case_identity?.case_name;
+                const reasoning = p.judgment_basis?.legal_reasoning || p.reasoning;
+                const reasoningList = formatToBullets(reasoning);
+                
+                return (
+                  <div key={i} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[20px] p-5 shadow-sm hover:shadow-md transition-all group flex flex-col h-full relative overflow-hidden">
+                     <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={() => handleRemovePrecedent(id)}
+                          className="p-2 bg-red-50 dark:bg-red-950/30 text-red-500 rounded-xl hover:bg-red-100 transition-colors"
+                        >
+                           <Trash2 size={14} />
+                        </button>
+                     </div>
+
+                     <div className="flex items-start gap-3 mb-4">
+                        <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl flex items-center justify-center shrink-0">
+                           <Gavel size={18} className="text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                        <div className="overflow-hidden">
+                           <h5 className="text-sm font-black text-slate-800 dark:text-white truncate leading-tight mb-1">
+                              {p.case_identity?.case_name || p.case_name}
+                           </h5>
+                           <div className="flex items-center gap-2 text-[10px] text-subtext font-bold uppercase tracking-wider">
+                              <span>{p.case_identity?.court || p.court}</span>
+                              <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-zinc-700" />
+                              <span>{p.case_identity?.year || p.year}</span>
+                           </div>
+                        </div>
+                     </div>
+
+                     <div className="flex-1 mb-4">
+                        <p className="text-[11px] text-subtext leading-relaxed line-clamp-2 italic">
+                           "{reasoningList[0] || 'No reasoning available'}"
+                        </p>
+                     </div>
+
+                     <div className="grid grid-cols-2 gap-2">
+                        <button 
+                          onClick={() => setSelectedPrecedent(p)}
+                          className="py-2.5 bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                        >
+                           Details
+                        </button>
+                        <button 
+                          onClick={() => handleUsePrecedentInArgument(p)}
+                          className="py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                        >
+                           Use in Draft
+                        </button>
+                     </div>
                   </div>
-                  <button onClick={() => setCaseData({...caseData, research: caseData.research.filter((_, idx) => idx !== i)})} className="text-subtext hover:text-red-500"><X size={14} /></button>
+                );
+             })}
+
+             {(!caseData.savedPrecedents || caseData.savedPrecedents.length === 0) && (
+               <div className="col-span-full py-12 flex flex-col items-center justify-center bg-slate-50/50 dark:bg-zinc-900/30 rounded-3xl border-2 border-dashed border-slate-200 dark:border-zinc-800/50">
+                  <div className="p-4 bg-white dark:bg-zinc-800 rounded-2xl mb-4 shadow-sm">
+                     <Bookmark size={24} className="text-slate-300" />
+                  </div>
+                  <h6 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">No precedents saved yet</h6>
+                  <p className="text-[10px] text-subtext mt-1 max-w-[200px] text-center font-medium">Use the Legal Precedents tool to find and save relevant case laws.</p>
                </div>
-               <p className="text-xs text-subtext leading-relaxed mb-3">{r.description}</p>
-               {r.referenceUrl && (
-                 <a href={r.referenceUrl} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-indigo-500 flex items-center gap-1 hover:underline">
-                    <BookOpen size={10} /> View Official Text
-                 </a>
-               )}
-            </div>
-          ))}
-          <button 
-            onClick={() => setCaseData({...caseData, research: [...(caseData.research || []), {lawName: 'New Act', section: '', description: ''}]})}
-            className="w-full py-4 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-2xl text-[10px] font-black uppercase tracking-widest text-subtext hover:border-indigo-500 hover:text-indigo-500 transition-all"
-          >
-            + Add Legal Reference
-          </button>
+             )}
+          </div>
+       </div>
+
+       <div className="h-[1px] bg-slate-100 dark:bg-zinc-800/50 w-full" />
+
+       {/* 📜 APPLICABLE LAWS SECTION */}
+       <div className="space-y-4">
+          <div className="flex items-center gap-2 px-1 text-amber-600 dark:text-amber-400">
+             <BookOpen size={18} />
+             <h4 className="text-xs font-black uppercase tracking-[0.2em]">Applicable Laws & Sections</h4>
+          </div>
+          
+          <div className="space-y-4">
+             {(caseData.research || []).map((r, i) => (
+               <div key={i} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-sm group hover:border-amber-200/50 transition-all">
+                  <div className="flex justify-between items-start mb-3">
+                     <div className="flex items-center gap-2 flex-wrap">
+                        <div className="px-2.5 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg text-[10px] font-black uppercase tracking-wider border border-amber-100/50 dark:border-amber-900/30">{r.lawName || 'Law Reference'}</div>
+                        {r.section && <span className="text-sm font-black text-slate-800 dark:text-white">Section {r.section}</span>}
+                     </div>
+                     <button onClick={() => setCaseData({...caseData, research: caseData.research.filter((_, idx) => idx !== i)})} className="p-2 text-subtext hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition-all"><X size={14} /></button>
+                  </div>
+                  <p className="text-xs text-subtext leading-relaxed mb-4 font-medium">{r.description}</p>
+                  {r.referenceUrl && (
+                    <a href={r.referenceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-white/5 rounded-lg text-[10px] font-black text-indigo-500 uppercase tracking-widest hover:bg-indigo-50 transition-all">
+                       <ExternalLink size={10} /> View Official Text
+                    </a>
+                  )}
+               </div>
+             ))}
+             <button 
+               onClick={() => setCaseData({...caseData, research: [...(caseData.research || []), {lawName: 'New Act', section: '', description: ''}]})}
+               className="w-full py-4 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-2xl text-[10px] font-black uppercase tracking-widest text-subtext hover:border-indigo-500 hover:text-indigo-500 transition-all bg-slate-50/30 dark:bg-white/[0.02]"
+             >
+               + Add Legal Reference
+             </button>
+          </div>
        </div>
     </div>
   );
@@ -1042,7 +1166,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
                   className="flex items-center justify-center gap-2 py-3 sm:py-3.5 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 border border-indigo-200/50 dark:border-indigo-500/20 w-full"
                 >
                   <Brain size={16} className={isAnalyzing ? 'animate-pulse' : ''} />
-                  {isAnalyzing ? 'Processing...' : 'AI Auto-Analyze'}
+                  {isAnalyzing ? tLegal('processing') : tLegal('aiAutoAnalyze')}
                 </button>
                 <button 
                   onClick={() => {
@@ -1055,7 +1179,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
                   className="flex items-center justify-center gap-2 py-3 sm:py-3.5 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 border border-emerald-200/50 dark:border-emerald-500/20 w-full"
                 >
                   <FileText size={16} />
-                  Draft Notice
+                  {tLegal('draftNotice')}
                 </button>
              </div>
              <button
@@ -1063,9 +1187,37 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate }) => {
                className="w-full py-3 sm:py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl sm:rounded-2xl font-black text-[11px] sm:text-sm shadow-xl shadow-indigo-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
              >
                <Save size={20} />
-               Synchronize Case Folder
+               {tLegal('syncCaseFolder')}
              </button>
           </div>
+
+          <AnimatePresence>
+            {selectedPrecedent && (
+              <CaseDetailView 
+                caseItem={selectedPrecedent}
+                onClose={() => setSelectedPrecedent(null)}
+                isSaved={true}
+                t={tLegal}
+                onCopyCitation={() => {
+                  const p = selectedPrecedent;
+                  const name = p.case_identity?.case_name || p.case_name;
+                  const court = p.case_identity?.court || p.court || "";
+                  const year = p.case_identity?.year || p.year || "";
+                  const citation = p.case_identity?.citation || p.citation || "Citation unavailable";
+                  let textToCopy = `${name}`;
+                  if (court) textToCopy += `, ${court}`;
+                  if (year) textToCopy += ` (${year})`;
+                  if (citation && citation !== "Citation unavailable") textToCopy += `, ${citation}`;
+                  navigator.clipboard.writeText(textToCopy);
+                  toast.success("✅ Citation copied");
+                }}
+                onCite={() => handleUsePrecedentInArgument(selectedPrecedent)}
+                onSave={() => toast.success("Already saved")}
+                onSummarize={() => toast.success("Summary coming soon...")}
+                onCompare={() => toast.success("Comparison coming soon...")}
+              />
+            )}
+          </AnimatePresence>
         </motion.div>
       </div>
     </AnimatePresence>
