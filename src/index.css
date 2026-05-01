@@ -832,15 +832,23 @@ html.lenis body {
   overflow-wrap: break-word;
   word-wrap: break-word;
   word-break: break-word;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  pointer-events: auto !important;
 }
 
 .chatgpt-message-content p,
 .chatgpt-message-content li,
-.chatgpt-message-content div {
+.chatgpt-message-content div,
+.chatgpt-text,
+.chatgpt-text * {
   overflow-wrap: break-word;
   word-wrap: break-word;
   word-break: break-word;
   max-width: 100%;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  pointer-events: auto !important;
 }
 
 /* Message Structure */
