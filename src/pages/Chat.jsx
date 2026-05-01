@@ -500,6 +500,7 @@ const Chat = () => {
   const [longTextPreview, setLongTextPreview] = useState(null);
   const [isAutoPreviewDisabled, setIsAutoPreviewDisabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSessionLoading, setIsSessionLoading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const messagesEndRef = useRef(null);
   const [currentSessionId, setCurrentSessionId] = useState(sessionId || 'new');
@@ -3577,6 +3578,7 @@ const Chat = () => {
       if (sessionId && sessionId !== 'new') {
         const currentSession = sessionId;
         setCurrentSessionId(sessionId);
+        setIsSessionLoading(true);
         setMessages([]); // Clear previous messages while loading new history to prevent flickering
         console.log(`[DEBUG] Initializing chat for session: ${sessionId}`);
         const sessionData = await chatStorageService.getHistory(sessionId);
@@ -3584,8 +3586,10 @@ const Chat = () => {
         // Safety Check: If sessionId has changed since we started fetching, abort state updates
         if (currentSession !== sessionId) {
           console.warn(`[Navigation] Session changed during load (${currentSession} -> ${sessionId}). Aborting context sync.`);
+          setIsSessionLoading(false);
           return;
         }
+        setIsSessionLoading(false);
 
         console.log(`[DEBUG] Received history:`, sessionData);
 
@@ -6518,7 +6522,14 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     handleBackToDashboard={handleBackToDashboard}
                   />
                 )}
-                {messages.length > 0 && (
+                {isSessionLoading ? (
+                  <div className="flex-1 flex items-center justify-center min-h-[50vh]">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 animate-pulse">Loading Session...</span>
+                    </div>
+                  </div>
+                ) : messages.length > 0 && (
                   <>
                     {/* Top Spacer */}
                     <div className="h-4 w-full shrink-0" />
@@ -7483,7 +7494,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
         {/* Welcome Screen - Integrated Hub */}
         <AnimatePresence>
-          {messages.length === 0 &&
+          {messages.length === 0 && !isSessionLoading &&
             !currentCase &&
             (!currentProjectId || currentProjectId === 'default' || currentProjectId === 'all') &&
             currentMode !== 'LEGAL_TOOLKIT' && (
