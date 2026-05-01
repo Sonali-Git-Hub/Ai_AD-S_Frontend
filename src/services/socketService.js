@@ -3,37 +3,54 @@ import { API } from '../types';
 
 let socket;
 
+/**
+ * Initializes the socket connection if it doesn't exist.
+ * @param {string} token - User authentication token
+ * @returns {import('socket.io-client').Socket}
+ */
 export const initSocket = (token) => {
-    if (socket) return socket;
+    if (socket && socket.connected) return socket;
 
-    // Remove /api suffix for socket connection
-    const socketUrl = API.endsWith('/api') ? API.slice(0, -4) : API;
-    
+    // The API is http://localhost:8080/api, so socket is http://localhost:8080
+    const socketUrl = API.replace('/api', '');
+
     console.log('[Socket] Initializing connection to:', socketUrl);
 
     socket = io(socketUrl, {
-        auth: { token },
-        transports: ['polling', 'websocket'],
+        auth: {
+            token: token
+        },
+        transports: ['websocket', 'polling'], // Support both for better compatibility
         reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000
+        reconnectionAttempts: 10,
+        reconnectionDelay: 2000,
+        timeout: 20000
     });
 
     socket.on('connect', () => {
-        console.log('[Socket] Connected to server:', socket.id);
+        console.log('[Socket] Connected to server with ID:', socket.id);
     });
 
-    socket.on('connect_error', (error) => {
-        console.error('[Socket] Connection error:', error);
+    socket.on('disconnect', (reason) => {
+        console.log('[Socket] Disconnected from server. Reason:', reason);
+    });
+
+    socket.on('connect_error', (err) => {
+        console.error('[Socket] Connection Error:', err.message);
     });
 
     return socket;
 };
 
-export const getIO = () => {
-    return socket;
-};
+/**
+ * Returns the existing socket instance.
+ * @returns {import('socket.io-client').Socket | undefined}
+ */
+export const getSocket = () => socket;
 
+/**
+ * Disconnects the socket.
+ */
 export const disconnectSocket = () => {
     if (socket) {
         socket.disconnect();

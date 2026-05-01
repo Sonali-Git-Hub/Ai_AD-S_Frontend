@@ -6449,10 +6449,19 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         <div
           ref={chatContainerRef}
           onScroll={handleScroll}
-          className={`relative flex-1 aisa-scalable-text ${(legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT'
+          className={`relative flex-1 aisa-scalable-text chatgpt-container scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent ${(legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT'
             ? 'z-20 h-full w-full overflow-hidden flex flex-col bg-slate-50'
-            : 'overflow-y-auto chatgpt-container pt-20 lg:pt-6 pb-64 md:pb-72 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent'
+            : 'overflow-y-auto pt-20 lg:pt-6 pb-64 md:pb-72'
             }`}
+          style={{ 
+            overflowY: ((legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT') ? 'hidden' : 'auto', 
+            height: '100%',
+            flex: '1 1 auto',
+            display: 'flex',
+            flexDirection: 'column',
+            WebkitOverflowScrolling: 'touch',
+            minHeight: 0
+          }}
         >
           <AnimatePresence mode="wait">
             {legalView === 'PRECEDENTS' && currentMode === 'LEGAL_TOOLKIT' ? (
@@ -7529,6 +7538,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         setIsWebSearch(false);
                         setIsFileAnalysis(false);
                         setIsMagicEditing(false);
+                        setIsMagicImageModalOpen(false);
                         setIsMagicVideoModalOpen(false);
                         setIsCashFlowMode(false);
                         if (id !== 'legal') {
@@ -8014,8 +8024,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               onClick={() => {
                                 if (!checkPremiumTool('Edit Image')) return;
                                 setIsToolsMenuOpen(false);
-                                const newMode = !isMagicImageModalOpen;
-                                setIsMagicImageModalOpen(newMode);
+                                const newMode = !isMagicEditing;
+                                setIsMagicEditing(newMode);
+                                setIsMagicImageModalOpen(false);
 
                                 if (newMode && !editRefImage && messages.length > 0) {
                                   const lastImg = [...messages].reverse().find(m => m.imageUrl);
@@ -8032,13 +8043,12 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 setIsCashFlowMode(false);
                                 setIsFileAnalysis(false);
                                 if (newMode) {
-
                                   toast.success("Image Editing Enabled");
                                 }
                               }}
-                              className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isMagicImageModalOpen ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
+                              className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isMagicEditing ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
                             >
-                              <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isMagicImageModalOpen ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
+                              <div className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center transition-all shrink-0 shadow-[4px_4px_10px_rgba(0,0,0,0.05),-4px_-4px_10px_rgba(255,255,255,0.8)] ${isMagicEditing ? 'bg-primary border-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 border-white dark:border-zinc-700 text-slate-600 dark:text-slate-300'}`}>
                                 <Wand2 className="w-5.5 h-5.5" />
                               </div>
                               <div className="flex-1 min-w-0">
