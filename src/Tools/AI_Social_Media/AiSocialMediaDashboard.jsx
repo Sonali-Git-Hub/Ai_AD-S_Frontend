@@ -2675,7 +2675,18 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                 <Layers className="w-3 h-3" /> View Post
                               </button>
                               <button
-                                onClick={() => setGenPostModal({ open: true, entry, format: 'single' })}
+                                onClick={() => {
+                                  if (!isPremium && !isAdmin) {
+                                    window.dispatchEvent(new CustomEvent('premium_required', {
+                                      detail: {
+                                        toolName: 'AI Ads Visuals',
+                                        customMessage: 'Regenerating visual posts is a premium feature. Upgrade to Pro to re-generate AI-powered brand visuals.'
+                                      }
+                                    }));
+                                    return;
+                                  }
+                                  setGenPostModal({ open: true, entry, format: 'single' });
+                                }}
                                 disabled={!!visualGenRowId}
                                 className={`h-11 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-lg disabled:opacity-50 ${visualGenRowId === String(entry._id)
                                   ? 'bg-indigo-600 text-white shadow-indigo-500/20 cursor-not-allowed'
@@ -2685,7 +2696,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                 {visualGenRowId === String(entry._id) ? (
                                   <><RefreshCw className="w-3 h-3 animate-spin" /> Regen...</>
                                 ) : (
-                                  <><RefreshCw className="w-3 h-3" /> Regenerate</>
+                                  <><RefreshCw className="w-3 h-3" /> {!isPremium && !isAdmin ? <Lock className="w-2.5 h-2.5 inline ml-0.5" /> : null} Regenerate</>
                                 )}
                               </button>
                             </>
@@ -2707,15 +2718,26 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                               </button>
 
                               <button
-                                onClick={() => handleRegeneratePost(entry._id)}
+                                onClick={() => {
+                                  if (!isPremium && !isAdmin) {
+                                    window.dispatchEvent(new CustomEvent('premium_required', {
+                                      detail: {
+                                        toolName: 'AI Content Regeneration',
+                                        customMessage: 'Regenerating post content is a premium feature. Upgrade to Pro to refresh your AI-generated copy with a single click.'
+                                      }
+                                    }));
+                                    return;
+                                  }
+                                  handleRegeneratePost(entry._id);
+                                }}
                                 disabled={isProcessing}
                                 className="col-span-1 h-11 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-lg bg-slate-800 dark:bg-white/10 text-white shadow-lg disabled:opacity-50"
-                                title="Regenerate the text content for this post"
+                                title={!isPremium && !isAdmin ? 'Upgrade to Pro to regenerate post content' : 'Regenerate the text content for this post'}
                               >
                                 {isProcessing ? (
                                   <><RefreshCw className="w-3 h-3 animate-spin" /> Regen...</>
                                 ) : (
-                                  <><RefreshCw className="w-3 h-3" /> Regenerate</>
+                                  <><RefreshCw className="w-3 h-3" /> {!isPremium && !isAdmin ? <Lock className="w-2.5 h-2.5 inline ml-0.5" /> : null} Regenerate</>
                                 )}
                               </button>
                             </>
@@ -5667,11 +5689,11 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                             >
                               <AlignLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                             </button>
-                            <h2 className="text-base sm:text-xl lg:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter truncate max-w-[120px] sm:max-w-none">
+                            <h2 className="text-sm sm:text-xl lg:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter truncate max-w-[80px] xs:max-w-[100px] sm:max-w-none">
                               {tabs.find(t => t.id === activeTab)?.name}
                             </h2>
-                            <div className="hidden sm:block h-4 w-px bg-slate-200 dark:bg-white/10 mx-1 lg:mx-2" />
-                            <div className="hidden sm:flex flex-col items-center ml-1 lg:ml-2">
+                            <div className="block h-4 w-px bg-slate-200 dark:bg-white/10 mx-1 lg:mx-2 shrink-0" />
+                            <div className="flex flex-col items-center ml-0 lg:ml-2 shrink-0">
                               <div className="flex -space-x-2">
                                 {[
                                   { id: 'Instagram', Icon: Instagram, color: 'bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500' },
