@@ -6369,27 +6369,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
           </div>
         )}
 
-        {/* Header - Left AI Icon */}
-        <AnimatePresence>
-          {isHeaderVisible && (
-            <motion.div
-              initial={{ y: -50, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -50, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="hidden lg:flex absolute top-4 left-6 z-[100] items-center gap-3"
-            >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/10 to-purple-600/10 border border-primary/20 shadow-sm flex items-center justify-center backdrop-blur-md">
-                <Bot className="w-[20px] h-[20px] text-primary" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent tracking-wide">AISA™ AI</span>
-                <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Workspace</span>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* Header - Minimalist with Profile and Theme - Hidden on mobile as it's now in the navbar */}
         <AnimatePresence>
           {isHeaderVisible && (
