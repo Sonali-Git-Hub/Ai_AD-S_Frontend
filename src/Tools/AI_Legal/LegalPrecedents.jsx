@@ -25,7 +25,7 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
     const [mode, setMode] = useState('CURRENT'); // 'CURRENT' or 'MANUAL'
     const [selectedProjectId, setSelectedProjectId] = useState(initialProjectId || null); // Use initialProjectId if provided
     const [query, setQuery] = useState('');
-    
+
     useEffect(() => {
         if (initialProjectId) {
             setSelectedProjectId(initialProjectId);
@@ -104,10 +104,10 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
                     newCase._id,
                     toolkitLanguage
                 );
-                
+
                 // Update the detail view with new analysis
                 setSelectedCaseDetail(reanalyzed);
-                
+
                 // Clear AI responses for the old case context to avoid confusion
                 setAiResponses(prev => ({
                     ...prev,
@@ -151,12 +151,12 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
         const court = case_identity.court || caseItem.court || "";
         const year = case_identity.year || caseItem.year || "";
         const citation = case_identity.citation || caseItem.citation || "Citation unavailable";
-        
+
         let textToCopy = `${name}`;
         if (court) textToCopy += `, ${court}`;
         if (year) textToCopy += ` (${year})`;
         if (citation && citation !== "Citation unavailable") textToCopy += `, ${citation}`;
-        
+
         navigator.clipboard.writeText(textToCopy);
         toast.success("✅ Citation copied", {
             style: {
@@ -191,14 +191,14 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
         }
 
         setIsActionLoading(prev => ({ ...prev, [id]: { ...prev[id], save: true } }));
-        
+
         try {
             const updatedSaved = [...(targetCase.savedPrecedents || []), caseItem];
             const updatedCase = { ...targetCase, savedPrecedents: updatedSaved };
-            
+
             const result = await apiService.updateProject(targetId, updatedCase);
             if (onUpdateCase) onUpdateCase(result);
-            
+
             toast.success(`✅ Saved to ${targetCase.name || 'Case'}`, {
                 icon: '💾'
             });
@@ -232,7 +232,7 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
 
     const handleDownloadPDF = async (precedentData) => {
         if (!precedentData) return;
-        
+
         setIsPdfLoading(true);
         const loadingToast = toast.loading(t('generatingPDF'), {
             style: { borderRadius: '12px', background: '#333', color: '#fff', fontSize: '12px' }
@@ -240,23 +240,23 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
 
         try {
             const blob = await apiService.generatePrecedentPDF(precedentData);
-            
+
             // Create download link
             const url = window.URL.createObjectURL(new Blob([blob]));
             const link = document.createElement('a');
-            
+
             // Generate Filename: CaseName_Court_Year.pdf
             const caseName = (precedentData.case_identity?.case_name || precedentData.case_name || 'Judgment').replace(/[^a-z0-9]/gi, '_');
             const court = (precedentData.case_identity?.court || precedentData.court || 'Court').replace(/[^a-z0-9]/gi, '_');
             const year = precedentData.case_identity?.year || precedentData.year || 'Unknown';
-            
+
             link.href = url;
             link.setAttribute('download', `${caseName}_${court}_${year}.pdf`);
             document.body.appendChild(link);
             link.click();
             link.parentNode.removeChild(link);
             window.URL.revokeObjectURL(url);
-            
+
             toast.success("PDF Downloaded Successfully", { id: loadingToast });
         } catch (error) {
             console.error("PDF generation error:", error);
@@ -269,14 +269,14 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
     const handleSummarizeAction = async (caseItem) => {
         const id = caseItem._id || caseItem.case_identity?.case_name;
         setIsActionLoading(prev => ({ ...prev, [id]: { ...prev[id], summary: true } }));
-        
+
         try {
             const result = await apiService.analyzePrecedent('summarize', caseItem, null, toolkitLanguage);
             setAiResponses(prev => ({
                 ...prev,
                 [id]: { ...prev[id], summarize: result.analysis }
             }));
-            
+
             // Auto scroll will be handled by a ref or effect in the component
             toast.success("Summary generated successfully");
         } catch (error) {
@@ -289,14 +289,14 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
     const handleCompareAction = async (caseItem) => {
         const id = caseItem._id || caseItem.case_identity?.case_name;
         setIsActionLoading(prev => ({ ...prev, [id]: { ...prev[id], compare: true } }));
-        
+
         try {
             const result = await apiService.analyzePrecedent('compare', caseItem, activeCase, toolkitLanguage);
             setAiResponses(prev => ({
                 ...prev,
                 [id]: { ...prev[id], compare: result.analysis }
             }));
-            
+
             toast.success("Comparison insights generated");
         } catch (error) {
             toast.error("Failed to generate comparison. Try again.");
@@ -565,7 +565,7 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
             {/* Case Selection Modal */}
             <AnimatePresence>
                 {(isSavingToCaseOpen || isCaseListOpen) && (
-                    <CaseSelectionModal 
+                    <CaseSelectionModal
                         isOpen={true}
                         onClose={() => {
                             setIsSavingToCaseOpen(false);
@@ -632,8 +632,8 @@ const PrecedentCard = ({ caseItem, onClick, onCopyCitation, t }) => {
                     <div className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
                         <Shield size={10} /> {t('legalReasoning')}
                     </div>
-                    <ReasoningSection 
-                        content={judgment_basis.legal_reasoning || caseItem.reasoning || caseItem.ratio_decidendi} 
+                    <ReasoningSection
+                        content={judgment_basis.legal_reasoning || caseItem.reasoning || caseItem.ratio_decidendi}
                         t={t}
                     />
                 </div>
@@ -667,27 +667,27 @@ const PrecedentCard = ({ caseItem, onClick, onCopyCitation, t }) => {
     );
 };
 
-export const CaseDetailView = ({ 
-    caseItem, 
-    onClose, 
-    onCopyCitation, 
-    onSave, 
-    onCite, 
-    onSummarize, 
-    onCompare, 
+export const CaseDetailView = ({
+    caseItem,
+    onClose,
+    onCopyCitation,
+    onSave,
+    onCite,
+    onSummarize,
+    onCompare,
     onDownloadPDF,
-    isSaved, 
+    isSaved,
     loadingStates = {},
     aiResponses = {},
     isReanalyzing = false,
     isPdfLoading = false,
-    t 
+    t
 }) => {
-    const { 
-        case_identity = {}, 
-        case_context = {}, 
-        judgment_outcome = {}, 
-        judgment_basis = {}, 
+    const {
+        case_identity = {},
+        case_context = {},
+        judgment_outcome = {},
+        judgment_basis = {},
         similarity = {},
         key_takeaways = [],
         tags = []
@@ -762,7 +762,7 @@ export const CaseDetailView = ({
                 {/* Loader for Re-analysis */}
                 <AnimatePresence>
                     {isReanalyzing && (
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
@@ -784,13 +784,13 @@ export const CaseDetailView = ({
                 <div className="precedent-modal-body flex-1 overflow-hidden flex flex-col md:flex-row">
                     {/* LEFT PANEL - Primary Content (65%) */}
                     <div className="precedent-modal-main md:w-[65%] overflow-y-auto custom-scrollbar px-6 sm:px-8 py-6 sm:py-8 space-y-6">
-                        
+
                         {/* Case Facts */}
                         <div className="bg-white p-6 rounded-[20px] border border-[#E2E8F0] shadow-sm">
-                            <Section 
-                                title={t('caseFacts')} 
-                                content={case_context.facts || caseItem.facts} 
-                                icon={<FileText size={18} className="text-indigo-500" />} 
+                            <Section
+                                title={t('caseFacts')}
+                                content={case_context.facts || caseItem.facts}
+                                icon={<FileText size={18} className="text-indigo-500" />}
                                 limit={300}
                                 t={t}
                             />
@@ -798,10 +798,10 @@ export const CaseDetailView = ({
 
                         {/* Legal Issue */}
                         <div className="bg-[#EEF2FF] p-6 rounded-[20px] border border-indigo-100/50">
-                            <Section 
-                                title={t('coreLegalIssue')} 
-                                content={case_context.legal_issue || caseItem.issue} 
-                                icon={<AlertCircle size={18} className="text-indigo-600" />} 
+                            <Section
+                                title={t('coreLegalIssue')}
+                                content={case_context.legal_issue || caseItem.issue}
+                                icon={<AlertCircle size={18} className="text-indigo-600" />}
                                 limit={500}
                                 isIssue
                                 t={t}
@@ -841,12 +841,12 @@ export const CaseDetailView = ({
 
                     {/* RIGHT PANEL - Insights (35%) */}
                     <div className="precedent-modal-sidebar md:w-[35%] bg-[#F8FAFC] border-l border-[#E2E8F0] p-6 sm:p-8 space-y-6 overflow-y-auto custom-scrollbar">
-                        
+
                         {/* SMART ACTIONS */}
                         <div className="space-y-4">
                             <h4 className="text-[11px] font-black text-[#94A3B8] uppercase tracking-[0.2em]">Smart Assistant Actions</h4>
                             <div className="flex flex-col gap-2">
-                                <button 
+                                <button
                                     onClick={onSummarize}
                                     disabled={loadingStates.summary}
                                     className={`smart-action-btn ${loadingStates.summary ? 'btn-loading' : ''}`}
@@ -855,7 +855,7 @@ export const CaseDetailView = ({
                                     <span>Summarize Judgment</span>
                                     <ChevronRight size={14} className="ml-auto opacity-40" />
                                 </button>
-                                <button 
+                                <button
                                     onClick={onCompare}
                                     disabled={loadingStates.compare}
                                     className={`smart-action-btn ${loadingStates.compare ? 'btn-loading' : ''}`}
@@ -870,7 +870,7 @@ export const CaseDetailView = ({
                         {/* AI Response Section */}
                         <AnimatePresence mode="wait">
                             {(loadingStates.summary || loadingStates.compare) ? (
-                                <motion.div 
+                                <motion.div
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0 }}
@@ -883,7 +883,7 @@ export const CaseDetailView = ({
                                     </div>
                                 </motion.div>
                             ) : (aiResponses.summarize || aiResponses.compare) && (
-                                <motion.div 
+                                <motion.div
                                     ref={responseRef}
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
@@ -896,7 +896,7 @@ export const CaseDetailView = ({
                                                     <Sparkles size={16} />
                                                     <span className="text-[11px] font-black uppercase tracking-[0.2em]">AI Summary</span>
                                                 </div>
-                                                <button 
+                                                <button
                                                     onClick={() => onSummarize()}
                                                     className="p-1.5 hover:bg-amber-50 rounded-lg text-amber-500 transition-all"
                                                     title="Regenerate"
@@ -917,7 +917,7 @@ export const CaseDetailView = ({
                                                     <FileSearch size={16} />
                                                     <span className="text-[11px] font-black uppercase tracking-[0.2em]">Case Comparison</span>
                                                 </div>
-                                                <button 
+                                                <button
                                                     onClick={() => onCompare()}
                                                     className="p-1.5 hover:bg-indigo-50 rounded-lg text-indigo-500 transition-all"
                                                     title="Regenerate"
@@ -943,7 +943,7 @@ export const CaseDetailView = ({
                                 </div>
                             </div>
                             <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                <motion.div 
+                                <motion.div
                                     initial={{ width: 0 }}
                                     animate={{ width: `${similarity.relevance_score || caseItem.relevance_score || 0}%` }}
                                     className="h-full bg-emerald-500 rounded-full"
@@ -960,15 +960,14 @@ export const CaseDetailView = ({
                             <div className="relative z-10">
                                 <div className="flex items-center justify-between mb-6">
                                     <h4 className="text-[11px] font-black text-[#94A3B8] uppercase tracking-[0.2em]">{t('finalVerdict')}</h4>
-                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                                        judgment_outcome.type?.toLowerCase().includes('allow') 
-                                        ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                                        : 'bg-red-50 text-red-600 border border-red-100'
-                                    }`}>
+                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${judgment_outcome.type?.toLowerCase().includes('allow')
+                                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                                            : 'bg-red-50 text-red-600 border border-red-100'
+                                        }`}>
                                         {judgment_outcome.type || "Allowed"}
                                     </span>
                                 </div>
-                                
+
                                 <div className="space-y-6">
                                     <div>
                                         <p className="text-[14px] font-bold text-[#0F172A] leading-relaxed italic mb-1">
@@ -1029,11 +1028,10 @@ export const CaseDetailView = ({
                         <button
                             onClick={onDownloadPDF}
                             disabled={isPdfLoading}
-                            className={`flex items-center justify-center gap-2 px-8 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${
-                                isPdfLoading 
-                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200' 
-                                : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 hover:shadow-indigo-300 active:scale-[0.98]'
-                            } w-full sm:w-auto`}
+                            className={`flex items-center justify-center gap-2 px-8 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${isPdfLoading
+                                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                                    : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 hover:shadow-indigo-300 active:scale-[0.98]'
+                                } w-full sm:w-auto`}
                         >
                             {isPdfLoading ? (
                                 <>
@@ -1048,7 +1046,7 @@ export const CaseDetailView = ({
                             )}
                         </button>
 
-                        <button 
+                        <button
                             onClick={onSave}
                             disabled={loadingStates.save || isSaved}
                             className={`btn-secondary-cta mobile-priority-1 flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest ${loadingStates.save ? 'btn-loading' : ''} ${isSaved ? 'btn-success' : ''} ${isSaved ? 'cursor-not-allowed' : ''}`}
@@ -1098,7 +1096,7 @@ export const Section = ({ title, content, icon, limit = 200, isIssue = false, t 
                     {!isExpanded && shouldTruncate && "..."}
                 </p>
                 {shouldTruncate && (
-                    <button 
+                    <button
                         onClick={() => setIsExpanded(!isExpanded)}
                         className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mt-2 hover:underline flex items-center gap-1"
                     >
@@ -1152,7 +1150,7 @@ export const CaseSelectionModal = ({ isOpen, onClose, onSelect, cases, currentPr
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><X size={20} /></button>
                 </div>
-                
+
                 <div className="p-4 max-h-[450px] overflow-y-auto custom-scrollbar">
                     {cases.length === 0 ? (
                         <div className="py-12 text-center">
@@ -1164,15 +1162,13 @@ export const CaseSelectionModal = ({ isOpen, onClose, onSelect, cases, currentPr
                             <button
                                 key={c._id}
                                 onClick={() => onSelect(c)}
-                                className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all group text-left mb-2 border ${
-                                    c._id === currentProjectId 
-                                    ? 'bg-indigo-50 border-indigo-200 shadow-sm' 
-                                    : 'bg-white border-transparent hover:bg-slate-50 hover:border-slate-200'
-                                }`}
+                                className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all group text-left mb-2 border ${c._id === currentProjectId
+                                        ? 'bg-indigo-50 border-indigo-200 shadow-sm'
+                                        : 'bg-white border-transparent hover:bg-slate-50 hover:border-slate-200'
+                                    }`}
                             >
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
-                                    c._id === currentProjectId ? 'bg-white' : 'bg-slate-100 group-hover:bg-white'
-                                }`}>
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${c._id === currentProjectId ? 'bg-white' : 'bg-slate-100 group-hover:bg-white'
+                                    }`}>
                                     <Briefcase size={18} className={c._id === currentProjectId ? 'text-indigo-600' : 'text-slate-500 group-hover:text-indigo-600'} />
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -1197,9 +1193,9 @@ export const CaseSelectionModal = ({ isOpen, onClose, onSelect, cases, currentPr
                         ))
                     )}
                 </div>
-                
+
                 <div className="p-6 bg-slate-50 border-t border-slate-100">
-                    <button 
+                    <button
                         onClick={onCreateNew}
                         className="w-full py-4 border-2 border-dashed border-slate-300 rounded-2xl text-[11px] font-black uppercase tracking-widest text-slate-400 hover:border-indigo-300 hover:text-indigo-500 hover:bg-indigo-50/30 transition-all flex items-center justify-center gap-2"
                     >

@@ -988,60 +988,88 @@ const Chat = () => {
     }
 
     const tid = toast.loading(editingCaseId ? "Updating legal case..." : "Creating legal case...");
-
-    // Close modal immediately for better UX
     setIsNewCaseModalOpen(false);
+    const formSnapshot = { ...newCaseForm };
+    setNewCaseForm({ clientName: '', caseType: '', otherCaseType: '', accused: '', caseSummary: '' });
+
+    // Capture before try/catch so both blocks can reference the same ID
+    const caseIdToEdit = editingCaseId;
+    setEditingCaseId(null);
 
     try {
-      // Use clientName as the project name if no specific name provided
-      const caseName = newCaseForm.accused
-        ? `${newCaseForm.clientName} vs ${newCaseForm.accused}`
-        : `${newCaseForm.clientName} Case`;
+      const caseName = formSnapshot.accused
+        ? `${formSnapshot.clientName} vs ${formSnapshot.accused}`
+        : `${formSnapshot.clientName} Case`;
 
-      const finalCaseType = newCaseForm.caseType === 'Other' ? newCaseForm.otherCaseType : newCaseForm.caseType;
+      const finalCaseType = formSnapshot.caseType === 'Other' ? formSnapshot.otherCaseType : formSnapshot.caseType;
 
       const payload = {
         name: caseName,
-        clientName: newCaseForm.clientName,
+        clientName: formSnapshot.clientName,
         caseType: finalCaseType,
-        accused: newCaseForm.accused,
-        caseSummary: newCaseForm.caseSummary,
+        accused: formSnapshot.accused,
+        caseSummary: formSnapshot.caseSummary,
         isLegalCase: true
       };
 
-      setIsNewCaseModalOpen(false);
-      setEditingCaseId(null);
-      setNewCaseForm({ clientName: '', caseType: '', otherCaseType: '', accused: '', caseSummary: '' });
-
-      if (editingCaseId) {
-        await apiService.updateProject(editingCaseId, payload);
+      if (caseIdToEdit) {
+        // ── UPDATE existing case ──────────────────────────────────────────
+        await apiService.updateProject(caseIdToEdit, payload);
         toast.success("Case updated successfully!", { id: tid });
-        fetchLegalCases();
 
-        // Update local currentCase if it's the one renamed
-        if (currentCase?._id === editingCaseId) {
+        // Patch the matching entry in allProjects in-place — no full re-fetch needed
+        setAllProjects(prev =>
+          prev.map(p =>
+            p._id === caseIdToEdit
+              ? { ...p, ...payload, updatedAt: new Date().toISOString() }
+              : p
+          )
+        );
+
+        // Keep currentCase in sync if the user is inside the edited case
+        if (currentCase?._id === caseIdToEdit) {
           setCurrentCase(prev => ({ ...prev, ...payload }));
         }
       } else {
+        // ── CREATE new case ───────────────────────────────────────────────
         const newCase = await apiService.createProject(payload);
 
-        // Step 4: Auto Analyze Flow
-        try {
-          const analyzedCase = await apiService.analyzeProject(newCase._id);
-          toast.success("Case created and analyzed!", { id: tid });
-          handleOpenCase(analyzedCase, true);
-        } catch (err) {
-          console.error("Auto-analyze failed:", err);
-          toast.success("Case created successfully!", { id: tid });
-          handleOpenCase(newCase, true);
-        }
-      }
+        // Immediately prepend to list so the card appears at the top without
+        // any page reload or navigation. Merge server response so _id is real.
+        const optimisticCase = {
+          ...payload,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          ...(newCase || {}),   // server fields win (includes _id, __v, etc.)
+          isLegalCase: true,
+        };
+        setAllProjects(prev => [optimisticCase, ...prev]);
 
-      setEditingCaseId(null);
-      setNewCaseForm({ clientName: '', caseType: '', otherCaseType: '', accused: '', caseSummary: '' });
+        toast.success("New case created! It's now at the top of your list. ✅", { id: tid });
+
+        // Fire-and-forget background analysis — non-blocking
+        // Once done, silently refresh that single card with analyzed data.
+        apiService.analyzeProject(newCase._id)
+          .then(() => apiService.getProject(newCase._id))
+          .then(analyzed => {
+            if (analyzed) {
+              setAllProjects(prev =>
+                prev.map(p => p._id === newCase._id ? { ...p, ...analyzed } : p)
+              );
+            }
+          })
+          .catch(err => console.warn("[Case] Background analysis failed (non-critical):", err));
+      }
     } catch (err) {
-      toast.error(editingCaseId ? "Failed to update case" : "Failed to create case", { id: tid });
-      // Re-open if failed so user doesn't lose their data
+      console.error("[Case] Create/update failed:", err);
+      const errMsg =
+        err?.response?.data?.message ||
+        (caseIdToEdit ? "Failed to update case. Please try again." : "Failed to create case. Please try again.");
+      toast.error(errMsg, { id: tid });
+
+      // Re-open the modal so the user's input is not lost
+      // Restore the captured form data so nothing is wiped
+      setNewCaseForm(formSnapshot);
       setIsNewCaseModalOpen(true);
     }
   };
