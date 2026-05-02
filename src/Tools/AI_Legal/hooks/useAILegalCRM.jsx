@@ -46,15 +46,15 @@ export const useAILegalCRM = ({
   // ─── Direct Case Dashboard Route Handler ───
   useEffect(() => {
     if (location.pathname === '/dashboard/cases') {
+      // Set all states atomically to prevent flash of blank/wrong content
       setCurrentProjectId(null);
       setCurrentCase(null);
-      setMessages([]);
       setLegalView('DASHBOARD');
       setCurrentMode('LEGAL_TOOLKIT');
       setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
       fetchLegalCases();
     }
-  }, [location.pathname, setCurrentProjectId, setCurrentMode, setSelectedLegalTool, setMessages, setLegalView]);
+  }, [location.pathname]);
 
   const handleOpenEditModal = (c) => {
     setEditingCaseId(c._id);
@@ -73,14 +73,14 @@ export const useAILegalCRM = ({
 
   const handleBackToDashboard = () => {
     if (location.pathname === '/dashboard/cases') return;
-    setCurrentCase(null);
-    setCurrentProjectId(null);
-    setMessages([]);
+    // Set view to DASHBOARD first to prevent blank screen flash during navigation
     setLegalView('DASHBOARD');
     setCurrentMode('LEGAL_TOOLKIT');
     setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
+    setCurrentCase(null);
+    setCurrentProjectId(null);
+    setMessages([]);
     navigate('/dashboard/cases', { replace: true });
-    fetchLegalCases();
   };
 
   const handleUseInArgument = (argument) => {
@@ -98,13 +98,19 @@ export const useAILegalCRM = ({
   };
 
   const handleLegalPrecedentsBack = () => {
-    setLegalView('CHAT');
-    // Keep the current project and messages if we are already in a session
-    if (location.pathname === '/dashboard/chat/new' || !currentProjectId) {
-      setCurrentMode('NORMAL_CHAT');
-      setSelectedLegalTool(null);
+    // 1st SS (Analyzing/Results) -> 2nd SS (Select Case)
+    // If we have a case selected in Precedents, just clear the case but STAY in Precedents view
+    if (currentProjectId || currentCase) {
       setCurrentCase(null);
       setCurrentProjectId(null);
+      setLegalView('PRECEDENTS'); // Stay here to show "Select a Case"
+    } else {
+      // 2nd SS (Select Case) -> 3rd SS (Main Chat)
+      // If no case is selected, go back to NORMAL CHAT
+      setCurrentMode('NORMAL_CHAT');
+      setSelectedLegalTool(null);
+      setMessages([]);
+      navigate('/dashboard/chat/new', { replace: true });
     }
   };
 

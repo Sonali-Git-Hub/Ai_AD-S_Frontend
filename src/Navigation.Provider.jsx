@@ -18,8 +18,8 @@ import SharedChat from './pages/SharedChat';
 import { AppRoute } from './types';
 import { Menu, Bell, Sun, Moon, LogIn, User } from 'lucide-react';
 import { useTheme } from './context/ThemeContext';
-import { useRecoilState } from 'recoil';
-import { toggleState, getUserData, clearUser } from './userStore/userData';
+import { useRecoilState, useRecoilValue } from 'recoil';
+import { toggleState, getUserData, clearUser, activeModeData } from './userStore/userData';
 import { usePersonalization } from './context/PersonalizationContext';
 import NotificationCenter from './Components/NotificationBar/NotificationCenter.jsx';
 import ProfileSettingsDropdown from './Components/ProfileSettingsDropdown/ProfileSettingsDropdown.jsx';
@@ -127,6 +127,13 @@ const DashboardLayout = () => {
   const { theme, setTheme } = useTheme();
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const currentMode = useRecoilValue(activeModeData);
+  const isMobile = window.innerWidth <= 768;
+  const isLegalMode = currentMode === 'LEGAL_TOOLKIT' || location.pathname === '/dashboard/cases';
+  const isMainChat = location.pathname.startsWith('/dashboard/chat') && !isLegalMode;
+  
+  // Rule: In mobile view, navbar only on main chat screen. Hide for AI Legal and other features.
+  const shouldHideMobileNavbar = isMobile && (!isMainChat || isLegalMode);
 
   // ─── Scroll Direction Logic for Auto-Hide Navbar ───
   const [isVisible, setIsVisible] = useState(false); // hidden by default on mobile, reveals on scroll-up
@@ -171,10 +178,10 @@ const DashboardLayout = () => {
     if (window.innerWidth < 1024) {
       document.documentElement.style.setProperty(
         '--mobile-nav-h',
-        isVisible ? '64px' : '0px'
+        (isVisible && !shouldHideMobileNavbar) ? '64px' : '0px'
       );
     }
-  }, [isVisible]);
+  }, [isVisible, shouldHideMobileNavbar]);
 
   return (
     <div className="fixed inset-0 flex bg-transparent text-maintext overflow-hidden aisa-scalable-text">
@@ -215,8 +222,8 @@ const DashboardLayout = () => {
 
       <div className="flex-1 flex flex-col min-w-0 bg-transparent h-full relative">
 
-        {/* Unified Mobile Header (Hides when sidebar is open to prevent overlap) */}
-        {!isFullScreen && !isSidebarOpen && !tglState.focusMode && (
+        {/* Unified Mobile Header (Hides when sidebar is open or on specific mobile views) */}
+        {!isFullScreen && !isSidebarOpen && !tglState.focusMode && !shouldHideMobileNavbar && (
           <motion.div
             initial={false}
             animate={{

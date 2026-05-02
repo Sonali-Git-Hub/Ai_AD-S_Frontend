@@ -5986,9 +5986,10 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
           onScroll={handleScroll}
           className={`relative flex-1 aisa-scalable-text chatgpt-container scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent ${(legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT'
             ? 'z-20 h-full w-full overflow-hidden flex flex-col bg-slate-50'
-            : 'overflow-y-auto pt-20 lg:pt-6 pb-64 md:pb-72'
+            : 'overflow-y-auto lg:pt-6 pb-64 md:pb-72'
             }`}
           style={{ 
+            paddingTop: window.innerWidth < 1024 ? 'var(--mobile-nav-h, 0px)' : undefined,
             overflowY: ((legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT') ? 'hidden' : 'auto', 
             height: '100%',
             flex: '1 1 auto',
@@ -6023,7 +6024,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                   onUseInArgument={handleUseInArgument}
                 />
               </motion.div>
-            ) : legalView === 'DASHBOARD' && currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id === 'legal_my_case' ? (
+            ) : (legalView === 'DASHBOARD' || (!currentCase && location.pathname === '/dashboard/cases')) && currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id === 'legal_my_case' ? (
               <motion.div
                 key="legal-dashboard"
                 initial={{ opacity: 0 }}
