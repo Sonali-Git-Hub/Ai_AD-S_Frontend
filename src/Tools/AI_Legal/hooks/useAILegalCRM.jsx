@@ -114,6 +114,17 @@ export const useAILegalCRM = ({
     }
   };
 
+  const handleDashboardBack = () => {
+    // Always return directly to the main dashboard (AI tools home screen)
+    setCurrentMode('NORMAL_CHAT');
+    setSelectedLegalTool(null);
+    setCurrentCase(null);
+    setCurrentProjectId(null);
+    setMessages([]);
+    setLegalView('CHAT');
+    navigate('/dashboard/chat/new', { replace: true });
+  };
+
   const fetchLegalCases = async () => {
     try {
       const all = await apiService.getProjects();
@@ -294,7 +305,7 @@ export const useAILegalCRM = ({
       setEditingCaseId={setEditingCaseId}
       setNewCaseForm={setNewCaseForm}
       setActiveLegalToolkit={setActiveLegalToolkit}
-      onBack={handleLegalPrecedentsBack}
+      onBack={handleDashboardBack}
     />
   );
 
