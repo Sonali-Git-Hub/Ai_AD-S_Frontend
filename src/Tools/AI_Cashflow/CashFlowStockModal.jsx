@@ -158,6 +158,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
       if (isOpen && !socket) {
          const wsUrl = baseURL.replace('/api', '');
          const newSocket = io(wsUrl, {
+            path: '/api/socket.io',
             transports: ['websocket', 'polling'],
          });
          setSocket(newSocket);

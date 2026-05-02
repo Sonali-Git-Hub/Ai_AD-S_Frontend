@@ -17,6 +17,7 @@ export const initSocket = (token) => {
     console.log('[Socket] Initializing connection to:', socketUrl);
 
     socket = io(socketUrl, {
+        path: '/api/socket.io',
         auth: {
             token: token
         },
