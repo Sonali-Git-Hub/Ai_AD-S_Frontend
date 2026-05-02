@@ -42,37 +42,64 @@ const TradingViewWidget = ({ symbol, interval = "D", containerId = "tv_chart_con
       }
 
       const currentContainer = containerRef.current;
-      if (currentContainer) {
-         currentContainer.innerHTML = '';
-         const script = document.createElement("script");
-         script.src = "https://s3.tradingview.com/tv.js";
-         script.async = true;
-         script.onload = () => {
-            if (window.TradingView) {
-               new window.TradingView.widget({
-                  "autosize": true,
-                  "symbol": tvSymbol,
-                  "interval": interval,
-                  "timezone": "Asia/Kolkata",
-                  "theme": isDarkMode ? "dark" : "light",
-                  "style": "1",
-                  "locale": "en",
-                  "toolbar_bg": isDarkMode ? "#131722" : "#f1f3f6",
-                  "enable_publishing": false,
-                  "hide_side_toolbar": false,
-                  "allow_symbol_change": true,
-                  "container_id": containerId,
-                  "studies": [
-                     "Volume@tv-basicstudies",
-                  ],
-                  "show_popup_button": true,
-                  "popup_width": "1000",
-                  "popup_height": "650"
-               });
-            }
-         };
-         currentContainer.appendChild(script);
+      if (!currentContainer) return;
+
+      // Clear any previous widget content immediately
+      currentContainer.innerHTML = '';
+
+      // Guard: track if this effect is still current when the async script loads
+      let isMounted = true;
+
+      const initWidget = () => {
+         // Double-check the container is still in the DOM and this render is still live
+         if (!isMounted || !containerRef.current || !window.TradingView) return;
+         try {
+            new window.TradingView.widget({
+               "autosize": true,
+               "symbol": tvSymbol,
+               "interval": interval,
+               "timezone": "Asia/Kolkata",
+               "theme": isDarkMode ? "dark" : "light",
+               "style": "1",
+               "locale": "en",
+               "toolbar_bg": isDarkMode ? "#131722" : "#f1f3f6",
+               "enable_publishing": false,
+               "hide_side_toolbar": false,
+               "allow_symbol_change": true,
+               "container_id": containerId,
+               "studies": ["Volume@tv-basicstudies"],
+               "show_popup_button": true,
+               "popup_width": "1000",
+               "popup_height": "650"
+            });
+         } catch (e) {
+            // Widget init may fail if container was removed between load and init
+         }
+      };
+
+      // Reuse existing tv.js if already loaded — avoids duplicate script tags on re-renders
+      if (window.TradingView) {
+         initWidget();
+      } else {
+         const existingScript = document.querySelector('script[src="https://s3.tradingview.com/tv.js"]');
+         if (existingScript) {
+            existingScript.addEventListener('load', initWidget);
+         } else {
+            const script = document.createElement("script");
+            script.src = "https://s3.tradingview.com/tv.js";
+            script.async = true;
+            script.onload = initWidget;
+            document.head.appendChild(script);
+         }
       }
+
+      // Cleanup: mark stale + clear container so TV's internal callbacks find no DOM to act on
+      return () => {
+         isMounted = false;
+         if (containerRef.current) {
+            containerRef.current.innerHTML = '';
+         }
+      };
    }, [symbol, interval, containerId, isDarkMode]);
 
    return <div ref={containerRef} id={containerId} className="w-full h-full" />;
@@ -131,7 +158,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
       if (isOpen && !socket) {
          const wsUrl = baseURL.replace('/api', '');
          const newSocket = io(wsUrl, {
-            transports: ['websocket'],
+            transports: ['websocket', 'polling'],
          });
          setSocket(newSocket);
       }
