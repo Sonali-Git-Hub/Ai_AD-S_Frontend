@@ -6017,9 +6017,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
           onScroll={handleScroll}
           className={`relative flex-1 aisa-scalable-text chatgpt-container scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent ${((legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT')
             ? 'z-20 h-full w-full overflow-hidden flex flex-col bg-slate-50 min-h-0'
-            : (messages.length === 0 && !isSessionLoading)
-              ? 'z-0 pointer-events-none'
-              : 'overflow-y-auto lg:pt-6 pb-64 md:pb-72'
+            : 'overflow-y-auto lg:pt-6 pb-64 md:pb-72'
             }`}
           style={{
             overflowY: ((legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT') ? 'hidden' : 'auto',
