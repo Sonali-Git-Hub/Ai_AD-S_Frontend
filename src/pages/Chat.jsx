@@ -666,7 +666,7 @@ const Chat = () => {
   }, [legalView]);
 
   const [allProjects, setAllProjects] = useRecoilState(activeProjectsData);
-    const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
+  const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [listeningTime, setListeningTime] = useState(0);
   const timerRef = useRef(null);
@@ -808,7 +808,7 @@ const Chat = () => {
     }
   }, [location.state, location.pathname, navigate, setCurrentProjectId, setCurrentMode, setSelectedLegalTool, setMessages, setLegalView]);
 
-  
+
   const [intentSuggestion, setIntentSuggestion] = useState(null);
   const [isIntentLoading, setIsIntentLoading] = useState(false);
   const [expandedMessageIds, setExpandedMessageIds] = useState(new Set());
@@ -858,7 +858,7 @@ const Chat = () => {
     legalView,
     setLegalView
   });
-  
+
   // ─── Mobile Scroll Reset for Legal Views ──────────────────────────────────
   // Ensure that when a case is opened or the legal view changes, we start from the top
   useEffect(() => {
@@ -876,7 +876,7 @@ const Chat = () => {
 
 
 
-  
+
   // ─── Tool & Dashboard State Persistence (Survive Refresh) ─────────────────
 
   // SAVE: persist mode states whenever they change
@@ -904,7 +904,7 @@ const Chat = () => {
     localStorage.setItem('aisa_stock_modal_open', JSON.stringify(isStockModalOpen));
   }, [isStockModalOpen]);
 
-  
+
   useEffect(() => {
     if (currentCase) {
       localStorage.setItem('aisa_current_case', JSON.stringify(currentCase));
@@ -5923,7 +5923,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
       {/* Main Area */}
       <div
-        className="flex-1 flex flex-col relative bg-transparent w-full min-w-0 pt-2 lg:pt-4"
+        className="flex-1 flex flex-col relative bg-transparent w-full min-w-0 pt-0"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -6021,8 +6021,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
               ? 'z-0 pointer-events-none'
               : 'overflow-y-auto lg:pt-6 pb-64 md:pb-72'
             }`}
-          style={{ 
-            overflowY: ((legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT') ? 'hidden' : 'auto', 
+          style={{
+            overflowY: ((legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT') ? 'hidden' : 'auto',
             height: '100%',
             flex: '1 1 auto',
             display: 'flex',
@@ -6097,8 +6097,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                   </div>
                 ) : messages.length > 0 && (
                   <>
-                    {/* Top Spacer */}
-                    <div className="h-4 w-full shrink-0" />
+
                     {messages.map((msg, idx) => {
                       const isMediaFeature = msg.mode === MODES.IMAGE_GENERATION ||
                         msg.mode === MODES.VIDEO_GENERATION ||
@@ -6107,17 +6106,17 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                       if (msg.isSystemLog) {
                         return (
-                          <motion.div 
-                            key={msg.id} 
+                          <motion.div
+                            key={msg.id}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             className="flex items-center gap-3 px-5 py-2.5 my-6 bg-slate-50 dark:bg-zinc-800/50 border border-slate-200 dark:border-zinc-700/50 rounded-2xl w-fit mx-auto shadow-sm"
                           >
                             <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-                               <Zap size={14} className="text-indigo-500" />
+                              <Zap size={14} className="text-indigo-500" />
                             </div>
                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-zinc-400">
-                               {msg.content.replace(/\*/g, '')}
+                              {msg.content.replace(/\*/g, '')}
                             </span>
                           </motion.div>
                         );
@@ -6125,7 +6124,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       return (
                         <div
                           key={msg.id}
-                          className={`chatgpt-message-row group ${msg.role === 'user' ? 'user-row mb-4 sm:mb-6' : 'ai-row mb-6 sm:mb-8'}`}
+                          className={`chatgpt-message-row group ${msg.role === 'user' ? 'user-row mb-0 sm:mb-6' : 'ai-row mb-0 sm:mb-8'}`}
                           onClick={() => {
                             if (window.getSelection().toString()) return;
                             setActiveMessageId(activeMessageId === msg.id ? null : msg.id);
@@ -6970,8 +6969,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                                 <button
                                                   onClick={() => handlePdfAction('download', msg)}
                                                   className={`transition-all p-1.5 rounded-lg flex items-center gap-1 active:scale-95 group/pdf ${downloadedMessages[msg.id]
-                                                      ? 'text-primary bg-primary/10 hover:bg-primary/20'
-                                                      : 'text-subtext hover:text-primary hover:bg-surface-hover'
+                                                    ? 'text-primary bg-primary/10 hover:bg-primary/20'
+                                                    : 'text-subtext hover:text-primary hover:bg-surface-hover'
                                                     }`}
                                                   title="Download Ready-Made PDF Report"
                                                 >
@@ -7058,11 +7057,20 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                 )}
                 {isLoading && !typingMessageId && (
-                  <div className="pb-24 sm:pb-32">
-                    <AisaTypingIndicator
-                      visible={true}
-                      message={loadingText}
-                    />
+                  <div className="chatgpt-message-row ai-row group mb-6 sm:mb-8">
+                    <div className="chatgpt-message-content select-text">
+                      <div className="chatgpt-avatar-container w-8 h-8 rounded-full flex items-center justify-center shrink-0">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center">
+                          <img src={logo} alt="AISA" className="w-6 h-[18px] object-cover object-top" />
+                        </div>
+                      </div>
+                      <div className="flex-1 chatgpt-text select-text">
+                        <AisaTypingIndicator
+                          visible={true}
+                          message={loadingText}
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -7119,111 +7127,111 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                             isSocialMediaDashboardOpen ? 'aiad_agent' :
                                               (activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') ? 'legal' : null
                       }
-                        onToolSelect={(id) => {
-                          setIsImageGeneration(false);
-                          setIsVideoGeneration(false);
-                          setIsAudioConvertMode(false);
-                          setIsCodeWriter(false);
-                          setIsDeepSearch(false);
-                          setIsWebSearch(false);
-                          setIsFileAnalysis(false);
-                          setIsMagicEditing(false);
-                          setIsMagicImageModalOpen(false);
-                          setIsMagicVideoModalOpen(false);
+                      onToolSelect={(id) => {
+                        setIsImageGeneration(false);
+                        setIsVideoGeneration(false);
+                        setIsAudioConvertMode(false);
+                        setIsCodeWriter(false);
+                        setIsDeepSearch(false);
+                        setIsWebSearch(false);
+                        setIsFileAnalysis(false);
+                        setIsMagicEditing(false);
+                        setIsMagicImageModalOpen(false);
+                        setIsMagicVideoModalOpen(false);
+                        setIsCashFlowMode(false);
+                        setActiveTool(null);
+
+                        // Clear ALL legal states regardless of selection to prevent race conditions
+                        // We only re-enable specific legal states below if id === 'legal'
+                        if (id !== 'legal') {
+                          setActiveLegalToolkit(false);
+                          setCurrentMode(null);
+                          setSelectedLegalTool(null);
+                        }
+
+                        if (id === 'image') {
+                          if (!checkPremiumTool('Image Generation')) return;
+                          setIsImageGeneration(true);
+                          setActiveTool('image');
+                          if (inputRef.current) { inputRef.current.value = "Generate an image of "; inputRef.current.focus(); }
+                          toast.success("Image Mode Active");
+                        } else if (id === 'video') {
+                          if (!checkPremiumTool('Generate Video')) return;
+                          setIsVideoGeneration(true);
+                          setActiveTool('video');
+                          if (inputRef.current) { inputRef.current.value = "Generate a video of "; inputRef.current.focus(); }
+                          toast.success("Video Mode Active");
+                        } else if (id === 'audio') {
+                          if (!checkPremiumTool('Convert to Audio')) return;
+                          setIsAudioConvertMode(true);
+                          setActiveTool('audio');
+                          if (inputRef.current) { inputRef.current.value = "Convert this text to audio: "; inputRef.current.focus(); }
+                          toast.success("Audio Mode Active");
+                        } else if (id === 'code') {
+                          if (!checkPremiumTool('Code Writer')) return;
+                          setIsCodeWriter(true);
+                          setActiveTool('code');
+                          if (inputRef.current) { inputRef.current.value = "Write a function to "; inputRef.current.focus(); }
+                          toast.success("Code Mode Active");
+                        } else if (id === 'deep_search') {
+                          if (!checkPremiumTool('Deep Search')) return;
+                          setIsDeepSearch(true);
+                          setActiveTool('deep_search');
+                          if (inputRef.current) { inputRef.current.value = "Research in-depth about "; inputRef.current.focus(); }
+                          toast.success("Deep Intelligence Active");
+                        } else if (id === 'web_search') {
+                          if (!checkPremiumTool('Web Search')) return;
+                          setIsWebSearch(true);
+                          setActiveTool('web_search');
+                          if (inputRef.current) { inputRef.current.value = "Search for live updates on "; inputRef.current.focus(); }
+                          toast.success("Real-Time Search Active");
+                        } else if (id === 'document') {
+                          if (!checkPremiumTool('Document Analyzer')) return;
+                          setIsFileAnalysis(true);
+                          setActiveTool('document');
+                          uploadInputRef.current?.click();
+                          toast.success("Upload document for analysis");
+                        } else if (id === 'edit_image') {
+                          if (!checkPremiumTool('Edit Image')) return;
+                          setIsMagicEditing(true);
+                          setActiveTool('edit_image');
+                          if (!editRefImage && messages.length > 0) {
+                            const lastImg = [...messages].reverse().find(m => m.imageUrl);
+                            if (lastImg) setEditRefImage({ url: lastImg.imageUrl, name: 'Last Generated', type: 'image' });
+                          }
+                          toast.success("Image Editing Mode Active");
+                        } else if (id === 'image_to_video') {
+                          if (!checkPremiumTool('Image to Video')) return;
+                          setIsMagicVideoModalOpen(true);
+                          setActiveTool('image_to_video');
+                          toast.success("Image to Video Mode Active");
+                        } else if (id === 'ai_cashflow') {
+                          if (!checkPremiumTool('AI CashFlow')) return;
+                          setIsCashFlowMode(true);
+                          setIsStockModalOpen(true);
+                          setActiveTool('ai_cashflow');
+                          toast.success("AI CashFlow Active 📈");
+                        } else if (id === 'aiad_agent') {
+                          if (!checkPremiumTool('AI Ad Agent')) return;
+                          setIsSocialMediaDashboardOpen(true);
+                          setActiveTool('aiad_agent');
+                          toast.success("AI ADS™ Active");
+                        } else if (id === 'legal') {
+                          if (!checkPremiumTool('AI Legal')) return;
+
+                          // ENSURE FRESH START: Clear any active sub-tools or modes
+                          setCurrentMode(MODES.NORMAL_CHAT);
+                          setSelectedLegalTool(null);
+                          setLegalView('DASHBOARD'); // Force dashboard view for the toolkit card
+
                           setIsCashFlowMode(false);
-                          setActiveTool(null);
+                          setIsStockModalOpen(false);
+                          setActiveLegalToolkit(true);
+                          setActiveTool('legal');
 
-                          // Clear ALL legal states regardless of selection to prevent race conditions
-                          // We only re-enable specific legal states below if id === 'legal'
-                          if (id !== 'legal') {
-                            setActiveLegalToolkit(false);
-                            setCurrentMode(null);
-                            setSelectedLegalTool(null);
-                          }
-
-                          if (id === 'image') {
-                            if (!checkPremiumTool('Image Generation')) return;
-                            setIsImageGeneration(true);
-                            setActiveTool('image');
-                            if (inputRef.current) { inputRef.current.value = "Generate an image of "; inputRef.current.focus(); }
-                            toast.success("Image Mode Active");
-                          } else if (id === 'video') {
-                            if (!checkPremiumTool('Generate Video')) return;
-                            setIsVideoGeneration(true);
-                            setActiveTool('video');
-                            if (inputRef.current) { inputRef.current.value = "Generate a video of "; inputRef.current.focus(); }
-                            toast.success("Video Mode Active");
-                          } else if (id === 'audio') {
-                            if (!checkPremiumTool('Convert to Audio')) return;
-                            setIsAudioConvertMode(true);
-                            setActiveTool('audio');
-                            if (inputRef.current) { inputRef.current.value = "Convert this text to audio: "; inputRef.current.focus(); }
-                            toast.success("Audio Mode Active");
-                          } else if (id === 'code') {
-                            if (!checkPremiumTool('Code Writer')) return;
-                            setIsCodeWriter(true);
-                            setActiveTool('code');
-                            if (inputRef.current) { inputRef.current.value = "Write a function to "; inputRef.current.focus(); }
-                            toast.success("Code Mode Active");
-                          } else if (id === 'deep_search') {
-                            if (!checkPremiumTool('Deep Search')) return;
-                            setIsDeepSearch(true);
-                            setActiveTool('deep_search');
-                            if (inputRef.current) { inputRef.current.value = "Research in-depth about "; inputRef.current.focus(); }
-                            toast.success("Deep Intelligence Active");
-                          } else if (id === 'web_search') {
-                            if (!checkPremiumTool('Web Search')) return;
-                            setIsWebSearch(true);
-                            setActiveTool('web_search');
-                            if (inputRef.current) { inputRef.current.value = "Search for live updates on "; inputRef.current.focus(); }
-                            toast.success("Real-Time Search Active");
-                          } else if (id === 'document') {
-                            if (!checkPremiumTool('Document Analyzer')) return;
-                            setIsFileAnalysis(true);
-                            setActiveTool('document');
-                            uploadInputRef.current?.click();
-                            toast.success("Upload document for analysis");
-                          } else if (id === 'edit_image') {
-                            if (!checkPremiumTool('Edit Image')) return;
-                            setIsMagicEditing(true);
-                            setActiveTool('edit_image');
-                            if (!editRefImage && messages.length > 0) {
-                              const lastImg = [...messages].reverse().find(m => m.imageUrl);
-                              if (lastImg) setEditRefImage({ url: lastImg.imageUrl, name: 'Last Generated', type: 'image' });
-                            }
-                            toast.success("Image Editing Mode Active");
-                          } else if (id === 'image_to_video') {
-                            if (!checkPremiumTool('Image to Video')) return;
-                            setIsMagicVideoModalOpen(true);
-                            setActiveTool('image_to_video');
-                            toast.success("Image to Video Mode Active");
-                          } else if (id === 'ai_cashflow') {
-                            if (!checkPremiumTool('AI CashFlow')) return;
-                            setIsCashFlowMode(true);
-                            setIsStockModalOpen(true);
-                            setActiveTool('ai_cashflow');
-                            toast.success("AI CashFlow Active 📈");
-                          } else if (id === 'aiad_agent') {
-                            if (!checkPremiumTool('AI Ad Agent')) return;
-                            setIsSocialMediaDashboardOpen(true);
-                            setActiveTool('aiad_agent');
-                            toast.success("AI ADS™ Active");
-                          } else if (id === 'legal') {
-                            if (!checkPremiumTool('AI Legal')) return;
-
-                            // ENSURE FRESH START: Clear any active sub-tools or modes
-                            setCurrentMode(MODES.NORMAL_CHAT);
-                            setSelectedLegalTool(null);
-                            setLegalView('DASHBOARD'); // Force dashboard view for the toolkit card
-
-                            setIsCashFlowMode(false);
-                            setIsStockModalOpen(false);
-                            setActiveLegalToolkit(true);
-                            setActiveTool('legal');
-
-                            toast.success("AI Legal Toolkit Active ⚖️");
-                          }
-                        }}
+                          toast.success("AI Legal Toolkit Active ⚖️");
+                        }
+                      }}
                     />
                   </section>
                 </div>
@@ -9120,7 +9128,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
               id: Date.now().toString(),
               role: 'model',
               isSystemLog: true,
-              content: currentCase 
+              content: currentCase
                 ? `**${tool.name} Activated** for ${currentCase.name} ⚖️`
                 : `**${tool.name} Activated** ⚖️`,
               timestamp: Date.now(),

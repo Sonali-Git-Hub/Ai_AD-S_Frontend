@@ -195,10 +195,10 @@ const DashboardLayout = () => {
     if (window.innerWidth < 1024) {
       document.documentElement.style.setProperty(
         '--mobile-nav-h',
-        (!shouldHideMobileNavbar) ? '64px' : '0px'
+        (!shouldHideMobileNavbar && isVisible) ? '64px' : '0px'
       );
     }
-  }, [shouldHideMobileNavbar]);
+  }, [shouldHideMobileNavbar, isVisible]);
 
   return (
     <div className="fixed inset-0 flex bg-transparent text-maintext overflow-hidden aisa-scalable-text">
