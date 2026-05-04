@@ -264,7 +264,7 @@ const CustomVideoPlayer = ({ src, compact = false }) => {
 
             {isLoading && (
                 <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#2A2B32]/80 backdrop-blur-md">
-                    <Loader2 className="w-12 h-12 sm:w-16 sm:h-16 text-primary animate-spin shadow-2xl drop-shadow-[0_0_15px_rgba(var(--primary),0.8)]" />
+                    <Loader2 className="w-12 h-12 sm:w-16 sm:h-16 text-primary animate-spin shadow-2xl drop-shadow-[0_0_15px_rgba(var(--primary-rgb),0.8)]" />
                 </div>
             )}
 

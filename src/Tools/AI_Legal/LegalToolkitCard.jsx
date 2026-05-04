@@ -293,10 +293,10 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
 
               {/* Header */}
               <div
-                className="relative z-[8] flex items-center justify-between px-8 sm:px-10 py-5 border-b border-black/[0.05] dark:border-white/[0.05] bg-white/40 dark:bg-zinc-800/40 backdrop-blur-md cursor-default select-none"
+                className="relative z-[8] flex items-center justify-between px-4 sm:px-10 py-4 sm:py-5 border-b border-black/[0.05] dark:border-white/[0.05] bg-white/40 dark:bg-zinc-800/40 backdrop-blur-md cursor-default select-none"
                 onDoubleClick={() => setIsMaximized(!isMaximized)}
               >
-                <div className="flex items-center gap-3.5">
+                <div className="flex items-center gap-2 sm:gap-3.5">
                   <div className="flex flex-col items-center gap-1.5">
                     <motion.div
                       whileHover={{ rotate: 180, scale: 1.08 }}
@@ -314,18 +314,18 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 sm:gap-4">
                   {/* Toolkit Language Switcher */}
-                  <div className="hidden lg:flex items-center gap-1.5 bg-slate-100/50 dark:bg-zinc-800/50 p-1 rounded-xl border border-black/5 dark:border-white/5 mr-2">
+                  <div className="flex items-center gap-1 bg-slate-100/50 dark:bg-zinc-800/50 p-1 rounded-xl border border-black/5 dark:border-white/5 mr-1 sm:mr-2">
                     <button
                       onClick={() => handleLanguageChange('English')}
-                      className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${toolkitLanguage === 'English' ? 'bg-white dark:bg-zinc-700 text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                      className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all ${toolkitLanguage === 'English' ? 'bg-white dark:bg-zinc-700 text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                     >
                       EN
                     </button>
                     <button
                       onClick={() => handleLanguageChange('Hindi')}
-                      className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${toolkitLanguage === 'Hindi' ? 'bg-white dark:bg-zinc-700 text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                      className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[9px] sm:text-[10px] font-black transition-all ${toolkitLanguage === 'Hindi' ? 'bg-white dark:bg-zinc-700 text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                     >
                       हिंदी
                     </button>
@@ -353,7 +353,7 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
               </div>
 
               {/* Body */}
-              <div className="relative z-[8] flex-1 overflow-y-auto px-8 sm:px-11 py-7 custom-scrollbar">
+              <div className="relative z-[8] flex-1 overflow-y-auto px-5 sm:px-11 py-5 sm:py-7 custom-scrollbar">
 
                 {!isMaximized && (
                   <div className="mb-6">
@@ -432,15 +432,15 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="mt-12 p-8 rounded-[2rem] flex flex-col sm:flex-row items-center justify-between gap-6 bg-white/5 dark:bg-white/[0.02] border border-black/5 dark:border-white/10 backdrop-blur-2xl shadow-lg"
+                    className="mt-10 sm:mt-12 p-6 sm:p-8 rounded-[1.8rem] sm:rounded-[2rem] flex flex-col sm:flex-row items-center justify-between gap-6 bg-white/5 dark:bg-white/[0.02] border border-black/5 dark:border-white/10 backdrop-blur-2xl shadow-lg"
                   >
                     <div className="flex items-center gap-5">
                       <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-[1.2rem] flex items-center justify-center shadow-lg">
                         <Shield className="w-7 h-7 text-white" />
                       </div>
                       <div>
-                        <h6 className="font-extrabold text-slate-900 dark:text-white text-[17px]">{tLegal('fullLegalSuiteAccess')}</h6>
-                        <p className="text-[12px] text-slate-500 dark:text-slate-400 font-semibold">{tLegal('unlockAdvancedTools')}</p>
+                        <h6 className="font-extrabold text-slate-900 dark:text-white text-[15px] sm:text-[17px]">{tLegal('fullLegalSuiteAccess')}</h6>
+                        <p className="text-[11px] sm:text-[12px] text-slate-500 dark:text-slate-400 font-semibold">{tLegal('unlockAdvancedTools')}</p>
                       </div>
                     </div>
                     <motion.button

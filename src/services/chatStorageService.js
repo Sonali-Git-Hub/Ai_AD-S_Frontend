@@ -87,12 +87,29 @@ export const chatStorageService = {
         headers: getAuthHeaders(),
         withCredentials: true
       });
-      return Array.isArray(response.data) ? response.data : [];
+      const dbSessions = Array.isArray(response.data) ? response.data : [];
+
+      // Requirement: Temporarily combine guestChats + userChats in UI to avoid flicker
+      const guestChatsRaw = localStorage.getItem("guestChats");
+      if (guestChatsRaw) {
+        try {
+          const guestChats = JSON.parse(guestChatsRaw);
+          guestChats.forEach(gc => {
+            // Only add if not already in dbSessions (to avoid double entry after sync)
+            if (!dbSessions.find(s => s.sessionId === gc.sessionId)) {
+              dbSessions.push(gc);
+            }
+          });
+        } catch (e) { console.error("[STORAGE] Failed to combine guest chats", e); }
+      }
+
+      return dbSessions.sort((a, b) => b.lastModified - a.lastModified);
     } catch (error) {
       console.warn("Backend sessions fetch failed, using local:", error);
       const sessions = [];
-      const keys = await idbGetAllKeys();
 
+      // 1. Check IndexedDB
+      const keys = await idbGetAllKeys();
       for (const key of keys) {
         if (key.startsWith("chat_meta_")) {
           const sessionId = key.replace("chat_meta_", "");
@@ -104,6 +121,21 @@ export const chatStorageService = {
           });
         }
       }
+
+      // 2. Check localStorage for Guest Chats (Requirement)
+      const guestChatsRaw = localStorage.getItem("guestChats");
+      if (guestChatsRaw) {
+        try {
+          const guestChats = JSON.parse(guestChatsRaw);
+          guestChats.forEach(gc => {
+            // Avoid duplicates with IndexedDB if any
+            if (!sessions.find(s => s.sessionId === gc.sessionId)) {
+              sessions.push(gc);
+            }
+          });
+        } catch (e) { console.error("Failed to parse guestChats", e); }
+      }
+
       return sessions.sort((a, b) => b.lastModified - a.lastModified);
     }
   },
@@ -159,6 +191,29 @@ export const chatStorageService = {
 
     // 2. Sync with Backend
     try {
+      const token = getUserData()?.token;
+      
+      // Requirement: Always maintain a local index of guest chats for merging later
+      if (!token) {
+        const guestChatsRaw = localStorage.getItem("guestChats") || "[]";
+        try {
+          let guestChats = JSON.parse(guestChatsRaw);
+          const existing = guestChats.find(c => c.sessionId === sessionId);
+          if (existing) {
+            existing.title = title || existing.title || "New Chat";
+            existing.lastModified = Date.now();
+          } else {
+            guestChats.push({
+              sessionId,
+              title: title || "New Chat",
+              lastModified: Date.now()
+            });
+          }
+          localStorage.setItem("guestChats", JSON.stringify(guestChats));
+          console.log("[STORAGE] Guest chat saved to localStorage:", sessionId);
+        } catch (e) { console.error("Guest localStorage save failed", e); }
+      }
+
       const finalProjectId = (projectId === 'default' || projectId === 'all') ? null : (projectId || (message.projectId === 'default' ? null : message.projectId));
       await axios.post(`${API_BASE_URL}/chat/${sessionId}/message`, { message, title, projectId: finalProjectId }, {
         headers: getAuthHeaders(),
@@ -166,6 +221,7 @@ export const chatStorageService = {
       });
     } catch (error) {
       console.warn("Backend save failed:", error.response?.data || error.message);
+      
       if (error.response?.data?.error === "LIMIT_REACHED") {
         throw error; // Re-throw to handle in UI
       }
@@ -332,6 +388,46 @@ export const chatStorageService = {
       console.error("Failed to duplicate shared session:", error);
       throw error;
     }
+  },
+
+  async mergeGuestChats() {
+    console.log("[MERGE-FLOW] Initiating guest-to-user chat merge...");
+    const guestChatsRaw = localStorage.getItem("guestChats");
+    if (!guestChatsRaw) {
+      console.log("[MERGE-FLOW] No guest chats found in localStorage.");
+      return;
+    }
+
+    try {
+      const guestChats = JSON.parse(guestChatsRaw);
+      if (guestChats.length === 0) {
+        console.log("[MERGE-FLOW] Guest chats array is empty.");
+        return;
+      }
+
+      const guestChatIds = guestChats.map(c => c.sessionId);
+      console.log(`[MERGE-FLOW] Found ${guestChatIds.length} sessions to merge:`, guestChatIds);
+      
+      const response = await axios.post(`${API_BASE_URL}/chat/merge-chats`, { guestChatIds }, {
+        headers: getAuthHeaders()
+      });
+
+      if (response.data.success) {
+        console.log(`[MERGE-FLOW] Successfully merged ${response.data.mergedCount} chats on backend.`);
+        // Requirement: Clear guestChats from localStorage ONLY after successful merge
+        localStorage.removeItem("guestChats");
+        console.log("[MERGE-FLOW] guestChats cleared from localStorage.");
+        
+        // Trigger a global event to notify UI to refetch
+        window.dispatchEvent(new Event('chat-merge-complete'));
+        return true;
+      } else {
+        console.warn("[MERGE-FLOW] Backend merge returned success:false", response.data);
+      }
+    } catch (e) {
+      console.error("[MERGE-FLOW] Error during merge process:", e.response?.data || e.message);
+    }
+    return false;
   }
 };
 

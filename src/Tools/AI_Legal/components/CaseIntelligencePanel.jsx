@@ -25,6 +25,17 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate, onUseIn
   const [selectedPrecedent, setSelectedPrecedent] = useState(null);
 
   useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('modal-open-hide-navbar');
+    } else {
+      document.body.classList.remove('modal-open-hide-navbar');
+    }
+    return () => {
+      document.body.classList.remove('modal-open-hide-navbar');
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
     if (currentCase) {
       // Auto-update past hearings status
       if (currentCase.hearings) {
@@ -62,7 +73,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate, onUseIn
       // Use the dedicated /api/cases/:id/auto-analyze endpoint
       const analyzed = await apiService.autoAnalyzeCase(
         caseData._id,
-        caseData.caseSummary || caseData.name
+        caseData.summary || caseData.caseSummary || caseData.name
       );
       console.log('[Panel] Analysis result:', analyzed);
       setCaseData(analyzed);
@@ -127,11 +138,11 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate, onUseIn
       <div className="bg-slate-50 dark:bg-zinc-800/50 rounded-2xl p-5 border border-slate-200 dark:border-zinc-700/50">
         <div className="flex items-center gap-2 mb-3 text-indigo-600 dark:text-indigo-400">
           <FileText size={18} />
-          <h4 className="text-xs font-black uppercase tracking-wider">{tLegal('caseSummary')}</h4>
+          <h4 className="text-xs font-black uppercase tracking-wider">{tLegal('summary')}</h4>
         </div>
         <textarea
-          value={caseData.caseSummary || ''}
-          onChange={(e) => setCaseData({ ...caseData, caseSummary: e.target.value })}
+          value={caseData.summary || caseData.caseSummary || ''}
+          onChange={(e) => setCaseData({ ...caseData, summary: e.target.value })}
           className="w-full bg-transparent border-none text-sm font-medium text-slate-700 dark:text-slate-300 focus:ring-0 resize-none min-h-[100px]"
           placeholder={tLegal('noSummaryYet')}
         />
@@ -733,15 +744,15 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate, onUseIn
   const renderIntelligence = () => (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
        {/* Risk Level Indicator */}
-       <div className={`p-5 rounded-2xl border flex items-center justify-between ${
+       <div className={`p-4 rounded-2xl border flex items-center justify-between ${
          caseData.intelligence?.riskLevel === 'High' || caseData.intelligence?.riskLevel === 'Critical'
          ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/30 text-red-700 dark:text-red-400'
          : caseData.intelligence?.riskLevel === 'Medium'
          ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/30 text-amber-700 dark:text-amber-400'
          : 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/30 text-emerald-700 dark:text-emerald-400'
        }`}>
-          <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-xl bg-current bg-opacity-10`}>
+          <div className="flex items-center gap-2.5">
+              <div className={`p-1.5 rounded-xl bg-current bg-opacity-10`}>
                  <ShieldAlert size={20} />
               </div>
               <div>
@@ -752,7 +763,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate, onUseIn
                  )}
               </div>
            </div>
-           <div className="text-xl font-black">{caseData.intelligence?.riskLevel || 'Medium'}</div>
+           <div className="text-lg font-black">{caseData.intelligence?.riskLevel || 'Medium'}</div>
        </div>
 
        {/* Weak Points & Missing Evidence */}
@@ -952,11 +963,11 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate, onUseIn
 
         {/* Panel */}
         <motion.div
-          initial={{ scale: 0.9, opacity: 0, x: '-50%', y: '-50%' }}
+          initial={{ scale: 0.9, opacity: 0, x: '-50%', y: '-48%' }}
           animate={{ scale: 1, opacity: 1, x: '-50%', y: '-50%' }}
-          exit={{ scale: 0.9, opacity: 0, x: '-50%', y: '-50%' }}
+          exit={{ scale: 0.9, opacity: 0, x: '-50%', y: '-48%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          className="fixed left-1/2 top-1/2 w-[98%] sm:w-[95%] max-w-5xl h-[85vh] sm:h-[90vh] bg-white dark:bg-[#0b0c15] shadow-2xl flex flex-col pointer-events-auto rounded-[1.5rem] sm:rounded-[2.5rem] overflow-hidden border border-white/10"
+          className="fixed left-1/2 top-1/2 w-[95%] sm:w-[95%] max-w-5xl h-[92vh] sm:h-[90vh] max-h-[95vh] bg-white dark:bg-[#0b0c15] shadow-[0_40px_100px_-15px_rgba(0,0,0,0.3)] flex flex-col pointer-events-auto rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden border border-black/5 dark:border-white/10"
         >
           {/* Header */}
           <div className="relative shrink-0 overflow-hidden">
@@ -1005,7 +1016,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate, onUseIn
           </div>
 
           {/* Content Area */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 pb-64 sm:pb-80 bg-slate-50/30 dark:bg-transparent">
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-5 sm:p-8 pb-72 sm:pb-80 bg-slate-50/30 dark:bg-transparent scroll-smooth">
              {activeTab === 'overview' && renderOverview()}
              {activeTab === 'communication' && renderCommunication()}
              {activeTab === 'hearings' && renderHearings()}
@@ -1158,37 +1169,44 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate, onUseIn
           </div>
 
           {/* Quick Actions & Footer */}
-          <div className="p-3 sm:p-6 border-t border-slate-200 dark:border-zinc-800 bg-white/80 dark:bg-[#0b0c15]/80 backdrop-blur-xl absolute bottom-0 left-0 right-0 z-[210] safe-area-bottom">
-             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 mb-2 sm:mb-4">
-                <button 
-                  onClick={handleAutoAnalyze}
-                  disabled={isAnalyzing}
-                  className="flex items-center justify-center gap-2 py-3 sm:py-3.5 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 border border-indigo-200/50 dark:border-indigo-500/20 w-full"
+          <div className="p-4 sm:p-8 border-t border-slate-100 dark:border-white/5 bg-white/95 dark:bg-[#0b0c15]/95 backdrop-blur-2xl absolute bottom-0 left-0 right-0 z-[210] safe-area-bottom shadow-[0_-10px_30px_rgba(0,0,0,0.03)] dark:shadow-none">
+             <div className="flex flex-col gap-3">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                   <motion.button 
+                     whileHover={{ scale: 1.01 }}
+                     whileTap={{ scale: 0.98 }}
+                     onClick={handleAutoAnalyze}
+                     disabled={isAnalyzing}
+                     className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 py-3 sm:py-4 bg-indigo-50/80 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-2xl text-[9px] sm:text-[11px] font-black uppercase tracking-widest transition-all border border-indigo-200/50 dark:border-indigo-500/20 w-full"
+                   >
+                     <Brain size={16} className={isAnalyzing ? 'animate-pulse' : ''} />
+                     <span className="text-center leading-tight">{isAnalyzing ? tLegal('processing') : tLegal('aiAutoAnalyze')}</span>
+                   </motion.button>
+                   <motion.button 
+                     whileHover={{ scale: 1.01 }}
+                     whileTap={{ scale: 0.98 }}
+                     onClick={() => {
+                       onClose();
+                       if (window.handleAisaAction) {
+                         window.handleAisaAction('DRAFT NOTICE');
+                       }
+                     }}
+                     className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 py-3 sm:py-4 bg-emerald-50/80 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-2xl text-[9px] sm:text-[11px] font-black uppercase tracking-widest transition-all border border-emerald-200/50 dark:border-emerald-500/20 w-full"
+                   >
+                     <FileText size={16} />
+                     <span className="text-center leading-tight">{tLegal('draftNotice')}</span>
+                   </motion.button>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.01, y: -1 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleSave}
+                  className="w-full py-4 sm:py-5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-2xl font-black text-[12px] sm:text-[13px] uppercase tracking-[0.1em] shadow-[0_10px_25px_-5px_rgba(79,70,229,0.4)] transition-all flex items-center justify-center gap-3"
                 >
-                  <Brain size={16} className={isAnalyzing ? 'animate-pulse' : ''} />
-                  {isAnalyzing ? tLegal('processing') : tLegal('aiAutoAnalyze')}
-                </button>
-                <button 
-                  onClick={() => {
-                    onClose();
-                    // We call a function passed from Chat.jsx or trigger handleAisaAction
-                    if (window.handleAisaAction) {
-                      window.handleAisaAction('DRAFT NOTICE');
-                    }
-                  }}
-                  className="flex items-center justify-center gap-2 py-3 sm:py-3.5 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 border border-emerald-200/50 dark:border-emerald-500/20 w-full"
-                >
-                  <FileText size={16} />
-                  {tLegal('draftNotice')}
-                </button>
+                  <Save size={20} />
+                  {tLegal('syncCaseFolder')}
+                </motion.button>
              </div>
-             <button
-               onClick={handleSave}
-               className="w-full py-3 sm:py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl sm:rounded-2xl font-black text-[11px] sm:text-sm shadow-xl shadow-indigo-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
-             >
-               <Save size={20} />
-               {tLegal('syncCaseFolder')}
-             </button>
           </div>
 
           <AnimatePresence>

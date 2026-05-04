@@ -10,6 +10,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGoogleLogin } from '@react-oauth/google';
 import { logo } from '../constants';
+import { chatStorageService } from '../services/chatStorageService';
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -48,6 +49,8 @@ const Signup = () => {
       setUserRecoil({ user: res.data });
 
       navigate(AppRoute.E_Verification, { state: location.state });
+      console.log("[SIGNUP] Standard signup success, initiating merge...");
+      chatStorageService.mergeGuestChats();
     } catch (err) {
       setError(err.response?.data?.error || "Registration failed.");
     } finally {
@@ -86,6 +89,8 @@ const Signup = () => {
       localStorage.setItem("token", res.data.token);
 
       navigate(from, { replace: true });
+      console.log("[SIGNUP] Google signup success, initiating merge...");
+      chatStorageService.mergeGuestChats();
     } catch (err) {
       console.error('[Google Signup] Error:', err);
       setError(err.response?.data?.error || 'Google signup failed');

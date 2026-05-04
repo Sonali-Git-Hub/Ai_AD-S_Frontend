@@ -38,7 +38,7 @@ export const useAILegalCRM = ({
     caseType: '',
     otherCaseType: '',
     accused: '',
-    caseSummary: ''
+    summary: ''
   });
   const [isRenamingCase, setIsRenamingCase] = useState(null);
   const [renameValue, setRenameValue] = useState('');
@@ -66,7 +66,7 @@ export const useAILegalCRM = ({
       caseType: isOther ? 'Other' : (c.caseType || ''),
       otherCaseType: isOther ? c.caseType : '',
       accused: c.accused || '',
-      caseSummary: c.caseSummary || ''
+      summary: c.summary || c.caseSummary || ''
     });
     setIsNewCaseModalOpen(true);
   };
@@ -153,7 +153,7 @@ export const useAILegalCRM = ({
     const tid = toast.loading(editingCaseId ? "Updating legal case..." : "Creating legal case...");
     setIsNewCaseModalOpen(false);
     const formSnapshot = { ...newCaseForm };
-    setNewCaseForm({ clientName: '', caseType: '', otherCaseType: '', accused: '', caseSummary: '' });
+    setNewCaseForm({ clientName: '', caseType: '', otherCaseType: '', accused: '', summary: '' });
 
     const caseIdToEdit = editingCaseId;
     setEditingCaseId(null);
@@ -169,7 +169,7 @@ export const useAILegalCRM = ({
         clientName: formSnapshot.clientName,
         caseType: finalCaseType,
         accused: formSnapshot.accused,
-        caseSummary: formSnapshot.caseSummary,
+        summary: formSnapshot.summary,
         isLegalCase: true
       };
 
@@ -429,8 +429,8 @@ export const useAILegalCRM = ({
                       <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1 whitespace-nowrap">Case Summary</label>
                       <textarea
                         rows={3}
-                        value={newCaseForm.caseSummary}
-                        onChange={e => setNewCaseForm({ ...newCaseForm, caseSummary: e.target.value })}
+                        value={newCaseForm.summary}
+                        onChange={e => setNewCaseForm({ ...newCaseForm, summary: e.target.value })}
                         placeholder="Mr. A Kumar has give a lo Rs. 5 Lakh to Mr. Ravi on..."
                         className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none resize-none font-medium"
                       />

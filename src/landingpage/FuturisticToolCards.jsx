@@ -304,7 +304,7 @@ const ToolCard = ({ tool, onToolSelect, index, isFlipped, onFlip, onUnflip }) =>
         >
           {/* FRONT SIDE */}
           <div
-            className={`absolute inset-0 w-full h-full rounded-[20px] border p-3 sm:p-5 transition-all duration-300 flex flex-col justify-between backface-hidden overflow-hidden ${isActive
+            className={`absolute inset-0 w-full h-full rounded-[20px] border transition-all duration-300 backface-hidden overflow-hidden ${isActive
               ? (isDark ? 'bg-primary/10 border-primary shadow-[0_0_30px_rgba(var(--primary-rgb),0.3)] backdrop-blur-xl' : 'bg-blue-50 border-primary shadow-[0_0_25px_rgba(var(--primary-rgb),0.15)]')
               : (isDark
                 ? 'sidebar-glass border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]'
@@ -317,7 +317,7 @@ const ToolCard = ({ tool, onToolSelect, index, isFlipped, onFlip, onUnflip }) =>
 
             {/* Spotlight Effect Layer */}
             <motion.div
-              className="absolute inset-0 pointer-events-none transition-opacity duration-300 group-hover:opacity-100 opacity-0"
+              className="absolute inset-0 pointer-events-none transition-opacity duration-300 group-hover:opacity-100 opacity-0 z-0"
               style={{
                 background: useTransform(
                   [spotlightX, spotlightY],
@@ -326,61 +326,64 @@ const ToolCard = ({ tool, onToolSelect, index, isFlipped, onFlip, onUnflip }) =>
               }}
             />
             <motion.div
-              className="absolute inset-0 pointer-events-none opacity-[0.03]"
+              className="absolute inset-0 pointer-events-none opacity-[0.03] z-0"
               style={{
                 background: useTransform(
                   [spotlightX, spotlightY],
-                  ([latestX, latestY]) => `radial-gradient(400px circle at ${latestX}px ${latestY}px, var(--primary), transparent 80%)`
+                  ([latestX, latestY]) => `radial-gradient(400px circle at ${latestX}px ${latestY}px, var(--color-primary), transparent 80%)`
                 ),
               }}
             />
-            <div className="flex items-center justify-between mb-1 sm:mb-3 pointer-events-none">
-              <div
-                className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all duration-500"
-                style={{
-                  background: isActive ? 'var(--primary)' : (isDark ? `${tool.color}15` : `${tool.color}10`),
-                  border: isDark ? `1px solid ${tool.color}30` : `1px solid ${tool.color}20`,
-                  boxShadow: isActive ? '0 0 15px var(--primary)' : 'none'
-                }}
-              >
-                <Icon
-                  size={16}
-                  className="sm:w-[18px] sm:h-[18px]"
-                  showText={tool.id === 'legal'}
-                  style={{ color: isActive ? '#fff' : tool.color }}
-                />
 
+            {/* Content Wrapper (card-inner) */}
+            <div className="relative z-10 w-full h-full p-3 sm:p-5 flex flex-col justify-between pointer-events-none">
+              <div className="flex items-center justify-between mb-1 sm:mb-3">
+                <div
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all duration-500"
+                  style={{
+                    background: isActive ? 'var(--color-primary)' : (isDark ? `${tool.color}15` : `${tool.color}10`),
+                    border: isDark ? `1px solid ${tool.color}30` : `1px solid ${tool.color}20`,
+                    boxShadow: isActive ? '0 0 15px var(--color-primary)' : 'none'
+                  }}
+                >
+                  <Icon
+                    size={16}
+                    className="sm:w-[18px] sm:h-[18px]"
+                    showText={tool.id === 'legal'}
+                    style={{ color: isActive ? '#fff' : tool.color }}
+                  />
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  {isActive && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="flex items-center gap-1 bg-primary text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg animate-pulse"
+                    >
+                      <div className="w-1 h-1 rounded-full bg-white animate-ping" />
+                      {t('active')}
+                    </motion.span>
+                  )}
+                  <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${isActive ? 'bg-primary/20 text-primary' : (isDark ? 'bg-white/5 text-white/40' : 'bg-slate-100 text-slate-500')
+                    }`}>
+                    {tool.badge}
+                  </span>
+                </div>
               </div>
 
-              <div className="flex items-center gap-1.5">
-                {isActive && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="flex items-center gap-1 bg-primary text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg animate-pulse"
-                  >
-                    <div className="w-1 h-1 rounded-full bg-white animate-ping" />
-                    {t('active')}
-                  </motion.span>
-                )}
-                <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${isActive ? 'bg-primary/20 text-primary' : (isDark ? 'bg-white/5 text-white/40' : 'bg-slate-100 text-slate-500')
-                  }`}>
-                  {tool.badge}
-                </span>
+              <div className="space-y-0.5">
+                <h3 className={`text-[11px] sm:text-[14px] font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                  {tool.label}
+                </h3>
+                <p className={`hidden sm:block text-[9.5px] sm:text-[10px] leading-snug line-clamp-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  {tool.desc}
+                </p>
               </div>
-            </div>
-
-            <div className="space-y-0.5 pointer-events-none">
-              <h3 className={`text-[11px] sm:text-[14px] font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                {tool.label}
-              </h3>
-              <p className={`hidden sm:block text-[9.5px] sm:text-[10px] leading-snug line-clamp-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                {tool.desc}
-              </p>
             </div>
 
             {tool.comingSoon && (
-              <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/40 dark:bg-black/40 backdrop-blur-[1px] rounded-[20px] pointer-events-none">
+              <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/40 dark:bg-black/40 backdrop-blur-[1px] rounded-[20px] pointer-events-none">
                 <div className={`px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest ${isDark ? 'bg-[#1a1c2e] border-white/10 text-slate-400' : 'bg-white border-slate-200 text-slate-500 shadow-sm'
                   }`}>
                   {t('soon')}

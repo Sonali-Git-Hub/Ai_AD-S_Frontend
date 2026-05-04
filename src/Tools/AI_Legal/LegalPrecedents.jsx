@@ -19,6 +19,12 @@ import { toggleState } from '../../userStore/userData';
 import { apis } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
 
+export const truncateText = (text, maxLength = 120) => {
+    if (!text) return "";
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength).trim() + "...";
+};
+
 const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSelectCase, onCreateCase, onUseInArgument, onUpdateCase }) => {
     const { toolkitLanguage, tLegal: t } = useLanguage();
     const currentLang = toolkitLanguage;
@@ -343,7 +349,7 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
                                 </div>
                                 <h3 className="text-sm font-black text-slate-900 mb-1.5 line-clamp-1">{c.name}</h3>
                                 <p className="text-[10px] text-slate-500 line-clamp-2 mb-4 font-medium leading-relaxed">
-                                    {c.description || "No description provided for this case."}
+                                    {(c.summary || c.caseSummary) ? truncateText(c.summary || c.caseSummary, 110) : "No description provided for this case."}
                                 </p>
                             </div>
 

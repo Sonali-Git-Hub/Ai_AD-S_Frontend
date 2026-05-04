@@ -10,6 +10,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGoogleLogin } from '@react-oauth/google';
 import { logo } from '../constants';
+import { chatStorageService } from '../services/chatStorageService';
 
 import loginBg from './login_bg.gif';
 
@@ -78,6 +79,8 @@ const Login = () => {
 
       const from = location.state?.from || AppRoute.DASHBOARD;
       navigate(from, { replace: true });
+      console.log("[LOGIN] Social auth success, initiating merge...");
+      chatStorageService.mergeGuestChats();
     }
   }, [location, navigate, setUserRecoil]);
 
@@ -102,6 +105,8 @@ const Login = () => {
       autoAcceptCookies();
 
       navigate(from, { replace: true });
+      console.log("[LOGIN] Standard login success, initiating merge...");
+      chatStorageService.mergeGuestChats();
     } catch (err) {
       setError(true);
       const errorMessage = err.response?.data?.error || err.message || t('serverError');
@@ -142,6 +147,8 @@ const Login = () => {
       autoAcceptCookies();
 
       navigate(from, { replace: true });
+      console.log("[LOGIN] Google login success, initiating merge...");
+      chatStorageService.mergeGuestChats();
     } catch (err) {
       setError(true);
       const errorMessage = err.response?.data?.error || 'Google login failed';

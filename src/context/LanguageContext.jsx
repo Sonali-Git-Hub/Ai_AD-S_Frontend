@@ -779,6 +779,7 @@ export const LanguageProvider = ({ children }) => {
             imageToVideo: "Image to Video",
             editImage: "Edit Image",
             realTimeSearch: "Real-Time Search",
+            deepSearch: "Deep Search",
             analyzeDocument: "Convert Document",
             codeWriter: "Code Writer",
             convertToAudio: "Convert to Audio",

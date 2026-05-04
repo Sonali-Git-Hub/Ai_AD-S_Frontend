@@ -600,6 +600,22 @@ const Chat = () => {
     timeoutId = setTimeout(type, 500); // Initial pause before typing starts for this word
     return () => clearTimeout(timeoutId);
   }, [discoveryIndex]);
+
+  const TOOL_PLACEHOLDERS = {
+    image: "Describe the image you want to generate in detail...",
+    video: "Describe the video scene you want to create...",
+    audio: "Paste text to generate natural-sounding audio...",
+    code: "Write or paste code...",
+    deep_search: "Enter a topic for in-depth AI research and analysis...",
+    web_search: "Search for live updates or ask anything to the web...",
+    document: "Upload a document and ask me to summarize or analyze it...",
+    edit_image: "Describe the changes you want to make to the image...",
+    image_to_video: "Describe how you want to animate this image...",
+    ai_cashflow: "Enter a stock symbol or ask about financial trends...",
+    aiad_agent: "Describe your brand or product for social media content...",
+    legal: "Describe your legal issue..."
+  };
+
   const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false);
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const lastScrollTopRef = useRef(0);
@@ -3991,7 +4007,7 @@ ${activeAgent.category ? `Your specialization is in ${activeAgent.category}.` : 
 ${currentCase ? `
 ### ACTIVE CASE CONTEXT (MY CASE CRM):
 - **Client Name**: ${currentCase?.clientName || 'Not specified'}
-- **Case Summary**: ${currentCase.caseSummary || 'No summary provided yet.'}
+- **Case Summary**: ${currentCase.summary || currentCase.caseSummary || 'No summary provided yet.'}
 - **Key Issues**: ${currentCase.keyIssue || 'No specific issues identified.'}
 ${currentCase.importantDates && currentCase.importantDates.length > 0 ? `- **Important Dates**: ${currentCase.importantDates.map(d => `${d.label}: ${new Date(d.date).toLocaleDateString()}`).join(', ')}` : ''}
 
@@ -5927,7 +5943,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: -50, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="hidden lg:flex absolute top-4 right-6 z-[100] items-center gap-3"
+              className="hidden lg:flex absolute top-2 right-6 z-[100] items-center gap-3"
             >
               {/* Theme Toggle */}
               <button
@@ -7101,98 +7117,111 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                             isSocialMediaDashboardOpen ? 'aiad_agent' :
                                               (activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT') ? 'legal' : null
                       }
-                      onToolSelect={(id) => {
-                        setIsImageGeneration(false);
-                        setIsVideoGeneration(false);
-                        setIsAudioConvertMode(false);
-                        setIsCodeWriter(false);
-                        setIsDeepSearch(false);
-                        setIsWebSearch(false);
-                        setIsFileAnalysis(false);
-                        setIsMagicEditing(false);
-                        setIsMagicImageModalOpen(false);
-                        setIsMagicVideoModalOpen(false);
-                        setIsCashFlowMode(false);
-
-                        // Clear ALL legal states regardless of selection to prevent race conditions
-                        // We only re-enable specific legal states below if id === 'legal'
-                        if (id !== 'legal') {
-                          setActiveLegalToolkit(false);
-                          setCurrentMode(null);
-                          setSelectedLegalTool(null);
-                        }
-
-                        if (id === 'image') {
-                          if (!checkPremiumTool('Image Generation')) return;
-                          setIsImageGeneration(true);
-                          if (inputRef.current) { inputRef.current.value = "Generate an image of "; inputRef.current.focus(); }
-                          toast.success("Image Mode Active");
-                        } else if (id === 'video') {
-                          if (!checkPremiumTool('Generate Video')) return;
-                          setIsVideoGeneration(true);
-                          if (inputRef.current) { inputRef.current.value = "Generate a video of "; inputRef.current.focus(); }
-                          toast.success("Video Mode Active");
-                        } else if (id === 'audio') {
-                          if (!checkPremiumTool('Convert to Audio')) return;
-                          setIsAudioConvertMode(true);
-                          if (inputRef.current) { inputRef.current.value = "Convert this text to audio: "; inputRef.current.focus(); }
-                          toast.success("Audio Mode Active");
-                        } else if (id === 'code') {
-                          if (!checkPremiumTool('Code Writer')) return;
-                          setIsCodeWriter(true);
-                          if (inputRef.current) { inputRef.current.value = "Write a function to "; inputRef.current.focus(); }
-                          toast.success("Code Mode Active");
-                        } else if (id === 'deep_search') {
-                          if (!checkPremiumTool('Deep Search')) return;
-                          setIsDeepSearch(true);
-                          if (inputRef.current) { inputRef.current.value = "Research in-depth about "; inputRef.current.focus(); }
-                          toast.success("Deep Intelligence Active");
-                        } else if (id === 'web_search') {
-                          if (!checkPremiumTool('Web Search')) return;
-                          setIsWebSearch(true);
-                          if (inputRef.current) { inputRef.current.value = "Search for live updates on "; inputRef.current.focus(); }
-                          toast.success("Real-Time Search Active");
-                        } else if (id === 'document') {
-                          if (!checkPremiumTool('Document Analyzer')) return;
-                          setIsFileAnalysis(true);
-                          uploadInputRef.current?.click();
-                          toast.success("Upload document for analysis");
-                        } else if (id === 'edit_image') {
-                          if (!checkPremiumTool('Edit Image')) return;
-                          setIsMagicEditing(true);
-                          if (!editRefImage && messages.length > 0) {
-                            const lastImg = [...messages].reverse().find(m => m.imageUrl);
-                            if (lastImg) setEditRefImage({ url: lastImg.imageUrl, name: 'Last Generated', type: 'image' });
-                          }
-                          toast.success("Image Editing Mode Active");
-                        } else if (id === 'image_to_video') {
-                          if (!checkPremiumTool('Image to Video')) return;
-                          setIsMagicVideoModalOpen(true);
-                          toast.success("Image to Video Mode Active");
-                        } else if (id === 'ai_cashflow') {
-                          if (!checkPremiumTool('AI CashFlow')) return;
-                          setIsCashFlowMode(true);
-                          setIsStockModalOpen(true);
-                          toast.success("AI CashFlow Active 📈");
-                        } else if (id === 'aiad_agent') {
-                          if (!checkPremiumTool('AI Ad Agent')) return;
-                          setIsSocialMediaDashboardOpen(true);
-                          toast.success("AI ADS™ Active");
-                        } else if (id === 'legal') {
-                          if (!checkPremiumTool('AI Legal')) return;
-
-                          // ENSURE FRESH START: Clear any active sub-tools or modes
-                          setCurrentMode(MODES.NORMAL_CHAT);
-                          setSelectedLegalTool(null);
-                          setLegalView('DASHBOARD'); // Force dashboard view for the toolkit card
-
+                        onToolSelect={(id) => {
+                          setIsImageGeneration(false);
+                          setIsVideoGeneration(false);
+                          setIsAudioConvertMode(false);
+                          setIsCodeWriter(false);
+                          setIsDeepSearch(false);
+                          setIsWebSearch(false);
+                          setIsFileAnalysis(false);
+                          setIsMagicEditing(false);
+                          setIsMagicImageModalOpen(false);
+                          setIsMagicVideoModalOpen(false);
                           setIsCashFlowMode(false);
-                          setIsStockModalOpen(false);
-                          setActiveLegalToolkit(true);
+                          setActiveTool(null);
 
-                          toast.success("AI Legal Toolkit Active ⚖️");
-                        }
-                      }}
+                          // Clear ALL legal states regardless of selection to prevent race conditions
+                          // We only re-enable specific legal states below if id === 'legal'
+                          if (id !== 'legal') {
+                            setActiveLegalToolkit(false);
+                            setCurrentMode(null);
+                            setSelectedLegalTool(null);
+                          }
+
+                          if (id === 'image') {
+                            if (!checkPremiumTool('Image Generation')) return;
+                            setIsImageGeneration(true);
+                            setActiveTool('image');
+                            if (inputRef.current) { inputRef.current.value = "Generate an image of "; inputRef.current.focus(); }
+                            toast.success("Image Mode Active");
+                          } else if (id === 'video') {
+                            if (!checkPremiumTool('Generate Video')) return;
+                            setIsVideoGeneration(true);
+                            setActiveTool('video');
+                            if (inputRef.current) { inputRef.current.value = "Generate a video of "; inputRef.current.focus(); }
+                            toast.success("Video Mode Active");
+                          } else if (id === 'audio') {
+                            if (!checkPremiumTool('Convert to Audio')) return;
+                            setIsAudioConvertMode(true);
+                            setActiveTool('audio');
+                            if (inputRef.current) { inputRef.current.value = "Convert this text to audio: "; inputRef.current.focus(); }
+                            toast.success("Audio Mode Active");
+                          } else if (id === 'code') {
+                            if (!checkPremiumTool('Code Writer')) return;
+                            setIsCodeWriter(true);
+                            setActiveTool('code');
+                            if (inputRef.current) { inputRef.current.value = "Write a function to "; inputRef.current.focus(); }
+                            toast.success("Code Mode Active");
+                          } else if (id === 'deep_search') {
+                            if (!checkPremiumTool('Deep Search')) return;
+                            setIsDeepSearch(true);
+                            setActiveTool('deep_search');
+                            if (inputRef.current) { inputRef.current.value = "Research in-depth about "; inputRef.current.focus(); }
+                            toast.success("Deep Intelligence Active");
+                          } else if (id === 'web_search') {
+                            if (!checkPremiumTool('Web Search')) return;
+                            setIsWebSearch(true);
+                            setActiveTool('web_search');
+                            if (inputRef.current) { inputRef.current.value = "Search for live updates on "; inputRef.current.focus(); }
+                            toast.success("Real-Time Search Active");
+                          } else if (id === 'document') {
+                            if (!checkPremiumTool('Document Analyzer')) return;
+                            setIsFileAnalysis(true);
+                            setActiveTool('document');
+                            uploadInputRef.current?.click();
+                            toast.success("Upload document for analysis");
+                          } else if (id === 'edit_image') {
+                            if (!checkPremiumTool('Edit Image')) return;
+                            setIsMagicEditing(true);
+                            setActiveTool('edit_image');
+                            if (!editRefImage && messages.length > 0) {
+                              const lastImg = [...messages].reverse().find(m => m.imageUrl);
+                              if (lastImg) setEditRefImage({ url: lastImg.imageUrl, name: 'Last Generated', type: 'image' });
+                            }
+                            toast.success("Image Editing Mode Active");
+                          } else if (id === 'image_to_video') {
+                            if (!checkPremiumTool('Image to Video')) return;
+                            setIsMagicVideoModalOpen(true);
+                            setActiveTool('image_to_video');
+                            toast.success("Image to Video Mode Active");
+                          } else if (id === 'ai_cashflow') {
+                            if (!checkPremiumTool('AI CashFlow')) return;
+                            setIsCashFlowMode(true);
+                            setIsStockModalOpen(true);
+                            setActiveTool('ai_cashflow');
+                            toast.success("AI CashFlow Active 📈");
+                          } else if (id === 'aiad_agent') {
+                            if (!checkPremiumTool('AI Ad Agent')) return;
+                            setIsSocialMediaDashboardOpen(true);
+                            setActiveTool('aiad_agent');
+                            toast.success("AI ADS™ Active");
+                          } else if (id === 'legal') {
+                            if (!checkPremiumTool('AI Legal')) return;
+
+                            // ENSURE FRESH START: Clear any active sub-tools or modes
+                            setCurrentMode(MODES.NORMAL_CHAT);
+                            setSelectedLegalTool(null);
+                            setLegalView('DASHBOARD'); // Force dashboard view for the toolkit card
+
+                            setIsCashFlowMode(false);
+                            setIsStockModalOpen(false);
+                            setActiveLegalToolkit(true);
+                            setActiveTool('legal');
+
+                            toast.success("AI Legal Toolkit Active ⚖️");
+                          }
+                        }}
                     />
                   </section>
                 </div>
@@ -7412,7 +7441,10 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 setIsDocumentConvert(false);
                                 setIsCodeWriter(false);
                                 if (newMode) {
+                                  setActiveTool('image');
                                   toast.success("Image Generation Mode Enabled");
+                                } else {
+                                  setActiveTool(null);
                                 }
                               }}
                               className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isImageGeneration ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
@@ -7442,8 +7474,10 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 setIsDocumentConvert(false);
                                 setIsCodeWriter(false);
                                 if (newMode) {
-
+                                  setActiveTool('video');
                                   toast.success("Video Generation Mode Enabled");
+                                } else {
+                                  setActiveTool(null);
                                 }
                               }}
                               className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isVideoGeneration ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
@@ -7472,7 +7506,12 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 setIsAudioConvertMode(false);
                                 setIsDocumentConvert(false);
                                 setIsCodeWriter(false);
-                                if (!isWebSearch) toast.success("Real-Time Web Search Active");
+                                if (!isWebSearch) {
+                                  setActiveTool('web_search');
+                                  toast.success("Real-Time Web Search Active");
+                                } else {
+                                  setActiveTool(null);
+                                }
                               }}
                               className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isWebSearch ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
                             >
@@ -7500,7 +7539,12 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 setIsAudioConvertMode(false);
                                 setIsDocumentConvert(false);
                                 setIsCodeWriter(false);
-                                if (!isDeepSearch) toast.success("Deep Search Mode Enabled");
+                                if (!isDeepSearch) {
+                                  setActiveTool('deep_search');
+                                  toast.success("Deep Search Mode Enabled");
+                                } else {
+                                  setActiveTool(null);
+                                }
                               }}
                               className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isDeepSearch ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
                             >
@@ -7527,7 +7571,12 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 setIsVideoGeneration(false);
                                 setIsDocumentConvert(false);
                                 setIsCodeWriter(false);
-                                if (!isAudioConvertMode) toast.success("Convert to Audio Mode Active");
+                                if (!isAudioConvertMode) {
+                                  setActiveTool('audio');
+                                  toast.success("Convert to Audio Mode Active");
+                                } else {
+                                  setActiveTool(null);
+                                }
                               }}
                               className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isAudioConvertMode ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
                             >
@@ -7554,7 +7603,12 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 setIsVideoGeneration(false);
                                 setIsAudioConvertMode(false);
                                 setIsCodeWriter(false);
-                                if (!isDocumentConvert) toast.success("Document Converter Mode Active");
+                                if (!isDocumentConvert) {
+                                  setActiveTool('document');
+                                  toast.success("Document Converter Mode Active");
+                                } else {
+                                  setActiveTool(null);
+                                }
                               }}
                               className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isDocumentConvert ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
                             >
@@ -7583,7 +7637,12 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 setIsDocumentConvert(false);
                                 setIsEditingImage(false);
                                 setIsMagicEditing(false);
-                                if (!isCodeWriter) toast.success("Code Writer Mode Enabled");
+                                if (!isCodeWriter) {
+                                  setActiveTool('code');
+                                  toast.success("Code Writer Mode Enabled");
+                                } else {
+                                  setActiveTool(null);
+                                }
                               }}
                               className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isCodeWriter ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
                             >
@@ -7623,7 +7682,10 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 setIsCashFlowMode(false);
                                 setIsFileAnalysis(false);
                                 if (newMode) {
+                                  setActiveTool('edit_image');
                                   toast.success("Image Editing Enabled");
+                                } else {
+                                  setActiveTool(null);
                                 }
                               }}
                               className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isMagicEditing ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
@@ -7657,8 +7719,11 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 setIsMagicEditing(false);
                                 setIsFileAnalysis(false);
                                 if (newMode) {
+                                  setActiveTool('ai_cashflow');
                                   setIsStockModalOpen(true);
                                   toast.success("AI CashFlow Explorer Active");
+                                } else {
+                                  setActiveTool(null);
                                 }
                               }}
                               className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${isCashFlowMode ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
@@ -7699,7 +7764,12 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 setIsDocumentConvert(false);
                                 setIsCodeWriter(false);
                                 setIsMagicEditing(false);
-                                if (newMode) toast.success("AI Legal Enabled ⚖️");
+                                if (newMode) {
+                                  setActiveTool('legal');
+                                  toast.success("AI Legal Enabled ⚖️");
+                                } else {
+                                  setActiveTool(null);
+                                }
                               }}
                               className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 ${activeLegalToolkit ? 'bg-primary/5 border-primary/20 shadow-inner' : 'bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md'}`}
                             >
@@ -7720,6 +7790,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 if (!checkPremiumTool('Image to Video')) return;
                                 setIsToolsMenuOpen(false);
                                 setIsMagicVideoModalOpen(true);
+                                setActiveTool('image_to_video');
+                                toast.success("Image to Video Mode Active");
                               }}
                               className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md`}
                             >
@@ -7742,6 +7814,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 if (!checkPremiumTool('AI Ad Agent')) return;
                                 setIsToolsMenuOpen(false);
                                 setIsSocialMediaDashboardOpen(true);
+                                setActiveTool('aiad_agent');
+                                toast.success("AI ADS™ Active");
                               }}
                               className={`w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 rounded-3xl transition-all group cursor-pointer border-2 bg-white/50 dark:bg-white/5 border-white/80 dark:border-white/5 hover:border-primary/30 hover:bg-white dark:hover:bg-zinc-800 shadow-sm hover:shadow-md`}
                             >
@@ -7816,6 +7890,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setIsCashFlowMode(false);
+                                    setActiveTool(null);
                                   }}
                                   className="ml-1 hover:text-primary/80 p-0.5"
                                 >
@@ -7828,7 +7903,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
+                                className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary-rgb),0.3)] relative overflow-hidden ring-1 ring-white/10"
                               >
                                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
                                 <div className="flex flex-row items-center gap-2 relative z-10">
@@ -7839,7 +7914,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 </div>
                                 <button
                                   type="button"
-                                  onClick={() => setIsWebSearch(false)}
+                                  onClick={() => { setIsWebSearch(false); setActiveTool(null); }}
                                   className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
                                 >
                                   <X size={14} strokeWidth={3} />
@@ -7851,7 +7926,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
+                                className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary-rgb),0.3)] relative overflow-hidden ring-1 ring-white/10"
                               >
                                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
                                 <div className="flex flex-row items-center gap-2 relative z-10">
@@ -7862,7 +7937,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 </div>
                                 <button
                                   type="button"
-                                  onClick={() => setIsDeepSearch(false)}
+                                  onClick={() => { setIsDeepSearch(false); setActiveTool(null); }}
                                   className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
                                 >
                                   <X size={14} strokeWidth={3} />
@@ -7874,7 +7949,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
+                                className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary-rgb),0.3)] relative overflow-hidden ring-1 ring-white/10"
                               >
                                 {/* Glossy Reflection Effect */}
                                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
@@ -7903,7 +7978,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                                 <button
                                   type="button"
-                                  onClick={() => setIsImageGeneration(false)}
+                                  onClick={() => { setIsImageGeneration(false); setActiveTool(null); }}
                                   className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
                                 >
                                   <X size={14} strokeWidth={3} />
@@ -7915,7 +7990,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
+                                className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary-rgb),0.3)] relative overflow-hidden ring-1 ring-white/10"
                               >
                                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
 
@@ -7940,7 +8015,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                                 <button
                                   type="button"
-                                  onClick={() => setIsVideoGeneration(false)}
+                                  onClick={() => { setIsVideoGeneration(false); setActiveTool(null); }}
                                   className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
                                 >
                                   <X size={14} strokeWidth={3} />
@@ -7960,7 +8035,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 </div>
                                 <button
                                   type="button"
-                                  onClick={() => setIsVoiceMode(false)}
+                                  onClick={() => { setIsVoiceMode(false); setActiveTool(null); }}
                                   className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary dark:text-primary transition-all hover:rotate-90"
                                 >
                                   <X size={14} strokeWidth={3} />
@@ -7983,7 +8058,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => setIsAudioConvertMode(false)}
+                                  onClick={() => { setIsAudioConvertMode(false); setActiveTool(null); }}
                                   className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary transition-all hover:rotate-90"
                                 >
                                   <X size={14} strokeWidth={3} />
@@ -7993,13 +8068,13 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             {isDocumentConvert && (
                               <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
                                 <FileText size={12} strokeWidth={3} /> <span>Doc Convert</span>
-                                <button onClick={() => setIsDocumentConvert(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
+                                <button onClick={() => { setIsDocumentConvert(false); setActiveTool(null); }} className="ml-1 hover:text-primary/80"><X size={12} /></button>
                               </motion.div>
                             )}
                             {isCodeWriter && (
                               <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
                                 <Code size={12} strokeWidth={3} /> <span>Code Writer</span>
-                                <button onClick={() => setIsCodeWriter(false)} className="ml-1 hover:text-primary/80"><X size={12} /></button>
+                                <button onClick={() => { setIsCodeWriter(false); setActiveTool(null); }} className="ml-1 hover:text-primary/80"><X size={12} /></button>
                               </motion.div>
                             )}
 
@@ -8065,7 +8140,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary),0.3)] relative overflow-hidden ring-1 ring-white/10"
+                                className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary-rgb),0.3)] relative overflow-hidden ring-1 ring-white/10"
                               >
                                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
 
@@ -8092,7 +8167,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                                 <button
                                   type="button"
-                                  onClick={() => setIsMagicEditing(false)}
+                                  onClick={() => { setIsMagicEditing(false); setActiveTool(null); }}
                                   className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
                                 >
                                   <X size={14} strokeWidth={3} />
@@ -8112,7 +8187,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 </div>
                                 <button
                                   type="button"
-                                  onClick={() => setIsFileAnalysis(false)}
+                                  onClick={() => { setIsFileAnalysis(false); setActiveTool(null); }}
                                   className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary dark:text-primary transition-all hover:rotate-90"
                                 >
                                   <X size={14} strokeWidth={3} />
@@ -8166,7 +8241,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             }
                           }
                         }}
-                        placeholder={isLimitReached ? t('limitReached') || "Chat limit reached. Sign in to continue." : (isVideoGeneration ? t('describeVideo') || "Describe the video you want to generate..." : isAudioConvertMode ? t('enterTextToConvert') || "Enter text to convert..." : isDocumentConvert ? t('uploadFileToConvert') || "Upload file & ask to convert..." : currentMode === 'LEGAL_TOOLKIT' ? (selectedLegalTool?.placeholder || "⚖️ Ask your legal question or provide case details...") : (window.innerWidth < 768 ? "Write what’s on your mind…" : typedPlaceholder))}
+                        placeholder={isLimitReached ? t('limitReached') || "Chat limit reached. Sign in to continue." : (activeTool && TOOL_PLACEHOLDERS[activeTool]) ? TOOL_PLACEHOLDERS[activeTool] : (window.innerWidth < 768 ? "Write what’s on your mind…" : typedPlaceholder)}
                         rows={1}
                         className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none px-2 py-2 sm:px-3 sm:py-2.5 text-slate-800 dark:text-zinc-100 text-left placeholder-slate-400 dark:placeholder-zinc-500 resize-none overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] font-normal leading-[1.6] text-[15px] sm:text-[16px] ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
                         style={{ minHeight: '40px', height: '40px', maxHeight: '140px' }}

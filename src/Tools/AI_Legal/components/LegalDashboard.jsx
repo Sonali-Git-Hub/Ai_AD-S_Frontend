@@ -59,7 +59,7 @@ const LegalDashboard = ({
           <button
             onClick={() => {
               setEditingCaseId(null);
-              setNewCaseForm({ clientName: '', caseType: '', otherCaseType: '', accused: '', caseSummary: '' });
+              setNewCaseForm({ clientName: '', caseType: '', otherCaseType: '', accused: '', summary: '' });
               setIsNewCaseModalOpen(true);
             }}
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm transition-all active:scale-95 shadow-xl shadow-indigo-500/20 whitespace-nowrap"

@@ -257,6 +257,14 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
     } else {
       fetchSessions();
     }
+
+    // Listen for merge completion to refetch database sessions
+    const handleMergeComplete = () => {
+      console.log("[SIDEBAR] Merge complete event received, refetching sessions...");
+      fetchSessions();
+    };
+    window.addEventListener('chat-merge-complete', handleMergeComplete);
+    return () => window.removeEventListener('chat-merge-complete', handleMergeComplete);
   }, [token, sessionId, setSessions, currentProjectId, searchQuery]);
 
   // Auto-expand projects if search matches a project name
@@ -816,176 +824,187 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
 
           {/* Chat Sessions List */}
           <div className="flex-1 overflow-y-auto px-5 space-y-1 relative z-10 custom-scrollbar mt-2">
-            {token ? (
-              <>
-                <div className="px-1 py-4 flex items-center justify-between">
-                  <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? 'text-subtext/40' : 'text-slate-500'}`}>{t('activityLog')}</h3>
-                  <div className={`h-[1px] flex-1 ml-4 ${isDark ? 'bg-gradient-to-r from-subtext/10 to-transparent' : 'bg-gradient-to-r from-slate-300 to-transparent'}`}></div>
-                </div>
+            {(() => {
+              const hasHistory = Array.isArray(sessions) && sessions.length > 0;
+              
+              return (
+                <>
+                  <div className="px-1 py-4 flex items-center justify-between">
+                    <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? 'text-subtext/40' : 'text-slate-500'}`}>
+                      {token ? t('activityLog') : 'Guest History'}
+                    </h3>
+                    <div className={`h-[1px] flex-1 ml-4 ${isDark ? 'bg-gradient-to-r from-subtext/10 to-transparent' : 'bg-gradient-to-r from-slate-300 to-transparent'}`}></div>
+                  </div>
 
-                {(() => {
-                  const filteredSessions = (Array.isArray(sessions) ? sessions : [])
-                    .filter(session => session.title?.toLowerCase().includes(searchQuery.toLowerCase()));
-
-                  if (filteredSessions.length === 0) return null;
-
-                  const groupedSessions = filteredSessions.reduce((acc, session) => {
-                    const date = new Date(session.lastModified || session.updatedAt || session.createdAt || new Date());
-                    date.setHours(0, 0, 0, 0);
-                    
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    
-                    const yesterday = new Date(today);
-                    yesterday.setDate(yesterday.getDate() - 1);
-                    
-                    let groupKey = '';
-                    if (date.getTime() === today.getTime()) {
-                      groupKey = 'Today';
-                    } else if (date.getTime() === yesterday.getTime()) {
-                      groupKey = 'Yesterday';
-                    } else {
-                      groupKey = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-                    }
-                    
-                    if (!acc[groupKey]) acc[groupKey] = [];
-                    acc[groupKey].push(session);
-                    return acc;
-                  }, {});
-
-                  const sortedGroupKeys = Object.keys(groupedSessions).sort((a, b) => {
-                    if (a === 'Today') return -1;
-                    if (b === 'Today') return 1;
-                    if (a === 'Yesterday') return -1;
-                    if (b === 'Yesterday') return 1;
-                    return new Date(b) - new Date(a);
-                  });
-
-                  return sortedGroupKeys.map(groupKey => (
-                    <div key={groupKey} className="mb-3">
-                      {groupKey !== 'Today' && (
-                        <button 
-                          onClick={() => toggleHistoryGroup(groupKey)}
-                          className={`w-full flex items-center justify-between px-3 py-1.5 mb-1 group transition-colors rounded-lg ${isDark ? 'text-subtext/60 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-900 hover:bg-black/5'}`}
-                        >
-                          <span className="text-[10px] font-black uppercase tracking-widest">{groupKey}</span>
-                          <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${expandedHistoryGroups[groupKey] ? 'rotate-180' : ''}`} />
-                        </button>
-                      )}
-                      
-                      <AnimatePresence initial={false}>
-                        {(groupKey === 'Today' || expandedHistoryGroups[groupKey]) && (
-                          <motion.div
-                            initial={groupKey === 'Today' ? false : { height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.3, ease: "easeInOut" }}
-                            className="overflow-hidden flex flex-col"
-                          >
-                            {groupedSessions[groupKey].map((session, idx) => (
-                              <motion.div
-                                key={session.sessionId}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: idx * 0.02, duration: 0.3 }}
-                                className="group relative"
-                              >
-                                {editingSessionId === session.sessionId ? (
-                                  <div className="flex items-center gap-3 px-4 py-4 bg-white/5 rounded-2xl border border-primary/40 shadow-2xl mx-2">
-                                    <input
-                                      autoFocus
-                                      type="text"
-                                      value={newTitle}
-                                      onChange={(e) => setNewTitle(e.target.value)}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleRename(e, session.sessionId);
-                                        if (e.key === 'Escape') setEditingSessionId(null);
-                                      }}
-                                      className="bg-transparent text-[14px] font-bold text-maintext w-full outline-none"
-                                    />
-                                    <button
-                                      onClick={(e) => handleRename(e, session.sessionId)}
-                                      className="text-primary hover:scale-125 transition-transform shrink-0"
-                                    >
-                                      <Check className="w-5 h-5" strokeWidth={3} />
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="sidebar-chat-container relative">
-                                    <div
-                                      onClick={() => {
-                                        navigate(`/dashboard/chat/${session.sessionId}`);
-                                        onClose();
-                                      }}
-                                      className={`sidebar-chat-item group/item transition-all duration-500 mx-2 cursor-pointer
-                                    ${currentSessionId === session.sessionId
-                                          ? (isDark ? 'bg-white/[0.08] text-white border border-white/10 shadow-2xl backdrop-blur-3xl' : 'bg-white text-primary border border-primary/20 shadow-lg shadow-primary/10 backdrop-blur-3xl ring-4 ring-primary/5')
-                                          : (isDark ? 'text-subtext/60 hover:bg-white/[0.04] hover:text-white border border-transparent' : 'text-slate-700 hover:bg-white hover:text-slate-900 border border-transparent hover:shadow-md hover:scale-[1.01]')
-                                        }
-                                  `}
-                                    >
-                                      {currentSessionId === session.sessionId && (
-                                        <motion.div
-                                          layoutId="activeIndicator"
-                                          className="absolute left-1 top-4 bottom-4 w-1 bg-primary rounded-full shadow-[0_0_10px_rgba(var(--primary),0.5)]"
-                                        />
-                                      )}
-                                      <div className="sidebar-chat-title-group text-left flex-1 min-w-0">
-                                        <div className="sidebar-chat-title truncate">
-                                          {highlightMatch(session.title || "Untitled Intelligence", searchQuery)}
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                          {searchQuery && session.projectId && (
-                                            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/10 border border-primary/20">
-                                              <Folder className="w-2.5 h-2.5 text-primary" />
-                                              <span className="text-[9px] font-bold text-primary truncate max-w-[60px]">
-                                                {highlightMatch(projects.find(p => p._id === session.projectId)?.name || "Personal", searchQuery)}
-                                              </span>
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-
-                                      <div className="sidebar-chat-actions">
-                                        <button
-                                          onClick={(e) => { e.stopPropagation(); startRename(e, session); }}
-                                          className="sidebar-chat-action-btn"
-                                          title="Rename Chat"
-                                        >
-                                          <Edit2 />
-                                        </button>
-                                        <button
-                                          onClick={(e) => { e.stopPropagation(); handleDeleteSession(e, session.sessionId); }}
-                                          className="sidebar-chat-action-btn delete"
-                                          title="Delete Chat"
-                                        >
-                                          <X />
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                              </motion.div>
-                            ))}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                  {!hasHistory && !token && (
+                    <div className="flex flex-col items-center justify-center py-8 opacity-50 px-6 text-center">
+                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mb-3">
+                        <User className="w-5 h-5 text-primary" />
+                      </div>
+                      <p className="text-[10px] text-subtext">{t('loginToSaveHistory')}</p>
                     </div>
-                  ));
-                })()}
+                  )}
 
-                {(!Array.isArray(sessions) || sessions.length === 0) && (
-                  <div className="px-4 text-xs text-subtext italic">{t('noRecentChats') || 'No recent chats'}</div>
-                )}
-              </>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-48 opacity-50 px-6 text-center">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-3">
-                  <User className="w-6 h-6 text-primary" />
-                </div>
-                <p className="text-xs text-subtext">{t('loginToSaveHistory')}</p>
-              </div>
-            )}
+                  {!hasHistory && token && (
+                    <div className="px-4 text-xs text-subtext italic">{t('noRecentChats') || 'No recent chats'}</div>
+                  )}
+
+                  {hasHistory && (
+                    (() => {
+                      const filteredSessions = sessions.filter(session => 
+                        session.title?.toLowerCase().includes(searchQuery.toLowerCase())
+                      );
+
+                      if (filteredSessions.length === 0) return null;
+
+                      const groupedSessions = filteredSessions.reduce((acc, session) => {
+                        const date = new Date(session.lastModified || session.updatedAt || session.createdAt || new Date());
+                        date.setHours(0, 0, 0, 0);
+                        
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        
+                        const yesterday = new Date(today);
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        
+                        let groupKey = '';
+                        if (date.getTime() === today.getTime()) {
+                          groupKey = 'Today';
+                        } else if (date.getTime() === yesterday.getTime()) {
+                          groupKey = 'Yesterday';
+                        } else {
+                          groupKey = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                        }
+                        
+                        if (!acc[groupKey]) acc[groupKey] = [];
+                        acc[groupKey].push(session);
+                        return acc;
+                      }, {});
+
+                      const sortedGroupKeys = Object.keys(groupedSessions).sort((a, b) => {
+                        if (a === 'Today') return -1;
+                        if (b === 'Today') return 1;
+                        if (a === 'Yesterday') return -1;
+                        if (b === 'Yesterday') return 1;
+                        return new Date(b) - new Date(a);
+                      });
+
+                      return sortedGroupKeys.map(groupKey => (
+                        <div key={groupKey} className="mb-3">
+                          {groupKey !== 'Today' && (
+                            <button 
+                              onClick={() => toggleHistoryGroup(groupKey)}
+                              className={`w-full flex items-center justify-between px-3 py-1.5 mb-1 group transition-colors rounded-lg ${isDark ? 'text-subtext/60 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-900 hover:bg-black/5'}`}
+                            >
+                              <span className="text-[10px] font-black uppercase tracking-widest">{groupKey}</span>
+                              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${expandedHistoryGroups[groupKey] ? 'rotate-180' : ''}`} />
+                            </button>
+                          )}
+                          
+                          <AnimatePresence initial={false}>
+                            {(groupKey === 'Today' || expandedHistoryGroups[groupKey]) && (
+                              <motion.div
+                                initial={groupKey === 'Today' ? false : { height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.3, ease: "easeInOut" }}
+                                className="overflow-hidden flex flex-col"
+                              >
+                                {groupedSessions[groupKey].map((session, idx) => (
+                                  <motion.div
+                                    key={session.sessionId}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: idx * 0.02, duration: 0.3 }}
+                                    className="group relative"
+                                  >
+                                    {editingSessionId === session.sessionId ? (
+                                      <div className="flex items-center gap-3 px-4 py-4 bg-white/5 rounded-2xl border border-primary/40 shadow-2xl mx-2">
+                                        <input
+                                          autoFocus
+                                          type="text"
+                                          value={newTitle}
+                                          onChange={(e) => setNewTitle(e.target.value)}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleRename(e, session.sessionId);
+                                            if (e.key === 'Escape') setEditingSessionId(null);
+                                          }}
+                                          className="bg-transparent text-[14px] font-bold text-maintext w-full outline-none"
+                                        />
+                                        <button
+                                          onClick={(e) => handleRename(e, session.sessionId)}
+                                          className="text-primary hover:scale-125 transition-transform shrink-0"
+                                        >
+                                          <Check className="w-5 h-5" strokeWidth={3} />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div className="sidebar-chat-container relative">
+                                        <div
+                                          onClick={() => {
+                                            navigate(`/dashboard/chat/${session.sessionId}`);
+                                            onClose();
+                                          }}
+                                          className={`sidebar-chat-item group/item transition-all duration-500 mx-2 cursor-pointer
+                                        ${currentSessionId === session.sessionId
+                                              ? (isDark ? 'bg-white/[0.08] text-white border border-white/10 shadow-2xl backdrop-blur-3xl' : 'bg-white text-primary border border-primary/20 shadow-lg shadow-primary/10 backdrop-blur-3xl ring-4 ring-primary/5')
+                                              : (isDark ? 'text-subtext/60 hover:bg-white/[0.04] hover:text-white border border-transparent' : 'text-slate-700 hover:bg-white hover:text-slate-900 border border-transparent hover:shadow-md hover:scale-[1.01]')
+                                            }
+                                      `}
+                                        >
+                                          {currentSessionId === session.sessionId && (
+                                            <motion.div
+                                              layoutId="activeIndicator"
+                                              className="absolute left-1 top-4 bottom-4 w-1 bg-primary rounded-full shadow-[0_0_10px_rgba(var(--primary-rgb),0.5)]"
+                                            />
+                                          )}
+                                          <div className="sidebar-chat-title-group text-left flex-1 min-w-0">
+                                            <div className="sidebar-chat-title truncate">
+                                              {highlightMatch(session.title || "Untitled Intelligence", searchQuery)}
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                              {searchQuery && session.projectId && (
+                                                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/10 border border-primary/20">
+                                                  <Folder className="w-2.5 h-2.5 text-primary" />
+                                                  <span className="text-[9px] font-bold text-primary truncate max-w-[60px]">
+                                                    {highlightMatch(projects.find(p => p._id === session.projectId)?.name || "Personal", searchQuery)}
+                                                  </span>
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+
+                                          <div className="sidebar-chat-actions">
+                                            <button
+                                              onClick={(e) => { e.stopPropagation(); startRename(e, session); }}
+                                              className="sidebar-chat-action-btn"
+                                              title="Rename Chat"
+                                            >
+                                              <Edit2 />
+                                            </button>
+                                            <button
+                                              onClick={(e) => { e.stopPropagation(); handleDeleteSession(e, session.sessionId); }}
+                                              className="sidebar-chat-action-btn delete"
+                                              title="Delete Chat"
+                                            >
+                                              <X />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </motion.div>
+                                ))}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      ));
+                    })()
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
 
