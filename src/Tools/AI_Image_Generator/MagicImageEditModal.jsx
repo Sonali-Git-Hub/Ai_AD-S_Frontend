@@ -120,7 +120,7 @@ const MagicImageEditModal = ({ isOpen, onClose, onCreditDeduction }) => {
                                 <Wand2 className="w-5 h-5 text-amber-500" />
                             </div>
                             <div>
-                                <h2 className="text-lg font-bold text-maintext">AISA™ Edit</h2>
+                                <h2 className="text-lg font-bold text-maintext">AISA™ Vision | Image Editing</h2>
                                 <p className="text-[10px] text-indigo-500 font-bold uppercase tracking-[0.1em] flex items-center gap-1.5 mt-0.5">
                                     <Sparkles className="w-3 h-3" /> AISA™ Proprietary Engine ⚡ 20 Credits
                                 </p>

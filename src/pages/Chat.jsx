@@ -220,9 +220,9 @@ const TOOL_PRICING = {
       { id: 'gemini-2.5-flash-image', name: 'AISA™ Vision Lite', price: 30, speed: 'Stable', description: 'Stable and reliable everyday image generation.' }
     ],
     editModels: [
-      { id: 'gemini-3.1-flash-image-preview', name: 'AISA™ Edit Flash', price: 45, speed: 'Fast', description: 'Swift intelligent image manipulation.' },
-      { id: 'gemini-3-pro-image-preview', name: 'AISA™ Edit Pro', price: 75, speed: 'Pro', description: 'Advanced image editing with deep semantic control.' },
-      { id: 'gemini-2.5-flash-image', name: 'AISA™ Edit Lite', price: 30, speed: 'Stable', description: 'Production-ready basic image modifications.' }
+      { id: 'gemini-3.1-flash-image-preview', name: 'AISA™ Vision Flash', price: 45, speed: 'Fast', description: 'Swift intelligent image manipulation.' },
+      { id: 'gemini-3-pro-image-preview', name: 'AISA™ Vision Pro', price: 75, speed: 'Pro', description: 'Advanced image editing with deep semantic control.' },
+      { id: 'gemini-2.5-flash-image', name: 'AISA™ Vision Lite', price: 30, speed: 'Stable', description: 'Production-ready basic image modifications.' }
     ]
   },
   video: {
@@ -619,6 +619,7 @@ const Chat = () => {
   const [isMagicVideoModalOpen, setIsMagicVideoModalOpen] = useState(false);
   const [isSocialMediaDashboardOpen, setIsSocialMediaDashboardOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
+  const [dashboardTab, setDashboardTab] = useState('Create');
 
   const [isBrainHovered, setIsBrainHovered] = useState(false);
   const [isMicHovered, setIsMicHovered] = useState(false);
@@ -6135,12 +6136,15 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         <div
           ref={chatContainerRef}
           onScroll={handleScroll}
-          className={`relative flex-1 aisa-scalable-text chatgpt-container scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent ${((legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT')
-            ? 'z-20 h-full w-full overflow-hidden flex flex-col bg-slate-50 min-h-0'
-            : `overflow-y-auto ${((currentMode === 'LEGAL_TOOLKIT' && (selectedLegalTool?.id === 'legal_my_case' || selectedLegalTool?.id === 'legal_precedents')) || location.pathname === '/dashboard/cases') ? 'pt-4' : 'pt-[76px]'} lg:pt-6 pb-64 md:pb-72`
+          className={`relative flex-1 aisa-scalable-text chatgpt-container scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent ${
+            (messages.length === 0 && !isSessionLoading && !currentCase && (!currentProjectId || currentProjectId === 'default' || currentProjectId === 'all') && currentMode !== 'LEGAL_TOOLKIT')
+              ? 'dashboard-mode' 
+              : 'chat-mode'
+          } ${((legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT')
+            ? 'z-20 flex flex-col bg-slate-50'
+            : `${((currentMode === 'LEGAL_TOOLKIT' && (selectedLegalTool?.id === 'legal_my_case' || selectedLegalTool?.id === 'legal_precedents')) || location.pathname === '/dashboard/cases') ? 'pt-4' : 'pt-[76px]'} lg:pt-6 pb-64 md:pb-72`
             }`}
           style={{
-            overflowY: ((legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT') ? 'hidden' : 'auto',
             height: '100%',
             flex: '1 1 auto',
             display: 'flex',
@@ -7268,23 +7272,28 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
-                className="absolute inset-0 z-10 pointer-events-auto flex flex-col items-center justify-center overflow-y-auto overflow-x-hidden pb-32 md:pb-48 scrollbar-hide"
+                className="absolute inset-0 z-10 pointer-events-auto flex flex-col items-center overflow-x-hidden pb-40 sm:pb-0 pt-10 sm:pt-0 sm:justify-center scrollbar-hide"
               >
                 <div className="relative z-10 flex flex-col items-center w-full max-w-7xl mx-auto px-4 sm:px-6 h-max mt-8 sm:mt-0">
                   <motion.div
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.1 }}
-                    className="mb-4 sm:mb-6"
+                    className="mb-4 sm:mb-6 text-center"
                   >
-                    <img
-                      src={logo}
-                      alt="AISA"
-                      className="w-16 h-12 sm:w-20 sm:h-16 mx-auto object-cover object-top drop-shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.4)] transition-all duration-700 hover:scale-110"
-                    />
+                    <div className="mb-2 text-xs sm:text-sm font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                      Welcome back, {(user?.name || user?.displayName || 'User').split(' ')[0]} 👋
+                    </div>
+                    <h2 className="text-xl sm:text-3xl font-bold text-slate-800 dark:text-white tracking-tight px-4">
+                      {dashboardTab === 'Create' && "✨ What would you like to create today?"}
+                      {dashboardTab === 'Intelligence' && "🧠 What should we analyze today?"}
+                      {dashboardTab === 'Business' && "📊 Ready to boost your productivity today?"}
+                    </h2>
                   </motion.div>
                   <section className="w-full px-0 mt-0">
                     <FuturisticToolCards
+                      activeTab={dashboardTab}
+                      onTabChange={setDashboardTab}
                       isAdmin={isAdminUser}
                       activeToolId={
                         isImageGeneration ? 'image' :
