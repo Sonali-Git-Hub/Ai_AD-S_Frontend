@@ -74,6 +74,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
   const user = currentUserData.user || getUserData() || { name: "Loading...", email: "...", role: "user" };
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   // New States
+  const [isNavigating, setIsNavigating] = useState(false);
   const [isConnectorsOpen, setIsConnectorsOpen] = useState(false);
   const [isCreditsOpen, setIsCreditsOpen] = useState(false);
   const [creditLogs, setCreditLogs] = useState([]);
@@ -514,21 +515,43 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
           <div className="absolute bottom-[10%] right-[-10%] w-[50%] h-[50%] bg-primary/30 blur-[100px] animate-float-slow" style={{ animationDelay: '-5s' }} />
         </div>
         {/* Brand & Top Actions */}
-        <div className="p-6 pb-2 mb-2 flex items-center justify-between relative z-10">
-          <div className="flex items-center gap-3">
-            <Link to="/" state={{ fromLogo: true }} className="group/logo flex items-center gap-2">
-              <div className="relative">
-                <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 animate-pulse opacity-0 group-hover/logo:opacity-100 transition-opacity" />
-                <img
-                  src={logo}
-                  alt="AISA™"
-                  className="h-9 w-auto relative z-10 transition-transform duration-500 group-hover/logo:scale-110 drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]"
-                />
-              </div>
-              <span className="text-xl font-black tracking-tighter transition-all duration-300" style={{ background: 'linear-gradient(135deg, #9333ea 0%, #3b82f6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontFamily: '"Times New Roman", Times, serif', display: 'inline-block', paddingRight: '2px' }}>AISA<span style={{ fontSize: '0.6em', verticalAlign: 'super', marginLeft: '2px' }}>™</span></span>
-            </Link>
+        <div className="p-6 pb-2 mb-2 flex items-center justify-between relative z-10 flex-wrap gap-y-3">
+          <Link to="/" state={{ fromLogo: true }} className="group/logo flex items-center gap-2">
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 animate-pulse opacity-0 group-hover/logo:opacity-100 transition-opacity" />
+              <img
+                src={logo}
+                alt="AISA™"
+                className="h-9 w-auto relative z-10 transition-transform duration-500 group-hover/logo:scale-110 drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]"
+              />
+            </div>
+            <span className="text-xl font-black tracking-tighter transition-all duration-300" style={{ background: 'linear-gradient(135deg, #9333ea 0%, #3b82f6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontFamily: '"Times New Roman", Times, serif', display: 'inline-block', paddingRight: '2px' }}>AISA<span style={{ fontSize: '0.6em', verticalAlign: 'super', marginLeft: '2px' }}>™</span></span>
+          </Link>
 
-
+          <div className="flex items-center relative z-10 bg-black/5 border border-[#8B5CF6]/30 rounded-full p-0.5 w-24 h-7">
+            <motion.div
+              className="absolute top-0.5 bottom-0.5 left-0.5 w-[46px] bg-[#8B5CF6] rounded-full shadow-sm z-0"
+              initial={false}
+              animate={{
+                x: isNavigating ? 46 : 0
+              }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            />
+            <div className={`relative z-10 w-[46px] flex justify-center items-center text-[9px] font-bold transition-colors ${!isNavigating ? 'text-white' : (isDark ? 'text-gray-400' : 'text-gray-500')}`}>
+              AISA
+            </div>
+            <button
+              onClick={() => {
+                setIsNavigating(true);
+                setTimeout(() => {
+                  window.location.href = import.meta.env.VITE_AI_MALL || "https://aimall24.com";
+                }, 300);
+              }}
+              className={`relative z-10 w-[46px] flex justify-center items-center text-[9px] font-bold transition-colors ${isNavigating ? 'text-white' : (isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-[#8B5CF6]')}`}
+            >
+              MALL
+            </button>
+            {console.log(import.meta.env.VITE_AI_MALL)}
           </div>
 
           <button
@@ -791,7 +814,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                                       <div className="flex flex-col items-start min-w-0 pr-4">
                                         <span className="truncate font-bold text-[13px] text-left">{highlightMatch(p.name, searchQuery)}</span>
                                         {(() => {
-                                          const today = new Date(); today.setHours(0,0,0,0);
+                                          const today = new Date(); today.setHours(0, 0, 0, 0);
                                           const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
                                           const hasToday = p.hearings?.some(h => new Date(h.date).toDateString() === today.toDateString() && h.status === 'Upcoming');
                                           if (hasToday) return <span className="text-[8px] font-black uppercase text-red-500 animate-pulse">🔴 Hearing Today</span>;
@@ -826,7 +849,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
           <div className="flex-1 overflow-y-auto px-5 space-y-1 relative z-10 custom-scrollbar mt-2">
             {(() => {
               const hasHistory = Array.isArray(sessions) && sessions.length > 0;
-              
+
               return (
                 <>
                   <div className="px-1 py-4 flex items-center justify-between">
@@ -851,7 +874,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
 
                   {hasHistory && (
                     (() => {
-                      const filteredSessions = sessions.filter(session => 
+                      const filteredSessions = sessions.filter(session =>
                         session.title?.toLowerCase().includes(searchQuery.toLowerCase())
                       );
 
@@ -860,13 +883,13 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                       const groupedSessions = filteredSessions.reduce((acc, session) => {
                         const date = new Date(session.lastModified || session.updatedAt || session.createdAt || new Date());
                         date.setHours(0, 0, 0, 0);
-                        
+
                         const today = new Date();
                         today.setHours(0, 0, 0, 0);
-                        
+
                         const yesterday = new Date(today);
                         yesterday.setDate(yesterday.getDate() - 1);
-                        
+
                         let groupKey = '';
                         if (date.getTime() === today.getTime()) {
                           groupKey = 'Today';
@@ -875,7 +898,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                         } else {
                           groupKey = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
                         }
-                        
+
                         if (!acc[groupKey]) acc[groupKey] = [];
                         acc[groupKey].push(session);
                         return acc;
@@ -892,7 +915,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                       return sortedGroupKeys.map(groupKey => (
                         <div key={groupKey} className="mb-3">
                           {groupKey !== 'Today' && (
-                            <button 
+                            <button
                               onClick={() => toggleHistoryGroup(groupKey)}
                               className={`w-full flex items-center justify-between px-3 py-1.5 mb-1 group transition-colors rounded-lg ${isDark ? 'text-subtext/60 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-900 hover:bg-black/5'}`}
                             >
@@ -900,7 +923,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                               <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${expandedHistoryGroups[groupKey] ? 'rotate-180' : ''}`} />
                             </button>
                           )}
-                          
+
                           <AnimatePresence initial={false}>
                             {(groupKey === 'Today' || expandedHistoryGroups[groupKey]) && (
                               <motion.div
@@ -1167,11 +1190,11 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                             <div className="flex items-center gap-4">
                               <div className="w-12 h-12 rounded-xl bg-white dark:bg-[#1E2438] border border-border flex items-center justify-center shadow-sm">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="w-8 h-8">
-                                  <path fill="#4caf50" d="M45,16.2l-5,2.75l-5,4.75L35,40h7c1.657,0,3-1.343,3-3V16.2z"/>
-                                  <path fill="#1e88e5" d="M3,16.2l3.614,1.71L13,23.7V40H6c-1.657,0-3-1.343-3-3V16.2z"/>
-                                  <polygon fill="#e53935" points="35,11.2 24,19.45 13,11.2 12,17 13,23.7 24,31.95 35,23.7 36,17"/>
-                                  <path fill="#c62828" d="M3,12.298V16.2l10,7.5V11.2L9.876,8.859C9.132,8.301,8.228,8,7.298,8h0 C4.924,8,3,9.924,3,12.298z"/>
-                                  <path fill="#fbc02d" d="M45,12.298V16.2l-10,7.5V11.2l3.124-2.341C38.868,8.301,39.772,8,40.702,8h0 C43.076,8,45,9.924,45,12.298z"/>
+                                  <path fill="#4caf50" d="M45,16.2l-5,2.75l-5,4.75L35,40h7c1.657,0,3-1.343,3-3V16.2z" />
+                                  <path fill="#1e88e5" d="M3,16.2l3.614,1.71L13,23.7V40H6c-1.657,0-3-1.343-3-3V16.2z" />
+                                  <polygon fill="#e53935" points="35,11.2 24,19.45 13,11.2 12,17 13,23.7 24,31.95 35,23.7 36,17" />
+                                  <path fill="#c62828" d="M3,12.298V16.2l10,7.5V11.2L9.876,8.859C9.132,8.301,8.228,8,7.298,8h0 C4.924,8,3,9.924,3,12.298z" />
+                                  <path fill="#fbc02d" d="M45,12.298V16.2l-10,7.5V11.2l3.124-2.341C38.868,8.301,39.772,8,40.702,8h0 C43.076,8,45,9.924,45,12.298z" />
                                 </svg>
                               </div>
                               <div>

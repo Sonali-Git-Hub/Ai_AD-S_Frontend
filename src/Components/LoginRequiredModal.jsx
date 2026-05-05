@@ -7,12 +7,14 @@ import { useIsDark } from '../context/ThemeContext';
 const LoginRequiredModal = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [toolName, setToolName] = useState('');
+    const [customMessage, setCustomMessage] = useState('');
     const navigate = useNavigate();
     const isDark = useIsDark();
 
     useEffect(() => {
         const handleLoginRequired = (e) => {
             setToolName(e.detail?.toolName || 'AISA™ Magic Tools');
+            setCustomMessage(e.detail?.customMessage || '');
             setIsOpen(true);
         };
         window.addEventListener('login_required', handleLoginRequired);
@@ -83,13 +85,17 @@ const LoginRequiredModal = () => {
                         <p className={`text-[16px] mb-12 leading-relaxed font-medium ${
                             isDark ? 'text-white/40' : 'text-slate-500'
                         }`}>
-                            Sign in to your{' '}
-                            <span className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>AISA™</span>{' '}
-                            account to unlock{' '}
-                            <span className="text-primary font-bold">
-                                {toolName === 'AISA™ Magic Tools' ? 'Image Generation' : toolName}
-                            </span>{' '}
-                            and other powerful AI magic tools.
+                            {customMessage || (
+                                <>
+                                    Sign in to your{' '}
+                                    <span className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>AISA™</span>{' '}
+                                    account to unlock{' '}
+                                    <span className="text-primary font-bold">
+                                        {toolName === 'AISA™ Magic Tools' ? 'Image Generation' : toolName}
+                                    </span>{' '}
+                                    and other powerful AI magic tools.
+                                </>
+                            )}
                         </p>
 
                         {/* CTAs */}
