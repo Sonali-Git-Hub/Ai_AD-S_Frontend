@@ -58,7 +58,8 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
     const getToolTitle = () => {
         switch(toolType) {
             case 'video': return 'AISA™ Motion';
-            case 'edit': return 'AISA™ Edit';
+            case 'image': return 'AISA™ Vision | Image Generation';
+            case 'edit': return 'AISA™ Vision | Image Editing';
             case 'deepsearch': return 'AISA™ Deep Search';
             case 'websearch': return 'AISA™ Web Search';
             case 'coding': return 'AISA™ Code Builder';

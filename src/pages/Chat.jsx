@@ -65,11 +65,11 @@ import LegalWorkspaceWelcome from '../Tools/AI_Legal/components/LegalWorkspaceWe
 
 const transformLegalActions = (content) => {
   if (!content) return "";
-  
+
   // Pattern: 👉 **Title**: Description [Action: Button](action:id)
   // This regex handles various slight variations in spacing and bolding
   const actionRegex = /(?:👉\s*)?(?:\*\*)?([^*:]+)(?:\*\*)?[:\-]?\s*([^\[\n]+)\s*\[(Action:\s*[^\]]+)\]\(action:([^)]+)\)/g;
-  
+
   return content.replace(actionRegex, (match, title, desc, action, link) => {
     return `\n[ActionCard|${title.trim()}|${desc.trim()}|${action.trim()}](action:${link.trim()})\n`;
   });
@@ -220,9 +220,9 @@ const TOOL_PRICING = {
       { id: 'gemini-2.5-flash-image', name: 'AISA™ Vision Lite', price: 30, speed: 'Stable', description: 'Stable and reliable everyday image generation.' }
     ],
     editModels: [
-      { id: 'gemini-3.1-flash-image-preview', name: 'AISA™ Edit Flash', price: 45, speed: 'Fast', description: 'Swift intelligent image manipulation.' },
-      { id: 'gemini-3-pro-image-preview', name: 'AISA™ Edit Pro', price: 75, speed: 'Pro', description: 'Advanced image editing with deep semantic control.' },
-      { id: 'gemini-2.5-flash-image', name: 'AISA™ Edit Lite', price: 30, speed: 'Stable', description: 'Production-ready basic image modifications.' }
+      { id: 'gemini-3.1-flash-image-preview', name: 'AISA™ Vision Flash', price: 45, speed: 'Fast', description: 'Swift intelligent image manipulation.' },
+      { id: 'gemini-3-pro-image-preview', name: 'AISA™ Vision Pro', price: 75, speed: 'Pro', description: 'Advanced image editing with deep semantic control.' },
+      { id: 'gemini-2.5-flash-image', name: 'AISA™ Vision Lite', price: 30, speed: 'Stable', description: 'Production-ready basic image modifications.' }
     ]
   },
   video: {
@@ -619,6 +619,7 @@ const Chat = () => {
   const [isMagicVideoModalOpen, setIsMagicVideoModalOpen] = useState(false);
   const [isSocialMediaDashboardOpen, setIsSocialMediaDashboardOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
+  const [dashboardTab, setDashboardTab] = useState('Create');
 
   const [isBrainHovered, setIsBrainHovered] = useState(false);
   const [isMicHovered, setIsMicHovered] = useState(false);
@@ -3418,11 +3419,11 @@ const Chat = () => {
     // Proactive Guest Limit Check for new session creation
     const token = getUserData()?.token;
     if (!token && sessions.length >= 5) {
-      window.dispatchEvent(new CustomEvent('login_required', { 
-        detail: { 
+      window.dispatchEvent(new CustomEvent('login_required', {
+        detail: {
           toolName: 'AISA™ Unlimited Chat',
           customMessage: "You've reached the guest limit of 5 sessions. Please sign in to create more chat sessions!"
-        } 
+        }
       }));
       return;
     }
@@ -3504,25 +3505,25 @@ const Chat = () => {
         : "Initializing legal workflow...";
 
       toast.success(
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2">
-          <Scale size={14} className="text-indigo-600" />
-          <span className="font-black text-[13px] text-slate-900">⚖️ {finalToolName} Activated</span>
-        </div>
-        <p className="text-[11px] text-slate-500 font-medium ml-6">{feedbackMsg}</p>
-      </div>,
-      {
-        duration: 2000,
-        style: {
-          background: '#FFFFFF',
-          color: '#1E293B',
-          borderRadius: '20px',
-          padding: '12px 20px',
-          border: '1px solid rgba(79, 70, 229, 0.1)',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <Scale size={14} className="text-indigo-600" />
+            <span className="font-black text-[13px] text-slate-900">⚖️ {finalToolName} Activated</span>
+          </div>
+          <p className="text-[11px] text-slate-500 font-medium ml-6">{feedbackMsg}</p>
+        </div>,
+        {
+          duration: 2000,
+          style: {
+            background: '#FFFFFF',
+            color: '#1E293B',
+            borderRadius: '20px',
+            padding: '12px 20px',
+            border: '1px solid rgba(79, 70, 229, 0.1)',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+          }
         }
-      }
-    );
+      );
     }
   };
 
@@ -3708,11 +3709,11 @@ const Chat = () => {
       if (!token) {
         // 1. Session Limit (5 sessions)
         if (activeSessionId === 'new' && sessions.length >= 5) {
-          window.dispatchEvent(new CustomEvent('login_required', { 
-            detail: { 
+          window.dispatchEvent(new CustomEvent('login_required', {
+            detail: {
               toolName: 'AISA™ Unlimited Chat',
               customMessage: "You've reached the guest limit of 5 sessions. Please sign in to create more chat sessions!"
-            } 
+            }
           }));
           isSendingRef.current = false;
           setIsLoading(false);
@@ -3723,11 +3724,11 @@ const Chat = () => {
         // 2. Chat Count Limit (10 user messages per session)
         const userMsgCount = messages.filter(m => m.role === 'user').length;
         if (activeSessionId !== 'new' && userMsgCount >= 10) {
-          window.dispatchEvent(new CustomEvent('login_required', { 
-            detail: { 
+          window.dispatchEvent(new CustomEvent('login_required', {
+            detail: {
               toolName: 'AISA™ Unlimited Chat',
               customMessage: "You've reached the guest limit of 10 chats per session. Please sign in to continue this conversation!"
-            } 
+            }
           }));
           isSendingRef.current = false;
           setIsLoading(false);
@@ -3898,7 +3899,7 @@ const Chat = () => {
       if (isCashFlowMode || toolOverride === 'cashflow') {
         // If we have context and the user is asking a follow-up, let it go to Gemini
         const isFollowUp = financialContext && (contentToSend.includes(' ') || contentToSend.length > 8);
-        
+
         if (isFollowUp) {
           console.log('[CashFlow] Routing as follow-up chat');
         } else {
@@ -4403,11 +4404,11 @@ ${financialContext.kiyosakiData ? `
         if (aiResponseData && aiResponseData.error === "LIMIT_REACHED") {
           setIsLimitReached(true);
           // Trigger LoginRequiredModal with custom message
-          window.dispatchEvent(new CustomEvent('login_required', { 
-            detail: { 
+          window.dispatchEvent(new CustomEvent('login_required', {
+            detail: {
               toolName: 'AISA™ Unlimited Chat',
               customMessage: "You've reached the guest limit of 5 sessions and 10 chats per session. Sign in to unlock unlimited chat, image generation, and more!"
-            } 
+            }
           }));
           setIsLoading(false);
           isSendingRef.current = false;
@@ -6161,12 +6162,14 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         <div
           ref={chatContainerRef}
           onScroll={handleScroll}
-          className={`relative flex-1 aisa-scalable-text chatgpt-container scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent ${((legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT')
-            ? 'z-20 h-full w-full overflow-hidden flex flex-col bg-slate-50 min-h-0'
-            : `overflow-y-auto ${((currentMode === 'LEGAL_TOOLKIT' && (selectedLegalTool?.id === 'legal_my_case' || selectedLegalTool?.id === 'legal_precedents')) || location.pathname === '/dashboard/cases') ? 'pt-4' : 'pt-[76px]'} lg:pt-6 pb-64 md:pb-72`
+          className={`relative flex-1 aisa-scalable-text chatgpt-container scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent ${(messages.length === 0 && !isSessionLoading && !currentCase && (!currentProjectId || currentProjectId === 'default' || currentProjectId === 'all') && currentMode !== 'LEGAL_TOOLKIT')
+              ? 'dashboard-mode'
+              : 'chat-mode'
+            } ${((legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT')
+              ? 'z-20 flex flex-col bg-slate-50'
+              : `${((currentMode === 'LEGAL_TOOLKIT' && (selectedLegalTool?.id === 'legal_my_case' || selectedLegalTool?.id === 'legal_precedents')) || location.pathname === '/dashboard/cases') ? 'pt-4' : 'pt-[76px]'} lg:pt-6 pb-64 md:pb-72`
             }`}
           style={{
-            overflowY: ((legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT') ? 'hidden' : 'auto',
             height: '100%',
             flex: '1 1 auto',
             display: 'flex',
@@ -6479,28 +6482,56 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                         <Skeleton />
                                       ) : (
                                         <ReactMarkdown
-                                        className="select-text"
-                                        remarkPlugins={[remarkGfm]}
-                                        urlTransform={(value) => value}
-                                        components={{
-                                          a: ({ href, children }) => {
-                                            const text = children?.toString() || "";
-                                            if (href && href.startsWith('action:')) {
-                                              const isLocked = text.includes('🔒') || text.includes('Unlock');
+                                          className="select-text"
+                                          remarkPlugins={[remarkGfm]}
+                                          urlTransform={(value) => value}
+                                          components={{
+                                            a: ({ href, children }) => {
+                                              const text = children?.toString() || "";
+                                              if (href && href.startsWith('action:')) {
+                                                const isLocked = text.includes('🔒') || text.includes('Unlock');
 
-                                              if (text.startsWith('ActionCard|')) {
-                                                const parts = text.split('|');
-                                                const title = parts[1] || "";
-                                                const desc = parts[2] || "";
-                                                const actionLabel = (parts[3] || "Open").replace(/^Action:\s*/i, '');
+                                                if (text.startsWith('ActionCard|')) {
+                                                  const parts = text.split('|');
+                                                  const title = parts[1] || "";
+                                                  const desc = parts[2] || "";
+                                                  const actionLabel = (parts[3] || "Open").replace(/^Action:\s*/i, '');
+
+                                                  return (
+                                                    <ActionCard
+                                                      title={title}
+                                                      desc={desc}
+                                                      action={actionLabel}
+                                                      link={href}
+                                                      isLocked={isLocked}
+                                                      onClick={(e) => {
+                                                        e.preventDefault();
+                                                        const toolKey = href.replace('action:', '');
+                                                        setCurrentMode('LEGAL_TOOLKIT');
+
+                                                        const TOOL_NAMES = {
+                                                          legal_draft_maker: "Draft Maker",
+                                                          legal_case_predictor: "Case Predictor",
+                                                          legal_argument_builder: "Argument Builder",
+                                                          legal_evidence_checker: "Evidence Analyst",
+                                                          legal_contract_analyzer: "Contract Analyzer",
+                                                          legal_strategy_engine: "Strategy Engine"
+                                                        };
+                                                        const toolName = TOOL_NAMES[toolKey] || toolKey;
+
+                                                        if (isLocked) {
+                                                          window.dispatchEvent(new CustomEvent('premium_required', { detail: { toolName } }));
+                                                          return;
+                                                        }
+
+                                                        activateToolWithTypingEffect(toolKey, toolName);
+                                                      }}
+                                                    />
+                                                  );
+                                                }
 
                                                 return (
-                                                  <ActionCard
-                                                    title={title}
-                                                    desc={desc}
-                                                    action={actionLabel}
-                                                    link={href}
-                                                    isLocked={isLocked}
+                                                  <button
                                                     onClick={(e) => {
                                                       e.preventDefault();
                                                       const toolKey = href.replace('action:', '');
@@ -6516,6 +6547,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                                       };
                                                       const toolName = TOOL_NAMES[toolKey] || toolKey;
 
+                                                      // Open the premium upsell if locked
                                                       if (isLocked) {
                                                         window.dispatchEvent(new CustomEvent('premium_required', { detail: { toolName } }));
                                                         return;
@@ -6523,181 +6555,152 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                                                       activateToolWithTypingEffect(toolKey, toolName);
                                                     }}
-                                                  />
+                                                    className={`inline-flex mt-2 items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0 ${isLocked ? 'bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20' : 'bg-gradient-to-r from-primary/10 to-primary-dark/10 border border-primary/20 text-primary hover:bg-primary/20 hover:border-primary/40'}`}
+                                                  >
+                                                    {children}
+                                                    <ChevronRight className="w-4 h-4 ml-1 opacity-70" />
+                                                  </button>
                                                 );
                                               }
-
+                                              const isInternal = href && href.startsWith('/');
                                               return (
-                                                <button
+                                                <a
+                                                  href={href}
                                                   onClick={(e) => {
-                                                    e.preventDefault();
-                                                    const toolKey = href.replace('action:', '');
-                                                    setCurrentMode('LEGAL_TOOLKIT');
-
-                                                    const TOOL_NAMES = {
-                                                      legal_draft_maker: "Draft Maker",
-                                                      legal_case_predictor: "Case Predictor",
-                                                      legal_argument_builder: "Argument Builder",
-                                                      legal_evidence_checker: "Evidence Analyst",
-                                                      legal_contract_analyzer: "Contract Analyzer",
-                                                      legal_strategy_engine: "Strategy Engine"
-                                                    };
-                                                    const toolName = TOOL_NAMES[toolKey] || toolKey;
-
-                                                    // Open the premium upsell if locked
-                                                    if (isLocked) {
-                                                      window.dispatchEvent(new CustomEvent('premium_required', { detail: { toolName } }));
-                                                      return;
+                                                    if (isInternal) {
+                                                      e.preventDefault();
+                                                      navigate(href);
                                                     }
-
-                                                    activateToolWithTypingEffect(toolKey, toolName);
                                                   }}
-                                                  className={`inline-flex mt-2 items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0 ${isLocked ? 'bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20' : 'bg-gradient-to-r from-primary/10 to-primary-dark/10 border border-primary/20 text-primary hover:bg-primary/20 hover:border-primary/40'}`}
+                                                  className="text-primary hover:underline font-bold cursor-pointer"
+                                                  target={isInternal ? "_self" : "_blank"}
+                                                  rel={isInternal ? "" : "noopener noreferrer"}
                                                 >
                                                   {children}
-                                                  <ChevronRight className="w-4 h-4 ml-1 opacity-70" />
-                                                </button>
+                                                </a>
                                               );
-                                            }
-                                            const isInternal = href && href.startsWith('/');
-                                            return (
-                                              <a
-                                                href={href}
-                                                onClick={(e) => {
-                                                  if (isInternal) {
-                                                    e.preventDefault();
-                                                    navigate(href);
-                                                  }
-                                                }}
-                                                className="text-primary hover:underline font-bold cursor-pointer"
-                                                target={isInternal ? "_self" : "_blank"}
-                                                rel={isInternal ? "" : "noopener noreferrer"}
-                                              >
-                                                {children}
-                                              </a>
-                                            );
-                                          },
-                                          p: ({ children }) => <p>{children}</p>,
-                                          ul: ({ children }) => <ul className="list-disc pl-5 space-y-1.5">{children}</ul>,
-                                          ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1.5">{children}</ol>,
-                                          li: ({ children }) => <li>{children}</li>,
-                                          h1: ({ children }) => <h1 className="font-bold tracking-tight">{children}</h1>,
-                                          h2: ({ children }) => <h2 className="font-bold tracking-tight">{children}</h2>,
-                                          h3: ({ children }) => <h3 className="font-bold tracking-tight">{children}</h3>,
-                                          strong: ({ children }) => <strong>{children}</strong>,
-                                          table: ({ children }) => (
-                                            <div className="overflow-x-auto my-4 rounded-xl border border-border/50 shadow-lg bg-surface/30 backdrop-blur-sm">
-                                              <table className="w-full border-collapse text-sm">{children}</table>
-                                            </div>
-                                          ),
-                                          thead: ({ children }) => <thead className="bg-primary/10 border-b border-border/50">{children}</thead>,
-                                          tbody: ({ children }) => <tbody className="divide-y divide-border/30">{children}</tbody>,
-                                          tr: ({ children }) => <tr className="transition-colors hover:bg-white/3">{children}</tr>,
-                                          th: ({ children }) => <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-primary">{children}</th>,
-                                          td: ({ children }) => <td className="px-4 py-3 text-sm text-maintext leading-relaxed">{children}</td>,
-                                          mark: ({ children }) => <mark className="bg-[#5555ff] text-white px-1 py-0.5 rounded-sm">{children}</mark>,
-                                          code: ({ node, inline, className, children, ...props }) => {
-                                            const match = /language-(\w+)/.exec(className || '');
-                                            const lang = match ? match[1] : '';
-                                            const codeValue = String(children).replace(/\n$/, '');
-                                            const isUser = msg.role === 'user';
-
-                                            if (!inline) {
-                                              return (
-                                                <div className={`rounded-xl overflow-hidden my-3 border ${isUser ? 'border-white/10 bg-black/20' : 'border-[#1a1a1a] bg-[#0d0d0d]'} shadow-2xl w-full max-w-full group/code`}>
-                                                  {!isUser && (
-                                                    <div className="flex items-center justify-between px-4 py-2.5 bg-[#2d2d2d]/80 backdrop-blur-sm border-b border-zinc-800">
-                                                      <div className="flex items-center gap-2">
-                                                        <span className="text-[10px] font-black uppercase tracking-widest text-[#9ca3af]">{lang || 'plain text'}</span>
-                                                      </div>
-                                                      <button
-                                                        onClick={() => {
-                                                          navigator.clipboard.writeText(codeValue);
-                                                          toast.success("Code copied!");
-                                                        }}
-                                                        className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 hover:text-white transition-all bg-white/5 hover:bg-white/10 px-3 py-1 rounded-lg border border-white/5 active:scale-95"
-                                                      >
-                                                        <Copy className="w-3.5 h-3.5" />
-                                                        Copy
-                                                      </button>
-                                                    </div>
-                                                  )}
-                                                  <div className={`${isUser ? 'max-h-[500px]' : 'max-h-[600px]'} overflow-auto custom-scrollbar-thin ${isUser ? 'bg-transparent' : 'bg-[#0d0d0d]'}`}>
-                                                    <SyntaxHighlighter
-                                                      language={lang || 'text'}
-                                                      style={highlighterTheme}
-                                                      PreTag="div"
-                                                      customStyle={{
-                                                        margin: 0,
-                                                        padding: isUser ? '16px' : '20px',
-                                                        fontSize: isUser ? '13px' : '14px',
-                                                        lineHeight: '1.7',
-                                                        background: 'transparent',
-                                                        borderRadius: 0,
-                                                        border: 'none',
-                                                        color: '#e5e7eb', // Ensure visibility for plain text
-                                                        fontFamily: '"Fira Code", "JetBrains Mono", source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace'
-                                                      }}
-                                                      codeTagProps={{
-                                                        style: {
-                                                          fontFamily: 'inherit',
-                                                          background: 'transparent',
-                                                          color: 'inherit'
-                                                        }
-                                                      }}
-                                                      {...props}
-                                                    >
-                                                      {codeValue}
-                                                    </SyntaxHighlighter>
-                                                  </div>
-                                                </div>
-                                              );
-                                            }
-                                            return (
-                                              <code className="bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded-md font-mono text-primary font-bold mx-0.5 text-xs translate-y-[-1px] inline-block" {...props}>
-                                                {children}
-                                              </code>
-                                            );
-                                          },
-                                          img: ({ node, ...props }) => {
-                                            const isDownloading = isDownloadingUrl === props.src;
-                                            return (
-                                              <div className="relative my-4 group/img-container max-w-full">
-                                                <div className="relative group/image overflow-hidden aspect-auto max-w-[500px] cursor-zoom-in w-fit" onClick={() => setViewingDoc({ url: props.src, type: 'image', name: 'AI Image' })}>
-                                                  {msg.role === 'model' && (
-                                                    <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-100 sm:opacity-0 sm:group-hover/img-container:opacity-100 transition-opacity">
-                                                      <div className="flex items-center gap-2">
-                                                        <Sparkles className="w-4 h-4 text-primary animate-pulse" />
-                                                        <span className="text-[10px] font-bold text-white uppercase tracking-widest">AISA™ Generated Asset</span>
-                                                      </div>
-                                                    </div>
-                                                  )}
-                                                  <ImageViewer
-                                                    src={props.src}
-                                                    alt={props.alt || "AI Image"}
-                                                  />
-                                                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover/img-container:opacity-100 transition-opacity pointer-events-none" />
-                                                </div>
-                                                <button
-                                                  onClick={() => handleDownload(props.src, `AISA_gen_${Date.now()}.png`)}
-                                                  disabled={isDownloading}
-                                                  className="absolute bottom-4 right-4 z-20 flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl border border-white/20 text-white shadow-lg transition-all active:scale-95 disabled:opacity-50"
-                                                >
-                                                  <div className="flex items-center gap-2">
-                                                    {isDownloading ? (
-                                                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                    ) : (
-                                                      <Download className="w-4 h-4" />
-                                                    )}
-                                                    <span className="text-[10px] font-bold uppercase">
-                                                      {isDownloading ? 'Downloading...' : 'Download'}
-                                                    </span>
-                                                  </div>
-                                                </button>
+                                            },
+                                            p: ({ children }) => <p>{children}</p>,
+                                            ul: ({ children }) => <ul className="list-disc pl-5 space-y-1.5">{children}</ul>,
+                                            ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1.5">{children}</ol>,
+                                            li: ({ children }) => <li>{children}</li>,
+                                            h1: ({ children }) => <h1 className="font-bold tracking-tight">{children}</h1>,
+                                            h2: ({ children }) => <h2 className="font-bold tracking-tight">{children}</h2>,
+                                            h3: ({ children }) => <h3 className="font-bold tracking-tight">{children}</h3>,
+                                            strong: ({ children }) => <strong>{children}</strong>,
+                                            table: ({ children }) => (
+                                              <div className="overflow-x-auto my-4 rounded-xl border border-border/50 shadow-lg bg-surface/30 backdrop-blur-sm">
+                                                <table className="w-full border-collapse text-sm">{children}</table>
                                               </div>
-                                            )
-                                          },
-                                        }}
+                                            ),
+                                            thead: ({ children }) => <thead className="bg-primary/10 border-b border-border/50">{children}</thead>,
+                                            tbody: ({ children }) => <tbody className="divide-y divide-border/30">{children}</tbody>,
+                                            tr: ({ children }) => <tr className="transition-colors hover:bg-white/3">{children}</tr>,
+                                            th: ({ children }) => <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-primary">{children}</th>,
+                                            td: ({ children }) => <td className="px-4 py-3 text-sm text-maintext leading-relaxed">{children}</td>,
+                                            mark: ({ children }) => <mark className="bg-[#5555ff] text-white px-1 py-0.5 rounded-sm">{children}</mark>,
+                                            code: ({ node, inline, className, children, ...props }) => {
+                                              const match = /language-(\w+)/.exec(className || '');
+                                              const lang = match ? match[1] : '';
+                                              const codeValue = String(children).replace(/\n$/, '');
+                                              const isUser = msg.role === 'user';
+
+                                              if (!inline) {
+                                                return (
+                                                  <div className={`rounded-xl overflow-hidden my-3 border ${isUser ? 'border-white/10 bg-black/20' : 'border-[#1a1a1a] bg-[#0d0d0d]'} shadow-2xl w-full max-w-full group/code`}>
+                                                    {!isUser && (
+                                                      <div className="flex items-center justify-between px-4 py-2.5 bg-[#2d2d2d]/80 backdrop-blur-sm border-b border-zinc-800">
+                                                        <div className="flex items-center gap-2">
+                                                          <span className="text-[10px] font-black uppercase tracking-widest text-[#9ca3af]">{lang || 'plain text'}</span>
+                                                        </div>
+                                                        <button
+                                                          onClick={() => {
+                                                            navigator.clipboard.writeText(codeValue);
+                                                            toast.success("Code copied!");
+                                                          }}
+                                                          className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 hover:text-white transition-all bg-white/5 hover:bg-white/10 px-3 py-1 rounded-lg border border-white/5 active:scale-95"
+                                                        >
+                                                          <Copy className="w-3.5 h-3.5" />
+                                                          Copy
+                                                        </button>
+                                                      </div>
+                                                    )}
+                                                    <div className={`${isUser ? 'max-h-[500px]' : 'max-h-[600px]'} overflow-auto custom-scrollbar-thin ${isUser ? 'bg-transparent' : 'bg-[#0d0d0d]'}`}>
+                                                      <SyntaxHighlighter
+                                                        language={lang || 'text'}
+                                                        style={highlighterTheme}
+                                                        PreTag="div"
+                                                        customStyle={{
+                                                          margin: 0,
+                                                          padding: isUser ? '16px' : '20px',
+                                                          fontSize: isUser ? '13px' : '14px',
+                                                          lineHeight: '1.7',
+                                                          background: 'transparent',
+                                                          borderRadius: 0,
+                                                          border: 'none',
+                                                          color: '#e5e7eb', // Ensure visibility for plain text
+                                                          fontFamily: '"Fira Code", "JetBrains Mono", source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace'
+                                                        }}
+                                                        codeTagProps={{
+                                                          style: {
+                                                            fontFamily: 'inherit',
+                                                            background: 'transparent',
+                                                            color: 'inherit'
+                                                          }
+                                                        }}
+                                                        {...props}
+                                                      >
+                                                        {codeValue}
+                                                      </SyntaxHighlighter>
+                                                    </div>
+                                                  </div>
+                                                );
+                                              }
+                                              return (
+                                                <code className="bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded-md font-mono text-primary font-bold mx-0.5 text-xs translate-y-[-1px] inline-block" {...props}>
+                                                  {children}
+                                                </code>
+                                              );
+                                            },
+                                            img: ({ node, ...props }) => {
+                                              const isDownloading = isDownloadingUrl === props.src;
+                                              return (
+                                                <div className="relative my-4 group/img-container max-w-full">
+                                                  <div className="relative group/image overflow-hidden aspect-auto max-w-[500px] cursor-zoom-in w-fit" onClick={() => setViewingDoc({ url: props.src, type: 'image', name: 'AI Image' })}>
+                                                    {msg.role === 'model' && (
+                                                      <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-100 sm:opacity-0 sm:group-hover/img-container:opacity-100 transition-opacity">
+                                                        <div className="flex items-center gap-2">
+                                                          <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                                                          <span className="text-[10px] font-bold text-white uppercase tracking-widest">AISA™ Generated Asset</span>
+                                                        </div>
+                                                      </div>
+                                                    )}
+                                                    <ImageViewer
+                                                      src={props.src}
+                                                      alt={props.alt || "AI Image"}
+                                                    />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover/img-container:opacity-100 transition-opacity pointer-events-none" />
+                                                  </div>
+                                                  <button
+                                                    onClick={() => handleDownload(props.src, `AISA_gen_${Date.now()}.png`)}
+                                                    disabled={isDownloading}
+                                                    className="absolute bottom-4 right-4 z-20 flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl border border-white/20 text-white shadow-lg transition-all active:scale-95 disabled:opacity-50"
+                                                  >
+                                                    <div className="flex items-center gap-2">
+                                                      {isDownloading ? (
+                                                        <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                      ) : (
+                                                        <Download className="w-4 h-4" />
+                                                      )}
+                                                      <span className="text-[10px] font-bold uppercase">
+                                                        {isDownloading ? 'Downloading...' : 'Download'}
+                                                      </span>
+                                                    </div>
+                                                  </button>
+                                                </div>
+                                              )
+                                            },
+                                          }}
                                         >
                                           {transformLegalActions(msg.content || msg.text || "")}
                                         </ReactMarkdown>
@@ -7270,7 +7273,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                 <AnimatePresence>
                   {messages.length === 0 && !inputValue && !isSessionLoading && currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool && LEGAL_TOOL_WELCOME_MESSAGES[selectedLegalTool.id] && (
-                    <ToolActivationMessage 
+                    <ToolActivationMessage
                       title={LEGAL_TOOL_WELCOME_MESSAGES[selectedLegalTool.id].title}
                       desc={LEGAL_TOOL_WELCOME_MESSAGES[selectedLegalTool.id].desc}
                     />
@@ -7294,23 +7297,28 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
-                className="absolute inset-0 z-10 pointer-events-auto flex flex-col items-center justify-center overflow-y-auto overflow-x-hidden pb-32 md:pb-48 scrollbar-hide"
+                className="absolute inset-0 z-10 pointer-events-auto flex flex-col items-center overflow-x-hidden pb-40 sm:pb-0 pt-10 sm:pt-0 sm:justify-center scrollbar-hide"
               >
                 <div className="relative z-10 flex flex-col items-center w-full max-w-7xl mx-auto px-4 sm:px-6 h-max mt-8 sm:mt-0">
                   <motion.div
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.1 }}
-                    className="mb-4 sm:mb-6"
+                    className="mb-4 sm:mb-6 text-center"
                   >
-                    <img
-                      src={logo}
-                      alt="AISA"
-                      className="w-16 h-12 sm:w-20 sm:h-16 mx-auto object-cover object-top drop-shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.4)] transition-all duration-700 hover:scale-110"
-                    />
+                    <div className="mb-2 text-xs sm:text-sm font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                      Welcome back, {(user?.name || user?.displayName || 'User').split(' ')[0]} 👋
+                    </div>
+                    <h2 className="text-xl sm:text-3xl font-bold text-slate-800 dark:text-white tracking-tight px-4">
+                      {dashboardTab === 'Create' && "✨ What would you like to create today?"}
+                      {dashboardTab === 'Intelligence' && "🧠 What should we analyze today?"}
+                      {dashboardTab === 'Business' && "📊 Ready to boost your productivity today?"}
+                    </h2>
                   </motion.div>
                   <section className="w-full px-0 mt-0">
                     <FuturisticToolCards
+                      activeTab={dashboardTab}
+                      onTabChange={setDashboardTab}
                       isAdmin={isAdminUser}
                       activeToolId={
                         isImageGeneration ? 'image' :
@@ -7557,7 +7565,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 setSelectedStock(stock);
                                 setInputValue(''); // Clear input for follow-up
                                 setStockSearchResults([]);
-                                
+
                                 // Auto-trigger analysis
                                 let activeSessionId = currentSessionId;
                                 if (activeSessionId === 'new') {
@@ -8100,328 +8108,328 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         {(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || currentMode === 'LEGAL_TOOLKIT') && (
                           <div className="absolute bottom-full left-0 mb-3.5 flex flex-row items-center justify-start pointer-events-none z-[100] w-full">
                             <div className="flex gap-2.5 overflow-x-auto no-scrollbar pointer-events-auto px-2 sm:px-3 py-1 max-w-full">
-                            {isCashFlowMode && (
-                              <motion.div
-                                initial={{ opacity: 0, y: 5 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0 }}
-                                onClick={() => setIsStockModalOpen(true)}
-                                className="flex flex-row items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0 cursor-pointer hover:bg-primary/20 transition-all"
-                              >
-                                <TrendingUp size={12} strokeWidth={3} /> <span className="hidden sm:inline">AI CashFlow</span>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setIsCashFlowMode(false);
-                                    setActiveTool(null);
-                                    setSelectedStock(null);
-                                    setFinancialContext(null);
-                                  }}
-                                  className="ml-1 hover:text-primary/80 p-0.5"
+                              {isCashFlowMode && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: 5 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0 }}
+                                  onClick={() => setIsStockModalOpen(true)}
+                                  className="flex flex-row items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0 cursor-pointer hover:bg-primary/20 transition-all"
                                 >
-                                  <X size={12} />
-                                </button>
-                              </motion.div>
-                            )}
-                            {isWebSearch && (
-                              <motion.div
-                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary-rgb),0.3)] relative overflow-hidden ring-1 ring-white/10"
-                              >
-                                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
-                                <div className="flex flex-row items-center gap-2 relative z-10">
-                                  <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex flex-row items-center justify-center shadow-lg shadow-primary/40 text-white">
-                                    <Globe size={14} strokeWidth={3} />
-                                  </div>
-                                  <span className="uppercase tracking-widest text-[9px] font-black">Web Search</span>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => { setIsWebSearch(false); setActiveTool(null); }}
-                                  className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
-                                >
-                                  <X size={14} strokeWidth={3} />
-                                </button>
-                              </motion.div>
-                            )}
-                            {isDeepSearch && (
-                              <motion.div
-                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary-rgb),0.3)] relative overflow-hidden ring-1 ring-white/10"
-                              >
-                                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
-                                <div className="flex flex-row items-center gap-2 relative z-10">
-                                  <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
-                                    <Search size={14} strokeWidth={3} />
-                                  </div>
-                                  <span className="uppercase tracking-widest text-[9px] font-black">Deep Search</span>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => { setIsDeepSearch(false); setActiveTool(null); }}
-                                  className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
-                                >
-                                  <X size={14} strokeWidth={3} />
-                                </button>
-                              </motion.div>
-                            )}
-                            {isImageGeneration && (
-                              <motion.div
-                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary-rgb),0.3)] relative overflow-hidden ring-1 ring-white/10"
-                              >
-                                {/* Glossy Reflection Effect */}
-                                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
-
-                                <div className="flex flex-row items-center gap-2 relative z-10">
-                                  <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
-                                    <ImageIcon size={14} strokeWidth={3} />
-                                  </div>
-                                  <span className="uppercase tracking-widest text-[9px] font-black">Image Gen</span>
-                                </div>
-
-                                <div className="w-[1px] h-3 bg-primary/40 mx-0.5 relative z-10" />
-
-                                <button
-                                  type="button"
-                                  onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
-                                  className="flex flex-row items-center gap-1.5 hover:text-primary dark:hover:text-primary transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
-                                >
-                                  <span className="text-[10px] font-extrabold opacity-90">{imageAspectRatio}</span>
-                                  <span className="text-[10px] font-black truncate max-w-[60px] sm:max-w-[100px] tracking-tight">
-                                    {TOOL_PRICING.image.models.find(m => m.id === imageModelId)?.name.replace('AISA ', '') || 'Model'}
-
-                                  </span>
-                                  <ChevronDown size={11} className={`transition-transform duration-300 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => { setIsImageGeneration(false); setActiveTool(null); }}
-                                  className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
-                                >
-                                  <X size={14} strokeWidth={3} />
-                                </button>
-                              </motion.div>
-                            )}
-                            {isVideoGeneration && (
-                              <motion.div
-                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary-rgb),0.3)] relative overflow-hidden ring-1 ring-white/10"
-                              >
-                                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
-
-                                <div className="flex flex-row items-center gap-2 relative z-10">
-                                  <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
-                                    <Video size={14} strokeWidth={3} />
-                                  </div>
-                                  <span className="uppercase tracking-widest text-[9px] font-black">Video Gen</span>
-                                </div>
-
-                                <div className="w-[1px] h-3 bg-primary/40 mx-0.5 relative z-10" />
-
-                                <button
-                                  type="button"
-                                  onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
-                                  className="flex flex-row items-center gap-1.5 hover:text-primary dark:hover:text-primary transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
-                                >
-                                  <span className="text-[10px] font-extrabold opacity-90">{videoAspectRatio || 'D'}</span>
-                                  <span className="text-[10px] font-black tracking-tight ml-1">{videoResolution}</span>
-                                  <ChevronDown size={11} className={`transition-transform duration-300 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => { setIsVideoGeneration(false); setActiveTool(null); }}
-                                  className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
-                                >
-                                  <X size={14} strokeWidth={3} />
-                                </button>
-                              </motion.div>
-                            )}
-                            {isVoiceMode && (
-                              <motion.div
-                                initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                className="flex flex-row items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
-                              >
-                                <div className="flex flex-row items-center gap-2">
-                                  <div className="w-5 h-5 rounded-lg bg-primary/20 flex items-center justify-center">
-                                    <Volume2 size={14} strokeWidth={2.5} />
-                                  </div>
-                                  <span className="uppercase tracking-wide text-[10px] font-black">Voice Mode</span>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => { setIsVoiceMode(false); setActiveTool(null); }}
-                                  className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary dark:text-primary transition-all hover:rotate-90"
-                                >
-                                  <X size={14} strokeWidth={3} />
-                                </button>
-                              </motion.div>
-                            )}
-                            {isAudioConvertMode && (
-                              <motion.div
-                                initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                className="flex flex-row items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
-                              >
-                                <div className="flex flex-row items-center gap-2">
-                                  <div className="w-5 h-5 rounded-lg bg-primary/20 flex items-center justify-center">
-                                    <Headphones size={14} strokeWidth={2.5} />
-                                  </div>
-                                  <span className="uppercase tracking-wide text-[10px] font-black">Audio Convert</span>
-                                </div>
-                                <button type="button" onClick={() => setIsVoiceSettingsOpen(true)} className="ml-1 w-5 h-5 rounded-lg flex items-center justify-center hover:bg-primary/20 text-subtext hover:text-primary transition-colors" title="Voice Settings">
-                                  <Sliders size={13} />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => { setIsAudioConvertMode(false); setActiveTool(null); }}
-                                  className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary transition-all hover:rotate-90"
-                                >
-                                  <X size={14} strokeWidth={3} />
-                                </button>
-                              </motion.div>
-                            )}
-                            {isDocumentConvert && (
-                              <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
-                                <FileText size={12} strokeWidth={3} /> <span>Doc Convert</span>
-                                <button onClick={() => { setIsDocumentConvert(false); setActiveTool(null); }} className="ml-1 hover:text-primary/80"><X size={12} /></button>
-                              </motion.div>
-                            )}
-                            {isCodeWriter && (
-                              <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
-                                <Code size={12} strokeWidth={3} /> <span>Code Writer</span>
-                                <button onClick={() => { setIsCodeWriter(false); setActiveTool(null); }} className="ml-1 hover:text-primary/80"><X size={12} /></button>
-                              </motion.div>
-                            )}
-
-                            {currentMode === 'LEGAL_TOOLKIT' && (
-                              <motion.div
-                                initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                className="flex flex-row items-center gap-1.5 sm:gap-2.5 px-2 py-1 sm:px-3 sm:py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-[9px] sm:text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
-                              >
-                                <div className="flex flex-row items-center gap-1.5 sm:gap-2">
-                                  <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
-                                    <LegalLogo size={12} showText={false} color="white" />
-                                  </div>
-                                  <span
-                                    className="uppercase tracking-wide text-[8px] sm:text-[10px] font-black truncate max-w-[80px] sm:max-w-[120px] cursor-pointer hover:text-primary transition-colors"
-                                    onClick={() => setActiveLegalToolkit(true)}
-                                    title="Open AI Legal™"
+                                  <TrendingUp size={12} strokeWidth={3} /> <span className="hidden sm:inline">AI CashFlow</span>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setIsCashFlowMode(false);
+                                      setActiveTool(null);
+                                      setSelectedStock(null);
+                                      setFinancialContext(null);
+                                    }}
+                                    className="ml-1 hover:text-primary/80 p-0.5"
                                   >
-                                    {currentCase ? 'My Case' : 'AI Legal'}
-                                    {((selectedLegalTool && selectedLegalTool?.id !== 'legal_my_case') || activeTool) && (
-                                      <span className="opacity-70 ml-1.5 font-bold border-l border-primary/30 pl-1.5">
-                                        {selectedLegalTool?.id !== 'legal_my_case' && selectedLegalTool ? selectedLegalTool.name : activeTool}
-                                      </span>
-                                    )}
-                                  </span>
-                                </div>
-                                <button
-                                  type="button"
+                                    <X size={12} />
+                                  </button>
+                                </motion.div>
+                              )}
+                              {isWebSearch && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                                  exit={{ opacity: 0, scale: 0.95 }}
+                                  className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary-rgb),0.3)] relative overflow-hidden ring-1 ring-white/10"
+                                >
+                                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
+                                  <div className="flex flex-row items-center gap-2 relative z-10">
+                                    <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex flex-row items-center justify-center shadow-lg shadow-primary/40 text-white">
+                                      <Globe size={14} strokeWidth={3} />
+                                    </div>
+                                    <span className="uppercase tracking-widest text-[9px] font-black">Web Search</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => { setIsWebSearch(false); setActiveTool(null); }}
+                                    className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
+                                  >
+                                    <X size={14} strokeWidth={3} />
+                                  </button>
+                                </motion.div>
+                              )}
+                              {isDeepSearch && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                                  exit={{ opacity: 0, scale: 0.95 }}
+                                  className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary-rgb),0.3)] relative overflow-hidden ring-1 ring-white/10"
+                                >
+                                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
+                                  <div className="flex flex-row items-center gap-2 relative z-10">
+                                    <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
+                                      <Search size={14} strokeWidth={3} />
+                                    </div>
+                                    <span className="uppercase tracking-widest text-[9px] font-black">Deep Search</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => { setIsDeepSearch(false); setActiveTool(null); }}
+                                    className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
+                                  >
+                                    <X size={14} strokeWidth={3} />
+                                  </button>
+                                </motion.div>
+                              )}
+                              {isImageGeneration && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                                  exit={{ opacity: 0, scale: 0.95 }}
+                                  className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary-rgb),0.3)] relative overflow-hidden ring-1 ring-white/10"
+                                >
+                                  {/* Glossy Reflection Effect */}
+                                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
+
+                                  <div className="flex flex-row items-center gap-2 relative z-10">
+                                    <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
+                                      <ImageIcon size={14} strokeWidth={3} />
+                                    </div>
+                                    <span className="uppercase tracking-widest text-[9px] font-black">Image Gen</span>
+                                  </div>
+
+                                  <div className="w-[1px] h-3 bg-primary/40 mx-0.5 relative z-10" />
+
+                                  <button
+                                    type="button"
+                                    onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
+                                    className="flex flex-row items-center gap-1.5 hover:text-primary dark:hover:text-primary transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
+                                  >
+                                    <span className="text-[10px] font-extrabold opacity-90">{imageAspectRatio}</span>
+                                    <span className="text-[10px] font-black truncate max-w-[60px] sm:max-w-[100px] tracking-tight">
+                                      {TOOL_PRICING.image.models.find(m => m.id === imageModelId)?.name.replace('AISA ', '') || 'Model'}
+
+                                    </span>
+                                    <ChevronDown size={11} className={`transition-transform duration-300 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => { setIsImageGeneration(false); setActiveTool(null); }}
+                                    className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
+                                  >
+                                    <X size={14} strokeWidth={3} />
+                                  </button>
+                                </motion.div>
+                              )}
+                              {isVideoGeneration && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                                  exit={{ opacity: 0, scale: 0.95 }}
+                                  className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary-rgb),0.3)] relative overflow-hidden ring-1 ring-white/10"
+                                >
+                                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
+
+                                  <div className="flex flex-row items-center gap-2 relative z-10">
+                                    <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
+                                      <Video size={14} strokeWidth={3} />
+                                    </div>
+                                    <span className="uppercase tracking-widest text-[9px] font-black">Video Gen</span>
+                                  </div>
+
+                                  <div className="w-[1px] h-3 bg-primary/40 mx-0.5 relative z-10" />
+
+                                  <button
+                                    type="button"
+                                    onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
+                                    className="flex flex-row items-center gap-1.5 hover:text-primary dark:hover:text-primary transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
+                                  >
+                                    <span className="text-[10px] font-extrabold opacity-90">{videoAspectRatio || 'D'}</span>
+                                    <span className="text-[10px] font-black tracking-tight ml-1">{videoResolution}</span>
+                                    <ChevronDown size={11} className={`transition-transform duration-300 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => { setIsVideoGeneration(false); setActiveTool(null); }}
+                                    className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
+                                  >
+                                    <X size={14} strokeWidth={3} />
+                                  </button>
+                                </motion.div>
+                              )}
+                              {isVoiceMode && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                  className="flex flex-row items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
+                                >
+                                  <div className="flex flex-row items-center gap-2">
+                                    <div className="w-5 h-5 rounded-lg bg-primary/20 flex items-center justify-center">
+                                      <Volume2 size={14} strokeWidth={2.5} />
+                                    </div>
+                                    <span className="uppercase tracking-wide text-[10px] font-black">Voice Mode</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => { setIsVoiceMode(false); setActiveTool(null); }}
+                                    className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary dark:text-primary transition-all hover:rotate-90"
+                                  >
+                                    <X size={14} strokeWidth={3} />
+                                  </button>
+                                </motion.div>
+                              )}
+                              {isAudioConvertMode && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                  className="flex flex-row items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
+                                >
+                                  <div className="flex flex-row items-center gap-2">
+                                    <div className="w-5 h-5 rounded-lg bg-primary/20 flex items-center justify-center">
+                                      <Headphones size={14} strokeWidth={2.5} />
+                                    </div>
+                                    <span className="uppercase tracking-wide text-[10px] font-black">Audio Convert</span>
+                                  </div>
+                                  <button type="button" onClick={() => setIsVoiceSettingsOpen(true)} className="ml-1 w-5 h-5 rounded-lg flex items-center justify-center hover:bg-primary/20 text-subtext hover:text-primary transition-colors" title="Voice Settings">
+                                    <Sliders size={13} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => { setIsAudioConvertMode(false); setActiveTool(null); }}
+                                    className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary transition-all hover:rotate-90"
+                                  >
+                                    <X size={14} strokeWidth={3} />
+                                  </button>
+                                </motion.div>
+                              )}
+                              {isDocumentConvert && (
+                                <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
+                                  <FileText size={12} strokeWidth={3} /> <span>Doc Convert</span>
+                                  <button onClick={() => { setIsDocumentConvert(false); setActiveTool(null); }} className="ml-1 hover:text-primary/80"><X size={12} /></button>
+                                </motion.div>
+                              )}
+                              {isCodeWriter && (
+                                <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-transparent backdrop-blur-md whitespace-nowrap shrink-0">
+                                  <Code size={12} strokeWidth={3} /> <span>Code Writer</span>
+                                  <button onClick={() => { setIsCodeWriter(false); setActiveTool(null); }} className="ml-1 hover:text-primary/80"><X size={12} /></button>
+                                </motion.div>
+                              )}
+
+                              {currentMode === 'LEGAL_TOOLKIT' && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                  className="flex flex-row items-center gap-1.5 sm:gap-2.5 px-2 py-1 sm:px-3 sm:py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-[9px] sm:text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
+                                >
+                                  <div className="flex flex-row items-center gap-1.5 sm:gap-2">
+                                    <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
+                                      <LegalLogo size={12} showText={false} color="white" />
+                                    </div>
+                                    <span
+                                      className="uppercase tracking-wide text-[8px] sm:text-[10px] font-black truncate max-w-[80px] sm:max-w-[120px] cursor-pointer hover:text-primary transition-colors"
+                                      onClick={() => setActiveLegalToolkit(true)}
+                                      title="Open AI Legal™"
+                                    >
+                                      {currentCase ? 'My Case' : 'AI Legal'}
+                                      {((selectedLegalTool && selectedLegalTool?.id !== 'legal_my_case') || activeTool) && (
+                                        <span className="opacity-70 ml-1.5 font-bold border-l border-primary/30 pl-1.5">
+                                          {selectedLegalTool?.id !== 'legal_my_case' && selectedLegalTool ? selectedLegalTool.name : activeTool}
+                                        </span>
+                                      )}
+                                    </span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveLegalToolkit(false);
+                                      setCurrentMode('NORMAL_CHAT');
+                                      setSelectedLegalTool(null);
+                                      setActiveTool(null);
+                                    }}
+                                    className="ml-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary dark:text-primary transition-all hover:rotate-90"
+                                  >
+                                    <X size={12} strokeWidth={3} />
+                                  </button>
+                                </motion.div>
+                              )}
+
+                              {currentCase && currentCase.isLegalCase && selectedLegalTool?.id === 'legal_my_case' && (
+                                <motion.div
+                                  initial={{ opacity: 0, x: 20 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  exit={{ opacity: 0, scale: 0.95 }}
                                   onClick={() => {
-                                    setActiveLegalToolkit(false);
-                                    setCurrentMode('NORMAL_CHAT');
-                                    setSelectedLegalTool(null);
-                                    setActiveTool(null);
+                                    setIsCasePanelOpen(true);
+                                    if (legalView !== 'CHAT') setLegalView('CHAT');
                                   }}
-                                  className="ml-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary dark:text-primary transition-all hover:rotate-90"
+                                  className="flex items-center gap-1.5 sm:gap-2.5 px-2.5 py-1 sm:px-4 sm:py-1.5 bg-gradient-to-r from-primary to-primary-dark text-white rounded-full text-[9px] sm:text-xs font-bold shadow-lg shadow-primary/30 cursor-pointer hover:scale-105 active:scale-95 transition-all whitespace-nowrap shrink-0 group"
                                 >
-                                  <X size={12} strokeWidth={3} />
-                                </button>
-                              </motion.div>
-                            )}
-
-                            {currentCase && currentCase.isLegalCase && selectedLegalTool?.id === 'legal_my_case' && (
-                              <motion.div
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                onClick={() => {
-                                  setIsCasePanelOpen(true);
-                                  if (legalView !== 'CHAT') setLegalView('CHAT');
-                                }}
-                                className="flex items-center gap-1.5 sm:gap-2.5 px-2.5 py-1 sm:px-4 sm:py-1.5 bg-gradient-to-r from-primary to-primary-dark text-white rounded-full text-[9px] sm:text-xs font-bold shadow-lg shadow-primary/30 cursor-pointer hover:scale-105 active:scale-95 transition-all whitespace-nowrap shrink-0 group"
-                              >
-                                <Briefcase size={12} className="sm:w-[14px] sm:h-[14px] group-hover:rotate-12 transition-transform" />
-                                <div className="flex flex-col items-start leading-none gap-0.5">
-                                  <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest opacity-80">ACTIVE CASE</span>
-                                  <span className="text-[9px] sm:text-[10px] font-bold truncate max-w-[60px] sm:max-w-[100px]">{currentCase?.clientName || 'Untitled Case'}</span>
-                                </div>
-                                <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-green-400 animate-pulse ml-0.5 sm:ml-1" />
-                                <LayoutDashboard size={12} className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
-                              </motion.div>
-                            )}
-                            {isMagicEditing && (
-                              <motion.div
-                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary-rgb),0.3)] relative overflow-hidden ring-1 ring-white/10"
-                              >
-                                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
-
-                                <div className="flex flex-row items-center gap-2 relative z-10">
-                                  <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
-                                    <Wand2 size={14} strokeWidth={3} />
+                                  <Briefcase size={12} className="sm:w-[14px] sm:h-[14px] group-hover:rotate-12 transition-transform" />
+                                  <div className="flex flex-col items-start leading-none gap-0.5">
+                                    <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest opacity-80">ACTIVE CASE</span>
+                                    <span className="text-[9px] sm:text-[10px] font-bold truncate max-w-[60px] sm:max-w-[100px]">{currentCase?.clientName || 'Untitled Case'}</span>
                                   </div>
-                                  <span className="uppercase tracking-widest text-[9px] font-black hidden xs:inline">{t('imageEdit')}</span>
-                                </div>
-
-                                <div className="w-[1px] h-3 bg-primary/40 mx-0.5 relative z-10" />
-
-                                <button
-                                  type="button"
-                                  onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
-                                  className="flex flex-row items-center gap-1.5 hover:text-primary dark:hover:text-primary transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
+                                  <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-green-400 animate-pulse ml-0.5 sm:ml-1" />
+                                  <LayoutDashboard size={12} className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </motion.div>
+                              )}
+                              {isMagicEditing && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                                  exit={{ opacity: 0, scale: 0.95 }}
+                                  className="flex flex-row items-center gap-3 px-3.5 py-1.5 bg-primary/20 dark:bg-primary/25 text-primary rounded-full text-xs font-bold border border-primary/40 backdrop-blur-3xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/30 group shadow-[0_8px_32px_-4px_rgba(var(--primary-rgb),0.3)] relative overflow-hidden ring-1 ring-white/10"
                                 >
-                                  <span className="text-[10px] font-extrabold opacity-90">{imageAspectRatio}</span>
-                                  <span className="text-[10px] font-black truncate max-w-[60px] sm:max-w-[100px] tracking-tight">
-                                    {TOOL_PRICING.image.models.find(m => m.id === imageModelId)?.name.replace('AISA ', '') || 'Model'}
-                                  </span>
-                                  <ChevronDown size={11} className={`transition-transform duration-300 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
-                                </button>
+                                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
 
-                                <button
-                                  type="button"
-                                  onClick={() => { setIsMagicEditing(false); setActiveTool(null); }}
-                                  className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
-                                >
-                                  <X size={14} strokeWidth={3} />
-                                </button>
-                              </motion.div>
-                            )}
-                            {isFileAnalysis && (
-                              <motion.div
-                                initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                className="flex flex-row items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
-                              >
-                                <div className="flex flex-row items-center gap-2">
-                                  <div className="w-5 h-5 rounded-lg bg-primary/20 flex items-center justify-center">
-                                    <FileText size={14} strokeWidth={2.5} />
+                                  <div className="flex flex-row items-center gap-2 relative z-10">
+                                    <div className="w-5 h-5 rounded-lg bg-primary dark:bg-primary flex items-center justify-center shadow-lg shadow-primary/40 text-white">
+                                      <Wand2 size={14} strokeWidth={3} />
+                                    </div>
+                                    <span className="uppercase tracking-widest text-[9px] font-black hidden xs:inline">{t('imageEdit')}</span>
                                   </div>
-                                  <span className="uppercase tracking-wide text-[10px] font-black">{t('analyzeDocument')}</span>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => { setIsFileAnalysis(false); setActiveTool(null); }}
-                                  className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary dark:text-primary transition-all hover:rotate-90"
+
+                                  <div className="w-[1px] h-3 bg-primary/40 mx-0.5 relative z-10" />
+
+                                  <button
+                                    type="button"
+                                    onClick={() => setIsMagicSettingsOpen(!isMagicSettingsOpen)}
+                                    className="flex flex-row items-center gap-1.5 hover:text-primary dark:hover:text-primary transition-all px-1.5 py-0.5 rounded-md hover:bg-white/10 relative z-10"
+                                  >
+                                    <span className="text-[10px] font-extrabold opacity-90">{imageAspectRatio}</span>
+                                    <span className="text-[10px] font-black truncate max-w-[60px] sm:max-w-[100px] tracking-tight">
+                                      {TOOL_PRICING.image.models.find(m => m.id === imageModelId)?.name.replace('AISA ', '') || 'Model'}
+                                    </span>
+                                    <ChevronDown size={11} className={`transition-transform duration-300 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => { setIsMagicEditing(false); setActiveTool(null); }}
+                                    className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white text-primary dark:text-primary transition-all hover:rotate-90 relative z-10"
+                                  >
+                                    <X size={14} strokeWidth={3} />
+                                  </button>
+                                </motion.div>
+                              )}
+                              {isFileAnalysis && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                  className="flex flex-row items-center gap-2.5 px-3 py-1.5 bg-primary/10 dark:bg-primary/20 text-primary rounded-full text-xs font-bold border border-primary/30 backdrop-blur-xl whitespace-nowrap shrink-0 transition-all hover:bg-primary/15 group shadow-lg shadow-primary/10"
                                 >
-                                  <X size={14} strokeWidth={3} />
-                                </button>
-                              </motion.div>
-                            )}
+                                  <div className="flex flex-row items-center gap-2">
+                                    <div className="w-5 h-5 rounded-lg bg-primary/20 flex items-center justify-center">
+                                      <FileText size={14} strokeWidth={2.5} />
+                                    </div>
+                                    <span className="uppercase tracking-wide text-[10px] font-black">{t('analyzeDocument')}</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => { setIsFileAnalysis(false); setActiveTool(null); }}
+                                    className="ml-1 w-5 h-5 rounded-full flex items-center justify-center hover:bg-primary/20 text-primary dark:text-primary transition-all hover:rotate-90"
+                                  >
+                                    <X size={14} strokeWidth={3} />
+                                  </button>
+                                </motion.div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
                       </AnimatePresence>
 
 

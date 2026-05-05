@@ -101,9 +101,9 @@ export function getModeName(mode) {
         [MODES.TASK_ASSISTANT]: 'AISA™ Assistant',
         [MODES.DEEP_SEARCH]: 'AISA™ Deep Search',
         [MODES.DOCUMENT_CONVERT]: 'AISA™ Convert',
-        [MODES.IMAGE_EDIT]: 'AISA™ Edit',
+        [MODES.IMAGE_EDIT]: 'AISA™ Vision | Image Editing',
         [MODES.LEGAL_TOOLKIT]: 'AISA™ Legal',
-        [MODES.IMAGE_GENERATION]: 'Image Generator',
+        [MODES.IMAGE_GENERATION]: 'AISA™ Vision | Image Generation',
         [MODES.VIDEO_GENERATION]: 'Video Generator',
         [MODES.CASHFLOW]: 'Deep Market Research',
         [MODES.WEB_SEARCH]: 'Web Search'
