@@ -7357,11 +7357,12 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           if (inputRef.current) { inputRef.current.value = "Search for live updates on "; inputRef.current.focus(); }
                           toast.success("Real-Time Search Active");
                         } else if (id === 'document') {
-                          if (!checkPremiumTool('Document Analyzer')) return;
-                          setIsFileAnalysis(true);
+                          if (!checkPremiumTool('Document Converter')) return;
+                          setIsDocumentConvert(true);
+                          setIsFileAnalysis(false);
                           setActiveTool('document');
                           uploadInputRef.current?.click();
-                          toast.success("Upload document for analysis");
+                          toast.success("Upload document for conversion");
                         } else if (id === 'edit_image') {
                           if (!checkPremiumTool('Edit Image')) return;
                           setIsMagicEditing(true);
@@ -7776,16 +7777,19 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             <button
                               type="button"
                               onClick={() => {
-                                if (!checkPremiumTool('Convert Documents')) return;
+                                if (!checkPremiumTool('Document Converter')) return;
                                 setIsToolsMenuOpen(false);
-                                setIsDocumentConvert(!isDocumentConvert);
+                                const nextState = !isDocumentConvert;
+                                setIsDocumentConvert(nextState);
+                                setIsFileAnalysis(false);
                                 setIsDeepSearch(false);
                                 setIsImageGeneration(false);
                                 setIsVideoGeneration(false);
                                 setIsAudioConvertMode(false);
                                 setIsCodeWriter(false);
-                                if (!isDocumentConvert) {
+                                if (nextState) {
                                   setActiveTool('document');
+                                  uploadInputRef.current?.click();
                                   toast.success("Document Converter Mode Active");
                                 } else {
                                   setActiveTool(null);
@@ -8057,7 +8061,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     <div className="flex-1 flex items-center min-w-0 bg-transparent border-0 ring-0 focus:ring-0">
                       <AnimatePresence>
                         {(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || currentMode === 'LEGAL_TOOLKIT') && (
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 flex gap-2 overflow-x-auto no-scrollbar pointer-events-auto w-[calc(100vw-24px)] max-w-5xl px-6 z-[100] justify-start sm:justify-start">
+                          <div className="absolute bottom-full left-0 mb-3.5 flex flex-row items-center justify-start pointer-events-none z-[100] w-full">
+                            <div className="flex gap-2.5 overflow-x-auto no-scrollbar pointer-events-auto px-2 sm:px-3 py-1 max-w-full">
                             {isCashFlowMode && (
                               <motion.div
                                 initial={{ opacity: 0, y: 5 }}
@@ -8376,7 +8381,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               </motion.div>
                             )}
                           </div>
-                        )}
+                        </div>
+                      )}
                       </AnimatePresence>
 
 
