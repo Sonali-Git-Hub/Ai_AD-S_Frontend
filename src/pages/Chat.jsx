@@ -3394,6 +3394,18 @@ const Chat = () => {
   }, [messages, isLoading]);
 
   const handleNewChat = async () => {
+    // Proactive Guest Limit Check for new session creation
+    const token = getUserData()?.token;
+    if (!token && sessions.length >= 5) {
+      window.dispatchEvent(new CustomEvent('login_required', { 
+        detail: { 
+          toolName: 'AISA™ Unlimited Chat',
+          customMessage: "You've reached the guest limit of 5 sessions. Please sign in to create more chat sessions!"
+        } 
+      }));
+      return;
+    }
+
     setCurrentProjectId('default');
     setCurrentMode('NORMAL_CHAT');
     setSelectedLegalTool(null);
@@ -3669,6 +3681,39 @@ const Chat = () => {
 
       let activeSessionId = currentSessionId;
       let isFirstMessage = false;
+
+      // --- GUEST LIMIT PROACTIVE CHECK ---
+      const token = getUserData()?.token;
+      if (!token) {
+        // 1. Session Limit (5 sessions)
+        if (activeSessionId === 'new' && sessions.length >= 5) {
+          window.dispatchEvent(new CustomEvent('login_required', { 
+            detail: { 
+              toolName: 'AISA™ Unlimited Chat',
+              customMessage: "You've reached the guest limit of 5 sessions. Please sign in to create more chat sessions!"
+            } 
+          }));
+          isSendingRef.current = false;
+          setIsLoading(false);
+          isGlobalSending = false;
+          return;
+        }
+
+        // 2. Chat Count Limit (10 user messages per session)
+        const userMsgCount = messages.filter(m => m.role === 'user').length;
+        if (activeSessionId !== 'new' && userMsgCount >= 10) {
+          window.dispatchEvent(new CustomEvent('login_required', { 
+            detail: { 
+              toolName: 'AISA™ Unlimited Chat',
+              customMessage: "You've reached the guest limit of 10 chats per session. Please sign in to continue this conversation!"
+            } 
+          }));
+          isSendingRef.current = false;
+          setIsLoading(false);
+          isGlobalSending = false;
+          return;
+        }
+      }
 
       // Stop listening if send is clicked
       if (isListening && recognitionRef.current) {
@@ -4271,6 +4316,13 @@ ${documentConvertActive ? `### DOCUMENT CONVERSION MODE ENABLED (CRITICAL):
 
         if (aiResponseData && aiResponseData.error === "LIMIT_REACHED") {
           setIsLimitReached(true);
+          // Trigger LoginRequiredModal with custom message
+          window.dispatchEvent(new CustomEvent('login_required', { 
+            detail: { 
+              toolName: 'AISA™ Unlimited Chat',
+              customMessage: "You've reached the guest limit of 5 sessions and 10 chats per session. Sign in to unlock unlimited chat, image generation, and more!"
+            } 
+          }));
           setIsLoading(false);
           isSendingRef.current = false;
           return;
@@ -8527,66 +8579,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         </Dialog>
       </Transition>
 
-      {/* Limit Reached Modal */}
-      <Transition show={isLimitReached} as={Fragment}>
-        <Dialog as="div" className="relative z-[200]" onClose={() => { }}>
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-md" />
-          </Transition.Child>
-
-          <div className="fixed inset-0 overflow-y-auto">
-            <div className="flex min-h-full items-center justify-center p-4">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95"
-              >
-                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border border-border p-8 text-center shadow-2xl transition-all">
-                  <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Sparkles className="w-10 h-10 text-primary animate-pulse" />
-                  </div>
-
-                  <Dialog.Title as="h3" className="text-2xl font-black text-maintext mb-2 tracking-tight uppercase">
-                    Chat Limit Reached
-                  </Dialog.Title>
-
-                  <p className="text-subtext mb-8 leading-relaxed text-sm">
-                    You've reached the guest limit of 10 sessions and 5 messages per session.
-                    Sign in to unlock **unlimited chat**, image generation, and more!
-                  </p>
-
-                  <div className="flex flex-col gap-3">
-                    <button
-                      onClick={() => navigate('/login', { state: { from: location.pathname } })}
-                      className="w-full py-4 bg-primary text-white rounded-2xl font-bold text-sm tracking-widest hover:bg-primary/90 transition-all shadow-lg shadow-primary/25 active:scale-95 uppercase"
-                    >
-                      Sign In Now
-                    </button>
-                    <button
-                      onClick={() => navigate('/signup')}
-                      className="w-full py-4 bg-black/5 dark:bg-white/5 border border-border text-maintext rounded-2xl font-bold text-sm tracking-widest hover:bg-black/10 dark:hover:bg-white/10 transition-all active:scale-95 uppercase"
-                    >
-                      Create Free Account
-                    </button>
-                  </div>
-                </Dialog.Panel>
-              </Transition.Child>
-            </div>
-          </div>
-        </Dialog>
-      </Transition>
+      {/* Limit Reached handling is now via LoginRequiredModal event */}
       <OnboardingModal
         isOpen={showOnboarding}
         onClose={() => setShowOnboarding(false)}
