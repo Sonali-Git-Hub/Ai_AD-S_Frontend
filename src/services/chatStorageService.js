@@ -142,22 +142,36 @@ export const chatStorageService = {
 
   async getHistory(sessionId) {
     if (sessionId === "new") return { messages: [] };
+
+    // 1. Try Local First for Instant UI (Requirement: High Performance)
+    try {
+      const local = await idbGet(`chat_history_${sessionId}`);
+      const meta = await idbGet(`chat_meta_${sessionId}`) || {};
+      
+      // If we have local data, return it immediately to avoid "late load"
+      if (local && Array.isArray(local) && local.length > 0) {
+        console.log(`[STORAGE] Returning local history for ${sessionId} (Instant Load)`);
+        return {
+          messages: local,
+          projectId: meta.projectId || null,
+          title: meta.title || "New Chat"
+        };
+      }
+    } catch (localErr) {
+      console.warn("[STORAGE] Local fetch failed, falling back to network:", localErr);
+    }
+
+    // 2. Fallback to Network if no local data
     try {
       const response = await axios.get(`${API_BASE_URL}/chat/${sessionId}`, {
         headers: getAuthHeaders(),
         withCredentials: true
       });
-      console.log(`[STORAGE] Fetched data for ${sessionId}:`, response.data);
+      console.log(`[STORAGE] Fetched data for ${sessionId} from network:`, response.data);
       return response.data; // Return full session object
     } catch (error) {
-      console.warn("Backend history fetch failed, using local:", error);
-      const local = await idbGet(`chat_history_${sessionId}`);
-      const meta = await idbGet(`chat_meta_${sessionId}`) || {};
-      return { 
-        messages: local || [],
-        projectId: meta.projectId || null,
-        title: meta.title || "New Chat"
-      };
+      console.warn("Backend history fetch failed, no local backup either:", error);
+      return { messages: [], title: "New Chat", projectId: null };
     }
   },
 

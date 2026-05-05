@@ -189,9 +189,8 @@ const DashboardLayout = () => {
     hideNavbarTools.includes(selectedLegalTool?.id) ||
     location.pathname === '/dashboard/cases';
   
-  // Navbar is allowed if it's NOT a hidden tool on mobile. 
-  // On desktop, we always allow the header.
-  const allowNavbar = !isMobile || !isHiddenTool;
+  // Navbar is hidden if it's a restricted tool view, regardless of device.
+  const allowNavbar = !isHiddenTool;
 
   const showOnScroll = useScrollNavbar();
 
