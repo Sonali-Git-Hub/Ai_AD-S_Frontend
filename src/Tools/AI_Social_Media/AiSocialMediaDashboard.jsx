@@ -912,7 +912,13 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       const url = window.URL.createObjectURL(new Blob([blob]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `AI_Content_Calendar_${brandProfile.companyName || 'Campaign'}.xlsx`);
+      
+      // Use the provided company name if available, otherwise fall back to current brandProfile or generic
+      const exportName = (specificWsId && typeof specificWsId === 'object' && (specificWsId.brandProfile?.companyName || specificWsId.workspaceName)) 
+        || brandProfile.companyName 
+        || 'Campaign';
+        
+      link.setAttribute('download', `AI_Content_Calendar_${exportName}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link);
@@ -1291,7 +1297,17 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
         if (postFormat === 'carousel' && statusRes?.job) {
           const completed = statusRes.job.completedCount || 0;
           const requested = statusRes.job.requestedCount || carouselCount;
-          toast.loading(`🖼️ Generating carousel slides... (${completed}/${requested})`, { id: toastId, duration: toastDuration });
+          const phase = statusRes.job.currentPhase || 'rendering';
+
+          let phaseMsg;
+          if (phase === 'rendering') {
+            phaseMsg = `🎨 Rendering slide images... (${completed}/${requested})`;
+          } else if (phase === 'compositing') {
+            phaseMsg = `🏷️ Applying brand overlays... (${completed}/${requested})`;
+          } else {
+            phaseMsg = `💾 Finalizing post...`;
+          }
+          toast.loading(phaseMsg, { id: toastId, duration: toastDuration });
         }
 
         if (statusRes?.job?.status === 'completed') {
@@ -2434,15 +2450,13 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                           <Eye className="w-4 h-4" /> Preview
                         </button>
 
-                        {isCurrent && (
-                          <button
-                            onClick={() => handleExportExcel(ws._id)}
-                            title="Download Excel"
-                            className="h-11 w-11 bg-slate-50 dark:bg-white/5 hover:bg-green-500/10 text-slate-400 hover:text-green-500 rounded-xl flex items-center justify-center transition-all border border-slate-100 dark:border-white/5 hover:border-green-500/20"
-                          >
-                            <Download className="w-4 h-4" />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => handleExportExcel(ws)}
+                          title="Download Excel Strategy"
+                          className="h-11 w-11 bg-slate-50 dark:bg-white/5 hover:bg-green-500/10 text-slate-400 hover:text-green-500 rounded-xl flex items-center justify-center transition-all border border-slate-100 dark:border-white/5 hover:border-green-500/20"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
 
                         <button
                           onClick={async () => {
