@@ -528,16 +528,17 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
             <span className="text-xl font-black tracking-tighter transition-all duration-300" style={{ background: 'linear-gradient(135deg, #9333ea 0%, #3b82f6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontFamily: '"Times New Roman", Times, serif', display: 'inline-block', paddingRight: '2px' }}>AISA<span style={{ fontSize: '0.6em', verticalAlign: 'super', marginLeft: '2px' }}>™</span></span>
           </Link>
 
-          <div className="flex items-center relative z-10 bg-black/5 border border-[#8B5CF6]/30 rounded-full p-0.5 w-24 h-7">
+          <div className={`flex items-center relative z-10 ${isDark ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/5'} border rounded-full p-0.5 w-24 h-7`}>
             <motion.div
-              className="absolute top-0.5 bottom-0.5 left-0.5 w-[46px] bg-[#8B5CF6] rounded-full shadow-sm z-0"
+              className="absolute top-0.5 bottom-0.5 left-0.5 w-[46px] rounded-full shadow-md z-0"
+              style={{ background: 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)' }}
               initial={false}
               animate={{
                 x: isNavigating ? 46 : 0
               }}
               transition={{ type: "spring", stiffness: 400, damping: 30 }}
             />
-            <div className={`relative z-10 w-[46px] flex justify-center items-center text-[9px] font-bold transition-colors ${!isNavigating ? 'text-white' : (isDark ? 'text-gray-400' : 'text-gray-500')}`}>
+            <div className={`relative z-10 w-[46px] flex justify-center items-center text-[9px] font-black tracking-wider transition-colors duration-300 ${!isNavigating ? 'text-white' : (isDark ? 'text-zinc-500' : 'text-slate-400')}`}>
               AISA
             </div>
             <button
@@ -552,11 +553,10 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                   }
                 }, 300);
               }}
-              className={`relative z-10 w-[46px] flex justify-center items-center text-[9px] font-bold transition-colors ${isNavigating ? 'text-white' : (isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-[#8B5CF6]')}`}
+              className={`relative z-10 w-[46px] flex justify-center items-center text-[9px] font-black tracking-wider transition-colors duration-300 ${isNavigating ? 'text-white' : (isDark ? 'text-zinc-500 hover:text-zinc-300' : 'text-slate-400 hover:text-slate-600')}`}
             >
               MALL
             </button>
-            {console.log(import.meta.env.VITE_AI_MALL)}
           </div>
 
           <button

@@ -57,13 +57,13 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
     const isVisualTool = ['image', 'video', 'edit'].includes(toolType);
     const getToolTitle = () => {
         switch(toolType) {
-            case 'video': return 'Video Settings';
-            case 'edit': return 'Image Editing';
-            case 'deepsearch': return 'Deep Search Settings';
-            case 'websearch': return 'Web Search Settings';
-            case 'coding': return 'Code Builder Settings';
-            case 'chat': return 'Chat Settings';
-            default: return 'Image Generation';
+            case 'video': return 'AISA™ Motion';
+            case 'edit': return 'AISA™ Edit';
+            case 'deepsearch': return 'AISA™ Deep Search';
+            case 'websearch': return 'AISA™ Web Search';
+            case 'coding': return 'AISA™ Code Builder';
+            case 'chat': return 'AISA™ Flash Chat';
+            default: return 'AISA™ Vision';
         }
     };
 
