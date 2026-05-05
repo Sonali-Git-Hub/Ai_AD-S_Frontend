@@ -210,37 +210,37 @@ const FEEDBACK_PROMPTS = {
 const TOOL_PRICING = {
   chat: {
     models: [
-      { id: 'gemini-flash', name: 'AISA™ Flash', price: 0, speed: 'Fast', description: 'Free chat model' }
+      { id: 'gemini-flash', name: 'AISA™ Flash', price: 0, speed: 'Fast', description: 'Universal knowledge synthesis core.' }
     ]
   },
   image: {
     models: [
-      { id: 'gemini-3.1-flash-image-preview', name: 'AISA™ Gemini 3.1 Flash', price: 45, speed: 'Fast', description: 'Latest preview — fastest Gemini image generation' },
-      { id: 'gemini-3-pro-image-preview', name: 'AISA™ Gemini 3 Pro', price: 75, speed: 'Pro', description: 'Pro-grade scene understanding & generation' },
-      { id: 'gemini-2.5-flash-image', name: 'AISA™ Gemini 2.5 Flash', price: 30, speed: 'Stable', description: 'Stable & reliable production image generation' }
+      { id: 'gemini-3.1-flash-image-preview', name: 'AISA™ Vision Flash', price: 45, speed: 'Fast', description: 'Lightning-fast creative visualization.' },
+      { id: 'gemini-3-pro-image-preview', name: 'AISA™ Vision Pro', price: 75, speed: 'Pro', description: 'High-fidelity scene synthesis and generation.' },
+      { id: 'gemini-2.5-flash-image', name: 'AISA™ Vision Lite', price: 30, speed: 'Stable', description: 'Stable and reliable everyday image generation.' }
     ],
     editModels: [
-      { id: 'gemini-3.1-flash-image-preview', name: 'AISA™ Gemini 3.1 Flash', price: 45, speed: 'Fast', description: 'Latest preview model — fastest AI image editing' },
-      { id: 'gemini-3-pro-image-preview', name: 'AISA™ Gemini 3 Pro', price: 75, speed: 'Pro', description: 'Pro-grade image editing with rich scene understanding' },
-      { id: 'gemini-2.5-flash-image', name: 'AISA™ Gemini 2.5 Flash', price: 30, speed: 'Stable', description: 'Stable & reliable — production-ready image edits' }
+      { id: 'gemini-3.1-flash-image-preview', name: 'AISA™ Edit Flash', price: 45, speed: 'Fast', description: 'Swift intelligent image manipulation.' },
+      { id: 'gemini-3-pro-image-preview', name: 'AISA™ Edit Pro', price: 75, speed: 'Pro', description: 'Advanced image editing with deep semantic control.' },
+      { id: 'gemini-2.5-flash-image', name: 'AISA™ Edit Lite', price: 30, speed: 'Stable', description: 'Production-ready basic image modifications.' }
     ]
   },
   video: {
     models: [
-      { id: 'veo-3.1-fast-generate-001', name: 'AISA™ Video Fast', price: '225/5S', speed: 'Fast', description: 'Quick high-quality video generation' },
-      { id: 'veo-3.1-generate-001', name: 'AISA™ Video Pro', price: '600/5S', speed: 'Cinema', description: 'Next-gen cinematic video synthesis' }
+      { id: 'veo-3.1-fast-generate-001', name: 'AISA™ Motion Flash', price: '225/5S', speed: 'Fast', description: 'Fluid motion synthesis with rapid rendering.' },
+      { id: 'veo-3.1-generate-001', name: 'AISA™ Motion Pro', price: '600/5S', speed: 'Cinema', description: 'Proprietary cinematic video synthesis.' }
     ]
   },
   document: {
     models: [
-      { id: 'gemini-2.5-flash', name: 'AISA™ Flash', price: 0, speed: 'Fast', description: 'Basic document analysis' },
-      { id: 'gemini-pro', name: 'AISA™ Pro', price: 20, speed: 'Medium', description: 'Advanced document processing' },
-      { id: 'gpt4', name: 'AISA™ Premium', price: 30, speed: 'Medium', description: 'Premium document analysis' }
+      { id: 'gemini-2.5-flash', name: 'AISA™ Lite', price: 0, speed: 'Fast', description: 'Basic document structure analysis.' },
+      { id: 'gemini-pro', name: 'AISA™ Pro', price: 20, speed: 'Medium', description: 'Advanced contextual document processing.' },
+      { id: 'gpt4', name: 'AISA™ Ultra', price: 30, speed: 'Premium', description: 'Enterprise-grade document intelligence.' }
     ]
   },
   voice: {
     models: [
-      { id: 'gemini-flash', name: 'AISA™ Flash', price: 0, speed: 'Fast', description: 'Standard voice recognition' }
+      { id: 'gemini-flash', name: 'AISA™ Flash', price: 0, speed: 'Fast', description: 'Real-time neural voice recognition.' }
     ]
   }
 };
