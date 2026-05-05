@@ -119,7 +119,8 @@ const MobileNotificationBell = ({ onClick }) => {
 const useScrollNavbar = () => {
   const [visible, setVisible] = useState(true);
   const lastScrollY = useRef(0);
-  const scrollThreshold = 10;
+  const lastTarget = useRef(null);
+  const scrollThreshold = 15; // Increased threshold for stability
 
   useEffect(() => {
     const handleScroll = (e) => {
@@ -133,9 +134,16 @@ const useScrollNavbar = () => {
 
       const currentScrollY = isDoc ? window.scrollY : (target.scrollTop ?? 0);
 
+      // Reset tracking if we switch scroll targets to prevent jumping
+      if (lastTarget.current !== target) {
+        lastScrollY.current = currentScrollY;
+        lastTarget.current = target;
+        return;
+      }
+
       // Always show at top
-      if (currentScrollY < 10) {
-        setVisible(true);
+      if (currentScrollY < 50) {
+        if (!visible) setVisible(true);
         lastScrollY.current = currentScrollY;
         return;
       }
@@ -143,11 +151,11 @@ const useScrollNavbar = () => {
       const diff = currentScrollY - lastScrollY.current;
       if (Math.abs(diff) > scrollThreshold) {
         if (currentScrollY > lastScrollY.current) {
-          // scroll down
-          setVisible(false);
+          // scroll down -> hide
+          if (visible) setVisible(false);
         } else {
-          // scroll up
-          setVisible(true);
+          // scroll up -> show
+          if (!visible) setVisible(true);
         }
         lastScrollY.current = currentScrollY;
       }
@@ -156,7 +164,7 @@ const useScrollNavbar = () => {
     // Use capture: true to catch scroll events from child containers like #chat-container
     window.addEventListener("scroll", handleScroll, { capture: true, passive: true });
     return () => window.removeEventListener("scroll", handleScroll, { capture: true, passive: true });
-  }, []);
+  }, [visible]);
 
   return visible;
 };
@@ -196,9 +204,10 @@ const DashboardLayout = () => {
 
   // Sync CSS variable for child pages top-padding
   useEffect(() => {
-    const hValue = (allowNavbar && showOnScroll) ? '64px' : '0px';
+    // Keep padding stable at 64px if navbar is allowed, to prevent layout shifts on show/hide
+    const hValue = allowNavbar ? '64px' : '0px';
     document.documentElement.style.setProperty('--mobile-nav-h', hValue);
-  }, [allowNavbar, showOnScroll]);
+  }, [allowNavbar]);
 
   return (
     <div className="fixed inset-0 flex bg-transparent text-maintext overflow-hidden aisa-scalable-text">
@@ -249,7 +258,7 @@ const DashboardLayout = () => {
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setIsSidebarOpen(true)}
-                className="lg:hidden w-10 h-10 flex items-center justify-center bg-primary/10 rounded-xl border border-primary/30 text-primary"
+                className="lg:hidden w-10 h-10 flex items-center justify-center bg-white/40 dark:bg-black/40 backdrop-blur-xl rounded-xl border border-white/40 dark:border-white/10 text-primary shadow-lg shadow-black/5"
               >
                 <Menu className="w-6 h-6 stroke-[2.5]" />
               </motion.button>
@@ -258,7 +267,7 @@ const DashboardLayout = () => {
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                  className="w-10 h-10 flex items-center justify-center bg-primary/10 rounded-xl border border-primary/30 text-primary"
+                  className="w-10 h-10 flex items-center justify-center bg-white/40 dark:bg-black/40 backdrop-blur-xl rounded-xl border border-white/40 dark:border-white/10 text-primary shadow-lg shadow-black/5"
                 >
                   {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
                 </motion.button>

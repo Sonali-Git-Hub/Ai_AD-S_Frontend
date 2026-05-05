@@ -694,7 +694,7 @@ const Chat = () => {
   };
 
   const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false);
-  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+
   const lastScrollTopRef = useRef(0);
 
   const [isLiveMode, setIsLiveMode] = useState(false);
@@ -3383,17 +3383,6 @@ const Chat = () => {
     if (chatContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
 
-      const isMobile = window.innerWidth < 1024;
-      if (isMobile) {
-        if (scrollTop > lastScrollTopRef.current && scrollTop > 50) {
-          setIsHeaderVisible(false);
-        } else if (scrollTop < lastScrollTopRef.current) {
-          setIsHeaderVisible(true);
-        }
-      } else {
-        // Desktop: Always stay visible
-        setIsHeaderVisible(true);
-      }
       lastScrollTopRef.current = scrollTop <= 0 ? 0 : scrollTop;
 
       // Increased threshold (250px) to be less sensitive to minor scroll movements or large images
