@@ -25,7 +25,9 @@ export const useAILegalCRM = ({
   setIsCasePanelOpen,
   setActiveLegalToolkit,
   legalView,
-  setLegalView
+  setLegalView,
+  activeTool,
+  setActiveTool
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -227,6 +229,7 @@ export const useAILegalCRM = ({
       setCurrentMode('LEGAL_TOOLKIT');
       setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
       setLegalView('CHAT');
+      setActiveTool('legal');
       setIsCasePanelOpen(false);
     }
     setMessages([]);
@@ -455,7 +458,7 @@ export const useAILegalCRM = ({
   // Fetch Case Details when currentProjectId changes
   useEffect(() => {
     const fetchCaseDetails = async () => {
-      if (!currentProjectId || currentProjectId === 'default' || currentProjectId === 'all' || location.pathname === '/dashboard/cases') {
+      if (!currentProjectId || currentProjectId === 'default' || currentProjectId === 'all') {
         setCurrentCase(null);
         if (currentMode !== 'LEGAL_TOOLKIT') {
           setCurrentMode('NORMAL_CHAT');

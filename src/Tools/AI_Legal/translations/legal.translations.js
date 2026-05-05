@@ -131,6 +131,15 @@ export const legalTranslations = {
         currentlyFlaggedAs: "Currently flagged as",
         criticalVulnerabilities: "Critical Vulnerabilities",
         opponentStrategyPrediction: "Opponent Strategy Prediction",
+        hearingDue: "Hearing due",
+        upcomingHearing: "Upcoming hearing",
+        missedHearing: "Missed hearing",
+        nextHearingSummary: "Next Hearing",
+        upcomingHearingDetail: "Upcoming Hearing",
+        upcomingHearingsDetail: "Upcoming Hearings",
+        dateLabel: "Date",
+        courtLabel: "Court",
+        timeLabel: "Time",
 
         // Tool Names
         evidenceAnalyst: "Evidence Analyst",
@@ -291,6 +300,15 @@ export const legalTranslations = {
         currentlyFlaggedAs: "वर्तमान में इस रूप में चिह्नित",
         criticalVulnerabilities: "महत्वपूर्ण कमजोरियां",
         opponentStrategyPrediction: "विपक्षी रणनीति भविष्यवाणी",
+        hearingDue: "सुनवाई बाकी",
+        upcomingHearing: "आगामी सुनवाई",
+        missedHearing: "छुटी हुई सुनवाई",
+        nextHearingSummary: "अगली सुनवाई",
+        upcomingHearingDetail: "आगामी सुनवाई",
+        upcomingHearingsDetail: "आगामी सुनवाईयां",
+        dateLabel: "तारीख",
+        courtLabel: "अदालत",
+        timeLabel: "समय",
 
         // Tool Names (Hindi)
         evidenceAnalyst: "साक्ष्य विश्लेषक",

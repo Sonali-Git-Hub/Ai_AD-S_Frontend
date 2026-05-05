@@ -71,21 +71,52 @@ const LegalDashboard = ({
       </div>
 
       {/* Case Grid - Scrollable */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar px-6 sm:px-10 py-8 overscroll-contain touch-pan-y">
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-4 sm:px-10 py-6 sm:py-8 overscroll-contain touch-pan-y">
         {legalCases.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {legalCases.map((c) => (
               <motion.div
                 key={c._id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 whileHover={{ y: -6, scale: 1.01 }}
-                className="group relative bg-white dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm hover:shadow-2xl hover:shadow-indigo-500/15 transition-all cursor-pointer"
+                className="group relative bg-white dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm hover:shadow-2xl hover:shadow-indigo-500/15 transition-all cursor-pointer"
                 onClick={() => handleOpenCase(c)}
               >
-                <div className="flex justify-between items-start mb-5">
-                  <div className={`p-4 rounded-2xl ${currentProjectId === c._id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-indigo-50 dark:bg-zinc-800 text-indigo-600'} transition-colors`}>
-                    <FolderOpen className="w-6 h-6" />
+                <div className="flex justify-between items-start mb-4 sm:mb-5">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl ${currentProjectId === c._id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-indigo-50 dark:bg-zinc-800 text-indigo-600'} transition-colors`}>
+                      <FolderOpen className="w-5 h-5 sm:w-6 sm:h-6" />
+                    </div>
+                    {(() => {
+                      if (!c.hearings || c.hearings.length === 0) return null;
+                      const today = new Date(); today.setHours(0,0,0,0);
+                      const dueHearing = c.hearings.find(h => h.status === 'Upcoming' && new Date(h.date).setHours(0,0,0,0) === today.getTime());
+                      const upcomingHearing = c.hearings.find(h => h.status === 'Upcoming' && new Date(h.date).setHours(0,0,0,0) > today.getTime());
+                      const missedHearing = c.hearings.find(h => h.status === 'Missed');
+
+                      const baseClass = "flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[7px] sm:text-[8px] font-black uppercase tracking-tighter shadow-sm whitespace-nowrap border";
+                      
+                      if (dueHearing) return (
+                        <div className={`${baseClass} bg-red-500 text-white border-red-400 animate-pulse`}>
+                          <span className="w-1 h-1 rounded-full bg-white" />
+                          {tLegal('hearingDue')}
+                        </div>
+                      );
+                      if (missedHearing) return (
+                        <div className={`${baseClass} bg-amber-500 text-white border-amber-400`}>
+                          <span className="w-1 h-1 rounded-full bg-white" />
+                          {tLegal('missedHearing')}
+                        </div>
+                      );
+                      if (upcomingHearing) return (
+                        <div className={`${baseClass} bg-indigo-500 text-white border-indigo-400`}>
+                          <span className="w-1 h-1 rounded-full bg-white opacity-60" />
+                          {tLegal('upcomingHearing')}
+                        </div>
+                      );
+                      return null;
+                    })()}
                   </div>
                   <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                     <button
@@ -93,61 +124,61 @@ const LegalDashboard = ({
                         e.stopPropagation();
                         handleOpenEditModal(c);
                       }}
-                      className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl text-subtext transition-colors bg-white/50 dark:bg-black/20 sm:bg-transparent"
+                      className="p-1.5 sm:p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg sm:rounded-xl text-subtext transition-colors bg-white/50 dark:bg-black/20 sm:bg-transparent"
                       title="Edit Case"
                     >
-                      <Edit2 size={16} />
+                      <Edit2 size={14} className="sm:w-4 sm:h-4" />
                     </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDeleteCase(c._id);
                       }}
-                      className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl text-red-500 transition-colors bg-white/50 dark:bg-black/20 sm:bg-transparent"
+                      className="p-1.5 sm:p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg sm:rounded-xl text-red-500 transition-colors bg-white/50 dark:bg-black/20 sm:bg-transparent"
                       title="Delete Case"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={14} className="sm:w-4 sm:h-4" />
                     </button>
                   </div>
                 </div>
 
-                <div className="space-y-1.5 mb-5">
+                <div className="space-y-1 sm:space-y-1.5 mb-4 sm:mb-5">
                   {isRenamingCase === c._id ? (
                     <div className="flex gap-2" onClick={e => e.stopPropagation()}>
                       <input
                         autoFocus
                         value={renameValue}
                         onChange={e => setRenameValue(e.target.value)}
-                        className="bg-slate-50 dark:bg-black/20 border border-primary rounded-lg px-2 py-1 text-sm font-bold w-full outline-none"
+                        className="bg-slate-50 dark:bg-black/20 border border-primary rounded-lg px-2 py-1 text-xs sm:text-sm font-bold w-full outline-none"
                         onKeyDown={e => e.key === 'Enter' && handleRenameCase(c._id)}
                       />
-                      <button onClick={() => handleRenameCase(c._id)} className="p-1 text-green-500"><Check size={16} /></button>
-                      <button onClick={() => setIsRenamingCase(null)} className="p-1 text-slate-400"><X size={16} /></button>
+                      <button onClick={() => handleRenameCase(c._id)} className="p-1 text-green-500"><Check size={14} /></button>
+                      <button onClick={() => setIsRenamingCase(null)} className="p-1 text-slate-400"><X size={14} /></button>
                     </div>
                   ) : (
-                    <h3 className="text-base font-black text-slate-800 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{c.name}</h3>
+                    <h3 className="text-sm sm:text-base font-black text-slate-800 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{c.name}</h3>
                   )}
                   <div className="flex flex-col gap-1">
-                    <p className="text-xs text-subtext font-bold uppercase tracking-widest flex items-center gap-1.5">
-                      <Users size={11} />
+                    <p className="text-[9px] sm:text-xs text-subtext font-bold uppercase tracking-widest flex items-center gap-1 sm:gap-1.5">
+                      <Users size={10} className="sm:w-[11px] sm:h-[11px]" />
                       {c.clientName || 'Private Client'}
                     </p>
                     {c.caseType && (
-                      <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-black uppercase tracking-widest flex items-center gap-1.5">
-                        <Scale size={11} />
+                      <p className="text-[8px] sm:text-[10px] text-indigo-600 dark:text-indigo-400 font-black uppercase tracking-widest flex items-center gap-1 sm:gap-1.5">
+                        <Scale size={10} className="sm:w-[11px] sm:h-[11px]" />
                         {c.caseType}
                       </p>
                     )}
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-zinc-800">
-                  <span className="text-[10px] text-subtext font-bold uppercase tracking-tighter">
+                <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-slate-100 dark:border-zinc-800">
+                  <span className="text-[9px] sm:text-[10px] text-subtext font-bold uppercase tracking-tighter">
                     {new Date(c.updatedAt || Date.now()).toLocaleDateString()}
                   </span>
                   <div className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 group-hover:translate-x-1 transition-transform">
-                    <span className="text-[10px] font-black uppercase tracking-widest">{tLegal('openCaseBtn')}</span>
-                    <ChevronRight size={14} />
+                    <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">{tLegal('openCaseBtn')}</span>
+                    <ChevronRight size={12} className="sm:w-3.5 sm:h-3.5" />
                   </div>
                 </div>
               </motion.div>
