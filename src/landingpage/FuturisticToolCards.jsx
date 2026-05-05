@@ -262,7 +262,7 @@ const ToolCard = ({ tool, onToolSelect, index, isFlipped, onFlip, onUnflip }) =>
 
   return (
     <div
-      className="relative w-full h-[85px] sm:h-[155px]"
+      className="relative w-full h-[90px] sm:h-[135px] md:h-[145px] lg:h-[150px]"
       style={{ perspective: '1200px' }}
     >
       {/* Active Glow Backdrop */}
@@ -523,9 +523,9 @@ const FuturisticToolCards = ({ onToolSelect, activeToolId, isAdmin = false }) =>
   };
 
   return (
-    <div className="w-full pt-0 pb-4 sm:pb-8 px-0 sm:px-0 flex flex-col items-center gap-4 sm:gap-6" ref={ref}>
+    <div className="w-full py-0 sm:py-2 px-4 sm:px-6 flex flex-col items-center gap-1 sm:gap-4" ref={ref}>
       <motion.div
-        className="w-full grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-8 max-w-7xl mx-auto"
+        className="w-full grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-4 max-w-7xl mx-auto"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
