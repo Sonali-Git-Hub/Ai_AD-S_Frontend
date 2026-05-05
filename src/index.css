@@ -157,14 +157,32 @@
   }
 
   .prose {
-    max-width: none !important;
-    color: hsl(var(--muted-foreground)) !important;
-    line-height: 1.75 !important;
+    max-width: 700px !important;
+    color: hsl(var(--foreground)) !important;
+    font-size: 14px !important;
+    line-height: 1.55 !important;
+  }
+
+  /* Responsive Typography */
+  @media (max-width: 768px) {
+    .prose {
+      font-size: 13px !important;
+    }
+  }
+
+  .prose h2 {
+    font-size: 18px !important;
+    font-weight: 600 !important;
+  }
+
+  .prose h3 {
+    font-size: 16px !important;
+    font-weight: 600 !important;
   }
 
   .prose p {
-    margin-top: 1em !important;
-    margin-bottom: 1em !important;
+    margin-top: 0 !important;
+    margin-bottom: 12px !important;
   }
 
   .prose h1,
@@ -173,8 +191,20 @@
   .prose h4 {
     color: hsl(var(--foreground)) !important;
     font-weight: 700 !important;
-    margin-top: 2em !important;
-    margin-bottom: 1em !important;
+    margin-top: 1.5em !important;
+    margin-bottom: 0.75em !important;
+  }
+
+  .prose h2 {
+    font-size: 18px !important;
+  }
+
+  .prose h3 {
+    font-size: 16px !important;
+  }
+
+  .prose * {
+    font-size: inherit !important;
   }
 
   .prose strong {
@@ -182,17 +212,17 @@
     font-weight: 700 !important;
   }
 
-  .prose ul {
+  .prose ul, .prose ol {
     list-style-type: none !important;
     padding-left: 0 !important;
-    margin-top: 1.5em !important;
-    margin-bottom: 1.5em !important;
+    margin-top: 12px !important;
+    margin-bottom: 12px !important;
   }
 
   .prose li {
     position: relative !important;
     padding-left: 1.75em !important;
-    margin-bottom: 0.75em !important;
+    margin-bottom: 6px !important;
   }
 
   .prose li::before {
@@ -213,7 +243,7 @@
     border-left: 4px solid hsl(var(--primary) / 0.2) !important;
     padding-left: 1.5em !important;
     font-style: italic !important;
-    color: hsl(var(--muted-foreground)) !important;
+    color: hsl(var(--foreground)) !important;
   }
 }
 
@@ -595,6 +625,10 @@ body,
 
 /* --- AISA PREMIUM DESIGN SYSTEM --- */
 
+.navbar {
+  transition: transform 0.3s ease-in-out;
+}
+
 .glass-morphism {
   @apply bg-white/40 dark:bg-black/40 backdrop-blur-2xl border border-white/20 dark:border-white/5;
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
@@ -902,13 +936,21 @@ html.lenis body {
 }
 
 .chatgpt-text {
-  font-size: 16px;
+  font-size: 14px;
+  line-height: 1.55;
   letter-spacing: normal;
   color: #374151;
   width: 100%;
+  max-width: 700px;
   background-color: transparent !important;
   border: none !important;
   box-shadow: none !important;
+}
+
+@media (max-width: 768px) {
+  .chatgpt-text {
+    font-size: 13px;
+  }
 }
 
 .user-row .chatgpt-text {
@@ -985,7 +1027,7 @@ html.lenis body {
 }
 
 .chatgpt-text h1 {
-  font-size: 1.75rem;
+  font-size: 20px;
   margin-top: 1.5rem;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   padding-bottom: 0.5rem;
@@ -996,12 +1038,12 @@ html.lenis body {
 }
 
 .chatgpt-text h2 {
-  font-size: 1.4rem;
+  font-size: 18px;
   margin-top: 1.25rem;
 }
 
 .chatgpt-text h3 {
-  font-size: 1.15rem;
+  font-size: 16px;
   margin-top: 1rem;
 }
 
@@ -1020,7 +1062,7 @@ html.lenis body {
 }
 
 .chatgpt-text li {
-  margin-bottom: 0.5rem;
+  margin-bottom: 6px;
   padding-left: 0.25rem;
 }
 
@@ -1462,4 +1504,23 @@ body.modal-open-hide-navbar {
 .dark .ai-avatar-wrapper {
   background: #111;
   border-color: rgba(255,255,255,0.1);
+}
+
+/* Enable text selection globally for AI responses */
+.select-text, 
+.select-text *,
+.chatgpt-text,
+.chatgpt-text *,
+.chat-bubble-text,
+.chat-bubble-text * {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -webkit-touch-callout: default !important;
+}
+
+/* Ensure no parent blocks selection */
+.chatgpt-container,
+.chatgpt-message-row,
+.chatgpt-message-content {
+  user-select: text !important;
 }

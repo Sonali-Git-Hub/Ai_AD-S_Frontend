@@ -544,7 +544,12 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
               onClick={() => {
                 setIsNavigating(true);
                 setTimeout(() => {
-                  window.location.href = import.meta.env.VITE_AI_MALL || "https://aimall24.com";
+                  const targetUrl = (window._env_ && window._env_.VITE_AI_MALL) || import.meta.env.VITE_AI_MALL;
+                  if (targetUrl) {
+                    window.location.href = targetUrl;
+                  } else {
+                    console.error("VITE_AI_MALL is undefined in this environment.");
+                  }
                 }, 300);
               }}
               className={`relative z-10 w-[46px] flex justify-center items-center text-[9px] font-bold transition-colors ${isNavigating ? 'text-white' : (isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-[#8B5CF6]')}`}

@@ -317,15 +317,15 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
         if (cases.length === 0) return renderEmptyCases();
 
         return (
-            <div className="precedent-selection-container max-w-6xl mx-auto py-8 px-4">
-                <div className="text-center mb-10">
-                    <div className="w-16 h-16 bg-indigo-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-indigo-500/20">
-                        <Folder size={32} className="text-indigo-400" />
+            <div className="precedent-selection-container max-w-6xl mx-auto py-6 sm:py-10 px-4">
+                <div className="text-center mb-6 sm:mb-8">
+                    <div className="w-10 h-10 bg-indigo-500/5 rounded-xl flex items-center justify-center mx-auto mb-3 border border-indigo-500/10">
+                        <Folder size={20} className="text-indigo-400/70" />
                     </div>
-                    <h2 className="text-2xl font-black text-maintext tracking-tight mb-2">
+                    <h2 className="text-sm sm:text-base font-bold text-maintext tracking-tight mb-1">
                         {t('selectCaseToAnalyze')}
                     </h2>
-                    <p className="text-xs text-subtext font-medium max-w-md mx-auto">
+                    <p className="text-[10px] sm:text-xs text-subtext font-medium max-w-xs mx-auto">
                         {t('chooseCaseDescription')}
                     </p>
                 </div>
@@ -343,7 +343,7 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
                                     <div className="w-8 h-8 bg-background rounded-lg flex items-center justify-center">
                                         <Scale size={14} className="text-subtext" />
                                     </div>
-                                    <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 bg-background text-subtext rounded-md">
+                                    <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 bg-background text-maintext/60 border border-border rounded-md">
                                         {c.caseType || 'General'}
                                     </span>
                                 </div>
@@ -357,7 +357,7 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
                                 <span className="text-[9px] text-subtext/60 font-bold uppercase tracking-wider">
                                     {new Date(c.updatedAt).toLocaleDateString()}
                                 </span>
-                                <button className="analyze-btn flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-300 transition-all">
+                                <button className="analyze-btn flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-600 bg-indigo-500/5 hover:bg-indigo-500/10 px-3 py-1.5 rounded-full border border-indigo-500/10 transition-all">
                                     Analyze Precedents <ArrowRight size={12} />
                                 </button>
                             </div>
@@ -441,14 +441,14 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
                                 {t('legalPrecedentsTitle')}
                             </h2>
                             {activeCase && mode === 'CURRENT' && (
-                                <div className="flex items-center gap-2 px-2.5 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-lg w-fit max-w-full">
-                                    <Briefcase size={10} className="text-indigo-400 shrink-0" />
-                                    <span className="text-[9px] sm:text-[10px] font-black text-indigo-300 uppercase tracking-widest truncate max-w-[120px] sm:max-w-[200px]">
+                                <div className="flex items-center gap-2 px-3 py-1.5 bg-card border border-border rounded-xl w-fit max-w-full shadow-sm">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse shrink-0" />
+                                    <span className="text-[10px] sm:text-[11px] font-black text-maintext uppercase tracking-widest truncate max-w-[150px] sm:max-w-[250px]">
                                         {activeCase.name}
                                     </span>
                                     <button
                                         onClick={() => setIsCaseListOpen(true)}
-                                        className="text-[8px] sm:text-[9px] font-bold text-subtext hover:text-indigo-400 ml-1 transition-colors underline underline-offset-2 shrink-0"
+                                        className="text-[9px] sm:text-[10px] font-bold text-indigo-500 hover:text-indigo-600 ml-2 transition-colors underline underline-offset-4 decoration-indigo-500/20 hover:decoration-indigo-500 shrink-0"
                                     >
                                         Change
                                     </button>
@@ -614,10 +614,10 @@ const PrecedentCard = ({ caseItem, onClick, onCopyCitation, t }) => {
             <div className="precedent-card-body p-6">
                 <div className="precedent-card-header flex justify-between items-start mb-4">
                     <div className="flex-1">
-                        <h3 className="text-base font-black text-maintext group-hover:text-indigo-400 transition-colors leading-snug">
+                        <h3 className="text-base font-black text-maintext leading-snug">
                             {case_identity.case_name || caseItem.case_name}
                         </h3>
-                        <div className="flex items-center gap-3 mt-1 text-[11px] text-subtext font-bold uppercase tracking-wider">
+                        <div className="flex items-center gap-3 mt-1 text-[11px] text-maintext/90 font-bold uppercase tracking-wider">
                             <span className="flex items-center gap-1"><Gavel size={12} /> {case_identity.court || caseItem.court}</span>
                             <span>•</span>
                             <span className="flex items-center gap-1"><Calendar size={12} /> {case_identity.year || caseItem.year}</span>
@@ -630,12 +630,12 @@ const PrecedentCard = ({ caseItem, onClick, onCopyCitation, t }) => {
                     </div>
                 </div>
 
-                <p className="precedent-facts text-xs text-subtext leading-relaxed line-clamp-2 mb-4 font-medium italic">
+                <p className="precedent-facts text-xs text-maintext leading-relaxed line-clamp-2 mb-4 font-medium italic opacity-90">
                     "{case_context.facts || caseItem.facts || caseItem.summary}"
                 </p>
 
                 <div className="precedent-reasoning-preview bg-background rounded-xl p-4 border border-border mb-4">
-                    <div className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                    <div className="text-[9px] font-black text-maintext uppercase tracking-widest mb-1.5 flex items-center gap-1.5 opacity-70">
                         <Shield size={10} /> {t('legalReasoning')}
                     </div>
                     <ReasoningSection
@@ -662,7 +662,7 @@ const PrecedentCard = ({ caseItem, onClick, onCopyCitation, t }) => {
                         </button>
                         <motion.div
                             whileHover={{ x: 4 }}
-                            className="flex items-center gap-1 text-[10px] font-black text-indigo-400 uppercase tracking-widest"
+                            className="flex items-center gap-1 text-[10px] font-black text-maintext uppercase tracking-widest"
                         >
                             {t('intelligenceReport')} <ChevronRight size={14} />
                         </motion.div>
@@ -821,7 +821,7 @@ export const CaseDetailView = ({
                             </h4>
                             <div className="space-y-4">
                                 {formatToBullets(judgment_basis.legal_reasoning || caseItem.reasoning || caseItem.ratio_decidendi).map((point, i) => (
-                                    <div key={i} className="flex gap-3 text-[14px] text-subtext leading-relaxed font-medium">
+                                    <div key={i} className="flex gap-3 text-[14px] text-maintext leading-relaxed font-medium">
                                         <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0 mt-2" />
                                         <p>{point}</p>
                                     </div>
@@ -836,7 +836,7 @@ export const CaseDetailView = ({
                             </h4>
                             <div className="grid grid-cols-1 gap-4">
                                 {(key_takeaways || caseItem.key_takeaways || []).map((item, i) => (
-                                    <div key={i} className="flex gap-3 text-[14px] text-subtext leading-relaxed font-medium">
+                                    <div key={i} className="flex gap-3 text-[14px] text-maintext leading-relaxed font-medium">
                                         <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 mt-2" />
                                         <span>{item}</span>
                                     </div>
@@ -850,7 +850,7 @@ export const CaseDetailView = ({
 
                         {/* SMART ACTIONS */}
                         <div className="space-y-4">
-                            <h4 className="text-[11px] font-black text-subtext uppercase tracking-[0.2em]">Smart Assistant Actions</h4>
+                            <h4 className="text-[11px] font-black text-maintext uppercase tracking-[0.2em]">Smart Assistant Actions</h4>
                             <div className="flex flex-col gap-2">
                                 <button
                                     onClick={onSummarize}
@@ -943,7 +943,7 @@ export const CaseDetailView = ({
                         {/* Relevance Score */}
                         <div className="bg-card p-6 rounded-[20px] border border-border shadow-sm space-y-4">
                             <div className="flex items-center justify-between">
-                                <span className="text-[11px] font-black text-subtext uppercase tracking-widest">Relevance Match</span>
+                                <span className="text-[11px] font-black text-maintext uppercase tracking-widest">Relevance Match</span>
                                 <div className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-[11px] font-bold">
                                     {similarity.relevance_score || caseItem.relevance_score || 0}% {t('relevance')}
                                 </div>
@@ -965,7 +965,7 @@ export const CaseDetailView = ({
                             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full -mr-16 -mt-16 -z-0 opacity-40" />
                             <div className="relative z-10">
                                 <div className="flex items-center justify-between mb-6">
-                                    <h4 className="text-[11px] font-black text-subtext uppercase tracking-[0.2em]">{t('finalVerdict')}</h4>
+                                    <h4 className="text-[11px] font-black text-maintext uppercase tracking-[0.2em]">{t('finalVerdict')}</h4>
                                     <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${judgment_outcome.type?.toLowerCase().includes('allow')
                                         ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                                         : 'bg-red-500/10 text-red-400 border border-red-500/20'
@@ -982,9 +982,9 @@ export const CaseDetailView = ({
                                     </div>
 
                                     <div className="space-y-3 pt-4 border-t border-border">
-                                        <div className="text-[10px] font-black text-subtext uppercase tracking-widest mb-2">Court Held</div>
+                                        <div className="text-[10px] font-black text-maintext uppercase tracking-widest mb-2">Court Held</div>
                                         {formatToBullets(judgment_outcome.court_held || judgment_outcome.final_decision).slice(0, 2).map((point, i) => (
-                                            <div key={i} className="flex gap-2 text-[12px] text-subtext font-medium leading-relaxed">
+                                            <div key={i} className="flex gap-2 text-[12px] text-maintext font-medium leading-relaxed">
                                                 <div className="text-emerald-400">•</div>
                                                 <p>{point}</p>
                                             </div>
@@ -996,10 +996,10 @@ export const CaseDetailView = ({
 
                         {/* Key Principles */}
                         <div className="space-y-4">
-                            <h4 className="text-[11px] font-black text-subtext uppercase tracking-[0.2em]">{t('legalPrinciples')}</h4>
+                            <h4 className="text-[11px] font-black text-maintext uppercase tracking-[0.2em]">{t('legalPrinciples')}</h4>
                             <div className="flex flex-wrap gap-2">
                                 {(judgment_basis.principles_applied || []).map((p, i) => (
-                                    <span key={i} className="px-3 py-1.5 bg-card border border-border text-subtext text-[11px] font-bold rounded-lg shadow-sm hover:border-indigo-400/50 transition-colors cursor-default">
+                                    <span key={i} className="px-3 py-1.5 bg-card border border-border text-maintext text-[11px] font-bold rounded-lg shadow-sm hover:border-indigo-400/50 transition-colors cursor-default">
                                         {p}
                                     </span>
                                 ))}
@@ -1008,10 +1008,10 @@ export const CaseDetailView = ({
 
                         {/* Similarity Analysis */}
                         <div className="space-y-4">
-                            <h4 className="text-[11px] font-black text-subtext uppercase tracking-[0.2em]">{t('similarityAnalysis')}</h4>
+                            <h4 className="text-[11px] font-black text-maintext uppercase tracking-[0.2em]">{t('similarityAnalysis')}</h4>
                             <div className="space-y-2">
                                 {(similarity.matching_factors || []).map((factor, i) => (
-                                    <div key={i} className="flex gap-3 text-[12px] text-subtext font-bold leading-relaxed bg-card p-3 rounded-xl border border-border shadow-sm">
+                                    <div key={i} className="flex gap-3 text-[12px] text-maintext font-bold leading-relaxed bg-card p-3 rounded-xl border border-border shadow-sm">
                                         <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
                                         {factor}
                                     </div>
@@ -1097,7 +1097,7 @@ export const Section = ({ title, content, icon, limit = 200, isIssue = false, t 
                 {icon} {title}
             </h4>
             <div className="relative">
-                <p className={`${isIssue ? 'text-[16px] font-bold text-maintext' : 'text-[14px] font-medium text-subtext'} leading-relaxed`}>
+                <p className={`${isIssue ? 'text-[16px] font-bold text-maintext' : 'text-[14px] font-medium text-maintext'} leading-relaxed`}>
                     {isIssue && !content?.includes('?') ? `"${displayText}?"` : displayText}
                     {!isExpanded && shouldTruncate && "..."}
                 </p>

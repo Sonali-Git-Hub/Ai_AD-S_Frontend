@@ -58,9 +58,22 @@ import ProfileSettingsDropdown from '../Components/ProfileSettingsDropdown/Profi
 import { useTheme } from '../context/ThemeContext';
 
 // AI Legal Modular Components
+import ActionCard from '../Components/ActionCard';
 import { useAILegalCRM } from '../Tools/AI_Legal/hooks/useAILegalCRM';
 import LegalWorkspaceHeader from '../Tools/AI_Legal/components/LegalWorkspaceHeader';
 import LegalWorkspaceWelcome from '../Tools/AI_Legal/components/LegalWorkspaceWelcome';
+
+const transformLegalActions = (content) => {
+  if (!content) return "";
+  
+  // Pattern: 👉 **Title**: Description [Action: Button](action:id)
+  // This regex handles various slight variations in spacing and bolding
+  const actionRegex = /(?:👉\s*)?(?:\*\*)?([^*:]+)(?:\*\*)?[:\-]?\s*([^\[\n]+)\s*\[(Action:\s*[^\]]+)\]\(action:([^)]+)\)/g;
+  
+  return content.replace(actionRegex, (match, title, desc, action, link) => {
+    return `\n[ActionCard|${title.trim()}|${desc.trim()}|${action.trim()}](action:${link.trim()})\n`;
+  });
+};
 
 const LEGAL_TOOL_WELCOME_MESSAGES = {
   legal_draft_maker: {
@@ -115,6 +128,14 @@ const ToolActivationMessage = ({ title, desc }) => (
       </span>
     </div>
   </motion.div>
+);
+
+const Skeleton = () => (
+  <div className="w-full space-y-3 animate-pulse py-2">
+    <div className="h-3 bg-slate-200 dark:bg-zinc-800 rounded-full w-3/4" />
+    <div className="h-3 bg-slate-200 dark:bg-zinc-800 rounded-full w-1/2" />
+    <div className="h-3 bg-slate-200 dark:bg-zinc-800 rounded-full w-5/6" />
+  </div>
 );
 
 
@@ -396,7 +417,7 @@ const getModeInfo = (mode) => {
     case MODES.FILE_ANALYSIS:
       return { label: "AI File Analysis", icon: Search, color: "text-blue-500", bg: "bg-blue-500/10", border: "border-blue-500/20" };
     case MODES.LEGAL_TOOLKIT:
-      return { label: "AI Legal Toolkit", icon: Scale, color: "text-indigo-600", bg: "bg-indigo-600/10", border: "border-indigo-600/20" };
+      return { label: "AI Legal™", icon: Scale, color: "text-indigo-600", bg: "bg-indigo-600/10", border: "border-indigo-600/20" };
     case MODES.CASHFLOW:
       return { label: "AI CashFlow", icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20" };
     default:
@@ -3356,9 +3377,15 @@ const Chat = () => {
     if (chatContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
 
-      if (scrollTop > lastScrollTopRef.current && scrollTop > 50) {
-        setIsHeaderVisible(false);
-      } else if (scrollTop < lastScrollTopRef.current) {
+      const isMobile = window.innerWidth < 1024;
+      if (isMobile) {
+        if (scrollTop > lastScrollTopRef.current && scrollTop > 50) {
+          setIsHeaderVisible(false);
+        } else if (scrollTop < lastScrollTopRef.current) {
+          setIsHeaderVisible(true);
+        }
+      } else {
+        // Desktop: Always stay visible
         setIsHeaderVisible(true);
       }
       lastScrollTopRef.current = scrollTop <= 0 ? 0 : scrollTop;
@@ -4211,10 +4238,41 @@ REQUIRED OUTPUT FORMAT:
 
 ### RESPONSE FORMATTING RULES (STRICT):
 1.  **Structure**: ALWAYS use Markdown headers (# for main, ## for sub-sections) for section titles. Do NOT use bullets for these headers.
-2.  **Lists**: Use Bullet Points only for actual lists of multiple points. Avoid putting section titles inside a list.
-3.  **Highlights**: Bold key terms and important concepts within sentences.
-4.  **Summary**: Include a "One-line summary" or "Simple definition" at the start or end where appropriate.
-5.  **Emojis**: Use relevant emojis.
+2.  **SPACING (CRITICAL)**: 
+    - Always add a BLANK LINE after every section.
+    - Always leave ONE EMPTY LINE between headings and content.
+    - Ensure clear spacing between blocks like TO, FROM, DATE, and SUBJECT.
+    - Never join sections without spacing; keep the output visually clean with clear gaps for mobile readability.
+3.  **Lists**: Use Bullet Points only for actual lists of multiple points. Avoid putting section titles inside a list.
+4.  **Highlights**: Bold key terms and important concepts within sentences.
+5.  **Summary**: Include a "One-line summary" or "Simple definition" at the start or end where appropriate.
+6.  **Emojis**: Use relevant emojis.
+
+### LEGAL NOTICE FORMAT (MANDATORY):
+When drafting a Legal Notice, you MUST follow this exact structure:
+## LEGAL NOTICE
+
+TO:
+- [Recipient Details]
+
+FROM:
+- [Sender Details]
+
+DATE:
+- [Current Date]
+
+SUBJECT:
+- [Concise subject line]
+
+---
+
+### Details
+(Leave one blank line here)
+1.
+- [First point]
+
+2.
+- [Second point]
 
 ### FINANCIAL & INVOICE ANALYSIS RULES (MANDATORY):
 When summarizing or extracting data from Invoices, Receipts, or Financial Documents:
@@ -6058,70 +6116,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
           </div>
         )}
 
-        {/* Header - Minimalist with Profile and Theme - Hidden on mobile as it's now in the navbar */}
-        <AnimatePresence>
-          {isHeaderVisible && !(currentMode === 'LEGAL_TOOLKIT' && (legalView === 'PRECEDENTS' || legalView === 'DASHBOARD' || selectedLegalTool?.id === 'legal_my_case')) && (
-            <motion.div
-              initial={{ y: -50, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -50, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="hidden lg:flex absolute top-2 right-6 z-[100] items-center gap-3"
-            >
-              {/* Theme Toggle */}
-              <button
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className={`w-10 h-10 rounded-xl border transition-all duration-300 group/theme flex items-center justify-center
-                  ${theme === 'dark'
-                    ? 'bg-zinc-900/50 border-white/10 text-slate-400 hover:text-primary hover:bg-primary/10 backdrop-blur-md'
-                    : 'bg-white/50 border-slate-200 text-slate-600 hover:text-primary hover:bg-white shadow-sm backdrop-blur-md'}`}
-                title={theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'}
-              >
-                {theme === 'dark' ? <Sun className="w-[18px] h-[18px] group-hover/theme:rotate-90 transition-transform duration-500" /> : <Moon className="w-[18px] h-[18px] group-hover/theme:-rotate-12 transition-transform duration-500" />}
-              </button>
 
-              {/* Profile Menu or Login Button */}
-              {token ? (
-                <div className="relative profile-menu-container">
-                  <button
-                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                    className={`w-10 h-10 rounded-xl border transition-all duration-300 flex items-center justify-center
-                      ${theme === 'dark'
-                        ? 'bg-zinc-900/50 border-white/10 text-slate-400 hover:text-primary hover:bg-primary/10 backdrop-blur-md'
-                        : 'bg-white/50 border-slate-200 text-slate-600 hover:text-primary hover:bg-white shadow-sm backdrop-blur-md'}`}
-                  >
-                    {user?.avatar ? (
-                      <img src={user.avatar} alt="P" className="w-[24px] h-[24px] object-cover rounded-lg" />
-                    ) : (
-                      <User className="w-[18px] h-[18px]" />
-                    )}
-                  </button>
-                  <AnimatePresence>
-                    {isProfileMenuOpen && (
-                      <ProfileSettingsDropdown
-                        onClose={() => setIsProfileMenuOpen(false)}
-                        onLogout={() => {
-                          clearUser();
-                          navigate('/login');
-                          setIsProfileMenuOpen(false);
-                        }}
-                      />
-                    )}
-                  </AnimatePresence>
-                </div>
-              ) : (
-                <motion.button
-                  whileHover={{ y: -2, scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => navigate('/login')}
-                  className="px-6 py-2 bg-primary text-white rounded-xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-primary/25 hover:shadow-primary/40 transition-all border border-white/10"
-                >
-                  Login
-                </motion.button>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
 
 
 
@@ -6140,7 +6135,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
           onScroll={handleScroll}
           className={`relative flex-1 aisa-scalable-text chatgpt-container scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent ${((legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT')
             ? 'z-20 h-full w-full overflow-hidden flex flex-col bg-slate-50 min-h-0'
-            : 'overflow-y-auto lg:pt-6 pb-64 md:pb-72'
+            : `overflow-y-auto ${((currentMode === 'LEGAL_TOOLKIT' && (selectedLegalTool?.id === 'legal_my_case' || selectedLegalTool?.id === 'legal_precedents')) || location.pathname === '/dashboard/cases') ? 'pt-4' : 'pt-[76px]'} lg:pt-6 pb-64 md:pb-72`
             }`}
           style={{
             overflowY: ((legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT') ? 'hidden' : 'auto',
@@ -6245,7 +6240,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       return (
                         <div
                           key={msg.id}
-                          className={`chatgpt-message-row group ${msg.role === 'user' ? 'user-row mb-0 sm:mb-6' : 'ai-row mb-0 sm:mb-8'}`}
+                          className={`chatgpt-message-row group ${msg.role === 'user' ? 'user-row mb-0 sm:mb-6' : 'ai-row mb-0 sm:mb-8'} ${idx === 0 ? 'mt-1 lg:mt-2' : ''}`}
                           onClick={() => {
                             if (window.getSelection().toString()) return;
                             setActiveMessageId(activeMessageId === msg.id ? null : msg.id);
@@ -6440,8 +6435,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                   </div>
                                 </div>
                               ) : (
-                                msg.content && (
-                                  <div id={`msg-text-${msg.id}`} className="chat-bubble-text">
+                                (msg.content || (msg.id === typingMessageId)) && (
+                                  <div id={`msg-text-${msg.id}`} className={`chat-bubble-text ${msg.role === 'model' ? 'prose prose-sm max-w-none' : ''}`}>
 
 
 
@@ -6452,13 +6447,58 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                                     {/* [READ MORE LOGIC]: For long messages, we show a truncate and read more option */}
                                     <div className="relative group/msg-content">
-                                      <ReactMarkdown
+                                      {msg.id === typingMessageId && !msg.content ? (
+                                        <Skeleton />
+                                      ) : (
+                                        <ReactMarkdown
+                                        className="select-text"
                                         remarkPlugins={[remarkGfm]}
                                         urlTransform={(value) => value}
                                         components={{
                                           a: ({ href, children }) => {
+                                            const text = children?.toString() || "";
                                             if (href && href.startsWith('action:')) {
-                                              const isLocked = children?.toString()?.includes('🔒') || children?.toString()?.includes('Unlock');
+                                              const isLocked = text.includes('🔒') || text.includes('Unlock');
+
+                                              if (text.startsWith('ActionCard|')) {
+                                                const parts = text.split('|');
+                                                const title = parts[1] || "";
+                                                const desc = parts[2] || "";
+                                                const actionLabel = (parts[3] || "Open").replace(/^Action:\s*/i, '');
+
+                                                return (
+                                                  <ActionCard
+                                                    title={title}
+                                                    desc={desc}
+                                                    action={actionLabel}
+                                                    link={href}
+                                                    isLocked={isLocked}
+                                                    onClick={(e) => {
+                                                      e.preventDefault();
+                                                      const toolKey = href.replace('action:', '');
+                                                      setCurrentMode('LEGAL_TOOLKIT');
+
+                                                      const TOOL_NAMES = {
+                                                        legal_draft_maker: "Draft Maker",
+                                                        legal_case_predictor: "Case Predictor",
+                                                        legal_argument_builder: "Argument Builder",
+                                                        legal_evidence_checker: "Evidence Analyst",
+                                                        legal_contract_analyzer: "Contract Analyzer",
+                                                        legal_strategy_engine: "Strategy Engine"
+                                                      };
+                                                      const toolName = TOOL_NAMES[toolKey] || toolKey;
+
+                                                      if (isLocked) {
+                                                        window.dispatchEvent(new CustomEvent('premium_required', { detail: { toolName } }));
+                                                        return;
+                                                      }
+
+                                                      activateToolWithTypingEffect(toolKey, toolName);
+                                                    }}
+                                                  />
+                                                );
+                                              }
+
                                               return (
                                                 <button
                                                   onClick={(e) => {
@@ -6509,14 +6549,14 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                               </a>
                                             );
                                           },
-                                          p: ({ children }) => <div className="mb-[14px] last:mb-0 leading-[1.6]">{children}</div>,
-                                          ul: ({ children }) => <ul className="list-disc pl-5 mb-[14px] last:mb-0 space-y-1.5">{children}</ul>,
-                                          ol: ({ children }) => <ol className="list-decimal pl-5 mb-[14px] last:mb-0 space-y-1.5">{children}</ol>,
-                                          li: ({ children }) => <li className="mb-1 last:mb-0 leading-[1.6]">{children}</li>,
-                                          h1: ({ children }) => <h1 className="text-[22px] font-semibold mb-3.5 mt-6 block tracking-tight">{children}</h1>,
-                                          h2: ({ children }) => <h2 className="text-[18px] font-semibold mb-3 mt-5 block tracking-tight">{children}</h2>,
-                                          h3: ({ children }) => <h3 className="text-[16px] font-semibold mb-2.5 mt-4 block tracking-tight">{children}</h3>,
-                                          strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                                          p: ({ children }) => <p>{children}</p>,
+                                          ul: ({ children }) => <ul className="list-disc pl-5 space-y-1.5">{children}</ul>,
+                                          ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1.5">{children}</ol>,
+                                          li: ({ children }) => <li>{children}</li>,
+                                          h1: ({ children }) => <h1 className="font-bold tracking-tight">{children}</h1>,
+                                          h2: ({ children }) => <h2 className="font-bold tracking-tight">{children}</h2>,
+                                          h3: ({ children }) => <h3 className="font-bold tracking-tight">{children}</h3>,
+                                          strong: ({ children }) => <strong>{children}</strong>,
                                           table: ({ children }) => (
                                             <div className="overflow-x-auto my-4 rounded-xl border border-border/50 shadow-lg bg-surface/30 backdrop-blur-sm">
                                               <table className="w-full border-collapse text-sm">{children}</table>
@@ -6630,9 +6670,10 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                             )
                                           },
                                         }}
-                                      >
-                                        {msg.content || msg.text || ""}
-                                      </ReactMarkdown>
+                                        >
+                                          {transformLegalActions(msg.content || msg.text || "")}
+                                        </ReactMarkdown>
+                                      )}
                                       {msg.cashflowData && (
                                         <React.Suspense fallback={<div className="h-48 w-full bg-surface-hover animate-pulse rounded-xl" />}>
                                           <CashFlowChartWidget data={msg.cashflowData} />
@@ -7240,7 +7281,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       className="w-12 h-10 sm:w-16 sm:h-12 mx-auto object-cover object-top drop-shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.4)] transition-all duration-700 hover:scale-110"
                     />
                   </motion.div>
-                  <section className="w-full px-1 sm:px-2 md:px-0 mt-2 sm:mt-0">
+                  <section className="w-full px-0 mt-0">
                     <FuturisticToolCards
                       isAdmin={isAdminUser}
                       activeToolId={
@@ -7360,7 +7401,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           setActiveLegalToolkit(true);
                           setActiveTool('legal');
 
-                          toast.success("AI Legal Toolkit Active ⚖️");
+                          toast.success("AI Legal™ Activated");
                         }
                       }}
                     />
@@ -8235,7 +8276,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                   <span
                                     className="uppercase tracking-wide text-[8px] sm:text-[10px] font-black truncate max-w-[80px] sm:max-w-[120px] cursor-pointer hover:text-primary transition-colors"
                                     onClick={() => setActiveLegalToolkit(true)}
-                                    title="Open AI Legal Toolkit"
+                                    title="Open AI Legal™"
                                   >
                                     {currentCase ? 'My Case' : 'AI Legal'}
                                     {((selectedLegalTool && selectedLegalTool?.id !== 'legal_my_case') || activeTool) && (
@@ -9177,7 +9218,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
               }, {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: `**Premium Mode Restricted**\n\nThe **${tool.name}** tool is part of our Premium AI Legal Toolkit.\n\n**To access this tool:**\n1. Select "Unlock All" to get full toolkit access.\n2. Or upgrade your subscription to the **FOUNDER PLAN**.\n\n*Would you like to see pricing for the AI Legal Archive?*`,
+                content: `**Premium Mode Restricted**\n\nThe **${tool.name}** tool is part of our Premium AI Legal™ suite.\n\n**To access this tool:**\n1. Select "Unlock All" to get full suite access.\n2. Or upgrade your subscription to the **FOUNDER PLAN**.\n\n*Would you like to see pricing for the AI Legal Archive?*`,
                 isPremiumRestricted: true,
                 timestamp: Date.now()
               }]);

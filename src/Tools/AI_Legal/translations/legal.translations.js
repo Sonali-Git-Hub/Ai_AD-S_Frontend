@@ -5,8 +5,8 @@ export const legalTranslations = {
         downloadPDF: "Download PDF",
         generatingPDF: "Generating PDF...",
         judgementDiscoveryEngine: "Advanced Judgement Discovery Engine",
-        selectCaseToAnalyze: "Select a Case to Analyze",
-        chooseCaseDescription: "Choose a case from your workspace to begin searching for relevant legal precedents and judgements.",
+        selectCaseToAnalyze: "Select a Case",
+        chooseCaseDescription: "Choose a case to continue.",
         currentCaseMode: "Current Case",
         manualSearchMode: "Manual Search Mode",
         searchPlaceholder: "Search case law by topic, issue, or keyword...",
@@ -51,7 +51,7 @@ export const legalTranslations = {
         hinglish: "Hinglish",
 
         // AI Legal Professional Toolkit
-        legalToolkitTitle: "AI Legal",
+        legalToolkitTitle: "AI Legal™",
         legalProfessionalToolkit: "Professional Toolkit",
         advancedSuitesDesc: "Advanced AI-driven professional suites for legal mastery.",
         generalLegalChat: "General Legal Chat",
@@ -73,7 +73,7 @@ export const legalTranslations = {
         noActiveCases: "No active cases found",
         startByCreatingCase: "Start by creating your first legal case folder to begin collaboration with AISA Intelligence.",
         initializeFirstCase: "Initialize First Case",
- 
+
         // Case Intelligence Panel
         overviewTab: "Overview",
         communicationTab: "Communication",
@@ -147,7 +147,7 @@ export const legalTranslations = {
         evidenceAnalystDesc: "Professional Strengths, Admissibility & Risk Reporting",
         researchAssistantDesc: "Statutory Interpretation & Case Law CITATIONS",
         argumentBuilderDesc: "Structure Courtroom-Ready Arguments & Cross-Exams",
-        
+
         // Workflows
         myCaseWorkflow: ["Select or create a legal case folder.", "Input client details and case summary.", "Chat with AI assistant focused strictly on case context.", "Access specialized case tools (Drafting, Analysis, etc.)"],
         draftMakerWorkflow: ["Describe the document you need (FIR, Notice, Agreement, etc.).", "Provide key names, dates, and factual background.", "AI generates a litigation-ready professional draft."],
@@ -165,8 +165,8 @@ export const legalTranslations = {
         downloadPDF: "PDF डाउनलोड करें",
         generatingPDF: "PDF जेनरेट हो रहा है...",
         judgementDiscoveryEngine: "उन्नत निर्णय खोज इंजन",
-        selectCaseToAnalyze: "विश्लेषण के लिए मामला चुनें",
-        chooseCaseDescription: "प्रासंगिक कानूनी मिसालों और निर्णयों की खोज शुरू करने के लिए अपने कार्यक्षेत्र से एक मामला चुनें।",
+        selectCaseToAnalyze: "एक मामला चुनें",
+        chooseCaseDescription: "जारी रखने के लिए एक मामला चुनें।",
         currentCaseMode: "वर्तमान मामला",
         manualSearchMode: "मैनुअल सर्च",
         searchPlaceholder: "विषय, मुद्दे या कीवर्ड द्वारा केस कानून खोजें...",
@@ -233,7 +233,7 @@ export const legalTranslations = {
         noActiveCases: "कोई सक्रिय मामला नहीं मिला",
         startByCreatingCase: "AISA इंटेलिजेंस के साथ सहयोग शुरू करने के लिए अपना पहला कानूनी केस फोल्डर बनाकर शुरू करें।",
         initializeFirstCase: "पहला मामला शुरू करें",
- 
+
         // Case Intelligence Panel (Hindi)
         overviewTab: "सिंहावलोकन",
         communicationTab: "संचार",
@@ -307,7 +307,7 @@ export const legalTranslations = {
         evidenceAnalystDesc: "पेशेवर ताकत, स्वीकार्यता और जोखिम रिपोर्टिंग",
         researchAssistantDesc: "Statutory Interpretation & Case Law CITATIONS",
         argumentBuilderDesc: "तर्क निर्माता (Argument Builder)",
-        
+
         // Workflows (Hindi)
         myCaseWorkflow: ["एक कानूनी केस फोल्डर चुनें या बनाएं।", "क्लाइंट विवरण और केस सारांश इनपुट करें।", "एआई सहायक के साथ चैट करें जो पूरी तरह से केस संदर्भ पर केंद्रित है।", "विशेष केस टूल्स (ड्राफ्टिंग, विश्लेषण, आदि) तक पहुंचें"],
         draftMakerWorkflow: ["आपको जिस दस्तावेज़ की आवश्यकता है उसका वर्णन करें (प्राथमिकी, नोटिस, समझौता, आदि)।", "प्रमुख नाम, तिथियां और तथ्यात्मक पृष्ठभूमि प्रदान करें।", "एआई मुकदमेबाजी के लिए तैयार पेशेवर ड्राफ्ट तैयार करता है।"],
