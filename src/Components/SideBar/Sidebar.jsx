@@ -74,6 +74,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
   const user = currentUserData.user || getUserData() || { name: "Loading...", email: "...", role: "user" };
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   // New States
+  const [isNavigating, setIsNavigating] = useState(false);
   const [isConnectorsOpen, setIsConnectorsOpen] = useState(false);
   const [isCreditsOpen, setIsCreditsOpen] = useState(false);
   const [creditLogs, setCreditLogs] = useState([]);
@@ -514,21 +515,42 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
           <div className="absolute bottom-[10%] right-[-10%] w-[50%] h-[50%] bg-primary/30 blur-[100px] animate-float-slow" style={{ animationDelay: '-5s' }} />
         </div>
         {/* Brand & Top Actions */}
-        <div className="p-6 pb-2 mb-2 flex items-center justify-between relative z-10">
-          <div className="flex items-center gap-3">
-            <Link to="/" state={{ fromLogo: true }} className="group/logo flex items-center gap-2">
-              <div className="relative">
-                <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 animate-pulse opacity-0 group-hover/logo:opacity-100 transition-opacity" />
-                <img
-                  src={logo}
-                  alt="AISA™"
-                  className="h-9 w-auto relative z-10 transition-transform duration-500 group-hover/logo:scale-110 drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]"
-                />
-              </div>
-              <span className="text-xl font-black tracking-tighter transition-all duration-300" style={{ background: 'linear-gradient(135deg, #9333ea 0%, #3b82f6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontFamily: '"Times New Roman", Times, serif', display: 'inline-block', paddingRight: '2px' }}>AISA<span style={{ fontSize: '0.6em', verticalAlign: 'super', marginLeft: '2px' }}>™</span></span>
-            </Link>
+        <div className="p-6 pb-2 mb-2 flex items-center justify-between relative z-10 flex-wrap gap-y-3">
+          <Link to="/" state={{ fromLogo: true }} className="group/logo flex items-center gap-2">
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 animate-pulse opacity-0 group-hover/logo:opacity-100 transition-opacity" />
+              <img
+                src={logo}
+                alt="AISA™"
+                className="h-9 w-auto relative z-10 transition-transform duration-500 group-hover/logo:scale-110 drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]"
+              />
+            </div>
+            <span className="text-xl font-black tracking-tighter transition-all duration-300" style={{ background: 'linear-gradient(135deg, #9333ea 0%, #3b82f6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontFamily: '"Times New Roman", Times, serif', display: 'inline-block', paddingRight: '2px' }}>AISA<span style={{ fontSize: '0.6em', verticalAlign: 'super', marginLeft: '2px' }}>™</span></span>
+          </Link>
 
-
+          <div className="flex items-center relative z-10 bg-black/5 border border-[#8B5CF6]/30 rounded-full p-0.5 w-24 h-7">
+            <motion.div
+              className="absolute top-0.5 bottom-0.5 left-0.5 w-[46px] bg-[#8B5CF6] rounded-full shadow-sm z-0"
+              initial={false}
+              animate={{
+                x: isNavigating ? 46 : 0
+              }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            />
+            <div className={`relative z-10 w-[46px] flex justify-center items-center text-[9px] font-bold transition-colors ${!isNavigating ? 'text-white' : (isDark ? 'text-gray-400' : 'text-gray-500')}`}>
+              AISA
+            </div>
+            <button
+              onClick={() => {
+                setIsNavigating(true);
+                setTimeout(() => {
+                  window.location.href = import.meta.env.VITE_AI_MALL || "http://localhost:5173";
+                }, 300);
+              }}
+              className={`relative z-10 w-[46px] flex justify-center items-center text-[9px] font-bold transition-colors ${isNavigating ? 'text-white' : (isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-[#8B5CF6]')}`}
+            >
+              MALL
+            </button>
           </div>
 
           <button
