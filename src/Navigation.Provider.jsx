@@ -352,7 +352,7 @@ const NavigateProvider = () => {
       <CookieConsentBanner />
       <Routes>
         {/* Public Routes */}
-        <Route path={AppRoute.LANDING} element={<Landing />} />
+        <Route path={AppRoute.LANDING} element={<HomeRedirect />} />
         <Route path={AppRoute.LOGIN} element={<GuestRoute><Login /></GuestRoute>} />
         <Route path={AppRoute.SIGNUP} element={<GuestRoute><Signup /></GuestRoute>} />
 
