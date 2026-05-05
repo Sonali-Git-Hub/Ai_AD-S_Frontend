@@ -546,7 +546,12 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                 setTimeout(() => {
                   const targetUrl = (window._env_ && window._env_.VITE_AI_MALL) || import.meta.env.VITE_AI_MALL;
                   if (targetUrl) {
-                    window.location.href = targetUrl;
+                    const ssoToken = getUserData()?.token || localStorage.getItem('token');
+                    const base = targetUrl.endsWith('/') ? targetUrl.slice(0, -1) : targetUrl;
+                    const finalUrl = ssoToken
+                      ? `${base}?sso_token=${encodeURIComponent(ssoToken)}&from=aisa`
+                      : targetUrl;
+                    window.location.href = finalUrl;
                   } else {
                     console.error("VITE_AI_MALL is undefined in this environment.");
                   }
