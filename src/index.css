@@ -212,7 +212,8 @@
     font-weight: 700 !important;
   }
 
-  .prose ul, .prose ol {
+  .prose ul,
+  .prose ol {
     list-style-type: none !important;
     padding-left: 0 !important;
     margin-top: 12px !important;
@@ -675,11 +676,11 @@ body,
 }
 
 .modal-default {
-  @apply w-full max-w-4xl max-h-[85vh] rounded-[2.5rem] shadow-[0_30px_90px_rgba(0,0,0,0.1)];
+  @apply w-full max-w-4xl max-h-[85vh] rounded-[2.5rem] shadow-[0_30px_90px_rgba(0, 0, 0, 0.1)];
 }
 
 .modal-maximized {
-  @apply w-[95vw] h-[95vh] max-h-[95vh] rounded-2xl shadow-[0_40px_100px_rgba(0,0,0,0.2)];
+  @apply w-[95vw] h-[95vh] max-h-[95vh] rounded-2xl shadow-[0_40px_100px_rgba(0, 0, 0, 0.2)];
 }
 
 .modal-header-glass {
@@ -1348,8 +1349,8 @@ html.lenis body {
     border-bottom: none !important;
   }
 
-  .chatgpt-text > *:first-child,
-  .chatgpt-text > div:first-child > *:first-child {
+  .chatgpt-text>*:first-child,
+  .chatgpt-text>div:first-child>*:first-child {
     margin-top: 0 !important;
     padding-top: 0 !important;
   }
@@ -1419,6 +1420,7 @@ body.modal-open-hide-navbar {
 }
 
 @media (max-width: 1024px) {
+
   body.modal-open-hide-navbar header,
   body.modal-open-hide-navbar .lg\:hidden.fixed.top-0 {
     transform: translateY(-100%) !important;
@@ -1426,11 +1428,12 @@ body.modal-open-hide-navbar {
     pointer-events: none !important;
     transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1) !important;
   }
-  
+
   body.modal-open-hide-navbar :root {
     --mobile-nav-h: 0px !important;
   }
 }
+
 /* Modern Chat Bubble Styles */
 .message-wrapper {
   display: flex;
@@ -1441,8 +1444,15 @@ body.modal-open-hide-navbar {
 }
 
 @keyframes message-fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .message-wrapper.user-msg {
@@ -1517,17 +1527,17 @@ body.modal-open-hide-navbar {
   align-items: center;
   justify-content: center;
   border: 1px solid hsl(var(--border));
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   margin-bottom: 2px;
 }
 
 .dark .ai-avatar-wrapper {
   background: #111;
-  border-color: rgba(255,255,255,0.1);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Enable text selection globally for AI responses */
-.select-text, 
+.select-text,
 .select-text *,
 .chatgpt-text,
 .chatgpt-text *,
@@ -1537,6 +1547,8 @@ body.modal-open-hide-navbar {
   -webkit-user-select: text !important;
   -webkit-touch-callout: default !important;
 }
+
+:
 
 /* Ensure no parent blocks selection */
 .chatgpt-container,

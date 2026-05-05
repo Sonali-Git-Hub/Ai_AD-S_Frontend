@@ -1,16 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ImagePlus, 
-  Video, 
-  PlayCircle, 
-  Wand2, 
-  Search, 
-  Globe, 
-  FileText, 
-  Code, 
-  Headphones, 
-  TrendingUp, 
+import {
+  ImagePlus,
+  Video,
+  PlayCircle,
+  Wand2,
+  Search,
+  Globe,
+  FileText,
+  Code,
+  Headphones,
+  TrendingUp,
   Megaphone,
   ArrowRight,
   Sparkles,
@@ -31,12 +31,12 @@ const FuturisticToolCards = ({ onToolSelect, activeToolId, activeTab, onTabChang
     { id: 'image_to_video', category: 'Create', icon: PlayCircle, label: t('imageToVideo'), desc: t('imageToVideoMagic') },
     { id: 'edit_image', category: 'Create', icon: Wand2, label: t('editImage'), desc: t('magicImageEditor') },
     { id: 'audio', category: 'Create', icon: Headphones, label: t('convertToAudio'), desc: t('textDocsToVoice') },
-    
+
     { id: 'deep_search', category: 'Intelligence', icon: Search, label: t('deepSearch'), desc: t('researchComplexTopics') },
     { id: 'web_search', category: 'Intelligence', icon: Globe, label: t('realTimeSearch'), desc: t('liveWebDataAccess') },
     { id: 'document', category: 'Intelligence', icon: FileText, label: t('analyzeDocument'), desc: t('chatWithPdfsDocs') },
     { id: 'code', category: 'Intelligence', icon: Code, label: t('codeWriter'), desc: t('writeDebugCode') },
-    
+
     { id: 'legal', category: 'Business', icon: Brain, label: t('aiLegal'), desc: t('specializedAiLegalTools') },
     { id: 'ai_cashflow', category: 'Business', icon: TrendingUp, label: t('aiCashFlow'), desc: t('liveAnalysisReports') },
     { id: 'aiad_agent', category: 'Business', icon: Megaphone, label: 'AI ADS™', desc: 'Social Media Orchestration' },
@@ -60,7 +60,7 @@ const FuturisticToolCards = ({ onToolSelect, activeToolId, activeTab, onTabChang
 
   return (
     <div className="w-full max-w-3xl mx-auto px-4 py-0 sm:py-2 flex flex-col items-center justify-center min-h-[40vh] space-y-4 sm:space-y-6">
-      
+
       {/* 1. Pill-Style Tabs Navigation - Matching AISA/MALL Toggle */}
       <div className="flex justify-center w-full sticky top-0 z-20 pb-4">
         <div className={`relative flex items-center p-1 rounded-full overflow-x-auto no-scrollbar scroll-smooth flex-nowrap max-w-full ${isDark ? 'bg-zinc-900/80 border border-white/5' : 'bg-slate-100 border border-slate-200 shadow-inner'}`}>
@@ -72,11 +72,10 @@ const FuturisticToolCards = ({ onToolSelect, activeToolId, activeTab, onTabChang
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
                 whileTap={{ scale: 0.95 }}
-                className={`relative px-4 sm:px-8 py-2 sm:py-2.5 rounded-full flex items-center gap-2 text-[10px] sm:text-[11px] font-bold tracking-tight transition-all duration-300 whitespace-nowrap flex-shrink-0 group ${
-                  isActive 
-                    ? 'text-white' 
+                className={`relative px-4 sm:px-8 py-2 sm:py-2.5 rounded-full flex items-center gap-2 text-[10px] sm:text-[11px] font-bold tracking-tight transition-all duration-300 whitespace-nowrap flex-shrink-0 group ${isActive
+                    ? 'text-white'
                     : `text-slate-500 hover:text-slate-900 dark:hover:text-zinc-300`
-                }`}
+                  }`}
               >
                 {isActive && (
                   <motion.div
@@ -96,7 +95,7 @@ const FuturisticToolCards = ({ onToolSelect, activeToolId, activeTab, onTabChang
       {/* 2. Professional Tool Grid - SaaS Clean Style with Centered Rows */}
       <div className="w-full relative min-h-[280px] sm:min-h-[320px]">
         <AnimatePresence mode="wait">
-          <motion.div 
+          <motion.div
             key={activeTab}
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -113,11 +112,10 @@ const FuturisticToolCards = ({ onToolSelect, activeToolId, activeTab, onTabChang
                   whileHover={{ y: -4, shadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)" }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => onToolSelect(tool.id)}
-                  className={`group relative p-4 sm:p-5 rounded-[14px] border cursor-pointer transition-all duration-200 overflow-hidden w-full sm:w-[calc(50%-12px)] ${isIntelligence ? 'md:w-[calc(45%-12px)]' : 'md:w-[calc(33.33%-12px)]'} max-w-[320px] sm:max-w-none ${
-                    isDark 
-                      ? 'bg-[#18181b] border-white/5 hover:border-indigo-500/50 hover:bg-[#1c1c20]' 
+                  className={`group relative p-4 sm:p-5 rounded-[14px] border cursor-pointer transition-all duration-200 overflow-hidden w-full sm:w-[calc(50%-12px)] ${isIntelligence ? 'md:w-[calc(45%-12px)]' : 'md:w-[calc(33.33%-12px)]'} max-w-[320px] sm:max-w-none ${isDark
+                      ? 'bg-[#18181b] border-white/5 hover:border-indigo-500/50 hover:bg-[#1c1c20]'
                       : 'bg-white border-slate-200 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/5'
-                  }`}
+                    }`}
                 >
                   <div className="flex flex-col h-full gap-3 sm:gap-4 relative z-10">
                     <div className="flex items-center justify-between">
