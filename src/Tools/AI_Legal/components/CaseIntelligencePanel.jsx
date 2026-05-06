@@ -7,7 +7,7 @@ import {
   ShieldCheck, AlertTriangle, Info, Download, Upload, Search,
   ClipboardList, BookOpen, UserMinus, UserPlus, ListTodo, History,
   LayoutDashboard, FileDigit, Target, Flame, Lightbulb, Check,
-  Clock, MapPin, Bookmark, ExternalLink
+  Clock, MapPin, Bookmark, ExternalLink, Maximize2, Minimize2
 } from 'lucide-react';
 import { 
   PieChart, Pie, Cell
@@ -23,6 +23,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate, onUseIn
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [caseData, setCaseData] = useState(currentCase);
   const [selectedPrecedent, setSelectedPrecedent] = useState(null);
+  const [isMaximized, setIsMaximized] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -63,7 +64,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate, onUseIn
     }
   }, [currentCase]);
 
-  if (!caseData || !isOpen) return null;
+  if (!caseData) return null;
 
   const handleAutoAnalyze = async () => {
     setIsAnalyzing(true);
@@ -93,6 +94,10 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate, onUseIn
       const updated = await apiService.updateProject(caseData._id, caseData);
       if (onUpdate) onUpdate(updated);
       toast.success("Changes saved successfully!", { id: tid });
+      // Auto-close panel after successful save
+      setTimeout(() => {
+        onClose();
+      }, 500);
     } catch (err) {
       toast.error("Failed to save changes.", { id: tid });
     }
@@ -146,6 +151,29 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate, onUseIn
           className="w-full bg-transparent border-none text-sm font-medium text-slate-700 dark:text-slate-300 focus:ring-0 resize-none min-h-[100px]"
           placeholder={tLegal('noSummaryYet')}
         />
+        
+        {(() => {
+          const upcoming = (caseData.hearings || [])
+            .filter(h => h.status === 'Upcoming')
+            .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+          
+          if (!upcoming) return null;
+          
+          const date = new Date(upcoming.date);
+          const formattedDate = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+          
+          return (
+            <div className="mt-3 pt-3 border-t border-slate-200/50 dark:border-zinc-700/50 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                <Calendar size={14} />
+                <span className="text-[10px] font-black uppercase tracking-widest">{tLegal('nextHearingSummary')}</span>
+              </div>
+              <span className="text-xs font-black text-slate-800 dark:text-white bg-indigo-50 dark:bg-indigo-900/20 px-2.5 py-1 rounded-lg">
+                {formattedDate}
+              </span>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Quick Metrics */}
@@ -421,265 +449,234 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate, onUseIn
 
   const renderHearings = () => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
-    const hToday = (caseData.hearings || []).find(h => new Date(h.date).toDateString() === today.toDateString() && h.status === 'Upcoming');
-    const hTomorrow = (caseData.hearings || []).find(h => new Date(h.date).toDateString() === tomorrow.toDateString() && h.status === 'Upcoming');
+    const upcoming = (caseData.hearings || [])
+      .filter(h => h.status === 'Upcoming')
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    const past = (caseData.hearings || [])
+      .filter(h => h.status !== 'Upcoming')
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
 
     return (
-      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-         {/* 🔔 REMINDER ALERTS */}
-         {(hToday || hTomorrow) && (
-            <div className="space-y-3">
-              {hToday && (
-                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 p-4 rounded-2xl flex items-center gap-4 animate-pulse">
-                  <div className="p-2.5 bg-red-500 text-white rounded-xl shadow-lg shadow-red-500/20">
-                     <Gavel size={20} />
-                  </div>
-                  <div>
-                     <h5 className="text-[10px] font-black uppercase tracking-widest text-red-600 dark:text-red-400">{tLegal('hearingToday')}</h5>
-                     <p className="text-sm font-black text-slate-800 dark:text-white">{hToday.time || 'Scheduled'} @ {hToday.courtName || 'the Court'}</p>
-                  </div>
-                </div>
-              )}
-              {hTomorrow && !hToday && (
-                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 p-4 rounded-2xl flex items-center gap-4">
-                  <div className="p-2.5 bg-amber-500 text-white rounded-xl shadow-lg shadow-amber-500/20">
-                     <Clock size={20} />
-                  </div>
-                  <div>
-                     <h5 className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">{tLegal('upcomingTomorrow')}</h5>
-                     <p className="text-sm font-black text-slate-800 dark:text-white">{hTomorrow.time || 'Scheduled'} @ {hTomorrow.courtName || 'the Court'}</p>
-                  </div>
-                </div>
-              )}
+      <div className="space-y-6 sm:space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-1">
+          <div className="flex items-center gap-3">
+            <div className="p-2 sm:p-2.5 bg-indigo-600 text-white rounded-lg sm:rounded-xl shadow-lg shadow-indigo-500/10">
+              <Gavel size={18} className="sm:w-5 sm:h-5" />
             </div>
-         )}
-
-         {/* ⚖️ HEARINGS & SCHEDULE */}
-         <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-              <Scale size={18} />
-              <h4 className="text-xs font-black uppercase tracking-wider">{tLegal('courtSchedule')}</h4>
+            <div>
+              <h3 className="text-base sm:text-lg font-black text-slate-800 dark:text-white leading-tight">{tLegal('courtSchedule')}</h3>
+              <p className="text-[9px] sm:text-[10px] font-bold text-subtext uppercase tracking-widest mt-0.5 sm:mt-1">Official court schedule</p>
             </div>
-            <button 
-              onClick={() => {
-                const newHearing = {
-                  date: new Date().toISOString().split('T')[0],
-                  time: '',
-                  courtName: '',
-                  location: '',
-                  notes: '',
-                  status: 'Upcoming'
-                };
-                const updatedHearings = [...(caseData.hearings || []), newHearing];
-                // Also sync to timeline
-                const newFacts = [...(caseData.facts || []), {
-                  event: '⚖️ Hearing',
-                  date: newHearing.date,
-                  description: 'New court hearing scheduled.'
-                }];
-                setCaseData({ ...caseData, hearings: updatedHearings, facts: newFacts });
-                toast.success("Hearing added and pushed to timeline!");
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-500/20"
-            >
-              <Plus size={12} /> {tLegal('addHearing')}
-            </button>
           </div>
-
-          <div className="space-y-4">
-            {/* Upcoming Hearings */}
-            {(() => {
-              const upcoming = (caseData.hearings || [])
-                .filter(h => h.status === 'Upcoming')
-                .sort((a, b) => new Date(a.date) - new Date(b.date));
-              
-              if (upcoming.length === 0) return null;
-
-              return (
-                <div className="space-y-3">
-                  <div className="text-[10px] font-black uppercase tracking-widest text-indigo-500 ml-1">{tLegal('upcomingHearings')}</div>
-                  {upcoming.map((h, i) => (
-                    <div key={`up-${i}`} className="bg-slate-50 dark:bg-black/20 rounded-xl p-4 border border-slate-200 dark:border-zinc-800 relative group">
-                      <div className="flex justify-between items-start mb-3">
-                         <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <Calendar size={14} className="text-indigo-500" />
-                              <input 
-                                type="date" 
-                                value={h.date ? new Date(h.date).toISOString().split('T')[0] : ''}
-                                onChange={(e) => {
-                                  const newH = [...caseData.hearings];
-                                  const idx = newH.indexOf(h);
-                                  newH[idx].date = e.target.value;
-                                  setCaseData({...caseData, hearings: newH});
-                                }}
-                                className="bg-transparent border-none p-0 text-sm font-black text-slate-800 dark:text-white focus:ring-0"
-                              />
-                            </div>
-                            <div className="flex items-center gap-2">
-                               <Clock size={12} className="text-subtext" />
-                               <input 
-                                 type="text" 
-                                 placeholder={tLegal('timePlaceholder')}
-                                 value={h.time || ''}
-                                 onChange={(e) => {
-                                   const newH = [...caseData.hearings];
-                                   const idx = newH.indexOf(h);
-                                   newH[idx].time = e.target.value;
-                                   setCaseData({...caseData, hearings: newH});
-                                 }}
-                                 className="bg-transparent border-none p-0 text-[11px] font-bold text-subtext focus:ring-0 w-32"
-                               />
-                            </div>
-                         </div>
-                         <div className="flex flex-col items-end gap-2">
-                            <select 
-                              value={h.status}
-                              onChange={(e) => {
-                                const newH = [...caseData.hearings];
-                                const idx = newH.indexOf(h);
-                                newH[idx].status = e.target.value;
-                                setCaseData({...caseData, hearings: newH});
-                              }}
-                              className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md border-none outline-none"
-                            >
-                              <option value="Upcoming">Upcoming</option>
-                              <option value="Completed">Completed</option>
-                              <option value="Missed">Missed</option>
-                            </select>
-                            <button 
-                              onClick={() => {
-                                const newH = caseData.hearings.filter(item => item !== h);
-                                setCaseData({...caseData, hearings: newH});
-                              }}
-                              className="p-1 text-subtext hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                         </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-2">
-                         <div className="flex items-center gap-2">
-                            <Scale size={12} className="text-subtext" />
-                            <input 
-                              type="text" 
-                              placeholder="Court Name"
-                              value={h.courtName || ''}
-                              onChange={(e) => {
-                                const newH = [...caseData.hearings];
-                                const idx = newH.indexOf(h);
-                                newH[idx].courtName = e.target.value;
-                                setCaseData({...caseData, hearings: newH});
-                              }}
-                              className="bg-transparent border-none p-0 text-[11px] font-bold text-slate-700 dark:text-slate-300 focus:ring-0 w-full"
-                            />
-                         </div>
-                         <div className="flex items-center gap-2">
-                            <MapPin size={12} className="text-subtext" />
-                            <input 
-                              type="text" 
-                              placeholder="Location"
-                              value={h.location || ''}
-                              onChange={(e) => {
-                                const newH = [...caseData.hearings];
-                                const idx = newH.indexOf(h);
-                                newH[idx].location = e.target.value;
-                                setCaseData({...caseData, hearings: newH});
-                              }}
-                              className="bg-transparent border-none p-0 text-[11px] font-bold text-slate-700 dark:text-slate-300 focus:ring-0 w-full"
-                            />
-                         </div>
-                         <div className="flex items-start gap-2 mt-1">
-                            <Info size={12} className="text-subtext mt-0.5" />
-                            <textarea 
-                              placeholder="Add hearing notes..."
-                              value={h.notes || ''}
-                              onChange={(e) => {
-                                const newH = [...caseData.hearings];
-                                const idx = newH.indexOf(h);
-                                newH[idx].notes = e.target.value;
-                                setCaseData({...caseData, hearings: newH});
-                              }}
-                              className="bg-transparent border-none p-0 text-[11px] font-medium text-subtext focus:ring-0 w-full resize-none min-h-[32px]"
-                            />
-                         </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              );
-            })()}
-
-            {/* Past Hearings */}
-            {(() => {
-              const past = (caseData.hearings || [])
-                .filter(h => h.status !== 'Upcoming')
-                .sort((a, b) => new Date(b.date) - new Date(a.date));
-              
-              if (past.length === 0) return null;
-
-              return (
-                <div className="space-y-3">
-                   <div className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1 opacity-60">{tLegal('pastHearings')}</div>
-                  {past.map((h, i) => (
-                    <div key={`past-${i}`} className="bg-slate-50/50 dark:bg-black/10 rounded-xl p-3 border border-slate-100 dark:border-zinc-800 opacity-80 group">
-                      <div className="flex justify-between items-center">
-                         <div className="flex items-center gap-3">
-                            <div className={`p-1.5 rounded-lg ${h.status === 'Completed' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : 'bg-red-100 dark:bg-red-900/30 text-red-600'}`}>
-                               {h.status === 'Completed' ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
-                            </div>
-                            <div>
-                               <p className="text-xs font-black text-slate-800 dark:text-white">
-                                 {new Date(h.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                 {h.time && ` • ${h.time}`}
-                               </p>
-                               <p className="text-[10px] font-bold text-subtext uppercase tracking-tight">
-                                 {h.courtName || 'Court Hearing'} • {h.status}
-                               </p>
-                            </div>
-                         </div>
-                         <div className="flex items-center gap-2">
-                            <select 
-                              value={h.status}
-                              onChange={(e) => {
-                                const newH = [...caseData.hearings];
-                                const idx = newH.indexOf(h);
-                                newH[idx].status = e.target.value;
-                                setCaseData({...caseData, hearings: newH});
-                              }}
-                              className="bg-transparent text-[9px] font-black uppercase tracking-widest text-subtext outline-none cursor-pointer"
-                            >
-                              <option value="Upcoming">Set Upcoming</option>
-                              <option value="Completed">Completed</option>
-                              <option value="Missed">Missed</option>
-                            </select>
-                            <button 
-                              onClick={() => {
-                                const newH = caseData.hearings.filter(item => item !== h);
-                                setCaseData({...caseData, hearings: newH});
-                              }}
-                              className="p-1 text-subtext hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                         </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              );
-            })()}
-
-            {(!caseData.hearings || caseData.hearings.length === 0) && (
-              <div className="text-center py-8 text-subtext italic text-[11px] bg-slate-50/50 dark:bg-zinc-800/20 rounded-xl border border-dashed border-slate-200 dark:border-zinc-800">
-                 {tLegal('noHearingsScheduled')}
-              </div>
-            )}
-          </div>
+          <button 
+            onClick={() => {
+              const newHearing = {
+                date: new Date().toISOString().split('T')[0],
+                time: '',
+                courtName: '',
+                location: '',
+                notes: '',
+                status: 'Upcoming'
+              };
+              setCaseData({ ...caseData, hearings: [...(caseData.hearings || []), newHearing] });
+              toast.success("Hearing added");
+            }}
+            className="flex items-center justify-center gap-2 px-3.5 py-2 bg-indigo-600 text-white rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest shadow-md shadow-indigo-500/10 hover:bg-indigo-700 transition-all w-full sm:w-auto h-9 sm:h-10"
+          >
+            <Plus size={14} /> {tLegal('addHearing')}
+          </button>
         </div>
+
+        {/* Upcoming Hearings Section */}
+        <div className="space-y-3">
+          <h4 className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-indigo-500 ml-1 opacity-80">
+            {upcoming.length > 1 ? tLegal('upcomingHearingsDetail') : tLegal('upcomingHearingDetail')}
+          </h4>
+          
+          {upcoming.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+              {upcoming.map((h, i) => (
+                <div key={`up-${i}`} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800/50 rounded-2xl p-4 sm:px-5 sm:py-4 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] dark:shadow-none hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] transition-all relative group">
+                  {upcoming.length > 1 && (
+                    <div className="absolute top-4 sm:top-5 left-4 sm:left-6 text-lg sm:text-xl font-black text-slate-100 dark:text-zinc-800 -z-0 select-none">
+                      {i + 1}.
+                    </div>
+                  )}
+                  
+                  <div className="relative z-10">
+                    <div className="flex flex-col gap-3">
+                       <div className="space-y-2 w-full">
+                          <div className="flex items-center justify-between">
+                             <div className="flex items-center gap-2 text-slate-800 dark:text-white">
+                                <Calendar size={13} className="text-indigo-500 sm:w-4 sm:h-4" />
+                                <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider">{tLegal('dateLabel')}:</span>
+                             </div>
+                             <input 
+                               type="date" 
+                               value={h.date ? new Date(h.date).toISOString().split('T')[0] : ''}
+                               onChange={(e) => {
+                                 const newH = [...caseData.hearings];
+                                 const idx = caseData.hearings.indexOf(h);
+                                 newH[idx].date = e.target.value;
+                                 setCaseData({...caseData, hearings: newH});
+                               }}
+                               className="bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-zinc-800/50 rounded-lg px-2 py-1 text-[11px] sm:text-xs font-bold text-slate-700 dark:text-slate-200 focus:ring-1 focus:ring-indigo-500 outline-none w-auto"
+                             />
+                          </div>
+
+                          <div className="flex flex-col gap-1">
+                             <div className="flex items-center gap-2 text-slate-800 dark:text-white">
+                                <Scale size={13} className="text-indigo-500 sm:w-4 sm:h-4" />
+                                <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider">{tLegal('courtLabel')}:</span>
+                             </div>
+                             <input 
+                               type="text" 
+                               placeholder="Court Name"
+                               value={h.courtName || ''}
+                               onChange={(e) => {
+                                 const newH = [...caseData.hearings];
+                                 const idx = caseData.hearings.indexOf(h);
+                                 newH[idx].courtName = e.target.value;
+                                 setCaseData({...caseData, hearings: newH});
+                               }}
+                               className="bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-zinc-800/50 rounded-lg px-3 py-1 text-[11px] sm:text-xs font-bold text-slate-700 dark:text-slate-200 focus:ring-1 focus:ring-indigo-500 outline-none w-full"
+                             />
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                             <div className="flex items-center gap-2 text-slate-800 dark:text-white">
+                                <Clock size={13} className="text-indigo-500 sm:w-4 sm:h-4" />
+                                <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider">{tLegal('timeLabel')}:</span>
+                             </div>
+                             <input 
+                               type="text" 
+                               placeholder="Time"
+                               value={h.time || ''}
+                               onChange={(e) => {
+                                 const newH = [...caseData.hearings];
+                                 const idx = caseData.hearings.indexOf(h);
+                                 newH[idx].time = e.target.value;
+                                 setCaseData({...caseData, hearings: newH});
+                               }}
+                               className="bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-zinc-800/50 rounded-lg px-2 py-1 text-[11px] sm:text-xs font-bold text-slate-700 dark:text-slate-200 focus:ring-1 focus:ring-indigo-500 outline-none w-24 text-right"
+                             />
+                          </div>
+                       </div>
+
+                       <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-zinc-800/50">
+                          <select 
+                            value={h.status}
+                            onChange={(e) => {
+                              const newH = [...caseData.hearings];
+                              const idx = caseData.hearings.indexOf(h);
+                              newH[idx].status = e.target.value;
+                              setCaseData({...caseData, hearings: newH});
+                            }}
+                            className="bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg border-none outline-none cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
+                          >
+                            <option value="Upcoming">Upcoming</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Missed">Missed</option>
+                          </select>
+                          <button 
+                            onClick={() => {
+                              const newH = caseData.hearings.filter(item => item !== h);
+                              setCaseData({...caseData, hearings: newH});
+                            }}
+                            className="p-1.5 text-subtext hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-all"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                       </div>
+                    </div>
+
+                    <div className="mt-2.5 pt-2.5">
+                       <div className="flex items-start gap-2 bg-slate-50/50 dark:bg-black/10 p-2 rounded-xl border border-slate-100 dark:border-zinc-800/50">
+                          <Info size={13} className="text-indigo-500/50 mt-0.5 shrink-0" />
+                          <textarea 
+                            placeholder="Additional notes..."
+                            value={h.notes || ''}
+                            onChange={(e) => {
+                              const newH = [...caseData.hearings];
+                              const idx = caseData.hearings.indexOf(h);
+                              newH[idx].notes = e.target.value;
+                              setCaseData({...caseData, hearings: newH});
+                            }}
+                            className="w-full bg-transparent border-none p-0 text-[10px] sm:text-[11px] font-medium text-subtext focus:ring-0 resize-none min-h-[32px]"
+                          />
+                       </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center min-h-[240px] sm:min-h-[280px] bg-slate-50/50 dark:bg-zinc-900/40 rounded-3xl border-2 border-dashed border-slate-200 dark:border-zinc-800/50 group transition-all">
+               <div className="p-5 bg-white dark:bg-zinc-800 rounded-full shadow-sm mb-4 border border-slate-100 dark:border-zinc-700/50 group-hover:scale-110 transition-transform duration-500">
+                  <Calendar size={32} className="text-subtext opacity-30" />
+               </div>
+               <p className="text-[11px] font-black text-subtext uppercase tracking-[0.2em] text-center px-8">{tLegal('noHearingsScheduled')}</p>
+               <p className="text-[9px] text-subtext/50 font-bold uppercase tracking-widest mt-2">Manage all court dates and appearances here</p>
+            </div>
+          )}
+        </div>
+
+        {/* Past Hearings Section */}
+        {past.length > 0 && (
+          <div className="space-y-3 sm:space-y-4">
+             <h4 className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-subtext ml-1 opacity-60">
+               {tLegal('pastHearings')}
+             </h4>
+             <div className="grid grid-cols-1 gap-2 sm:gap-3">
+                {past.map((h, i) => (
+                  <div key={`past-${i}`} className="bg-slate-50/50 dark:bg-black/10 rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-slate-100 dark:border-zinc-800 opacity-80 group">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                       <div className="flex items-center gap-3 sm:gap-4">
+                          <div className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl ${h.status === 'Completed' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : 'bg-red-100 dark:bg-red-900/30 text-red-600'}`}>
+                             {h.status === 'Completed' ? <CheckCircle2 size={14} className="sm:w-4 sm:h-4" /> : <AlertTriangle size={14} className="sm:w-4 sm:h-4" />}
+                          </div>
+                          <div>
+                             <p className="text-xs sm:text-sm font-black text-slate-800 dark:text-white">
+                               {new Date(h.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                               {h.time && ` • ${h.time}`}
+                             </p>
+                             <p className="text-[9px] sm:text-[10px] font-bold text-subtext uppercase tracking-tight">
+                               {h.courtName || 'Court Hearing'} • {h.status}
+                             </p>
+                          </div>
+                       </div>
+                       <div className="flex items-center justify-between w-full sm:w-auto gap-3">
+                          <select 
+                            value={h.status}
+                            onChange={(e) => {
+                              const newH = [...caseData.hearings];
+                              const idx = caseData.hearings.indexOf(h);
+                              newH[idx].status = e.target.value;
+                              setCaseData({...caseData, hearings: newH});
+                            }}
+                            className="bg-transparent text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-subtext outline-none cursor-pointer hover:text-indigo-500"
+                          >
+                            <option value="Upcoming">Set Upcoming</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Missed">Missed</option>
+                          </select>
+                          <button 
+                            onClick={() => {
+                              const newH = caseData.hearings.filter(item => item !== h);
+                              setCaseData({...caseData, hearings: newH});
+                            }}
+                            className="p-1.5 sm:p-2 text-subtext hover:text-red-500 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                       </div>
+                    </div>
+                  </div>
+                ))}
+             </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -950,25 +947,52 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate, onUseIn
   );
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-[200] pointer-events-none">
-        {/* Backdrop */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-          className="absolute inset-0 bg-black/60 backdrop-blur-sm pointer-events-auto"
-        />
+    <AnimatePresence mode="wait">
+      {isOpen && (
+        <div className="fixed inset-0 z-[200] pointer-events-none">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm pointer-events-auto"
+          />
 
-        {/* Panel */}
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0, x: '-50%', y: '-48%' }}
-          animate={{ scale: 1, opacity: 1, x: '-50%', y: '-50%' }}
-          exit={{ scale: 0.9, opacity: 0, x: '-50%', y: '-48%' }}
-          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          className="fixed left-1/2 top-1/2 w-[95%] sm:w-[95%] max-w-5xl h-[92vh] sm:h-[90vh] max-h-[95vh] bg-white dark:bg-[#0b0c15] shadow-[0_40px_100px_-15px_rgba(0,0,0,0.3)] flex flex-col pointer-events-auto rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden border border-black/5 dark:border-white/10"
-        >
+          {/* Panel */}
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0, x: '-50%', y: '-50%', left: '50%', top: '50%', filter: 'blur(10px)' }}
+            animate={{ 
+              scale: 1, 
+              opacity: 1, 
+              x: '-50%', 
+              y: '-50%', 
+              left: '50%', 
+              top: '50%', 
+              filter: 'blur(0px)',
+              width: isMaximized ? '100vw' : '95%', 
+              height: isMaximized ? '100vh' : '90vh', 
+              maxWidth: isMaximized ? '100vw' : '1024px', 
+              maxHeight: isMaximized ? '100vh' : '95vh',
+              borderRadius: isMaximized ? 0 : '2.5rem' 
+            }}
+            exit={{ 
+              scale: 0.95, 
+              opacity: 0, 
+              x: '-50%', 
+              y: '-50%',
+              filter: 'blur(10px)',
+              transition: { duration: 0.2, ease: "easeIn" }
+            }}
+            transition={{ 
+              type: 'spring', 
+              damping: 35, 
+              stiffness: 400, 
+              mass: 0.6,
+              filter: { duration: 0.2 }
+            }}
+            className="fixed bg-white dark:bg-[#0b0c15] shadow-[0_40px_100px_-15px_rgba(0,0,0,0.4)] flex flex-col pointer-events-auto overflow-hidden border border-black/5 dark:border-white/10 z-[201]"
+          >
           {/* Header */}
           <div className="relative shrink-0 overflow-hidden">
             <div className="absolute inset-0 bg-indigo-600 dark:bg-indigo-600/90 z-0" />
@@ -988,12 +1012,20 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate, onUseIn
                   </div>
                 </div>
               </div>
-              <button 
-                onClick={onClose}
-                className="p-1.5 hover:bg-white/10 rounded-full transition-all active:scale-90 shrink-0"
-              >
-                <X size={18} className="sm:w-6 sm:h-6" />
-              </button>
+              <div className="flex items-center gap-1 sm:gap-2">
+                <button 
+                  onClick={() => setIsMaximized(!isMaximized)}
+                  className="p-1.5 hover:bg-white/10 rounded-full transition-all active:scale-90 shrink-0"
+                >
+                  {isMaximized ? <Minimize2 size={18} className="sm:w-5 sm:h-5" /> : <Maximize2 size={18} className="sm:w-5 sm:h-5" />}
+                </button>
+                <button 
+                  onClick={onClose}
+                  className="p-1.5 hover:bg-white/10 rounded-full transition-all active:scale-90 shrink-0"
+                >
+                  <X size={18} className="sm:w-6 sm:h-6" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1168,46 +1200,47 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate, onUseIn
              )}
           </div>
 
-          {/* Quick Actions & Footer */}
-          <div className="p-4 sm:p-8 border-t border-slate-100 dark:border-white/5 bg-white/95 dark:bg-[#0b0c15]/95 backdrop-blur-2xl absolute bottom-0 left-0 right-0 z-[210] safe-area-bottom shadow-[0_-10px_30px_rgba(0,0,0,0.03)] dark:shadow-none">
-             <div className="flex flex-col gap-3">
-                <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                   <motion.button 
-                     whileHover={{ scale: 1.01 }}
-                     whileTap={{ scale: 0.98 }}
-                     onClick={handleAutoAnalyze}
-                     disabled={isAnalyzing}
-                     className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 py-3 sm:py-4 bg-indigo-50/80 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-2xl text-[9px] sm:text-[11px] font-black uppercase tracking-widest transition-all border border-indigo-200/50 dark:border-indigo-500/20 w-full"
-                   >
-                     <Brain size={16} className={isAnalyzing ? 'animate-pulse' : ''} />
-                     <span className="text-center leading-tight">{isAnalyzing ? tLegal('processing') : tLegal('aiAutoAnalyze')}</span>
-                   </motion.button>
-                   <motion.button 
-                     whileHover={{ scale: 1.01 }}
-                     whileTap={{ scale: 0.98 }}
-                     onClick={() => {
-                       onClose();
-                       if (window.handleAisaAction) {
-                         window.handleAisaAction('DRAFT NOTICE');
-                       }
-                     }}
-                     className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 py-3 sm:py-4 bg-emerald-50/80 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-2xl text-[9px] sm:text-[11px] font-black uppercase tracking-widest transition-all border border-emerald-200/50 dark:border-emerald-500/20 w-full"
-                   >
-                     <FileText size={16} />
-                     <span className="text-center leading-tight">{tLegal('draftNotice')}</span>
-                   </motion.button>
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.01, y: -1 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleSave}
-                  className="w-full py-4 sm:py-5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-2xl font-black text-[12px] sm:text-[13px] uppercase tracking-[0.1em] shadow-[0_10px_25px_-5px_rgba(79,70,229,0.4)] transition-all flex items-center justify-center gap-3"
-                >
-                  <Save size={20} />
-                  {tLegal('syncCaseFolder')}
-                </motion.button>
-             </div>
-          </div>
+           {/* Quick Actions & Footer */}
+           <div className="p-4 sm:px-10 sm:py-3 border-t border-slate-100 dark:border-white/5 bg-white/95 dark:bg-[#0b0c15]/95 backdrop-blur-2xl absolute bottom-0 left-0 right-0 z-[210] safe-area-bottom shadow-[0_-10px_30px_rgba(0,0,0,0.03)] dark:shadow-none">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-6 max-w-7xl mx-auto">
+                 <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <motion.button 
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleAutoAnalyze}
+                      disabled={isAnalyzing}
+                      className="flex-1 sm:flex-none sm:min-w-[160px] flex items-center justify-center gap-2 py-2 sm:py-2.5 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all border border-indigo-200/50 dark:border-indigo-500/20 h-9 sm:h-10 px-4"
+                    >
+                      <Brain size={14} className={isAnalyzing ? 'animate-pulse' : ''} />
+                      <span className="leading-tight">{isAnalyzing ? tLegal('processing') : tLegal('aiAutoAnalyze')}</span>
+                    </motion.button>
+                    <motion.button 
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        onClose();
+                        if (window.handleAisaAction) {
+                          window.handleAisaAction('DRAFT NOTICE');
+                        }
+                      }}
+                      className="flex-1 sm:flex-none sm:min-w-[160px] flex items-center justify-center gap-2 py-2 sm:py-2.5 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all border border-emerald-200/50 dark:border-emerald-500/20 h-9 sm:h-10 px-4"
+                    >
+                      <FileText size={14} />
+                      <span className="leading-tight">{tLegal('draftNotice')}</span>
+                    </motion.button>
+                 </div>
+                 
+                 <motion.button
+                   whileHover={{ scale: 1.01, y: -1 }}
+                   whileTap={{ scale: 0.98 }}
+                   onClick={handleSave}
+                   className="w-full sm:w-auto sm:min-w-[200px] py-2 sm:py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-xl font-black text-[10px] sm:text-[11px] uppercase tracking-[0.15em] shadow-[0_8px_15px_-4px_rgba(79,70,229,0.3)] transition-all flex items-center justify-center gap-2.5 h-9 sm:h-10 px-6 sm:px-8"
+                 >
+                   <Save size={16} />
+                   {tLegal('syncCaseFolder')}
+                 </motion.button>
+              </div>
+           </div>
 
           <AnimatePresence>
             {selectedPrecedent && (
@@ -1238,6 +1271,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate, onUseIn
           </AnimatePresence>
         </motion.div>
       </div>
+      )}
     </AnimatePresence>
   );
 };

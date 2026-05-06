@@ -1,560 +1,169 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence, useInView, useMotionValue, useSpring, useTransform, animate } from 'framer-motion';
-import { ImagePlus, PlaySquare, Headphones, Code, Sparkles, Zap, Search, Globe, FileText, Wand2, PlayCircle, Scale, Video, Brain, TrendingUp, Megaphone, Lock, Target, AlignLeft, Mic2, UserCircle } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  ImagePlus,
+  Video,
+  PlayCircle,
+  Wand2,
+  Search,
+  Globe,
+  FileText,
+  Code,
+  Headphones,
+  TrendingUp,
+  Megaphone,
+  ArrowRight,
+  Sparkles,
+  Brain,
+  Briefcase
+} from 'lucide-react';
 import LegalLogo from '../Tools/AI_Legal/components/LegalLogo.jsx';
 import { useIsDark } from '../context/ThemeContext.jsx';
 import { useLanguage } from '../context/LanguageContext.jsx';
 
-/* ─── Typewriter Engine ────────────────────────────────────── */
-
-const TypewriterPrompt = ({ text, active }) => {
-  const [displayed, setDisplayed] = useState('');
-  useEffect(() => {
-    if (!active) { setDisplayed(''); return; }
-
-    let intervalId;
-    let timeoutId = setTimeout(() => {
-      let i = 0;
-      intervalId = setInterval(() => {
-        setDisplayed(text.slice(0, i));
-        i++;
-        if (i > text.length) clearInterval(intervalId);
-      }, 35);
-    }, 400);
-
-    return () => {
-      clearTimeout(timeoutId);
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [active, text]);
-
-  return (
-    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full px-4 text-center z-20">
-      <div className="bg-white/80 dark:bg-black/70 backdrop-blur-md rounded-lg p-2.5 border border-slate-200 dark:border-white/10 inline-block max-w-[90%] shadow-2xl">
-        <p className="text-[10px] sm:text-[11px] font-mono font-bold text-slate-800 dark:text-white leading-tight">
-          <span className="text-primary mr-1">/</span>{displayed}
-          <motion.span
-            initial={{ opacity: 1 }}
-            animate={{ opacity: 0 }}
-            transition={{ repeat: Infinity, repeatType: "reverse", duration: 0.6 }}
-            className="inline-block w-1 h-3 bg-primary ml-0.5"
-          />
-        </p>
-      </div>
-    </div>
-  );
-};
-
-const ToolPreviewContent = ({ id, prompt, active }) => {
+const FuturisticToolCards = ({ onToolSelect, activeToolId, activeTab, onTabChange }) => {
   const { t } = useLanguage();
   const isDark = useIsDark();
-  const [phase, setPhase] = useState('typing'); // typing -> generating -> result
-
-  useEffect(() => {
-    if (!active) { setPhase('typing'); return; }
-
-    const typingTimer = setTimeout(() => {
-      setPhase('generating');
-    }, 2200);
-
-    const generatingTimer = setTimeout(() => {
-      setPhase('result');
-    }, 3800);
-
-    return () => {
-      clearTimeout(typingTimer);
-      clearTimeout(generatingTimer);
-    };
-  }, [active]);
-
-  const getResultImage = () => {
-    const images = {
-      image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=400&h=250&auto=format&fit=crop",
-      video: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=400&h=250&auto=format&fit=crop",
-      edit_image: "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=400&h=250&auto=format&fit=crop",
-      image_to_video: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=400&h=250&auto=format&fit=crop"
-    };
-    return images[id] || null;
-  };
-
-  const getResultText = () => {
-    const responses = {
-      deep_search: [
-        "Analysis Complete: 247 global datasets indexed.",
-        "Trend identified: 18.2% growth in AI infrastructure.",
-        "Conclusion: Sustainable tech is the leading sector for 2026."
-      ],
-      web_search: [
-        "Live Feed [CNBC]: Market indices hit record highs today.",
-        "SpaceX Update: Starship successfully reached orbit.",
-        "Weather: Global temperatures stabilize near arctic regions."
-      ],
-      document: [
-        "Source: Report_Final_v2.pdf",
-        "Target Format: Microsoft Word (.docx)",
-        "Status: 100% Conversion Successful",
-        "Download: Ready for local storage."
-      ],
-      code: [
-        "import torch",
-        "import torch.nn as nn",
-        "class AisaModel(nn.Module):",
-        "   def forward(self, x):",
-        "      return self.model(x)"
-      ],
-      audio: [
-        "Processing Audio Track 04...",
-        "Voice: Natural Male (British)",
-        "Clarity: 99.8% High Fidelity",
-        "Duration: 00:04:12"
-      ],
-      legal: [
-        "Section 4.2 - Identified Liability Breach.",
-        "Risk Factor: Moderate (72% probability code check).",
-        "Recommendation: Amend clause 12 for compliance."
-      ],
-      aiad_agent: [
-        "Orchestrating 30-day Campaign...",
-        "Brand Voice calibrated: Premium",
-        "Target Platforms: Instagram, LinkedIn, X",
-        "Status: 90 Content Pieces Ready"
-      ]
-    };
-    return responses[id] || ["AI Task Successfully Completed.", "Verified by AISA Engine V4.2", "Runtime: 0.8s Total Latency."];
-  };
-
-  return (
-    <div className={`w-full h-full relative overflow-hidden flex flex-col ${isDark ? 'bg-slate-900/40' : 'bg-slate-50'}`}>
-      <AnimatePresence mode="wait">
-        {phase === 'typing' && (
-          <motion.div
-            key="typing"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex-1 flex items-center justify-center p-4"
-          >
-            <TypewriterPrompt text={prompt} active={active} />
-          </motion.div>
-        )}
-
-        {phase === 'generating' && (
-          <motion.div
-            key="generating"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex-1 flex flex-col items-center justify-center gap-3 p-4"
-          >
-            <div className="relative">
-              <motion.div
-                initial={{ scale: 1, opacity: 0.5 }}
-                animate={{ scale: 1.2, opacity: 1 }}
-                transition={{ duration: 0.75, repeat: Infinity, repeatType: "reverse" }}
-                className="w-16 h-16 rounded-full border-4 border-primary/20"
-              />
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear", repeatType: "loop" }}
-                className="absolute inset-0 border-t-4 border-primary rounded-full"
-              />
-            </div>
-            <p className="text-[12px] font-black text-primary uppercase tracking-widest animate-pulse">{t('aisaAiGenerating')}</p>
-          </motion.div>
-        )}
-
-        {phase === 'result' && (
-          <motion.div
-            key="result"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex-1 w-full h-full p-2"
-          >
-            {getResultImage() ? (
-              <div className="w-full h-full rounded-xl overflow-hidden relative group">
-                <img src={getResultImage()} className="w-full h-full object-cover" alt="Preview" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-3">
-                  <p className="text-[10px] text-white font-bold truncate">{prompt}</p>
-                </div>
-              </div>
-            ) : (
-              <div className={`w-full h-full rounded-xl border p-2.5 flex flex-col justify-between shadow-inner ${isDark ? 'bg-slate-950/60 border-white/5' : 'bg-white border-slate-100'}`}>
-                <div className="space-y-1">
-                  {getResultText().map((line, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}
-                      className={`text-[9px] font-mono p-1 rounded-md ${id === 'code' ? 'bg-slate-900 text-blue-300' : 'bg-slate-50 text-slate-600 border border-slate-100'}`}
-                    >
-                      {line}
-                    </motion.div>
-                  ))}
-                </div>
-                <div className="flex items-center gap-2 border-t border-slate-100 pt-1.5 mt-auto">
-                  <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Brain size={10} className="text-primary" />
-                  </div>
-                  <p className="text-[9px] font-black text-primary uppercase tracking-tight">{t('aiResultConfirmed')}</p>
-                </div>
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
-
-
-/* ─── 3D Tilt Card ─────────────────────────────────────────── */
-
-const ToolCard = ({ tool, onToolSelect, index, isFlipped, onFlip, onUnflip }) => {
-  const { t } = useLanguage();
-  const isDark = useIsDark();
-  const cardRef = useRef(null);
-  const { icon: Icon } = tool;
-
-  // Mouse-tracked 3D tilt
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const tiltX = useSpring(useTransform(y, [-70, 70], [15, -15]), { stiffness: 100, damping: 20 });
-  const tiltY = useSpring(useTransform(x, [-70, 70], [-15, 15]), { stiffness: 100, damping: 20 });
-
-  // Spotlight effect
-  const spotlightX = useMotionValue(0);
-  const spotlightY = useMotionValue(0);
-
-  // Interaction handlers
-  const handleMouseMove = (e) => {
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-
-    if (!isFlipped) {
-      x.set(e.clientX - rect.left - rect.width / 2);
-      y.set(e.clientY - rect.top - rect.height / 2);
-    }
-
-    spotlightX.set(e.clientX - rect.left);
-    spotlightY.set(e.clientY - rect.top);
-  };
-
-  const handleMouseLeave = () => {
-    x.set(0); y.set(0);
-    onUnflip();
-  };
-
-  const handleMouseEnter = () => {
-    if (tool.comingSoon) return;
-    onFlip();
-  };
-
-  const handleCardClick = () => {
-    if (tool.comingSoon) return;
-    if (!isFlipped) {
-      onFlip();
-    } else {
-      onToolSelect(tool.id);
-    }
-  };
-
-  const isActive = tool.active;
-
-  return (
-    <div
-      className="relative w-full h-[85px] sm:h-[155px]"
-      style={{ perspective: '1200px' }}
-    >
-      {/* Active Glow Backdrop */}
-      {isActive && (
-        <motion.div
-          layoutId="activeGlow"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1.1 }}
-          className="absolute inset-[-10px] rounded-[30px] bg-primary/25 blur-2xl z-0 pointer-events-none"
-        />
-      )}
-
-      <motion.div
-        ref={cardRef}
-        className={`w-full h-full relative cursor-pointer z-10 ${isActive ? 'ring-2 ring-primary ring-offset-2 ring-offset-transparent' : ''} rounded-[20px]`}
-        animate={{
-          rotateY: isFlipped ? 180 : 0,
-          scale: isFlipped ? 1.02 : 1
-        }}
-        transition={{
-          type: "spring", stiffness: 150, damping: 25
-        }}
-        style={{
-          transformStyle: 'preserve-3d',
-        }}
-        onClick={handleCardClick}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-        onMouseEnter={handleMouseEnter}
-      >
-        {/* INNER TILT WRAPPER - This handles the mouse tilt separately from the 180-flip */}
-        <motion.div
-          className="w-full h-full relative"
-          style={{
-            transformStyle: 'preserve-3d',
-            rotateX: isFlipped ? 0 : tiltX,
-            rotateY: isFlipped ? 0 : tiltY,
-          }}
-        >
-          {/* FRONT SIDE */}
-          <div
-            className={`absolute inset-0 w-full h-full rounded-[20px] border transition-all duration-300 backface-hidden overflow-hidden ${isActive
-              ? (isDark ? 'bg-primary/10 border-primary shadow-[0_0_30px_rgba(var(--primary-rgb),0.3)] backdrop-blur-xl' : 'bg-blue-50 border-primary shadow-[0_0_25px_rgba(var(--primary-rgb),0.15)]')
-              : (isDark
-                ? 'sidebar-glass border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]'
-                : 'bg-white border-slate-200/60 shadow-[0_4px_20px_rgba(0,0,0,0.05)]')
-              }`}
-            style={{ backfaceVisibility: 'hidden' }}
-          >
-            {/* Invisible Buffer for hover stability */}
-            <div className="absolute inset-[-4px] z-[-1] pointer-events-auto" />
-
-            {/* Spotlight Effect Layer */}
-            <motion.div
-              className="absolute inset-0 pointer-events-none transition-opacity duration-300 group-hover:opacity-100 opacity-0 z-0"
-              style={{
-                background: useTransform(
-                  [spotlightX, spotlightY],
-                  ([latestX, latestY]) => `radial-gradient(600px circle at ${latestX}px ${latestY}px, rgba(255,255,255,0.06), transparent 80%)`
-                ),
-              }}
-            />
-            <motion.div
-              className="absolute inset-0 pointer-events-none opacity-[0.03] z-0"
-              style={{
-                background: useTransform(
-                  [spotlightX, spotlightY],
-                  ([latestX, latestY]) => `radial-gradient(400px circle at ${latestX}px ${latestY}px, var(--color-primary), transparent 80%)`
-                ),
-              }}
-            />
-
-            {/* Content Wrapper (card-inner) */}
-            <div className="relative z-10 w-full h-full p-3 sm:p-5 flex flex-col justify-between pointer-events-none">
-              <div className="flex items-center justify-between mb-1 sm:mb-3">
-                <div
-                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all duration-500"
-                  style={{
-                    background: isActive ? 'var(--color-primary)' : (isDark ? `${tool.color}15` : `${tool.color}10`),
-                    border: isDark ? `1px solid ${tool.color}30` : `1px solid ${tool.color}20`,
-                    boxShadow: isActive ? '0 0 15px var(--color-primary)' : 'none'
-                  }}
-                >
-                  <Icon
-                    size={16}
-                    className="sm:w-[18px] sm:h-[18px]"
-                    showText={tool.id === 'legal'}
-                    style={{ color: isActive ? '#fff' : tool.color }}
-                  />
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  {isActive && (
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="flex items-center gap-1 bg-primary text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg animate-pulse"
-                    >
-                      <div className="w-1 h-1 rounded-full bg-white animate-ping" />
-                      {t('active')}
-                    </motion.span>
-                  )}
-                  <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${isActive ? 'bg-primary/20 text-primary' : (isDark ? 'bg-white/5 text-white/40' : 'bg-slate-100 text-slate-500')
-                    }`}>
-                    {tool.badge}
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-0.5">
-                <h3 className={`text-[11px] sm:text-[14px] font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  {tool.label}
-                </h3>
-                <p className={`hidden sm:block text-[9.5px] sm:text-[10px] leading-snug line-clamp-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                  {tool.desc}
-                </p>
-              </div>
-            </div>
-
-            {tool.comingSoon && (
-              <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/40 dark:bg-black/40 backdrop-blur-[1px] rounded-[20px] pointer-events-none">
-                <div className={`px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest ${isDark ? 'bg-[#1a1c2e] border-white/10 text-slate-400' : 'bg-white border-slate-200 text-slate-500 shadow-sm'
-                  }`}>
-                  {t('soon')}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* BACK SIDE (Review & Preview) */}
-          <div
-            className={`absolute inset-0 w-full h-full rounded-[20px] border overflow-hidden flex flex-col backface-hidden transition-all duration-300 ${isActive
-              ? (isDark ? 'bg-primary/20 border-primary shadow-[0_0_30px_rgba(var(--primary-rgb),0.4)] backdrop-blur-2xl' : 'bg-blue-50 border-primary shadow-[0_0_25px_rgba(var(--primary-rgb),0.2)]')
-              : (isDark
-                ? 'sidebar-glass border-primary/30 shadow-[0_10px_40px_rgba(var(--primary-rgb),0.2)]'
-                : 'bg-white border-primary/20 shadow-[0_10px_40px_rgba(0,0,0,0.1)]')
-              }`}
-            style={{
-              backfaceVisibility: 'hidden',
-              transform: 'rotateY(180deg)',
-            }}
-          >
-            <div className="flex flex-col h-full relative z-10">
-              {/* Back Side Label */}
-              <div className="px-3 py-1.5 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/30 pointer-events-none">
-                <span className={`text-[9px] font-black uppercase tracking-tighter ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
-                  {tool.label}
-                </span>
-                <div className="flex gap-0.5">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className={`w-1 h-1 rounded-full ${isDark ? 'bg-primary/40' : 'bg-primary/30'}`} />
-                  ))}
-                </div>
-              </div>
-
-              {/* Live Demo Animation Section */}
-              <div className="flex-1 w-full overflow-hidden border-b border-black/5 dark:border-white/5 bg-slate-50 dark:bg-slate-900/50 pointer-events-none">
-                <ToolPreviewContent
-                  id={tool.id}
-                  prompt={tool.prompt}
-                  active={isFlipped}
-                />
-              </div>
-
-              {/* Review & Action Section */}
-              <div className="p-1.5 sm:p-2.5 flex flex-col justify-between bg-white/40 dark:bg-[#1a1e2e]/40 backdrop-blur-sm">
-                <div className="hidden sm:block mb-1.5 pointer-events-none">
-                  <p className={`text-[8.5px] leading-tight italic font-medium line-clamp-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                    "{tool.review?.text || "Revolutionary AI tool that significantly improves my workflow efficiency."}"
-                  </p>
-                </div>
-
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToolSelect(tool.id);
-                  }}
-                  className="bg-primary text-white text-[8px] font-black uppercase tracking-widest py-1.5 rounded-lg flex items-center justify-center gap-2 shadow-lg shadow-primary/20 cursor-pointer pointer-events-auto"
-                >
-                  <Zap size={9} fill="white" />
-                  {t('liveTry')}
-                </motion.div>
-              </div>
-            </div>
-
-            {/* Subtle Neural Background for back side */}
-            <div className="absolute inset-0 pointer-events-none opacity-[0.03]">
-              <div className="bg-primary absolute inset-0 blur-3xl rounded-full translate-y-1/2" />
-            </div>
-          </div>
-        </motion.div>
-      </motion.div>
-    </div>
-  );
-};
-
-/* ─── Main Grid Component ────────────────────────────────────────── */
-
-const containerVariants = {
-  hidden: {},
-  visible: {
-    transition: { staggerChildren: 0.1, delayChildren: 0.15 }
-  }
-};
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 50, scale: 0.88, rotateX: 12 },
-  visible: {
-    opacity: 1, y: 0, scale: 1, rotateX: 0,
-    transition: { type: 'spring', stiffness: 160, damping: 20 }
-  }
-};
-
-const FuturisticToolCards = ({ onToolSelect, activeToolId, isAdmin = false }) => {
-  const { t } = useLanguage();
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: '-100px' });
-
-  // Track the currently hovered card ID with debounce to prevent flickering
-  const [hoveredCardId, setHoveredCardId] = useState(null);
-  const hoverTimeoutRef = useRef(null);
-
-  const handleFlip = (id) => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-    setHoveredCardId(id);
-  };
-
-  const handleUnflip = () => {
-    // Add a small delay before unflipping to stabilize the interaction
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-    hoverTimeoutRef.current = setTimeout(() => {
-      setHoveredCardId(null);
-    }, 120);
-  };
-
-  /* ─── Tools Data ───────────────────────────────── */
 
   const ALL_TOOLS = [
-    { id: 'image', label: t('generateImage'), badge: t('badgeImage'), desc: t('createVisualsFromText'), icon: ImagePlus, color: '#a78bfa', prompt: "Generate cinematic 8k image of a golden retriever in space...", review: { rating: 5, count: "12.4k", text: "STUNNING! The clarity of the generated images is better than Midjourney V6. AISA truly understands context." } },
-    { id: 'video', label: t('generateVideo'), badge: t('badgeVideo'), desc: t('textToCinematicVideo'), icon: Video, color: '#fb923c', prompt: "Creating realistic drone flight over mountains at sunset...", review: { rating: 4.9, count: "8.2k", text: "The temporal consistency in the videos is industry-leading. Smooth motion without any morphing artifacts." } },
-    { id: 'image_to_video', label: t('imageToVideo'), badge: t('badgeAnimate'), desc: t('imageToVideoMagic'), icon: PlayCircle, color: '#f97316', prompt: "Animate this static scene with dynamic lighting & motion...", review: { rating: 5, count: "5.7k", text: "Turned my product photos into cinematic ads in seconds. This is a game changer for my marketing agency." } },
-    { id: 'edit_image', label: t('editImage'), badge: t('badgeMagicEdit'), desc: t('magicImageEditor'), icon: Wand2, color: '#f43f5e', prompt: "Modify the sky to be a neon-lit cyberpunk sunset...", review: { rating: 4.8, count: "15k", text: "Perfect for quick retouching. The AI infilling is seamless—you literally can't tell where the edit starts." } },
-    { id: 'deep_search', label: t('deepSearch'), badge: t('badgeIntelligence'), desc: t('researchComplexTopics'), icon: Search, color: '#0ea5e9', prompt: "Analyze global market trends and future tech predictions...", review: { rating: 5, count: "21k", text: "Replaced my research team. It synthesizes 100+ papers into a 1-page brief perfectly. Extremely accurate indexing." } },
-    { id: 'web_search', label: t('realTimeSearch'), badge: t('badgeRealTime'), desc: t('liveWebDataAccess'), icon: Globe, color: '#22d3ee', prompt: "Search for live updates on the latest SpaceX launch...", review: { rating: 4.9, count: "10k", text: "No more hallucinated news. AISA provides real-time citations and live feeds. Highly reliable for tech news." } },
-    { id: 'document', label: t('analyzeDocument'), badge: t('badgeDocument'), desc: t('chatWithPdfsDocs'), icon: FileText, color: '#3b82f6', prompt: "Convert this PDF file to DOCX format immediately...", review: { rating: 5, count: "7.4k", text: "I converted my 50-page PDF to a perfectly formatted Word document in seconds. Super efficient!" } },
-    { id: 'code', label: t('codeWriter'), badge: t('badgeCode'), desc: t('writeDebugCode'), icon: Code, color: '#6366f1', prompt: "Write a robust Python script for a neural network...", review: { rating: 4.9, count: "14.2k", text: "Writes production-ready code with tests. It actually understands modern design patterns, not just snippets." } },
-    { id: 'audio', label: t('convertToAudio'), badge: t('badgeAudio'), desc: t('textDocsToVoice'), icon: Headphones, color: '#34d399', prompt: "Synthesize this report into a natural sounding male voice...", review: { rating: 4.8, count: "6k", text: "The most human-like synthesis I've heard. Even the breathing and pauses feel natural. Perfect for podcasts." } },
-    { id: 'legal', label: t('aiLegal'), badge: t('badgeLegal'), desc: t('specializedAiLegalTools'), icon: LegalLogo, color: '#818cf8', prompt: "Analyze this employment contract for potential loopholes...", review: { rating: 5, count: "3.2k", text: "AISA's legal reasoning is spookily good. It identified risks that our junior lawyers missed twice." } },
-    { id: 'ai_cashflow', label: t('aiCashFlow'), badge: t('badgeFinance'), desc: t('liveAnalysisReports'), icon: TrendingUp, color: '#10b981', prompt: "Analyzing cashflow...", review: { rating: 5, count: "4.2k", text: "Incredible financial insights. The real-time analysis saved us thousands." } },
-    { id: 'aiad_agent', label: t('aiAds') || 'AI ADS™', badge: t('badgeAds') || 'ADS', desc: 'Social Media Orchestration', icon: Megaphone, color: '#eab308', prompt: "Generate a 30-day social media campaign for AISA...", review: { rating: 5, count: "18k", text: "Automated my entire month's content in under 5 minutes. The hashtags are perfectly optimized for trends." } },
+    { id: 'image', category: 'Create', icon: ImagePlus, label: t('generateImage'), desc: t('createVisualsFromText') },
+    { id: 'video', category: 'Create', icon: Video, label: t('generateVideo'), desc: t('textToCinematicVideo') },
+    { id: 'image_to_video', category: 'Create', icon: PlayCircle, label: t('imageToVideo'), desc: t('imageToVideoMagic') },
+    { id: 'edit_image', category: 'Create', icon: Wand2, label: t('editImage'), desc: t('magicImageEditor') },
+    { id: 'audio', category: 'Create', icon: Headphones, label: t('convertToAudio'), desc: t('textDocsToVoice') },
+
+    { id: 'deep_search', category: 'Intelligence', icon: Search, label: t('deepSearch'), desc: t('researchComplexTopics') },
+    { id: 'web_search', category: 'Intelligence', icon: Globe, label: t('realTimeSearch'), desc: t('liveWebDataAccess') },
+    { id: 'document', category: 'Intelligence', icon: FileText, label: t('analyzeDocument'), desc: t('chatWithPdfsDocs') },
+    { id: 'code', category: 'Intelligence', icon: Code, label: t('codeWriter'), desc: t('writeDebugCode') },
+
+    { id: 'legal', category: 'Business', icon: Brain, label: t('aiLegal'), desc: t('specializedAiLegalTools') },
+    { id: 'ai_cashflow', category: 'Business', icon: TrendingUp, label: t('aiCashFlow'), desc: t('liveAnalysisReports') },
+    { id: 'aiad_agent', category: 'Business', icon: Megaphone, label: 'AI ADS™', desc: 'Social Media Orchestration' },
   ];
 
-  const getToolActiveStatus = (toolId) => {
-    if (!activeToolId) return false;
-    return activeToolId === toolId;
-  };
+  const filteredTools = useMemo(() => {
+    return ALL_TOOLS.filter(tool => tool.category === activeTab);
+  }, [activeTab]);
+
+  const tabs = [
+    { id: 'Create', icon: Sparkles },
+    { id: 'Intelligence', icon: Brain },
+    { id: 'Business', icon: Briefcase }
+  ];
+
+  const brandGradientPill = 'bg-gradient-to-br from-[#7c3aed] to-[#6366f1]';
+  const brandShadowPill = 'shadow-lg shadow-indigo-500/25';
+  const lightBg = isDark ? 'bg-indigo-500/10' : 'bg-indigo-50';
+  const iconColor = isDark ? 'text-indigo-400' : 'text-indigo-600';
+  const accentColor = '#7c3aed';
 
   return (
-    <div className="w-full py-4 sm:py-8 px-4 sm:px-6 flex flex-col items-center gap-4 sm:gap-8" ref={ref}>
-      <motion.div
-        className="w-full grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3 sm:gap-8 max-w-7xl"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        {ALL_TOOLS.map((tool, index) => (
+    <div className="w-full max-w-3xl mx-auto px-4 py-0 sm:py-2 flex flex-col items-center justify-center min-h-[40vh] space-y-4 sm:space-y-6">
+
+      {/* 1. Pill-Style Tabs Navigation - Matching AISA/MALL Toggle */}
+      <div className="flex justify-center w-full sticky top-0 z-20 pb-4">
+        <div className={`relative flex items-center p-1 rounded-full overflow-x-auto no-scrollbar scroll-smooth flex-nowrap max-w-full ${isDark ? 'bg-zinc-900/80 border border-white/5' : 'bg-slate-100 border border-slate-200 shadow-inner'}`}>
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            const Icon = tab.icon;
+            return (
+              <motion.button
+                key={tab.id}
+                onClick={() => onTabChange(tab.id)}
+                whileTap={{ scale: 0.95 }}
+                className={`relative px-4 sm:px-8 py-2 sm:py-2.5 rounded-full flex items-center gap-2 text-[10px] sm:text-[11px] font-bold tracking-tight transition-all duration-300 whitespace-nowrap flex-shrink-0 group ${isActive
+                    ? 'text-white'
+                    : `text-slate-500 hover:text-slate-900 dark:hover:text-zinc-300`
+                  }`}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="activeTabPill"
+                    className={`absolute inset-0 rounded-full ${brandGradientPill} ${brandShadowPill}`}
+                    transition={{ type: "spring", bounce: 0.1, duration: 0.5 }}
+                  />
+                )}
+                <Icon className={`relative z-10 w-3.5 h-3.5 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-indigo-500'}`} />
+                <span className="relative z-10">{tab.id}</span>
+              </motion.button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 2. Professional Tool Grid - SaaS Clean Style with Centered Rows */}
+      <div className="w-full relative min-h-[280px] sm:min-h-[320px]">
+        <AnimatePresence mode="wait">
           <motion.div
-            key={tool.id}
-            variants={cardVariants}
-            style={{ transformOrigin: 'center bottom' }}
+            key={activeTab}
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="flex flex-wrap justify-center gap-3 sm:gap-4"
           >
-            <ToolCard
-              tool={{
-                ...tool,
-                active: getToolActiveStatus(tool.id)
-              }}
-              index={index}
-              isFlipped={hoveredCardId === tool.id}
-              onFlip={() => handleFlip(tool.id)}
-              onUnflip={() => handleUnflip()}
-              onToolSelect={(id) => {
-                onToolSelect(id);
-              }}
-            />
+            {filteredTools.map((tool) => {
+              const Icon = tool.icon;
+              const isIntelligence = activeTab === 'Intelligence';
+              return (
+                <motion.div
+                  key={tool.id}
+                  whileHover={{ y: -4, shadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)" }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => onToolSelect(tool.id)}
+                  className={`group relative p-4 sm:p-5 rounded-[14px] border cursor-pointer transition-all duration-200 overflow-hidden w-full sm:w-[calc(50%-12px)] ${isIntelligence ? 'md:w-[calc(45%-12px)]' : 'md:w-[calc(33.33%-12px)]'} max-w-[320px] sm:max-w-none ${isDark
+                      ? 'bg-[#18181b] border-white/5 hover:border-indigo-500/50 hover:bg-[#1c1c20]'
+                      : 'bg-white border-slate-200 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/5'
+                    }`}
+                >
+                  <div className="flex flex-col h-full gap-3 sm:gap-4 relative z-10">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-[38px] h-[38px] sm:w-[42px] sm:h-[42px] rounded-full flex items-center justify-center transition-all duration-300 ${tool.id === 'legal' && !isDark ? 'bg-gradient-to-br from-indigo-50 to-indigo-100 shadow-inner' : lightBg}`}>
+                          {tool.id === 'legal' ? (
+                            <LegalLogo size={28} color={isDark ? '#818cf8' : accentColor} showText={true} />
+                          ) : (
+                            <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${iconColor}`} />
+                          )}
+                        </div>
+                        {/* Heading next to icon on mobile */}
+                        <h4 className={`sm:hidden text-[14px] font-bold tracking-tight ${isDark ? 'text-zinc-100' : 'text-slate-900'}`}>{tool.label}</h4>
+                      </div>
+                      <div className={`p-1.5 rounded-lg opacity-0 sm:group-hover:opacity-100 transition-all transform translate-x-2 sm:group-hover:translate-x-0 ${isDark ? 'bg-white/5 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
+                        <ArrowRight size={14} />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      {/* Heading below icon on desktop */}
+                      <h4 className={`hidden sm:block text-[13px] sm:text-[15px] font-semibold tracking-tight ${isDark ? 'text-zinc-100' : 'text-slate-900'}`}>{tool.label}</h4>
+                      <p className={`text-[10px] sm:text-[12px] leading-relaxed line-clamp-2 font-medium ${isDark ? 'text-zinc-500' : 'text-slate-500'}`}>
+                        {tool.desc}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Unified Branding Glow */}
+                  <div className="absolute -bottom-6 -right-6 w-24 h-24 blur-[40px] opacity-0 group-hover:opacity-10 transition-opacity duration-700 pointer-events-none bg-indigo-500" />
+                </motion.div>
+              );
+            })}
           </motion.div>
-        ))}
-      </motion.div>
+        </AnimatePresence>
+      </div>
+
+      <style jsx>{`
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 };
 
 export default FuturisticToolCards;
-export { ToolCard };

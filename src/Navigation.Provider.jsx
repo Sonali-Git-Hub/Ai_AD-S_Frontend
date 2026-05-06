@@ -31,6 +31,8 @@ import TermsOfService from './landingpage/TermsOfService.jsx';
 import CookiePolicy from './landingpage/CookiePolicy.jsx';
 import { AnimatePresence, motion } from 'framer-motion';
 import { lazy, Suspense } from 'react';
+import { Toaster } from 'react-hot-toast';
+import CookieConsentBanner from './landingpage/CookieConsentBanner';
 import ProtectedRoute from './Components/ProtectedRoute/ProtectedRoute.jsx';
 const AiBase = lazy(() => import('./Tools/AI_Base/AI_Base').catch(() => ({ default: () => <div className="flex h-full items-center justify-center text-subtext">AI Base Module not found.</div> })));
 
@@ -113,6 +115,60 @@ const MobileNotificationBell = ({ onClick }) => {
   );
 };
 
+// ─── SCROLL SHOW/HIDE LOGIC (FIXED VERSION 🔥) ───
+const useScrollNavbar = () => {
+  const [visible, setVisible] = useState(true);
+  const lastScrollY = useRef(0);
+  const lastTarget = useRef(null);
+  const scrollThreshold = 15; // Increased threshold for stability
+
+  useEffect(() => {
+    const handleScroll = (e) => {
+      // Support both window scroll and container scroll (Chat page)
+      const target = e.target;
+      
+      const isDoc = target === document || target === document.documentElement;
+      const isChat = target.classList && target.classList.contains('chatgpt-container');
+      
+      if (!isDoc && !isChat) return;
+
+      const currentScrollY = isDoc ? window.scrollY : (target.scrollTop ?? 0);
+
+      // Reset tracking if we switch scroll targets to prevent jumping
+      if (lastTarget.current !== target) {
+        lastScrollY.current = currentScrollY;
+        lastTarget.current = target;
+        return;
+      }
+
+      // Always show at top
+      if (currentScrollY < 50) {
+        if (!visible) setVisible(true);
+        lastScrollY.current = currentScrollY;
+        return;
+      }
+
+      const diff = currentScrollY - lastScrollY.current;
+      if (Math.abs(diff) > scrollThreshold) {
+        if (currentScrollY > lastScrollY.current) {
+          // scroll down -> hide
+          if (visible) setVisible(false);
+        } else {
+          // scroll up -> show
+          if (!visible) setVisible(true);
+        }
+        lastScrollY.current = currentScrollY;
+      }
+    };
+
+    // Use capture: true to catch scroll events from child containers like #chat-container
+    window.addEventListener("scroll", handleScroll, { capture: true, passive: true });
+    return () => window.removeEventListener("scroll", handleScroll, { capture: true, passive: true });
+  }, [visible]);
+
+  return visible;
+};
+
 const DashboardLayout = () => {
   const [tglState, setTglState] = useRecoilState(toggleState);
   const isSidebarOpen = tglState.sidebarOpen;
@@ -130,68 +186,28 @@ const DashboardLayout = () => {
   const currentMode = useRecoilValue(activeModeData);
   const selectedLegalTool = useRecoilValue(activeLegalToolData);
   const legalView = useRecoilValue(legalViewData);
-  const isMobile = window.innerWidth <= 768;
-  // ─── Route-based Navbar Visibility Logic ───
-  // Rule: Navbar is HIDDEN ONLY for 'My Case' and 'Legal Precedents'.
-  // It should be VISIBLE for all other features (Draft Maker, Evidence Analyst, etc.)
+  const isMobile = window.innerWidth < 768;
   const searchParams = new URLSearchParams(location.search);
-  const toolParam = searchParams.get('tool');
-  const isMyCase = location.pathname === '/dashboard/cases' || toolParam === 'legal_my_case';
-  const isPrecedents = toolParam === 'legal_precedents' || toolParam === 'legal_case_law_research';
+  const tool = searchParams.get("tool");
 
-  const shouldHideMobileNavbar = isMobile && (isMyCase || isPrecedents);
+  // Jaha navbar NAHI chahiye
+  const hideNavbarTools = ["legal_my_case", "legal_precedents", "my-case", "legal-precedents"];
+  const isHiddenTool = 
+    hideNavbarTools.includes(tool) || 
+    hideNavbarTools.includes(selectedLegalTool?.id) ||
+    location.pathname === '/dashboard/cases';
+  
+  // Navbar is hidden if it's a restricted tool view, regardless of device.
+  const allowNavbar = !isHiddenTool;
 
-  // ─── Scroll Direction Logic for Auto-Hide Navbar ───
-  const [isVisible, setIsVisible] = useState(true); // visible by default as per requirement
-  const lastScrollYRef = useRef(0); // useRef avoids stale closure in the scroll handler
-  const scrollThreshold = 15; // px
+  const showOnScroll = useScrollNavbar();
 
+  // Sync CSS variable for child pages top-padding
   useEffect(() => {
-    const handleScroll = (e) => {
-      // Only apply on mobile as per user requirement (<= 768px)
-      if (window.innerWidth > 768) return;
-
-      // Get scroll position from any scrollable element
-      const target = e.target;
-      const currentScrollY =
-        target === document || target === document.documentElement
-          ? window.scrollY
-          : (target.scrollTop ?? 0);
-
-      // Always show header when at the very top
-      if (currentScrollY < 10) {
-        setIsVisible(true);
-        lastScrollYRef.current = currentScrollY;
-        return;
-      }
-
-      const diff = currentScrollY - lastScrollYRef.current;
-
-      if (Math.abs(diff) > scrollThreshold) {
-        setIsVisible(diff < 0); // true = scrolling up → show; false = scrolling down → hide
-        lastScrollYRef.current = currentScrollY;
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { capture: true, passive: true });
-    return () => window.removeEventListener('scroll', handleScroll, { capture: true, passive: true });
-  }, []); // Bind once
-
-  useEffect(() => {
-    setIsVisible(true);
-    lastScrollYRef.current = 0;
-  }, [location.pathname]);
-
-  // Sync CSS variable so child pages (Chat) can transition their top-padding in lockstep
-  useEffect(() => {
-    // Only applies below lg (1024px) — desktop uses lg:pt-6 via Tailwind class
-    if (window.innerWidth < 1024) {
-      document.documentElement.style.setProperty(
-        '--mobile-nav-h',
-        (!shouldHideMobileNavbar && isVisible) ? '64px' : '0px'
-      );
-    }
-  }, [shouldHideMobileNavbar, isVisible]);
+    // Keep padding stable at 64px if navbar is allowed, to prevent layout shifts on show/hide
+    const hValue = allowNavbar ? '64px' : '0px';
+    document.documentElement.style.setProperty('--mobile-nav-h', hValue);
+  }, [allowNavbar]);
 
   return (
     <div className="fixed inset-0 flex bg-transparent text-maintext overflow-hidden aisa-scalable-text">
@@ -232,72 +248,63 @@ const DashboardLayout = () => {
 
       <div className="flex-1 flex flex-col min-w-0 bg-transparent h-full relative">
 
-        {/* Unified Mobile Header (Hides when sidebar is open or on specific mobile views) */}
-        {!isFullScreen && !isSidebarOpen && !tglState.focusMode && !shouldHideMobileNavbar && (
-          <motion.div
-            initial={false}
-            animate={{
-              y: isVisible ? 0 : '-100%',
-              opacity: isVisible ? 1 : 0
-            }}
-            transition={{
-              duration: 0.3,
-              ease: "easeInOut"
-            }}
-            className="lg:hidden flex items-center justify-between px-6 py-3 bg-white/70 dark:bg-black/40 backdrop-blur-xl border-b border-white/10 dark:border-white/5 shrink-0 z-[1001] fixed top-0 left-0 right-0 shadow-lg shadow-black/5"
+        {/* ─── FINAL RENDER (Navbar) ─── */}
+        {allowNavbar && !isFullScreen && !isSidebarOpen && !tglState.focusMode && (
+          <div
+            className={`navbar fixed top-0 left-0 right-0 z-[1001] transition-transform duration-300 lg:left-[280px]
+              ${showOnScroll ? "translate-y-0" : "-translate-y-full"}`}
           >
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setIsSidebarOpen(true)}
-              className="w-10 h-10 flex items-center justify-center bg-primary/10 rounded-xl border border-primary/30 text-primary"
-            >
-              <Menu className="w-6 h-6 stroke-[2.5]" />
-            </motion.button>
-
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between lg:justify-end px-6 py-3 bg-transparent shrink-0">
               <motion.button
                 whileTap={{ scale: 0.9 }}
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="w-10 h-10 flex items-center justify-center bg-primary/10 rounded-xl border border-primary/30 text-primary"
+                onClick={() => setIsSidebarOpen(true)}
+                className="lg:hidden w-10 h-10 flex items-center justify-center bg-white/40 dark:bg-black/40 backdrop-blur-xl rounded-xl border border-white/40 dark:border-white/10 text-primary shadow-lg shadow-black/5"
               >
-                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                <Menu className="w-6 h-6 stroke-[2.5]" />
               </motion.button>
 
-              {token ? (
-                <div className="relative profile-menu-container">
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                    className="w-10 h-10 flex items-center justify-center bg-primary/10 rounded-xl border border-primary/30 text-primary overflow-hidden"
-                  >
-                    {user?.avatar ? (
-                      <img src={user.avatar} alt="P" className="w-full h-full object-cover" />
-                    ) : (
-                      <User size={20} />
-                    )}
-                  </motion.button>
-                  <AnimatePresence>
-                    {/* The mobile header used to render ProfileSettingsDropdown here, but it's been moved to the root to support desktop Sidebar trigger */}
-                  </AnimatePresence>
-                </div>
-              ) : (
+              <div className="flex items-center gap-2">
                 <motion.button
                   whileTap={{ scale: 0.9 }}
-                  onClick={() => navigate('/login')}
-                  className="px-4 h-10 flex items-center justify-center bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20"
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  className="w-10 h-10 flex items-center justify-center bg-white/40 dark:bg-black/40 backdrop-blur-xl rounded-xl border border-white/40 dark:border-white/10 text-primary shadow-lg shadow-black/5"
                 >
-                  Login
+                  {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
                 </motion.button>
-              )}
+
+                {token ? (
+                  <div className="relative profile-menu-container">
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                      className="w-10 h-10 flex items-center justify-center bg-primary/10 rounded-xl border border-primary/30 text-primary overflow-hidden"
+                    >
+                      {user?.avatar ? (
+                        <img src={user.avatar} alt="P" className="w-full h-full object-cover" />
+                      ) : (
+                        <User size={20} />
+                      )}
+                    </motion.button>
+                  </div>
+                ) : (
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => navigate('/login')}
+                    className="px-4 h-10 flex items-center justify-center bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20"
+                  >
+                    Login
+                  </motion.button>
+                )}
+              </div>
             </div>
-          </motion.div>
+          </div>
         )}
 
         <NotificationCenter isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} />
         {/* Outlet for pages */}
         <main
           className={`flex-1 ${(location.pathname.includes('/chat') || location.pathname.includes('/cases')) ? 'overflow-hidden' : 'overflow-y-auto'} relative w-full scroll-smooth p-0 scrollbar-hide transition-all duration-300 ease-in-out`}
-          style={{ paddingTop: 'var(--mobile-nav-h)' }}
+          style={{ paddingTop: (isMobile && (location.pathname.includes('/chat') || location.pathname.includes('/cases'))) ? '0px' : 'var(--mobile-nav-h)' }}
         >
           <Outlet />
         </main>
@@ -332,9 +339,6 @@ const PlaceholderPage = ({ title }) => (
 // ------------------------------
 // App Router
 // ------------------------------
-
-import { Toaster } from 'react-hot-toast';
-import CookieConsentBanner from './landingpage/CookieConsentBanner';
 
 const NavigateProvider = () => {
   const [tglState] = useRecoilState(toggleState);

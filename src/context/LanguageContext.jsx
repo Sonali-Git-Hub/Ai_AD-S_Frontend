@@ -1535,7 +1535,7 @@ export const LanguageProvider = ({ children }) => {
                 },
                 {
                     question: "¿Qué modelos de IA impulsan a AISA?",
-                    answer: "Utilizamos modelos de IA avanzados, incluido Gemini, para garantizar respuestas de alta calidad, procesamiento rápido y excelentes capacidades de razonamiento."
+                    answer: "Utilizamos modelos de IA avanzados, incluidos los motores de síntesis de AISA™, para garantizar respuestas de alta calidad, procesamiento rápido y excelentes capacidades de razonamiento."
                 },
                 {
                     question: "¿Mis datos están seguros?",
@@ -1848,7 +1848,7 @@ export const LanguageProvider = ({ children }) => {
                 },
                 {
                     question: "Quels modèles d'IA alimentent AISA ?",
-                    answer: "Nous utilisons des modèles d'IA avancés, y compris Gemini, pour assurer des réponses de haute qualité, un traitement rapide et d'excellentes capacités de raisonnement."
+                    answer: "Nous utilisons des modèles d'IA avancés, y compris les moteurs de synthèse exclusifs d'AISA™, pour assurer des réponses de haute qualité, un traitement rapide et d'excellentes capacités de raisonnement."
                 },
                 {
                     question: "Mes données sont-elles sécurisées ?",
@@ -2434,7 +2434,7 @@ export const LanguageProvider = ({ children }) => {
                 },
                 {
                     question: "Welche KI-Modelle treiben AISA an?",
-                    answer: "Wir verwenden fortschrittliche KI-Modelle, einschließlich Gemini, um qualitativ hochwertige Antworten, schnelle Verarbeitung und hervorragende Denkfähigkeiten zu gewährleisten."
+                    answer: "Wir verwenden fortschrittliche KI-Modelle, einschließlich der proprietären Synthese-Engines von AISA™, um qualitativ hochwertige Antworten, schnelle Verarbeitung und hervorragende Denkfähigkeiten zu gewährleisten."
                 },
                 {
                     question: "Sind meine Daten sicher?",
@@ -2702,7 +2702,7 @@ export const LanguageProvider = ({ children }) => {
                 },
                 {
                     question: "Quais modelos de IA alimentam o AISA?",
-                    answer: "Usamos modelos avançados de IA, incluindo o Gemini, para garantir respostas de alta qualidade, processamento rápido e excelentes capacidades de raciocínio."
+                    answer: "Usamos modelos avançados de IA, incluindo os motores de síntese proprietários da AISA™, para garantir respostas de alta qualidade, processamento rápido e excelentes capacidades de raciocínio."
                 },
                 {
                     question: "Meus dados estão seguros?",
@@ -2976,7 +2976,7 @@ export const LanguageProvider = ({ children }) => {
                 },
                 {
                     question: "어떤 AI 모델이 AISA를 구동하나요?",
-                    answer: "우리는 Gemini를 포함한 고급 AI 모델을 사용하여 고품질 응답, 빠른 처리 및 뛰어난 추론 기능을 보장합니다."
+                    answer: "우리는 AISA™의 독점적인 합성 엔진을 포함한 고급 AI 모델을 사용하여 고품질 응답, 빠른 처리 및 뛰어난 추론 기능을 보장합니다."
                 },
                 {
                     question: "내 데이터는 안전한가요?",
@@ -3154,7 +3154,7 @@ export const LanguageProvider = ({ children }) => {
                 },
                 {
                     question: "Какие модели ИИ использует AISA?",
-                    answer: "Мы используем передовые модели искусственного интеллекта, включая Gemini, для обеспечения высококачественных ответов, быстрой обработки и отличных способностей к рассуждению."
+                    answer: "Мы используем передовые модели искусственного интеллекта, включая проприетарные механизмы синтеза AISA™, для обеспечения высококачественных ответов, быстрой обработки и отличных способностей к рассуждению."
                 },
                 {
                     question: "Безопасны ли мои данные?",
@@ -3428,7 +3428,7 @@ export const LanguageProvider = ({ children }) => {
                 },
                 {
                     question: "ما هي نماذج الذكاء الاصطناعي التي تشغل AISA؟",
-                    answer: "نستخدم نماذج ذكاء اصطناعي متقدمة بما في ذلك Gemini لضمان استجابات عالية الجودة ومعالجة سريعة وقدرات منطقية ممتازة."
+                    answer: "نستخدم نماذج ذكاء اصطناعي متقدمة بما في ذلك محركات التخليق الخاصة بـ AISA™ لضمان استجابات عالية الجودة ومعالجة سريعة وقدرات منطقية ممتازة."
                 },
                 {
                     question: "هل بياناتي آمنة؟",
@@ -5589,7 +5589,7 @@ export const LanguageProvider = ({ children }) => {
                 },
                 {
                     question: "Quali modelli AI alimentano AISA?",
-                    answer: "Utilizziamo modelli AI avanzati, tra cui Gemini, per garantire risposte di alta qualità, elaborazione rapida ed eccellenti capacità di ragionamento."
+                    answer: "Utilizziamo modelli AI avanzati, tra cui i motori di sintesi proprietari di AISA™, per garantire risposte di alta qualità, elaborazione rapida ed eccellenti capacità di ragionamento."
                 },
                 {
                     question: "I miei dati sono sicuri?",

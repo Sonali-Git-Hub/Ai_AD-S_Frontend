@@ -78,7 +78,6 @@
 .precedent-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
-    border-color: var(--lp-accent) !important;
 }
 
 /* Mobile Adjustments */
@@ -213,7 +212,7 @@
     transition: all 0.2s ease;
     border: 1px solid var(--lp-border);
     background: var(--lp-card);
-    color: var(--lp-text-secondary);
+    color: var(--lp-text-primary);
 }
 
 .smart-action-btn:hover {

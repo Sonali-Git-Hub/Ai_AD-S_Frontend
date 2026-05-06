@@ -528,16 +528,17 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
             <span className="text-xl font-black tracking-tighter transition-all duration-300" style={{ background: 'linear-gradient(135deg, #9333ea 0%, #3b82f6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontFamily: '"Times New Roman", Times, serif', display: 'inline-block', paddingRight: '2px' }}>AISA<span style={{ fontSize: '0.6em', verticalAlign: 'super', marginLeft: '2px' }}>™</span></span>
           </Link>
 
-          <div className="flex items-center relative z-10 bg-black/5 border border-[#8B5CF6]/30 rounded-full p-0.5 w-24 h-7">
+          <div className={`flex items-center relative z-10 ${isDark ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/5'} border rounded-full p-0.5 w-24 h-7`}>
             <motion.div
-              className="absolute top-0.5 bottom-0.5 left-0.5 w-[46px] bg-[#8B5CF6] rounded-full shadow-sm z-0"
+              className="absolute top-0.5 bottom-0.5 left-0.5 w-[46px] rounded-full shadow-md z-0"
+              style={{ background: 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)' }}
               initial={false}
               animate={{
                 x: isNavigating ? 46 : 0
               }}
               transition={{ type: "spring", stiffness: 400, damping: 30 }}
             />
-            <div className={`relative z-10 w-[46px] flex justify-center items-center text-[9px] font-bold transition-colors ${!isNavigating ? 'text-white' : (isDark ? 'text-gray-400' : 'text-gray-500')}`}>
+            <div className={`relative z-10 w-[46px] flex justify-center items-center text-[9px] font-black tracking-wider transition-colors duration-300 ${!isNavigating ? 'text-white' : (isDark ? 'text-zinc-500' : 'text-slate-400')}`}>
               AISA
             </div>
             <button
@@ -558,7 +559,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                   }
                 }, 300);
               }}
-              className={`relative z-10 w-[46px] flex justify-center items-center text-[9px] font-bold transition-colors ${isNavigating ? 'text-white' : (isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-[#8B5CF6]')}`}
+              className={`relative z-10 w-[46px] flex justify-center items-center text-[9px] font-black tracking-wider transition-colors duration-300 ${isNavigating ? 'text-white' : (isDark ? 'text-zinc-500 hover:text-zinc-300' : 'text-slate-400 hover:text-slate-600')}`}
             >
               MALL
             </button>
@@ -661,13 +662,21 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
           <div className="px-5 pt-3 pb-2 relative z-10">
             <button
               onClick={handleNewChat}
-              className="w-full relative overflow-hidden group p-[1px] rounded-[16px] transition-all duration-500 hover:scale-[1.03] active:scale-[0.97] bg-blue-600 shadow-[0_8px_25px_rgba(37,99,235,0.4)] dark:shadow-[0_8px_25px_rgba(37,99,235,0.2)]"
+              className="w-full relative overflow-hidden group p-[1px] rounded-full transition-all duration-500 hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-indigo-500/25"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-700 animate-gradient bg-[length:300%_auto]" />
-              <div className="relative flex items-center justify-center gap-2 px-4 py-3 backdrop-blur-md rounded-[15px] group-hover:bg-transparent transition-all duration-500 bg-blue-600/10">
-                <Plus className="w-4 h-4 text-white group-hover:rotate-180 transition-transform duration-700" strokeWidth={3} />
-                <span className="font-black text-[13px] tracking-wide text-white">{t('newChat')}</span>
+              {/* Premium Gradient Background */}
+              <div 
+                className="absolute inset-0 transition-transform duration-500 group-hover:scale-110"
+                style={{ background: 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)' }}
+              />
+              
+              <div className="relative flex items-center justify-center gap-2 px-4 py-2.5 backdrop-blur-md rounded-full transition-all duration-300">
+                <Plus className="w-4 h-4 text-white group-hover:rotate-90 transition-transform duration-500" strokeWidth={3} />
+                <span className="font-black text-[13px] tracking-wider text-white uppercase">{t('newChat')}</span>
               </div>
+
+              {/* Shine Effect */}
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-700 bg-gradient-to-r from-transparent via-white to-transparent -translate-x-full group-hover:translate-x-full" />
             </button>
           </div>
 
