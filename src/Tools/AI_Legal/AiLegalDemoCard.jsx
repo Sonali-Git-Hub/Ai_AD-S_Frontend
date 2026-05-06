@@ -326,7 +326,7 @@ const AiLegalDemoCard = ({ onClick }) => {
                         </div>
                     </div>
 
-                    <div className="flex-1 relative">
+                    <div className="flex-1 relative overflow-y-auto custom-scrollbar">
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={activeSlide}

@@ -106,7 +106,7 @@ export const TermsOfServiceContent = () => {
             {dynamicSections ? (
                 <>
                     {dynamicSections.map((section, index) => (
-                        <div key={index} className="bg-surface/30 rounded-[2rem] sm:rounded-2xl p-5 sm:p-8 border border-border hover:border-primary/20 transition-all group">
+                        <div key={index} className="bg-surface/30 dark:bg-white/5 rounded-[2rem] sm:rounded-2xl p-5 sm:p-8 border border-border dark:border-white/10 hover:border-primary/20 transition-all group">
                             <div className="flex items-start gap-3 sm:gap-4 mb-5 sm:mb-8">
                                 <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
                                     <Scale className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
@@ -138,14 +138,14 @@ export const TermsOfServiceContent = () => {
                 </>
             ) : (
                 <>
-                    <div className="bg-surface rounded-xl p-4 border border-border">
+                    <div className="bg-surface dark:bg-white/5 rounded-xl p-4 border border-border dark:border-white/10">
                         <p className="text-sm text-maintext leading-relaxed">
                             {t('tos_intro')}
                         </p>
                     </div>
 
                     {sections.map((section, index) => (
-                        <div key={index} className="bg-surface rounded-xl p-5 border border-border hover:border-primary/30 transition-all">
+                        <div key={index} className="bg-surface dark:bg-white/5 rounded-xl p-5 border border-border dark:border-white/10 hover:border-primary/30 transition-all">
                             <div className="flex items-start gap-3 mb-4">
                                 <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                                     <section.icon className="w-5 h-5 text-primary" />
