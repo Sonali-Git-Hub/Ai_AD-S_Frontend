@@ -38,7 +38,7 @@ const CustomSelect = ({ value, options, onChange, label, icon: Icon }) => {
                     w-full flex items-center justify-between px-4 py-2.5 rounded-xl border transition-all duration-200
                     ${isOpen
                         ? 'border-primary bg-primary/5 ring-4 ring-primary/10 shadow-sm'
-                        : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-zinc-800 hover:border-primary/50'
+                        : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 hover:border-primary/50'
                     }
                 `}
             >
@@ -58,7 +58,7 @@ const CustomSelect = ({ value, options, onChange, label, icon: Icon }) => {
                         animate={{ opacity: 1, y: dropdownPosition === 'bottom' ? 5 : -5, scale: 1 }}
                         exit={{ opacity: 0, y: dropdownPosition === 'bottom' ? 10 : -10, scale: 0.95 }}
                         transition={{ duration: 0.2, ease: "easeOut" }}
-                        className={`absolute z-[99999] left-0 right-0 p-1 bg-white dark:bg-zinc-800 rounded-xl border border-gray-100 dark:border-white/10 shadow-2xl backdrop-blur-xl ${dropdownPosition === 'bottom' ? 'origin-top top-full' : 'origin-bottom bottom-full'}`}
+                        className={`absolute z-[99999] left-0 right-0 p-1 bg-white dark:bg-[#1E2438] rounded-xl border border-gray-100 dark:border-white/10 shadow-2xl backdrop-blur-xl ${dropdownPosition === 'bottom' ? 'origin-top top-full' : 'origin-bottom bottom-full'}`}
                     >
                         <div className="max-h-[240px] overflow-y-auto custom-scrollbar-light">
                             {options.map((opt) => (
@@ -72,7 +72,7 @@ const CustomSelect = ({ value, options, onChange, label, icon: Icon }) => {
                                         w-full flex items-center justify-between px-3 py-2 rounded-lg text-[14px] transition-colors group
                                         ${value === opt
                                             ? 'bg-primary/10 text-primary font-bold'
-                                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-700/50 hover:text-gray-900 dark:hover:text-white'
+                                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white'
                                         }
                                     `}
                                 >

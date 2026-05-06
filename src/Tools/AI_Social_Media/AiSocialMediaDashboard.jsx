@@ -49,23 +49,27 @@ const INITIAL_USAGE = {
   billingMonth: new Date().toISOString().slice(0, 7)
 };
 
-const CustomSelect = ({ value, onChange, options, color = 'indigo', className = '' }) => {
+const CustomSelect = ({ value, onChange, options, color = 'indigo', className = '', multiple = false }) => {
   const colorMap = {
     indigo: 'focus:border-indigo-500 text-indigo-500 bg-indigo-500/10 text-indigo-500',
     amber: 'focus:border-amber-500 text-amber-500 bg-amber-500/10 text-amber-500',
     primary: 'focus:border-primary text-primary bg-primary/10 text-primary',
   };
 
-  const selectedLabel = options.find(o => (o.value !== undefined ? o.value : o) === value)?.label || value;
+  const selectedLabel = multiple
+    ? (Array.isArray(value) && value.length > 0 ? value.map(v => options.find(o => (o.value !== undefined ? o.value : o) === v)?.label || v).join(', ') : 'Select options...')
+    : options.find(o => (o.value !== undefined ? o.value : o) === value)?.label || value;
 
   return (
     <Listbox value={value} onChange={(val) => {
-      const opt = options.find(o => (o.value !== undefined ? o.value : o) === val);
-      if (opt?.disabled) return; // Block disabled options
+      if (!multiple) {
+        const opt = options.find(o => (o.value !== undefined ? o.value : o) === val);
+        if (opt?.disabled) return; // Block disabled options
+      }
       onChange(val);
-    }}>
+    }} multiple={multiple}>
       <div className="relative w-full overflow-visible">
-        <Listbox.Button className={`w-full flex items-center justify-between text-left cursor-pointer outline-none transition-all shadow-inner hover:shadow-md hover:bg-white dark:hover:bg-white/5 truncate pr-10 border border-slate-200 dark:border-white/10 hover:border-primary/40 ${className}`}>
+        <Listbox.Button className={`w-full flex items-center justify-between text-left cursor-pointer outline-none transition-all shadow-inner hover:shadow-md hover:bg-white dark:hover:bg-white/5 pr-10 border border-slate-200 dark:border-white/10 hover:border-primary/40 ${className}`}>
           <span className="block truncate font-black">{selectedLabel}</span>
           <span className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 pointer-events-none">
             <ChevronDown className="w-4 sm:w-5 h-4 sm:h-5 text-slate-400" />
@@ -267,6 +271,16 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false); // Unified loading state
+
+  // Prevent background scrolling while extracting brand DNA
+  useEffect(() => {
+    if (isExtracting) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isExtracting]);
   const [lastFetchedData, setLastFetchedData] = useState(null);
   const [calendarFile, setCalendarFile] = useState(null);
   const [brandLogo, setBrandLogo] = useState(null);
@@ -912,7 +926,13 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       const url = window.URL.createObjectURL(new Blob([blob]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `AI_Content_Calendar_${brandProfile.companyName || 'Campaign'}.xlsx`);
+      
+      // Use the provided company name if available, otherwise fall back to current brandProfile or generic
+      const exportName = (specificWsId && typeof specificWsId === 'object' && (specificWsId.brandProfile?.companyName || specificWsId.workspaceName)) 
+        || brandProfile.companyName 
+        || 'Campaign';
+        
+      link.setAttribute('download', `AI_Content_Calendar_${exportName}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link);
@@ -1291,7 +1311,17 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
         if (postFormat === 'carousel' && statusRes?.job) {
           const completed = statusRes.job.completedCount || 0;
           const requested = statusRes.job.requestedCount || carouselCount;
-          toast.loading(`🖼️ Generating carousel slides... (${completed}/${requested})`, { id: toastId, duration: toastDuration });
+          const phase = statusRes.job.currentPhase || 'rendering';
+
+          let phaseMsg;
+          if (phase === 'rendering') {
+            phaseMsg = `🎨 Rendering slide images... (${completed}/${requested})`;
+          } else if (phase === 'compositing') {
+            phaseMsg = `🏷️ Applying brand overlays... (${completed}/${requested})`;
+          } else {
+            phaseMsg = `💾 Finalizing post...`;
+          }
+          toast.loading(phaseMsg, { id: toastId, duration: toastDuration });
         }
 
         if (statusRes?.job?.status === 'completed') {
@@ -1689,26 +1719,29 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
     return (
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 flex flex-col space-y-8 sm:space-y-16 pb-24 sm:pb-72">
-        <AnimatePresence>
-          {isExtracting && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[200] bg-white/40 dark:bg-black/40 backdrop-blur-sm flex items-center justify-center pointer-events-none"
-            >
-              <div className="bg-white dark:bg-zinc-900 px-8 py-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-primary/20 scale-110">
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-                  <RefreshCw className="w-8 h-8 text-primary animate-spin" />
+        {typeof document !== 'undefined' && ReactDOM.createPortal(
+          <AnimatePresence>
+            {isExtracting && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[999999] bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center"
+              >
+                <div className="bg-white dark:bg-zinc-900 px-8 py-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-primary/20 scale-110">
+                  <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+                    <RefreshCw className="w-8 h-8 text-primary animate-spin" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest">AI Extraction Active</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Analyzing Brand DNA...</p>
+                  </div>
                 </div>
-                <div className="text-center">
-                  <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest">AI Extraction Active</p>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Analyzing Brand DNA...</p>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
 
         {/* ── HEADER & MAGIC ACTION ─────────────────────────────────────────────────────────────────── */}
         <div className="flex flex-col xl:flex-row items-start xl:items-end justify-between gap-6 xl:gap-10">
@@ -1835,32 +1868,50 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   <div className="space-y-1">
                     <label className="text-[8px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Target Audience</label>
                     <CustomSelect
-                      value={brandProfile.targetAudience || 'Business Owner'}
+                      multiple={true}
+                      value={Array.isArray(brandProfile.targetAudience) ? brandProfile.targetAudience : (brandProfile.targetAudience ? [brandProfile.targetAudience] : [])}
                       onChange={(val) => setBrandProfile({ ...brandProfile, targetAudience: val })}
                       options={[
                         { label: 'BUSINESS OWNER', value: 'Business Owner' },
+                        { label: 'STARTUP FOUNDERS', value: 'Startup Founders' },
+                        { label: 'REAL ESTATE INVESTORS', value: 'Real Estate Investors' },
+                        { label: 'TECH ENTHUSIASTS', value: 'Tech Enthusiasts' },
+                        { label: 'MARKETING PROFESSIONALS', value: 'Marketing Professionals' },
+                        { label: 'E-COMMERCE BRANDS', value: 'E-commerce Brands' },
+                        { label: 'FREELANCERS', value: 'Freelancers' },
+                        { label: 'AGENCIES', value: 'Agencies' },
                         { label: 'STUDENTS', value: 'Students' },
-                        { label: 'PROFESSIONAL (DR, ADVOCATE, ETC.)', value: 'Professional (Dr, Advocate, etc.)' },
-                        { label: 'GOVT EMPLOYEE', value: 'Govt Employee' },
-                        { label: 'RETIRED', value: 'Retired' }
+                        { label: 'GEN-Z CONSUMERS', value: 'Gen-Z Consumers' },
+                        { label: 'MILLENNIAL PARENTS', value: 'Millennial Parents' },
+                        { label: 'HEALTH & FITNESS ENTHUSIASTS', value: 'Health & Fitness Enthusiasts' },
+                        { label: 'LOCAL SHOPPERS', value: 'Local Shoppers' },
+                        { label: 'B2B ENTERPRISE', value: 'B2B Enterprise' },
+                        { label: 'CREATIVE PROFESSIONALS', value: 'Creative Professionals' }
                       ]}
                       color="amber"
-                      className="h-8 sm:h-9 px-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-lg text-[10px] sm:text-xs outline-none focus:border-amber-500"
+                      className="min-h-[36px] py-1 px-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-lg text-[10px] sm:text-xs outline-none focus:border-amber-500"
                     />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[8px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Content Objective</label>
                     <CustomSelect
-                      value={brandProfile.contentObjective || 'Awareness'}
+                      multiple={true}
+                      value={Array.isArray(brandProfile.contentObjective) ? brandProfile.contentObjective : (brandProfile.contentObjective ? [brandProfile.contentObjective] : [])}
                       onChange={(val) => setBrandProfile({ ...brandProfile, contentObjective: val })}
                       options={[
-                        { label: 'BRAND AWARENESS', value: 'Awareness' },
-                        { label: 'LEADS', value: 'Leads' },
-                        { label: 'ENGAGEMENT', value: 'Engagement' },
-                        { label: 'SALES', value: 'Sales' }
+                        { label: 'BRAND AWARENESS', value: 'Brand Awareness' },
+                        { label: 'LEAD GENERATION', value: 'Lead Generation' },
+                        { label: 'COMMUNITY BUILDING', value: 'Community Building' },
+                        { label: 'VIRALITY & TRENDS', value: 'Virality & Trends' },
+                        { label: 'EDUCATIONAL AUTHORITY', value: 'Educational Authority' },
+                        { label: 'PRODUCT SALES', value: 'Product Sales' },
+                        { label: 'EVENT PROMOTION', value: 'Event Promotion' },
+                        { label: 'CUSTOMER RETENTION', value: 'Customer Retention' },
+                        { label: 'BRAND STORYTELLING', value: 'Brand Storytelling' },
+                        { label: 'INFLUENCER OUTREACH', value: 'Influencer Outreach' }
                       ]}
                       color="amber"
-                      className="h-8 sm:h-9 px-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-lg text-[10px] sm:text-xs outline-none focus:border-amber-500"
+                      className="min-h-[36px] py-1 px-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-lg text-[10px] sm:text-xs outline-none focus:border-amber-500"
                     />
                   </div>
                   <div className="space-y-1">
@@ -2123,10 +2174,25 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   </div>
 
                   {/* File List for Visual Feedback */}
-                  {overviewFiles.length > 0 && (
+                  {(overviewFiles.length > 0 || (brandProfile.companyOverviewFileUrls && brandProfile.companyOverviewFileUrls.length > 0)) && (
                     <div className="flex flex-wrap gap-1.5 pt-1">
+                      {/* Saved Documents */}
+                      {(brandProfile.companyOverviewFileUrls || []).map((url, i) => {
+                        const fileName = url.split('/').pop() || `Saved Doc ${i+1}`;
+                        return (
+                          <div key={`saved-${i}`} className="flex items-center gap-1 px-1.5 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-md">
+                            <FileText className="w-2 h-2 text-blue-500" />
+                            <span className="text-[6px] font-black text-blue-600 dark:text-blue-400 truncate max-w-[50px]">{fileName}</span>
+                            <div className="w-3 h-3 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center ml-0.5">
+                              <CheckCircle2 className="w-2 h-2" />
+                            </div>
+                          </div>
+                        );
+                      })}
+                      
+                      {/* Pending Uploads */}
                       {overviewFiles.map((f, i) => (
-                        <div key={i} className="flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-md">
+                        <div key={`pending-${i}`} className="flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-md">
                           <FileText className="w-2 h-2 text-emerald-500" />
                           <span className="text-[6px] font-black text-emerald-600 dark:text-emerald-400 truncate max-w-[50px]">{f.name}</span>
                           <X
@@ -2434,15 +2500,13 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                           <Eye className="w-4 h-4" /> Preview
                         </button>
 
-                        {isCurrent && (
-                          <button
-                            onClick={() => handleExportExcel(ws._id)}
-                            title="Download Excel"
-                            className="h-11 w-11 bg-slate-50 dark:bg-white/5 hover:bg-green-500/10 text-slate-400 hover:text-green-500 rounded-xl flex items-center justify-center transition-all border border-slate-100 dark:border-white/5 hover:border-green-500/20"
-                          >
-                            <Download className="w-4 h-4" />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => handleExportExcel(ws)}
+                          title="Download Excel Strategy"
+                          className="h-11 w-11 bg-slate-50 dark:bg-white/5 hover:bg-green-500/10 text-slate-400 hover:text-green-500 rounded-xl flex items-center justify-center transition-all border border-slate-100 dark:border-white/5 hover:border-green-500/20"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
 
                         <button
                           onClick={async () => {
