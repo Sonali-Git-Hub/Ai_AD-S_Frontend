@@ -554,6 +554,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                     window.location.href = finalUrl;
                   } else {
                     console.error("VITE_AI_MALL is undefined in this environment.");
+                    setIsNavigating(false);
                   }
                 }, 300);
               }}
@@ -561,7 +562,6 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
             >
               MALL
             </button>
-            {console.log(import.meta.env.VITE_AI_MALL)}
           </div>
 
           <button
