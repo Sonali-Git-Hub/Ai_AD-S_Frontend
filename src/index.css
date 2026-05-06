@@ -1548,8 +1548,6 @@ body.modal-open-hide-navbar {
   -webkit-touch-callout: default !important;
 }
 
-:
-
 /* Ensure no parent blocks selection */
 .chatgpt-container,
 .chatgpt-message-row,
