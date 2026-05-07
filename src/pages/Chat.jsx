@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, Fragment } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Send, SendHorizontal, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe, Sliders, PlayCircle, Brain, ImagePlus, PlaySquare, RefreshCcw, TrendingUp, Zap, Gavel, Navigation, Rocket, Megaphone, Scale, ArrowLeft, ChevronRight, Briefcase, Calendar, Users, FolderOpen, Save, Sun, Moon, LayoutDashboard } from 'lucide-react';
+import { Send, SendHorizontal, Bot, User, Sparkles, Plus, Monitor, ChevronDown, ArrowDown, History, Paperclip, X, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe, Sliders, PlayCircle, Brain, ImagePlus, PlaySquare, RefreshCcw, TrendingUp, Zap, Gavel, Navigation, Rocket, Megaphone, Scale, ArrowLeft, ChevronRight, Briefcase, Calendar, Users, FolderOpen, Save, Sun, Moon, LayoutDashboard } from 'lucide-react';
 import LegalLogo from '../Tools/AI_Legal/components/LegalLogo';
 import CaseIntelligencePanel from '../Tools/AI_Legal/components/CaseIntelligencePanel';
 import { logo } from '../constants';
@@ -20,6 +20,8 @@ import Loader from '../Components/Loader/Loader';
 import toast from 'react-hot-toast';
 import LiveAI from '../Components/LiveAI';
 import { apiService } from '../services/apiService';
+import { useChatGenerationStore } from '../userStore/useChatGenerationStore';
+import { chatStreamService } from '../services/chatStreamService';
 
 const ImageEditor = React.lazy(() => import('../Tools/AI_Image_Generator/ImageEditor').catch(() => ({ default: () => null })));
 const CustomVideoPlayer = React.lazy(() => import('../Tools/AI_Video_Generator/CustomVideoPlayer').catch(() => ({ default: () => null })));
@@ -56,6 +58,7 @@ import AISnapshot from '../landingpage/AISnapshot';
 import ShareModal from '../Components/ShareModal';
 import ProfileSettingsDropdown from '../Components/ProfileSettingsDropdown/ProfileSettingsDropdown.jsx';
 import { useTheme } from '../context/ThemeContext';
+import { FloatingSelectionToolbar } from '../Components/TextSelectionToolbar/TextSelectionToolbar.jsx';
 
 // AI Legal Modular Components
 import ActionCard from '../Components/ActionCard';
@@ -137,6 +140,270 @@ const Skeleton = () => (
     <div className="h-3 bg-slate-200 dark:bg-zinc-800 rounded-full w-5/6" />
   </div>
 );
+
+/**
+ * MessageMarkdown
+ * A memoized component to render AI message content using ReactMarkdown.
+ * This prevents re-renders during streaming/scrolling which causes text selection loss.
+ */
+const MessageMarkdown = React.memo(({
+  msg,
+  typingMessageId,
+  navigate,
+  setCurrentMode,
+  activateToolWithTypingEffect,
+  setViewingDoc,
+  handleDownload,
+  isDownloadingUrl,
+  isStreaming = false
+}) => {
+  return (
+    <div className="relative group/msg-content">
+      {msg.id === typingMessageId && !msg.content ? (
+        <Skeleton />
+      ) : (
+        <>
+          <ReactMarkdown
+          className="select-text"
+          remarkPlugins={[remarkGfm]}
+          urlTransform={(value) => value}
+          components={{
+            a: ({ href, children }) => {
+              const text = children?.toString() || "";
+              if (href && href.startsWith('action:')) {
+                const isLocked = text.includes('🔒') || text.includes('Unlock');
+
+                if (text.startsWith('ActionCard|')) {
+                  const parts = text.split('|');
+                  const title = parts[1] || "";
+                  const desc = parts[2] || "";
+                  const actionLabel = (parts[3] || "Open").replace(/^Action:\s*/i, '');
+
+                  return (
+                    <ActionCard
+                      title={title}
+                      desc={desc}
+                      action={actionLabel}
+                      link={href}
+                      isLocked={isLocked}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const toolKey = href.replace('action:', '');
+                        setCurrentMode('LEGAL_TOOLKIT');
+
+                        const TOOL_NAMES = {
+                          legal_draft_maker: "Draft Maker",
+                          legal_case_predictor: "Case Predictor",
+                          legal_argument_builder: "Argument Builder",
+                          legal_evidence_checker: "Evidence Analyst",
+                          legal_contract_analyzer: "Contract Analyzer",
+                          legal_strategy_engine: "Strategy Engine"
+                        };
+                        const toolName = TOOL_NAMES[toolKey] || toolKey;
+
+                        if (isLocked) {
+                          window.dispatchEvent(new CustomEvent('premium_required', { detail: { toolName } }));
+                          return;
+                        }
+
+                        activateToolWithTypingEffect(toolKey, toolName);
+                      }}
+                    />
+                  );
+                }
+
+                return (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      const toolKey = href.replace('action:', '');
+                      setCurrentMode('LEGAL_TOOLKIT');
+
+                      const TOOL_NAMES = {
+                        legal_draft_maker: "Draft Maker",
+                        legal_case_predictor: "Case Predictor",
+                        legal_argument_builder: "Argument Builder",
+                        legal_evidence_checker: "Evidence Analyst",
+                        legal_contract_analyzer: "Contract Analyzer",
+                        legal_strategy_engine: "Strategy Engine"
+                      };
+                      const toolName = TOOL_NAMES[toolKey] || toolKey;
+
+                      // Open the premium upsell if locked
+                      if (isLocked) {
+                        window.dispatchEvent(new CustomEvent('premium_required', { detail: { toolName } }));
+                        return;
+                      }
+
+                      activateToolWithTypingEffect(toolKey, toolName);
+                    }}
+                    className={`inline-flex mt-2 items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0 ${isLocked ? 'bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20' : 'bg-gradient-to-r from-primary/10 to-primary-dark/10 border border-primary/20 text-primary hover:bg-primary/20 hover:border-primary/40'}`}
+                  >
+                    {children}
+                    <ChevronRight className="w-4 h-4 ml-1 opacity-70" />
+                  </button>
+                );
+              }
+              const isInternal = href && href.startsWith('/');
+              return (
+                <a
+                  href={href}
+                  onClick={(e) => {
+                    if (isInternal) {
+                      e.preventDefault();
+                      navigate(href);
+                    }
+                  }}
+                  className="text-primary hover:underline font-bold cursor-pointer"
+                  target={isInternal ? "_self" : "_blank"}
+                  rel={isInternal ? "" : "noopener noreferrer"}
+                >
+                  {children}
+                </a>
+              );
+            },
+            p: ({ children }) => <p>{children}</p>,
+            ul: ({ children }) => <ul className="list-disc pl-5 space-y-1.5">{children}</ul>,
+            ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1.5">{children}</ol>,
+            li: ({ children }) => <li>{children}</li>,
+            h1: ({ children }) => <h1 className="font-bold tracking-tight">{children}</h1>,
+            h2: ({ children }) => <h2 className="font-bold tracking-tight">{children}</h2>,
+            h3: ({ children }) => <h3 className="font-bold tracking-tight">{children}</h3>,
+            strong: ({ children }) => <strong>{children}</strong>,
+            table: ({ children }) => (
+              <div className="overflow-x-auto my-4 rounded-xl border border-border/50 shadow-lg bg-surface/30 backdrop-blur-sm">
+                <table className="w-full border-collapse text-sm">{children}</table>
+              </div>
+            ),
+            thead: ({ children }) => <thead className="bg-primary/10 border-b border-border/50">{children}</thead>,
+            tbody: ({ children }) => <tbody className="divide-y divide-border/30">{children}</tbody>,
+            tr: ({ children }) => <tr className="transition-colors hover:bg-white/3">{children}</tr>,
+            th: ({ children }) => <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-primary">{children}</th>,
+            td: ({ children }) => <td className="px-4 py-3 text-sm text-maintext leading-relaxed">{children}</td>,
+            mark: ({ children }) => <mark className="bg-[#5555ff] text-white px-1 py-0.5 rounded-sm">{children}</mark>,
+            code: ({ node, inline, className, children, ...props }) => {
+              const match = /language-(\w+)/.exec(className || '');
+              const lang = match ? match[1] : '';
+              const codeValue = String(children).replace(/\n$/, '');
+              const isUser = msg.role === 'user';
+
+              if (!inline) {
+                return (
+                  <div className={`rounded-xl overflow-hidden my-3 border ${isUser ? 'border-white/10 bg-black/20' : 'border-[#1a1a1a] bg-[#0d0d0d]'} shadow-2xl w-full max-w-full group/code`}>
+                    {!isUser && (
+                      <div className="flex items-center justify-between px-4 py-2.5 bg-[#2d2d2d]/80 backdrop-blur-sm border-b border-zinc-800">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-[#9ca3af]">{lang || 'plain text'}</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(codeValue);
+                            toast.success("Code copied!");
+                          }}
+                          className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 hover:text-white transition-all bg-white/5 hover:bg-white/10 px-3 py-1 rounded-lg border border-white/5 active:scale-95"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                          Copy
+                        </button>
+                      </div>
+                    )}
+                    <div className={`${isUser ? 'max-h-[500px]' : 'max-h-[600px]'} overflow-auto custom-scrollbar-thin ${isUser ? 'bg-transparent' : 'bg-[#0d0d0d]'}`}>
+                      <SyntaxHighlighter
+                        language={lang || 'text'}
+                        style={highlighterTheme}
+                        PreTag="div"
+                        customStyle={{
+                          margin: 0,
+                          padding: isUser ? '16px' : '20px',
+                          fontSize: isUser ? '13px' : '14px',
+                          lineHeight: '1.7',
+                          background: 'transparent',
+                          borderRadius: 0,
+                          border: 'none',
+                          color: '#e5e7eb', // Ensure visibility for plain text
+                          fontFamily: '"Fira Code", "JetBrains Mono", source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace'
+                        }}
+                        codeTagProps={{
+                          style: {
+                            fontFamily: 'inherit',
+                            background: 'transparent',
+                            color: 'inherit'
+                          }
+                        }}
+                        {...props}
+                      >
+                        {codeValue}
+                      </SyntaxHighlighter>
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <code className="bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded-md font-mono text-primary font-bold mx-0.5 text-xs translate-y-[-1px] inline-block" {...props}>
+                  {children}
+                </code>
+              );
+            },
+            img: ({ node, ...props }) => {
+              const isDownloading = isDownloadingUrl === props.src;
+              return (
+                <div className="relative my-4 group/img-container max-w-full">
+                  <div className="relative group/image overflow-hidden aspect-auto max-w-[500px] cursor-zoom-in w-fit" onClick={() => setViewingDoc({ url: props.src, type: 'image', name: 'AI Image' })}>
+                    {msg.role === 'model' && (
+                      <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-100 sm:opacity-0 sm:group-hover/img-container:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                          <span className="text-[10px] font-bold text-white uppercase tracking-widest">AISA™ Generated Asset</span>
+                        </div>
+                      </div>
+                    )}
+                    <ImageViewer
+                      src={props.src}
+                      alt={props.alt || "AI Image"}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover/img-container:opacity-100 transition-opacity pointer-events-none" />
+                  </div>
+                  <button
+                    onClick={() => handleDownload(props.src, `AISA_gen_${Date.now()}.png`)}
+                    disabled={isDownloading}
+                    className="absolute bottom-4 right-4 z-20 flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl border border-white/20 text-white shadow-lg transition-all active:scale-95 disabled:opacity-50"
+                  >
+                    <div className="flex items-center gap-2">
+                      {isDownloading ? (
+                        <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4" />
+                      )}
+                      <span className="text-[10px] font-bold uppercase">
+                        {isDownloading ? 'Downloading...' : 'Download'}
+                      </span>
+                    </div>
+                  </button>
+                </div>
+              )
+            },
+          }}
+        >
+          {transformLegalActions(msg.content || msg.text || "")}
+        </ReactMarkdown>
+          {isStreaming && (
+            <span className="inline-block w-1.5 h-4 ml-1 bg-primary animate-pulse align-middle" />
+          )}
+        </>
+      )}
+    </div>
+  );
+}, (prevProps, nextProps) => {
+  // Only re-render if content, downloading state, or streaming state changes
+  return (
+    prevProps.msg.content === nextProps.msg.content &&
+    prevProps.msg.text === nextProps.msg.text &&
+    prevProps.msg.id === nextProps.msg.id &&
+    prevProps.typingMessageId === nextProps.typingMessageId &&
+    prevProps.isDownloadingUrl === nextProps.isDownloadingUrl &&
+    prevProps.isStreaming === nextProps.isStreaming
+  );
+});
 
 
 
@@ -568,7 +835,7 @@ const Chat = () => {
       window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   const [messages, setMessages] = useState([]);
-  const [suggestions, setSuggestions] = useState([]);
+
   const [excelHTML, setExcelHTML] = useState(null);
   const [textPreview, setTextPreview] = useState(null);
   const [sessions, setSessions] = useRecoilState(sessionsData);
@@ -903,6 +1170,8 @@ const Chat = () => {
   const [intentSuggestion, setIntentSuggestion] = useState(null);
   const [isIntentLoading, setIsIntentLoading] = useState(false);
   const [expandedMessageIds, setExpandedMessageIds] = useState(new Set());
+  const [showNewMessageButton, setShowNewMessageButton] = useState(false);
+  const isUserNearBottomRef = useRef(true);
 
   const toggleExpandMessage = (id) => {
     setExpandedMessageIds(prev => {
@@ -1028,6 +1297,9 @@ const Chat = () => {
     description: "Are you sure you want to delete this message? This action cannot be undone.",
     onConfirm: () => { }
   });
+
+  const { generations, completeGeneration } = useChatGenerationStore();
+  const activeGeneration = generations[sessionId];
 
   const toolsBtnRef = useRef(null);
   const toolsMenuRef = useRef(null);
@@ -3302,13 +3574,13 @@ const Chat = () => {
           return msg;
         });
 
-        if (processedHistory && processedHistory.length > 0) {
-          const lastMsg = processedHistory[processedHistory.length - 1];
-          setSuggestions([]);
-          console.log(`[DEBUG] First message role: ${processedHistory[0].role}, content preview: ${processedHistory[0].content?.substring(0, 20)}`);
-        }
+         if (processedHistory && processedHistory.length > 0) {
+           console.log(`[DEBUG] First message role: ${processedHistory[0].role}, content preview: ${processedHistory[0].content?.substring(0, 20)}`);
+         }
         setMessages(processedHistory);
         setIsSessionLoading(false);
+        // Force scroll to bottom on session load
+        setTimeout(() => scrollToBottom(true, 'auto'), 100);
       } else {
         setMessages([]); // Clear messages immediately for fresh context
         setCurrentSessionId('new');
@@ -3374,6 +3646,25 @@ const Chat = () => {
     };
     initChat();
   }, [sessionId, location.key, currentProjectId]);
+  
+  useEffect(() => {
+    const handleFinalizedMessage = (event) => {
+      const { chatId, message } = event.detail;
+      if (chatId === sessionId) {
+        setMessages(prev => {
+          // Prevent duplicates if it somehow got added already
+          if (prev.some(m => m.id === message.id)) return prev;
+          return [...prev, message];
+        });
+        // Respect user scroll position at end of generation - no forced jump
+        isStreamingRef.current = false;
+        setTimeout(() => scrollToBottom(false, 'smooth'), 100);
+      }
+    };
+
+    window.addEventListener('aisa-ai-message-finalized', handleFinalizedMessage);
+    return () => window.removeEventListener('aisa-ai-message-finalized', handleFinalizedMessage);
+  }, [sessionId]);
 
   const chatContainerRef = useRef(null);
   const shouldAutoScrollRef = useRef(true);
@@ -3381,36 +3672,66 @@ const Chat = () => {
 
   const handleScroll = () => {
     if (chatContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      window.requestAnimationFrame(() => {
+        const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+        lastScrollTopRef.current = scrollTop <= 0 ? 0 : scrollTop;
 
-      lastScrollTopRef.current = scrollTop <= 0 ? 0 : scrollTop;
+        // Professional threshold: 120px as requested for better sensitivity
+        const isNearBottom = scrollHeight - scrollTop - clientHeight < 120;
+        isUserNearBottomRef.current = isNearBottom;
+        shouldAutoScrollRef.current = isNearBottom;
 
-      // Increased threshold (250px) to be less sensitive to minor scroll movements or large images
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 350;
-      shouldAutoScrollRef.current = isNearBottom;
+        // If we are at the bottom, hide the new message button
+        if (isNearBottom) {
+          setShowNewMessageButton(false);
+        }
+      });
     }
   };
 
   const scrollToBottom = (force = false, behavior = 'auto') => {
     if (chatContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 350;
-
-      shouldAutoScrollRef.current = isNearBottom;
-
-      if (force || isNearBottom) {
-        const maxScrollTop = Math.max(0, scrollHeight - clientHeight);
-        if (behavior === 'smooth') {
-          chatContainerRef.current.scrollTo({ top: maxScrollTop + 100, behavior: 'smooth' });
-        } else {
-          chatContainerRef.current.scrollTop = maxScrollTop + 500;
+      const { scrollHeight, clientHeight } = chatContainerRef.current;
+      
+      // If NOT forced and user is NOT near bottom, suppress the jump and show indicator
+      if (!force && !isUserNearBottomRef.current) {
+        // If we have messages, show the "New Messages" jump button
+        if (messages.length > 0) {
+          setShowNewMessageButton(true);
         }
+        return;
       }
+
+      const maxScrollTop = Math.max(0, scrollHeight - clientHeight);
+      const targetScrollTop = maxScrollTop + 500; // Extra buffer to ensure we hit absolute bottom
+
+      if (behavior === 'smooth') {
+        chatContainerRef.current.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+      } else {
+        chatContainerRef.current.scrollTop = targetScrollTop;
+      }
+
+      // Hide the button once we've scrolled to bottom
+      setShowNewMessageButton(false);
     }
   };
 
+  // Sync scroll during active AI streaming - only show indicator, no auto-follow
   useEffect(() => {
-    // Do NOT auto-scroll while AI is streaming text word-by-word
+    if (activeGeneration?.isGenerating && activeGeneration?.partialResponse) {
+      if (chatContainerRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+        // Check if user is not at the absolute bottom of the growing content
+        const isNearBottom = scrollHeight - scrollTop - clientHeight < 50;
+        if (!isNearBottom) {
+          setShowNewMessageButton(true);
+        }
+      }
+    }
+  }, [activeGeneration?.partialResponse, activeGeneration?.isGenerating]);
+
+  useEffect(() => {
+    // Standard updates for new messages or loading states
     if (isStreamingRef.current) return;
     scrollToBottom();
   }, [messages, isLoading]);
@@ -3527,39 +3848,54 @@ const Chat = () => {
     }
   };
 
-  const handleSuggestionClick = (text) => {
-    // 1. Check for Legal Tool Redirection
-    if (currentProjectId && currentProjectId !== 'default') {
-      const lowerText = text.toLowerCase();
-      // Map suggestion phrases to internal tool IDs
-      const toolMap = {
-        'draft a legal notice': 'legal_draft_maker',
-        'draft a response': 'legal_draft_maker',
-        'create a legal notice': 'legal_draft_maker',
-        'analyze this document': 'legal_contract_analyzer',
-        'analyze a contract': 'legal_contract_analyzer',
-        'search relevant case laws': 'legal_precedents',
-        'research case laws': 'legal_precedents',
-        'identify legal risks': 'legal_compliance_checker',
-        'check compliance': 'legal_compliance_checker'
-      };
+   const handleSuggestionClick = (text) => {
+     // 1. Check for Legal Tool Redirection
+     if (currentProjectId && currentProjectId !== 'default') {
+       const lowerText = text.toLowerCase();
+       // Map suggestion phrases to internal tool IDs
+       const toolMap = {
+         'draft a legal notice': 'legal_draft_maker',
+         'draft a response': 'legal_draft_maker',
+         'create a legal notice': 'legal_draft_maker',
+         'analyze this document': 'legal_contract_analyzer',
+         'analyze a contract': 'legal_contract_analyzer',
+         'search relevant case laws': 'legal_precedents',
+         'research case laws': 'legal_precedents',
+         'identify legal risks': 'legal_compliance_checker',
+         'check compliance': 'legal_compliance_checker'
+       };
 
-      for (const [phrase, toolId] of Object.entries(toolMap)) {
-        if (lowerText.includes(phrase)) {
-          console.log(`[LegalRedirect] Redirecting to tool: ${toolId}`);
+       for (const [phrase, toolId] of Object.entries(toolMap)) {
+         if (lowerText.includes(phrase)) {
+           console.log(`[LegalRedirect] Redirecting to tool: ${toolId}`);
 
-          const legalTool = PREMIUM_TOOLS.find(t => t.id === toolId);
-          activateToolWithTypingEffect(toolId, legalTool?.name);
-          return;
-        }
-      }
-    }
+           const legalTool = PREMIUM_TOOLS.find(t => t.id === toolId);
+           activateToolWithTypingEffect(toolId, legalTool?.name);
+           return;
+         }
+       }
+     }
 
-    // Default: Fill the input box briefly as requested
-    setInputValue(text);
-    // Immediately trigger the message send
-    handleSendMessage(null, text);
-  };
+     // Clear suggestions for the current session in the store
+     useChatGenerationStore.getState().setSuggestions(sessionId, []);
+     
+     // Also clear from local messages state if it's the last one to prevent double-click or flicker
+     setMessages(prev => {
+       if (prev.length === 0) return prev;
+       const lastMsg = prev[prev.length - 1];
+       if (lastMsg.role === 'model' || lastMsg.role === 'assistant') {
+         const updated = [...prev];
+         updated[updated.length - 1] = { ...lastMsg, suggestions: [] };
+         return updated;
+       }
+       return prev;
+     });
+     
+     // Default: Fill the input box briefly as requested
+     setInputValue(text);
+     // Immediately trigger the message send
+     handleSendMessage(null, text);
+   };
 
 
   const handleSendMessage = async (e, overrideContent, toolOverride = null) => {
@@ -3655,7 +3991,8 @@ const Chat = () => {
     // (Removed duplicated routing block that bypassed try-catch locks)
 
 
-    try {
+    // ─── SEND MESSAGE CORE ───
+
       if (isAudioConvertMode && !contentToSend && selectedFiles.length === 0) {
         toast.error('Please enter text or upload a file to convert to audio');
         return;
@@ -3696,10 +4033,9 @@ const Chat = () => {
         return;
       }
 
-      // isSendingRef already true
-      setInputValue('');
-      setSuggestions([]);
-      transcriptRef.current = '';
+       // isSendingRef already true
+       setInputValue('');
+       transcriptRef.current = '';
 
       let activeSessionId = currentSessionId;
       let isFirstMessage = false;
@@ -4353,295 +4689,49 @@ ${financialContext.kiyosakiData ? `
 
         const suggestedAiId = `ai-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
 
-        const aiResponseData = await generateChatResponse(
-          messages,
-          userMsg.content,
-          SYSTEM_INSTRUCTION + getSystemPromptExtensions(),
-          finalAttachments,
-          personalizations?.general?.language || 'English',
-          abortControllerRef.current.signal,
-          detectedMode,
-          activeSessionId,
-          currentProjectId,
-          userMsg.id,
-          suggestedAiId,
-          imageAspectRatio,
-          imageModelId
-        );
+        // Send to AI for response via streaming service
+        
+        const currentSession = sessions.find(s => s.sessionId === activeSessionId);
+        const streamPayload = {
+          message: userMsg.content,
+          activeDocContent: "", // Add if you have document RAG content
+          systemInstruction: SYSTEM_INSTRUCTION + getSystemPromptExtensions(),
+          mode: detectedMode,
+          image: magicEditActive && editRefImage ? [editRefImage] : userMsg.attachments.filter(a => a.type === 'image'),
+          document: userMsg.attachments.filter(a => a.type !== 'image'),
+          language: personalizations?.general?.language || 'English',
+          projectId: currentProjectId,
+          isFirstMessage: isFirstMessage,
+          currentTitle: currentSession?.title || "New Chat"
+        };
 
-        // Store it for usage in the typewriter loop
-        const apiResponseId = suggestedAiId;
+        // Start streaming (asynchronous background task)
+        // Optimistically start the generation in the store to show placeholder immediately
+        useChatGenerationStore.getState().startGeneration(activeSessionId);
+        
+        isStreamingRef.current = true;
+        chatStreamService.streamResponse(activeSessionId, streamPayload);
 
-        // --- REAL-TIME TITLE SYNC ---
-        if (aiResponseData && aiResponseData.title) {
-          const generatedTitle = aiResponseData.title;
+        // Reset local loading states
+        setIsLoading(false);
+        isSendingRef.current = false;
+        isGlobalSending = false;
+        setInputValue('');
+        handleRemoveFile();
 
-          // 1. Update global recoil state for instant sidebar refresh
-          setSessions(prev => {
-            const currentSessions = Array.isArray(prev) ? prev : [];
-            const exists = currentSessions.findIndex(s => s.sessionId === activeSessionId);
-
-            if (exists !== -1) {
-              const updated = [...currentSessions];
-              if (updated[exists].title !== generatedTitle) {
-                updated[exists] = { ...updated[exists], title: generatedTitle, lastModified: Date.now() };
-                return [...updated].sort((a, b) => b.lastModified - a.lastModified);
-              }
-              return currentSessions;
-            } else {
-              return [{
-                sessionId: activeSessionId,
-                title: generatedTitle,
-                lastModified: Date.now()
-              }, ...currentSessions];
-            }
-          });
-
-          // 2. Persist to local storage meta
-          chatStorageService.updateSessionTitle(activeSessionId, generatedTitle);
-        }
-
-        if (aiResponseData && aiResponseData.error === "LIMIT_REACHED") {
-          setIsLimitReached(true);
-          // Trigger LoginRequiredModal with custom message
-          window.dispatchEvent(new CustomEvent('login_required', {
-            detail: {
-              toolName: 'AISA™ Unlimited Chat',
-              customMessage: "You've reached the guest limit of 5 sessions and 10 chats per session. Sign in to unlock unlimited chat, image generation, and more!"
-            }
-          }));
-          setIsLoading(false);
-          isSendingRef.current = false;
-          return;
-        }
-
-        // Out of credits — popup already shown by geminiService, just stop gracefully
-        if (aiResponseData && (aiResponseData.error === "OUT_OF_CREDITS" || aiResponseData.error === "PREMIUM_ONLY")) {
-          setIsLoading(false);
-          isSendingRef.current = false;
-          // Remove the placeholder loading message if added
-          setMessages(prev => prev.filter(m => !m.isProcessing && !m.isLoading));
-          return;
-        }
-
-
-        // Handle response - could be string (old format) or object (new format with conversion)
-        let aiResponseText = '';
-        let conversionData = null;
-        let aiVideoUrl = null;
-        let aiImageUrl = null;
-        let isRealTimeResponse = false;
-        let responseSources = [];
-
-        if (typeof aiResponseData === 'string') {
-          aiResponseText = aiResponseData;
-        } else if (aiResponseData && typeof aiResponseData === 'object') {
-          // Compatibility with both 'reply' and 'data' properties from backend
-          aiResponseText = aiResponseData.reply || aiResponseData.data || "No response generated.";
-          conversionData = aiResponseData.conversion || null;
-          isRealTimeResponse = aiResponseData.isRealTime || false;
-          responseSources = aiResponseData.sources || [];
-          // Extract media URLs if present
-          aiVideoUrl = aiResponseData.videoUrl || null;
-          aiImageUrl = aiResponseData.imageUrl || null;
-          const aiSnapshotData = aiResponseData.snapshot || null;
-
-          // If backend provided specific error details, show them to help user understand why 'brain' is failing
-          if (aiResponseData.error && aiResponseData.details) {
-            console.error("[AI Ads Backend Error]", aiResponseData.details);
-            // Append a small subtle hint for the developer/user
-            aiResponseText += `\n\n*(Debug: ${aiResponseData.details})*`;
-          }
-        } else {
-          aiResponseText = "Sorry, I encountered an issue while generating a response. Please try again.";
-        }
-
-        if (aiResponseText === "dbDemoModeMessage") {
-          aiResponseText = t('dbDemoModeMessage');
-        }
-
-        // Check for multiple file analysis headers to split into separate cards
-        // IMPORTANT: Only split when 2+ files are attached to prevent double responses
-        // on normal chat when AI accidentally includes the delimiter
-        const delimiter = '---SPLIT_RESPONSE---';
-        let responseParts = [];
-
-        const hasMultipleFiles = filePreviews.length >= 2;
-        if (hasMultipleFiles && aiResponseText && aiResponseText.includes(delimiter)) {
-          const rawParts = aiResponseText.split(delimiter).filter(p => p && p.trim().length > 0);
-          responseParts = rawParts.length > 0 ? rawParts.map(part => part.trim()) : [aiResponseText];
-        } else {
-          // Single response — strip the delimiter if AI accidentally included it
-          const cleanedText = (aiResponseText || "No response generated.").replace(/---SPLIT_RESPONSE---/g, '').trim();
-          responseParts = [cleanedText || "No response generated."];
-        }
-
-        // --- DYNAMIC SUGGESTIONS PRE-FETCH ---
-        // We start fetching suggestions in the background while the typewriter runs
-        let dynamicSuggestionsPromise = null;
-        if (!aiResponseData?.suggestions?.length && !currentCase?.isLegalCase) {
-          dynamicSuggestionsPromise = generateFollowUpPrompts(userMsg.content, detectedMode || 'chat');
-        }
-
-        // Process response parts and add to messages
-        for (let i = 0; i < responseParts.length; i++) {
-          const partContent = responseParts[i];
-          if (!partContent) continue;
-
-          const msgId = (i === 0 && typeof apiResponseId !== 'undefined') ? apiResponseId : (Date.now() + 1 + i).toString();
-          const modelMsg = {
-            id: msgId,
-            role: 'model',
-            content: '', // Start empty for typewriter effect
-            mode: detectedMode, // Set mode for tag rendering
-            isRealTime: isRealTimeResponse,
-            sources: responseSources,
-            error: !!aiResponseData?.error, // Track if this is an error bubble
-            timestamp: Date.now() + i * 100,
-            projectId: currentProjectId,
-            conversion: conversionData,
-            imageUrl: aiImageUrl,
-            videoUrl: aiVideoUrl,
-            detectedMode: detectedMode // ✅ Store detected mode so download button shows correctly (ZIP vs PDF)
-          };
-
-          // Add the empty message structure to UI
-          setMessages((prev) => [...prev, modelMsg]);
-          setTypingMessageId(msgId); // Mark this message as typing
-
-          // Typewriter effect simulation
-          const words = partContent.split(' ');
-          let displayedContent = '';
-
-          // Decide speed based on length (shorter = slower, longer = faster)
-          const delay = words.length > 200 ? 2 : (words.length > 50 ? 5 : 8);
-
-          // Typewriter effect simulation — lock auto-scroll during streaming
-          isStreamingRef.current = true;
-
-          for (let j = 0; j < words.length; j++) {
-            // Check if generation was stopped by user
-            if (!isSendingRef.current) break;
-
-            displayedContent += (j === 0 ? '' : ' ') + words[j];
-
-            // Update UI with the current chunk
-            setMessages((prev) =>
-              prev.map(m => m.id === msgId ? { ...m, content: displayedContent } : m)
-            );
-
-            // Wait before next word
-            await new Promise(resolve => setTimeout(resolve, delay));
-          }
-
-          // Streaming done — unlock auto-scroll
-          isStreamingRef.current = false;
-
-          if (!isSendingRef.current) {
-            setTypingMessageId(null);
-            return; // Exit function if stopped
-          }
-
-          setTypingMessageId(null); // Clear typing status
-
-          // Add conversion data and media if available
-          const finalModelMsg = { ...modelMsg, content: partContent };
-          if (i === 0) {
-            if (conversionData) finalModelMsg.conversion = conversionData;
-            if (aiVideoUrl) finalModelMsg.videoUrl = aiVideoUrl;
-            if (aiImageUrl) finalModelMsg.imageUrl = aiImageUrl;
-            finalModelMsg.isRealTime = isRealTimeResponse;
-            finalModelMsg.sources = responseSources;
-            if (aiResponseData.suggestions) finalModelMsg.suggestions = aiResponseData.suggestions;
-            if (aiResponseData.snapshot) finalModelMsg.snapshot = aiResponseData.snapshot;
-            finalModelMsg.detectedMode = detectedMode; // ✅ Ensure detectedMode persists to storage
-          }
-
-          // Set Smart Suggestions for the last response part
-          if (i === responseParts.length - 1) {
-            const hasSmartSuggestions = aiResponseData?.suggestions && Array.isArray(aiResponseData.suggestions) && aiResponseData.suggestions.length > 0;
-            let finalSuggestions = hasSmartSuggestions ? aiResponseData.suggestions : [];
-
-            // If we have a background promise for suggestions, wait for it now
-            if (!hasSmartSuggestions && dynamicSuggestionsPromise) {
-              try {
-                const dynamicPrompts = await dynamicSuggestionsPromise;
-                if (dynamicPrompts && dynamicPrompts.length > 0) {
-                  finalSuggestions = dynamicPrompts;
-                }
-              } catch (err) {
-                console.error("Background suggestions failed:", err);
-              }
-            }
-
-            // Fallback to minimal generic suggestions only if absolutely necessary
-            if (finalSuggestions.length === 0 && !currentCase?.isLegalCase) {
-              finalSuggestions = [
-                "Tell me more about this",
-                "Give me a practical example",
-                "What are the next steps?"
-              ];
-            }
-
-            // --- LEGAL CASE CRM OVERRIDE (Specific to Legal Folder context) ---
-            if (currentCase && currentCase.isLegalCase) {
-              const legalOptions = [
-                "Draft a Legal Notice",
-                "Analyze this document",
-                "Search relevant Case Laws",
-                "Draft a Contract Response",
-                "Identify Legal Risks",
-                "Explain legal terminology"
-              ];
-              // Shuffle and pick 4
-              const shuffled = [...legalOptions].sort(() => 0.5 - Math.random());
-              finalSuggestions = shuffled.slice(0, 4);
-            }
-
-            const trimmedSuggestions = finalSuggestions.slice(0, 4);
-            finalModelMsg.suggestions = trimmedSuggestions;
-            setSuggestions(trimmedSuggestions);
-          }
-
-          // After typing is complete, save the full message to history
-          await chatStorageService.saveMessage(activeSessionId, finalModelMsg, null, currentProjectId);
-
-          // Refresh usage counts after successful generation
-          refreshSubscription();
-
-          // CRITICAL: Update the state with the final message including conversion data
-          setMessages((prev) =>
-            prev.map(m => m.id === msgId ? finalModelMsg : m)
-          );
-          scrollToBottom(); // Single scroll after full generation
-
-          // Speak the AI response if user used voice input
-          if (i === 0 && voiceUsedRef.current) {
-            const detectedLang = aiResponseData?.language || currentLang;
-            speakResponse(partContent, detectedLang);
-            voiceUsedRef.current = false; // Reset flag
-          }
-        }
-      } catch (innerError) {
-        console.error("Storage/API Error:", innerError);
-      }
-    } catch (error) {
-      // Handle abort errors silently (user stopped generation)
-      if (error.name === 'AbortError' || error.name === 'CanceledError') {
-        console.log('Generation stopped by user');
-        // Keep partial response, don't show error
-        return;
+        return; // Exit handleSendMessage, streaming happens in background
+      } catch (error) {
+        console.error("Chat Error:", error);
+        toast.error(`Error: ${error.message || "Failed to send message"}`);
+      } finally {
+        setIsLoading(false);
+        isSendingRef.current = false;
+        isGlobalSending = false; // RELEASE GLOBAL LOCK
+        abortControllerRef.current = null; // Clean up abort controller
       }
 
-      console.error("Chat Error:", error);
-      toast.error(`Error: ${error.message || "Failed to send message"}`);
-    } finally {
-      setIsLoading(false);
-      isSendingRef.current = false;
-      isGlobalSending = false; // RELEASE GLOBAL LOCK
-      abortControllerRef.current = null; // Clean up abort controller
-    }
   };
+
 
   const handleDeleteSession = (e, id) => {
     e.stopPropagation();
@@ -6478,233 +6568,16 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                                     {/* [READ MORE LOGIC]: For long messages, we show a truncate and read more option */}
                                     <div className="relative group/msg-content">
-                                      {msg.id === typingMessageId && !msg.content ? (
-                                        <Skeleton />
-                                      ) : (
-                                        <ReactMarkdown
-                                          className="select-text"
-                                          remarkPlugins={[remarkGfm]}
-                                          urlTransform={(value) => value}
-                                          components={{
-                                            a: ({ href, children }) => {
-                                              const text = children?.toString() || "";
-                                              if (href && href.startsWith('action:')) {
-                                                const isLocked = text.includes('🔒') || text.includes('Unlock');
-
-                                                if (text.startsWith('ActionCard|')) {
-                                                  const parts = text.split('|');
-                                                  const title = parts[1] || "";
-                                                  const desc = parts[2] || "";
-                                                  const actionLabel = (parts[3] || "Open").replace(/^Action:\s*/i, '');
-
-                                                  return (
-                                                    <ActionCard
-                                                      title={title}
-                                                      desc={desc}
-                                                      action={actionLabel}
-                                                      link={href}
-                                                      isLocked={isLocked}
-                                                      onClick={(e) => {
-                                                        e.preventDefault();
-                                                        const toolKey = href.replace('action:', '');
-                                                        setCurrentMode('LEGAL_TOOLKIT');
-
-                                                        const TOOL_NAMES = {
-                                                          legal_draft_maker: "Draft Maker",
-                                                          legal_case_predictor: "Case Predictor",
-                                                          legal_argument_builder: "Argument Builder",
-                                                          legal_evidence_checker: "Evidence Analyst",
-                                                          legal_contract_analyzer: "Contract Analyzer",
-                                                          legal_strategy_engine: "Strategy Engine"
-                                                        };
-                                                        const toolName = TOOL_NAMES[toolKey] || toolKey;
-
-                                                        if (isLocked) {
-                                                          window.dispatchEvent(new CustomEvent('premium_required', { detail: { toolName } }));
-                                                          return;
-                                                        }
-
-                                                        activateToolWithTypingEffect(toolKey, toolName);
-                                                      }}
-                                                    />
-                                                  );
-                                                }
-
-                                                return (
-                                                  <button
-                                                    onClick={(e) => {
-                                                      e.preventDefault();
-                                                      const toolKey = href.replace('action:', '');
-                                                      setCurrentMode('LEGAL_TOOLKIT');
-
-                                                      const TOOL_NAMES = {
-                                                        legal_draft_maker: "Draft Maker",
-                                                        legal_case_predictor: "Case Predictor",
-                                                        legal_argument_builder: "Argument Builder",
-                                                        legal_evidence_checker: "Evidence Analyst",
-                                                        legal_contract_analyzer: "Contract Analyzer",
-                                                        legal_strategy_engine: "Strategy Engine"
-                                                      };
-                                                      const toolName = TOOL_NAMES[toolKey] || toolKey;
-
-                                                      // Open the premium upsell if locked
-                                                      if (isLocked) {
-                                                        window.dispatchEvent(new CustomEvent('premium_required', { detail: { toolName } }));
-                                                        return;
-                                                      }
-
-                                                      activateToolWithTypingEffect(toolKey, toolName);
-                                                    }}
-                                                    className={`inline-flex mt-2 items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0 ${isLocked ? 'bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20' : 'bg-gradient-to-r from-primary/10 to-primary-dark/10 border border-primary/20 text-primary hover:bg-primary/20 hover:border-primary/40'}`}
-                                                  >
-                                                    {children}
-                                                    <ChevronRight className="w-4 h-4 ml-1 opacity-70" />
-                                                  </button>
-                                                );
-                                              }
-                                              const isInternal = href && href.startsWith('/');
-                                              return (
-                                                <a
-                                                  href={href}
-                                                  onClick={(e) => {
-                                                    if (isInternal) {
-                                                      e.preventDefault();
-                                                      navigate(href);
-                                                    }
-                                                  }}
-                                                  className="text-primary hover:underline font-bold cursor-pointer"
-                                                  target={isInternal ? "_self" : "_blank"}
-                                                  rel={isInternal ? "" : "noopener noreferrer"}
-                                                >
-                                                  {children}
-                                                </a>
-                                              );
-                                            },
-                                            p: ({ children }) => <p>{children}</p>,
-                                            ul: ({ children }) => <ul className="list-disc pl-5 space-y-1.5">{children}</ul>,
-                                            ol: ({ children }) => <ol className="list-decimal pl-5 space-y-1.5">{children}</ol>,
-                                            li: ({ children }) => <li>{children}</li>,
-                                            h1: ({ children }) => <h1 className="font-bold tracking-tight">{children}</h1>,
-                                            h2: ({ children }) => <h2 className="font-bold tracking-tight">{children}</h2>,
-                                            h3: ({ children }) => <h3 className="font-bold tracking-tight">{children}</h3>,
-                                            strong: ({ children }) => <strong>{children}</strong>,
-                                            table: ({ children }) => (
-                                              <div className="overflow-x-auto my-4 rounded-xl border border-border/50 shadow-lg bg-surface/30 backdrop-blur-sm">
-                                                <table className="w-full border-collapse text-sm">{children}</table>
-                                              </div>
-                                            ),
-                                            thead: ({ children }) => <thead className="bg-primary/10 border-b border-border/50">{children}</thead>,
-                                            tbody: ({ children }) => <tbody className="divide-y divide-border/30">{children}</tbody>,
-                                            tr: ({ children }) => <tr className="transition-colors hover:bg-white/3">{children}</tr>,
-                                            th: ({ children }) => <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-primary">{children}</th>,
-                                            td: ({ children }) => <td className="px-4 py-3 text-sm text-maintext leading-relaxed">{children}</td>,
-                                            mark: ({ children }) => <mark className="bg-[#5555ff] text-white px-1 py-0.5 rounded-sm">{children}</mark>,
-                                            code: ({ node, inline, className, children, ...props }) => {
-                                              const match = /language-(\w+)/.exec(className || '');
-                                              const lang = match ? match[1] : '';
-                                              const codeValue = String(children).replace(/\n$/, '');
-                                              const isUser = msg.role === 'user';
-
-                                              if (!inline) {
-                                                return (
-                                                  <div className={`rounded-xl overflow-hidden my-3 border ${isUser ? 'border-white/10 bg-black/20' : 'border-[#1a1a1a] bg-[#0d0d0d]'} shadow-2xl w-full max-w-full group/code`}>
-                                                    {!isUser && (
-                                                      <div className="flex items-center justify-between px-4 py-2.5 bg-[#2d2d2d]/80 backdrop-blur-sm border-b border-zinc-800">
-                                                        <div className="flex items-center gap-2">
-                                                          <span className="text-[10px] font-black uppercase tracking-widest text-[#9ca3af]">{lang || 'plain text'}</span>
-                                                        </div>
-                                                        <button
-                                                          onClick={() => {
-                                                            navigator.clipboard.writeText(codeValue);
-                                                            toast.success("Code copied!");
-                                                          }}
-                                                          className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 hover:text-white transition-all bg-white/5 hover:bg-white/10 px-3 py-1 rounded-lg border border-white/5 active:scale-95"
-                                                        >
-                                                          <Copy className="w-3.5 h-3.5" />
-                                                          Copy
-                                                        </button>
-                                                      </div>
-                                                    )}
-                                                    <div className={`${isUser ? 'max-h-[500px]' : 'max-h-[600px]'} overflow-auto custom-scrollbar-thin ${isUser ? 'bg-transparent' : 'bg-[#0d0d0d]'}`}>
-                                                      <SyntaxHighlighter
-                                                        language={lang || 'text'}
-                                                        style={highlighterTheme}
-                                                        PreTag="div"
-                                                        customStyle={{
-                                                          margin: 0,
-                                                          padding: isUser ? '16px' : '20px',
-                                                          fontSize: isUser ? '13px' : '14px',
-                                                          lineHeight: '1.7',
-                                                          background: 'transparent',
-                                                          borderRadius: 0,
-                                                          border: 'none',
-                                                          color: '#e5e7eb', // Ensure visibility for plain text
-                                                          fontFamily: '"Fira Code", "JetBrains Mono", source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace'
-                                                        }}
-                                                        codeTagProps={{
-                                                          style: {
-                                                            fontFamily: 'inherit',
-                                                            background: 'transparent',
-                                                            color: 'inherit'
-                                                          }
-                                                        }}
-                                                        {...props}
-                                                      >
-                                                        {codeValue}
-                                                      </SyntaxHighlighter>
-                                                    </div>
-                                                  </div>
-                                                );
-                                              }
-                                              return (
-                                                <code className="bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded-md font-mono text-primary font-bold mx-0.5 text-xs translate-y-[-1px] inline-block" {...props}>
-                                                  {children}
-                                                </code>
-                                              );
-                                            },
-                                            img: ({ node, ...props }) => {
-                                              const isDownloading = isDownloadingUrl === props.src;
-                                              return (
-                                                <div className="relative my-4 group/img-container max-w-full">
-                                                  <div className="relative group/image overflow-hidden aspect-auto max-w-[500px] cursor-zoom-in w-fit" onClick={() => setViewingDoc({ url: props.src, type: 'image', name: 'AI Image' })}>
-                                                    {msg.role === 'model' && (
-                                                      <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-100 sm:opacity-0 sm:group-hover/img-container:opacity-100 transition-opacity">
-                                                        <div className="flex items-center gap-2">
-                                                          <Sparkles className="w-4 h-4 text-primary animate-pulse" />
-                                                          <span className="text-[10px] font-bold text-white uppercase tracking-widest">AISA™ Generated Asset</span>
-                                                        </div>
-                                                      </div>
-                                                    )}
-                                                    <ImageViewer
-                                                      src={props.src}
-                                                      alt={props.alt || "AI Image"}
-                                                    />
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover/img-container:opacity-100 transition-opacity pointer-events-none" />
-                                                  </div>
-                                                  <button
-                                                    onClick={() => handleDownload(props.src, `AISA_gen_${Date.now()}.png`)}
-                                                    disabled={isDownloading}
-                                                    className="absolute bottom-4 right-4 z-20 flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl border border-white/20 text-white shadow-lg transition-all active:scale-95 disabled:opacity-50"
-                                                  >
-                                                    <div className="flex items-center gap-2">
-                                                      {isDownloading ? (
-                                                        <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                      ) : (
-                                                        <Download className="w-4 h-4" />
-                                                      )}
-                                                      <span className="text-[10px] font-bold uppercase">
-                                                        {isDownloading ? 'Downloading...' : 'Download'}
-                                                      </span>
-                                                    </div>
-                                                  </button>
-                                                </div>
-                                              )
-                                            },
-                                          }}
-                                        >
-                                          {transformLegalActions(msg.content || msg.text || "")}
-                                        </ReactMarkdown>
-                                      )}
+                                      <MessageMarkdown
+                                        msg={msg}
+                                        typingMessageId={typingMessageId}
+                                        navigate={navigate}
+                                        setCurrentMode={setCurrentMode}
+                                        activateToolWithTypingEffect={activateToolWithTypingEffect}
+                                        setViewingDoc={setViewingDoc}
+                                        handleDownload={handleDownload}
+                                        isDownloadingUrl={isDownloadingUrl}
+                                      />
                                       {msg.cashflowData && (
                                         <React.Suspense fallback={<div className="h-48 w-full bg-surface-hover animate-pulse rounded-xl" />}>
                                           <CashFlowChartWidget data={msg.cashflowData} />
@@ -7179,21 +7052,21 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 )}
 
 
-                              {/* Integrated Smart Suggestions (Only for the latest AI response) */}
-                              {idx === messages.length - 1 && (msg.role === 'model' || msg.role === 'assistant') &&
-                                suggestions.length > 0 && !isLoading && !typingMessageId && (
-                                  <div className="suggestions-container animate-in fade-in slide-in-from-bottom-3 duration-500">
-                                    {suggestions.map((item, index) => (
-                                      <button
-                                        key={index}
-                                        onClick={() => handleSuggestionClick(item)}
-                                        className="suggestion-btn"
-                                      >
-                                        {item}
-                                      </button>
-                                    ))}
-                                  </div>
-                                )}
+                               {/* Integrated Smart Suggestions (Only for the latest AI response) */}
+                               {idx === messages.length - 1 && (msg.role === 'model' || msg.role === 'assistant') &&
+                                 msg.suggestions?.length > 0 && !isLoading && !typingMessageId && (
+                                   <div className="suggestions-container animate-in">
+                                     {msg.suggestions.map((item, index) => (
+                                       <button
+                                         key={index}
+                                         onClick={() => handleSuggestionClick(item)}
+                                         className="suggestion-btn"
+                                       >
+                                         {item}
+                                       </button>
+                                     ))}
+                                   </div>
+                                 )}
 
 
 
@@ -7246,10 +7119,59 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         </div>
                       );
                     })}
-                  </>
 
+                    {(activeGeneration && (activeGeneration.isGenerating || activeGeneration.error)) && (
+                      <div className="chatgpt-message-row ai-row group mb-6 sm:mb-8">
+                        <div className="chatgpt-message-content select-text">
+                          <div className="chatgpt-avatar-container w-8 h-8 rounded-full flex items-center justify-center shrink-0">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center">
+                              <img src={logo} alt="AISA" className="w-6 h-[18px] object-cover object-top" />
+                            </div>
+                          </div>
+                          <div className="flex-1 chatgpt-text select-text">
+                            <div className="chat-bubble-text prose prose-sm max-w-none">
+                              {activeGeneration.error ? (
+                                <div className="text-red-500 bg-red-500/10 p-3 rounded-xl border border-red-500/20 text-xs font-medium">
+                                  {activeGeneration.error}
+                                </div>
+                              ) : activeGeneration.partialResponse ? (
+                                <MessageMarkdown
+                                  msg={{
+                                    role: 'model',
+                                    content: activeGeneration.partialResponse,
+                                    id: 'active-gen'
+                                  }}
+                                  isStreaming={true}
+                                />
+                              ) : (
+                                <AisaTypingIndicator
+                                  visible={true}
+                                  message={loadingText || "Thinking..."}
+                                />
+                              )}
+                            </div>
+                            
+                            {/* Suggestions during streaming (if they arrive early) */}
+                            {activeGeneration.suggestions?.length > 0 && (
+                              <div className="suggestions-container animate-in px-4">
+                                {activeGeneration.suggestions.map((item, index) => (
+                                  <button
+                                    key={index}
+                                    onClick={() => handleSuggestionClick(item)}
+                                    className="suggestion-btn"
+                                  >
+                                    {item}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
-                {isLoading && !typingMessageId && (
+                {isLoading && !typingMessageId && !activeGeneration?.isGenerating && (
                   <div className="chatgpt-message-row ai-row group mb-6 sm:mb-8">
                     <div className="chatgpt-message-content select-text">
                       <div className="chatgpt-avatar-container w-8 h-8 rounded-full flex items-center justify-center shrink-0">
@@ -7453,7 +7375,26 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
             {/* Gradient Mask to hide text scrolling behind/below input - Removed to eliminate white shade */}
 
             <div className="relative z-20 bg-background" style={{ padding: '0.5rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px)) 1rem' }}>
-              <div className="max-w-4xl mx-auto w-full pointer-events-auto">
+              <div className="max-w-4xl mx-auto w-full pointer-events-auto relative">
+                {/* Professional New Messages Floating Button */}
+                <AnimatePresence>
+                  {showNewMessageButton && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 20, scale: 0.9 }}
+                      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 z-[60]"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => scrollToBottom(true, 'smooth')}
+                        className="flex items-center justify-center w-8 h-8 bg-[#8B5CF6]/90 hover:bg-[#7C3AED] text-white rounded-full shadow-[0_4px_20px_rgba(139,92,246,0.4)] backdrop-blur-md transition-all hover:scale-110 active:scale-95 group border border-white/30"
+                      >
+                        <ArrowDown size={16} className="group-hover:animate-bounce" />
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
 
                 <form
@@ -8517,7 +8458,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         <button
                           type="button"
                           onClick={() => {
-                            if (abortControllerRef.current) abortControllerRef.current.abort();
+                            chatStreamService.stopGeneration(activeSessionId);
                             setIsLoading(false);
                             isSendingRef.current = false;
                           }}
@@ -9340,6 +9281,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
           setAllProjects(prev => prev.map(c => c._id === updated._id ? updated : c));
         }}
       />
+      <FloatingSelectionToolbar />
     </div>
 
   );

@@ -26,7 +26,7 @@ const LegalDashboard = ({
   const { tLegal } = useLanguage();
 
   return (
-    <div className="flex-1 flex flex-col w-full min-h-0 overflow-hidden aisa-scalable-text bg-slate-50/30 dark:bg-transparent relative">
+    <div className="flex-1 flex flex-col w-full h-full min-h-0 overflow-hidden aisa-scalable-text bg-slate-50/30 dark:bg-transparent relative">
       {/* Dashboard Header - Sticky */}
       <div className="w-full px-4 sm:px-10 pt-6 sm:pt-8 pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 border-b border-slate-200/60 dark:border-zinc-800/60 bg-slate-50/80 dark:bg-[#0b0c15]/80 backdrop-blur-xl">
         <div className="flex items-center gap-3 sm:gap-4">

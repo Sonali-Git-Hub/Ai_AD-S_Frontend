@@ -1,3 +1,5 @@
+import { MODES } from './utils/modeDetection';
+
 // Message Type (JSDoc for IntelliSense)
 export const MessageRole = {
   USER: "user",
@@ -71,6 +73,7 @@ const apis = {
   getUserAgents: `${API}/agents/get_my_agents`,
   getMyAgents: `${API}/agents/me`,
   chatAgent: `${API}/chat`,
+  chatStream: `${API}/chat/stream`,
   shareEmail: (sessionId) => `${API}/chat/${sessionId}/share/email`,
   support: `${API}/support`,
   resetPasswordEmail: `${API}/auth/reset-password-email`,
@@ -119,4 +122,5 @@ const apis = {
   precedents: `${API}/precedents`,
 };
 
-export { API, apis };
+
+export { API, apis, MODES };

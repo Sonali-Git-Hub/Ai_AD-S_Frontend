@@ -11,13 +11,13 @@ const AisaTypingIndicator = ({ visible = true, message = "AISA™ is thinking" }
       exit={{ opacity: 0 }}
       className="flex items-center gap-2 opacity-80 py-1"
     >
-      <span className="text-[11px] text-primary font-extrabold uppercase tracking-widest">
+      <span className="text-[7px] text-primary/70 font-bold uppercase tracking-[0.1em]">
         {message}
       </span>
-      <div className="flex gap-1 ml-1">
-        <div className="w-1 h-1 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: '0ms' }} />
-        <div className="w-1 h-1 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: '150ms' }} />
-        <div className="w-1 h-1 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: '300ms' }} />
+      <div className="flex gap-1 ml-1 items-center">
+        <div className="w-[3px] h-[3px] rounded-full bg-primary/30 animate-bounce" style={{ animationDelay: '0ms' }} />
+        <div className="w-[3px] h-[3px] rounded-full bg-primary/30 animate-bounce" style={{ animationDelay: '150ms' }} />
+        <div className="w-[3px] h-[3px] rounded-full bg-primary/30 animate-bounce" style={{ animationDelay: '300ms' }} />
       </div>
     </motion.div>
   );

@@ -1202,9 +1202,23 @@ html.lenis body {
   justify-content: space-between !important;
   align-items: center !important;
   width: 100% !important;
-  padding: 5px 12px !important;
-  gap: 10px !important;
-  border-radius: 14px !important;
+  padding: 4px 8px 4px 24px !important;
+  gap: 4px !important;
+  border-radius: 6px !important;
+  position: relative;
+  height: 28px !important;
+  margin-bottom: 1px !important;
+}
+
+.sidebar-chat-title {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1.1 !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
 }
 
 .sidebar-chat-title-group {
@@ -1212,45 +1226,98 @@ html.lenis body {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  justify-content: center;
 }
 
-.sidebar-chat-title {
+.generation-indicator-wrapper {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  width: 3px;
+  height: 12px;
+}
+
+.generation-dot {
   width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 800;
-  font-size: 13px;
-  letter-spacing: -0.01em;
+  height: 100%;
+  border-radius: 99px;
+  background: #4f46e5;
+  box-shadow: 0 0 8px rgba(79, 70, 229, 0.4);
+}
+
+.generation-dot-ping {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 99px;
+  background: #4f46e5;
+  opacity: 0.4;
+  animation: generation-ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes generation-ping {
+  0% {
+    transform: scaleX(1) scaleY(1);
+    opacity: 0.5;
+  }
+  70% {
+    transform: scaleX(3) scaleY(1.4);
+    opacity: 0;
+  }
+  100% {
+    transform: scaleX(3) scaleY(1.4);
+    opacity: 0;
+  }
+}
+
+.sidebar-chat-item.is-generating {
+  background: white !important;
+  border: 1px solid rgba(79, 70, 229, 0.15) !important;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08) !important;
+  border-radius: 99px !important;
+  padding: 8px 18px !important;
+  transform: translateY(-1px);
+}
+
+.sidebar-chat-item.is-generating .sidebar-chat-title {
+  color: #4f46e5 !important;
+  font-weight: 700 !important;
+}
+
+.dark .sidebar-chat-item.is-generating {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-color: rgba(79, 70, 229, 0.3) !important;
 }
 
 .sidebar-chat-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
   opacity: 0;
-  transition: all 0.3s ease;
-  transform: translateX(10px);
+  transition: all 0.2s ease;
+  transform: translateX(4px);
 }
 
-.sidebar-chat-container:hover .sidebar-chat-actions {
+.sidebar-chat-item:hover .sidebar-chat-actions {
   opacity: 1;
   transform: translateX(0);
 }
 
 .sidebar-chat-action-btn {
-  padding: 6px !important;
-  border-radius: 8px !important;
+  padding: 3px !important;
+  border-radius: 4px !important;
   color: var(--muted-foreground) !important;
   transition: all 0.2s ease !important;
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  background: transparent !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .sidebar-chat-action-btn:hover {
   color: var(--primary) !important;
-  background: rgba(255, 255, 255, 0.1) !important;
-  transform: translateY(-1px);
+  background: rgba(var(--primary-rgb), 0.1) !important;
 }
 
 .sidebar-chat-action-btn.delete:hover {
@@ -1259,8 +1326,8 @@ html.lenis body {
 }
 
 .sidebar-chat-action-btn svg {
-  width: 14px !important;
-  height: 14px !important;
+  width: 11px !important;
+  height: 11px !important;
 }
 
 /* Chat Suggestions */
@@ -1554,3 +1621,33 @@ body.modal-open-hide-navbar {
 .chatgpt-message-content {
   user-select: text !important;
 }
+
+/* Suggestions Chips Styling */
+.suggestions-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 1.5rem;
+  padding: 0 4px;
+  width: 100%;
+}
+
+.suggestion-btn {
+  @apply bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full px-4 py-2 text-xs font-medium text-zinc-600 dark:text-zinc-400 transition-all hover:bg-zinc-50 dark:hover:bg-zinc-800/50 hover:border-primary/30 dark:hover:border-primary/30 hover:text-primary dark:hover:text-primary active:scale-95 shadow-sm;
+  white-space: nowrap;
+}
+
+@keyframes fadeInSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-in {
+  animation: fadeInSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

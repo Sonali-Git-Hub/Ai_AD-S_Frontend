@@ -210,7 +210,7 @@ const DashboardLayout = () => {
   }, [allowNavbar]);
 
   return (
-    <div className="fixed inset-0 flex bg-transparent text-maintext overflow-hidden aisa-scalable-text">
+    <div className="fixed inset-0 flex bg-transparent text-maintext overflow-hidden aisa-scalable-text min-h-0">
       {/* ─── Animated Atmospheric Background ─── */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
         {/* Light mode gradient */}
@@ -246,7 +246,7 @@ const DashboardLayout = () => {
         />
       )}
 
-      <div className="flex-1 flex flex-col min-w-0 bg-transparent h-full relative">
+      <div className="flex-1 flex flex-col min-w-0 bg-transparent h-full relative min-h-0">
 
         {/* ─── FINAL RENDER (Navbar) ─── */}
         {allowNavbar && !isFullScreen && !isSidebarOpen && !tglState.focusMode && (
@@ -303,7 +303,7 @@ const DashboardLayout = () => {
         <NotificationCenter isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} />
         {/* Outlet for pages */}
         <main
-          className={`flex-1 ${(location.pathname.includes('/chat') || location.pathname.includes('/cases')) ? 'overflow-hidden' : 'overflow-y-auto'} relative w-full scroll-smooth p-0 scrollbar-hide transition-all duration-300 ease-in-out`}
+          className={`flex-1 ${(location.pathname.includes('/chat') || location.pathname.includes('/cases')) ? 'overflow-hidden' : 'overflow-y-auto'} relative w-full scroll-smooth p-0 scrollbar-hide transition-all duration-300 ease-in-out min-h-0`}
           style={{ paddingTop: (isMobile && (location.pathname.includes('/chat') || location.pathname.includes('/cases'))) ? '0px' : 'var(--mobile-nav-h)' }}
         >
           <Outlet />

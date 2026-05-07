@@ -58,11 +58,13 @@ import ProfileSettingsDropdown from '../ProfileSettingsDropdown/ProfileSettingsD
 import { getSubscriptionDetails } from '../../services/pricingService';
 import apiService from '../../services/apiService';
 import DeleteConfirmModal from '../DeleteConfirmModal.jsx';
+import { useChatGenerationStore } from '../../userStore/useChatGenerationStore';
 
 
 const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
   const { t } = useLanguage();
   const { theme, setTheme } = useTheme();
+  const { generations } = useChatGenerationStore();
   const isDark = useIsDark();
   const { addNotification } = usePersonalization();
 
@@ -259,13 +261,24 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
       fetchSessions();
     }
 
-    // Listen for merge completion to refetch database sessions
+    // Listen for title updates in real-time
+    const handleTitleUpdate = (e) => {
+      const { chatId, title } = e.detail;
+      setSessions(prev => (Array.isArray(prev) ? prev : []).map(s =>
+        s.sessionId === chatId ? { ...s, title } : s
+      ));
+    };
+
     const handleMergeComplete = () => {
-      console.log("[SIDEBAR] Merge complete event received, refetching sessions...");
       fetchSessions();
     };
+
+    window.addEventListener('aisa-chat-title-updated', handleTitleUpdate);
     window.addEventListener('chat-merge-complete', handleMergeComplete);
-    return () => window.removeEventListener('chat-merge-complete', handleMergeComplete);
+    return () => {
+      window.removeEventListener('chat-merge-complete', handleMergeComplete);
+      window.removeEventListener('aisa-chat-title-updated', handleTitleUpdate);
+    };
   }, [token, sessionId, setSessions, currentProjectId, searchQuery]);
 
   // Auto-expand projects if search matches a project name
@@ -515,7 +528,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
           <div className="absolute bottom-[10%] right-[-10%] w-[50%] h-[50%] bg-primary/30 blur-[100px] animate-float-slow" style={{ animationDelay: '-5s' }} />
         </div>
         {/* Brand & Top Actions */}
-        <div className="p-6 pb-2 mb-2 flex items-center justify-between relative z-10 flex-wrap gap-y-3">
+        <div className="p-4 pb-2 flex items-center justify-between relative z-10 flex-wrap gap-y-3">
           <Link to="/" state={{ fromLogo: true }} className="group/logo flex items-center gap-2">
             <div className="relative">
               <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 animate-pulse opacity-0 group-hover/logo:opacity-100 transition-opacity" />
@@ -673,7 +686,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                 placeholder={t('findASession')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full backdrop-blur-3xl border focus:ring-[6px] rounded-[20px] py-3 pl-11 pr-4 text-sm outline-none transition-all font-semibold shadow-sm 
+                className={`w-full backdrop-blur-3xl border focus:ring-[6px] rounded-[14px] py-2.5 pl-11 pr-4 text-[13px] outline-none transition-all font-semibold shadow-sm 
                   ${isDark
                     ? 'bg-black/40 border-white/10 focus:border-primary/50 focus:bg-black/60 focus:ring-primary/10 placeholder:text-subtext/40 text-white'
                     : 'bg-white/80 border-slate-200 focus:border-primary/40 focus:bg-white focus:ring-primary/10 placeholder:text-slate-500 text-slate-900 shadow-inner'}`}
@@ -694,9 +707,9 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                 style={{ background: 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)' }}
               />
               
-              <div className="relative flex items-center justify-center gap-2 px-4 py-2.5 backdrop-blur-md rounded-full transition-all duration-300">
-                <Plus className="w-4 h-4 text-white group-hover:rotate-90 transition-transform duration-500" strokeWidth={3} />
-                <span className="font-black text-[13px] tracking-wider text-white uppercase">{t('newChat')}</span>
+              <div className="relative flex items-center justify-center gap-2 px-4 py-2 backdrop-blur-md rounded-full transition-all duration-300">
+                <Plus className="w-3.5 h-3.5 text-white group-hover:rotate-90 transition-transform duration-500" strokeWidth={3} />
+                <span className="font-black text-[11px] tracking-wider text-white uppercase">{t('newChat')}</span>
               </div>
 
               {/* Shine Effect */}
@@ -713,13 +726,13 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
               {/* Projects Section Header */}
               <div
                 onClick={() => setIsProjectsExpanded(!isProjectsExpanded)}
-                className="px-5 pt-4 pb-2 flex items-center justify-between cursor-pointer group/header select-none relative z-10"
+                className="px-5 pt-3 pb-1 flex items-center justify-between cursor-pointer group/header select-none relative z-10"
               >
                 <div className="flex items-center gap-2">
-                  <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] group-hover/header:text-primary transition-colors 
-                    ${isDark ? 'text-subtext/60' : 'text-slate-900'}`}>PROJECTS</h3>
-                  <div className={`h-[1px] w-8 transition-all group-hover/header:w-12 group-hover/header:bg-primary/30 
-                    ${isDark ? 'bg-subtext/20' : 'bg-slate-300'}`}></div>
+                  <h3 className={`text-[10px] font-bold uppercase tracking-[0.15em] group-hover/header:text-primary transition-colors 
+                    ${isDark ? 'text-subtext/30' : 'text-slate-400'}`}>PROJECTS</h3>
+                  <div className={`h-[0.5px] w-6 transition-all group-hover/header:w-10 group-hover/header:bg-primary/30 
+                    ${isDark ? 'bg-white/5' : 'bg-slate-200'}`}></div>
                 </div>
                 <ChevronDown className={`w-3.5 h-3.5 text-subtext/40 transition-transform duration-300 ${isProjectsExpanded ? '' : '-rotate-90'}`} />
               </div>
@@ -778,10 +791,10 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                       className={`mx-3 px-3 py-2 rounded-lg flex items-center justify-between cursor-pointer transition-all ${isDark ? 'hover:bg-white/5 text-subtext/80' : 'hover:bg-slate-100 text-slate-900 border border-transparent shadow-sm'}`}
                     >
                       <div className="flex items-center gap-2.5">
-                        <FolderOpen className={`w-4 h-4 text-primary transition-transform duration-300 ${isCasesExpanded ? 'scale-110' : ''}`} />
-                        <span className={`text-[11px] font-black uppercase tracking-[0.15em] ${isDark ? 'text-subtext/90' : 'text-slate-900'}`}>CASES</span>
+                        <FolderOpen className={`w-3.5 h-3.5 text-primary/70 transition-transform duration-300 ${isCasesExpanded ? 'scale-110' : ''}`} />
+                        <span className={`text-[10px] font-bold uppercase tracking-[0.1em] ${isDark ? 'text-subtext/40' : 'text-slate-400'}`}>CASES</span>
                       </div>
-                      <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isCasesExpanded ? '' : '-rotate-90'} ${isDark ? 'text-subtext/40' : 'text-slate-400'}`} />
+                      <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isCasesExpanded ? '' : '-rotate-90'} ${isDark ? 'text-subtext/20' : 'text-slate-300'}`} />
                     </div>
 
                     <AnimatePresence>
@@ -889,17 +902,17 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
           )}
 
           {/* Chat Sessions List */}
-          <div className="flex-1 overflow-y-auto px-5 space-y-1 relative z-10 custom-scrollbar mt-2">
+          <div className="flex-1 overflow-y-auto px-5 space-y-0 relative z-10 custom-scrollbar mt-1">
             {(() => {
               const hasHistory = Array.isArray(sessions) && sessions.length > 0;
 
               return (
                 <>
-                  <div className="px-1 py-4 flex items-center justify-between">
-                    <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? 'text-subtext/40' : 'text-slate-500'}`}>
+                  <div className="px-1 py-1 flex items-center justify-between">
+                    <h3 className={`text-[10px] font-bold uppercase tracking-[0.15em] ${isDark ? 'text-subtext/30' : 'text-slate-400'}`}>
                       {token ? t('activityLog') : 'Guest History'}
                     </h3>
-                    <div className={`h-[1px] flex-1 ml-4 ${isDark ? 'bg-gradient-to-r from-subtext/10 to-transparent' : 'bg-gradient-to-r from-slate-300 to-transparent'}`}></div>
+                    <div className={`h-[1px] flex-1 ml-4 ${isDark ? 'bg-gradient-to-r from-white/5 to-transparent' : 'bg-gradient-to-r from-slate-200 to-transparent'}`}></div>
                   </div>
 
                   {!hasHistory && !token && (
@@ -956,13 +969,13 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                       });
 
                       return sortedGroupKeys.map(groupKey => (
-                        <div key={groupKey} className="mb-3">
+                        <div key={groupKey} className="mb-0.5">
                           {groupKey !== 'Today' && (
                             <button
                               onClick={() => toggleHistoryGroup(groupKey)}
-                              className={`w-full flex items-center justify-between px-3 py-1.5 mb-1 group transition-colors rounded-lg ${isDark ? 'text-subtext/60 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-900 hover:bg-black/5'}`}
+                               className={`w-full flex items-center justify-between px-3 py-1 mb-0.5 group transition-colors rounded-lg ${isDark ? 'text-subtext/30 hover:text-subtext/60 hover:bg-white/5' : 'text-slate-400 hover:text-slate-600 hover:bg-black/5'}`}
                             >
-                              <span className="text-[10px] font-black uppercase tracking-widest">{groupKey}</span>
+                              <span className="text-[10px] font-bold uppercase tracking-[0.1em]">{groupKey}</span>
                               <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${expandedHistoryGroups[groupKey] ? 'rotate-180' : ''}`} />
                             </button>
                           )}
@@ -985,7 +998,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                                     className="group relative"
                                   >
                                     {editingSessionId === session.sessionId ? (
-                                      <div className="flex items-center gap-3 px-4 py-4 bg-white/5 rounded-2xl border border-primary/40 shadow-2xl mx-2">
+                                      <div className="flex items-center gap-3 px-3 py-1.5 bg-white/5 rounded-lg border border-primary/40 shadow-sm mx-2">
                                         <input
                                           autoFocus
                                           type="text"
@@ -1011,22 +1024,59 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                                             navigate(`/dashboard/chat/${session.sessionId}`);
                                             onClose();
                                           }}
-                                          className={`sidebar-chat-item group/item transition-all duration-500 mx-2 cursor-pointer
+                                          className={`sidebar-chat-item group/item transition-all duration-300 mx-2 cursor-pointer
                                         ${currentSessionId === session.sessionId
-                                              ? (isDark ? 'bg-white/[0.08] text-white border border-white/10 shadow-2xl backdrop-blur-3xl' : 'bg-white text-primary border border-primary/20 shadow-lg shadow-primary/10 backdrop-blur-3xl ring-4 ring-primary/5')
-                                              : (isDark ? 'text-subtext/60 hover:bg-white/[0.04] hover:text-white border border-transparent' : 'text-slate-700 hover:bg-white hover:text-slate-900 border border-transparent hover:shadow-md hover:scale-[1.01]')
+                                              ? (isDark ? 'bg-white/[0.08] text-white border-white/5' : 'bg-primary/5 text-slate-900 border-primary/10 shadow-sm')
+                                              : (isDark ? 'text-subtext/40 hover:bg-white/[0.03] hover:text-subtext/70' : 'text-slate-500 hover:bg-black/[0.02] hover:text-slate-800')
                                             }
+                                        ${generations[session.sessionId]?.isGenerating ? 'is-generating' : ''}
                                       `}
                                         >
                                           {currentSessionId === session.sessionId && (
                                             <motion.div
                                               layoutId="activeIndicator"
-                                              className="absolute left-1 top-4 bottom-4 w-1 bg-primary rounded-full shadow-[0_0_10px_rgba(var(--primary-rgb),0.5)]"
+                                              className="absolute left-2.5 top-1/2 -translate-y-1/2 w-1 h-1 bg-primary rounded-full shadow-[0_0_6px_rgba(var(--primary-rgb),0.5)]"
                                             />
                                           )}
                                           <div className="sidebar-chat-title-group text-left flex-1 min-w-0">
-                                            <div className="sidebar-chat-title truncate">
-                                              {highlightMatch(session.title || "Untitled Intelligence", searchQuery)}
+                                              <AnimatePresence mode="wait">
+                                                {generations[session.sessionId]?.isTitleGenerating ? (
+                                                  <motion.div
+                                                    key="title-loader"
+                                                    initial={{ opacity: 0, scale: 0.8 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    exit={{ opacity: 0, scale: 0.8 }}
+                                                    className="flex items-center gap-2"
+                                                  >
+                                                    <div className="w-3 h-3 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                                                    <span className="text-[10px] text-primary/60 font-bold animate-pulse">Generating title...</span>
+                                                  </motion.div>
+                                                ) : (
+                                                  <motion.div
+                                                    key="title-text"
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: 1 }}
+                                                    className="flex items-center gap-2 truncate"
+                                                  >
+                                                    {generations[session.sessionId]?.isGenerating && (
+                                                      <motion.div
+                                                        initial={{ opacity: 0, scale: 0 }}
+                                                        animate={{ opacity: 1, scale: 1 }}
+                                                        exit={{ opacity: 0, scale: 0 }}
+                                                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                                        className="generation-indicator-wrapper shrink-0"
+                                                        title="Generating response…"
+                                                      >
+                                                        <span className="generation-dot" />
+                                                        <span className="generation-dot-ping" />
+                                                      </motion.div>
+                                                    )}
+                                                    <span className={`sidebar-chat-title truncate ${generations[session.sessionId]?.isGenerating ? 'text-primary' : ''} ${currentSessionId === session.sessionId ? 'font-bold' : 'font-semibold'}`}>
+                                                      {highlightMatch(session.title || "Untitled Intelligence", searchQuery)}
+                                                    </span>
+                                                  </motion.div>
+                                                )}
+                                              </AnimatePresence>
                                             </div>
                                             <div className="flex items-center gap-2">
                                               {searchQuery && session.projectId && (
@@ -1038,26 +1088,25 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                                                 </div>
                                               )}
                                             </div>
-                                          </div>
 
-                                          <div className="sidebar-chat-actions">
-                                            <button
-                                              onClick={(e) => { e.stopPropagation(); startRename(e, session); }}
-                                              className="sidebar-chat-action-btn"
-                                              title="Rename Chat"
-                                            >
-                                              <Edit2 />
-                                            </button>
-                                            <button
-                                              onClick={(e) => { e.stopPropagation(); handleDeleteSession(e, session.sessionId); }}
-                                              className="sidebar-chat-action-btn delete"
-                                              title="Delete Chat"
-                                            >
-                                              <X />
-                                            </button>
+                                            <div className="sidebar-chat-actions">
+                                              <button
+                                                onClick={(e) => { e.stopPropagation(); startRename(e, session); }}
+                                                className="sidebar-chat-action-btn"
+                                                title="Rename Chat"
+                                              >
+                                                <Edit2 />
+                                              </button>
+                                              <button
+                                                onClick={(e) => { e.stopPropagation(); handleDeleteSession(e, session.sessionId); }}
+                                                className="sidebar-chat-action-btn delete"
+                                                title="Delete Chat"
+                                              >
+                                                <X />
+                                              </button>
+                                            </div>
                                           </div>
                                         </div>
-                                      </div>
                                     )}
                                   </motion.div>
                                 ))}
@@ -1080,11 +1129,11 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
 
 
 
-          <div className="px-2 py-4 border-t border-white/5 relative z-20">
+          <div className="px-2 py-2 border-t border-white/5 relative z-20">
             {isAdmin && (
               <button
                 onClick={() => { navigate('/dashboard/admin'); onClose(); }}
-                className="w-full h-10 flex items-center justify-center gap-2 mb-5 rounded-xl text-primary bg-primary/10 hover:bg-primary/20 transition-all text-[10px] font-black uppercase tracking-widest border border-primary/20 active:scale-95"
+                className="w-full h-9 flex items-center justify-center gap-2 mb-3 rounded-xl text-primary bg-primary/10 hover:bg-primary/20 transition-all text-[10px] font-black uppercase tracking-widest border border-primary/20 active:scale-95"
               >
                 <Shield className="w-3.5 h-3.5" />
                 <span>{t('admin')}</span>
@@ -1096,20 +1145,20 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                 <>
                   <button
                     onClick={() => setIsConnectorsOpen(true)}
-                    className="flex flex-col items-center gap-2 transition-all active:scale-95 group/fbtn"
+                    className="flex flex-col items-center gap-1.5 transition-all active:scale-95 group/fbtn"
                   >
-                    <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
-                      <LayoutGrid className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
+                    <div className="p-2 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
+                      <LayoutGrid className="w-3.5 h-3.5 text-primary transition-colors" strokeWidth={2.5} />
                     </div>
                     <span className="text-[9px] font-black text-primary/70 uppercase tracking-tight group-hover/fbtn:text-primary transition-colors">Connectors</span>
                   </button>
 
                   <button
                     onClick={() => setIsCreditsOpen(true)}
-                    className="flex flex-col items-center gap-2 transition-all active:scale-95 group/fbtn"
+                    className="flex flex-col items-center gap-1.5 transition-all active:scale-95 group/fbtn"
                   >
-                    <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
-                      <CreditCard className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
+                    <div className="p-2 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
+                      <CreditCard className="w-3.5 h-3.5 text-primary transition-colors" strokeWidth={2.5} />
                     </div>
                     <span className="text-[9px] font-black text-primary/70 uppercase tracking-tight group-hover/fbtn:text-primary transition-colors">Credits</span>
                   </button>
@@ -1128,10 +1177,10 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
 
               <button
                 onClick={onOpenSettings}
-                className="flex flex-col items-center gap-2 transition-all active:scale-95 group/fbtn"
+                className="flex flex-col items-center gap-1.5 transition-all active:scale-95 group/fbtn"
               >
-                <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
-                  <Settings2 className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
+                <div className="p-2 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
+                  <Settings2 className="w-3.5 h-3.5 text-primary transition-colors" strokeWidth={2.5} />
                 </div>
                 <span className="text-[9px] font-black text-primary/70 uppercase tracking-tight group-hover/fbtn:text-primary transition-colors">Settings</span>
               </button>

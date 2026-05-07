@@ -230,9 +230,7 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
   }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen) { document.body.style.overflow = 'hidden'; }
-    else { document.body.style.overflow = 'unset'; }
-    return () => { document.body.style.overflow = 'unset'; };
+    // Scroll locking handled by Chat.jsx safety net
   }, [isOpen]);
 
   const SectionTitle = ({ children }) => (
