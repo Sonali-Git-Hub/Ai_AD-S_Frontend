@@ -4,7 +4,7 @@ import { X, Upload, Wand2, Download, Image as ImageIcon, Loader2, ArrowRight, Ro
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const baseURL = window._env_?.VITE_AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || "http://localhost:8081/api";
+const baseURL = window._env_?.VITE_AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || "http://localhost:8080/api";
 
 const MagicImageEditModal = ({ isOpen, onClose, onCreditDeduction }) => {
     const [selectedImage, setSelectedImage] = useState(null);
@@ -120,10 +120,8 @@ const MagicImageEditModal = ({ isOpen, onClose, onCreditDeduction }) => {
                                 <Wand2 className="w-5 h-5 text-amber-500" />
                             </div>
                             <div>
-                                <h2 className="text-lg font-bold text-maintext">AISA™ Vision | Image Editing</h2>
-                                <p className="text-[10px] text-indigo-500 font-bold uppercase tracking-[0.1em] flex items-center gap-1.5 mt-0.5">
-                                    <Sparkles className="w-3 h-3" /> AISA™ Proprietary Engine ⚡ 20 Credits
-                                </p>
+                                <h2 className="text-lg font-bold text-maintext">AI Image Editor</h2>
+                                <p className="text-xs text-subtext font-medium">Google Vertex AI Magic ⚡ 20 Credits</p>
                             </div>
                         </div>
                         <button
@@ -174,9 +172,9 @@ const MagicImageEditModal = ({ isOpen, onClose, onCreditDeduction }) => {
                                 <span className="text-xs font-bold text-subtext uppercase tracking-wider">Edited Result</span>
                                 <div className={`relative w-full aspect-square rounded-2xl overflow-hidden border ${isGenerating ? 'border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'border-border'} flex items-center justify-center bg-black/5 dark:bg-white/5`}>
                                     {isGenerating ? (
-                                        <div className="flex flex-col items-center gap-4 text-indigo-500 animate-in fade-in duration-500">
+                                        <div className="flex flex-col items-center gap-4 text-amber-500 animate-in fade-in duration-500">
                                             <Loader2 className="w-8 h-8 animate-spin" />
-                                            <p className="text-sm font-semibold animate-pulse">AISA™ is synthesizing...</p>
+                                            <p className="text-sm font-semibold animate-pulse">Vertex AI is editing...</p>
                                         </div>
                                     ) : resultImage ? (
                                         <img src={resultImage} alt="Edited Result" className="w-full h-full object-contain animate-in zoom-in-95 duration-500" />

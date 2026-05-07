@@ -154,7 +154,9 @@ export const chatStorageService = {
         return {
           messages: local,
           projectId: meta.projectId || null,
-          title: meta.title || "New Chat"
+          title: meta.title || "New Chat",
+          detectedMode: meta.detectedMode || 'NORMAL_CHAT',
+          activeTool: meta.activeTool || null
         };
       }
     } catch (localErr) {
@@ -171,7 +173,7 @@ export const chatStorageService = {
       return response.data; // Return full session object
     } catch (error) {
       console.warn("Backend history fetch failed, no local backup either:", error);
-      return { messages: [], title: "New Chat", projectId: null };
+      return { messages: [], title: "New Chat", projectId: null, detectedMode: 'NORMAL_CHAT', activeTool: null };
     }
   },
 
@@ -196,7 +198,9 @@ export const chatStorageService = {
       const meta = {
         title: title || existingMeta.title || "New Chat",
         lastModified: Date.now(),
-        projectId: projectId || message.projectId || existingMeta.projectId || null
+        projectId: projectId || message.projectId || existingMeta.projectId || null,
+        detectedMode: message.mode || existingMeta.detectedMode || 'NORMAL_CHAT',
+        activeTool: message.activeTool || existingMeta.activeTool || null
       };
       await idbSet(metaKey, meta);
     } catch (localErr) {
@@ -229,7 +233,13 @@ export const chatStorageService = {
       }
 
       const finalProjectId = (projectId === 'default' || projectId === 'all') ? null : (projectId || (message.projectId === 'default' ? null : message.projectId));
-      await axios.post(`${API_BASE_URL}/chat/${sessionId}/message`, { message, title, projectId: finalProjectId }, {
+      await axios.post(`${API_BASE_URL}/chat/${sessionId}/message`, { 
+        message, 
+        title, 
+        projectId: finalProjectId,
+        mode: message.mode,
+        activeTool: message.activeTool
+      }, {
         headers: getAuthHeaders(),
         withCredentials: true
       });
@@ -315,7 +325,9 @@ export const chatStorageService = {
       const finalProjectId = (projectId === 'default' || projectId === 'all') ? null : (projectId || (updatedMsg.projectId === 'default' ? null : updatedMsg.projectId));
       await axios.post(`${API_BASE_URL}/chat/${sessionId}/message`, { 
         message: updatedMsg, 
-        projectId: finalProjectId 
+        projectId: finalProjectId,
+        mode: updatedMsg.mode,
+        activeTool: updatedMsg.activeTool
       }, {
         headers: getAuthHeaders(),
         withCredentials: true

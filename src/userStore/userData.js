@@ -2,7 +2,7 @@ import { atom } from "recoil"
 
 const getAvatarUrl = (user) => {
   if (!user || !user.email) return "";
-  let baseUrl = window._env_?.VITE_AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || "http://localhost:8081/api";
+  let baseUrl = window._env_?.VITE_AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || "http://localhost:8080/api";
   // Remove /api suffix to get the base host for the proxy avatar URL
   if (baseUrl.endsWith('/api')) {
     baseUrl = baseUrl.slice(0, -4);
@@ -129,17 +129,22 @@ export const memoryData = atom({
 
 export const activeProjectIdData = atom({
   key: 'activeProjectIdData',
-  default: null
+  default: localStorage.getItem('aisa_active_project_id') || null
 })
 
 export const activeModeData = atom({
   key: 'activeModeData',
-  default: 'NORMAL_CHAT'
+  default: localStorage.getItem('aisa_active_mode') || 'NORMAL_CHAT'
 })
 
 export const activeLegalToolData = atom({
   key: 'activeLegalToolData',
-  default: null
+  default: (() => {
+    try {
+      const saved = localStorage.getItem('aisa_active_legal_tool_data');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) { return null; }
+  })()
 })
 
 export const activeProjectsData = atom({
