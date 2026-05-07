@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import CustomVideoPlayer from './CustomVideoPlayer';
 import PromptLibraryModal from '../../Components/PromptLibraryModal';
 
-const baseURL = window._env_?.VITE_AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || "http://localhost:8081/api";
+const baseURL = window._env_?.VITE_AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || "http://localhost:8080/api";
 
 const CinematicParticles = ({ count = 20 }) => {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
@@ -47,7 +47,6 @@ const CinematicParticles = ({ count = 20 }) => {
 };
 
 const CustomSelect = ({ value, onChange, options, disabled }) => {
-    const isDark = useIsDark();
     const [isOpen, setIsOpen] = useState(false);
     const selectRef = useRef(null);
 
@@ -68,33 +67,20 @@ const CustomSelect = ({ value, onChange, options, disabled }) => {
             <button
                 type="button"
                 onClick={() => !disabled && setIsOpen(!isOpen)}
-                className={`w-full flex items-center justify-between border rounded-xl px-4 py-2.5 text-left outline-none transition-all shadow-sm
-                    ${isDark 
-                        ? 'bg-[#0f1115] border-white/5 text-slate-300 hover:border-white/10' 
-                        : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'}
-                    ${isOpen ? (isDark ? 'border-indigo-500/50 ring-4 ring-indigo-500/5' : 'border-indigo-500/50 ring-4 ring-indigo-500/5') : ''}
-                    ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                `}
+                className={`w-full flex items-center justify-between bg-white/60 border ${isOpen ? 'border-primary ring-1 ring-primary/30' : 'border-white/70'} rounded-xl px-4 py-2.5 text-sm text-slate-700 outline-none transition-all shadow-sm ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-primary/40 hover:bg-white/80'}`}
                 disabled={disabled}
             >
-                <div className="flex flex-col gap-0.5">
-                    <span className="text-[11px] font-bold truncate">{selectedOption?.label || value}</span>
-                    {selectedOption?.description && (
-                        <span className={`text-[9px] font-medium opacity-60 truncate`}>{selectedOption.description}</span>
-                    )}
-                </div>
-                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                <span className="truncate">{selectedOption?.label || value}</span>
+                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
             </button>
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        initial={{ opacity: 0, y: -4, scale: 0.95 }}
+                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -4, scale: 0.95 }}
-                        transition={{ duration: 0.1 }}
-                        className={`absolute z-50 w-full mt-1.5 py-1.5 border rounded-2xl shadow-2xl overflow-y-auto custom-scrollbar max-h-[220px] backdrop-blur-xl
-                            ${isDark ? 'bg-[#16191e]/95 border-white/10' : 'bg-white/95 border-slate-200'}
-                        `}
+                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                        transition={{ duration: 0.15, ease: "easeOut" }}
+                        className="absolute z-50 w-full mt-2 py-2 bg-white/95 border border-black/8 rounded-xl shadow-[0_10px_30px_-10px_rgba(99,102,241,0.2)] overflow-y-auto custom-scrollbar max-h-[135px] backdrop-blur-2xl"
                     >
                         {options.map((option) => (
                             <button
@@ -106,22 +92,10 @@ const CustomSelect = ({ value, onChange, options, disabled }) => {
                                     }
                                 }}
                                 disabled={option.disabled}
-                                className={`w-full flex items-center justify-between px-4 py-2 text-left transition-colors
-                                    ${option.disabled 
-                                        ? 'opacity-40 cursor-not-allowed text-slate-500' 
-                                        : isDark 
-                                            ? 'text-slate-300 hover:bg-white/5' 
-                                            : 'text-slate-600 hover:bg-slate-50'}
-                                    ${value === option.value ? 'bg-indigo-500/10 text-indigo-500' : ''}
-                                `}
+                                className={`w-full flex items-center justify-between px-4 py-2.5 text-sm text-left transition-colors ${option.disabled ? 'opacity-40 cursor-not-allowed text-slate-400' : 'text-slate-700 hover:bg-primary/5 cursor-pointer'} ${value === option.value ? 'bg-primary/10 text-primary font-bold' : ''}`}
                             >
-                                <div className="flex flex-col gap-0.5 overflow-hidden">
-                                    <span className={`text-[11px] font-bold truncate ${value === option.value ? 'text-indigo-500' : ''}`}>{option.label}</span>
-                                    {option.description && (
-                                        <span className={`text-[9px] font-medium opacity-60 truncate`}>{option.description}</span>
-                                    )}
-                                </div>
-                                {value === option.value && <Check className="w-3.5 h-3.5 shrink-0 ml-2" />}
+                                <span className="truncate block pr-4">{option.label}</span>
+                                {value === option.value && <Check className="w-4 h-4 shrink-0" />}
                             </button>
                         ))}
                     </motion.div>
@@ -331,406 +305,380 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
         <AnimatePresence>
             {isOpen && (
             <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-                <div className="relative w-full max-w-5xl">
-                    {/* Background Glows */}
-                    <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-indigo-500/10 blur-[100px] pointer-events-none" />
-                    <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] rounded-full bg-purple-500/10 blur-[100px] pointer-events-none" />
+                <div className="relative w-full max-w-3xl">
 
                     <motion.div
-                        ref={cardRef}
-                        onMouseMove={handleMouseMove}
-                        onMouseEnter={() => setIsHovering(true)}
-                        onMouseLeave={() => setIsHovering(false)}
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                        className={`relative w-full rounded-3xl overflow-hidden flex flex-col max-h-[90vh] z-[2] border ${isDark ? 'bg-[#0f1115]/95 border-white/10' : 'bg-white/95 border-slate-200'} shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] backdrop-blur-xl`}
-                    >
-                        {/* Header */}
-                        <div className={`relative z-[10] px-8 py-5 border-b flex items-center justify-between shrink-0 ${isDark ? 'border-white/5 bg-[#16191e]/50' : 'border-slate-100 bg-white/50'}`}>
-                            <div className="flex items-center gap-4">
-                                <div className="relative group">
-                                    <div className="absolute -inset-1 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-xl blur-sm opacity-40 group-hover:opacity-75 transition-opacity" />
-                                    <div className="relative w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                                        <VideoIcon className="w-5 h-5 text-white" />
-                                    </div>
+                        animate={{
+                            background: [
+                                "radial-gradient(ellipse at 50% 0%,   rgba(99,102,241,0.55) 0%, transparent 65%)",
+                                "radial-gradient(ellipse at 100% 50%, rgba(59,130,246,0.55) 0%, transparent 65%)",
+                                "radial-gradient(ellipse at 50% 100%,rgba(139,92,246,0.55) 0%, transparent 65%)",
+                                "radial-gradient(ellipse at 0% 50%,   rgba(79,70,229,0.50)  0%, transparent 65%)",
+                                "radial-gradient(ellipse at 50% 0%,   rgba(99,102,241,0.55) 0%, transparent 65%)"
+                            ]
+                        }}
+                        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute -inset-[14px] rounded-[46px] pointer-events-none z-0 blur-[22px]"
+                    />
+
+                    <motion.div
+                        animate={{
+                            background: [
+                                "linear-gradient(0deg,   #6366f1, #4f46e5, #3b82f6, #8b5cf6)",
+                                "linear-gradient(90deg,  #3b82f6, #6366f1, #7c3aed, #4338ca)",
+                                "linear-gradient(180deg, #8b5cf6, #3b82f6, #4f46e5, #6366f1)",
+                                "linear-gradient(270deg, #4338ca, #7c3aed, #6366f1, #2563eb)",
+                                "linear-gradient(360deg, #6366f1, #4f46e5, #3b82f6, #8b5cf6)"
+                            ]
+                        }}
+                        transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+                        className="absolute -inset-[1.5px] rounded-[33px] pointer-events-none z-[1] opacity-75"
+                    />
+
+                <motion.div
+                    ref={cardRef}
+                    onMouseMove={handleMouseMove}
+                    onMouseEnter={() => setIsHovering(true)}
+                    onMouseLeave={() => setIsHovering(false)}
+                    initial={{ opacity: 0, scale: 0.9, y: 40, rotateX: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0, rotateX: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 20, rotateX: -10 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    className="relative w-full rounded-[32px] overflow-hidden flex flex-col max-h-[90vh] z-[2]"
+                    style={{ 
+                        transformStyle: "preserve-3d",
+                        boxShadow: isDark ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)' : '0 20px 50px rgba(99, 102, 241, 0.08), inset 0 1px 0 rgba(255,255,255,0.8)'
+                    }}
+                >
+                    <div className={`absolute inset-0 backdrop-blur-[60px] z-0 rounded-[32px] ${isDark ? 'bg-zinc-900/90' : 'bg-white/80'}`} />
+
+                    <motion.div
+                        animate={{
+                            backgroundColor: ["#3730a3","#4338ca","#6366f1","#4f46e5","#3730a3"],
+                            x: ["0%","35%","0%"], y: ["0%","20%","0%"], scale:[1,1.25,1]
+                        }}
+                        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute -top-[20%] -left-[15%] w-[70%] h-[75%] rounded-full opacity-[0.45] mix-blend-multiply pointer-events-none z-[1] blur-[80px]"
+                    />
+                    <motion.div
+                        animate={{
+                            backgroundColor: ["#4c1d95","#6d28d9","#7c3aed","#8b5cf6","#4c1d95"],
+                            x: ["0%","-30%","0%"], y: ["0%","25%","0%"], scale:[1,1.3,1]
+                        }}
+                        transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+                        className="absolute -bottom-[25%] -right-[20%] w-[70%] h-[80%] rounded-full opacity-[0.40] mix-blend-multiply pointer-events-none z-[1] blur-[80px]"
+                    />
+                    <motion.div
+                        animate={{
+                            backgroundColor: ["#1e3a8a","#2563eb","#3b82f6","#1d4ed8","#1e3a8a"],
+                            x: ["0%","20%","0%"], y: ["0%","-20%","0%"], scale:[1,1.15,1]
+                        }}
+                        transition={{ duration: 22, repeat: Infinity, ease: "easeInOut", delay: 7 }}
+                        className="absolute top-[25%] right-[5%] w-[50%] h-[55%] rounded-full opacity-[0.30] mix-blend-multiply pointer-events-none z-[1] blur-[70px]"
+                    />
+
+                    <motion.div
+                        className="pointer-events-none hidden md:block absolute inset-0 z-[6] rounded-[32px] mix-blend-soft-light"
+                        style={{ background: isHovering && (typeof window !== 'undefined' && window.innerWidth >= 768) ? backgroundSpotlight : 'transparent' }}
+                    />
+                    <div className="absolute inset-0 z-[2] opacity-[0.015] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }} />
+                    <div className={`absolute inset-0 rounded-[32px] border ${isDark ? 'border-white/10' : 'border-white/55'} z-[3] pointer-events-none`} />
+
+                    <div className={`relative z-[8] px-6 py-5 border-b border-black/[0.05] flex items-center justify-between backdrop-blur-md shrink-0 ${isDark ? 'bg-zinc-900/40' : 'bg-white/35'}`}>
+                        <div className="absolute top-0 right-10 w-[200px] h-full bg-gradient-to-l from-white/30 to-transparent pointer-events-none blur-xl" />
+                        <div className="flex items-center gap-3.5 relative">
+                            <div className="relative">
+                                <motion.div animate={{ rotate: 360 }} transition={{ duration: 15, repeat: Infinity, ease: "linear" }} className="absolute inset-0 bg-primary/20 rounded-full blur-md opacity-70" />
+                                <motion.div whileHover={{ rotate: 180, scale: 1.08 }} className="w-[38px] h-[38px] relative z-10 rounded-[12px] bg-gradient-to-br from-primary via-[#4F46E5] to-[#3B82F6] flex items-center justify-center shadow-[0_6px_15px_rgba(99,102,241,0.35)] border border-white/30">
+                                    <Wand2 className="w-5 h-5 text-white" />
+                                </motion.div>
+                            </div>
+                            <div>
+                                <h2 className="text-[16px] font-black text-slate-900 dark:text-white tracking-tight leading-none mb-1">
+                                    {showHistory ? 'Your Video History' : 'Image to Video Magic'}
+                                </h2>
+                                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em]">
+                                    {showHistory ? 'Previously generated videos' : `Google Vertex AI Veo ⚡ ${getCreditCost()} Credits`}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 relative">
+                            {!showHistory ? (
+                                <button
+                                    onClick={() => setShowHistory(true)}
+                                    className="flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold text-slate-500 hover:text-slate-800 hover:bg-white/60 rounded-lg transition-colors"
+                                >
+                                    <History className="w-4 h-4" /> History
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => setShowHistory(false)}
+                                    className="flex items-center gap-2 px-3 py-1.5 text-[12px] font-semibold text-slate-500 hover:text-slate-800 hover:bg-white/60 rounded-lg transition-colors"
+                                >
+                                    <ArrowLeft className="w-4 h-4" /> Back to Generator
+                                </button>
+                            )}
+                            <motion.button
+                                whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.7)", rotate: 90 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={onClose}
+                                className="w-7 h-7 rounded-full bg-white/50 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:shadow-md transition-all shadow-sm border border-white/50"
+                            >
+                                <X size={15} strokeWidth={2.5} />
+                            </motion.button>
+                        </div>
+                    </div>
+
+                    {showHistory ? (
+                        <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar relative z-[8]">
+                            {isLoadingHistory ? (
+                                <div className="flex justify-center items-center h-40">
+                                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
                                 </div>
-                                <div>
-                                    <h2 className={`text-base font-extrabold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                                        {showHistory ? 'Creation Gallery' : 'Video Alchemist'}
-                                    </h2>
-                                    {!showHistory && (
-                                        <p className="text-[10px] text-indigo-500 font-bold uppercase tracking-[0.1em] flex items-center gap-1.5 mt-0.5">
-                                            <Sparkles className="w-3 h-3" /> AISA™ Proprietary Engine
-                                        </p>
+                            ) : historyVideos.length > 0 ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                    {historyVideos.map(video => (
+                                        <div key={video._id} className="bg-white/60 rounded-xl overflow-hidden border border-white/70 shadow-sm flex flex-col group">
+                                            <div className="relative aspect-video bg-white/40 flex items-center justify-center overflow-hidden">
+                                                {video.videoUrl ? (
+                                                    <video src={video.videoUrl} className="w-full h-full object-cover" autoPlay muted loop playsInline preload="metadata" />
+                                                ) : (
+                                                    <VideoIcon className="w-8 h-8 text-slate-400" />
+                                                )}
+                                            </div>
+                                            <div className="p-3 flex-1 flex flex-col justify-between">
+                                                <p className="text-xs font-medium text-slate-700 line-clamp-2" title={video.prompt}>{video.prompt}</p>
+                                                <div className="flex justify-between items-center mt-3">
+                                                    <span className="text-[10px] text-slate-400">{new Date(video.createdAt).toLocaleDateString()}</span>
+                                                    <a href={video.videoUrl} download target="_blank" rel="noreferrer" className="text-primary hover:opacity-80 transition-opacity p-1 bg-primary/10 rounded-md">
+                                                        <Download className="w-3.5 h-3.5" />
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-40 text-slate-400">
+                                    <VideoIcon className="w-10 h-10 mb-2 opacity-50" />
+                                    <p>No generated videos yet.</p>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar flex flex-col gap-6 relative z-[8]">
+
+                            <div className={`grid grid-cols-1 ${isGenerating || resultVideoUrl ? 'md:grid-cols-2' : ''} gap-4`}>
+                                <div className={`flex flex-col gap-2 ${!isGenerating && !resultVideoUrl ? 'max-w-sm mx-auto w-full' : ''}`}>
+                                    <span className="text-[9px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-[0.25em] self-start ml-1">Source Image</span>
+                                    {previewUrl ? (
+                                        <div className="relative group w-full aspect-square bg-white/40 rounded-[20px] overflow-hidden border border-white/70 shadow-sm">
+                                            <img src={previewUrl} alt="Original" className="w-full h-full object-contain" />
+                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center backdrop-blur-sm opacity-0 group-hover:opacity-100">
+                                                <button
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    className="flex items-center gap-2 px-4 py-2 bg-white/90 text-slate-800 rounded-full font-semibold text-sm transform scale-95 group-hover:scale-100 transition-all shadow-lg"
+                                                >
+                                                    <Upload className="w-4 h-4" /> Change Frame
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div
+                                            onClick={() => fileInputRef.current?.click()}
+                                            onDragOver={handleDragOver}
+                                            onDragLeave={handleDragLeave}
+                                            onDrop={handleDrop}
+                                            className={`w-full aspect-square bg-white/40 border-2 border-dashed ${isDragging ? 'border-primary bg-primary/10' : 'border-white/70 hover:border-primary/40'} rounded-[20px] flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-white/60 transition-all text-slate-600 group shadow-sm`}
+                                        >
+                                            <div className={`w-12 h-12 rounded-full ${isDragging ? 'bg-primary/20' : 'bg-white/70'} flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm border border-white/80`}>
+                                                <Upload className={`w-6 h-6 ${isDragging ? 'text-primary' : 'text-slate-500'}`} />
+                                            </div>
+                                            <div className="text-center px-4">
+                                                <p className="text-sm font-bold text-slate-700">
+                                                    {isDragging ? 'Drop Image Here' : 'Click or Drag Image'}
+                                                </p>
+                                                <p className="text-xs mt-1 text-slate-400">First frame of the video</p>
+                                            </div>
+                                        </div>
                                     )}
+                                </div>
+
+                                {(isGenerating || resultVideoUrl) && (
+                                    <div className="flex flex-col gap-2">
+                                        <span className="text-[9px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-[0.25em] self-start ml-1">Video Result</span>
+                                        <div className={`relative w-full aspect-square rounded-[20px] overflow-hidden border ${isGenerating ? 'border-primary/40 shadow-[0_0_20px_rgba(99,102,241,0.2)]' : 'border-white/70'} flex items-center justify-center bg-white/40 shadow-sm ${isDark ? 'from-zinc-800 to-zinc-900 border-white/10' : 'from-white to-slate-100'}`}>
+                                            {isGenerating ? (
+                                                <div className="flex flex-col items-center gap-4 text-primary animate-in fade-in duration-500">
+                                                    <Loader2 className="w-8 h-8 animate-spin" />
+                                                    <p className="text-sm font-semibold animate-pulse text-center px-4 text-slate-700">Veo is animating...<br /><span className="text-xs font-medium opacity-75">This usually takes ~30 seconds</span></p>
+                                                </div>
+                                            ) : resultVideoUrl ? (
+                                                <div className="w-full h-full animate-in zoom-in-95 duration-500 flex items-center justify-center bg-black">
+                                                    <CustomVideoPlayer src={resultVideoUrl} compact={true} />
+                                                </div>
+                                            ) : null}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Controls */}
+                            <div className="flex flex-wrap gap-4 shrink-0">
+                                <div className="flex flex-col gap-2 w-full sm:w-auto flex-1 text-left">
+                                    <div className="flex items-center gap-2 ml-1">
+                                        <div className="w-1 h-1 rounded-full bg-slate-800 shadow-[0_0_6px_rgba(0,0,0,0.4)]" />
+                                        <label className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-700">Quality Core</label>
+                                    </div>
+                                    <CustomSelect 
+                                        value={modelId} 
+                                        onChange={setModelId} 
+                                        disabled={isGenerating}
+                                        options={[
+                                            { value: "veo-3.1-fast-generate-001", label: `Veo 3.1 Fast (${getCreditCost('veo-3.1-fast-generate-001', resolution)}/gen)` },
+                                            { value: "veo-3.1-generate-001", label: `Veo 3.1 Pro (${getCreditCost('veo-3.1-generate-001', resolution)}/gen)` }
+                                        ]} 
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-2 w-full sm:w-auto flex-1 text-left">
+                                    <div className="flex items-center gap-2 ml-1">
+                                        <div className="w-1 h-1 rounded-full bg-slate-800 shadow-[0_0_6px_rgba(0,0,0,0.4)]" />
+                                        <label className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-700">Resolution</label>
+                                    </div>
+                                    <CustomSelect 
+                                        value={resolution} 
+                                        onChange={setResolution} 
+                                        disabled={isGenerating}
+                                        options={[
+                                            { value: "720p", label: `720p (${getCreditCost(modelId, '720p')} cr)` },
+                                            { value: "1080p", label: `1080p (${getCreditCost(modelId, '1080p')} cr)` },
+                                            { value: "4k", label: `4K ${modelId.includes('fast') ? '(Pro Only)' : '(' + getCreditCost(modelId, '4k') + ' cr)'}`, disabled: modelId.includes('fast') }
+                                        ]} 
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-2 w-full sm:w-auto flex-1 text-left">
+                                    <div className="flex items-center gap-2 ml-1">
+                                        <div className="w-1 h-1 rounded-full bg-slate-800 shadow-[0_0_6px_rgba(0,0,0,0.4)]" />
+                                        <label className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-700">Video Ratio</label>
+                                    </div>
+                                    <CustomSelect 
+                                        value={aspectRatio} 
+                                        onChange={setAspectRatio} 
+                                        disabled={isGenerating}
+                                        options={[
+                                            { value: "16:9", label: "16:9 (Landscape)" },
+                                            { value: "9:16", label: "9:16 (Portrait)" },
+                                            { value: "1:1", label: "1:1 (Square)" },
+                                            { value: "4:3", label: "4:3 (Classic)" },
+                                            { value: "3:4", label: "3:4 (Vertical)" }
+                                        ]} 
+                                    />
                                 </div>
                             </div>
                             
-                            <div className="flex items-center gap-4">
-                                {!showHistory ? (
+                            {/* Input Field */}
+                            <div className="flex flex-col gap-2 shrink-0">
+                                <div className="flex items-center gap-2 ml-1">
+                                    <div className="w-1 h-1 rounded-full bg-slate-800 shadow-[0_0_6px_rgba(0,0,0,0.4)]" />
+                                    <label className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-700">Animation Prompt</label>
+                                </div>
+                                <div className="relative flex items-center gap-2">
+                                    <div className="relative flex-1">
+                                        <input
+                                            type="text"
+                                            value={prompt}
+                                            onChange={e => setPrompt(e.target.value)}
+                                            disabled={!selectedImage || isGenerating}
+                                            placeholder="e.g. A cluster of vibrant wildflowers swaying gently in a sun-drenched meadow"
+                                            className="w-full bg-white/60 border border-white/70 rounded-2xl py-3.5 pl-4 pr-12 text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:border-primary focus:ring-1 focus:ring-primary/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter' && !isGenerating && selectedImage && prompt.trim()) {
+                                                    e.preventDefault();
+                                                    handleGenerate();
+                                                }
+                                            }}
+                                        />
+                                    </div>
                                     <button
-                                        onClick={() => setShowHistory(true)}
-                                        className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all ${isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/50'}`}
+                                        onClick={() => setIsLibraryOpen(true)}
+                                        disabled={!selectedImage || isGenerating}
+                                        className="h-[50px] px-4 rounded-2xl bg-white/60 border border-white/70 hover:bg-white/90 text-slate-500 hover:text-primary transition-all flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                                        title="Open Prompt Library"
                                     >
-                                        <History className="w-4 h-4" /> History
+                                        <Wand2 className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Prompt Library</span>
                                     </button>
-                                ) : (
+                                </div>
+                                <p className="text-[11px] text-slate-400 ml-1">Be descriptive. Use phrases like "swaying gently", "camera pans left", "zooms in slowly".</p>
+                            </div>
+
+                        </div>
+                    )}
+
+                    {/* Footer Actions */}
+                    {!showHistory && (
+                        <div className="px-6 py-4 border-t border-black/[0.05] bg-white/35 backdrop-blur-md flex items-center justify-between shrink-0 relative z-[8]">
+                            <button
+                                onClick={handleReset}
+                                className="text-sm font-semibold text-slate-400 hover:text-slate-700 transition-colors"
+                            >
+                                Reset
+                            </button>
+
+                            <div className="flex items-center gap-3">
+                                {resultVideoUrl && (
                                     <button
-                                        onClick={() => setShowHistory(false)}
-                                        className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all ${isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/50'}`}
+                                        onClick={handleDownload}
+                                        className="flex items-center gap-2 px-4 py-2.5 bg-white/70 hover:bg-white/90 text-slate-700 rounded-xl font-semibold text-sm transition-all border border-white/80 shadow-sm"
                                     >
-                                        <ArrowLeft className="w-4 h-4" /> Back to Lab
+                                        <Download className="w-4 h-4" /> Download
                                     </button>
                                 )}
-                                <div className={`w-px h-6 ${isDark ? 'bg-white/10' : 'bg-slate-200'}`} />
-                                <motion.button
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.9 }}
-                                    onClick={onClose}
-                                    className={`p-2 rounded-xl transition-all ${isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:text-rose-500 hover:bg-rose-50'}`}
+
+                                <button
+                                    onClick={handleGenerate}
+                                    disabled={!selectedImage || !prompt.trim() || isGenerating}
+                                    className={`relative flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm overflow-hidden transition-all duration-300 ${(!selectedImage || !prompt.trim() || isGenerating)
+                                        ? 'bg-white/50 text-slate-400 cursor-not-allowed border border-white/60 shadow-sm'
+                                        : 'text-white border border-transparent shadow-[0_8px_20px_rgba(99,102,241,0.35)] hover:shadow-[0_12px_30px_rgba(99,102,241,0.5)] transform hover:scale-[1.02] active:scale-[0.98]'
+                                        }`}
                                 >
-                                    <X size={20} />
-                                </motion.button>
+                                    {(!(!selectedImage || !prompt.trim() || isGenerating)) && (
+                                        <motion.div 
+                                          className="absolute inset-0 z-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 bg-[length:200%_auto]"
+                                          animate={{ backgroundPosition: ['0% center', '200% center'] }}
+                                          transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                                        />
+                                    )}
+                                    <div className="relative z-10 flex items-center gap-2">
+                                        {isGenerating ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 animate-spin text-white" /> Generating...
+                                            </>
+                                        ) : resultVideoUrl ? (
+                                            <>
+                                                <RotateCw className="w-4 h-4" /> Regenerate
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Wand2 className="w-4 h-4" /> Generate Video
+                                            </>
+                                        )}
+                                    </div>
+                                </button>
                             </div>
                         </div>
+                    )}
 
-                        {showHistory ? (
-                            <div className="flex-1 overflow-y-auto px-6 md:px-10 py-6 md:py-10 custom-scrollbar relative z-[8]">
-                                {isLoadingHistory ? (
-                                    <div className="flex flex-col justify-center items-center h-64 gap-4">
-                                        <div className="relative">
-                                            <div className="absolute -inset-4 bg-indigo-500/20 rounded-full blur-xl animate-pulse" />
-                                            <Loader2 className="w-10 h-10 animate-spin text-indigo-500 relative z-10" />
-                                        </div>
-                                        <p className="text-sm font-bold text-slate-500 tracking-wide uppercase">Summoning creations...</p>
-                                    </div>
-                                ) : historyVideos.length > 0 ? (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
-                                        {historyVideos.map(video => (
-                                            <motion.div 
-                                                initial={{ opacity: 0, y: 20 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                key={video._id} 
-                                                className={`group rounded-2xl overflow-hidden border transition-all hover:shadow-[0_20px_40px_-12px_rgba(99,102,241,0.25)] ${isDark ? 'bg-[#16191e] border-white/5 hover:border-indigo-500/30' : 'bg-white border-slate-100 hover:border-indigo-200'}`}
-                                            >
-                                                <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
-                                                    {video.videoUrl ? (
-                                                        <video src={video.videoUrl} className="w-full h-full object-cover" muted loop onMouseEnter={e => e.target.play()} onMouseLeave={e => {e.target.pause(); e.target.currentTime = 0;}} playsInline />
-                                                    ) : (
-                                                        <VideoIcon className="w-10 h-10 text-slate-700" />
-                                                    )}
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
-                                                        <div className="flex gap-2">
-                                                            <a href={video.videoUrl} download target="_blank" rel="noreferrer" className="p-2.5 bg-white/20 hover:bg-white/30 backdrop-blur-xl rounded-xl text-white transition-all shadow-lg">
-                                                                <Download className="w-4 h-4" />
-                                                            </a>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="p-5">
-                                                    <p className={`text-xs font-bold line-clamp-2 mb-4 leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`} title={video.prompt}>{video.prompt}</p>
-                                                    <div className="flex justify-between items-center border-t pt-4 border-black/5">
-                                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{new Date(video.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
-                                                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest ${isDark ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
-                                                            {video.resolution || '1080p'}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </motion.div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col items-center justify-center h-80 text-slate-500">
-                                        <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mb-6 ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
-                                            <VideoIcon className="w-10 h-10 opacity-20" />
-                                        </div>
-                                        <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>No masterpieces found</h3>
-                                        <p className="text-sm font-medium text-slate-500">Your visual journey begins with a single frame.</p>
-                                        <button onClick={() => setShowHistory(false)} className="mt-6 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/20 hover:bg-indigo-500 transition-all">Start Creating</button>
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden custom-scrollbar">
-                                {/* Left Panel: Upload Area */}
-                                <div className={`w-full md:flex-1 p-6 md:p-10 flex flex-col gap-6 md:gap-8 overflow-visible md:overflow-y-auto custom-scrollbar ${isDark ? 'bg-[#0f1115]' : 'bg-[#f8f9ff]'}`}>
-                                    <div className="flex flex-col h-full">
-                                        <div className="flex items-center justify-between mb-6">
-                                            <div className="flex items-center gap-2.5">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
-                                                <span className={`text-[11px] font-black uppercase tracking-[0.3em] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                                                    Workspace Canvas
-                                                </span>
-                                            </div>
-                                            {previewUrl && (
-                                                <button 
-                                                    onClick={handleReset}
-                                                    className="group flex items-center gap-1.5 text-[10px] font-black text-slate-400 hover:text-rose-500 uppercase tracking-widest transition-colors"
-                                                >
-                                                    <RotateCw className="w-3 h-3 group-hover:rotate-180 transition-transform duration-500" />
-                                                    Reset Canvas
-                                                </button>
-                                            )}
-                                        </div>
-
-                                        <div className="flex-1 flex flex-col">
-                                            {(isGenerating || resultVideoUrl) ? (
-                                                <div className={`relative w-full h-full min-h-[300px] md:min-h-[440px] rounded-[24px] md:rounded-[32px] overflow-hidden border-2 flex items-center justify-center ${isDark ? 'bg-[#16191e] border-white/5 shadow-2xl shadow-black/50' : 'bg-white border-indigo-100 shadow-2xl shadow-indigo-500/5'} group`}>
-                                                    {isGenerating ? (
-                                                        <div className="flex flex-col items-center gap-6 text-center px-6 md:px-12 relative z-10">
-                                                            <div className="relative">
-                                                                <motion.div 
-                                                                    animate={{ rotate: 360 }}
-                                                                    transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                                                                    className="absolute -inset-8 bg-gradient-to-tr from-indigo-500/30 to-purple-500/30 rounded-full blur-2xl" 
-                                                                />
-                                                                <Loader2 className="w-10 md:w-12 h-10 md:h-12 animate-spin text-indigo-600 relative z-10" />
-                                                            </div>
-                                                            <div>
-                                                                <h3 className={`text-lg md:text-xl font-black mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Weaving magic...</h3>
-                                                                <p className="text-xs md:text-sm text-slate-500 font-bold max-w-[280px] leading-relaxed">Our AI alchemists are transforming your image into motion.</p>
-                                                            </div>
-                                                            <div className="w-48 md:w-64 h-1.5 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden shadow-inner">
-                                                                <motion.div 
-                                                                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-600"
-                                                                    initial={{ width: "0%" }}
-                                                                    animate={{ width: "100%" }}
-                                                                    transition={{ duration: 40, ease: "linear" }}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        <motion.div 
-                                                            initial={{ opacity: 0 }}
-                                                            animate={{ opacity: 1 }}
-                                                            className="w-full h-full bg-black group"
-                                                        >
-                                                            <CustomVideoPlayer src={resultVideoUrl} compact={false} />
-                                                        </motion.div>
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <motion.div
-                                                    onClick={() => fileInputRef.current?.click()}
-                                                    onDragOver={handleDragOver}
-                                                    onDragLeave={handleDragLeave}
-                                                    onDrop={handleDrop}
-                                                    whileHover={{ scale: 1.005 }}
-                                                    className={`group relative flex-1 min-h-[300px] md:min-h-[440px] rounded-[24px] md:rounded-[32px] border-2 border-dashed transition-all duration-500 cursor-pointer flex flex-col items-center justify-center p-8 md:p-16 text-center overflow-hidden
-                                                        ${isDragging 
-                                                            ? 'border-indigo-500 bg-indigo-500/10 shadow-[inset_0_0_60px_rgba(99,102,241,0.15)]' 
-                                                            : isDark 
-                                                                ? 'border-white/10 bg-white/[0.03] hover:border-indigo-500/40 hover:bg-white/[0.05]' 
-                                                                : 'border-indigo-200 bg-white hover:border-indigo-400 hover:bg-indigo-50/30 shadow-xl shadow-indigo-500/[0.03]'
-                                                        }`}
-                                                >
-                                                    {previewUrl ? (
-                                                        <div className="absolute inset-4 rounded-[20px] md:rounded-[24px] overflow-hidden shadow-2xl">
-                                                            <img src={previewUrl} alt="Preview" className="w-full h-full object-contain" />
-                                                            <div className="absolute inset-0 bg-indigo-900/40 opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center backdrop-blur-md">
-                                                                <motion.div 
-                                                                    initial={{ y: 20, opacity: 0 }}
-                                                                    whileHover={{ scale: 1.05 }}
-                                                                    animate={{ y: 0, opacity: 1 }}
-                                                                    className="bg-white text-indigo-900 px-6 py-3 rounded-2xl text-xs font-black shadow-2xl flex items-center gap-2"
-                                                                >
-                                                                    <Upload className="w-4 h-4" /> Change Image
-                                                                </motion.div>
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        <>
-                                                            <div className="absolute top-0 left-0 w-full h-full opacity-[0.03] pointer-events-none group-hover:opacity-[0.05] transition-opacity" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1h1v1H1V1z' fill='%236366f1' fill-opacity='1'/%3E%3C/svg%3E")` }} />
-                                                            
-                                                            <div className={`relative w-16 md:w-20 h-16 md:h-20 rounded-[20px] md:rounded-[28px] flex items-center justify-center mb-6 md:mb-8 transition-all duration-500 group-hover:scale-110 group-hover:-rotate-3 shadow-2xl
-                                                                ${isDark ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-indigo-500/10'}`}>
-                                                                <Upload className="w-8 md:w-10 h-8 md:h-10" />
-                                                            </div>
-                                                            <h3 className={`text-xl md:text-2xl font-black mb-3 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Upload Masterpiece</h3>
-                                                            <p className="text-xs md:text-sm text-slate-500 font-bold max-w-[280px] leading-relaxed mb-8 md:mb-10">
-                                                                Drag and drop the first frame of your cinematic creation here.
-                                                            </p>
-                                                            <div className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] border shadow-sm ${isDark ? 'bg-white/5 text-slate-500 border-white/5' : 'bg-white text-indigo-500 border-indigo-50 shadow-indigo-500/5'}`}>
-                                                                JPG · PNG · MAX 5MB
-                                                            </div>
-                                                        </>
-                                                    )}
-                                                </motion.div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Right Panel: Controls */}
-                                <div className={`w-full md:w-[360px] border-t md:border-t-0 md:border-l flex flex-col shrink-0 overflow-visible md:overflow-y-auto custom-scrollbar ${isDark ? 'border-white/5 bg-[#0f1115]' : 'border-slate-100 bg-[#f8f9ff]'}`}>
-                                    <div className="flex-1 p-6 md:p-8 flex flex-col gap-6 md:gap-8">
-                                        
-                                        {/* Generation Card */}
-                                        <div className={`rounded-3xl p-5 md:p-6 border transition-all duration-500 flex flex-col gap-5 md:gap-6 shadow-2xl ${isDark ? 'bg-[#16191e] border-white/5 shadow-black/20' : 'bg-white border-indigo-100 shadow-indigo-500/10'}`}>
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center">
-                                                    <Wand2 className="w-4 h-4 text-indigo-500" />
-                                                </div>
-                                                <span className={`text-[11px] font-black uppercase tracking-[0.2em] ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                                                    Lab Parameters
-                                                </span>
-                                            </div>
-
-                                            {/* Model Select */}
-                                            <div className="flex flex-col gap-2">
-                                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-0.5">Synthesis Core</label>
-                                                <CustomSelect 
-                                                    value={modelId} 
-                                                    onChange={setModelId} 
-                                                    disabled={isGenerating}
-                                                    options={[
-                                                        { 
-                                                            value: "veo-3.1-fast-generate-001", 
-                                                            label: "AISA™ Motion Flash",
-                                                            description: "Optimized for speed and fluid movement."
-                                                        },
-                                                        { 
-                                                            value: "veo-3.1-generate-001", 
-                                                            label: "AISA™ Motion Pro",
-                                                            description: "High-fidelity motion with rich scene detail."
-                                                        }
-                                                    ]} 
-                                                />
-                                            </div>
-
-                                            {/* Resolution & Aspect Ratio Row */}
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="flex flex-col gap-2 text-left">
-                                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-0.5">Resolution</label>
-                                                    <CustomSelect 
-                                                        value={resolution} 
-                                                        onChange={setResolution} 
-                                                        disabled={isGenerating}
-                                                        options={[
-                                                            { value: "720p", label: "720p" },
-                                                            { value: "1080p", label: "1080p" },
-                                                            { value: "4k", label: "4K Pro", disabled: modelId.includes('fast') }
-                                                        ]} 
-                                                    />
-                                                </div>
-                                                <div className="flex flex-col gap-2 text-left">
-                                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-0.5">Ratio</label>
-                                                    <CustomSelect 
-                                                        value={aspectRatio} 
-                                                        onChange={setAspectRatio} 
-                                                        disabled={isGenerating}
-                                                        options={[
-                                                            { value: "16:9", label: "16:9" },
-                                                            { value: "9:16", label: "9:16" },
-                                                            { value: "1:1", label: "1:1" }
-                                                        ]} 
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Prompt Area */}
-                                        <div className="flex flex-col gap-4">
-                                            <div className="flex items-center justify-between px-1">
-                                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Motion Script</label>
-                                                <button 
-                                                    onClick={() => setIsLibraryOpen(true)}
-                                                    className="group flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest"
-                                                >
-                                                    <Sparkles className="w-3 h-3" /> Library
-                                                </button>
-                                            </div>
-                                            <div className="relative group">
-                                                <div className="absolute -inset-0.5 bg-gradient-to-tr from-indigo-500 to-purple-600 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition-opacity" />
-                                                <textarea
-                                                    value={prompt}
-                                                    onChange={e => setPrompt(e.target.value)}
-                                                    disabled={!selectedImage || isGenerating}
-                                                    placeholder="Describe the cinematic motion in detail..."
-                                                    className={`relative w-full min-h-[140px] resize-none rounded-2xl p-5 text-xs font-bold leading-relaxed transition-all outline-none border-2
-                                                        ${isDark 
-                                                            ? 'bg-[#16191e] border-white/5 text-white placeholder:text-slate-600 focus:border-indigo-500/50' 
-                                                            : 'bg-white border-indigo-100 text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 shadow-xl shadow-indigo-500/[0.02]'
-                                                        } disabled:opacity-50`}
-                                                />
-                                            </div>
-                                            <div className={`p-4 rounded-2xl border flex items-start gap-3 transition-colors ${isDark ? 'bg-indigo-500/5 border-white/5 text-slate-400' : 'bg-indigo-50/50 border-indigo-100 text-slate-500'}`}>
-                                                <span className="text-lg">💡</span>
-                                                <p className="text-[10px] font-bold leading-relaxed">
-                                                    Use descriptors like <span className="text-indigo-600">"cinematic drone"</span> or <span className="text-indigo-600">"slow motion"</span> for superior fidelity.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Footer */}
-                                    <div className={`px-6 md:px-8 py-4 border-t flex flex-col gap-4 ${isDark ? 'border-white/5 bg-[#16191e]/50' : 'border-slate-100 bg-white'}`}>
-                                        <div className="flex items-center justify-between px-2">
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Energy Requirement</span>
-                                            <div className="flex items-center gap-1.5">
-                                                <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-                                                <span className={`text-sm font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{getCreditCost()}</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-3">
-                                            {resultVideoUrl && (
-                                                <button
-                                                    onClick={handleDownload}
-                                                    className={`h-10.5 w-10.5 flex items-center justify-center rounded-xl transition-all border shadow-lg ${isDark ? 'bg-white/5 border-white/10 text-white hover:bg-white/10' : 'bg-white border-indigo-100 text-slate-700 hover:bg-indigo-50 hover:border-indigo-200'}`}
-                                                    title="Download MP4"
-                                                >
-                                                    <Download className="w-4 h-4" />
-                                                </button>
-                                            )}
-                                            
-                                            <motion.button
-                                                onClick={handleGenerate}
-                                                whileHover={!(!selectedImage || !prompt.trim() || isGenerating) ? { scale: 1.02 } : {}}
-                                                whileTap={!(!selectedImage || !prompt.trim() || isGenerating) ? { scale: 0.98 } : {}}
-                                                disabled={!selectedImage || !prompt.trim() || isGenerating}
-                                                className={`flex-1 relative h-10.5 rounded-xl font-black text-[10px] uppercase tracking-widest overflow-hidden transition-all duration-300 group
-                                                    ${(!selectedImage || !prompt.trim() || isGenerating)
-                                                        ? isDark ? 'bg-white/5 text-slate-600 border border-white/5' : 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-inner'
-                                                        : 'text-white shadow-[0_12px_24px_-8px_rgba(99,102,241,0.5)]'
-                                                    }`}
-                                            >
-                                                {(!(!selectedImage || !prompt.trim() || isGenerating)) && (
-                                                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-600 bg-[length:200%_100%] animate-gradient group-hover:from-indigo-500 group-hover:to-purple-600 transition-all duration-500" />
-                                                )}
-                                                <div className="relative z-10 flex items-center justify-center gap-3">
-                                                    {isGenerating ? (
-                                                        <>
-                                                            <Loader2 className="w-4 h-4 animate-spin" /> Weaving...
-                                                        </>
-                                                    ) : resultVideoUrl ? (
-                                                        <>
-                                                            <RotateCw className="w-4 h-4" /> Regenerate
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Sparkles className="w-4 h-4" /> Generate Video
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </motion.button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Hidden input */}
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            accept="image/jpeg, image/png"
-                            className="hidden"
-                            onChange={handleImageSelect}
-                        />
-                    </motion.div>
+                    {/* Hidden input */}
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/jpeg, image/png"
+                        className="hidden"
+                        onChange={handleImageSelect}
+                    />
+                </motion.div>
                 </div>
             </div>
             )}

@@ -115,7 +115,62 @@ const CashFlowChartWidget = ({ data }) => {
         </div>
       )}
       
+      {/* 30-Day Price Trend Area Chart */}
+      {chartData.length > 0 && (
+        <div className="bg-white/50 dark:bg-black/20 border border-black/5 dark:border-white/5 rounded-3xl p-5 overflow-hidden backdrop-blur-xl relative group">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className={`p-2 rounded-xl ${isPositiveTrend ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                {isPositiveTrend ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
+              </div>
+              <h4 className="text-sm font-black text-maintext uppercase tracking-wider">30-Day Price Action</h4>
+            </div>
+            {overview?.marketCap && (
+              <span className="text-xs font-bold text-subtext bg-black/5 dark:bg-white/5 px-2.5 py-1 rounded-lg">
+                MCap: ${(overview.marketCap / 1e9).toFixed(1)}B
+              </span>
+            )}
+          </div>
 
+          <div className="h-[200px] w-[100%] ml-[-15px]"> 
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={isPositiveTrend ? '#10b981' : '#e11d48'} stopOpacity={0.3} />
+                    <stop offset="95%" stopColor={isPositiveTrend ? '#10b981' : '#e11d48'} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis 
+                  dataKey="date" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 10, fill: '#94a3b8' }} 
+                  dy={10}
+                  minTickGap={20}
+                />
+                <YAxis 
+                  domain={['auto', 'auto']} 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 10, fill: '#94a3b8' }} 
+                  tickFormatter={(val) => `$${val}`}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Area 
+                  type="monotone" 
+                  dataKey="price" 
+                  stroke={isPositiveTrend ? '#10b981' : '#e11d48'} 
+                  strokeWidth={3}
+                  fillOpacity={1} 
+                  fill="url(#colorPrice)" 
+                  animationDuration={1500}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       {/* Sentiment & Fundamentals Split */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

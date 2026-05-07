@@ -656,7 +656,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                 value={issueText}
                                 onChange={(e) => setIssueText(e.target.value)}
                                 placeholder="Tell us what's on your mind..."
-                                className="w-full bg-white dark:bg-white/5 rounded-2xl p-4 text-sm focus:outline-none border border-border dark:border-white/10 focus:border-primary transition-all text-maintext resize-none shadow-sm"
+                                className="w-full bg-white dark:bg-[#1E2438] rounded-2xl p-4 text-sm focus:outline-none border border-border focus:border-primary transition-all text-maintext resize-none shadow-sm"
                             />
                             <button
                                 onClick={handleSupportSubmit}
@@ -709,7 +709,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                             </div>
                             <div className="space-y-2 pr-2 max-h-[300px] overflow-y-auto custom-scrollbar">
                                 {Object.keys(groupedSessions).length > 0 ? Object.keys(groupedSessions).sort((a, b) => new Date(b) - new Date(a)).map(date => (
-                                    <div key={date} className="border border-border rounded-xl bg-gray-50/50 dark:bg-white/5">
+                                    <div key={date} className="border border-border rounded-xl bg-gray-50/50 dark:bg-zinc-800/30">
                                         <button onClick={() => setExpandedDate(expandedDate === date ? null : date)} className="w-full flex items-center justify-between p-3">
                                             <span className="text-xs font-bold">{date}</span>
                                             <ChevronDown size={14} className={`transition-transform ${expandedDate === date ? 'rotate-180' : ''}`} />
@@ -717,7 +717,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                         {expandedDate === date && (
                                             <div className="p-2 pt-0 space-y-1">
                                                 {groupedSessions[date].map(s => (
-                                                    <div key={s.sessionId} className="flex items-center justify-between p-2 hover:bg-white dark:hover:bg-white/10 rounded-lg text-xs group">
+                                                    <div key={s.sessionId} className="flex items-center justify-between p-2 hover:bg-white dark:hover:bg-zinc-800 rounded-lg text-xs group">
                                                         <span className="truncate flex-1 font-medium text-gray-600 dark:text-gray-300">{s.title || t('newChat')}</span>
                                                         <div className="flex items-center gap-1">
                                                             <button
