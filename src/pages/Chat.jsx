@@ -6595,8 +6595,21 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                                       </div>
                                                       <button
                                                         onClick={() => {
-                                                          navigator.clipboard.writeText(codeValue);
-                                                          toast.success("Code copied!");
+                                                          try {
+                                                            if (navigator.clipboard && window.isSecureContext) {
+                                                              navigator.clipboard.writeText(codeValue);
+                                                            } else {
+                                                              const textArea = document.createElement("textarea");
+                                                              textArea.value = codeValue;
+                                                              document.body.appendChild(textArea);
+                                                              textArea.select();
+                                                              document.execCommand('copy');
+                                                              document.body.removeChild(textArea);
+                                                            }
+                                                            toast.success("Code copied!");
+                                                          } catch (err) {
+                                                            toast.error("Failed to copy code");
+                                                          }
                                                         }}
                                                         className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 hover:text-white transition-all bg-white/5 hover:bg-white/10 px-3 py-1 rounded-lg border border-white/5 active:scale-95"
                                                       >
@@ -6618,6 +6631,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                                         background: 'transparent',
                                                         borderRadius: 0,
                                                         border: 'none',
+                                                        overflowX: 'auto',
+                                                        overflowY: 'auto',
                                                         color: '#e5e7eb', // Ensure visibility for plain text
                                                         fontFamily: '"Fira Code", "JetBrains Mono", source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace'
                                                       }}
