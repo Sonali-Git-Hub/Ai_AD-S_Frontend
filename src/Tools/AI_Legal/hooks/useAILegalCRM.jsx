@@ -81,7 +81,7 @@ export const useAILegalCRM = ({
     setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
     setCurrentCase(null);
     setCurrentProjectId(null);
-    setMessages([]);
+    // setMessages([]); // REMOVED for master fix: Keep messages in state until new session loads
     navigate('/dashboard/cases', { replace: true });
   };
 
@@ -111,7 +111,9 @@ export const useAILegalCRM = ({
       // If no case is selected, go back to NORMAL CHAT
       setCurrentMode('NORMAL_CHAT');
       setSelectedLegalTool(null);
-      setMessages([]);
+      setActiveTool(null);
+      setActiveLegalToolkit(false);
+      // setMessages([]); // REMOVED for master fix
       navigate('/dashboard/chat/new', { replace: true });
     }
   };
@@ -120,9 +122,11 @@ export const useAILegalCRM = ({
     // Always return directly to the main dashboard (AI tools home screen)
     setCurrentMode('NORMAL_CHAT');
     setSelectedLegalTool(null);
+    setActiveTool(null);
+    setActiveLegalToolkit(false);
     setCurrentCase(null);
     setCurrentProjectId(null);
-    setMessages([]);
+    setMessages([]); // OK to clear when exiting AI Legal Toolkit entirely
     setLegalView('CHAT');
     navigate('/dashboard/chat/new', { replace: true });
   };
@@ -232,22 +236,10 @@ export const useAILegalCRM = ({
       setActiveTool('legal');
       setIsCasePanelOpen(false);
     }
-    setMessages([]);
+    // setMessages([]); // REMOVED for master fix: Let initChat handle clearing if session changes
 
-    try {
-      const caseSessions = await chatStorageService.getSessions(c._id);
-      if (Array.isArray(caseSessions) && caseSessions.length > 0) {
-        const lastSession = caseSessions[0];
-        navigate(`/dashboard/chat/${lastSession.sessionId}`, { replace: true });
-      } else if (!isNew) {
-        navigate('/dashboard/chat/new', { replace: true });
-      } else {
-        navigate('/dashboard/chat/new', { replace: true });
-      }
-    } catch (err) {
-      console.error('Failed to load case sessions:', err);
-      navigate('/dashboard/chat/new', { replace: true });
-    }
+    // Navigate to the dedicated case route
+    navigate(`/dashboard/case/${c._id}`, { replace: true });
 
     setTimeout(() => {
       inputRef.current?.focus();
@@ -499,7 +491,7 @@ export const useAILegalCRM = ({
             }
             if (legalView !== 'PRECEDENTS') {
               setLegalView('CHAT');
-              if (location.pathname === '/dashboard/chat/new') {
+              if (location.pathname === '/dashboard/chat/new' || location.pathname.startsWith('/dashboard/case/')) {
                 try {
                   const caseSessions = await chatStorageService.getSessions(currentProjectId);
                   if (Array.isArray(caseSessions) && caseSessions.length > 0) {

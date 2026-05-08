@@ -105,7 +105,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [currentShareId, setCurrentShareId] = useState('');
   const [sessionToShare, setSessionToShare] = useState(null);
-  const [, setMode] = useRecoilState(activeModeData);
+  const [currentMode, setMode] = useRecoilState(activeModeData);
   const [expandedHistoryGroups, setExpandedHistoryGroups] = useState({});
 
   const toggleHistoryGroup = (groupKey) => {
@@ -465,7 +465,13 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
 
   const handleSwitchProject = (projectId) => {
     setCurrentProjectId(projectId);
-    navigate('/dashboard/chat/new');
+    const p = projects.find(proj => proj._id === projectId);
+    if (p?.isLegalCase) {
+      navigate(`/dashboard/case/${projectId}`);
+    } else {
+      navigate('/dashboard/chat/new');
+    }
+    if (onClose) onClose();
   };
 
   const currentProject = projects.find(p => p._id === currentProjectId);

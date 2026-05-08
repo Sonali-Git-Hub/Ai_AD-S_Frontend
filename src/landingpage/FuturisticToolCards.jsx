@@ -251,12 +251,10 @@ const ToolCard = ({ tool, onToolSelect, index, isFlipped, onFlip, onUnflip }) =>
 
   const handleCardClick = () => {
     if (tool.comingSoon) return;
-    if (!isFlipped) {
-      onFlip();
-    } else {
-      onToolSelect(tool.id);
-    }
+    // Call onToolSelect immediately to ensure 1-click activation on all devices
+    onToolSelect(tool.id);
   };
+
 
   const isActive = tool.active;
 

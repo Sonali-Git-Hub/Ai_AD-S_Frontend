@@ -97,7 +97,12 @@ const ToolCard = ({ tool, isPrimary = false, size = 'md', onClose, onSelect, t }
   return (
     <motion.div
       whileHover={{ y: -4, scale: 1.01 }}
-      onClick={() => { if (isUnlocked) { onClose(); onSelect(tool, isUnlocked); } }}
+      onClick={() => { 
+        if (isUnlocked) { 
+          // If selecting a sub-tool, we want to ensure we're in the right mode for the 'Activated' screen
+          onSelect(tool, isUnlocked); 
+        } 
+      }}
       className={`group relative cursor-pointer rounded-[1.4rem] p-4 transition-all duration-300 border overflow-hidden
         bg-white/65 border-white/75 backdrop-blur-[12px] shadow-[0_4px_16px_rgba(99,102,241,0.06)]
         dark:bg-zinc-800/40 dark:border-white/10 dark:shadow-none`}
@@ -137,7 +142,7 @@ const ToolCard = ({ tool, isPrimary = false, size = 'md', onClose, onSelect, t }
               </div>
             </div>
             <button
-              onClick={(e) => { e.stopPropagation(); if (isUnlocked) onClose(); onSelect(tool, isUnlocked); }}
+            onClick={(e) => { e.stopPropagation(); if (isUnlocked) onSelect(tool, isUnlocked); }}
               className="w-full py-2 bg-white text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-50 transition-colors shadow-lg mt-4"
             >
               {t('launchNow')}
@@ -366,12 +371,8 @@ const LegalToolkitCard = ({ isOpen, onClose, onSelect, unlockedTools = [], isAdm
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   onClick={() => {
-                    onSelect({ id: 'legal_free_chat', name: tLegal('generalLegalChat') }, true);
+                    onSelect({ id: 'legal_general_chat', name: tLegal('generalLegalChat') }, true);
                     onClose();
-
-                    toast.success('Legal Chat Activated ⚖️', {
-                      style: { background: '#F8FAFC', color: '#1E293B', fontWeight: 'bold' }
-                    });
                   }}
                   className="group relative cursor-pointer rounded-[1.4rem] sm:rounded-[1.8rem] p-4 sm:p-7 mb-5 sm:mb-8 overflow-hidden"
                   style={{

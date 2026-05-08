@@ -16,7 +16,7 @@ import SharedChat from './pages/SharedChat';
 
 
 import { AppRoute } from './types';
-import { Menu, Bell, Sun, Moon, LogIn, User } from 'lucide-react';
+import { Menu, Bell, Sun, Moon, LogIn, User, Gavel } from 'lucide-react';
 import { useTheme } from './context/ThemeContext';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { toggleState, getUserData, clearUser, activeModeData, activeLegalToolData, legalViewData } from './userStore/userData';
@@ -255,6 +255,7 @@ const DashboardLayout = () => {
               </motion.button>
 
               <div className="flex items-center gap-2">
+
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -370,6 +371,7 @@ const NavigateProvider = () => {
           <Route index element={<Navigate to="chat" replace />} />
           <Route path="chat/:sessionId?" element={<Chat />} />
           <Route path="cases" element={<Chat />} />
+          <Route path="case/:caseId" element={<Chat />} />
           <Route path="social-agent" element={<ProtectedRoute><SocialAgentPage /></ProtectedRoute>} />
           <Route path="ai-personal-assistant" element={<ProtectedRoute><AiPersonalAssistantDashboard /></ProtectedRoute>} />
           <Route path="ai-base" element={<ProtectedRoute><Suspense fallback={<div className="flex h-full items-center justify-center">Loading AI Base...</div>}><AiBase /></Suspense></ProtectedRoute>} />
