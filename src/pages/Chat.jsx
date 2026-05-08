@@ -541,30 +541,20 @@ const Chat = () => {
       };
 
       try {
-        // Try passing the promise directly to preserve user gesture (Chrome/Safari)
         await navigator.clipboard.write([
-          new ClipboardItem({ 'image/png': makeImagePromise() })
+          new ClipboardItem({ 'image/png': await makeImagePromise() })
         ]);
+        toast.dismiss(t);
+        toast.success('Image copied! ✨');
       } catch (err) {
-        // Fallback for browsers that don't support Promise in ClipboardItem (Firefox)
         if (err.name === 'TypeError') {
           const blob = await makeImagePromise();
           await navigator.clipboard.write([
             new ClipboardItem({ 'image/png': blob })
           ]);
+          toast.dismiss(t);
+          toast.success('Image copied! ✨');
         } else {
-          throw err;
-        }
-      }
-
-      toast.dismiss(t);
-      toast.success('Image copied! ✨');
-    } catch (err) {
-      console.error('Copy failure:', err);
-      toast.dismiss(t);
-      toast.error(
-        (t) => (
-          <span className="flex flex-col gap-1">
             <span className="text-[10px] opacity-80 leading-tight">Your browser security blocked the action even through the master proxy. Please **right-click** and **"Copy Image"** instead.</span>
           </span>
         ),
