@@ -505,21 +505,20 @@ const Chat = () => {
     const t = toast.loading('Attempting to copy...');
 
     try {
-      // 1. Fetch the image directly
-      let blob;
-      try {
-        const response = await fetch(imageUrl);
-        blob = await response.blob();
-      } catch (e) {
-        // Fallback to proxy if direct fetch fails (e.g. CORS)
-        const proxiedUrl = `${apis.imageProxy}?url=${encodeURIComponent(imageUrl)}`;
-        const response = await fetch(proxiedUrl);
-        blob = await response.blob();
-      }
+      const makeImagePromise = async () => {
+        let blob;
+        try {
+          const response = await fetch(imageUrl);
+          blob = await response.blob();
+        } catch (e) {
+          const proxiedUrl = `${apis.imageProxy}?url=${encodeURIComponent(imageUrl)}`;
+          const response = await fetch(proxiedUrl);
+          blob = await response.blob();
+        }
 
-      // 2. Convert to PNG if it's not already
-      if (blob.type !== 'image/png') {
-        blob = await new Promise((resolve, reject) => {
+        if (blob.type === 'image/png') return blob;
+
+        return await new Promise((resolve, reject) => {
           const img = new Image();
           img.onload = () => {
             try {
@@ -539,12 +538,24 @@ const Chat = () => {
           img.onerror = () => reject(new Error('Image conversion failed'));
           img.src = URL.createObjectURL(blob);
         });
-      }
+      };
 
-      // 3. Write to clipboard
-      await navigator.clipboard.write([
-        new ClipboardItem({ 'image/png': blob })
-      ]);
+      try {
+        // Try passing the promise directly to preserve user gesture (Chrome/Safari)
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': makeImagePromise() })
+        ]);
+      } catch (err) {
+        // Fallback for browsers that don't support Promise in ClipboardItem (Firefox)
+        if (err.name === 'TypeError') {
+          const blob = await makeImagePromise();
+          await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob })
+          ]);
+        } else {
+          throw err;
+        }
+      }
 
       toast.dismiss(t);
       toast.success('Image copied! ✨');
