@@ -20,6 +20,7 @@ import Loader from '../Components/Loader/Loader';
 import toast from 'react-hot-toast';
 import LiveAI from '../Components/LiveAI';
 import { apiService } from '../services/apiService';
+import { useLegalToolCredits } from '../hooks/useLegalToolCredits';
 
 const ImageEditor = React.lazy(() => import('../Tools/AI_Image_Generator/ImageEditor').catch(() => ({ default: () => null })));
 const CustomVideoPlayer = React.lazy(() => import('../Tools/AI_Video_Generator/CustomVideoPlayer').catch(() => ({ default: () => null })));
@@ -698,6 +699,7 @@ const Chat = () => {
   const [isSendTapped, setIsSendTapped] = useState(false);
   const [isLaunching, setIsLaunching] = useState(false);
   const [ripples, setRipples] = useState([]);
+  const { handleToolUsage } = useLegalToolCredits();
   const DISCOVERY_PROMPTS = [
     "Analyze complex legal documents...",
     "Generate cinematic 8k images in space...",
@@ -3457,6 +3459,14 @@ const Chat = () => {
           // ─── Live Generation Re-attachment ───
           // Atomically merge history with any ongoing background stream
           let finalMessages = processedHistory;
+
+          // Optimization: If the backend returns empty history (common for brand new sessions)
+          // but we already have local messages (user message just sent), don't overwrite with empty.
+          const localMessages = useGenerationStore.getState().messagesByChat[sessionId] || [];
+          if (finalMessages.length === 0 && localMessages.length > 0) {
+            console.log(`[Hydration] Preserving ${localMessages.length} local messages for fresh session: ${sessionId}`);
+            finalMessages = localMessages;
+          }
           const liveGen = useGenerationStore?.getState?.()?.generations?.[sessionId];
 
           if (liveGen?.isGenerating && liveGen.typingMessageId) {
@@ -3482,12 +3492,15 @@ const Chat = () => {
           lastLoadedSessionRef.current = sessionId;
 
           const params = new URLSearchParams(location.search);
-          const toolParam = params.get('tool');
+          const toolParam = params.get('tool') || activeTool;
           if (toolParam?.startsWith('legal_')) {
             const legalTool = PREMIUM_TOOLS.find(t => t.id === toolParam);
             if (legalTool && selectedLegalTool?.id !== toolParam) {
               activateToolWithTypingEffect(toolParam, legalTool?.name, false);
             }
+          } else if (detectedMode === 'LEGAL_TOOLKIT') {
+            setCurrentMode('LEGAL_TOOLKIT');
+            setLegalView('CHAT');
           }
         } else {
           lastLoadedSessionRef.current = 'new';
@@ -3967,7 +3980,6 @@ const Chat = () => {
 
           isFirstMessage = true;
           isNavigatingRef.current = activeSessionId; // Store the ID we are navigating TO
-          navigate(`/dashboard/chat/${activeSessionId}`, { replace: true });
         } catch (err) {
           console.error("Failed to create session:", err);
           toast.error('Failed to start a new chat session');
@@ -4019,17 +4031,76 @@ const Chat = () => {
           };
 
           setMessages(prev => {
-            if (activeSessionId !== mountedSessionIdRef.current && activeSessionId !== 'new') {
-              // If we are in the middle of a transition, allow it if it matches the target activeSessionId
-            }
             const next = prev.filter(m => !m.isSystemLog).concat(newUserMsg);
             if (currentProjectId) updateWorkspace(currentProjectId, { messages: next });
             return next;
           }, activeSessionId);
 
+          // ── Save User Message Immediately (Fix for Sidebar History) ──
+          // This ensures the session is created on the backend BEFORE the AI response finishes,
+          // allowing the sidebar to fetch it correctly during navigation.
+          
+          // 1. First, add an optimistic entry to the sidebar so it shows up IMMEDIATELY
+          if (isFirstMessage) {
+            const optimisticSession = {
+              sessionId: activeSessionId,
+              title: "New Chat",
+              lastModified: Date.now(),
+              activeTool: activeToolId,
+              detectedMode: MODES.LEGAL_TOOLKIT,
+              projectId: currentProjectId
+            };
+            setSessions(prev => [optimisticSession, ...prev]);
+          }
+
+          chatStorageService.saveMessage(activeSessionId, newUserMsg, null, currentProjectId).then(() => {
+            // 2. Trigger title generation in background if it's the first message
+            if (isFirstMessage) {
+              chatStorageService.generateSessionTitle(activeSessionId, contentToSend).then(savedTitle => {
+                if (savedTitle) {
+                  setSessions(prev => {
+                    const currentSessions = Array.isArray(prev) ? prev : [];
+                    const idx = currentSessions.findIndex(s => s.sessionId === activeSessionId);
+                    if (idx !== -1) {
+                      const updated = [...currentSessions];
+                      updated[idx] = { ...updated[idx], title: savedTitle };
+                      return updated;
+                    }
+                    return currentSessions;
+                  });
+                }
+              });
+            }
+          });
+
+          // ── Navigate AFTER state is stabilized ──
+          if (isFirstMessage) {
+            const searchParams = new URLSearchParams(location.search);
+            const toolParam = searchParams.get('tool');
+            const navigateUrl = `/dashboard/chat/${activeSessionId}${toolParam ? `?tool=${toolParam}` : ''}`;
+            navigate(navigateUrl, { replace: true });
+          }
+
           setTimeout(() => scrollToBottom(true, 'smooth'), 50);
           setInputValue('');
           handleRemoveFile();
+
+          // Credit Check & Deduction for AI Legal Tools (Exclude General Chat)
+          const premiumLegalTools = [
+            'legal_my_case', 'legal_precedents', 'legal_draft_maker', 
+            'legal_evidence_checker', 'legal_argument_builder', 'legal_case_predictor',
+            'legal_contract_analyzer', 'legal_strategy_engine', 'legal_research_assistant'
+          ];
+
+          if (premiumLegalTools.includes(activeToolId)) {
+            const creditSuccess = await handleToolUsage(activeToolName || "AI Legal Tool");
+            if (!creditSuccess) {
+              gen.complete(activeSessionId);
+              setIsLoading(false);
+              chatLock.locked = false;
+              return;
+            }
+          }
 
           const res = await axios.post(`${API}/legal-toolkit/execute`, {
             message: contentToSend,
@@ -4054,12 +4125,16 @@ const Chat = () => {
               content: '', // Start empty for typewriter effect
               timestamp: new Date(),
               toolUsed: res.data.toolUsed || activeToolId,
+              activeTool: activeToolId,
               mode: MODES.LEGAL_TOOLKIT
             };
 
             if (res.data.toolUsed) setActiveTool(res.data.toolUsed);
             setMessages(prev => [...prev, aiMsg], activeSessionId);
             setTypingMessageId(aiMsgId);
+            
+            // Sync with global store so navigation doesn't kill the typewriter effect
+            gen.setPartialResponse('', aiMsgId, activeSessionId);
 
             // ⚖️ CHUNK-BY-CHUNK STREAMING LOGIC FOR LEGAL TOOLS
             // Split by newlines or sentences to simulate realistic reading/typing flow
@@ -4095,7 +4170,7 @@ const Chat = () => {
               return next;
             }, activeSessionId);
 
-            await chatStorageService.saveMessage(activeSessionId, newUserMsg, null, currentProjectId);
+            // Final AI response sync
             await chatStorageService.saveMessage(activeSessionId, finalAiMsg, null, currentProjectId);
             refreshSubscription();
           } else {
@@ -4290,7 +4365,8 @@ const Chat = () => {
         await chatStorageService.saveMessage(activeSessionId, userMsg, null, currentProjectId);
 
         if (isFirstMessage) {
-          // Navigation already handled above
+          // ── Navigate AFTER state is stabilized ──
+          navigate(`/dashboard/chat/${activeSessionId}`, { replace: true });
 
           // REAL-TIME TITLE GENERATION (Parallel - Match ChatGPT behavior)
           chatStorageService.generateSessionTitle(activeSessionId, userMsg.content).then(newTitle => {

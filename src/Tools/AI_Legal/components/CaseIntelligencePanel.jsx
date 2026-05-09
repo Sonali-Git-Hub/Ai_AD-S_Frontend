@@ -16,6 +16,7 @@ import toast from 'react-hot-toast';
 import { apiService } from '../../../services/apiService';
 import { useLanguage } from '../../../context/LanguageContext';
 import { CaseDetailView, formatToBullets } from '../LegalPrecedents';
+import { useLegalToolCredits } from '../../../hooks/useLegalToolCredits';
 
 const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate, onUseInArgument }) => {
   const { tLegal } = useLanguage();
@@ -24,6 +25,7 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate, onUseIn
   const [caseData, setCaseData] = useState(currentCase);
   const [selectedPrecedent, setSelectedPrecedent] = useState(null);
   const [isMaximized, setIsMaximized] = useState(false);
+  const { handleToolUsage } = useLegalToolCredits();
 
   useEffect(() => {
     if (isOpen) {
@@ -67,6 +69,10 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate, onUseIn
   if (!caseData) return null;
 
   const handleAutoAnalyze = async () => {
+    // Credit Check & Deduction
+    const creditSuccess = await handleToolUsage("Case Intelligence Analysis");
+    if (!creditSuccess) return;
+
     setIsAnalyzing(true);
     const tid = toast.loading("⚖️ AI Legal Brain is analyzing your case...");
     try {

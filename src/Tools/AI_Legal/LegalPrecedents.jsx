@@ -18,6 +18,7 @@ import { useSetRecoilState } from 'recoil';
 import { toggleState } from '../../userStore/userData';
 import { apis } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
+import { useLegalToolCredits } from '../../hooks/useLegalToolCredits';
 
 export const truncateText = (text, maxLength = 120) => {
     if (!text) return "";
@@ -49,12 +50,18 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
     const [aiResponses, setAiResponses] = useState({}); // { [precedentId]: { [actionType]: response } }
     const [isPdfLoading, setIsPdfLoading] = useState(false);
 
+    const { handleToolUsage } = useLegalToolCredits();
+
     // Get the actual case object from the selectedProjectId or fallback to null (never auto-select)
     const activeCase = cases.find(c => c._id === selectedProjectId);
 
     const handleSearch = async (manualQuery = null, forceProjectId = null) => {
         const targetProjectId = forceProjectId || (mode === 'CURRENT' ? selectedProjectId : null);
         if (mode === 'CURRENT' && !targetProjectId) return;
+
+        // Credit Check & Deduction
+        const creditSuccess = await handleToolUsage("Legal Precedents");
+        if (!creditSuccess) return;
 
         setIsLoading(true);
         try {
@@ -274,6 +281,11 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
 
     const handleSummarizeAction = async (caseItem) => {
         const id = caseItem._id || caseItem.case_identity?.case_name;
+        
+        // Credit Check & Deduction
+        const creditSuccess = await handleToolUsage("Legal Summarizer");
+        if (!creditSuccess) return;
+
         setIsActionLoading(prev => ({ ...prev, [id]: { ...prev[id], summary: true } }));
 
         try {
@@ -294,6 +306,11 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
 
     const handleCompareAction = async (caseItem) => {
         const id = caseItem._id || caseItem.case_identity?.case_name;
+
+        // Credit Check & Deduction
+        const creditSuccess = await handleToolUsage("Legal Comparison");
+        if (!creditSuccess) return;
+
         setIsActionLoading(prev => ({ ...prev, [id]: { ...prev[id], compare: true } }));
 
         try {

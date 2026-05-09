@@ -37,7 +37,10 @@ import {
   Info,
   Home,
   CreditCard,
-  IndianRupee
+  IndianRupee,
+  Scale,
+  History,
+  RefreshCcw
 } from 'lucide-react';
 import { apis, AppRoute, API } from '../../types';
 import ShareModal from '../ShareModal';
@@ -61,6 +64,7 @@ import { apiService } from '../../services/apiService';
 import DeleteConfirmModal from '../DeleteConfirmModal.jsx';
 import { useGenerationStore, selectGeneratingChatIds } from '../../userStore/useGenerationStore';
 import { useShallow } from 'zustand/react/shallow';
+import useCreditStore from '../../userStore/useCreditStore';
 
 
 const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
@@ -80,8 +84,15 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
   const [isNavigating, setIsNavigating] = useState(false);
   const [isConnectorsOpen, setIsConnectorsOpen] = useState(false);
   const [isCreditsOpen, setIsCreditsOpen] = useState(false);
-  const [creditLogs, setCreditLogs] = useState([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
+  
+  // Use Global Credit Store
+  const { 
+    currentCredits, 
+    recentTransactions, 
+    syncCredits, 
+    fetchHistory,
+    isLoading: isCreditsLoading 
+  } = useCreditStore();
 
 
   const [sessions, setSessions] = useRecoilState(sessionsData);
@@ -184,27 +195,20 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
     }
   }, [token]);
 
-  const fetchCreditLogs = async () => {
-    try {
-      setLoadingHistory(true);
-      const res = await axios.get(`${API}/subscription/credit-history`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.data.success) {
-        setCreditLogs(res.data.logs);
-      }
-    } catch (error) {
-      console.error("Failed to fetch credit logs", error);
-    } finally {
-      setLoadingHistory(false);
-    }
-  };
-
   useEffect(() => {
     if (isCreditsOpen && token) {
-      fetchCreditLogs();
+      fetchHistory();
     }
   }, [isCreditsOpen, token]);
+
+  // Sync credits initially and set up periodic sync
+  useEffect(() => {
+    if (token) {
+      syncCredits();
+      const interval = setInterval(syncCredits, 60000); // Every minute
+      return () => clearInterval(interval);
+    }
+  }, [token]);
 
   // Fetch projects for logged-in users
   useEffect(() => {
@@ -1029,7 +1033,19 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                                             />
                                           )}
                                           <div className="sidebar-chat-title-group text-left flex-1 min-w-0">
-                                            <div className="sidebar-chat-title flex items-center gap-1.5">
+                                            <div className="sidebar-chat-title flex items-center gap-1.5 mb-0.5">
+                                              {/* ── Icon Selection ── */}
+                                              {session.activeTool?.startsWith('legal_') ? (() => {
+                                                const tool = session.activeTool.toLowerCase();
+                                                if (tool.includes('precedent') || tool.includes('gavel')) return <Gavel className="w-3.5 h-3.5 text-purple-500 shrink-0" strokeWidth={2.5} />;
+                                                if (tool.includes('draft') || tool.includes('agreement')) return <FileText className="w-3.5 h-3.5 text-purple-500 shrink-0" strokeWidth={2.5} />;
+                                                if (tool.includes('evidence')) return <Search className="w-3.5 h-3.5 text-purple-500 shrink-0" strokeWidth={2.5} />;
+                                                if (tool.includes('case')) return <Briefcase className="w-3.5 h-3.5 text-purple-500 shrink-0" strokeWidth={2.5} />;
+                                                return <Scale className="w-3.5 h-3.5 text-purple-500 shrink-0" strokeWidth={2.5} />;
+                                              })() : (
+                                                <MessageSquare className="w-3.5 h-3.5 text-primary/50 shrink-0" strokeWidth={2} />
+                                              )}
+                                              
                                               {/* ── Live Generation Indicator ── */}
                                               {generatingChatIds.includes(session.sessionId) && (
                                                 <span
@@ -1045,15 +1061,31 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                                                 {highlightMatch(session.title || "Untitled Intelligence", searchQuery)}
                                               </span>
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                              {searchQuery && session.projectId && (
-                                                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/10 border border-primary/20">
-                                                  <Folder className="w-2.5 h-2.5 text-primary" />
-                                                  <span className="text-[9px] font-bold text-primary truncate max-w-[60px]">
-                                                    {highlightMatch(projects.find(p => p._id === session.projectId)?.name || "Personal", searchQuery)}
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                              {/* ── AI LEGAL Badge ── */}
+                                              {session.activeTool?.startsWith('legal_') && (
+                                                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-purple-500/10 border border-purple-500/20">
+                                                  <span className="text-[8px] font-black text-purple-500 uppercase tracking-tighter">AI LEGAL</span>
+                                                  <span className="text-[8px] font-bold text-purple-400/70 truncate max-w-[80px]">
+                                                    {session.activeTool.replace('legal_', '').split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
                                                   </span>
                                                 </div>
                                               )}
+
+                                              {/* ── Project Badge ── */}
+                                              {session.projectId && (
+                                                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/10 border border-primary/20">
+                                                  <Folder className="w-2.5 h-2.5 text-primary" />
+                                                  <span className="text-[9px] font-bold text-primary truncate max-w-[60px]">
+                                                    {projects.find(p => p._id === session.projectId)?.name || "Personal"}
+                                                  </span>
+                                                </div>
+                                              )}
+
+                                              {/* ── Timestamp ── */}
+                                              <span className="text-[9px] text-subtext/40 font-medium ml-auto">
+                                                {new Date(session.lastModified || session.updatedAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                              </span>
                                             </div>
                                           </div>
 
@@ -1208,28 +1240,44 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                       <div className="flex items-center justify-between bg-white/40 dark:bg-black/40 backdrop-blur-md rounded-xl p-4 border border-white/20">
                         <div>
                           <p className="text-[10px] font-bold text-subtext uppercase tracking-wider">{t('availableCredits')}</p>
-                          <p className="text-2xl font-black text-primary">{user?.credits || 0}</p>
+                          <p className="text-2xl font-black text-primary">{currentCredits}</p>
                         </div>
                         <button onClick={() => { window.location.href = '/pricing'; }} className="px-4 py-2 bg-primary text-white rounded-lg text-xs font-bold shadow-lg">Buy More</button>
                       </div>
                     </div>
                     <div className="space-y-4">
-                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('recentCreditUsage')}</h4>
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('recentCreditUsage')}</h4>
+                        {isCreditsLoading && <RefreshCcw size={12} className="text-primary animate-spin" />}
+                      </div>
                       <div className="space-y-2 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
-                        {creditLogs.length > 0 ? creditLogs.map(log => (
-                          <div key={log._id} className="flex items-center justify-between p-3 bg-gray-50/50 dark:bg-zinc-800/30 rounded-xl border border-border">
+                        {recentTransactions.length > 0 ? recentTransactions.map(log => (
+                          <div key={log._id} className="flex items-center justify-between p-3 bg-gray-50/50 dark:bg-white/5 hover:bg-white/10 rounded-xl border border-border/50 transition-all group/log">
                             <div className="flex items-center gap-3">
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${log.credits < 0 ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}><Zap size={14} /></div>
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover/log:scale-110 ${log.credits < 0 ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
+                                {log.category === 'AI Legal' ? <Scale size={18} /> : <Zap size={18} />}
+                              </div>
                               <div>
-                                <p className="text-xs font-bold truncate max-w-[150px]">{log.description}</p>
-                                <p className="text-[9px] text-subtext">{new Date(log.createdAt).toLocaleDateString()}</p>
+                                <p className="text-[11px] font-black text-maintext truncate max-w-[150px] uppercase tracking-tight">{log.description}</p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                    <span className="text-[9px] text-subtext font-bold uppercase opacity-60">{log.category || 'System'}</span>
+                                    <span className="text-[9px] text-subtext opacity-40">•</span>
+                                    <p className="text-[9px] text-subtext opacity-60 font-medium">{new Date(log.createdAt).toLocaleDateString()} {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                </div>
                               </div>
                             </div>
                             <div className="text-right">
-                              <p className={`text-xs font-bold ${log.credits < 0 ? 'text-red-500' : 'text-green-500'}`}>{log.credits > 0 ? '+' : ''}{log.credits}</p>
+                              <p className={`text-sm font-black ${log.credits < 0 ? 'text-red-500' : 'text-green-500'}`}>
+                                {log.credits > 0 ? '+' : ''}{log.credits}
+                              </p>
                             </div>
                           </div>
-                        )) : <p className="text-center py-10 opacity-40 text-sm">No credit history found</p>}
+                        )) : (
+                          <div className="flex flex-col items-center justify-center py-12 opacity-30">
+                            <History size={32} className="mb-2" />
+                            <p className="text-xs font-bold uppercase tracking-widest">No history yet</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
