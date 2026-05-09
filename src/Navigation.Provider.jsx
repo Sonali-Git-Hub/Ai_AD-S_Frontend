@@ -15,11 +15,12 @@ import SharedChat from './pages/SharedChat';
 
 
 
-import { AppRoute } from './types';
+import { AppRoute, apis } from './types';
 import { Menu, Bell, Sun, Moon, LogIn, User, Gavel } from 'lucide-react';
 import { useTheme } from './context/ThemeContext';
-import { useRecoilState, useRecoilValue } from 'recoil';
-import { toggleState, getUserData, clearUser, activeModeData, activeLegalToolData, legalViewData } from './userStore/userData';
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { toggleState, getUserData, clearUser, activeModeData, activeLegalToolData, legalViewData, userData, setUserData } from './userStore/userData';
+import axios from 'axios';
 import { usePersonalization } from './context/PersonalizationContext';
 import NotificationCenter from './Components/NotificationBar/NotificationCenter.jsx';
 import ProfileSettingsDropdown from './Components/ProfileSettingsDropdown/ProfileSettingsDropdown.jsx';
@@ -44,14 +45,20 @@ const AiBase = lazy(() => import('./Tools/AI_Base/AI_Base').catch(() => ({ defau
 const SecurityAndGuidelines = lazy(() => import('./landingpage/SecurityAndGuidelines'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 
+const isAuthenticated = () => {
+  const tokenStr = localStorage.getItem('token');
+  const userToken = getUserData()?.token;
+  return !!tokenStr && tokenStr !== 'undefined' && tokenStr !== 'null' && 
+         !!userToken && userToken !== 'undefined' && userToken !== 'null';
+};
+
 // ------------------------------
 // Home Redirect Component
 // ------------------------------
 // Redirects logged-in users to chat on direct access,
 // but allows them to view landing page when clicking logo from within app
 const HomeRedirect = () => {
-  const user = getUserData();
-  const hasToken = user?.token;
+  const hasToken = isAuthenticated();
   const location = useLocation();
 
   // Check if user came from clicking the logo (internal navigation)
@@ -76,8 +83,7 @@ const HomeRedirect = () => {
 // ------------------------------
 // Protects login/signup pages - redirects authenticated users to chat
 const GuestRoute = ({ children }) => {
-  const user = getUserData();
-  const hasToken = user?.token;
+  const hasToken = isAuthenticated();
 
   if (hasToken) {
     return <Navigate to="/dashboard/chat/new" replace state={{ forceGlobal: true }} />;
@@ -117,38 +123,46 @@ const MobileNotificationBell = ({ onClick }) => {
 // ─── SCROLL SHOW/HIDE LOGIC (FIXED VERSION 🔥) ───
 const useScrollNavbar = () => {
   const [visible, setVisible] = useState(true);
-  const lastScrollY = useRef(0);
-  const scrollThreshold = 10;
+  const lastScrollY = useRef(new Map());
+  const scrollThreshold = 15;
 
   useEffect(() => {
     const handleScroll = (e) => {
-      // Support both window scroll and container scroll (Chat page)
       const target = e.target;
-
-      const isDoc = target === document || target === document.documentElement;
+      
+      // In DashboardLayout, the document itself does not scroll (fixed inset-0).
+      // Any document scroll events are bogus (mobile browser UI shifts, etc) and cause flickering.
+      if (target === document || target === document.documentElement || target === window) {
+        return; 
+      }
+      
       const isChat = target.classList && target.classList.contains('chatgpt-container');
+      const isMain = target.tagName === 'MAIN';
+      
+      // Only track scroll events from our known scrollable containers
+      if (!isChat && !isMain) return;
 
-      if (!isDoc && !isChat) return;
+      const targetKey = isChat ? 'chat' : 'main';
+      const currentScrollY = target.scrollTop ?? 0;
+      const prevScrollY = lastScrollY.current.get(targetKey) || 0;
 
-      const currentScrollY = isDoc ? window.scrollY : (target.scrollTop ?? 0);
-
-      // Always show at top
-      if (currentScrollY < 10) {
+      // Always show at top (with a small buffer for bounce)
+      if (currentScrollY <= 10) {
         setVisible(true);
-        lastScrollY.current = currentScrollY;
+        lastScrollY.current.set(targetKey, currentScrollY);
         return;
       }
 
-      const diff = currentScrollY - lastScrollY.current;
+      const diff = currentScrollY - prevScrollY;
       if (Math.abs(diff) > scrollThreshold) {
-        if (currentScrollY > lastScrollY.current) {
+        if (currentScrollY > prevScrollY) {
           // scroll down
           setVisible(false);
         } else {
           // scroll up
           setVisible(true);
         }
-        lastScrollY.current = currentScrollY;
+        lastScrollY.current.set(targetKey, currentScrollY);
       }
     };
 
@@ -168,8 +182,11 @@ const DashboardLayout = () => {
   const location = useLocation();
   const isFullScreen = false;
 
-  const user = getUserData() || { name: 'Guest' };
-  const token = getUserData()?.token;
+  const currentUserData = useRecoilValue(userData);
+  // Re-evaluate user and token based on Recoil state changes or fallback to localStorage
+  const user = currentUserData?.user || getUserData() || { name: 'Guest' };
+  const token = currentUserData?.user?.token || getUserData()?.token;
+  
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -331,11 +348,72 @@ const PlaceholderPage = ({ title }) => (
 // App Router
 // ------------------------------
 
+const SSOInterceptor = ({ children }) => {
+  const [isVerifying, setIsVerifying] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const setUserRecoil = useSetRecoilState(userData);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const ssoToken = params.get('sso_token');
+    const fromApp = params.get('from');
+
+    // Only process if we have a token AND we aren't already logged in
+    if (ssoToken) {
+      // Strip token from URL immediately to prevent re-triggering
+      window.history.replaceState({}, '', location.pathname);
+
+      const existingToken = localStorage.getItem('token');
+      const hasValidToken = !!existingToken && existingToken !== 'undefined' && existingToken !== 'null';
+
+      if (!hasValidToken) {
+        setIsVerifying(true);
+        axios.post(apis.ssoHandoff, { sso_token: ssoToken, from: fromApp })
+          .then(res => {
+            const { token, user } = res.data;
+            setUserData(user);
+            setUserRecoil({ user: user });
+            localStorage.setItem("userId", user.id);
+            localStorage.setItem("token", token);
+            // After successful handoff, just let them be on the dashboard!
+            if (location.pathname === '/' || location.pathname === '/login') {
+               navigate('/dashboard/chat', { replace: true });
+            }
+          })
+          .catch(err => {
+            console.error('[SSO] Handoff failed:', err);
+            navigate('/login', { replace: true });
+          })
+          .finally(() => setIsVerifying(false));
+      } else {
+        // If already logged in, just ensure they go to the dashboard if they were sent to login
+        if (location.pathname === '/login' || location.pathname === '/') {
+          navigate('/dashboard/chat', { replace: true });
+        }
+      }
+    }
+  }, [location, navigate, setUserRecoil]);
+
+  if (isVerifying) {
+    return (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#020617] backdrop-blur-xl">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin shadow-[0_0_15px_rgba(139,92,246,0.5)]"></div>
+          <p className="text-white text-xs font-black uppercase tracking-widest animate-pulse">Synchronizing Session...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return children;
+};
+
 const NavigateProvider = () => {
   const [tglState] = useRecoilState(toggleState);
 
   return (
-    <>
+    <SSOInterceptor>
       <Toaster
         position="top-right"
         containerStyle={{ zIndex: 99999 }}
@@ -395,7 +473,7 @@ const NavigateProvider = () => {
         {/* Catch All */}
         <Route path="*" element={<Navigate to={AppRoute.LANDING} replace />} />
       </Routes>
-    </>
+    </SSOInterceptor>
   );
 };
 

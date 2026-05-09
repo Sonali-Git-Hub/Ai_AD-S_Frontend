@@ -38,6 +38,12 @@ const TwitterXIcon = ({ className }) => (
   </svg>
 );
 
+const ensureStringId = (id) => {
+  if (!id) return id;
+  if (typeof id === 'object') return id._id || id.id || String(id);
+  return String(id);
+};
+
 // Mock/Initial state for usage
 const INITIAL_USAGE = {
   imageUsed: 0,
@@ -452,22 +458,32 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
   const handleCopyImageToClipboard = async (url) => {
     try {
-      const proxyUrl = toProxyUrl(url);
-      const response = await fetch(proxyUrl);
-      const blob = await response.blob();
+      let blob;
+      try {
+        const proxyUrl = toProxyUrl(url);
+        const response = await fetch(proxyUrl);
+        blob = await response.blob();
+      } catch (e) {
+        const response = await fetch(url);
+        blob = await response.blob();
+      }
 
       // AISA standard: Convert to PNG if not already, for clipboard compatibility
-      const pngBlob = blob.type === 'image/png' ? blob : await new Promise((resolve) => {
+      const pngBlob = blob.type === 'image/png' ? blob : await new Promise((resolve, reject) => {
         const img = new Image();
-        img.crossOrigin = 'anonymous';
         img.onload = () => {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
-          canvas.getContext('2d').drawImage(img, 0, 0);
-          canvas.toBlob(resolve, 'image/png');
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+            canvas.toBlob((b) => b ? resolve(b) : reject(new Error('Canvas failed')), 'image/png');
+          } catch(err) {
+            reject(err);
+          }
         };
-        img.src = proxyUrl;
+        img.onerror = () => reject(new Error('Image failed'));
+        img.src = URL.createObjectURL(blob);
       });
 
       await navigator.clipboard.write([
@@ -1106,15 +1122,20 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
     const toastId = toast.loading(`Deleting ${wsName}...`);
     try {
+      // 1. Clear the calendar specifically for this workspace first (clean-up)
+      try {
+        await apiService.clearCalendarForWorkspace(wsId);
+      } catch (e) { console.warn("Calendar clear skipped during delete:", e.message); }
+
       const res = await apiService.deleteSocialAgentWorkspace(wsId);
       if (res.success) {
         toast.success(`"${wsName}" deleted permanently`, { id: toastId });
 
         // Update local state without whole page refresh
-        const updatedList = allWorkspaces.filter(w => w._id !== wsId);
+        const updatedList = allWorkspaces.filter(w => ensureStringId(w._id) !== ensureStringId(wsId));
         setAllWorkspaces(updatedList);
 
-        if (workspace?._id === wsId) {
+        if (ensureStringId(workspace?._id) === ensureStringId(wsId)) {
           if (updatedList.length > 0) {
             await switchWorkspace(updatedList[0]);
           } else {
@@ -2527,7 +2548,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                           <div className="group/field relative">
                             <div className="flex items-center justify-between mb-1">
                               <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">HEADING / HOOK</p>
-                              <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(entry.heading_hook || entry.title || ''); toast.success('Copied!'); }} className="opacity-0 group-hover/field:opacity-100 transition-opacity focus:outline-none">
+                              <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(entry.heading_hook || entry.title || ''); toast.success('Copied!'); }} className="transition-opacity focus:outline-none">
                                 <Copy className="w-3 h-3 text-slate-400 hover:text-primary transition-colors" />
                               </button>
                             </div>
@@ -2540,7 +2561,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                           <div className="group/field relative">
                             <div className="flex items-center justify-between mb-1">
                               <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">SUB-HEADING</p>
-                              <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(entry.subHeading || entry.sub_heading || entry.hook || ''); toast.success('Copied!'); }} className="opacity-0 group-hover/field:opacity-100 transition-opacity focus:outline-none">
+                              <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(entry.subHeading || entry.sub_heading || entry.hook || ''); toast.success('Copied!'); }} className="transition-opacity focus:outline-none">
                                 <Copy className="w-3 h-3 text-slate-400 hover:text-primary transition-colors" />
                               </button>
                             </div>
@@ -2593,7 +2614,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                   <p className="text-[8px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1.5">
                                     <Zap className="w-3 h-3" /> SHORT CA
                                   </p>
-                                  <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(entry.captionShort || entry.short_caption || ''); toast.success('Copied!'); }} className="opacity-0 group-hover/field:opacity-100 transition-opacity focus:outline-none">
+                                  <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(entry.captionShort || entry.short_caption || ''); toast.success('Copied!'); }} className="transition-opacity focus:outline-none">
                                     <Copy className="w-3 h-3 text-slate-400 hover:text-indigo-500 transition-colors" />
                                   </button>
                                 </div>
@@ -2610,7 +2631,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                   <p className="text-[8px] font-black text-primary uppercase tracking-widest flex items-center gap-1.5">
                                     <FileText className="w-3 h-3" /> LONG CAP
                                   </p>
-                                  <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(entry.captionLong || entry.long_caption || ''); toast.success('Copied!'); }} className="opacity-0 group-hover/field:opacity-100 transition-opacity focus:outline-none">
+                                  <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(entry.captionLong || entry.long_caption || ''); toast.success('Copied!'); }} className="transition-opacity focus:outline-none">
                                     <Copy className="w-3 h-3 text-slate-400 hover:text-primary transition-colors" />
                                   </button>
                                 </div>
@@ -2632,7 +2653,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                     const tags = Array.isArray(entry.hashtags) ? entry.hashtags.map(t => t.startsWith('#') ? t : `#${t}`).join(' ') : String(entry.hashtags);
                                     navigator.clipboard.writeText(tags || '');
                                     toast.success('Copied!');
-                                  }} className="opacity-0 group-hover/field:opacity-100 transition-opacity focus:outline-none">
+                                  }} className="transition-opacity focus:outline-none">
                                     <Copy className="w-3 h-3 text-slate-400 hover:text-primary transition-colors" />
                                   </button>
                                 </div>
@@ -3542,7 +3563,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                           navigator.clipboard.writeText(cluster.tags.join(' '));
                           toast.success("Cluster copied!");
                         }}
-                        className="absolute top-6 right-6 opacity-0 group-hover/cluster:opacity-100 transition-opacity text-slate-400 hover:text-primary"
+                        className="absolute top-6 right-6 transition-opacity text-slate-400 hover:text-primary"
                       >
                         <Copy className="w-4 h-4" />
                       </button>
@@ -3694,7 +3715,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                       </div>
                     )}
 
-                    <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-20 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 duration-500 flex flex-col gap-2">
+                    <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-20 flex flex-col gap-2">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -3724,7 +3745,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                       </div>
                     )}
 
-                    <div className="absolute inset-x-0 bottom-0 p-3 sm:p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-500 flex flex-col z-20">
+                    <div className="absolute inset-x-0 bottom-0 p-3 sm:p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex flex-col z-20">
                       <div className="flex items-center justify-between mb-0.5 sm:mb-1">
                         <span className="text-[7px] sm:text-[10px] font-black text-white uppercase tracking-widest truncate mr-1">
                           {asset.metadata?.isMagicCreate ? 'Neural' : (asset.assetType?.replace('_', ' ') || 'AI ART')}
@@ -3826,7 +3847,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                           {i + 1}
                         </div>
                         {/* Per-slide action buttons Ã¢â‚¬â€ visible on hover */}
-                        <div className="absolute bottom-4 right-4 flex flex-col gap-2 opacity-0 group-hover/slide:opacity-100 transition-all duration-300 translate-y-2 group-hover/slide:translate-y-0">
+                        <div className="absolute bottom-4 right-4 flex flex-col gap-2 transition-all duration-300">
                           {/* Download */}
                           <button
                             title="Download Slide"
@@ -3884,7 +3905,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                         alt="Artifact Full Preview"
                         onClick={() => setExpandedImage(toProxyUrl(selectedAsset.gcsUrl))}
                       />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/hero:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
                         <div className="px-6 py-3 bg-white/20 backdrop-blur-md rounded-2xl border border-white/30 text-white font-black text-xs uppercase tracking-[4px]">Click for Full Dimension</div>
                       </div>
                     </>
@@ -3952,7 +3973,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                           <div className="group">
                             <div className="flex items-center justify-between mb-3">
                               <span className="text-[9px] font-black text-slate-400 uppercase tracking-[4px]">✦ Hook / Headline</span>
-                              <button onClick={() => { navigator.clipboard.writeText(hook); toast.success('Hook copied!'); }} className="opacity-0 group-hover:opacity-100 w-8 h-8 rounded-xl bg-slate-50 text-slate-400 hover:bg-primary hover:text-white transition-all flex items-center justify-center">
+                              <button onClick={() => { navigator.clipboard.writeText(hook); toast.success('Hook copied!'); }} className="w-8 h-8 rounded-xl bg-slate-50 text-slate-400 hover:bg-primary hover:text-white transition-all flex items-center justify-center">
                                 <Copy className="w-3.5 h-3.5" />
                               </button>
                             </div>
@@ -3967,7 +3988,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                             <div className="group bg-slate-50 p-6 rounded-[24px] border border-slate-100">
                               <div className="flex items-center justify-between mb-3">
                                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-[3px]">Short Caption</span>
-                                <button onClick={() => { navigator.clipboard.writeText(shortCaption); toast.success('Short caption copied!'); }} className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-lg bg-white text-slate-400 hover:bg-primary hover:text-white transition-all flex items-center justify-center shadow-sm">
+                                <button onClick={() => { navigator.clipboard.writeText(shortCaption); toast.success('Short caption copied!'); }} className="w-7 h-7 rounded-lg bg-white text-slate-400 hover:bg-primary hover:text-white transition-all flex items-center justify-center shadow-sm">
                                   <Copy className="w-3 h-3" />
                                 </button>
                               </div>
@@ -3980,7 +4001,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                             <div className="group bg-slate-50 p-6 rounded-[24px] border border-slate-100">
                               <div className="flex items-center justify-between mb-3">
                                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-[3px]">Long Caption</span>
-                                <button onClick={() => { navigator.clipboard.writeText(longCaption); toast.success('Long caption copied!'); }} className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-lg bg-white text-slate-400 hover:bg-primary hover:text-white transition-all flex items-center justify-center shadow-sm">
+                                <button onClick={() => { navigator.clipboard.writeText(longCaption); toast.success('Long caption copied!'); }} className="w-7 h-7 rounded-lg bg-white text-slate-400 hover:bg-primary hover:text-white transition-all flex items-center justify-center shadow-sm">
                                   <Copy className="w-3 h-3" />
                                 </button>
                               </div>
@@ -3994,7 +4015,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                           <div className="group bg-indigo-50/60 p-6 rounded-[24px] border border-indigo-100">
                             <div className="flex items-center justify-between mb-3">
                               <span className="text-[9px] font-black text-indigo-400 uppercase tracking-[3px]">Slide Breakdown</span>
-                              <button onClick={() => { navigator.clipboard.writeText(String(breakdown)); toast.success('Breakdown copied!'); }} className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-lg bg-white text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all flex items-center justify-center shadow-sm">
+                              <button onClick={() => { navigator.clipboard.writeText(String(breakdown)); toast.success('Breakdown copied!'); }} className="w-7 h-7 rounded-lg bg-white text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all flex items-center justify-center shadow-sm">
                                 <Copy className="w-3 h-3" />
                               </button>
                             </div>
@@ -4061,10 +4082,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                         <span className="px-4 py-1.5 rounded-full bg-primary/5 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/10">
                           {v.type || `Variation ${i + 1}`}
                         </span>
-                        <button
-                          onClick={() => { navigator.clipboard.writeText(v.text); toast.success("Variation Copied!"); }}
-                          className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:bg-primary hover:text-white transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 shadow-sm"
-                        >
+                          <button
+                            onClick={() => { navigator.clipboard.writeText(v.text); toast.success("Variation Copied!"); }}
+                            className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:bg-primary hover:text-white transition-all flex items-center justify-center shadow-sm"
+                          >
                           <Copy className="w-4 h-4" />
                         </button>
                       </div>
@@ -5368,8 +5389,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                             <div className="flex flex-col gap-2">
                               <div className="flex justify-between items-center">
                                 <span className="text-[9px] font-black text-primary dark:text-indigo-400 uppercase tracking-[3px]">Main Caption</span>
-                                <button onClick={() => { navigator.clipboard.writeText(associatedPost.captionLong); toast.success('Copied!'); }} className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Copy className="w-3.5 h-3.5 text-slate-400 hover:text-primary transition-colors" />
+                                <button onClick={() => { navigator.clipboard.writeText(associatedPost.captionLong); toast.success('Copied!'); }} className="w-7 h-7 rounded-lg bg-white dark:bg-white/5 text-slate-300 hover:text-primary hover:bg-primary/5 transition-all flex items-center justify-center border border-slate-100 dark:border-white/5">
+                                  <Copy className="w-3 h-3" />
                                 </button>
                               </div>
                               <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed select-all font-medium">{associatedPost.captionLong}</p>
@@ -5384,8 +5405,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                             <div className="flex flex-col gap-2">
                               <div className="flex justify-between items-center">
                                 <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[3px]">Sub Caption</span>
-                                <button onClick={() => { navigator.clipboard.writeText(associatedPost.captionShort); toast.success('Copied!'); }} className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Copy className="w-3.5 h-3.5 text-slate-400 hover:text-primary transition-colors" />
+                                <button onClick={() => { navigator.clipboard.writeText(associatedPost.captionShort); toast.success('Copied!'); }} className="w-7 h-7 rounded-lg bg-white dark:bg-white/5 text-slate-300 hover:text-primary hover:bg-primary/5 transition-all flex items-center justify-center border border-slate-100 dark:border-white/5">
+                                  <Copy className="w-3 h-3" />
                                 </button>
                               </div>
                               <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed select-all font-medium">{associatedPost.captionShort}</p>
@@ -5503,23 +5524,19 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                       ${isSidebarCollapsed ? 'lg:w-24' : 'lg:w-[280px]'}
                       w-[280px] flex bg-white dark:bg-[#080808] border-r border-slate-200 dark:border-white/5 flex-col p-6 lg:p-8 shrink-0 group/sidebar
                     `}>
-
                         {/* Collapse Toggle */}
                         <button
                           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                          className="absolute -right-3 top-28 w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center shadow-lg border border-white dark:border-zinc-800 z-50 hover:scale-110 transition-all opacity-0 group-hover/sidebar:opacity-100"
+                          className="absolute -right-3 top-28 w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center shadow-lg border border-white dark:border-zinc-800 z-50 hover:scale-110 transition-all"
                         >
                           {isSidebarCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
                         </button>
 
-                        {/* Ã¢â€â‚¬Ã¢â€â‚¬ WORKSPACE HEADER Ã¢â€â‚¬Ã¢â€â‚¬ */}
                         {(() => {
                           const onboardedWs = allWorkspaces.find(w => w.onboarding?.completed);
                           const companyName = onboardedWs?.onboarding?.customName || currentUser?.name || 'My Company';
                           const companyAvatarUrl = onboardedWs?.onboarding?.profileImageUrl || currentUser?.avatar;
                           const activeBrandName = activeProfile?.companyName || workspace?.workspaceName || '';
-
-
                           return (
                             <Menu as="div" className="relative mb-8">
                               <Menu.Button
