@@ -64,7 +64,7 @@ const HomeRedirect = () => {
       return <Landing />;
     }
     // Otherwise (direct URL access), redirect to chat
-    return <Navigate to="/dashboard/chat" replace />;
+    return <Navigate to="/dashboard/chat/new" replace state={{ forceGlobal: true }} />;
   }
 
   // Non-authenticated users always see the landing page
@@ -79,9 +79,8 @@ const GuestRoute = ({ children }) => {
   const user = getUserData();
   const hasToken = user?.token;
 
-  // If user is already logged in, redirect to chat
   if (hasToken) {
-    return <Navigate to="/dashboard/chat" replace />;
+    return <Navigate to="/dashboard/chat/new" replace state={{ forceGlobal: true }} />;
   }
 
   // Otherwise, allow access to login/signup page
@@ -368,8 +367,9 @@ const NavigateProvider = () => {
           path={AppRoute.DASHBOARD}
           element={<DashboardLayout />}
         >
-          <Route index element={<Navigate to="chat" replace />} />
-          <Route path="chat/:sessionId?" element={<Chat />} />
+          <Route index element={<Navigate to="chat/new" replace state={{ forceGlobal: true }} />} />
+          <Route path="chat" element={<Navigate to="new" replace state={{ forceGlobal: true }} />} />
+          <Route path="chat/:sessionId" element={<Chat />} />
           <Route path="cases" element={<Chat />} />
           <Route path="case/:caseId" element={<Chat />} />
           <Route path="social-agent" element={<ProtectedRoute><SocialAgentPage /></ProtectedRoute>} />

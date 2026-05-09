@@ -27,7 +27,8 @@ export const useAILegalCRM = ({
   legalView,
   setLegalView,
   activeTool,
-  setActiveTool
+  setActiveTool,
+  setDashboardCategory
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -114,6 +115,7 @@ export const useAILegalCRM = ({
       setActiveTool(null);
       setActiveLegalToolkit(false);
       // setMessages([]); // REMOVED for master fix
+      if (setDashboardCategory) setDashboardCategory('business');
       navigate('/dashboard/chat/new', { replace: true });
     }
   };
@@ -128,6 +130,7 @@ export const useAILegalCRM = ({
     setCurrentProjectId(null);
     setMessages([]); // OK to clear when exiting AI Legal Toolkit entirely
     setLegalView('CHAT');
+    if (setDashboardCategory) setDashboardCategory('business');
     navigate('/dashboard/chat/new', { replace: true });
   };
 

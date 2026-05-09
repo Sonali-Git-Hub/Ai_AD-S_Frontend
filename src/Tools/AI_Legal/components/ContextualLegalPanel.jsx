@@ -23,12 +23,12 @@ const ContextualLegalPanel = ({ isOpen, onClose, onSelectTool, activeToolId }) =
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed top-20 right-4 bottom-24 w-[320px] bg-white/90 dark:bg-zinc-900/95 backdrop-blur-xl rounded-[32px] border border-slate-200 dark:border-white/10 shadow-2xl z-[1001] flex flex-col overflow-hidden"
+            className="fixed top-20 right-4 bottom-24 w-[320px] bg-white/90 dark:bg-[#0B1020]/95 backdrop-blur-xl rounded-[32px] border border-slate-200 dark:border-white/5 shadow-2xl z-[1001] flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-gradient-to-r from-indigo-500/5 to-purple-500/5">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-lg shadow-indigo-500/20">
+                <div className="p-2 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl text-white shadow-lg shadow-indigo-500/20">
                   <Scale size={18} />
                 </div>
                 <div>
@@ -64,8 +64,8 @@ const ContextualLegalPanel = ({ isOpen, onClose, onSelectTool, activeToolId }) =
                   >
                     <div className={`p-2.5 rounded-xl ${
                       isActive 
-                        ? 'bg-indigo-600 text-white' 
-                        : 'bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-zinc-400'
+                        ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white' 
+                        : 'bg-slate-100 dark:bg-[#131C31] text-slate-500 dark:text-[#94A3B8]'
                     }`}>
                       <Icon size={18} />
                     </div>

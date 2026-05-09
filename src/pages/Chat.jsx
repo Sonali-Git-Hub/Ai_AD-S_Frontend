@@ -50,6 +50,7 @@ import { detectIntent, mapModeToToolState } from '../services/intentService';
 import LoginRequiredModal from '../Components/LoginRequiredModal';
 
 import FuturisticToolCards from '../landingpage/FuturisticToolCards';
+import ModernDashboard from '../landingpage/ModernDashboard';
 import AisaTypingIndicator from '../Components/AisaTypingIndicator';
 import GmailConnectedModal from '../Components/GmailConnectedModal';
 import AISnapshot from '../landingpage/AISnapshot';
@@ -428,7 +429,7 @@ const getModeInfo = (mode) => {
     case MODES.FILE_ANALYSIS:
       return { label: "AI File Analysis", icon: Search, color: "text-blue-500", bg: "bg-blue-500/10", border: "border-blue-500/20" };
     case MODES.LEGAL_TOOLKIT:
-      return { label: "AI Legal™", icon: Scale, color: "text-indigo-600", bg: "bg-indigo-600/10", border: "border-indigo-600/20" };
+      return { label: "AI Legal™", icon: Scale, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-600/10 dark:bg-indigo-400/10", border: "border-indigo-600/20 dark:border-indigo-400/20" };
     case MODES.CASHFLOW:
       return { label: "AI CashFlow", icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20" };
     default:
@@ -918,7 +919,18 @@ const Chat = () => {
       const legalTool = PREMIUM_TOOLS.find(t => t.id === toolParam);
       activateToolWithTypingEffect(toolParam, legalTool?.name, true);
     }
-  }, [location.search, navigate, location.pathname]);
+
+    // Reset to normal chat if on new session with no specific tool/case/state
+    // This ensures landing on /dashboard/chat/new always shows the tool grid
+    // We only reset if NO tool is currently active to avoid clearing user intent
+    if (activeSessionId === 'new' && !params.get('caseId') && !params.get('tool') && !location.state?.fromTool && !activeTool && !activeLegalToolkit) {
+      if (currentMode === 'LEGAL_TOOLKIT') {
+        console.log("[Route] Resetting Legal Toolkit mode for new session");
+        setCurrentMode('NORMAL_CHAT');
+        setSelectedLegalTool(null);
+      }
+    }
+  }, [location.search, navigate, location.pathname, activeSessionId, location.state, currentMode, activeLegalToolkit, setSelectedLegalTool, setActiveTool, setCurrentMode, activeTool]);
 
 
   // Sync AI Ads Dashboard state to the URL so it persists on refresh
@@ -1026,6 +1038,7 @@ const Chat = () => {
 
   const [intentSuggestion, setIntentSuggestion] = useState(null);
   const [isIntentLoading, setIsIntentLoading] = useState(false);
+  const [dashboardCategory, setDashboardCategory] = useState('create');
   const [expandedMessageIds, setExpandedMessageIds] = useState(new Set());
 
   const toggleExpandMessage = (id) => {
@@ -1073,7 +1086,8 @@ const Chat = () => {
     legalView,
     setLegalView,
     activeTool,
-    setActiveTool
+    setActiveTool,
+    setDashboardCategory
   });
 
   // ─── Mobile Scroll Reset for Legal Views ──────────────────────────────────
@@ -3982,6 +3996,8 @@ const Chat = () => {
         }
 
         setLoadingText(`${activeToolName}... ⚖️`);
+        // Start generation tracking so the "AISA is thinking..." indicator shows
+        gen.start({ loadingText: `${activeToolName}... ⚖️` }, activeSessionId);
         try {
           const userMsgId = Date.now().toString();
           const newUserMsg = {
@@ -4085,10 +4101,14 @@ const Chat = () => {
           } else {
             throw new Error(res.data.error || 'Execution failed');
           }
+          gen.complete(activeSessionId);
+          setIsLoading(false);
+          chatLock.locked = false;
           return;
         } catch (err) {
           console.error('[LegalToolkit Error]:', err);
           toast.error(err.message || 'Failed to execute legal tool');
+          gen.complete(activeSessionId);
           setIsLoading(false);
           chatLock.locked = false;
           return;
@@ -7534,146 +7554,134 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
-                className="absolute inset-0 z-[100] pointer-events-none flex flex-col items-center justify-center overflow-y-auto overflow-x-hidden pb-32 md:pb-48 scrollbar-hide"
+                className="absolute inset-0 z-[100] pointer-events-none flex flex-col items-center justify-start overflow-y-auto overflow-x-hidden pb-32 md:pb-48 scrollbar-hide pt-4 sm:pt-6"
               >
                 <div className="relative z-10 flex flex-col items-center w-full max-w-7xl mx-auto px-4 sm:px-6 h-max mt-8 sm:mt-0 pointer-events-auto">
-                  <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.1 }}
-                    className="mb-4 sm:mb-6"
-                  >
-                    <img
-                      src={logo}
-                      alt="AISA"
-                      className="w-16 h-12 sm:w-20 sm:h-16 mx-auto object-cover object-top drop-shadow-[0_0_30px_rgba(var(--color-primary-rgb),0.4)] transition-all duration-700 hover:scale-110"
-                    />
-                  </motion.div>
-                  <section className="w-full px-0 mt-0">
-                    <FuturisticToolCards
-                      isAdmin={isAdminUser}
-                      activeToolId={
-                        isImageGeneration ? 'image' :
-                          isVideoGeneration ? 'video' :
-                            isDeepSearch ? 'deep_search' :
-                              isWebSearch ? 'web_search' :
-                                isCodeWriter ? 'code' :
-                                  isAudioConvertMode ? 'audio' :
-                                    isFileAnalysis ? 'document' :
-                                      isMagicEditing ? 'edit_image' :
-                                        isMagicVideoModalOpen ? 'image_to_video' :
-                                          isStockModalOpen ? 'ai_cashflow' :
-                                            isSocialMediaDashboardOpen ? 'aiad_agent' :
-                                              (activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT' || new URLSearchParams(window.location.search).get('tool')?.startsWith('legal_')) ? 'legal' : null
+                  <ModernDashboard 
+                    userName={user?.name || user?.email?.split('@')[0]}
+                    activeCategory={dashboardCategory}
+                    onCategoryChange={setDashboardCategory}
+                    activeToolId={
+                      isImageGeneration ? 'image' :
+                        isVideoGeneration ? 'video' :
+                          isDeepSearch ? 'deep_search' :
+                            isWebSearch ? 'web_search' :
+                              isCodeWriter ? 'code' :
+                                isAudioConvertMode ? 'audio' :
+                                  isFileAnalysis ? 'document' :
+                                    isMagicEditing ? 'edit_image' :
+                                      isMagicVideoModalOpen ? 'image_to_video' :
+                                        isStockModalOpen ? 'ai_cashflow' :
+                                          isSocialMediaDashboardOpen ? 'aiad_agent' :
+                                            (activeLegalToolkit || currentMode === 'LEGAL_TOOLKIT' || new URLSearchParams(window.location.search).get('tool')?.startsWith('legal_')) ? 'legal' : null
+                    }
+                    onToolSelect={(id) => {
+                      setIsImageGeneration(false);
+                      setIsVideoGeneration(false);
+                      setIsAudioConvertMode(false);
+                      setIsCodeWriter(false);
+                      setIsDeepSearch(false);
+                      setIsWebSearch(false);
+                      setIsFileAnalysis(false);
+                      setIsMagicEditing(false);
+                      setIsMagicImageModalOpen(false);
+                      setIsMagicVideoModalOpen(false);
+                      setIsCashFlowMode(false);
+                      setActiveTool(null);
+
+                      // Clear ALL legal states regardless of selection to prevent race conditions
+                      // We only re-enable specific legal states below if id === 'legal'
+                      if (id !== 'legal') {
+                        setActiveLegalToolkit(false);
+                        setCurrentMode(null);
+                        setSelectedLegalTool(null);
                       }
-                      onToolSelect={(id) => {
-                        setIsImageGeneration(false);
-                        setIsVideoGeneration(false);
-                        setIsAudioConvertMode(false);
-                        setIsCodeWriter(false);
-                        setIsDeepSearch(false);
-                        setIsWebSearch(false);
+
+                      if (id === 'image') {
+                        if (!checkPremiumTool('Image Generation')) return;
+                        setIsImageGeneration(true);
+                        setActiveTool('image');
+                        if (inputRef.current) { inputRef.current.value = "Generate an image of "; inputRef.current.focus(); }
+                        toast.success("Image Mode Active");
+                      } else if (id === 'video') {
+                        if (!checkPremiumTool('Generate Video')) return;
+                        setIsVideoGeneration(true);
+                        setActiveTool('video');
+                        if (inputRef.current) { inputRef.current.value = "Generate a video of "; inputRef.current.focus(); }
+                        toast.success("Video Mode Active");
+                      } else if (id === 'audio') {
+                        if (!checkPremiumTool('Convert to Audio')) return;
+                        setIsAudioConvertMode(true);
+                        setActiveTool('audio');
+                        if (inputRef.current) { inputRef.current.value = "Convert this text to audio: "; inputRef.current.focus(); }
+                        toast.success("Audio Mode Active");
+                      } else if (id === 'code') {
+                        if (!checkPremiumTool('Code Writer')) return;
+                        setIsCodeWriter(true);
+                        setActiveTool('code');
+                        if (inputRef.current) { inputRef.current.value = "Write a function to "; inputRef.current.focus(); }
+                        toast.success("Code Mode Active");
+                      } else if (id === 'deep_search') {
+                        if (!checkPremiumTool('Deep Search')) return;
+                        setIsDeepSearch(true);
+                        setActiveTool('deep_search');
+                        if (inputRef.current) { inputRef.current.value = "Research in-depth about "; inputRef.current.focus(); }
+                        toast.success("Deep Intelligence Active");
+                      } else if (id === 'web_search') {
+                        if (!checkPremiumTool('Web Search')) return;
+                        setIsWebSearch(true);
+                        setActiveTool('web_search');
+                        if (inputRef.current) { inputRef.current.value = "Search for live updates on "; inputRef.current.focus(); }
+                        toast.success("Real-Time Search Active");
+                      } else if (id === 'document') {
+                        if (!checkPremiumTool('Document Converter')) return;
+                        setIsDocumentConvert(true);
                         setIsFileAnalysis(false);
-                        setIsMagicEditing(false);
-                        setIsMagicImageModalOpen(false);
-                        setIsMagicVideoModalOpen(false);
+                        setActiveTool('document');
+                        uploadInputRef.current?.click();
+                        toast.success("Upload document for conversion");
+                      } else if (id === 'edit_image') {
+                        if (!checkPremiumTool('Edit Image')) return;
+                        setIsMagicEditing(true);
+                        setActiveTool('edit_image');
+                        if (!editRefImage && messages.length > 0) {
+                          const lastImg = [...messages].reverse().find(m => m.imageUrl);
+                          if (lastImg) setEditRefImage({ url: lastImg.imageUrl, name: 'Last Generated', type: 'image' });
+                        }
+                        toast.success("Image Editing Mode Active");
+                      } else if (id === 'image_to_video') {
+                        if (!checkPremiumTool('Image to Video')) return;
+                        setIsMagicVideoModalOpen(true);
+                        setActiveTool('image_to_video');
+                        toast.success("Image to Video Mode Active");
+                      } else if (id === 'ai_cashflow') {
+                        if (!checkPremiumTool('AI CashFlow')) return;
+                        setIsCashFlowMode(true);
+                        setIsStockModalOpen(true);
+                        setActiveTool('ai_cashflow');
+                        toast.success("AI CashFlow Active 📈");
+                      } else if (id === 'aiad_agent') {
+                        if (!checkPremiumTool('AI Ad Agent')) return;
+                        setIsSocialMediaDashboardOpen(true);
+                        setActiveTool('aiad_agent');
+                        toast.success("AI ADS™ Active");
+                      } else if (id === 'legal') {
+                        if (!checkPremiumTool('AI Legal')) return;
+
+                        // ENSURE FRESH START: Clear any active sub-tools or modes
+                        setCurrentMode(MODES.NORMAL_CHAT);
+                        setSelectedLegalTool(null);
+                        setLegalView('DASHBOARD'); // Force dashboard view for the toolkit card
+
                         setIsCashFlowMode(false);
-                        setActiveTool(null);
+                        setIsStockModalOpen(false);
+                        setActiveLegalToolkit(true);
+                        setActiveTool('legal');
 
-                        // Clear ALL legal states regardless of selection to prevent race conditions
-                        // We only re-enable specific legal states below if id === 'legal'
-                        if (id !== 'legal') {
-                          setActiveLegalToolkit(false);
-                          setCurrentMode(null);
-                          setSelectedLegalTool(null);
-                        }
-
-                        if (id === 'image') {
-                          if (!checkPremiumTool('Image Generation')) return;
-                          setIsImageGeneration(true);
-                          setActiveTool('image');
-                          if (inputRef.current) { inputRef.current.value = "Generate an image of "; inputRef.current.focus(); }
-                          toast.success("Image Mode Active");
-                        } else if (id === 'video') {
-                          if (!checkPremiumTool('Generate Video')) return;
-                          setIsVideoGeneration(true);
-                          setActiveTool('video');
-                          if (inputRef.current) { inputRef.current.value = "Generate a video of "; inputRef.current.focus(); }
-                          toast.success("Video Mode Active");
-                        } else if (id === 'audio') {
-                          if (!checkPremiumTool('Convert to Audio')) return;
-                          setIsAudioConvertMode(true);
-                          setActiveTool('audio');
-                          if (inputRef.current) { inputRef.current.value = "Convert this text to audio: "; inputRef.current.focus(); }
-                          toast.success("Audio Mode Active");
-                        } else if (id === 'code') {
-                          if (!checkPremiumTool('Code Writer')) return;
-                          setIsCodeWriter(true);
-                          setActiveTool('code');
-                          if (inputRef.current) { inputRef.current.value = "Write a function to "; inputRef.current.focus(); }
-                          toast.success("Code Mode Active");
-                        } else if (id === 'deep_search') {
-                          if (!checkPremiumTool('Deep Search')) return;
-                          setIsDeepSearch(true);
-                          setActiveTool('deep_search');
-                          if (inputRef.current) { inputRef.current.value = "Research in-depth about "; inputRef.current.focus(); }
-                          toast.success("Deep Intelligence Active");
-                        } else if (id === 'web_search') {
-                          if (!checkPremiumTool('Web Search')) return;
-                          setIsWebSearch(true);
-                          setActiveTool('web_search');
-                          if (inputRef.current) { inputRef.current.value = "Search for live updates on "; inputRef.current.focus(); }
-                          toast.success("Real-Time Search Active");
-                        } else if (id === 'document') {
-                          if (!checkPremiumTool('Document Converter')) return;
-                          setIsDocumentConvert(true);
-                          setIsFileAnalysis(false);
-                          setActiveTool('document');
-                          uploadInputRef.current?.click();
-                          toast.success("Upload document for conversion");
-                        } else if (id === 'edit_image') {
-                          if (!checkPremiumTool('Edit Image')) return;
-                          setIsMagicEditing(true);
-                          setActiveTool('edit_image');
-                          if (!editRefImage && messages.length > 0) {
-                            const lastImg = [...messages].reverse().find(m => m.imageUrl);
-                            if (lastImg) setEditRefImage({ url: lastImg.imageUrl, name: 'Last Generated', type: 'image' });
-                          }
-                          toast.success("Image Editing Mode Active");
-                        } else if (id === 'image_to_video') {
-                          if (!checkPremiumTool('Image to Video')) return;
-                          setIsMagicVideoModalOpen(true);
-                          setActiveTool('image_to_video');
-                          toast.success("Image to Video Mode Active");
-                        } else if (id === 'ai_cashflow') {
-                          if (!checkPremiumTool('AI CashFlow')) return;
-                          setIsCashFlowMode(true);
-                          setIsStockModalOpen(true);
-                          setActiveTool('ai_cashflow');
-                          toast.success("AI CashFlow Active 📈");
-                        } else if (id === 'aiad_agent') {
-                          if (!checkPremiumTool('AI Ad Agent')) return;
-                          setIsSocialMediaDashboardOpen(true);
-                          setActiveTool('aiad_agent');
-                          toast.success("AI ADS™ Active");
-                        } else if (id === 'legal') {
-                          if (!checkPremiumTool('AI Legal')) return;
-
-                          // ENSURE FRESH START: Clear any active sub-tools or modes
-                          setCurrentMode(MODES.NORMAL_CHAT);
-                          setSelectedLegalTool(null);
-                          setLegalView('DASHBOARD'); // Force dashboard view for the toolkit card
-
-                          setIsCashFlowMode(false);
-                          setIsStockModalOpen(false);
-                          setActiveLegalToolkit(true);
-                          setActiveTool('legal');
-
-                          toast.success("AI Legal™ Activated");
-                        }
-                      }}
-                    />
-                  </section>
+                        toast.success("AI Legal™ Activated");
+                      }
+                    }}
+                  />
                 </div>
               </motion.div>
             )}
@@ -7681,7 +7689,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
         {/* Unified Chat Input Container */}
         {legalView !== 'DASHBOARD' && legalView !== 'PRECEDENTS' && (
-          <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none">
+          <div className="absolute bottom-0 left-0 right-0 z-[1001] pointer-events-none">
             {/* Gradient Mask to hide text scrolling behind/below input - Removed to eliminate white shade */}
 
             <div className="relative z-20 bg-background" style={{ padding: '0.5rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px)) 1rem' }}>
@@ -7690,7 +7698,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                 <form
                   onSubmit={handleSendMessage}
-                  className="relative w-full flex flex-col transition-all duration-300 p-1 z-50 aisa-chat-input-wrapper bg-white dark:bg-[#121212] border border-slate-200/60 dark:border-zinc-800 rounded-[28px] sm:rounded-[32px] shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] dark:shadow-none overflow-visible"
+                  className="relative w-full flex flex-col transition-all duration-300 p-1 z-[1002] aisa-chat-input-wrapper bg-white dark:bg-[#121212] border border-slate-200/60 dark:border-zinc-800 rounded-[28px] sm:rounded-[32px] shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] dark:shadow-none overflow-visible"
                 >
                   {/* Internal File Preview Area */}
                   {(filePreviews.length > 0 || longTextPreview) && (
@@ -7787,7 +7795,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 
                     {/* AI CashFlow Search Results Dropdown */}
                     {isCashFlowMode && Array.isArray(stockSearchResults) && stockSearchResults.length > 0 && (
-                      <div className="absolute bottom-full left-0 right-0 mb-3 px-2 z-[110] pointer-events-auto max-h-[300px] overflow-y-auto custom-scrollbar">
+                      <div className="absolute bottom-full left-0 right-0 mb-3 px-2 z-[1020] pointer-events-auto max-h-[300px] overflow-y-auto custom-scrollbar">
                         <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden">
                           {stockSearchResults.map((stock) => (
                             <button
@@ -7813,18 +7821,34 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       </div>
                     )}
 
+                    {/* Menu Backdrop Layer */}
+                    <AnimatePresence>
+                      {(isAttachMenuOpen || isToolsMenuOpen) && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="fixed inset-0 z-[1010] bg-black/5 dark:bg-black/20 backdrop-blur-[1px] pointer-events-auto"
+                          onClick={() => {
+                            setIsAttachMenuOpen(false);
+                            setIsToolsMenuOpen(false);
+                          }}
+                        />
+                      )}
+                    </AnimatePresence>
+
                     {/* Left Actions Group */}
                     <AnimatePresence>
                       {isAttachMenuOpen && (
                         <motion.div
-                          initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                          initial={{ opacity: 0, scale: 0.95, y: 15 }}
                           animate={{ opacity: 1, scale: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                          transition={{ duration: 0.2, ease: "easeOut" }}
+                          exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                          transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
                           ref={menuRef}
-                          className={`absolute bottom-full left-0 ${(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || currentMode === 'LEGAL_TOOLKIT') ? 'mb-[60px]' : 'mb-4'} w-[min(85vw,220px)] bg-surface/95 dark:bg-[#1a1a1a]/95 border border-border/50 rounded-2xl shadow-2xl overflow-hidden z-[110] backdrop-blur-xl ring-1 ring-black/5`}
+                          className={`fixed sm:absolute bottom-[max(80px,calc(env(safe-area-inset-bottom)+80px))] sm:bottom-full left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 ${(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || currentMode === 'LEGAL_TOOLKIT') ? 'sm:mb-[68px]' : 'sm:mb-6'} w-[calc(100%-32px)] sm:w-[220px] bg-white/95 dark:bg-[#1c1c1e]/95 border border-slate-200/50 dark:border-white/10 rounded-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)] dark:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden z-[1020] backdrop-blur-xl ring-1 ring-black/[0.05]`}
                         >
-                          <div className="p-2 space-y-1">
+                          <div className="p-2.5 space-y-1">
                             {getAgentCapabilities(activeAgent.agentName, activeAgent.category).canCamera && (
                               <button
                                 type="button"
@@ -7832,23 +7856,23 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                   cameraInputRef.current?.click();
                                   setIsAttachMenuOpen(false);
                                 }}
-                                className="w-full text-left px-3 py-2 flex items-center gap-3 hover:bg-primary/10 rounded-xl transition-all group cursor-pointer"
+                                className="w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 hover:bg-primary/10 rounded-xl transition-all group cursor-pointer"
                               >
-                                <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center group-hover:border-primary/30 group-hover:bg-primary/20 transition-colors shrink-0">
-                                  <Camera className="w-4 h-4 text-subtext group-hover:text-primary transition-colors" />
+                                <div className="w-9 h-9 rounded-full bg-slate-50 dark:bg-white/5 border border-slate-200/50 dark:border-white/10 flex items-center justify-center group-hover:border-primary/30 group-hover:bg-primary/10 transition-colors shrink-0">
+                                  <Camera className="w-4.5 h-4.5 text-slate-500 dark:text-slate-400 group-hover:text-primary transition-colors" />
                                 </div>
-                                <span className="text-[13px] font-semibold text-maintext group-hover:text-primary transition-colors">Camera & Scan</span>
+                                <span className="text-[14px] font-bold text-slate-700 dark:text-slate-200 group-hover:text-primary transition-colors">Camera & Scan</span>
                               </button>
                             )}
                             <label
                               htmlFor="file-upload"
                               onClick={() => setIsAttachMenuOpen(false)}
-                              className="w-full text-left px-3 py-2 flex items-center gap-3 hover:bg-primary/10 rounded-xl transition-all group cursor-pointer"
+                              className="w-full text-left px-3.5 py-2.5 flex items-center gap-3.5 hover:bg-primary/10 rounded-xl transition-all group cursor-pointer"
                             >
-                              <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center group-hover:border-primary/30 group-hover:bg-primary/20 transition-colors shrink-0">
-                                <Paperclip className="w-4 h-4 text-subtext group-hover:text-primary transition-colors" />
+                              <div className="w-9 h-9 rounded-full bg-slate-50 dark:bg-white/5 border border-slate-200/50 dark:border-white/10 flex items-center justify-center group-hover:border-primary/30 group-hover:bg-primary/10 transition-colors shrink-0">
+                                <Paperclip className="w-4.5 h-4.5 text-slate-500 dark:text-slate-400 group-hover:text-primary transition-colors" />
                               </div>
-                              <span className="text-[13px] font-semibold text-maintext group-hover:text-primary transition-colors">Upload files</span>
+                              <span className="text-[14px] font-bold text-slate-700 dark:text-slate-200 group-hover:text-primary transition-colors">Upload files</span>
                             </label>
                           </div>
                         </motion.div>
@@ -7858,25 +7882,29 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                     <AnimatePresence>
                       {isToolsMenuOpen && (
                         <motion.div
-                          initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                          initial={{ opacity: 0, scale: 0.95, y: 15 }}
                           animate={{ opacity: 1, scale: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                          transition={{ duration: 0.2, ease: "easeOut" }}
+                          exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                          transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
                           ref={toolsMenuRef}
-                          className={`absolute bottom-full left-0 ${(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || currentMode === 'LEGAL_TOOLKIT') ? 'mb-[60px]' : 'mb-[16px]'} w-[min(94vw,310px)] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[36px] shadow-[0_40px_80px_-15px_rgba(0,0,0,0.2)] overflow-hidden z-[110] ring-1 ring-black/5`}
+                          className={`fixed sm:absolute bottom-[max(80px,calc(env(safe-area-inset-bottom)+80px))] sm:bottom-full left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 ${(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || currentMode === 'LEGAL_TOOLKIT') ? 'sm:mb-[68px]' : 'sm:mb-6'} w-[calc(100%-24px)] sm:w-[320px] bg-white dark:bg-[#1c1c1e] border border-slate-200/50 dark:border-white/10 rounded-[32px] shadow-[0_30px_60px_-12px_rgba(0,0,0,0.3)] dark:shadow-[0_30px_60px_-12px_rgba(0,0,0,0.6)] overflow-hidden z-[1020] ring-1 ring-black/[0.05] backdrop-blur-xl`}
                           style={{ maxHeight: 'calc(100vh - 180px)' }}
                         >
-                          <div className="px-6 py-5 bg-slate-50 dark:bg-zinc-800/80 border-b border-slate-100 dark:border-zinc-800 shrink-0">
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center overflow-hidden border border-white/20">
-                                <img src={logo} alt="AISA" className="w-7 h-5 object-cover object-top" />
+                          <div className="px-6 py-5 bg-slate-50/50 dark:bg-white/5 border-b border-slate-200/50 dark:border-white/5 shrink-0">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center overflow-hidden border border-primary/20 shadow-inner">
+                                <img src={logo} alt="AISA" className="w-8 h-5.5 object-cover object-top" />
                               </div>
-                              <h3 className="text-[16px] font-black text-slate-800 dark:text-white uppercase tracking-tight">
-                                AISA ™ Magic Tools
-                              </h3>
+                              <div>
+                                <h3 className="text-[17px] font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none">
+                                  AISA ™ Magic Tools
+                                </h3>
+                                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 mt-1 uppercase tracking-widest">Advanced Suite</p>
+                              </div>
                             </div>
                           </div>
-                          <div className="p-1.5 pb-12 space-y-1 overflow-y-auto scrollbar-hide scroll-smooth will-change-transform" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+                          <div className="p-2 pb-12 space-y-1.5 overflow-y-auto scrollbar-hide scroll-smooth will-change-transform" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+                            {/* Tools are rendered below */}
 
                             <button
                               type="button"
@@ -8301,7 +8329,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             setIsAttachMenuOpen(!isAttachMenuOpen);
                             setIsToolsMenuOpen(false);
                           }}
-                          className="w-[30px] h-[30px] sm:w-[34px] sm:h-[34px] rounded-full flex items-center justify-center bg-slate-50 dark:bg-zinc-800 text-slate-500 hover:text-primary transition-all border border-slate-200/50 dark:border-zinc-700/50 shadow-sm"
+                          className="w-[30px] h-[30px] sm:w-[34px] sm:h-[34px] rounded-full flex items-center justify-center bg-slate-50 dark:bg-zinc-800 text-slate-500 hover:text-primary transition-all border border-slate-200/50 dark:border-zinc-700/50 shadow-sm relative z-[1003]"
                           title="Attachments"
                         >
                           <Plus className={`w-5 h-5 transition-transform duration-300 ${isAttachMenuOpen ? 'rotate-45' : ''}`} />
@@ -8318,7 +8346,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             setIsToolsMenuOpen(!isToolsMenuOpen);
                             setIsAttachMenuOpen(false);
                           }}
-                          className="w-[32px] h-[32px] rounded-full flex items-center justify-center bg-slate-50 dark:bg-zinc-800 text-slate-500 hover:text-primary transition-all border border-slate-200/50 dark:border-zinc-700/50 shadow-sm"
+                          className="w-[32px] h-[32px] rounded-full flex items-center justify-center bg-slate-50 dark:bg-zinc-800 text-slate-500 hover:text-primary transition-all border border-slate-200/50 dark:border-zinc-700/50 shadow-sm relative z-[1003]"
                           title="AISA ™ Magic Tools"
                         >
                           <Brain className="w-5 h-5" />
