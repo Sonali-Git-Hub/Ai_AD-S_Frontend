@@ -138,8 +138,9 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--active-font-family, 'Outfit', sans-serif);
-    overflow-wrap: break-word;
-    word-wrap: break-word;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   /* Marked/Highlighted text styling */
@@ -354,6 +355,23 @@
   box-shadow: 15px 0 40px rgba(0, 0, 0, 0.3);
 }
 
+@media (max-width: 1024px) {
+  .sidebar-glass {
+    background-color: #ffffff !important;
+    background-image: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-right: 1px solid #e2e8f0 !important;
+  }
+  .dark .sidebar-glass {
+    background-color: #0f172a !important;
+    background-image: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-right: 1px solid #1e293b !important;
+  }
+}
+
 /* Glass aesthetic for message cards and other surfaces to match sidebar */
 .message-card-glass {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
@@ -458,14 +476,16 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Momentum scroll on iOS + smooth on all browsers */
-body,
+/* Momentum scroll on iOS */
+body {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Chat and scrollable areas: instant scroll for programmatic jumps */
+.chatgpt-container,
 .overflow-y-auto,
-.overflow-y-scroll,
-[class*="overflow-y-auto"],
 [class*="custom-scrollbar"] {
   -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
 }
 
 /* GPU-accelerate ALL animated blobs */
@@ -473,12 +493,6 @@ body,
 [class*="mix-blend-screen"],
 [class*="mix-blend-soft-light"] {
   will-change: transform, opacity;
-}
-
-/* GPU-accelerate framer-motion animated divs that use background */
-[style*="background: radial-gradient"],
-[style*="background: linear-gradient"] {
-  will-change: background;
 }
 
 /* Isolate the glassmorphic card containers */
@@ -535,6 +549,25 @@ body,
   /* Chrome, Safari and Opera */
 }
 
+/* Chat Container - Ensures scrollability in all modes */
+.chatgpt-container {
+  -webkit-overflow-scrolling: touch; /* iOS momentum scroll */
+  overscroll-behavior: contain;      /* Prevent scroll chaining */
+  scroll-behavior: auto;             /* Instant scroll for programmatic jumps */
+}
+
+/* When a magic tool chip row is active, extra padding is applied via JS class.
+   This ensures the last message never hides behind the input bar. */
+.chatgpt-container.tool-active {
+  padding-bottom: 22rem !important;
+}
+
+@media (max-width: 768px) {
+  .chatgpt-container.tool-active {
+    padding-bottom: 20rem !important;
+  }
+}
+
 .admin-horizontal-scrollbar {
   overflow-x: auto;
   scrollbar-width: thin;
@@ -574,15 +607,7 @@ body,
   border-radius: 99px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-
-  html.is-scrolling [style*="backdrop-filter"],
-  html.is-scrolling [class*="backdrop-blur"] {
-    backdrop-filter: blur(0px) !important;
-    -webkit-backdrop-filter: blur(0px) !important;
-    transition: backdrop-filter 0.2s cubic-bezier(0.22, 1, 0.36, 1);
-  }
-}
+/* Scroll-pause backdrop optimization removed — caused full-screen repaint flicker */
 
 @media (max-width: 768px) {
   [class*="backdrop-blur"] {
@@ -626,7 +651,7 @@ body,
 /* --- AISA PREMIUM DESIGN SYSTEM --- */
 
 .navbar {
-  transition: transform 0.3s ease-in-out;
+  /* No scroll-triggered transform — prevents flicker on scroll */
 }
 
 .glass-morphism {
@@ -863,9 +888,9 @@ html.lenis body {
   background-color: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-  word-break: break-word;
+  overflow-wrap: anywhere !important;
+  word-wrap: break-word !important;
+  word-break: normal !important;
   user-select: text !important;
   -webkit-user-select: text !important;
   pointer-events: auto !important;
@@ -1181,9 +1206,9 @@ html.lenis body {
   justify-content: space-between !important;
   align-items: center !important;
   width: 100% !important;
-  padding: 5px 12px !important;
-  gap: 10px !important;
-  border-radius: 14px !important;
+  padding: 3.5px 12px !important;
+  gap: 8px !important;
+  border-radius: 12px !important;
 }
 
 .sidebar-chat-title-group {
@@ -1199,7 +1224,7 @@ html.lenis body {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: 800;
-  font-size: 13px;
+  font-size: 12.5px;
   letter-spacing: -0.01em;
 }
 
@@ -1369,6 +1394,16 @@ html.lenis body {
   .chatgpt-message-content {
     gap: 0 !important;
   }
+
+  /* Safe Area Support for Mobile Input */
+  .chat-input-container {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Prevent overlapping of fixed header pills */
+  .chatgpt-container {
+    padding-top: 10px !important;
+  }
 }
 
 /* --- FOCUS MODE STYLES --- */
@@ -1524,3 +1559,41 @@ body.modal-open-hide-navbar {
 .chatgpt-message-content {
   user-select: text !important;
 }
+
+/* Safe Area & Mobile Helpers */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.overflow-wrap-anywhere {
+  overflow-wrap: anywhere !important;
+  word-break: normal !important;
+}
+
+/* Ensure full height on mobile */
+@media (max-width: 640px) {
+  .chat-container {
+    height: 100dvh !important;
+  }
+}
+
+::selection { background: rgba(180, 180, 180, 0.28) !important; color: inherit !important; }
+::-moz-selection { background: rgba(180, 180, 180, 0.28) !important; color: inherit !important; }
+.dark ::selection { background: rgba(255, 255, 255, 0.18) !important; color: inherit !important; }
+.dark ::-moz-selection { background: rgba(255, 255, 255, 0.18) !important; color: inherit !important; }
+
+.chatgpt-message-row { user-select: text !important; }
+.chatgpt-message-row * { user-select: text !important; }
+.selection-toolbar-container { user-select: none !important; }
+
+/* Hide scrollbar for tab navigation */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

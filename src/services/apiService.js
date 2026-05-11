@@ -1316,6 +1316,16 @@ export const apiService = {
     }
   },
 
+  async deductCredits(payload) {
+    try {
+      const response = await apiClient.post('/subscription/deduct-credits', payload);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to deduct credits:", error);
+      throw error;
+    }
+  },
+
   // --- Projects ---
   async getProjects() {
     try {

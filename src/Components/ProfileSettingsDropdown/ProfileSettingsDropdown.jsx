@@ -1491,7 +1491,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                             </button>
                         </div>
 
-                        <div className="relative h-[250px] sm:h-[400px] bg-[#161B2E]">
+                        <div className="relative h-[250px] sm:h-[400px] bg-gray-200 dark:bg-[#161B2E]">
                             <Cropper
                                 image={imageToCrop}
                                 crop={crop}

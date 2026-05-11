@@ -154,14 +154,14 @@ export const PrivacyPolicyContent = () => {
                 </>
             ) : (
                 <>
-                    <div className="bg-surface rounded-xl p-4 border border-border">
+                    <div className="bg-white dark:bg-white/[0.04] rounded-xl p-4 border border-border">
                         <p className="text-sm text-maintext leading-relaxed">
                             {t('pp_intro')}
                         </p>
                     </div>
 
                     {sections.map((section, index) => (
-                        <div key={index} className="bg-surface rounded-xl p-5 border border-border hover:border-primary/30 transition-all">
+                        <div key={index} className="bg-white dark:bg-white/[0.04] rounded-xl p-5 border border-border hover:border-primary/30 transition-all">
                             <div className="flex items-start gap-3 mb-4">
                                 <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                                     <section.icon className="w-5 h-5 text-primary" />

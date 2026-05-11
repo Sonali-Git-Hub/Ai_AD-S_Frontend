@@ -25,6 +25,7 @@ import {
   Trash2,
   Edit2,
   Check,
+  Square,
   FolderPlus,
   Folder,
   FolderOpen,
@@ -36,7 +37,10 @@ import {
   Info,
   Home,
   CreditCard,
-  IndianRupee
+  IndianRupee,
+  Scale,
+  History,
+  RefreshCcw
 } from 'lucide-react';
 import { apis, AppRoute, API } from '../../types';
 import ShareModal from '../ShareModal';
@@ -58,6 +62,9 @@ import ProfileSettingsDropdown from '../ProfileSettingsDropdown/ProfileSettingsD
 import { getSubscriptionDetails } from '../../services/pricingService';
 import { apiService } from '../../services/apiService';
 import DeleteConfirmModal from '../DeleteConfirmModal.jsx';
+import { useGenerationStore, selectGeneratingChatIds } from '../../userStore/useGenerationStore';
+import { useShallow } from 'zustand/react/shallow';
+import useCreditStore from '../../userStore/useCreditStore';
 
 
 const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
@@ -77,8 +84,15 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
   const [isNavigating, setIsNavigating] = useState(false);
   const [isConnectorsOpen, setIsConnectorsOpen] = useState(false);
   const [isCreditsOpen, setIsCreditsOpen] = useState(false);
-  const [creditLogs, setCreditLogs] = useState([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
+  
+  // Use Global Credit Store
+  const { 
+    currentCredits, 
+    recentTransactions, 
+    syncCredits, 
+    fetchHistory,
+    isLoading: isCreditsLoading 
+  } = useCreditStore();
 
 
   const [sessions, setSessions] = useRecoilState(sessionsData);
@@ -105,8 +119,12 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [currentShareId, setCurrentShareId] = useState('');
   const [sessionToShare, setSessionToShare] = useState(null);
-  const [, setMode] = useRecoilState(activeModeData);
+  const [currentMode, setMode] = useRecoilState(activeModeData);
   const [expandedHistoryGroups, setExpandedHistoryGroups] = useState({});
+
+  // ── Live generation status ──────────────────────────────────────
+  // Subscribe to the global generation store so generating chats show live dots
+  const generatingChatIds = useGenerationStore(useShallow(selectGeneratingChatIds));
 
   const toggleHistoryGroup = (groupKey) => {
     setExpandedHistoryGroups(prev => ({
@@ -177,27 +195,20 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
     }
   }, [token]);
 
-  const fetchCreditLogs = async () => {
-    try {
-      setLoadingHistory(true);
-      const res = await axios.get(`${API}/subscription/credit-history`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.data.success) {
-        setCreditLogs(res.data.logs);
-      }
-    } catch (error) {
-      console.error("Failed to fetch credit logs", error);
-    } finally {
-      setLoadingHistory(false);
-    }
-  };
-
   useEffect(() => {
     if (isCreditsOpen && token) {
-      fetchCreditLogs();
+      fetchHistory();
     }
   }, [isCreditsOpen, token]);
+
+  // Sync credits initially and set up periodic sync
+  useEffect(() => {
+    if (token) {
+      syncCredits();
+      const interval = setInterval(syncCredits, 60000); // Every minute
+      return () => clearInterval(interval);
+    }
+  }, [token]);
 
   // Fetch projects for logged-in users
   useEffect(() => {
@@ -348,6 +359,9 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
     e.stopPropagation();
     try {
       await chatStorageService.deleteSession(sessionIdToDelete);
+      // Clean up global generation state for this chat
+      useGenerationStore.getState().clearGeneration(sessionIdToDelete);
+      
       const updatedSessions = await chatStorageService.getSessions(currentProjectId);
       setSessions(updatedSessions);
       if (currentSessionId === sessionIdToDelete) {
@@ -465,7 +479,13 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
 
   const handleSwitchProject = (projectId) => {
     setCurrentProjectId(projectId);
-    navigate('/dashboard/chat/new');
+    const p = projects.find(proj => proj._id === projectId);
+    if (p?.isLegalCase) {
+      navigate(`/dashboard/case/${projectId}`);
+    } else {
+      navigate('/dashboard/chat/new');
+    }
+    if (onClose) onClose();
   };
 
   const currentProject = projects.find(p => p._id === currentProjectId);
@@ -489,10 +509,13 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
       </AnimatePresence>
 
       {isOpen && (
-        <div
-          className={`fixed inset-0 z-[90] backdrop-blur-[6px] lg:hidden animate-in fade-in duration-300
-            ${isDark ? 'bg-black/60' : 'bg-slate-900/40'}`}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
           onClick={onClose}
+          className={`fixed inset-0 z-[1990] backdrop-blur-[6px] lg:hidden animate-in fade-in duration-300
+            ${isDark ? 'bg-black/60' : 'bg-slate-900/40'}`}
         />
       )}
 
@@ -500,9 +523,10 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
         ref={sidebarRef}
         onMouseMove={handleSidebarMouseMove}
         className={`
-          fixed inset-y-0 left-0 z-[100] w-[280px] sm:w-72 lg:w-[280px] 
+          fixed inset-y-0 left-0 z-[2000] w-[280px] sm:w-72 lg:w-[280px] 
           sidebar-glass flex flex-col transition-all duration-500 ease-in-out 
           lg:relative lg:translate-x-0 
+          bg-white dark:bg-[#0f172a] lg:bg-transparent
           shadow-[0_8px_32px_0_rgba(0,0,0,0.2)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.5)]
           lg:shadow-none overflow-hidden
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -515,75 +539,70 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
           <div className="absolute bottom-[10%] right-[-10%] w-[50%] h-[50%] bg-primary/30 blur-[100px] animate-float-slow" style={{ animationDelay: '-5s' }} />
         </div>
         {/* Brand & Top Actions */}
-        <div className="p-6 pb-2 mb-2 flex items-center justify-between relative z-10 flex-wrap gap-y-3">
-          <Link to="/" state={{ fromLogo: true }} className="group/logo flex items-center gap-2">
-            <div className="relative">
-              <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 animate-pulse opacity-0 group-hover/logo:opacity-100 transition-opacity" />
-              <img
-                src={logo}
-                alt="AISA™"
-                className="h-9 w-auto relative z-10 transition-transform duration-500 group-hover/logo:scale-110 drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]"
-              />
-            </div>
-            <span className="text-xl font-black tracking-tighter transition-all duration-300" style={{ background: 'linear-gradient(135deg, #9333ea 0%, #3b82f6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontFamily: '"Times New Roman", Times, serif', display: 'inline-block', paddingRight: '2px' }}>AISA<span style={{ fontSize: '0.6em', verticalAlign: 'super', marginLeft: '2px' }}>™</span></span>
-          </Link>
+        <div className="p-5 pb-2 mb-2 flex flex-col gap-4 relative z-10 border-b border-white/5 lg:border-none">
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-3 flex-nowrap">
+              <Link to="/" state={{ fromLogo: true }} className="group/logo flex items-center gap-2">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full scale-150 animate-pulse opacity-0 group-hover/logo:opacity-100 transition-opacity" />
+                  <img
+                    src={logo}
+                    alt="AISA™"
+                    className="h-8 w-auto relative z-10 transition-transform duration-500 group-hover/logo:scale-110"
+                  />
+                </div>
+                <span className="text-lg font-black tracking-tighter whitespace-nowrap" style={{ background: 'linear-gradient(135deg, #9333ea 0%, #3b82f6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontFamily: '"Times New Roman", Times, serif' }}>
+                  AISA<span style={{ fontSize: '0.55em', verticalAlign: 'super', marginLeft: '1px' }}>TM</span>
+                </span>
+              </Link>
 
-          <div className="flex items-center relative z-10 bg-black/5 border border-[#8B5CF6]/30 rounded-full p-0.5 w-24 h-7">
-            <motion.div
-              className="absolute top-0.5 bottom-0.5 left-0.5 w-[46px] bg-[#8B5CF6] rounded-full shadow-sm z-0"
-              initial={false}
-              animate={{
-                x: isNavigating ? 46 : 0
-              }}
-              transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            />
-            <div className={`relative z-10 w-[46px] flex justify-center items-center text-[9px] font-bold transition-colors ${!isNavigating ? 'text-white' : (isDark ? 'text-gray-400' : 'text-gray-500')}`}>
-              AISA
+              {/* AISA/MALL Toggle - Now side-by-side */}
+              <div className="flex items-center relative z-10 bg-black/5 border border-[#9333ea]/30 rounded-full p-0.5 w-fit h-7">
+                <motion.div
+                  className="absolute top-0.5 bottom-0.5 left-0.5 w-[46px] rounded-full shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_2px_4px_rgba(0,0,0,0.1)] z-0"
+                  style={{ background: 'linear-gradient(135deg, #a78bfa 0%, #8b5cf6 50%, #60a5fa 100%)' }}
+                  initial={false}
+                  animate={{
+                    x: isNavigating ? 46 : 0
+                  }}
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                />
+                <div className={`relative z-10 w-[46px] flex justify-center items-center text-[9px] font-bold transition-colors ${!isNavigating ? 'text-white' : (isDark ? 'text-gray-400' : 'text-gray-500')}`}>
+                  AISA
+                </div>
+                <button
+                  onClick={async () => {
+                    const targetUrl = (window._env_ && window._env_.VITE_AI_MALL) || import.meta.env.VITE_AI_MALL;
+                    if (!targetUrl) return;
+                    const sessionToken = getUserData()?.token || localStorage.getItem('token');
+                    if (!sessionToken) { window.location.href = targetUrl; return; }
+                    setIsNavigating(true);
+                    try {
+                      const { data } = await axios.post(apis.ssoGenerate, {}, { headers: { 'Authorization': `Bearer ${sessionToken}` } });
+                      const base = targetUrl.endsWith('/') ? targetUrl.slice(0, -1) : targetUrl;
+                      window.location.href = `${base}/dashboard/marketplace?sso_token=${encodeURIComponent(data.sso_token)}&from=aisa`;
+                    } catch (err) {
+                      setIsNavigating(false);
+                      window.location.href = targetUrl;
+                    }
+                  }}
+                  className={`relative z-10 w-[46px] flex justify-center items-center text-[9px] font-bold transition-colors ${isNavigating ? 'text-white' : (isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-[#8B5CF6]')}`}
+                >
+                  MALL
+                </button>
+              </div>
             </div>
+
             <button
-              onClick={async () => {
-                const targetUrl = (window._env_ && window._env_.VITE_AI_MALL) || import.meta.env.VITE_AI_MALL;
-                if (!targetUrl) {
-                  console.error("VITE_AI_MALL is undefined in this environment.");
-                  return;
-                }
-
-                const sessionToken = getUserData()?.token || localStorage.getItem('token');
-                if (!sessionToken) {
-                  // Not logged in — just navigate
-                  window.location.href = targetUrl;
-                  return;
-                }
-
-                setIsNavigating(true);
-                try {
-                  const { data } = await axios.post(apis.ssoGenerate, {}, {
-                    headers: { 'Authorization': `Bearer ${sessionToken}` }
-                  });
-                  const base = targetUrl.endsWith('/') ? targetUrl.slice(0, -1) : targetUrl;
-                  window.location.href = `${base}/dashboard/marketplace?sso_token=${encodeURIComponent(data.sso_token)}&from=aisa`;
-                } catch (err) {
-                  console.error('[SSO] Failed to generate handoff token:', err);
-                  setIsNavigating(false);
-                  window.location.href = targetUrl;
-                }
-              }}
-              className={`relative z-10 w-[46px] flex justify-center items-center text-[9px] font-bold transition-colors ${isNavigating ? 'text-white' : (isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-[#8B5CF6]')}`}
+              onClick={onClose}
+              className={`lg:hidden p-2 rounded-xl transition-all border shadow-sm active:scale-95
+                ${isDark
+                  ? 'text-subtext hover:text-white bg-white/5 hover:bg-white/10 border-white/10'
+                  : 'text-slate-500 hover:text-primary bg-slate-100 hover:bg-slate-200 border-slate-200'}`}
             >
-              MALL
+              <X className="w-5 h-5" />
             </button>
-            {console.log(import.meta.env.VITE_AI_MALL)}
           </div>
-
-          <button
-            onClick={onClose}
-            className={`lg:hidden p-2.5 rounded-2xl transition-all border shadow-sm active:scale-95
-              ${isDark
-                ? 'text-subtext hover:text-white bg-white/5 hover:bg-white/10 border-white/10'
-                : 'text-slate-500 hover:text-primary bg-slate-100 hover:bg-slate-200 border-slate-200'}`}
-          >
-            <X className="w-5.5 h-5.5" />
-          </button>
         </div>
 
 
@@ -672,13 +691,25 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
           <div className="px-5 pt-3 pb-2 relative z-10">
             <button
               onClick={handleNewChat}
-              className="w-full relative overflow-hidden group p-[1px] rounded-[16px] transition-all duration-500 hover:scale-[1.03] active:scale-[0.97] bg-blue-600 shadow-[0_8px_25px_rgba(37,99,235,0.4)] dark:shadow-[0_8px_25px_rgba(37,99,235,0.2)]"
+              className="w-full relative overflow-hidden group p-[1px] rounded-[16px] transition-all duration-500 hover:scale-[1.03] active:scale-[0.97] bg-[#a78bfa] shadow-[0_10px_25px_rgba(167,139,250,0.25),0_0_15px_rgba(96,165,250,0.15)]"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-700 animate-gradient bg-[length:300%_auto]" />
-              <div className="relative flex items-center justify-center gap-2 px-4 py-3 backdrop-blur-md rounded-[15px] group-hover:bg-transparent transition-all duration-500 bg-blue-600/10">
+              {/* Main Gradient Background - Lighter Version */}
+              <div 
+                className="absolute inset-0 transition-opacity duration-500 bg-gradient-to-br from-[#a78bfa] via-[#8b5cf6] to-[#60a5fa]" 
+                style={{ backgroundSize: '100% 100%' }}
+              />
+              
+              {/* Glossy Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent opacity-70 pointer-events-none" />
+              
+              {/* Inner Content */}
+              <div className="relative flex items-center justify-center gap-2 px-4 py-3 backdrop-blur-sm rounded-[15px] group-hover:bg-white/10 transition-all duration-500">
                 <Plus className="w-4 h-4 text-white group-hover:rotate-180 transition-transform duration-700" strokeWidth={3} />
-                <span className="font-black text-[13px] tracking-wide text-white">{t('newChat')}</span>
+                <span className="font-black text-[13px] tracking-wide text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)]">{t('newChat')}</span>
               </div>
+              
+              {/* Hover Glow Edge */}
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[-20deg] translate-x-[-100%] group-hover:translate-x-[100%] transform" style={{ transitionDuration: '1.2s' }} />
             </button>
           </div>
 
@@ -984,13 +1015,11 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                                       </div>
                                     ) : (
                                       <div className="sidebar-chat-container relative">
-                                        <div
-                                          onClick={() => {
-                                            navigate(`/dashboard/chat/${session.sessionId}`);
-                                            onClose();
-                                          }}
-                                          className={`sidebar-chat-item group/item transition-all duration-500 mx-2 cursor-pointer
-                                        ${currentSessionId === session.sessionId
+                                        <NavLink
+                                          to={`/dashboard/chat/${session.sessionId}`}
+                                          onClick={onClose}
+                                          className={({ isActive }) => `sidebar-chat-item group/item transition-all duration-500 mx-2 cursor-pointer
+                                        ${isActive
                                               ? (isDark ? 'bg-white/[0.08] text-white border border-white/10 shadow-2xl backdrop-blur-3xl' : 'bg-white text-primary border border-primary/20 shadow-lg shadow-primary/10 backdrop-blur-3xl ring-4 ring-primary/5')
                                               : (isDark ? 'text-subtext/60 hover:bg-white/[0.04] hover:text-white border border-transparent' : 'text-slate-700 hover:bg-white hover:text-slate-900 border border-transparent hover:shadow-md hover:scale-[1.01]')
                                             }
@@ -1003,29 +1032,83 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                                             />
                                           )}
                                           <div className="sidebar-chat-title-group text-left flex-1 min-w-0">
-                                            <div className="sidebar-chat-title truncate">
-                                              {highlightMatch(session.title || "Untitled Intelligence", searchQuery)}
+                                            <div className="sidebar-chat-title flex items-center gap-1.5">
+                                              {/* ── Icon Selection ── */}
+                                              {session.activeTool?.startsWith('legal_') ? (() => {
+                                                const tool = session.activeTool.toLowerCase();
+                                                if (tool.includes('precedent') || tool.includes('gavel')) return <Gavel className="w-3.5 h-3.5 text-purple-500 shrink-0" strokeWidth={2.5} />;
+                                                if (tool.includes('draft') || tool.includes('agreement')) return <FileText className="w-3.5 h-3.5 text-purple-500 shrink-0" strokeWidth={2.5} />;
+                                                if (tool.includes('evidence')) return <Search className="w-3.5 h-3.5 text-purple-500 shrink-0" strokeWidth={2.5} />;
+                                                if (tool.includes('case')) return <Briefcase className="w-3.5 h-3.5 text-purple-500 shrink-0" strokeWidth={2.5} />;
+                                                return <Scale className="w-3.5 h-3.5 text-purple-500 shrink-0" strokeWidth={2.5} />;
+                                              })() : (
+                                                <MessageSquare className="w-3.5 h-3.5 text-primary/50 shrink-0" strokeWidth={2} />
+                                              )}
+                                              
+                                              {/* ── Live Generation Indicator ── */}
+                                              {generatingChatIds.includes(session.sessionId) && (
+                                                <span
+                                                  title="Generating response..."
+                                                  className="flex items-center gap-[3px] shrink-0"
+                                                >
+                                                  <span className="w-[5px] h-[5px] rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                                                  <span className="w-[5px] h-[5px] rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '120ms' }} />
+                                                  <span className="w-[5px] h-[5px] rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '240ms' }} />
+                                                </span>
+                                              )}
+                                              <span className="truncate">
+                                                {highlightMatch(session.title || "Untitled Intelligence", searchQuery)}
+                                              </span>
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                              {searchQuery && session.projectId && (
-                                                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/10 border border-primary/20">
-                                                  <Folder className="w-2.5 h-2.5 text-primary" />
-                                                  <span className="text-[9px] font-bold text-primary truncate max-w-[60px]">
-                                                    {highlightMatch(projects.find(p => p._id === session.projectId)?.name || "Personal", searchQuery)}
+                                            <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                                              {/* ── AI LEGAL Badge ── */}
+                                              {session.activeTool?.startsWith('legal_') && (
+                                                <div className="flex items-center gap-1 px-1.5 py-[1px] rounded-md bg-purple-500/10 border border-purple-500/20">
+                                                  <span className="text-[8px] font-black text-purple-500 uppercase tracking-tighter">AI LEGAL</span>
+                                                  <span className="text-[8px] font-bold text-purple-400/70 truncate max-w-[80px]">
+                                                    {session.activeTool.replace('legal_', '').split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
                                                   </span>
                                                 </div>
                                               )}
+
+                                              {/* ── Project Badge ── */}
+                                              {session.projectId && (
+                                                <div className="flex items-center gap-1 px-1.5 py-[1px] rounded-md bg-primary/10 border border-primary/20">
+                                                  <Folder className="w-2.5 h-2.5 text-primary" />
+                                                  <span className="text-[9px] font-bold text-primary truncate max-w-[60px]">
+                                                    {projects.find(p => p._id === session.projectId)?.name || "Personal"}
+                                                  </span>
+                                                </div>
+                                              )}
+
+                                              {/* ── Timestamp ── */}
+                                              <span className="text-[9px] text-subtext/40 font-medium ml-auto">
+                                                {new Date(session.lastModified || session.updatedAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                              </span>
                                             </div>
                                           </div>
 
                                           <div className="sidebar-chat-actions">
-                                            <button
-                                              onClick={(e) => { e.stopPropagation(); startRename(e, session); }}
-                                              className="sidebar-chat-action-btn"
-                                              title="Rename Chat"
-                                            >
-                                              <Edit2 />
-                                            </button>
+                                            {generatingChatIds.includes(session.sessionId) ? (
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  useGenerationStore.getState().abortGeneration(session.sessionId);
+                                                }}
+                                                className="sidebar-chat-action-btn stop-btn text-red-500 hover:text-red-600 bg-red-500/10 rounded-lg p-1 animate-pulse"
+                                                title="Stop Generation"
+                                              >
+                                                <Square className="w-2.5 h-2.5 fill-current" />
+                                              </button>
+                                            ) : (
+                                              <button
+                                                onClick={(e) => { e.stopPropagation(); startRename(e, session); }}
+                                                className="sidebar-chat-action-btn"
+                                                title="Rename Chat"
+                                              >
+                                                <Edit2 />
+                                              </button>
+                                            )}
                                             <button
                                               onClick={(e) => { e.stopPropagation(); handleDeleteSession(e, session.sessionId); }}
                                               className="sidebar-chat-action-btn delete"
@@ -1034,7 +1117,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                                               <X />
                                             </button>
                                           </div>
-                                        </div>
+                                        </NavLink>
                                       </div>
                                     )}
                                   </motion.div>
@@ -1156,28 +1239,44 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                       <div className="flex items-center justify-between bg-white/40 dark:bg-black/40 backdrop-blur-md rounded-xl p-4 border border-white/20">
                         <div>
                           <p className="text-[10px] font-bold text-subtext uppercase tracking-wider">{t('availableCredits')}</p>
-                          <p className="text-2xl font-black text-primary">{user?.credits || 0}</p>
+                          <p className="text-2xl font-black text-primary">{currentCredits}</p>
                         </div>
                         <button onClick={() => { window.location.href = '/pricing'; }} className="px-4 py-2 bg-primary text-white rounded-lg text-xs font-bold shadow-lg">Buy More</button>
                       </div>
                     </div>
                     <div className="space-y-4">
-                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('recentCreditUsage')}</h4>
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('recentCreditUsage')}</h4>
+                        {isCreditsLoading && <RefreshCcw size={12} className="text-primary animate-spin" />}
+                      </div>
                       <div className="space-y-2 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
-                        {creditLogs.length > 0 ? creditLogs.map(log => (
-                          <div key={log._id} className="flex items-center justify-between p-3 bg-gray-50/50 dark:bg-zinc-800/30 rounded-xl border border-border">
+                        {recentTransactions.length > 0 ? recentTransactions.map(log => (
+                          <div key={log._id} className="flex items-center justify-between p-3 bg-gray-50/50 dark:bg-white/5 hover:bg-white/10 rounded-xl border border-border/50 transition-all group/log">
                             <div className="flex items-center gap-3">
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${log.credits < 0 ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}><Zap size={14} /></div>
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover/log:scale-110 ${log.credits < 0 ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
+                                {log.category === 'AI Legal' ? <Scale size={18} /> : <Zap size={18} />}
+                              </div>
                               <div>
-                                <p className="text-xs font-bold truncate max-w-[150px]">{log.description}</p>
-                                <p className="text-[9px] text-subtext">{new Date(log.createdAt).toLocaleDateString()}</p>
+                                <p className="text-[11px] font-black text-maintext truncate max-w-[150px] uppercase tracking-tight">{log.description}</p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                    <span className="text-[9px] text-subtext font-bold uppercase opacity-60">{log.category || 'System'}</span>
+                                    <span className="text-[9px] text-subtext opacity-40">•</span>
+                                    <p className="text-[9px] text-subtext opacity-60 font-medium">{new Date(log.createdAt).toLocaleDateString()} {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                </div>
                               </div>
                             </div>
                             <div className="text-right">
-                              <p className={`text-xs font-bold ${log.credits < 0 ? 'text-red-500' : 'text-green-500'}`}>{log.credits > 0 ? '+' : ''}{log.credits}</p>
+                              <p className={`text-sm font-black ${log.credits < 0 ? 'text-red-500' : 'text-green-500'}`}>
+                                {log.credits > 0 ? '+' : ''}{log.credits}
+                              </p>
                             </div>
                           </div>
-                        )) : <p className="text-center py-10 opacity-40 text-sm">No credit history found</p>}
+                        )) : (
+                          <div className="flex flex-col items-center justify-center py-12 opacity-30">
+                            <History size={32} className="mb-2" />
+                            <p className="text-xs font-bold uppercase tracking-widest">No history yet</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

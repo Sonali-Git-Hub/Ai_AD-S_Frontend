@@ -14,7 +14,7 @@ const DEFAULT_PREFERENCES = {
     general: {
         language: import.meta.env.VITE_DEFAULT_LANGUAGE || 'English',
         region: 'India',
-        theme: 'System',
+        theme: 'Light',
         responseSpeed: 'Balanced',
         screenReader: false,
         highContrast: false
@@ -69,6 +69,11 @@ export const PersonalizationProvider = ({ children }) => {
         // Migration: Small is now Medium
         if (prefs?.personalization?.fontSize === 'Small') {
             prefs.personalization.fontSize = 'Medium';
+        }
+        // Migration: 'System' theme defaults to 'Light'
+        if (!prefs?.general?.theme || prefs.general.theme === 'System') {
+            if (!prefs.general) prefs.general = {};
+            prefs.general.theme = 'Light';
         }
         return prefs;
     });
