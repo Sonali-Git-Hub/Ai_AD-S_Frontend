@@ -118,6 +118,7 @@ const MobileNotificationBell = ({ onClick }) => {
 const useScrollNavbar = () => {
   const [visible, setVisible] = useState(true);
   const lastScrollY = useRef(new Map());
+  const ticking = useRef(false);
   const scrollThreshold = 15;
 
   useEffect(() => {
@@ -136,27 +137,34 @@ const useScrollNavbar = () => {
       // Only track scroll events from our known scrollable containers
       if (!isChat && !isMain) return;
 
-      const targetKey = isChat ? 'chat' : 'main';
-      const currentScrollY = target.scrollTop ?? 0;
-      const prevScrollY = lastScrollY.current.get(targetKey) || 0;
+      if (!ticking.current) {
+        window.requestAnimationFrame(() => {
+          const targetKey = isChat ? 'chat' : 'main';
+          const currentScrollY = target.scrollTop ?? 0;
+          const prevScrollY = lastScrollY.current.get(targetKey) || 0;
 
-      // Always show at top (with a small buffer for bounce)
-      if (currentScrollY <= 10) {
-        setVisible(true);
-        lastScrollY.current.set(targetKey, currentScrollY);
-        return;
-      }
+          // Always show at top (with a small buffer for bounce)
+          if (currentScrollY <= 10) {
+            setVisible(true);
+            lastScrollY.current.set(targetKey, currentScrollY);
+            ticking.current = false;
+            return;
+          }
 
-      const diff = currentScrollY - prevScrollY;
-      if (Math.abs(diff) > scrollThreshold) {
-        if (currentScrollY > prevScrollY) {
-          // scroll down
-          setVisible(false);
-        } else {
-          // scroll up
-          setVisible(true);
-        }
-        lastScrollY.current.set(targetKey, currentScrollY);
+          const diff = currentScrollY - prevScrollY;
+          if (Math.abs(diff) > scrollThreshold) {
+            if (currentScrollY > prevScrollY) {
+              // scroll down
+              setVisible(false);
+            } else {
+              // scroll up
+              setVisible(true);
+            }
+            lastScrollY.current.set(targetKey, currentScrollY);
+          }
+          ticking.current = false;
+        });
+        ticking.current = true;
       }
     };
 
