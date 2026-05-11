@@ -271,12 +271,20 @@ const PromptLibraryModal = ({ isOpen, onClose, onSelect, mode = 'generate', refe
         return filteredPrompts.slice(0, page * itemsPerPage);
     }, [filteredPrompts, page]);
 
+    const ticking = useRef(false);
+
     const handleScroll = (e) => {
-        const { scrollTop, scrollHeight, clientHeight } = e.target;
-        if (scrollHeight - scrollTop <= clientHeight + 100) {
-            if (filteredPrompts.length > page * itemsPerPage) {
-                setPage(p => p + 1);
-            }
+        if (!ticking.current) {
+            window.requestAnimationFrame(() => {
+                const { scrollTop, scrollHeight, clientHeight } = e.target;
+                if (scrollHeight - scrollTop <= clientHeight + 100) {
+                    if (filteredPrompts.length > page * itemsPerPage) {
+                        setPage(p => p + 1);
+                    }
+                }
+                ticking.current = false;
+            });
+            ticking.current = true;
         }
     };
 

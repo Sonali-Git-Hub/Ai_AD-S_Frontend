@@ -3376,9 +3376,12 @@ const Chat = () => {
     const chatContainerRef = useRef(null);
   const shouldAutoScrollRef = useRef(true);
   const isStreamingRef = useRef(false); // true while AI is typing word-by-word
+  const ticking = useRef(false);
 
   const handleScroll = () => {
     if (chatContainerRef.current) {
+      if (!ticking.current) {
+        window.requestAnimationFrame(() => {
       const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
 
       const isMobile = window.innerWidth < 1024;
@@ -3397,8 +3400,15 @@ const Chat = () => {
       // Increased threshold (250px) to be less sensitive to minor scroll movements or large images
       const isNearBottom = scrollHeight - scrollTop - clientHeight < 350;
       shouldAutoScrollRef.current = isNearBottom;
+          ticking.current = false;
+        });
+        ticking.current = true;
+      }
     }
   };
+
+
+
 
   const scrollToBottom = (force = false, behavior = 'auto') => {
     if (chatContainerRef.current) {
