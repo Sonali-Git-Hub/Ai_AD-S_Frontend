@@ -7581,7 +7581,43 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                   </div>
                                 )}
 
-                              <div className="mt-1 text-right sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                              {/* Timestamp & User Actions */}
+                              <div className="mt-4 flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                {msg.role === 'user' && (
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      onClick={() => handleMessageDelete(msg.id)}
+                                      className="p-1.5 text-slate-400 dark:text-zinc-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                      title="Delete"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleMessageUndo(msg)}
+                                      className="p-1.5 text-slate-400 dark:text-zinc-500 hover:text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+                                      title="Undo/Restore to Input"
+                                    >
+                                      <Undo2 className="w-3.5 h-3.5" />
+                                    </button>
+                                    {!msg.attachment && (
+                                      <button
+                                        onClick={() => startEditing(msg)}
+                                        className="p-1.5 text-slate-400 dark:text-zinc-500 hover:text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+                                        title="Edit"
+                                      >
+                                        <Edit2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={() => handleCopyMessage(msg.content || msg.text)}
+                                      className="p-1.5 text-slate-400 dark:text-zinc-500 hover:text-maintext hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+                                      title="Copy"
+                                    >
+                                      <Copy className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                )}
+
                                 <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-medium">
                                   {new Date(msg.timestamp).toLocaleTimeString([], {
                                     hour: '2-digit',
