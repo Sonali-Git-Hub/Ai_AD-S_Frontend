@@ -54,25 +54,37 @@ const INITIAL_USAGE = {
   videoLimit: 0,
   billingMonth: new Date().toISOString().slice(0, 7)
 };
-
-const CustomSelect = ({ value, onChange, options, color = 'indigo', className = '' }) => {
+const CustomSelect = ({ value, onChange, options, color = 'indigo', className = '', multiple = false }) => {
   const colorMap = {
     indigo: 'focus:border-indigo-500 text-indigo-500 bg-indigo-500/10 text-indigo-500',
     amber: 'focus:border-amber-500 text-amber-500 bg-amber-500/10 text-amber-500',
     primary: 'focus:border-primary text-primary bg-primary/10 text-primary',
   };
 
-  const selectedLabel = options.find(o => (o.value !== undefined ? o.value : o) === value)?.label || value;
+  const getLabel = (val) => {
+    const opt = options.find(o => (o.value !== undefined ? o.value : o) === val);
+    return opt?.label || val;
+  };
+
+  const selectedLabel = multiple
+    ? (Array.isArray(value) && value.length > 0
+        ? (value.length > 2 ? `${value.length} SELECTED` : value.map(v => getLabel(v)).join(', '))
+        : 'SELECT MULTIPLE')
+    : options.find(o => (o.value !== undefined ? o.value : o) === value)?.label || value;
 
   return (
     <Listbox value={value} onChange={(val) => {
-      const opt = options.find(o => (o.value !== undefined ? o.value : o) === val);
-      if (opt?.disabled) return; // Block disabled options
-      onChange(val);
-    }}>
+      if (multiple) {
+        onChange(val);
+      } else {
+        const opt = options.find(o => (o.value !== undefined ? o.value : o) === val);
+        if (opt?.disabled) return;
+        onChange(val);
+      }
+    }} multiple={multiple}>
       <div className="relative w-full overflow-visible">
         <Listbox.Button className={`w-full flex items-center justify-between text-left cursor-pointer outline-none transition-all shadow-inner hover:shadow-md hover:bg-white dark:hover:bg-white/5 truncate pr-10 border border-slate-200 dark:border-white/10 hover:border-primary/40 ${className}`}>
-          <span className="block truncate font-black">{selectedLabel}</span>
+          <span className="block truncate font-black text-[10px] sm:text-xs uppercase tracking-tight">{selectedLabel}</span>
           <span className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 pointer-events-none">
             <ChevronDown className="w-4 sm:w-5 h-4 sm:h-5 text-slate-400" />
           </span>
@@ -94,24 +106,23 @@ const CustomSelect = ({ value, onChange, options, color = 'indigo', className = 
               return (
                 <Listbox.Option
                   key={idx}
-                  className={({ active }) => `relative select-none py-3.5 pl-11 pr-4 transition-all duration-200 font-bold mx-2 rounded-xl mb-1 last:mb-0 ${isDisabled
-                      ? 'opacity-30 cursor-not-allowed'
-                      : `cursor-pointer ${active ? `${colorMap[color].split(' ').slice(2).join(' ')} translate-x-1` : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5'}`
-                    }`}
                   value={optValue}
                   disabled={isDisabled}
+                  className={({ active, selected }) => `relative select-none py-3.5 pl-11 pr-4 transition-all duration-200 font-bold mx-2 rounded-xl mb-1 last:mb-0 ${isDisabled
+                      ? 'opacity-30 cursor-not-allowed'
+                      : `cursor-pointer ${active || selected ? `${colorMap[color].split(' ').slice(2).join(' ')} translate-x-1` : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5'}`
+                    }`}
                 >
                   {({ selected }) => (
                     <>
                       <span className={`block truncate ${selected ? 'font-black' : 'font-bold'}`}>
                         {optLabel}
-                        {isDisabled && <span className="ml-2 text-[8px] text-amber-500 font-black opacity-60">🔒</span>}
                       </span>
-                      {selected ? (
+                      {selected && (
                         <span className={`absolute inset-y-0 left-0 flex items-center pl-4 ${colorMap[color].split(' ')[1]}`}>
-                          <div className={`w-1.5 h-1.5 rounded-full ${colorMap[color].split(' ')[1].replace('text-', 'bg-')} shadow-[0_0_8px_rgba(var(--primary-rgb),0.5)]`} />
+                          <Check className="w-4 h-4" aria-hidden="true" />
                         </span>
-                      ) : null}
+                      )}
                     </>
                   )}
                 </Listbox.Option>
@@ -145,15 +156,15 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   const [brandProfile, setBrandProfile] = useState({
     companyName: '',
     brandColors: [],
-    toneOfVoice: '',
-    ctaStyle: '',
+    toneOfVoice: [],
+    ctaStyle: [],
     website: '',
-    targetEthnicity: '',
+    targetEthnicity: [],
     extractedBrandSummary: '',
     logoUrl: null,
     targetIndustry: '',
-    targetAudience: '',
-    contentObjective: 'Awareness',
+    targetAudience: [],
+    contentObjective: [],
     campaignMonth: 'January',
     postingFrequency: isPremium ? '3x per week' : '7 Days'
   });
@@ -702,15 +713,15 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       setBrandProfile({
         companyName: bp.companyName || '',
         brandColors: bp.brandColors?.length ? bp.brandColors : ['#3b82f6', '#8b5cf6'],
-        toneOfVoice: bp.toneOfVoice || 'Professional',
-        ctaStyle: bp.ctaStyle || 'Direct',
+        toneOfVoice: bp.toneOfVoice ? (typeof bp.toneOfVoice === 'string' ? bp.toneOfVoice.split(', ') : bp.toneOfVoice) : [],
+        ctaStyle: bp.ctaStyle ? (typeof bp.ctaStyle === 'string' ? bp.ctaStyle.split(', ') : bp.ctaStyle) : [],
         website: bp.website || '',
-        targetEthnicity: bp.targetEthnicity || 'Global',
+        targetEthnicity: bp.targetEthnicity ? (typeof bp.targetEthnicity === 'string' ? bp.targetEthnicity.split(', ') : bp.targetEthnicity) : [],
         extractedBrandSummary: bp.extractedBrandSummary || bp.companyOverviewText || '',
         logoUrl: bp.logoUrl || null,
         targetIndustry: bp.targetIndustry || '',
-        targetAudience: bp.targetAudience || '',
-        contentObjective: bp.contentObjective || 'Awareness',
+        targetAudience: bp.targetAudience ? (typeof bp.targetAudience === 'string' ? bp.targetAudience.split(', ') : bp.targetAudience) : [],
+        contentObjective: bp.contentObjective ? (typeof bp.contentObjective === 'string' ? bp.contentObjective.split(', ') : bp.contentObjective) : [],
         campaignMonth: bp.campaignMonth || 'January',
         postingFrequency: bp.postingFrequency || (isPremium ? '3x per week' : '7 Days')
       });
@@ -1004,16 +1015,16 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       const formData = new FormData();
       formData.append('workspaceId', targetWorkspaceId);
       formData.append('companyName', brandProfile.companyName);
-      formData.append('toneOfVoice', brandProfile.toneOfVoice);
-      formData.append('ctaStyle', brandProfile.ctaStyle);
+      formData.append('toneOfVoice', Array.isArray(brandProfile.toneOfVoice) ? JSON.stringify(brandProfile.toneOfVoice) : (brandProfile.toneOfVoice || ''));
+      formData.append('ctaStyle', Array.isArray(brandProfile.ctaStyle) ? JSON.stringify(brandProfile.ctaStyle) : (brandProfile.ctaStyle || ''));
       formData.append('website', brandProfile.website || '');
-      formData.append('targetEthnicity', brandProfile.targetEthnicity || 'Global');
+      formData.append('targetEthnicity', Array.isArray(brandProfile.targetEthnicity) ? JSON.stringify(brandProfile.targetEthnicity) : (brandProfile.targetEthnicity || 'Global'));
       formData.append('extractedBrandSummary', brandProfile.extractedBrandSummary || '');
 
       // NEW STRATEGIC FIELDS
       formData.append('targetIndustry', brandProfile.targetIndustry || '');
-      formData.append('targetAudience', brandProfile.targetAudience || '');
-      formData.append('contentObjective', brandProfile.contentObjective || '');
+      formData.append('targetAudience', Array.isArray(brandProfile.targetAudience) ? JSON.stringify(brandProfile.targetAudience) : (brandProfile.targetAudience || ''));
+      formData.append('contentObjective', Array.isArray(brandProfile.contentObjective) ? JSON.stringify(brandProfile.contentObjective) : (brandProfile.contentObjective || ''));
 
       // SOCIAL LINKS
       if (brandProfile.socialMediaLinks) {
@@ -1829,9 +1840,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   <div className="space-y-1">
                     <label className="text-[8px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Priority Region</label>
                     <CustomSelect
-                      value={brandProfile.targetEthnicity || 'Global'}
+                      value={brandProfile.targetEthnicity || []}
+                      multiple={true}
                       onChange={(val) => setBrandProfile({ ...brandProfile, targetEthnicity: val })}
-                      options={['Global', 'Indian', 'American', 'European']}
+                      options={['Global', 'India', 'North America', 'Europe', 'Middle East', 'SE Asia', 'Latin America']}
                       color="indigo"
                       className="h-8 sm:h-9 px-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-lg text-[10px] sm:text-xs outline-none focus:border-indigo-500"
                     />
@@ -1856,14 +1868,21 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   <div className="space-y-1">
                     <label className="text-[8px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Target Audience</label>
                     <CustomSelect
-                      value={brandProfile.targetAudience || 'Business Owner'}
+                      value={brandProfile.targetAudience || []}
+                      multiple={true}
                       onChange={(val) => setBrandProfile({ ...brandProfile, targetAudience: val })}
                       options={[
-                        { label: 'BUSINESS OWNER', value: 'Business Owner' },
-                        { label: 'STUDENTS', value: 'Students' },
-                        { label: 'PROFESSIONAL (DR, ADVOCATE, ETC.)', value: 'Professional (Dr, Advocate, etc.)' },
-                        { label: 'GOVT EMPLOYEE', value: 'Govt Employee' },
-                        { label: 'RETIRED', value: 'Retired' }
+                        { label: 'STARTUP FOUNDERS', value: 'Startup Founders' },
+                        { label: 'SMALL BUSINESS OWNERS', value: 'Small Business Owners' },
+                        { label: 'FREELANCERS & SOLOPRENEURS', value: 'Freelancers' },
+                        { label: 'CORPORATE PROFESSIONALS', value: 'Corporate Professionals' },
+                        { label: 'STUDENTS & GEN Z', value: 'Students' },
+                        { label: 'PARENTS & FAMILIES', value: 'Parents' },
+                        { label: 'TECH ENTHUSIASTS', value: 'Tech Enthusiasts' },
+                        { label: 'CREative PROFESSIONALS', value: 'Creative Professionals' },
+                        { label: 'HIGH NET-WORTH INDIVIDUALS', value: 'Luxury Seekers' },
+                        { label: 'GOVT EMPLOYEES', value: 'Govt Employee' },
+                        { label: 'RETIRED & SENIORS', value: 'Retired' }
                       ]}
                       color="amber"
                       className="h-8 sm:h-9 px-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-lg text-[10px] sm:text-xs outline-none focus:border-amber-500"
@@ -1872,13 +1891,18 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   <div className="space-y-1">
                     <label className="text-[8px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Content Objective</label>
                     <CustomSelect
-                      value={brandProfile.contentObjective || 'Awareness'}
+                      value={brandProfile.contentObjective || []}
+                      multiple={true}
                       onChange={(val) => setBrandProfile({ ...brandProfile, contentObjective: val })}
                       options={[
-                        { label: 'BRAND AWARENESS', value: 'Awareness' },
-                        { label: 'LEADS', value: 'Leads' },
-                        { label: 'ENGAGEMENT', value: 'Engagement' },
-                        { label: 'SALES', value: 'Sales' }
+                        { label: 'BRAND AWARENESS & REACH', value: 'Awareness' },
+                        { label: 'LEAD GENERATION', value: 'Leads' },
+                        { label: 'SALES & CONVERSIONS', value: 'Sales' },
+                        { label: 'VIRAL ENGAGEMENT', value: 'Viral' },
+                        { label: 'EDUCATIONAL AUTHORITY', value: 'Educational' },
+                        { label: 'COMMUNITY BUILDING', value: 'Community' },
+                        { label: 'WEBSITE TRAFFIC', value: 'Traffic' },
+                        { label: 'PRODUCT LAUNCH', value: 'Launch' }
                       ]}
                       color="amber"
                       className="h-8 sm:h-9 px-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-lg text-[10px] sm:text-xs outline-none focus:border-amber-500"
@@ -1887,26 +1911,38 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   <div className="space-y-1">
                     <label className="text-[8px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Archetype (Voice)</label>
                     <div className="grid grid-cols-2 gap-1.5">
-                      {['Professional', 'Casual', 'Bold', 'Friendly'].map(tone => (
-                        <button
-                          key={tone}
-                          onClick={() => setBrandProfile({ ...brandProfile, toneOfVoice: tone })}
-                          className={`h-7 sm:h-8 rounded-md text-[7px] font-black uppercase tracking-wider border transition-all ${brandProfile.toneOfVoice === tone ? 'bg-amber-500 text-white border-amber-600 shadow-sm' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5 hover:border-amber-500/30'}`}
-                        >
-                          {tone}
-                        </button>
-                      ))}
+                      {['Professional', 'Casual', 'Bold', 'Friendly', 'Luxury', 'Witty', 'Empathetic', 'Minimalist'].map(tone => {
+                        const isSelected = Array.isArray(brandProfile.toneOfVoice) ? brandProfile.toneOfVoice.includes(tone) : brandProfile.toneOfVoice === tone;
+                        return (
+                          <button
+                            key={tone}
+                            onClick={() => {
+                              const current = Array.isArray(brandProfile.toneOfVoice) ? brandProfile.toneOfVoice : [brandProfile.toneOfVoice].filter(Boolean);
+                              const updated = current.includes(tone) ? current.filter(t => t !== tone) : [...current, tone];
+                              setBrandProfile({ ...brandProfile, toneOfVoice: updated });
+                            }}
+                            className={`h-7 sm:h-8 rounded-md text-[7px] font-black uppercase tracking-wider border transition-all ${isSelected ? 'bg-amber-500 text-white border-amber-600 shadow-sm' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5 hover:border-amber-500/30'}`}
+                          >
+                            {tone}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                   <div className="space-y-1">
                     <label className="text-[8px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Conversion CTA Style</label>
                     <CustomSelect
-                      value={brandProfile.ctaStyle || 'Direct'}
+                      value={brandProfile.ctaStyle || []}
+                      multiple={true}
                       onChange={(val) => setBrandProfile({ ...brandProfile, ctaStyle: val })}
                       options={[
                         { label: 'Direct & Authoritative', value: 'Direct' },
-                        { label: 'Engagement & Community', value: 'Engagement' },
-                        { label: 'Narrative & Educational', value: 'Storytelling' }
+                        { label: 'Soft & Conversational', value: 'Casual' },
+                        { label: 'Urgency & Scarcity (FOMO)', value: 'Urgency' },
+                        { label: 'Value & Benefit Driven', value: 'Value' },
+                        { label: 'Storytelling & Narrative', value: 'Storytelling' },
+                        { label: 'Question & Curiosity', value: 'Curiosity' },
+                        { label: 'Social Proof', value: 'SocialProof' }
                       ]}
                       color="amber"
                       className="h-8 sm:h-9 px-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-lg text-[10px] sm:text-xs outline-none focus:border-amber-500"
