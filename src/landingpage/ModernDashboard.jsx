@@ -17,6 +17,7 @@ import {
   Sparkles,
   Brain,
   Briefcase,
+  Star,
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useIsDark } from '../context/ThemeContext';
@@ -28,7 +29,7 @@ const tabNavStyles = {
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
-    gap: '6px',
+    gap: '12px',
     overflowX: 'auto',
     scrollbarWidth: 'none',
     msOverflowStyle: 'none',
@@ -37,10 +38,10 @@ const tabNavStyles = {
   },
   tab: (isActive, isDark) => ({
     position: 'relative',
-    padding: '6px 16px',
+    padding: '4px 12px',
     cursor: 'pointer',
     fontWeight: 700,
-    fontSize: '13px',
+    fontSize: '12px',
     letterSpacing: '0.06em',
     color: isActive
       ? 'var(--color-primary, #6366f1)'
@@ -75,11 +76,11 @@ const ModernDashboard = ({ userName, onToolSelect, activeToolId, activeCategory 
       color: '#a78bfa',
       description: '🎨 Generate stunning visuals, cinematic videos, and natural audio with state-of-the-art AI models.',
       tools: [
-        { id: 'image', label: t('generateImage') || 'Generate Image', desc: 'Create high-quality AI images from text prompts.', icon: ImagePlus, color: '#a78bfa' },
-        { id: 'video', label: t('generateVideo') || 'Generate Video', desc: 'Transform text into cinematic AI videos.', icon: Video, color: '#fb923c' },
+        { id: 'image', label: t('generateImage') || 'Generate Image', desc: 'High-quality AI image generation.', icon: ImagePlus, color: '#a78bfa' },
+        { id: 'video', label: t('generateVideo') || 'Generate Video', desc: 'Cinematic AI video creation.', icon: Video, color: '#fb923c' },
         { id: 'image_to_video', label: t('imageToVideo') || 'Image to Video', desc: 'Animate photos with fluid motion.', icon: PlayCircle, color: '#f97316' },
-        { id: 'edit_image', label: t('editImage') || 'Edit Image', desc: 'Sophisticated AI magic editor.', icon: Wand2, color: '#f43f5e' },
-        { id: 'audio', label: t('convertToAudio') || 'Convert to Audio', desc: 'Turn text into natural-sounding audio.', icon: Headphones, color: '#34d399' },
+        { id: 'edit_image', label: t('editImage') || 'Edit Image', desc: 'AI-powered magic image editor.', icon: Wand2, color: '#f43f5e' },
+        { id: 'audio', label: 'Generate Audio', desc: 'Natural text-to-speech engine.', icon: Headphones, color: '#34d399' },
       ]
     },
     {
@@ -90,10 +91,10 @@ const ModernDashboard = ({ userName, onToolSelect, activeToolId, activeCategory 
       color: '#0ea5e9',
       description: '🧠 Harness the power of advanced research, real-time data access, and automated coding assistants.',
       tools: [
-        { id: 'deep_search', label: t('deepSearch') || 'Deep Search', desc: 'In-depth analysis and mining reports.', icon: Search, color: '#0ea5e9' },
+        { id: 'deep_search', label: t('deepSearch') || 'Deep Search', desc: 'In-depth analysis and reports.', icon: Search, color: '#0ea5e9' },
         { id: 'web_search', label: t('realTimeSearch') || 'Real-Time Search', desc: 'Fast and accurate web search.', icon: Globe, color: '#22d3ee' },
-        { id: 'document', label: t('analyzeDocument') || 'Convert Document', desc: 'Analyze or convert your documents.', icon: FileText, color: '#3b82f6' },
-        { id: 'code', label: t('codeWriter') || 'Code Writer', desc: 'Generate, explain, and debug code.', icon: Code, color: '#6366f1' },
+        { id: 'document', label: t('analyzeDocument') || 'Convert Document', desc: 'Analyze or convert documents.', icon: FileText, color: '#3b82f6' },
+        { id: 'code', label: t('codeWriter') || 'Code Writer', desc: 'Generate and debug code easily.', icon: Code, color: '#6366f1' },
       ]
     },
     {
@@ -104,8 +105,8 @@ const ModernDashboard = ({ userName, onToolSelect, activeToolId, activeCategory 
       color: '#818cf8',
       description: '💼 Streamline legal workflows, financial analysis, and social media orchestration with AI precision.',
       tools: [
-        { id: 'legal', label: t('aiLegal') || 'AI Legal', desc: 'Professional AI legal tools and research.', icon: Scale, color: '#818cf8', premium: true },
-        { id: 'ai_cashflow', label: t('aiCashFlow') || 'AI CashFlow', desc: 'Live market analysis and financial reports.', icon: TrendingUp, color: '#10b981', premium: true },
+        { id: 'legal', label: t('aiLegal') || 'AI Legal', desc: 'Professional AI legal research.', icon: Scale, color: '#818cf8', premium: true },
+        { id: 'ai_cashflow', label: 'AI Cashflow™', desc: 'Live market analysis and reports.', icon: TrendingUp, color: '#10b981', premium: true },
         { id: 'aiad_agent', label: t('aiAds') || 'AI ADS', desc: 'Social Media Orchestration.', icon: Megaphone, color: '#eab308', premium: true },
       ]
     }
@@ -113,28 +114,52 @@ const ModernDashboard = ({ userName, onToolSelect, activeToolId, activeCategory 
 
   const currentCategoryData = categories.find(c => c.id === activeCategory);
 
-  /* Grid columns: always 2 on mobile, 3 on desktop (or 2 for intelligence) */
-  /* Grid columns: always 2 on mobile, custom on desktop */
-  /* Flex-based layout to allow centering of odd-numbered cards (e.g., 2+1 on mobile) */
-  const gridClass = `flex flex-wrap justify-center gap-3 sm:gap-6 mx-auto ${
-    activeCategory === 'intelligence' ? 'max-w-2xl' : 
-    activeCategory === 'create' ? 'max-w-4xl' : 'max-w-3xl'
-  }`;
+  /* Perfectly Centered Flex Layout — Systematic alignment with extra vertical breathing room */
+  const gridClass = `flex flex-row flex-wrap justify-center gap-x-4 gap-y-16 sm:gap-x-6 sm:gap-y-24 mx-auto w-full max-w-7xl px-2 sm:px-4`;
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-3 space-y-3">
+    <div className="relative w-full max-w-6xl mx-auto px-2 sm:px-6 pt-2 sm:pt-4 pb-20 sm:pb-28 space-y-4 sm:space-y-6 min-h-[500px]">
+      {/* Background Decor Orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
+        <div className="absolute top-0 -left-4 w-72 h-72 bg-violet-500/5 dark:bg-violet-500/10 rounded-full blur-[100px] animate-pulse" />
+        <div className="absolute bottom-0 -right-4 w-72 h-72 bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '2s' }} />
+      </div>
       {/* Hero Section */}
-      <div className="text-center space-y-2 px-2">
+      <div className="text-center space-y-4 sm:space-y-6 px-4">
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-1"
         >
-          <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-            Welcome back, <span className="text-primary">{userName || 'User'}</span> 👋
+          <h1 className="text-xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center justify-center gap-2">
+            Welcome back, <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-indigo-600 dark:from-violet-400 dark:to-indigo-400 font-black">{userName || 'User'}</span>
+            <motion.span
+              animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.2, 1.2, 1] }}
+              transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+            >
+              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400 fill-amber-400" />
+            </motion.span>
           </h1>
         </motion.div>
       </div>
+
+      {/* Dynamic Category Description - Now after Greeting */}
+      <AnimatePresence mode="wait">
+        {activeCategory && (
+          <motion.div
+            key={activeCategory + '_desc'}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.25 }}
+            className="max-w-3xl mx-auto text-center px-6"
+          >
+            <p className="text-[13px] sm:text-[14px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed max-w-lg mx-auto">
+              {currentCategoryData?.description}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ─── Tab Navigation ─── */}
       <CategoryTabs
@@ -144,25 +169,9 @@ const ModernDashboard = ({ userName, onToolSelect, activeToolId, activeCategory 
         isDark={isDark}
       />
 
-      {/* Dynamic Category Description */}
-      <AnimatePresence mode="wait">
-        {activeCategory && (
-          <motion.div
-            key={activeCategory + '_desc'}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.25 }}
-            className="max-w-4xl mx-auto text-center px-4 mt-4 mb-8 sm:mt-6 sm:mb-10"
-          >
-            <p className="text-[13px] sm:text-[15px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-              {currentCategoryData?.description}
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
-      {/* Expanded Tool Area — CSS Grid for equal sizing */}
+
+      {/* Tool Grid Area */}
       <AnimatePresence mode="wait">
         {activeCategory && (
           <motion.div
@@ -178,10 +187,7 @@ const ModernDashboard = ({ userName, onToolSelect, activeToolId, activeCategory 
                   key={tool.id}
                   initial={{ opacity: 0, y: 16, scale: 0.97 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  className={`
-                    w-[calc(50%-8px)] 
-                    ${activeCategory === 'intelligence' ? 'sm:w-[calc(50%-12px)]' : 'sm:w-[calc(33.33%-16px)]'}
-                  `}
+                  className="h-[76px] sm:h-[88px]"
                   transition={{
                     duration: 0.35,
                     delay: index * 0.05,
@@ -266,22 +272,23 @@ const CategoryTabs = ({ categories, activeCategory, onCategoryChange, isDark }) 
 
         {/* Animated underline indicator */}
         <motion.div
-          layout
+          layoutId="activeTabIndicator"
           animate={{
             left: underline.left,
             width: underline.width,
           }}
           transition={{
             type: 'spring',
-            stiffness: 380,
-            damping: 32,
+            stiffness: 400,
+            damping: 30,
           }}
           style={{
             position: 'absolute',
-            bottom: 0,
-            height: '2px',
-            borderRadius: '1px',
+            bottom: -2,
+            height: '3px',
+            borderRadius: '2px',
             background: 'var(--color-primary, #6366f1)',
+            boxShadow: '0 0 10px rgba(99, 102, 241, 0.4)',
           }}
         />
       </nav>
@@ -294,51 +301,69 @@ const DashboardCard = ({ tool, onSelect, isActive, isDark }) => {
 
   return (
     <motion.div
-      whileHover={{ y: -2, scale: 1.01 }}
+      whileHover={{ y: -6, scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={() => onSelect(tool.id)}
-      className={`
-        group relative cursor-pointer p-2.5 sm:p-4 rounded-xl sm:rounded-[18px] border transition-all duration-300
-        ${isActive ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}
-        bg-white dark:bg-white/5 border-slate-100 dark:border-white/10 shadow-sm hover:shadow-lg hover:bg-slate-50 dark:hover:bg-white/10
-      `}
+      className="group relative cursor-pointer h-full"
     >
-      <div className="flex flex-col gap-1.5 sm:gap-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <div
-              className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0"
+      {/* Animated Glow on Hover */}
+      <div className="absolute -inset-1 rounded-[26px] bg-gradient-to-r from-violet-500/20 to-indigo-500/20 opacity-0 group-hover:opacity-100 blur-md transition-opacity duration-500" />
+      
+      {/* Border Wrapper */}
+      <div
+        className={`h-full rounded-2xl sm:rounded-[24px] p-[1px] transition-all duration-500 ${isDark ? 'bg-white/10' : 'bg-slate-200/50'} group-hover:scale-[1.01]`}
+        style={{
+          background: isDark
+            ? 'linear-gradient(145deg, rgba(167, 139, 250, 0.3), rgba(124, 58, 237, 0.05), rgba(99, 102, 241, 0.2))'
+            : 'linear-gradient(145deg, rgba(255,255,255,0.8), rgba(224, 231, 255, 0.3), rgba(129, 140, 248, 0.1))',
+        }}
+      >
+        <div
+          className={`group relative flex flex-col items-center justify-center p-3 sm:p-5 rounded-[24px] sm:rounded-[32px] cursor-pointer transition-all duration-500 overflow-hidden h-full min-h-[120px] sm:min-h-[150px] w-[145px] sm:w-[185px] lg:w-[200px] shrink-0 ${
+            isActive
+              ? 'bg-white dark:bg-white/10 shadow-xl ring-2 ring-violet-500/50'
+              : 'bg-white/60 dark:bg-black/20 hover:bg-white dark:hover:bg-black/40 shadow-sm border border-white/50 dark:border-white/5'
+          }`}
+          style={{
+            backgroundColor: isDark ? 'rgba(15, 12, 41, 0.8)' : 'rgba(255, 255, 255, 0.7)',
+          }}
+        >
+          {/* Internal Glow */}
+          <div
+            className="absolute -right-2 -top-2 w-20 h-20 rounded-full blur-2xl opacity-10 group-hover:opacity-30 transition-opacity duration-500"
+            style={{ background: tool.color }}
+          />
+
+          <div className="flex flex-col items-center text-center gap-2 sm:gap-3 w-full relative z-10">
+            <motion.div
+              whileHover={{ rotate: 12, scale: 1.1 }}
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-all duration-500 bg-white/40 dark:bg-black/20 backdrop-blur-md relative"
               style={{
-                backgroundColor: isDark ? `${tool.color}15` : `${tool.color}10`,
-                border: `1px solid ${tool.color}20`
+                border: isDark ? '1px solid rgba(139, 92, 246, 0.2)' : '1px solid rgba(139, 92, 246, 0.1)',
               }}
             >
-              <Icon className="w-3.5 h-3.5 sm:w-[18px] sm:h-[18px]" style={{ color: tool.color }} />
+              <div
+                className="absolute inset-0 rounded-2xl opacity-20 group-hover:opacity-40 transition-opacity"
+                style={{ background: `radial-gradient(circle at center, ${tool.color}, transparent)` }}
+              />
+              <Icon className="w-5 h-5 sm:w-6 sm:h-6 relative z-10" style={{ color: tool.color }} />
+            </motion.div>
+            
+            <div className="flex flex-col items-center gap-1 min-w-0 px-1">
+              <h4 className="font-extrabold text-[11px] sm:text-[13px] text-slate-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors leading-tight line-clamp-2">
+                {tool.label}
+              </h4>
+              
+              {tool.premium && (
+                <motion.div 
+                  whileHover={{ scale: 1.2, rotate: 5 }}
+                  className="flex items-center justify-center w-4 h-4 rounded bg-violet-500/10 dark:bg-violet-500/20 border border-violet-500/20 shrink-0 shadow-sm"
+                >
+                  <Star className="w-2.5 h-2.5 text-violet-600 dark:text-violet-400 fill-violet-600 dark:fill-violet-400" />
+                </motion.div>
+              )}
             </div>
-            {/* Title next to icon on mobile */}
-            <h4 className="sm:hidden font-bold text-[11px] text-slate-900 dark:text-white group-hover:text-primary transition-colors leading-tight line-clamp-2">
-              {tool.label}
-            </h4>
           </div>
-          {tool.premium && (
-            <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 bg-primary/10 text-primary rounded-full shrink-0">
-              Pro
-            </span>
-          )}
-        </div>
-
-        <div className="space-y-0.5 sm:space-y-1 min-w-0 flex-1">
-          {/* Title below icon on desktop only */}
-          <h4 className="hidden sm:block font-bold text-sm text-slate-900 dark:text-white group-hover:text-primary transition-colors leading-snug break-words">
-            {tool.label}
-          </h4>
-          <p className="text-[9px] sm:text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium break-words">
-            {tool.desc}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-1.5 text-primary font-bold text-[9px] sm:text-[10px] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0 mt-auto">
-          Launch <ArrowRight className="w-3 h-3" />
         </div>
       </div>
     </motion.div>

@@ -7823,7 +7823,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
           <div className={`absolute bottom-0 left-0 right-0 z-[1001] pointer-events-none ${(tglState.sidebarOpen && window.innerWidth < 1024) ? 'hidden' : ''}`}>
             {/* Gradient Mask to hide text scrolling behind/below input - Removed to eliminate white shade */}
 
-            <div className="relative z-20 bg-background" style={{ padding: '0.5rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px)) 1rem' }}>
+            <div className="relative z-20 bg-background" style={{ padding: '0.5rem 1rem calc(1.75rem + env(safe-area-inset-bottom, 0px)) 1rem' }}>
               <div className="max-w-4xl mx-auto w-full pointer-events-auto">
 
 

@@ -910,6 +910,25 @@ html.lenis body {
   pointer-events: auto !important;
 }
 
+/* ── Table elements must NOT be constrained by word-break rules ── */
+.chatgpt-text table,
+.chatgpt-text thead,
+.chatgpt-text tbody,
+.chatgpt-text tr,
+.chatgpt-text th,
+.chatgpt-text td {
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  max-width: none !important;
+  white-space: nowrap;
+}
+
+/* Table cell content can wrap if needed */
+.chatgpt-text td {
+  white-space: normal;
+  min-width: 80px;
+}
+
 /* Message Structure */
 
 .chatgpt-text>div:first-child>*:first-child,
@@ -1597,3 +1616,43 @@ body.modal-open-hide-navbar {
 /* Hide scrollbar for tab navigation */
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Mobile Table Scroll Fix ── */
+/* The table scroll wrapper div needs to escape word-break constraints */
+.chatgpt-text .overflow-x-auto,
+.chat-bubble-text .overflow-x-auto {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100% !important;
+  word-break: normal !important;
+  width: 100%;
+  display: block;
+}
+
+/* Table itself must not be width-limited so it can scroll */
+.chatgpt-text .overflow-x-auto table,
+.chat-bubble-text .overflow-x-auto table {
+  width: max-content !important;
+  min-width: 100%;
+  max-width: none !important;
+}
+
+@media (max-width: 768px) {
+  .chatgpt-text .overflow-x-auto {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    border-radius: 12px !important;
+  }
+
+  .chatgpt-text th,
+  .chatgpt-text td {
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+    white-space: nowrap;
+  }
+
+  .chatgpt-text td {
+    white-space: normal;
+    min-width: 100px;
+  }
+}

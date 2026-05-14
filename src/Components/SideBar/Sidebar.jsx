@@ -65,6 +65,7 @@ import DeleteConfirmModal from '../DeleteConfirmModal.jsx';
 import { useGenerationStore, selectGeneratingChatIds } from '../../userStore/useGenerationStore';
 import { useShallow } from 'zustand/react/shallow';
 import useCreditStore from '../../userStore/useCreditStore';
+import SidebarTools from './SidebarTools';
 
 
 const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
@@ -711,6 +712,16 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
               {/* Hover Glow Edge */}
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[-20deg] translate-x-[-100%] group-hover:translate-x-[100%] transform" style={{ transitionDuration: '1.2s' }} />
             </button>
+          </div>
+
+          {/* AI Tools Section */}
+          <div className="flex flex-col mb-4">
+            <SidebarTools 
+              onToolSelect={(id) => {
+                window.dispatchEvent(new CustomEvent('aisa-tool-select', { detail: { id } }));
+                if (window.innerWidth < 1024 && onClose) onClose();
+              }} 
+            />
           </div>
 
           {/* Personal Space & Projects Section */}
