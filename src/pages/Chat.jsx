@@ -7745,37 +7745,37 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         if (!checkPremiumTool('Image Generation')) return;
                         setIsImageGeneration(true);
                         setActiveTool('image');
-                        if (inputRef.current) { const prefill = "Generate an image of "; inputRef.current.value = prefill; setInputValue(prefill); inputRef.current.focus(); }
+                        if (inputRef.current) { inputRef.current.focus(); }
                         toast.success("Image Mode Active");
                       } else if (id === 'video') {
                         if (!checkPremiumTool('Generate Video')) return;
                         setIsVideoGeneration(true);
                         setActiveTool('video');
-                        if (inputRef.current) { const prefill = "Generate a video of "; inputRef.current.value = prefill; setInputValue(prefill); inputRef.current.focus(); }
+                        if (inputRef.current) { inputRef.current.focus(); }
                         toast.success("Video Mode Active");
                       } else if (id === 'audio') {
                         if (!checkPremiumTool('Convert to Audio')) return;
                         setIsAudioConvertMode(true);
                         setActiveTool('audio');
-                        if (inputRef.current) { const prefill = "Convert this text to audio: "; inputRef.current.value = prefill; setInputValue(prefill); inputRef.current.focus(); }
+                        if (inputRef.current) { inputRef.current.focus(); }
                         toast.success("Audio Mode Active");
                       } else if (id === 'code') {
                         if (!checkPremiumTool('Code Writer')) return;
                         setIsCodeWriter(true);
                         setActiveTool('code');
-                        if (inputRef.current) { const prefill = "Write a function to "; inputRef.current.value = prefill; setInputValue(prefill); inputRef.current.focus(); }
+                        if (inputRef.current) { inputRef.current.focus(); }
                         toast.success("Code Mode Active");
                       } else if (id === 'deep_search') {
                         if (!checkPremiumTool('Deep Search')) return;
                         setIsDeepSearch(true);
                         setActiveTool('deep_search');
-                        if (inputRef.current) { const prefill = "Research in-depth about "; inputRef.current.value = prefill; setInputValue(prefill); inputRef.current.focus(); }
+                        if (inputRef.current) { inputRef.current.focus(); }
                         toast.success("Deep Intelligence Active");
                       } else if (id === 'web_search') {
                         if (!checkPremiumTool('Web Search')) return;
                         setIsWebSearch(true);
                         setActiveTool('web_search');
-                        if (inputRef.current) { const prefill = "Search for live updates on "; inputRef.current.value = prefill; setInputValue(prefill); inputRef.current.focus(); }
+                        if (inputRef.current) { inputRef.current.focus(); }
                         toast.success("Real-Time Search Active");
                       } else if (id === 'document') {
                         if (!checkPremiumTool('Document Converter')) return;
