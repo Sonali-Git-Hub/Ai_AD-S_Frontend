@@ -72,7 +72,7 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
     return (
         <AnimatePresence>
             <div 
-                className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-4 bg-black/60 sm:bg-black/70 backdrop-blur-[8px] sm:backdrop-blur-[16px]"
+                className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-4 bg-transparent backdrop-blur-[4px] sm:backdrop-blur-[8px]"
                 onClick={(e) => e.target === e.currentTarget && onClose()}
             >
                 {/* Main animated container */}

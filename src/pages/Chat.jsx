@@ -4208,6 +4208,12 @@ const Chat = () => {
         }
       }
 
+      // Navigate to real session before launching tool handlers (so messages are visible)
+      if (isFirstMessage) {
+        isNavigatingRef.current = activeSessionId;
+        navigate(`/dashboard/chat/${activeSessionId}`, { replace: true });
+      }
+
       // Handle Image Generation Mode
       if (isImageGeneration || toolOverride === 'text_to_image') {
         await handleGenerateImage(contentToSend, activeSessionId);
@@ -4225,6 +4231,7 @@ const Chat = () => {
         await handleEditImage(contentToSend, activeSessionId);
         return;
       }
+
 
       // Handle AI CashFlow Mode
       if (isCashFlowMode || toolOverride === 'cashflow') {
@@ -7679,13 +7686,14 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
           {messages.length === 0 && !isSessionLoading && !isHydrating &&
             !currentCase &&
             (!currentProjectId || currentProjectId === 'default' || currentProjectId === 'all') &&
-            currentMode !== 'LEGAL_TOOLKIT' && !activeLegalToolkit && !selectedLegalTool && !activeTool && !new URLSearchParams(window.location.search).get('tool') && (
+            currentMode !== 'LEGAL_TOOLKIT' && !activeLegalToolkit && !selectedLegalTool && !new URLSearchParams(window.location.search).get('tool') && (
               <motion.div
                 key="welcome-screen"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0, y: -20, filter: 'blur(10px)' }}
-                className="absolute inset-0 z-[100] pointer-events-none flex flex-col items-center justify-start overflow-y-auto overflow-x-hidden pb-32 md:pb-48 scrollbar-hide pt-4 sm:pt-6"
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="absolute inset-0 z-[50] pointer-events-none flex flex-col items-center justify-start overflow-y-auto overflow-x-hidden pb-32 md:pb-48 scrollbar-hide pt-4 sm:pt-6"
               >
                 <div className="relative z-10 flex flex-col items-center w-full max-w-7xl mx-auto px-4 sm:px-6 h-max mt-8 sm:mt-0 pointer-events-auto">
                   <ModernDashboard 
@@ -7732,37 +7740,37 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         if (!checkPremiumTool('Image Generation')) return;
                         setIsImageGeneration(true);
                         setActiveTool('image');
-                        if (inputRef.current) { inputRef.current.value = "Generate an image of "; inputRef.current.focus(); }
+                        if (inputRef.current) { const prefill = "Generate an image of "; inputRef.current.value = prefill; setInputValue(prefill); inputRef.current.focus(); }
                         toast.success("Image Mode Active");
                       } else if (id === 'video') {
                         if (!checkPremiumTool('Generate Video')) return;
                         setIsVideoGeneration(true);
                         setActiveTool('video');
-                        if (inputRef.current) { inputRef.current.value = "Generate a video of "; inputRef.current.focus(); }
+                        if (inputRef.current) { const prefill = "Generate a video of "; inputRef.current.value = prefill; setInputValue(prefill); inputRef.current.focus(); }
                         toast.success("Video Mode Active");
                       } else if (id === 'audio') {
                         if (!checkPremiumTool('Convert to Audio')) return;
                         setIsAudioConvertMode(true);
                         setActiveTool('audio');
-                        if (inputRef.current) { inputRef.current.value = "Convert this text to audio: "; inputRef.current.focus(); }
+                        if (inputRef.current) { const prefill = "Convert this text to audio: "; inputRef.current.value = prefill; setInputValue(prefill); inputRef.current.focus(); }
                         toast.success("Audio Mode Active");
                       } else if (id === 'code') {
                         if (!checkPremiumTool('Code Writer')) return;
                         setIsCodeWriter(true);
                         setActiveTool('code');
-                        if (inputRef.current) { inputRef.current.value = "Write a function to "; inputRef.current.focus(); }
+                        if (inputRef.current) { const prefill = "Write a function to "; inputRef.current.value = prefill; setInputValue(prefill); inputRef.current.focus(); }
                         toast.success("Code Mode Active");
                       } else if (id === 'deep_search') {
                         if (!checkPremiumTool('Deep Search')) return;
                         setIsDeepSearch(true);
                         setActiveTool('deep_search');
-                        if (inputRef.current) { inputRef.current.value = "Research in-depth about "; inputRef.current.focus(); }
+                        if (inputRef.current) { const prefill = "Research in-depth about "; inputRef.current.value = prefill; setInputValue(prefill); inputRef.current.focus(); }
                         toast.success("Deep Intelligence Active");
                       } else if (id === 'web_search') {
                         if (!checkPremiumTool('Web Search')) return;
                         setIsWebSearch(true);
                         setActiveTool('web_search');
-                        if (inputRef.current) { inputRef.current.value = "Search for live updates on "; inputRef.current.focus(); }
+                        if (inputRef.current) { const prefill = "Search for live updates on "; inputRef.current.value = prefill; setInputValue(prefill); inputRef.current.focus(); }
                         toast.success("Real-Time Search Active");
                       } else if (id === 'document') {
                         if (!checkPremiumTool('Document Converter')) return;
@@ -7823,7 +7831,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
           <div className={`absolute bottom-0 left-0 right-0 z-[1001] pointer-events-none ${(tglState.sidebarOpen && window.innerWidth < 1024) ? 'hidden' : ''}`}>
             {/* Gradient Mask to hide text scrolling behind/below input - Removed to eliminate white shade */}
 
-            <div className="relative z-20 bg-background" style={{ padding: '0.5rem 1rem calc(1.75rem + env(safe-area-inset-bottom, 0px)) 1rem' }}>
+            <div className="relative z-20 bg-transparent" style={{ padding: '0.5rem 1rem calc(1.75rem + env(safe-area-inset-bottom, 0px)) 1rem' }}>
               <div className="max-w-4xl mx-auto w-full pointer-events-auto">
 
 

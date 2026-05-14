@@ -714,15 +714,6 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
             </button>
           </div>
 
-          {/* AI Tools Section */}
-          <div className="flex flex-col mb-4">
-            <SidebarTools 
-              onToolSelect={(id) => {
-                window.dispatchEvent(new CustomEvent('aisa-tool-select', { detail: { id } }));
-                if (window.innerWidth < 1024 && onClose) onClose();
-              }} 
-            />
-          </div>
 
           {/* Personal Space & Projects Section */}
           {token && (
