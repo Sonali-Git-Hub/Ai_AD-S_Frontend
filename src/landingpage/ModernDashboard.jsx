@@ -118,7 +118,7 @@ const ModernDashboard = ({ userName, onToolSelect, activeToolId, activeCategory 
   const gridClass = `grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap sm:justify-center gap-3 sm:gap-x-4 sm:gap-y-6 mx-auto w-full max-w-2xl sm:max-w-7xl px-2 sm:px-4`;
 
   return (
-    <div className="relative w-full max-w-6xl mx-auto px-2 sm:px-6 pt-1 sm:pt-4 pb-2 sm:pb-10 space-y-2 sm:space-y-4">
+    <div className="relative w-full max-w-6xl mx-auto px-2 sm:px-6 pt-8 sm:pt-12 pb-2 sm:pb-10 space-y-2 sm:space-y-4">
       {/* Background Decor Orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
         <div className="absolute top-0 -left-4 w-72 h-72 bg-violet-500/5 dark:bg-violet-500/10 rounded-full blur-[100px] animate-pulse" />
@@ -338,6 +338,20 @@ const DashboardCard = ({ tool, onSelect, isActive, isDark, isCentered }) => {
             style={{ background: tool.color }}
           />
 
+          {/* Premium Star Badge — top-right corner */}
+          {tool.premium && (
+            <motion.div
+              whileHover={{ scale: 1.25, rotate: 15 }}
+              className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-20 w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center shadow-lg"
+              style={{
+                background: 'linear-gradient(135deg, #7c3aed, #a78bfa)',
+                boxShadow: '0 0 8px rgba(139, 92, 246, 0.6)',
+              }}
+            >
+              <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white fill-white" />
+            </motion.div>
+          )}
+
           <div className="flex flex-col items-center text-center gap-1.5 sm:gap-3 w-full relative z-10">
             <motion.div
               whileHover={{ rotate: 12, scale: 1.1 }}
@@ -357,15 +371,6 @@ const DashboardCard = ({ tool, onSelect, isActive, isDark, isCentered }) => {
               <h4 className="font-extrabold text-[10px] sm:text-[13px] text-slate-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors leading-tight line-clamp-2 text-center">
                 {tool.label}
               </h4>
-              
-              {tool.premium && (
-                <motion.div 
-                  whileHover={{ scale: 1.2, rotate: 5 }}
-                  className="flex items-center justify-center w-3.5 h-3.5 sm:w-4 sm:h-4 rounded bg-violet-500/10 dark:bg-violet-500/20 border border-violet-500/20 shrink-0 shadow-sm"
-                >
-                  <Star className="w-2 h-2 sm:w-2.5 sm:h-2.5 text-violet-600 dark:text-violet-400 fill-violet-600 dark:fill-violet-400" />
-                </motion.div>
-              )}
             </div>
           </div>
         </div>
