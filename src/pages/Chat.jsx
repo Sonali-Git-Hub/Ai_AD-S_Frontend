@@ -9735,7 +9735,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
           isOpen={isStockModalOpen}
           onClose={() => setIsStockModalOpen(false)}
           onSelect={(stock) => handleStockAnalysis(stock)}
-          isDarkMode={isDarkMode}
+          isDarkMode={theme === 'dark'}
           initialStock={selectedStock}
         />
 

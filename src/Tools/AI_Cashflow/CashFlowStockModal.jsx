@@ -64,7 +64,8 @@ const TradingViewWidget = ({ symbol, interval = "D", containerId = "tv_chart_con
                "theme": isDarkMode ? "dark" : "light",
                "style": "1",
                "locale": "en",
-               "toolbar_bg": isDarkMode ? "#131722" : "#f1f3f6",
+               "backgroundColor": isDarkMode ? "#161B2E" : "#ffffff",
+               "toolbar_bg": isDarkMode ? "#161B2E" : "#f1f3f6",
                "enable_publishing": false,
                "hide_side_toolbar": false,
                "allow_symbol_change": true,
@@ -439,7 +440,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
                initial={{ opacity: 0, scale: 0.98 }}
                animate={{ opacity: 1, scale: 1 }}
                exit={{ opacity: 0, scale: 0.98 }}
-               className={`relative w-full h-full ${isMaximized ? 'sm:w-full sm:h-full max-w-none sm:rounded-none' : 'sm:w-[95vw] sm:h-[94vh] max-w-7xl sm:rounded-[14px]'} bg-[#fdfaf5] dark:bg-[#0d1117] rounded-none shadow-[0_30px_70px_-20px_rgba(0,0,0,0.3)] dark:shadow-[0_30px_70px_-20px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col border border-white/10 dark:border-white/5 transition-all duration-300`}
+               className={`relative w-full h-full ${isMaximized ? 'sm:w-full sm:h-full max-w-none sm:rounded-none' : 'sm:w-[95vw] sm:h-[94vh] max-w-7xl sm:rounded-[14px]'} bg-[#fdfaf5] dark:bg-[#161B2E] rounded-none shadow-[0_30px_70px_-20px_rgba(0,0,0,0.3)] dark:shadow-[0_30px_70px_-20px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col border border-white/10 dark:border-white/5 transition-all duration-300`}
             >
                {/* Header */}
                <div className="px-3 py-3 sm:px-6 sm:py-5 bg-[#5154ff] flex items-center justify-between shrink-0">
@@ -463,12 +464,12 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
                </div>
 
                {/* Stock Selection Section */}
-               <div className="px-3 py-3 sm:px-8 sm:py-8 border-b border-gray-100 dark:border-white/8 flex flex-col sm:flex-row gap-3 sm:gap-6 bg-[#fdfaf5] dark:bg-[#0d1117] shrink-0">
+               <div className="px-3 py-3 sm:px-8 sm:py-8 border-b border-gray-100 dark:border-white/8 flex flex-col sm:flex-row gap-3 sm:gap-6 bg-[#fdfaf5] dark:bg-[#161B2E] shrink-0">
                   <div className="flex-1 sm:max-w-[320px] relative">
                      <label className="block text-[10px] sm:text-[11px] font-black text-[#999] uppercase tracking-[0.1em] mb-1.5 sm:mb-2.5 ml-1">Country</label>
                      <div
                         onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
-                        className={`bg-white dark:bg-[#161b27] border ${isCountryDropdownOpen ? 'border-[#5154ff] ring-4 ring-[#5154ff]/10' : 'border-gray-200 dark:border-white/8'
+                        className={`bg-white dark:bg-[#1E2438] border ${isCountryDropdownOpen ? 'border-[#5154ff] ring-4 ring-[#5154ff]/10' : 'border-gray-200 dark:border-white/8'
                            } rounded-[10px] sm:rounded-[14px] px-3 py-2.5 sm:px-5 sm:py-4 text-[13px] sm:text-[14px] font-bold flex items-center gap-2 sm:gap-3 shadow-sm cursor-pointer group transition-all min-h-[44px] sm:min-h-[54px] select-none`}
                      >
                         <span className="text-[18px] sm:text-[22px] leading-none">{COUNTRIES.find(c => c.code === selectedCountry)?.flag || '🌐'}</span>
@@ -484,7 +485,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
                               initial={{ opacity: 0, y: 10, scale: 0.98 }}
                               animate={{ opacity: 1, y: 0, scale: 1 }}
                               exit={{ opacity: 0, y: 10, scale: 0.98 }}
-                              className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white dark:bg-[#161b27] border border-black/5 dark:border-white/8 rounded-[18px] shadow-[0_20px_50px_-10px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.6)] overflow-hidden z-[110]"
+                              className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white dark:bg-[#1E2438] border border-black/5 dark:border-white/8 rounded-[18px] shadow-[0_20px_50px_-10px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.6)] overflow-hidden z-[110]"
                            >
                               <div className="py-2 max-h-64 overflow-y-auto custom-scrollbar">
                                  {COUNTRIES.map(country => (
@@ -518,7 +519,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
                      <label className="block text-[10px] sm:text-[11px] font-black text-[#999] uppercase tracking-[0.1em] mb-1.5 sm:mb-2.5 ml-1">Stock</label>
                      <div
                         onClick={() => setIsStockSelectOpen(!isStockSelectOpen)}
-                        className={`bg-white dark:bg-[#161b27] border ${isStockSelectOpen ? 'border-[#5154ff] ring-4 ring-[#5154ff]/10' : 'border-gray-200 dark:border-white/8'} rounded-[10px] sm:rounded-[14px] px-3 py-2.5 sm:px-5 sm:py-4 text-[13px] sm:text-[14px] font-bold flex items-center justify-between shadow-sm cursor-pointer group transition-all min-h-[44px] sm:min-h-[54px]`}
+                        className={`bg-white dark:bg-[#1E2438] border ${isStockSelectOpen ? 'border-[#5154ff] ring-4 ring-[#5154ff]/10' : 'border-gray-200 dark:border-white/8'} rounded-[10px] sm:rounded-[14px] px-3 py-2.5 sm:px-5 sm:py-4 text-[13px] sm:text-[14px] font-bold flex items-center justify-between shadow-sm cursor-pointer group transition-all min-h-[44px] sm:min-h-[54px]`}
                      >
                         <span className="text-[#111] dark:text-white truncate text-[12px] sm:text-[14px]">{selectedStock?.symbol} - {selectedStock?.name}</span>
                         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -533,9 +534,9 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
                               initial={{ opacity: 0, y: 15, scale: 0.98 }}
                               animate={{ opacity: 1, y: 0, scale: 1 }}
                               exit={{ opacity: 0, y: 15, scale: 0.98 }}
-                              className="absolute top-[calc(100%+12px)] left-0 right-0 bg-white dark:bg-[#161b27] border border-black/5 dark:border-white/8 rounded-[18px] shadow-[0_20px_50px_-10px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.6)] overflow-hidden z-[100] max-h-80 overflow-y-auto"
+                              className="absolute top-[calc(100%+12px)] left-0 right-0 bg-white dark:bg-[#1E2438] border border-black/5 dark:border-white/8 rounded-[18px] shadow-[0_20px_50px_-10px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.6)] overflow-hidden z-[100] max-h-80 overflow-y-auto"
                            >
-                              <div className="p-4 border-b border-gray-50 dark:border-white/5 flex items-center bg-[#fdfaf5]/50 dark:bg-[#0d1117]/80 sticky top-0 backdrop-blur-xl z-10">
+                              <div className="p-4 border-b border-gray-50 dark:border-white/5 flex items-center bg-[#fdfaf5]/50 dark:bg-[#161B2E]/80 sticky top-0 backdrop-blur-xl z-10">
                                  <Search className="w-5 h-5 text-[#aaa] dark:text-zinc-500 ml-2" />
                                  <input
                                     type="text"
@@ -572,7 +573,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
                </div>
 
                {/* Tab Navigation */}
-               <div className="px-2 sm:px-8 border-b border-gray-100 dark:border-white/5 flex items-center gap-3 sm:gap-10 overflow-x-auto no-scrollbar bg-white dark:bg-[#0d1117] shrink-0">
+               <div className="px-2 sm:px-8 border-b border-gray-100 dark:border-white/5 flex items-center gap-3 sm:gap-10 overflow-x-auto no-scrollbar bg-white dark:bg-[#161B2E] shrink-0">
                   {['Realtime chart', 'News', 'Historical chart', 'Advisory', 'Research and recommendation'].map(tab => (
                      <button
                         key={tab}
@@ -585,7 +586,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
                </div>
 
                {/* Main Content Area */}
-               <div className="flex-1 overflow-y-auto px-3 py-4 sm:px-8 sm:py-8 bg-white dark:bg-[#0d1117] custom-scrollbar">
+               <div className="flex-1 overflow-y-auto px-3 py-4 sm:px-8 sm:py-8 bg-white dark:bg-[#1E2438] custom-scrollbar">
                   {isLoadingTab ? (
                      <div className="h-full flex flex-col items-center justify-center gap-6 text-[#999] dark:text-zinc-500">
                         <div className="relative">
@@ -613,7 +614,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
                         {activeTab === 'Realtime chart' && tabData['Realtime chart'] && (
                            <div className="space-y-4 sm:space-y-8">
                               <div className="grid grid-cols-3 gap-2 sm:grid-cols-3 sm:gap-6">
-                                 <div className="bg-[#fcf8f0] dark:bg-[#161b27] rounded-[12px] sm:rounded-[20px] p-3 sm:p-6 border border-[#f0ebe0] dark:border-white/8 shadow-sm relative overflow-hidden group hover:shadow-md dark:hover:border-[#5154ff]/30 transition-all">
+                                 <div className="bg-[#fcf8f0] dark:bg-[#1E2438] rounded-[12px] sm:rounded-[20px] p-3 sm:p-6 border border-[#f0ebe0] dark:border-white/8 shadow-sm relative overflow-hidden group hover:shadow-md dark:hover:border-[#5154ff]/30 transition-all">
                                     <p className="text-[8px] sm:text-[11px] font-black text-[#aaa] dark:text-zinc-500 uppercase tracking-widest mb-1 sm:mb-2 flex items-center gap-1 sm:gap-2">
                                        Live Price <Activity className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-500 animate-pulse" />
                                     </p>
@@ -625,7 +626,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
                                        {tabData['Realtime chart'].quote?.changePercent || '0.00%'}
                                     </div>
                                  </div>
-                                 <div className="bg-[#fcf8f0] dark:bg-[#161b27] rounded-[12px] sm:rounded-[20px] p-3 sm:p-6 border border-[#f0ebe0] dark:border-white/8 shadow-sm relative overflow-hidden group hover:shadow-md dark:hover:border-[#5154ff]/30 transition-all">
+                                 <div className="bg-[#fcf8f0] dark:bg-[#1E2438] rounded-[12px] sm:rounded-[20px] p-3 sm:p-6 border border-[#f0ebe0] dark:border-white/8 shadow-sm relative overflow-hidden group hover:shadow-md dark:hover:border-[#5154ff]/30 transition-all">
                                     <p className="text-[8px] sm:text-[11px] font-black text-[#aaa] dark:text-zinc-500 uppercase tracking-widest mb-1 sm:mb-2">Day high</p>
                                     <p className="text-lg sm:text-4xl font-black text-[#111] dark:text-white tracking-tight">
                                        {tabData['Realtime chart'].quote?.high ? `${currencySymbol}${parseFloat(tabData['Realtime chart'].quote.high).toLocaleString()}` : currencySymbol + '---'}
@@ -634,7 +635,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
                                        <motion.div initial={{ width: 0 }} animate={{ width: '85%' }} className="h-full bg-[#5154ff]" />
                                     </div>
                                  </div>
-                                 <div className="bg-[#fcf8f0] dark:bg-[#161b27] rounded-[12px] sm:rounded-[20px] p-3 sm:p-6 border border-[#f0ebe0] dark:border-white/8 shadow-sm relative overflow-hidden group hover:shadow-md dark:hover:border-[#5154ff]/30 transition-all">
+                                 <div className="bg-[#fcf8f0] dark:bg-[#1E2438] rounded-[12px] sm:rounded-[20px] p-3 sm:p-6 border border-[#f0ebe0] dark:border-white/8 shadow-sm relative overflow-hidden group hover:shadow-md dark:hover:border-[#5154ff]/30 transition-all">
                                     <p className="text-[8px] sm:text-[11px] font-black text-[#aaa] dark:text-zinc-500 uppercase tracking-widest mb-1 sm:mb-2">Volume (24h)</p>
                                     <p className="text-lg sm:text-4xl font-black text-[#111] dark:text-white tracking-tight">
                                        {tabData['Realtime chart'].quote?.volume ? (parseFloat(tabData['Realtime chart'].quote.volume) / 1000).toFixed(1) + 'k' : '---'}
@@ -645,7 +646,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
                                  </div>
                               </div>
 
-                              <div className="bg-white dark:bg-[#161b27] rounded-[16px] sm:rounded-[24px] p-3 sm:p-8 border border-gray-100 dark:border-white/8 shadow-sm dark:shadow-[0_0_0_1px_rgba(81,84,255,0.05)] min-h-[350px] sm:min-h-[700px]">
+                              <div className="bg-white dark:bg-[#1E2438] rounded-[16px] sm:rounded-[24px] p-3 sm:p-8 border border-gray-100 dark:border-white/8 shadow-sm dark:shadow-[0_0_0_1px_rgba(81,84,255,0.05)] min-h-[350px] sm:min-h-[700px]">
                                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-8 gap-3">
                                     <div>
                                        <h3 className="text-sm sm:text-lg font-black text-[#111] dark:text-white flex items-center gap-2">
@@ -697,7 +698,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
                         {activeTab === 'News' && tabData['News'] && (
                            <div className="space-y-3 sm:space-y-6">
                               {tabData['News'].news?.length === 0 ? (
-                                 <div className="p-8 sm:p-12 text-center text-[#aaa] dark:text-zinc-500 font-bold uppercase tracking-widest bg-gray-50 dark:bg-[#161b27] rounded-2xl border border-dashed border-gray-200 dark:border-white/8 text-xs sm:text-sm">
+                                 <div className="p-8 sm:p-12 text-center text-[#aaa] dark:text-zinc-500 font-bold uppercase tracking-widest bg-gray-50 dark:bg-[#1E2438] rounded-2xl border border-dashed border-gray-200 dark:border-white/8 text-xs sm:text-sm">
                                     No news detected
                                  </div>
                               ) : (
@@ -707,7 +708,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
                                        animate={{ opacity: 1, x: 0 }}
                                        transition={{ delay: idx * 0.1 }}
                                        key={idx}
-                                       className="bg-[#fcf8f0] dark:bg-[#161b27] rounded-[14px] sm:rounded-[20px] p-3 sm:p-6 border border-[#f0ebe0] dark:border-white/8 group hover:border-[#5154ff]/40 dark:hover:border-[#5154ff]/40 transition-all cursor-pointer shadow-sm"
+                                       className="bg-[#fcf8f0] dark:bg-[#1E2438] rounded-[14px] sm:rounded-[20px] p-3 sm:p-6 border border-[#f0ebe0] dark:border-white/8 group hover:border-[#5154ff]/40 dark:hover:border-[#5154ff]/40 transition-all cursor-pointer shadow-sm"
                                     >
                                        <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
                                           <span className="text-[9px] sm:text-[10px] font-black text-[#5154ff] bg-white dark:bg-white/5 border border-[#5154ff]/10 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg uppercase tracking-wider">{item.source || 'Finance'}</span>
@@ -731,7 +732,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
 
                         {/* Historical Chart Tab */}
                         {activeTab === 'Historical chart' && tabData['Historical chart'] && (
-                           <div className="bg-white dark:bg-[#161b27] rounded-[16px] sm:rounded-[24px] p-3 sm:p-8 border border-gray-100 dark:border-white/8 shadow-sm min-h-[350px] sm:min-h-[700px]">
+                           <div className="bg-white dark:bg-[#1E2438] rounded-[16px] sm:rounded-[24px] p-3 sm:p-8 border border-gray-100 dark:border-white/8 shadow-sm min-h-[350px] sm:min-h-[700px]">
                               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-8 gap-3">
                                  <div>
                                     <h3 className="text-sm sm:text-xl font-black text-[#111] dark:text-white flex items-center gap-2 sm:gap-3">
@@ -789,25 +790,25 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
 
                                  {/* Right: Indicators Grid */}
                                  <div className="w-full md:w-[320px] grid grid-cols-2 gap-2 sm:gap-3">
-                                    <div className="bg-white/80 dark:bg-zinc-900/80 p-2.5 sm:p-3.5 rounded-[14px] sm:rounded-[20px] border border-white dark:border-white/8 shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="bg-white/80 dark:bg-[#1E2438]/80 p-2.5 sm:p-3.5 rounded-[14px] sm:rounded-[20px] border border-white dark:border-white/8 shadow-sm hover:shadow-md transition-shadow">
                                        <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-[#aaa] dark:text-zinc-500 mb-0.5">RSI</p>
                                        <p className="text-base sm:text-xl font-black text-[#111] dark:text-white">{tabData['Advisory'].advisory.indicators?.RSI}</p>
                                     </div>
-                                    <div className="bg-white/80 dark:bg-zinc-900/80 p-2.5 sm:p-3.5 rounded-[14px] sm:rounded-[20px] border border-white dark:border-white/8 shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="bg-white/80 dark:bg-[#1E2438]/80 p-2.5 sm:p-3.5 rounded-[14px] sm:rounded-[20px] border border-white dark:border-white/8 shadow-sm hover:shadow-md transition-shadow">
                                        <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-[#aaa] dark:text-zinc-500 mb-0.5">MACD</p>
                                        <p className="text-base sm:text-xl font-black text-[#111] dark:text-white">{tabData['Advisory'].advisory.indicators?.MACD}</p>
                                     </div>
-                                    <div className="bg-white/80 dark:bg-zinc-900/80 p-2.5 sm:p-3.5 rounded-[14px] sm:rounded-[20px] border border-white dark:border-white/8 shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="bg-white/80 dark:bg-[#1E2438]/80 p-2.5 sm:p-3.5 rounded-[14px] sm:rounded-[20px] border border-white dark:border-white/8 shadow-sm hover:shadow-md transition-shadow">
                                        <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-[#aaa] dark:text-zinc-500 mb-0.5">Ichimoku</p>
                                        <p className={`text-xs sm:text-sm font-black ${tabData['Advisory'].advisory.indicators?.Ichimoku === 'Bullish' ? 'text-emerald-600' : tabData['Advisory'].advisory.indicators?.Ichimoku === 'Bearish' ? 'text-rose-600' : 'text-[#111] dark:text-white'}`}>
                                           {tabData['Advisory'].advisory.indicators?.Ichimoku || 'Neutral'}
                                        </p>
                                     </div>
-                                    <div className="bg-white/80 dark:bg-zinc-900/80 p-2.5 sm:p-3.5 rounded-[14px] sm:rounded-[20px] border border-white dark:border-white/8 shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="bg-white/80 dark:bg-[#1E2438]/80 p-2.5 sm:p-3.5 rounded-[14px] sm:rounded-[20px] border border-white dark:border-white/8 shadow-sm hover:shadow-md transition-shadow">
                                        <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-[#aaa] dark:text-zinc-500 mb-0.5">SMA20</p>
                                        <p className="text-base sm:text-xl font-black text-[#111] dark:text-white">{tabData['Advisory'].advisory.indicators?.SMA}</p>
                                     </div>
-                                    <div className="col-span-2 bg-white/80 dark:bg-zinc-900/80 p-2.5 sm:p-3 rounded-[14px] sm:rounded-[20px] border border-white dark:border-white/8 shadow-sm flex justify-between items-center px-4 sm:px-6">
+                                    <div className="col-span-2 bg-white/80 dark:bg-[#1E2438]/80 p-2.5 sm:p-3 rounded-[14px] sm:rounded-[20px] border border-white dark:border-white/8 shadow-sm flex justify-between items-center px-4 sm:px-6">
                                        <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-[#aaa] dark:text-zinc-500">Fibonacci Level</p>
                                        <p className="text-base sm:text-xl font-black text-[#5154ff]">₹{tabData['Advisory'].advisory.indicators?.Fibonacci || '---'}</p>
                                     </div>
@@ -1067,7 +1068,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
                                  <motion.div
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="bg-white dark:bg-zinc-900 border-2 border-[#5154ff]/5 dark:border-white/8 rounded-[20px] sm:rounded-[32px] p-4 sm:p-8 shadow-sm"
+                                    className="bg-white dark:bg-[#1E2438] border-2 border-[#5154ff]/5 dark:border-white/8 rounded-[20px] sm:rounded-[32px] p-4 sm:p-8 shadow-sm"
                                  >
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-gray-100 dark:border-white/8 gap-2">
                                        <h3 className="text-sm sm:text-xl font-black text-[#111] dark:text-white flex items-center gap-2 sm:gap-3">
@@ -1098,7 +1099,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
                                  <motion.div
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="bg-white dark:bg-zinc-900 border-2 border-[#5154ff]/5 dark:border-white/8 rounded-[20px] sm:rounded-[32px] p-4 sm:p-8 shadow-sm"
+                                    className="bg-white dark:bg-[#1E2438] border-2 border-[#5154ff]/5 dark:border-white/8 rounded-[20px] sm:rounded-[32px] p-4 sm:p-8 shadow-sm"
                                  >
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-8 pb-3 sm:pb-4 border-b border-gray-100 dark:border-white/8 gap-3">
                                        <div>
@@ -1140,9 +1141,9 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
                      animate={{ opacity: 1, y: 0, scale: 1 }}
                      exit={{ opacity: 0, y: 20, scale: 0.95 }}
                      transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                     className="fixed inset-0 z-[2000] bg-[#fdfaf5] dark:bg-[#09090b] flex flex-col"
+                     className="fixed inset-0 z-[2000] bg-[#fdfaf5] dark:bg-[#161B2E] flex flex-col"
                   >
-                     <div className="flex items-center justify-between px-3 py-2 sm:px-6 sm:py-4 bg-white dark:bg-zinc-950 border-b border-gray-100 dark:border-white/8 shadow-sm shrink-0">
+                     <div className="flex items-center justify-between px-3 py-2 sm:px-6 sm:py-4 bg-white dark:bg-[#161B2E] border-b border-gray-100 dark:border-white/8 shadow-sm shrink-0">
                         <h2 className="text-sm sm:text-xl font-black text-[#111] dark:text-white flex items-center gap-2 sm:gap-3 min-w-0">
                            <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-[#5154ff] animate-pulse shrink-0" />
                            <span className="truncate">{selectedStock?.symbol} - {selectedStock?.name}</span>
@@ -1154,7 +1155,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
                            <X className="w-5 h-5 sm:w-6 sm:h-6" />
                         </button>
                      </div>
-                     <div className="flex-1 bg-white dark:bg-zinc-950 relative p-2 sm:p-6">
+                     <div className="flex-1 bg-white dark:bg-[#161B2E] relative p-2 sm:p-6">
                         <div className="w-full h-full rounded-xl sm:rounded-2xl overflow-hidden shadow-inner border border-black/5 dark:border-white/5 relative">
                            <TradingViewWidget
                               symbol={selectedStock?.symbol}
