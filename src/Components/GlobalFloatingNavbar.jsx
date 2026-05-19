@@ -103,7 +103,7 @@ const GlobalFloatingNavbar = () => {
             <Menu className="w-6 h-6 stroke-[2.5]" />
         </motion.button>
 
-        <div className="flex items-center gap-2.5 pointer-events-auto bg-transparent backdrop-blur-md border border-transparent shadow-none rounded-2xl p-1.5 sm:p-2 transition-all duration-300">
+        <div className="hidden lg:flex items-center gap-2.5 pointer-events-auto bg-transparent backdrop-blur-md border border-transparent shadow-none rounded-2xl p-1.5 sm:p-2 transition-all duration-300">
           
           {/* Theme Toggle Button - Hidden on mobile if sidebar is open */}
           {!(tglState.sidebarOpen && window.innerWidth < 1024) && (
