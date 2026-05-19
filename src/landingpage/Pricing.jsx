@@ -210,92 +210,92 @@ const Pricing = () => {
       {
         feature: 'AISA Chat',
         free: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        starter: <span className="feature-badge">✓ {t('priority')}</span>,
-        founder: <span className="feature-badge">✓ {t('priority')}</span>,
-        pro: <span className="feature-badge">✓ {t('priority')}</span>,
-        business: <span className="feature-badge">✓ {t('priority')}</span>,
+        creator: <span className="feature-badge">✓ {t('priority')}</span>,
+        startuppro: <span className="feature-badge">✓ {t('priority')}</span>,
+        agency: <span className="feature-badge">✓ {t('priority')}</span>,
+        enterprise: <span className="feature-badge">✓ {t('priority')}</span>,
       },
       {
         feature: 'AISA Generate Image',
         free: <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>,
-        starter: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        founder: <span className="feature-badge">✓ {t('ultraHD')}</span>,
-        pro: <span className="feature-badge">✓ {t('ultraHD')}</span>,
-        business: <span className="feature-badge">✓ {t('ultraHD')}</span>,
+        creator: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
+        startuppro: <span className="feature-badge">✓ {t('ultraHD')}</span>,
+        agency: <span className="feature-badge">✓ {t('ultraHD')}</span>,
+        enterprise: <span className="feature-badge">✓ {t('ultraHD')}</span>,
       },
       {
         feature: 'AISA Edit Image',
         free: <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>,
-        starter: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        founder: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        pro: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        business: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
+        creator: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
+        startuppro: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
+        agency: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
+        enterprise: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
       },
       {
         feature: 'AISA Generate Video',
         free: <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>,
-        starter: <span className="feature-badge">✓ 1080p</span>,
-        founder: <span className="feature-badge">✓ {t('fourKUltra')}</span>,
-        pro: <span className="feature-badge">✓ {t('fourKUltra')}</span>,
-        business: <span className="feature-badge">✓ {t('fourKUltra')}</span>,
+        creator: <span className="feature-badge">✓ 1080p</span>,
+        startuppro: <span className="feature-badge">✓ {t('fourKUltra')}</span>,
+        agency: <span className="feature-badge">✓ {t('fourKUltra')}</span>,
+        enterprise: <span className="feature-badge">✓ {t('fourKUltra')}</span>,
       },
       {
         feature: 'AISA Image -> Video Magic Card',
         free: <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>,
-        starter: <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>,
-        founder: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        pro: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        business: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
+        creator: <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>,
+        startuppro: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
+        agency: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
+        enterprise: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
       },
       {
         feature: 'AISA Web Search',
         free: <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>,
-        starter: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        founder: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        pro: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        business: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
+        creator: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
+        startuppro: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
+        agency: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
+        enterprise: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
       },
       {
         feature: 'AISA Deep Search',
         free: <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>,
-        starter: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        founder: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        pro: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        business: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
+        creator: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
+        startuppro: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
+        agency: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
+        enterprise: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
       },
       {
         feature: 'AISA Code Writer',
         free: <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>,
-        starter: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        founder: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        pro: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        business: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
+        creator: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
+        startuppro: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
+        agency: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
+        enterprise: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
       },
       {
         feature: 'AISA Convert to Audio',
         free: <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>,
-        starter: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        founder: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        pro: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        business: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
+        creator: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
+        startuppro: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
+        agency: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
+        enterprise: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
       },
       {
         feature: 'AISA Convert Documents',
         free: <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>,
-        starter: <span className="feature-badge">{t('advanced')}</span>,
-        founder: <span className="feature-badge">{t('advanced')}</span>,
-        pro: <span className="feature-badge" style={{ background: 'linear-gradient(135deg,#7c3aed,#6d28d9)' }}>{t('expert')}</span>,
-        business: <span className="feature-badge" style={{ background: 'linear-gradient(135deg,#2563eb,#1d4ed8)' }}>{t('pro')} + {t('team')}</span>,
+        creator: <span className="feature-badge">{t('advanced')}</span>,
+        startuppro: <span className="feature-badge">{t('advanced')}</span>,
+        agency: <span className="feature-badge" style={{ background: 'linear-gradient(135deg,#7c3aed,#6d28d9)' }}>{t('expert')}</span>,
+        enterprise: <span className="feature-badge" style={{ background: 'linear-gradient(135deg,#2563eb,#1d4ed8)' }}>{t('pro')} + {t('team')}</span>,
       }
     ];
 
     const getPlanKey = (planName) => {
       const name = planName.toLowerCase();
       if (name.includes('free')) return 'free';
-      if (name.includes('starter')) return 'starter';
-      if (name.includes('founder')) return 'founder';
-      if (name.includes('pro')) return 'pro';
-      if (name.includes('business')) return 'business';
+      if (name.includes('creator')) return 'creator';
+      if (name.includes('startup pro') || name.includes('startup')) return 'startuppro';
+      if (name.includes('agency')) return 'agency';
+      if (name.includes('enterprise')) return 'enterprise';
       return 'free'; // fallback
     };
 
@@ -337,6 +337,28 @@ const Pricing = () => {
     return <div className="flex h-screen items-center justify-center text-white">Loading incredible pricing...</div>;
   }
 
+  // Map old DB plan names to new display names
+  const PLAN_NAME_MAP = {
+    'starter plan': 'Creator',
+    'starter': 'Creator',
+    'founder plan': 'Startup Pro',
+    'founder': 'Startup Pro',
+    'pro': 'Agency',
+    'pro plan': 'Agency',
+    'business': 'Enterprise',
+    'business plan': 'Enterprise',
+  };
+
+  const getDisplayPlanName = (planName) => {
+    return PLAN_NAME_MAP[planName.toLowerCase()] || planName;
+  };
+
+  // Detect the "Startup Pro" (formerly Founder) plan
+  const isStartupProPlan = (plan) => {
+    const name = plan.planName.toLowerCase();
+    return name.includes('founder') || name.includes('startup pro') || name.includes('startup');
+  };
+
   return (
     <div className="pricing-page">
       <button onClick={() => navigate(-1)} className="back-button">
@@ -358,15 +380,16 @@ const Pricing = () => {
 
       <div className="pricing-grid">
         {plans.map((plan) => {
-          const isFounder = plan.planName.toLowerCase().includes('founder');
+          const isFounder = plan.planName.toLowerCase().includes('startup pro') || plan.planName.toLowerCase().includes('startup');
           const isFree = plan.priceMonthly === 0 && plan.priceYearly === 0;
           const isCurrentPlan = (() => {
             if (!currentPlanName) return false;
             const pn = plan.planName.toLowerCase();
-            if (currentPlanName === 'founder') return pn.includes('founder');
+            if (currentPlanName === 'startup pro' || currentPlanName === 'startup') return pn.includes('startup');
             if (currentPlanName === 'free' || currentPlanName === 'free tier') return isFree;
             return pn.includes(currentPlanName) || currentPlanName.includes(pn.split(' ')[0]);
           })();
+
 
           // Fetch ALL values directly from the Database (no frontend math)
           const displayPrice = billingCycle === 'yearly' ? (plan.priceYearlyPerMonth || plan.priceMonthly) : plan.priceMonthly;
@@ -390,7 +413,7 @@ const Pricing = () => {
                 <div className="free-tier-badge">💬 {t('chatOnly')}</div>
               )}
 
-              <h3 className="plan-name">{plan.planName}</h3>
+              <h3 className="plan-name">{getDisplayPlanName(plan.planName)}</h3>
 
               <div className="plan-price">
                 {billingCycle === 'yearly' && !isFree && (
@@ -421,7 +444,23 @@ const Pricing = () => {
               </div>
 
               <div className="plan-credits">
-                <Sparkles size={18} /> {displayCredits} {t('credits')}
+                <Sparkles size={18} />
+                {(() => {
+                  const pn = plan.planName.toLowerCase();
+                  if (pn.includes('founder') || pn.includes('startup pro') || pn.includes('startup')) {
+                    return <span>3000 {t('credits')} <span style={{ color: 'var(--color-primary)', fontWeight: 900 }}>+ AI Action</span></span>;
+                  }
+                  if (pn.includes('starter') || pn.includes('creator')) {
+                    return <span>3000 {t('credits')}</span>;
+                  }
+                  if (pn.includes('pro') || pn.includes('agency')) {
+                    return <span>Creator <span style={{ color: 'var(--color-primary)', fontWeight: 900 }}>Workflow Pack</span></span>;
+                  }
+                  if (pn.includes('business') || pn.includes('enterprise')) {
+                    return <span>Business <span style={{ color: 'var(--color-primary)', fontWeight: 900 }}>Automation Access</span></span>;
+                  }
+                  return <span>{displayCredits} {t('credits')}</span>;
+                })()}
               </div>
 
               <div className="credit-details">
