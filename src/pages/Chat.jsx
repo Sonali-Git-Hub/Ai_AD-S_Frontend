@@ -7151,8 +7151,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                                         </button>
                                                       </div>
                                                     )}
-                                                    <div className={`${isUser ? 'max-h-[500px]' : 'max-h-[600px]'} overflow-auto custom-scrollbar ${isUser ? 'bg-transparent' : 'bg-[#0d0d0d]'}`}>
+                                                    <div className={`w-full ${isUser ? 'bg-transparent' : 'bg-[#0d0d0d]'}`}>
                                                       <SyntaxHighlighter
+                                                        className="custom-scrollbar"
                                                         language={lang || 'text'}
                                                         style={highlighterTheme}
                                                         PreTag="div"
@@ -7165,7 +7166,10 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                                           borderRadius: 0,
                                                           border: 'none',
                                                           color: '#e5e7eb', // Ensure visibility for plain text
-                                                          fontFamily: '"Fira Code", "JetBrains Mono", source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace'
+                                                          fontFamily: '"Fira Code", "JetBrains Mono", source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace',
+                                                          overflowX: 'auto',
+                                                          overflowY: 'auto',
+                                                          maxHeight: isUser ? '500px' : '600px'
                                                         }}
                                                         codeTagProps={{
                                                           style: {
