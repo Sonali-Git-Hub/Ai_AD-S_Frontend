@@ -50,11 +50,13 @@ export const useAILegalCRM = ({
   useEffect(() => {
     if (location.pathname === '/dashboard/cases') {
       // Set all states atomically to prevent flash of blank/wrong content
-      setCurrentProjectId(null);
-      setCurrentCase(null);
-      setLegalView('DASHBOARD');
-      setCurrentMode('LEGAL_TOOLKIT');
-      setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
+      if (currentProjectId !== null) setCurrentProjectId(null);
+      if (currentCase !== null) setCurrentCase(null);
+      if (legalView !== 'DASHBOARD') setLegalView('DASHBOARD');
+      if (currentMode !== 'LEGAL_TOOLKIT') setCurrentMode('LEGAL_TOOLKIT');
+      if (selectedLegalTool?.id !== 'legal_my_case') {
+        setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
+      }
       fetchLegalCases();
     }
   }, [location.pathname]);
@@ -147,7 +149,7 @@ export const useAILegalCRM = ({
     if (currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id === 'legal_my_case') {
       fetchLegalCases();
     }
-  }, [currentMode, selectedLegalTool, setAllProjects]);
+  }, [currentMode, selectedLegalTool?.id, setAllProjects]);
 
   const handleCreateNewCase = async () => {
     if (!newCaseForm.clientName.trim()) {
@@ -456,11 +458,11 @@ export const useAILegalCRM = ({
   useEffect(() => {
     const fetchCaseDetails = async () => {
       if (!currentProjectId || currentProjectId === 'default' || currentProjectId === 'all') {
-        setCurrentCase(null);
+        if (currentCase !== null) setCurrentCase(null);
         if (currentMode !== 'LEGAL_TOOLKIT') {
-          setCurrentMode('NORMAL_CHAT');
-          setSelectedLegalTool(null);
-          setLegalView('CHAT');
+          if (currentMode !== 'NORMAL_CHAT') setCurrentMode('NORMAL_CHAT');
+          if (selectedLegalTool !== null) setSelectedLegalTool(null);
+          if (legalView !== 'CHAT') setLegalView('CHAT');
         }
         return;
       }
@@ -468,17 +470,17 @@ export const useAILegalCRM = ({
       const isValidObjectId = /^[a-f\d]{24}$/i.test(currentProjectId);
       if (!isValidObjectId) {
         console.warn(`[Case] Invalid project ID format, clearing: ${currentProjectId}`);
-        setCurrentProjectId(null);
+        if (currentProjectId !== null) setCurrentProjectId(null);
         return;
       }
 
       if (currentCase?._id === currentProjectId) {
         if (currentCase.isLegalCase && currentMode !== 'LEGAL_TOOLKIT') {
           setCurrentMode('LEGAL_TOOLKIT');
-          if (selectedLegalTool?.id !== 'legal_precedents' && selectedLegalTool?.id !== 'legal_case_law_research') {
+          if (selectedLegalTool?.id !== 'legal_precedents' && selectedLegalTool?.id !== 'legal_case_law_research' && selectedLegalTool?.id !== 'legal_my_case') {
             setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
           }
-          if (legalView !== 'DASHBOARD' && legalView !== 'PRECEDENTS') setLegalView('CHAT');
+          if (legalView !== 'DASHBOARD' && legalView !== 'PRECEDENTS' && legalView !== 'CHAT') setLegalView('CHAT');
         }
         return;
       }
@@ -488,14 +490,14 @@ export const useAILegalCRM = ({
         if (location.pathname === '/dashboard/cases') return;
 
         if (response) {
-          setCurrentCase(response);
+          if (currentCase?._id !== response._id) setCurrentCase(response);
           if (response.isLegalCase) {
-            setCurrentMode('LEGAL_TOOLKIT');
-            if (selectedLegalTool?.id !== 'legal_precedents' && selectedLegalTool?.id !== 'legal_case_law_research') {
+            if (currentMode !== 'LEGAL_TOOLKIT') setCurrentMode('LEGAL_TOOLKIT');
+            if (selectedLegalTool?.id !== 'legal_precedents' && selectedLegalTool?.id !== 'legal_case_law_research' && selectedLegalTool?.id !== 'legal_my_case') {
               setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
             }
             if (legalView !== 'PRECEDENTS') {
-              setLegalView('CHAT');
+              if (legalView !== 'CHAT') setLegalView('CHAT');
               if (location.pathname === '/dashboard/chat/new') {
                 try {
                   const caseSessions = await chatStorageService.getSessions(currentProjectId);
@@ -512,16 +514,16 @@ export const useAILegalCRM = ({
       } catch (err) {
         if (err?.response?.status === 404) {
           console.warn(`[Case] Project ${currentProjectId} not found (404). Clearing stale ID.`);
-          setCurrentProjectId(null);
-          setCurrentCase(null);
-          setCurrentMode('NORMAL_CHAT');
+          if (currentProjectId !== null) setCurrentProjectId(null);
+          if (currentCase !== null) setCurrentCase(null);
+          if (currentMode !== 'NORMAL_CHAT') setCurrentMode('NORMAL_CHAT');
         } else {
           console.error("Failed to fetch case details:", err);
         }
       }
     };
     fetchCaseDetails();
-  }, [currentProjectId, location.pathname, currentMode, currentCase, selectedLegalTool, setCurrentCase, setCurrentMode, setSelectedLegalTool, setLegalView, navigate, setCurrentProjectId]);
+  }, [currentProjectId, location.pathname, currentMode, currentCase?._id, selectedLegalTool?.id, setCurrentCase, setCurrentMode, setSelectedLegalTool, setLegalView, navigate, setCurrentProjectId]);
 
   return {
     renderCaseDashboard,
