@@ -534,61 +534,88 @@ const Chat = () => {
 
   const handleCopyImage = async (imageUrl) => {
     if (!imageUrl) return;
-    const t = toast.loading('Attempting to copy...');
 
-    // Use our backend proxy to bypass CORS
+    // ── Strategy 1: Modern Clipboard API (HTTPS / localhost only) ──────────
+    const isSecureContext = window.isSecureContext ||
+      window.location.protocol === 'https:' ||
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1';
+
     const proxiedUrl = `${apis.imageProxy}?url=${encodeURIComponent(imageUrl)}`;
 
-    try {
-      const imagePromise = (async () => {
-        try {
-          // Use proxied URL for canvas method
-          return await new Promise((resolve, reject) => {
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.onload = () => {
-              try {
-                const canvas = document.createElement('canvas');
-                canvas.width = img.naturalWidth;
-                canvas.height = img.naturalHeight;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0);
-                canvas.toBlob((b) => b ? resolve(b) : reject(new Error('Canvas failed')), 'image/png');
-              } catch (e) { reject(e); }
-            };
-            img.onerror = () => reject(new Error('Load failed'));
-            img.src = proxiedUrl;
-          });
-        } catch (err) {
-          // Fallback to direct fetch via proxy
-          const response = await fetch(proxiedUrl);
-          const blob = await response.blob();
-          if (blob.type === 'image/png') return blob;
+    if (isSecureContext && navigator.clipboard?.write) {
+      const t = toast.loading('Copying image...');
+      try {
+        const blob = await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              canvas.width = img.naturalWidth;
+              canvas.height = img.naturalHeight;
+              canvas.getContext('2d').drawImage(img, 0, 0);
+              canvas.toBlob((b) => b ? resolve(b) : reject(new Error('Canvas blob failed')), 'image/png');
+            } catch (e) { reject(e); }
+          };
+          img.onerror = () => reject(new Error('Image load failed'));
+          img.src = proxiedUrl;
+        });
 
-          // If fetched but not PNG, we must use canvas (redundant but safe)
-          throw new Error('Conversion required but proxy-canvas failed');
-        }
-      })();
-
-      await navigator.clipboard.write([
-        new ClipboardItem({ 'image/png': imagePromise })
-      ]);
-
-      toast.dismiss(t);
-      toast.success('Image copied! ✨');
-    } catch (err) {
-      console.error('Copy failure (even with proxy):', err);
-      toast.dismiss(t);
-      toast.error(
-        (t) => (
-          <span className="flex flex-col gap-1">
-            <span className="font-bold text-xs">Copy failed (System)</span>
-            <span className="text-[10px] opacity-80 leading-tight">Your browser security blocked the action even through the master proxy. Please **right-click** and **"Copy Image"** instead.</span>
-          </span>
-        ),
-        { duration: 4000 }
-      );
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        toast.dismiss(t);
+        toast.success('Image copied! ✨');
+        return;
+      } catch (err) {
+        toast.dismiss(t);
+        console.warn('[CopyImage] Secure clipboard failed, trying fallback:', err.message);
+        // fall through to next strategy
+      }
     }
+
+    // ── Strategy 2: HTTP fallback — copy the direct image URL to clipboard ──
+    // navigator.clipboard.writeText works on HTTP in some browsers
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(imageUrl);
+        toast.success('Image link copied! Open it and right-click → Save/Copy. 🔗', { duration: 4000 });
+        return;
+      }
+    } catch (err) {
+      console.warn('[CopyImage] writeText also blocked:', err.message);
+    }
+
+    // ── Strategy 3: execCommand fallback (legacy HTTP environments) ──────────
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = imageUrl;
+      textArea.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const success = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      if (success) {
+        toast.success('Image link copied! Open it and right-click → Save/Copy. 🔗', { duration: 4000 });
+        return;
+      }
+    } catch (err) {
+      console.warn('[CopyImage] execCommand fallback failed:', err.message);
+    }
+
+    // ── Strategy 4: Open image in new tab so user can copy/save manually ────
+    toast(
+      (toastId) => (
+        <span className="flex flex-col gap-1.5">
+          <span className="font-bold text-xs">📋 Browser Copy Blocked</span>
+          <span className="text-[10px] opacity-80 leading-tight">
+            This site runs on HTTP — browser blocks clipboard access. Your image has been opened in a new tab. Please right-click → <strong>Copy Image</strong> or <strong>Save Image As</strong>.
+          </span>
+        </span>
+      ),
+      { duration: 5000, icon: '🖼️' }
+    );
+    window.open(imageUrl, '_blank', 'noopener,noreferrer');
   };
   const { sessionId, caseId } = useParams();
   const navigate = useNavigate();
