@@ -7320,7 +7320,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                     {/* Dynamic Image Rendering (if not in markdown) */}
                                     {msg.imageUrl && (
                                       <div
-                                        className="relative group/generated mt-4 mb-2 overflow-hidden transition-all hover:scale-[1.01] cursor-zoom-in w-fit max-w-sm"
+                                        className="relative group/generated mt-4 mb-2 overflow-hidden rounded-2xl transition-all hover:scale-[1.01] cursor-zoom-in w-fit max-w-sm"
                                         onClick={() => {
                                           if (!viewingDoc) setViewingDoc({ url: msg.imageUrl, type: 'image', name: 'Generated Image' });
                                         }}
