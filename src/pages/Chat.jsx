@@ -2197,9 +2197,10 @@ const Chat = () => {
       // Ensure the prompt and loading state are visible
       setTimeout(() => scrollToBottom(true), 50);
 
-      // Save user message to backend
+      // Save user message to backend — pass interim title so session is not created as "New Chat"
       if (activeSessionId && activeSessionId !== 'new') {
-        chatStorageService.saveMessage(activeSessionId, userMsg, null, currentProjectId).catch(err => console.error("Error saving video user message:", err));
+        const titleForSave = pendingMediaTitleRef.current || null;
+        chatStorageService.saveMessage(activeSessionId, userMsg, titleForSave, currentProjectId).catch(err => console.error("Error saving video user message:", err));
       }
 
       try {
@@ -2330,9 +2331,10 @@ const Chat = () => {
       // Ensure the prompt and loading state are visible
       setTimeout(() => scrollToBottom(true), 50);
 
-      // Save user message to backend
+      // Save user message to backend — pass interim title so session is not created as "New Chat"
       if (activeSessionId && activeSessionId !== 'new') {
-        chatStorageService.saveMessage(activeSessionId, userMsg, null, currentProjectId).catch(err => console.error("Error saving image user message:", err));
+        const titleForSave = pendingMediaTitleRef.current || null;
+        chatStorageService.saveMessage(activeSessionId, userMsg, titleForSave, currentProjectId).catch(err => console.error("Error saving image user message:", err));
       }
 
       try {
@@ -3465,6 +3467,7 @@ const Chat = () => {
   const isNavigatingRef = useRef(false);
   const lastLoadedSessionRef = useRef(null);
   const mountedSessionIdRef = useRef(sessionId);
+  const pendingMediaTitleRef = useRef(null); // Holds interim title for image/video sessions until AI title is ready
 
   useEffect(() => {
     mountedSessionIdRef.current = sessionId;
@@ -4322,19 +4325,30 @@ const Chat = () => {
             const earlyMode = (isImageGeneration || toolOverride === 'text_to_image') ? MODES.IMAGE_GENERATION :
                             ((isVideoGeneration || toolOverride === 'text_to_video' || toolOverride === 'image_to_video') ? MODES.VIDEO_GENERATION : MODES.IMAGE_EDIT);
             
+            // Use a truncated prompt as the interim title instead of "New Chat"
+            // This ensures the sidebar shows something meaningful immediately
+            const interimTitle = contentToSend.length > 40 
+              ? contentToSend.substring(0, 40) + '...' 
+              : contentToSend;
+            
+            // Store interim title so handleGenerateImage/Video can pass it to saveMessage
+            pendingMediaTitleRef.current = interimTitle;
+
             setSessions(prev => {
               const currentSessions = Array.isArray(prev) ? prev : [];
               if (currentSessions.some(s => s.sessionId === activeSessionId)) return currentSessions;
               return [{
                 sessionId: activeSessionId,
-                title: "New Chat",
+                title: interimTitle,
                 lastModified: Date.now(),
                 detectedMode: earlyMode,
                 projectId: currentProjectId
               }, ...currentSessions];
             });
 
+            // Generate a polished AI title in the background and update sidebar + backend
             chatStorageService.generateSessionTitle(activeSessionId, contentToSend).then(newTitle => {
+              pendingMediaTitleRef.current = null; // Clear interim ref
               if (newTitle) {
                 setSessions(prev => {
                   const currentSessions = Array.isArray(prev) ? prev : [];
@@ -4352,6 +4366,7 @@ const Chat = () => {
         
         navigate(`/dashboard/chat/${activeSessionId}`, { replace: true });
       }
+
 
       // Handle Image Generation Mode
       if (isImageGeneration || toolOverride === 'text_to_image') {
@@ -6687,7 +6702,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         <div
           ref={chatContainerRef}
           onScroll={handleScroll}
-          className={`relative flex-1 aisa-scalable-text chatgpt-container z-20 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent ${((legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT')
+          className={`relative flex-1 aisa-scalable-text chatgpt-container z-20 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent ${((currentMode === 'LEGAL_TOOLKIT' && !showFloatingNavbar) || location.pathname === '/dashboard/cases') ? 'no-top-padding' : ''} ${((legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT')
             ? 'z-[30] h-full w-full overflow-hidden flex flex-col bg-slate-50 min-h-0'
             : `overflow-y-auto ${showFloatingNavbar ? 'pt-[72px] sm:mt-0 sm:pt-24' : (currentMode === 'LEGAL_TOOLKIT' || location.pathname === '/dashboard/cases' ? 'pt-4' : 'pt-[72px] sm:mt-0 sm:pt-[76px]')} lg:pt-6 pb-64 md:pb-72`
             }`}
@@ -7362,7 +7377,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                             }
                                           }}
                                         />
-                                        <div className="absolute bottom-3 right-3 flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover/generated:opacity-100 transition-all scale-100 sm:scale-90 sm:group-hover/generated:scale-100">
+                                        <div className="absolute bottom-5 right-4 flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover/generated:opacity-100 transition-all scale-100 sm:scale-90 sm:group-hover/generated:scale-100">
                                           <button
                                             onClick={(e) => {
                                               e.stopPropagation();

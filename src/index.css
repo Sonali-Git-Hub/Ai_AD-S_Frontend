@@ -1423,7 +1423,7 @@ html.lenis body {
   }
 
   /* Prevent overlapping of fixed navbar — 76px clears the 64px mobile header */
-  .chatgpt-container {
+  .chatgpt-container:not(.no-top-padding) {
     padding-top: 76px !important;
   }
 }
