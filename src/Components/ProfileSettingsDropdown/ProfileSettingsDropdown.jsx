@@ -946,14 +946,14 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                             </div>
                             <button onClick={() => setShowResetModal(true)} className="text-primary font-bold hover:underline">{t('changePassword')}</button>
                         </div>
-                        <div className="py-6 flex justify-between items-center text-sm">
+                        <div className="py-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-sm">
                             <div className="space-y-1">
                                 <p className="font-bold text-red-500">{t('dangerZone') || 'Danger Zone'}</p>
                                 <p className="text-[11px] text-subtext leading-tight max-w-[280px]">Permanently delete your account and all associated data. This action is irreversible.</p>
                             </div>
                             <button
                                 onClick={() => setShowDeleteModal(true)}
-                                className="px-5 py-2.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 rounded-xl font-bold transition-all"
+                                className="w-full sm:w-auto px-5 py-2.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 rounded-xl font-bold transition-all shrink-0 text-center"
                             >
                                 {t('deleteAccount') || 'Delete Account'}
                             </button>

@@ -472,6 +472,7 @@ export const LanguageProvider = ({ children }) => {
             addOrSwitchAccount: "Add or switch account",
             resetAllSettings: "Reset all settings to defaults",
             permanentDeleteAccount: "Permanent Delete Account",
+            deleteAccount: "Delete Account",
             settings: "Settings",
             inbox: "Inbox",
             clearAllNotifications: "Clear all",
