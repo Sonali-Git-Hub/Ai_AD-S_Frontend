@@ -77,7 +77,7 @@ const SidebarTools = ({ onToolSelect, activeToolId }) => {
             >
               <div className="flex items-center gap-2">
                 <Icon className={`w-3.5 h-3.5 transition-colors ${isExpanded ? 'text-primary' : ''}`} />
-                <span className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors ${isExpanded ? 'text-primary' : ''}`}>
+                <span className={`text-[12px] font-black uppercase tracking-[0.2em] transition-colors ${isExpanded ? 'text-primary' : ''}`}>
                   {category.title}
                 </span>
               </div>

@@ -574,7 +574,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                     navigate('/dashboard/chat/new');
                     if (onClose) onClose();
                   }}
-                  className={`relative z-10 w-[46px] flex justify-center items-center text-[9px] font-bold transition-colors ${!isNavigating ? 'text-white' : (isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-[#8B5CF6]')}`}
+                  className={`relative z-10 w-[46px] flex justify-center items-center text-[10px] font-bold transition-colors ${!isNavigating ? 'text-white' : (isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-[#8B5CF6]')}`}
                 >
                   AISA
                 </button>
@@ -594,7 +594,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                       window.location.href = targetUrl;
                     }
                   }}
-                  className={`relative z-10 w-[46px] flex justify-center items-center text-[9px] font-bold transition-colors ${isNavigating ? 'text-white' : (isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-[#8B5CF6]')}`}
+                  className={`relative z-10 w-[46px] flex justify-center items-center text-[10px] font-bold transition-colors ${isNavigating ? 'text-white' : (isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-[#8B5CF6]')}`}
                 >
                   MALL
                 </button>
@@ -734,7 +734,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                 className="px-5 pt-4 pb-2 flex items-center justify-between cursor-pointer group/header select-none relative z-10"
               >
                 <div className="flex items-center gap-2">
-                  <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] group-hover/header:text-primary transition-colors 
+                  <h3 className={`text-[12px] font-black uppercase tracking-[0.2em] group-hover/header:text-primary transition-colors 
                     ${isDark ? 'text-subtext/60' : 'text-slate-900'}`}>PROJECTS</h3>
                   <div className={`h-[1px] w-8 transition-all group-hover/header:w-12 group-hover/header:bg-primary/30 
                     ${isDark ? 'bg-subtext/20' : 'bg-slate-300'}`}></div>
@@ -797,7 +797,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                     >
                       <div className="flex items-center gap-2.5">
                         <FolderOpen className={`w-4 h-4 text-primary transition-transform duration-300 ${isCasesExpanded ? 'scale-110' : ''}`} />
-                        <span className={`text-[11px] font-black uppercase tracking-[0.15em] ${isDark ? 'text-subtext/90' : 'text-slate-900'}`}>CASES</span>
+                        <span className={`text-[13px] font-black uppercase tracking-[0.15em] ${isDark ? 'text-subtext/90' : 'text-slate-900'}`}>CASES</span>
                       </div>
                       <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isCasesExpanded ? '' : '-rotate-90'} ${isDark ? 'text-subtext/40' : 'text-slate-400'}`} />
                     </div>
@@ -914,7 +914,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
               return (
                 <>
                   <div className="px-1 py-4 flex items-center justify-between">
-                    <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDark ? 'text-subtext/40' : 'text-slate-500'}`}>
+                    <h3 className={`text-[12px] font-black uppercase tracking-[0.2em] ${isDark ? 'text-subtext/40' : 'text-slate-500'}`}>
                       {token ? t('activityLog') : 'Guest History'}
                     </h3>
                     <div className={`h-[1px] flex-1 ml-4 ${isDark ? 'bg-gradient-to-r from-subtext/10 to-transparent' : 'bg-gradient-to-r from-slate-300 to-transparent'}`}></div>
@@ -925,7 +925,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                       <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center mb-3">
                         <User className="w-5 h-5 text-primary" />
                       </div>
-                      <p className="text-[10px] text-subtext">{t('loginToSaveHistory')}</p>
+                      <p className="text-[11px] text-subtext">{t('loginToSaveHistory')}</p>
                     </div>
                   )}
 
@@ -980,7 +980,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                               onClick={() => toggleHistoryGroup(groupKey)}
                               className={`w-full flex items-center justify-between px-3 py-1.5 mb-1 group transition-colors rounded-lg ${isDark ? 'text-subtext/60 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-900 hover:bg-black/5'}`}
                             >
-                              <span className="text-[10px] font-black uppercase tracking-widest">{groupKey}</span>
+                              <span className="text-[12px] font-black uppercase tracking-widest">{groupKey}</span>
                               <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${expandedHistoryGroups[groupKey] ? 'rotate-180' : ''}`} />
                             </button>
                           )}
@@ -1159,7 +1159,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
             {isAdmin && (
               <button
                 onClick={() => { navigate('/dashboard/admin'); onClose(); }}
-                className="w-full h-10 flex items-center justify-center gap-2 mb-5 rounded-xl text-primary bg-primary/10 hover:bg-primary/20 transition-all text-[10px] font-black uppercase tracking-widest border border-primary/20 active:scale-95"
+                className="w-full h-10 flex items-center justify-center gap-2 mb-5 rounded-xl text-primary bg-primary/10 hover:bg-primary/20 transition-all text-[12px] font-black uppercase tracking-widest border border-primary/20 active:scale-95"
               >
                 <Shield className="w-3.5 h-3.5" />
                 <span>{t('admin')}</span>
@@ -1176,7 +1176,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                     <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
                       <LayoutGrid className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
                     </div>
-                    <span className="text-[9px] font-black text-primary/70 uppercase tracking-tight group-hover/fbtn:text-primary transition-colors">Connectors</span>
+                    <span className="text-[11px] font-black text-primary/70 uppercase tracking-tight group-hover/fbtn:text-primary transition-colors">Connectors</span>
                   </button>
 
                   <button
@@ -1186,7 +1186,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                     <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
                       <CreditCard className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
                     </div>
-                    <span className="text-[9px] font-black text-primary/70 uppercase tracking-tight group-hover/fbtn:text-primary transition-colors">Credits</span>
+                    <span className="text-[11px] font-black text-primary/70 uppercase tracking-tight group-hover/fbtn:text-primary transition-colors">Credits</span>
                   </button>
                 </>
               ) : (
@@ -1197,7 +1197,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                   <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
                     <IndianRupee className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
                   </div>
-                  <span className="text-[9px] font-black text-primary/70 uppercase tracking-tight group-hover/fbtn:text-primary transition-colors">Pricing</span>
+                  <span className="text-[11px] font-black text-primary/70 uppercase tracking-tight group-hover/fbtn:text-primary transition-colors">Pricing</span>
                 </button>
               )}
 
@@ -1208,7 +1208,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                 <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
                   <Settings2 className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
                 </div>
-                <span className="text-[9px] font-black text-primary/70 uppercase tracking-tight group-hover/fbtn:text-primary transition-colors">Settings</span>
+                <span className="text-[11px] font-black text-primary/70 uppercase tracking-tight group-hover/fbtn:text-primary transition-colors">Settings</span>
               </button>
             </div>
           </div>
