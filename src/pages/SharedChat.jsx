@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus as highlighterTheme } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Globe, MessageCircle, Bot, User, Sparkles, ExternalLink, Calendar, Rocket } from 'lucide-react';
+import { Globe, MessageCircle, Bot, User, Sparkles, ExternalLink, Calendar, Rocket, ChevronDown } from 'lucide-react';
 import Loader from '../Components/Loader/Loader';
 import { getModeIcon, getModeName, MODES } from '../utils/modeDetection';
 import toast from 'react-hot-toast';
@@ -18,6 +18,7 @@ const SharedChat = () => {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [expandedMessages, setExpandedMessages] = useState({});
 
   useEffect(() => {
     const fetchSharedChat = async () => {
@@ -153,35 +154,55 @@ const SharedChat = () => {
                 )}
 
                 <div className="prose prose-zinc dark:prose-invert max-w-none text-sm leading-relaxed text-maintext">
-                  <ReactMarkdown 
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      code({ node, inline, className, children, ...props }) {
-                        const match = /language-(\w+)/.exec(className || '');
-                        return !inline && match ? (
-                          <div className="my-4 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800">
-                             <div className="bg-zinc-100 dark:bg-zinc-800 px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
-                                <span className="text-[10px] font-bold text-subtext uppercase tracking-widest">{match[1]}</span>
-                             </div>
-                             <SyntaxHighlighter
-                                language={match[1]}
-                                style={highlighterTheme}
-                                PreTag="div"
-                                className="!bg-zinc-50 dark:!bg-[#0d0d0d] !p-4 !m-0"
-                             >
-                                {String(children).replace(/\n$/, '')}
-                             </SyntaxHighlighter>
-                          </div>
-                        ) : (
-                          <code className="bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-xs font-mono text-primary font-bold" {...props}>
-                            {children}
-                          </code>
-                        );
-                      }
-                    }}
-                  >
-                    {msg.content}
-                  </ReactMarkdown>
+                  <div className="flex flex-col">
+                    <div className={`collapsible-container ${msg.content && msg.content.length > 350 && !expandedMessages[idx] ? 'collapsed-message' : ''}`}>
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          code({ node, inline, className, children, ...props }) {
+                            const match = /language-(\w+)/.exec(className || '');
+                            return !inline && match ? (
+                              <div className="my-4 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800">
+                                 <div className="bg-zinc-100 dark:bg-zinc-800 px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 flex justify-between items-center">
+                                    <span className="text-[10px] font-bold text-subtext uppercase tracking-widest">{match[1]}</span>
+                                 </div>
+                                 <SyntaxHighlighter
+                                    language={match[1]}
+                                    style={highlighterTheme}
+                                    PreTag="div"
+                                    className="!bg-zinc-50 dark:!bg-[#0d0d0d] !p-4 !m-0"
+                                 >
+                                    {String(children).replace(/\n$/, '')}
+                                 </SyntaxHighlighter>
+                              </div>
+                            ) : (
+                              <code className="bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-xs font-mono text-primary font-bold" {...props}>
+                                {children}
+                              </code>
+                            );
+                          }
+                        }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
+                    </div>
+                    {(msg.content || msg.text) && (msg.content || msg.text).length > 350 && (
+                      <div className="flex justify-end w-full mt-3">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedMessages(prev => ({ ...prev, [idx]: !prev[idx] }));
+                          }}
+                          className="p-1.5 text-zinc-400 hover:text-primary hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors flex items-center justify-center active:scale-95"
+                          title={expandedMessages[idx] ? 'Show Less' : 'Show More'}
+                        >
+                          <ChevronDown
+                            className={`w-4 h-4 transition-transform duration-200 ${expandedMessages[idx] ? 'rotate-180 text-primary' : ''}`}
+                          />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Sources List */}

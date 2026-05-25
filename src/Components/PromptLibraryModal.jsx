@@ -173,6 +173,18 @@ const PromptLibraryModal = ({ isOpen, onClose, onSelect, mode = 'generate', refe
         setPage(Page => 1);
     }, [mode]);
 
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        }
+        return () => {
+            const activeModals = document.querySelectorAll('.modal-open-indicator');
+            if (activeModals.length <= 1) {
+                document.body.style.overflow = '';
+            }
+        };
+    }, [isOpen]);
+
     const allPrompts = useMemo(() => {
         let result = [];
         let id = 1;
@@ -293,17 +305,16 @@ const PromptLibraryModal = ({ isOpen, onClose, onSelect, mode = 'generate', refe
         handleSelect(random.prompt, random.id);
     };
 
-    if (!isOpen) return null;
-
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-[1100] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-[12px]">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: 30 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: 30 }}
-                    className="relative w-full max-w-4xl h-[90vh] sm:h-[85vh] bg-white/70 rounded-[30px] sm:rounded-[40px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] overflow-hidden border border-white/40 flex flex-col"
-                >
+            {isOpen && (
+                <div className="fixed inset-0 z-[1300] flex items-center justify-center p-2 sm:p-4 bg-slate-950/40 dark:bg-black/60 backdrop-blur-[6px] sm:backdrop-blur-[8px] overflow-y-auto lg:!left-[280px] modal-open-indicator">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 30 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 30 }}
+                        className="relative w-full max-w-4xl h-[90vh] sm:h-[85vh] bg-white/70 rounded-[30px] sm:rounded-[40px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] overflow-hidden border border-white/40 flex flex-col my-auto"
+                    >
                     {/* Header Section */}
                     <div className="p-5 sm:p-8 bg-white/40 border-b border-black/[0.05] relative space-y-5">
                         <div className="flex items-center justify-between">
@@ -413,7 +424,7 @@ const PromptLibraryModal = ({ isOpen, onClose, onSelect, mode = 'generate', refe
                                         <div className="mt-auto">
                                             <button 
                                                 onClick={() => handleSelect(p.prompt, p.id)}
-                                                className="w-full py-3 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.15em] flex items-center justify-center gap-2 hover:bg-primary hover:scale-[1.02] active:scale-95 transition-all shadow-md group-hover:shadow-primary/20"
+                                                className="w-full py-3 rounded-xl bg-primary text-white text-[10px] font-black uppercase tracking-[0.15em] flex items-center justify-center gap-2 shadow-md shadow-primary/25"
                                             >
                                                 Use Prompt
                                                 <ChevronRight size={14} />
@@ -441,6 +452,7 @@ const PromptLibraryModal = ({ isOpen, onClose, onSelect, mode = 'generate', refe
                     </div>
                 </motion.div>
             </div>
+            )}
         </AnimatePresence>
     );
 };

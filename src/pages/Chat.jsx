@@ -35,7 +35,7 @@ import axios from 'axios';
 import { apis, API } from '../types';
 import { jsPDF } from 'jspdf';
 import { toCanvas } from 'html-to-image';
-import html2canvas from 'html2canvas';
+import html2canvas from 'html2canvas-pro';
 import { detectMode, getModeName, getModeIcon, getModeColor, MODES } from '../utils/modeDetection';
 import { copyText } from '../utils/clipboard';
 import { userData, getUserData, clearUser, sessionsData, toggleState, memoryData, activeProjectIdData, activeModeData, activeLegalToolData, activeProjectsData, legalViewData } from '../userStore/userData';
@@ -7049,7 +7049,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                       {msg.id === typingMessageId && !msg.content ? (
                                         <Skeleton />
                                       ) : (
-                                        <ReactMarkdown
+                                        <div className="flex flex-col">
+                                          <div className={`collapsible-container ${msg.content && msg.content.length > 350 && msg.id !== typingMessageId && !expandedMessages[msg.id] ? 'collapsed-message' : ''}`}>
+                                            <ReactMarkdown
                                           className="select-text"
                                           remarkPlugins={[remarkGfm]}
                                           urlTransform={(value) => value}
@@ -7283,7 +7285,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                           }}
                                         >
                                           {transformLegalActions(msg.content || msg.text || "")}
-                                        </ReactMarkdown>
+                                            </ReactMarkdown>
+                                          </div>
+                                        </div>
                                       )}
                                       {msg.cashflowData && (
                                         <React.Suspense fallback={<div className="h-48 w-full bg-surface-hover animate-pulse rounded-xl" />}>
@@ -7426,6 +7430,208 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                       </div>
                                     )}
                                     {msg.snapshot && <AISnapshot data={msg.snapshot} />}
+
+                                    {/* Render Actions and Timestamp INSIDE the bubble */}
+                                    {msg.role === 'user' ? (
+                                      <div className="mt-3 pt-2 border-t border-slate-200/30 dark:border-white/10 flex items-center justify-end gap-3 w-full">
+                                        <div className="flex items-center gap-3">
+                                          <div className="flex items-center gap-1">
+                                            <button
+                                              onClick={() => handleMessageDelete(msg.id)}
+                                              className="p-1 text-slate-400 dark:text-zinc-500 hover:text-red-500 hover:bg-red-50/10 rounded transition-colors"
+                                              title="Delete"
+                                            >
+                                              <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button
+                                              onClick={() => handleMessageUndo(msg)}
+                                              className="p-1 text-slate-400 dark:text-zinc-500 hover:text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded transition-colors"
+                                              title="Undo/Restore to Input"
+                                            >
+                                              <Undo2 className="w-3.5 h-3.5" />
+                                            </button>
+                                            {!msg.attachment && (
+                                              <button
+                                                onClick={() => startEditing(msg)}
+                                                className="p-1 text-slate-400 dark:text-zinc-500 hover:text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded transition-colors"
+                                                title="Edit"
+                                              >
+                                                <Edit2 className="w-3.5 h-3.5" />
+                                              </button>
+                                            )}
+                                            <button
+                                              onClick={() => handleCopyMessage(msg.content || msg.text)}
+                                              className="p-1 text-slate-400 dark:text-zinc-500 hover:text-maintext hover:bg-black/5 dark:hover:bg-white/5 rounded transition-colors"
+                                              title="Copy"
+                                            >
+                                              <Copy className="w-3.5 h-3.5" />
+                                            </button>
+                                          </div>
+                                          <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-medium">
+                                            {new Date(msg.timestamp).toLocaleTimeString([], {
+                                              hour: '2-digit',
+                                              minute: '2-digit',
+                                            })}
+                                          </span>
+                                        </div>
+
+                                        {(msg.content || msg.text) && (msg.content || msg.text).length > 350 && msg.id !== typingMessageId && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setExpandedMessages(prev => ({ ...prev, [msg.id]: !prev[msg.id] }));
+                                            }}
+                                            className="p-1 text-slate-400 dark:text-zinc-500 hover:text-primary rounded transition-colors flex items-center justify-center active:scale-95"
+                                            title={expandedMessages[msg.id] ? 'Show Less' : 'Show More'}
+                                          >
+                                            <ChevronDown
+                                              className={`w-3.5 h-3.5 transition-transform duration-200 ${expandedMessages[msg.id] ? 'rotate-180 text-primary' : ''}`}
+                                            />
+                                          </button>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      /* AI Feedback Actions inside bubble - Strictly hide for media and processing */
+                                      !msg.isProcessing && !msg.isGenerating && !msg.error &&
+                                      typingMessageId !== msg.id && (
+                                        <div className="mt-3 pt-2 border-t border-slate-200/20 dark:border-zinc-800/80 w-full block">
+                                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
+                                            {(() => {
+                                              // Detect if the AI response contains Hindi (Devanagari script)
+                                              const isHindiContent = /[\u0900-\u097F]/.test(msg.content);
+                                              const prompts = isHindiContent ? FEEDBACK_PROMPTS.hi : FEEDBACK_PROMPTS.en;
+                                              const msgIdentifier = (msg.id || msg._id || Date.now()).toString();
+                                              const promptIndex = (msgIdentifier.charCodeAt(msgIdentifier.length - 1) || 0) % prompts.length;
+                                              return (
+                                                <p className="text-[11px] text-subtext font-medium flex items-center gap-1.5 shrink-0 m-0 leading-none">
+                                                  {prompts[promptIndex]}
+                                                  <span className="text-xs">😊</span>
+                                                </p>
+                                              );
+                                            })()}
+                                            <div className="flex flex-col items-end gap-2 self-end sm:self-auto">
+                                              <div className="flex items-center gap-2">
+                                                {(msg.content || msg.text) && (msg.content || msg.text).length > 350 && msg.id !== typingMessageId && (
+                                                  <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setExpandedMessages(prev => ({ ...prev, [msg.id]: !prev[msg.id] }));
+                                                    }}
+                                                    className="p-1 text-subtext hover:text-primary hover:bg-surface-hover rounded transition-colors flex items-center justify-center active:scale-95"
+                                                    title={expandedMessages[msg.id] ? 'Show Less' : 'Show More'}
+                                                  >
+                                                    <ChevronDown
+                                                      className={`w-3.5 h-3.5 transition-transform duration-200 ${expandedMessages[msg.id] ? 'rotate-180 text-primary' : ''}`}
+                                                    />
+                                                  </button>
+                                                )}
+                                                {!isMediaFeature && (() => {
+                                                  const msgIdentifier = (msg.id || msg._id || idx).toString();
+                                                  const isSpeaking = speakingMessageId === msgIdentifier;
+                                                  return (
+                                                    <button
+                                                      onClick={() => {
+                                                        speakResponse(msg.content, null, msgIdentifier, msg.attachments || [], true);
+                                                      }}
+                                                      className={`transition-colors p-1 rounded ${isSpeaking
+                                                        ? 'text-primary bg-primary/10'
+                                                        : 'text-subtext hover:text-primary hover:bg-surface-hover'
+                                                        }`}
+                                                      title={isSpeaking && !isPaused ? "Pause" : "Speak"}
+                                                    >
+                                                      {isSpeaking && !isPaused ? (
+                                                        <Pause className="w-3.5 h-3.5" />
+                                                      ) : (
+                                                        <Volume2 className="w-3.5 h-3.5" />
+                                                      )}
+                                                    </button>
+                                                  );
+                                                })()}
+                                                {!isMediaFeature && (
+                                                  <button
+                                                    onClick={() => handleCopyMessage(msg.content || msg.text)}
+                                                    className="p-1 text-subtext hover:text-maintext hover:bg-black/5 dark:hover:bg-white/5 rounded transition-colors"
+                                                    title="Copy"
+                                                  >
+                                                    <Copy className="w-3.5 h-3.5" />
+                                                  </button>
+                                                )}
+                                                <button
+                                                  onClick={() => handleThumbsUp(msg.id)}
+                                                  className={`transition-colors p-1 rounded ${messageFeedback[msg.id]?.type === 'up'
+                                                    ? 'text-primary bg-primary/10'
+                                                    : 'text-subtext hover:text-primary hover:bg-surface-hover'
+                                                    }`}
+                                                  title="Helpful"
+                                                >
+                                                  <ThumbsUp className="w-3.5 h-3.5" />
+                                                </button>
+                                                <button
+                                                  onClick={() => handleThumbsDown(msg.id)}
+                                                  className={`transition-colors p-1 rounded ${messageFeedback[msg.id]?.type === 'down'
+                                                    ? 'text-red-500 bg-red-50/10'
+                                                    : 'text-subtext hover:text-red-500 hover:bg-surface-hover'
+                                                    }`}
+                                                  title="Not Helpful"
+                                                >
+                                                  <ThumbsDown className="w-3.5 h-3.5" />
+                                                </button>
+                                                <button
+                                                  onClick={() => handleShare(msg.content)}
+                                                  className="text-subtext hover:text-primary transition-colors p-1 hover:bg-surface-hover rounded"
+                                                  title="Share Text"
+                                                >
+                                                  <Share className="w-3.5 h-3.5" />
+                                                </button>
+
+                                                {/* PDF / ZIP Tools */}
+                                                <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 ml-1 pl-1">
+                                                  {(msg.mode === MODES.LEGAL_TOOLKIT || msg.toolUsed?.toLowerCase().startsWith('legal_') || msg.toolUsed?.toLowerCase().includes('legal') || msg.toolUsed === 'Draft Maker') && (
+                                                    <button
+                                                      onClick={() => startEditing(msg)}
+                                                      className="text-primary hover:text-primary transition-all p-1 hover:bg-primary/5 rounded flex items-center gap-1 active:scale-95 group/edit"
+                                                      title="Edit Draft"
+                                                    >
+                                                      <Edit2 className="w-3.5 h-3.5 group-hover/edit:scale-110 transition-transform" />
+                                                    </button>
+                                                  )}
+
+                                                  {(msg.detectedMode === 'CODING_HELP' || msg.detectedMode === 'CODE_WRITER') ? (
+                                                    <button
+                                                      onClick={() => handleDownloadCodeProject(msg)}
+                                                      className="text-primary hover:text-primary-dark transition-all p-1 hover:bg-primary/5 rounded flex items-center gap-1 active:scale-95 group/code"
+                                                      title="Download Code Project (ZIP)"
+                                                    >
+                                                      <FileText className="w-3.5 h-3.5 group-hover/code:scale-110 transition-transform" />
+                                                    </button>
+                                                  ) : (
+                                                    !isMediaFeature && (
+                                                      <button
+                                                        onClick={() => handlePdfAction('download', msg)}
+                                                        className={`transition-all p-1 rounded flex items-center gap-1 active:scale-95 group/pdf ${downloadedMessages[msg.id]
+                                                          ? 'text-primary bg-primary/10 hover:bg-primary/20'
+                                                          : 'text-subtext hover:text-primary hover:bg-surface-hover'
+                                                          }`}
+                                                        title="Download Ready-Made PDF Report"
+                                                      >
+                                                        <FileText className="w-3.5 h-3.5 group-hover/pdf:scale-110 transition-transform" />
+                                                      </button>
+                                                    )
+                                                  )}
+                                                </div>
+
+                                                <span className="text-[10px] text-subtext/60 dark:text-subtext/40 font-medium ml-1">
+                                                  {new Date(msg.timestamp).toLocaleTimeString([], {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                  })}
+                                                </span>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )
+                                    )}
                                   </div>
                                 )
                               )}
@@ -7625,128 +7831,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 </div>
                               )}
 
-                              {/* AI Feedback Actions - Strictly hide for media and processing */}
-                              {(msg.role === 'model' || msg.role === 'assistant') &&
-                                !msg.isProcessing && !msg.isGenerating && !msg.error &&
-                                typingMessageId !== msg.id && (
-                                  <div className="mt-4 w-full block">
-                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
-                                      {(() => {
-                                        // Detect if the AI response contains Hindi (Devanagari script)
-                                        const isHindiContent = /[\u0900-\u097F]/.test(msg.content);
-                                        const prompts = isHindiContent ? FEEDBACK_PROMPTS.hi : FEEDBACK_PROMPTS.en;
-                                        const msgIdentifier = (msg.id || msg._id || Date.now()).toString();
-                                        const promptIndex = (msgIdentifier.charCodeAt(msgIdentifier.length - 1) || 0) % prompts.length;
-                                        return (
-                                          <p className="text-xs text-subtext font-medium flex items-center gap-1.5 shrink-0 m-0">
-                                            {prompts[promptIndex]}
-                                            <span className="text-sm">😊</span>
-                                          </p>
-                                        );
-                                      })()}
-                                      <div className="flex flex-col items-end gap-2 self-end sm:self-auto">
-                                        <div className="flex items-center gap-3">
-                                          {!isMediaFeature && (() => {
-                                            const msgIdentifier = (msg.id || msg._id || idx).toString();
-                                            const isSpeaking = speakingMessageId === msgIdentifier;
-                                            return (
-                                              <button
-                                                onClick={() => {
-                                                  // Language is auto-detected inside speakResponse / detectLanguageFromText
-                                                  speakResponse(msg.content, null, msgIdentifier, msg.attachments || [], true);
-                                                }}
-                                                className={`transition-colors p-1.5 rounded-lg ${isSpeaking
-                                                  ? 'text-primary bg-primary/10'
-                                                  : 'text-subtext hover:text-primary hover:bg-surface-hover'
-                                                  }`}
-                                                title={isSpeaking && !isPaused ? "Pause" : "Speak"}
-                                              >
-                                                {isSpeaking && !isPaused ? (
-                                                  <Pause className="w-3.5 h-3.5" />
-                                                ) : (
-                                                  <Volume2 className="w-3.5 h-3.5" />
-                                                )}
-                                              </button>
-                                            );
-                                          })()}
-                                          {!isMediaFeature && (
-                                            <button
-                                              onClick={() => handleCopyMessage(msg.content || msg.text)}
-                                              className="p-1.5 text-subtext hover:text-maintext hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
-                                              title="Copy"
-                                            >
-                                              <Copy className="w-3.5 h-3.5" />
-                                            </button>
-                                          )}
-                                          <button
-                                            onClick={() => handleThumbsUp(msg.id)}
-                                            className={`transition-colors p-1.5 rounded-lg ${messageFeedback[msg.id]?.type === 'up'
-                                              ? 'text-primary bg-primary/10'
-                                              : 'text-subtext hover:text-primary hover:bg-surface-hover'
-                                              }`}
-                                            title="Helpful"
-                                          >
-                                            <ThumbsUp className="w-3.5 h-3.5" />
-                                          </button>
-                                          <button
-                                            onClick={() => handleThumbsDown(msg.id)}
-                                            className={`transition-colors p-1.5 rounded-lg ${messageFeedback[msg.id]?.type === 'down'
-                                              ? 'text-red-500 bg-red-500/10'
-                                              : 'text-subtext hover:text-red-500 hover:bg-surface-hover'
-                                              }`}
-                                            title="Not Helpful"
-                                          >
-                                            <ThumbsDown className="w-3.5 h-3.5" />
-                                          </button>
-                                          <button
-                                            onClick={() => handleShare(msg.content)}
-                                            className="text-subtext hover:text-primary transition-colors p-1.5 hover:bg-surface-hover rounded-lg"
-                                            title="Share Text"
-                                          >
-                                            <Share className="w-3.5 h-3.5" />
-                                          </button>
 
-                                          {/* PDF / ZIP Tools */}
-                                          <div className="flex items-center gap-1 border-l border-zinc-200 dark:border-zinc-800 ml-2 pl-2">
-                                            {/* Edit Button for AI Legal Tools */}
-                                            {(msg.mode === MODES.LEGAL_TOOLKIT || msg.toolUsed?.toLowerCase().startsWith('legal_') || msg.toolUsed?.toLowerCase().includes('legal') || msg.toolUsed === 'Draft Maker') && (
-                                              <button
-                                                onClick={() => startEditing(msg)}
-                                                className="text-primary hover:text-primary transition-all p-1.5 hover:bg-primary/5 rounded-lg flex items-center gap-1 active:scale-95 group/edit"
-                                                title="Edit Draft"
-                                              >
-                                                <Edit2 className="w-3.5 h-3.5 group-hover/edit:scale-110 transition-transform" />
-                                              </button>
-                                            )}
-
-                                            {(msg.detectedMode === 'CODING_HELP' || msg.detectedMode === 'CODE_WRITER') ? (
-                                              <button
-                                                onClick={() => handleDownloadCodeProject(msg)}
-                                                className="text-primary hover:text-primary-dark transition-all p-1.5 hover:bg-primary/5 rounded-lg flex items-center gap-1 active:scale-95 group/code"
-                                                title="Download Code Project (ZIP)"
-                                              >
-                                                <FileText className="w-3.5 h-3.5 group-hover/code:scale-110 transition-transform" />
-                                              </button>
-                                            ) : (
-                                              !isMediaFeature && (
-                                                <button
-                                                  onClick={() => handlePdfAction('download', msg)}
-                                                  className={`transition-all p-1.5 rounded-lg flex items-center gap-1 active:scale-95 group/pdf ${downloadedMessages[msg.id]
-                                                    ? 'text-primary bg-primary/10 hover:bg-primary/20'
-                                                    : 'text-subtext hover:text-primary hover:bg-surface-hover'
-                                                    }`}
-                                                  title="Download Ready-Made PDF Report"
-                                                >
-                                                  <FileText className="w-3.5 h-3.5 group-hover/pdf:scale-110 transition-transform" />
-                                                </button>
-                                              )
-                                            )}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
 
                               {/* Integrated Smart Suggestions (Only for the latest AI response) */}
                               {idx === messages.length - 1 && (msg.role === 'model' || msg.role === 'assistant') &&
@@ -7764,50 +7849,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                   </div>
                                 )}
 
-                              {/* Timestamp & User Actions */}
-                              <div className="mt-4 flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                {msg.role === 'user' && (
-                                  <div className="flex items-center gap-1">
-                                    <button
-                                      onClick={() => handleMessageDelete(msg.id)}
-                                      className="p-1.5 text-slate-400 dark:text-zinc-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
-                                      title="Delete"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                      onClick={() => handleMessageUndo(msg)}
-                                      className="p-1.5 text-slate-400 dark:text-zinc-500 hover:text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
-                                      title="Undo/Restore to Input"
-                                    >
-                                      <Undo2 className="w-3.5 h-3.5" />
-                                    </button>
-                                    {!msg.attachment && (
-                                      <button
-                                        onClick={() => startEditing(msg)}
-                                        className="p-1.5 text-slate-400 dark:text-zinc-500 hover:text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
-                                        title="Edit"
-                                      >
-                                        <Edit2 className="w-3.5 h-3.5" />
-                                      </button>
-                                    )}
-                                    <button
-                                      onClick={() => handleCopyMessage(msg.content || msg.text)}
-                                      className="p-1.5 text-slate-400 dark:text-zinc-500 hover:text-maintext hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
-                                      title="Copy"
-                                    >
-                                      <Copy className="w-3.5 h-3.5" />
-                                    </button>
-                                  </div>
-                                )}
 
-                                <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-medium">
-                                  {new Date(msg.timestamp).toLocaleTimeString([], {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })}
-                                </span>
-                              </div>
                             </div>
                           </div>
                         </div>
@@ -7818,13 +7860,13 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 )}
                 {gen.isGenerating && !gen.typingMessageId && (
                   <div className="chatgpt-message-row ai-row group mb-6 sm:mb-8">
-                    <div className="chatgpt-message-content select-text" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '12px' }}>
+                    <div className="chatgpt-message-content select-text">
                       <div className="chatgpt-avatar-container w-8 h-8 rounded-full flex items-center justify-center shrink-0">
                         <div className="w-8 h-8 rounded-full flex items-center justify-center">
                           <img src={logo} alt="AISA" className="w-6 h-[18px] object-cover object-top" />
                         </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <div className="chatgpt-text typing-bubble flex items-center">
                         <AisaTypingIndicator
                           visible={true}
                           message={loadingText}
@@ -8025,7 +8067,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                               <span className="text-[7px] font-black uppercase text-primary/70 mt-1 truncate px-1">{preview.type.split('/')[1]?.split('-')[0] || 'FILE'}</span>
                             </div>
                           )}
-                          <div className="absolute -top-1.5 -right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-[101]">
+                          <div className="absolute -top-1.5 -right-1.5 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all z-[101]">
                             <button type="button" className="w-6 h-6 bg-white dark:bg-zinc-700 text-slate-800 dark:text-white rounded-full flex items-center justify-center shadow-lg border border-slate-100 dark:border-zinc-600 hover:scale-110"><Edit2 size={12} /></button>
                             <button type="button" onClick={() => handleRemoveFile(preview.id)} className="w-6 h-6 bg-white dark:bg-zinc-700 text-red-500 rounded-full flex items-center justify-center shadow-lg border border-slate-100 dark:border-zinc-600 hover:scale-110"><X size={12} /></button>
                           </div>

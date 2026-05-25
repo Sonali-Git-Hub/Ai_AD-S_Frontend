@@ -63,15 +63,7 @@ export function detectMode(message = '', attachments = []) {
         return MODES.FILE_ANALYSIS;
     }
 
-    const hasCodingKeywords = CODING_KEYWORDS.some(keyword =>
-        lowerMessage.includes(keyword)
-    );
-
-    const hasCodePattern = /```|function\s*\(|const\s+\w+\s*=|class\s+\w+|import\s+.*from|<\w+>|{\s*\w+:|\/\/|\/\*/.test(message);
-
-    if (hasCodingKeywords || hasCodePattern) {
-        return MODES.CODING_HELP;
-    }
+    // Removed auto-detection of CODING_HELP to prevent "AI Code Writer" badge showing on normal messages containing coding words.
 
     const hasWritingKeywords = WRITING_KEYWORDS.some(keyword =>
         lowerMessage.includes(keyword)
