@@ -15,6 +15,18 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
     const [isHovered, setIsHovered] = useState(false);
     const [isLibraryOpen, setIsLibraryOpen] = useState(false);
     const isDark = useIsDark();
+
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        }
+        return () => {
+            const activeModals = document.querySelectorAll('.modal-open-indicator');
+            if (activeModals.length <= 1) {
+                document.body.style.overflow = '';
+            }
+        };
+    }, [isOpen]);
     
     // Spotlight Effect logic
     let mouseX = useMotionValue(0);
@@ -32,8 +44,6 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
             transparent 80%
         )
     `;
-
-    if (!isOpen) return null;
 
     // Pricing lookup mapping
     const pricingKey = (toolType === 'edit') ? 'image' : 
@@ -71,24 +81,25 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
 
     return (
         <AnimatePresence>
-            <div 
-                className="fixed inset-0 z-[1000] flex items-start justify-center pt-[72px] pb-[100px] px-3 sm:px-4 bg-transparent backdrop-blur-[4px] sm:backdrop-blur-[8px] overflow-y-auto"
-                onClick={(e) => e.target === e.currentTarget && onClose()}
-            >
-                {/* Main animated container */}
-                <motion.div
-                    onMouseMove={handleMouseMove}
-                    onHoverStart={() => setIsHovered(true)}
-                    onHoverEnd={() => setIsHovered(false)}
-                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                    animate={{ 
-                        opacity: 1, 
-                        scale: isHovered ? 1.005 : [1, 1.01, 1], 
-                        y: 0,
-                    }}
-                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className="relative w-full max-w-[320px] sm:max-w-[340px] rounded-[28px] shadow-2xl bg-white/95 dark:bg-zinc-900/95 border border-white/20 my-auto"
+            {isOpen && (
+                <div 
+                    className="fixed inset-0 z-[1200] flex items-center justify-center p-3 sm:p-4 bg-slate-950/40 dark:bg-black/60 backdrop-blur-[6px] sm:backdrop-blur-[8px] overflow-y-auto lg:!left-[280px] modal-open-indicator"
+                    onClick={(e) => e.target === e.currentTarget && onClose()}
                 >
+                    {/* Main animated container */}
+                    <motion.div
+                        onMouseMove={handleMouseMove}
+                        onHoverStart={() => setIsHovered(true)}
+                        onHoverEnd={() => setIsHovered(false)}
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ 
+                            opacity: 1, 
+                            scale: isHovered ? 1.005 : [1, 1.01, 1], 
+                            y: 0,
+                        }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        className="relative w-full max-w-[320px] sm:max-w-[340px] rounded-[28px] shadow-2xl bg-white/95 dark:bg-zinc-900/95 border border-white/20 my-auto"
+                    >
 
                     {/* Main Content Layer */}
                     <div className="relative z-10 w-full h-full rounded-[27px] flex flex-col overflow-hidden">
@@ -288,6 +299,7 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
                     </div>
                 </motion.div>
             </div>
+            )}
             
             {/* Prompt Library Modal Integration */}
             <PromptLibraryModal 

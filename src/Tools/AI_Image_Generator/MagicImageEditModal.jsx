@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Upload, Wand2, Download, Image as ImageIcon, Loader2, ArrowRight, RotateCw } from 'lucide-react';
 import axios from 'axios';
@@ -13,6 +13,18 @@ const MagicImageEditModal = ({ isOpen, onClose, onCreditDeduction }) => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [resultImage, setResultImage] = useState(null);
     const fileInputRef = useRef(null);
+
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        }
+        return () => {
+            const activeModals = document.querySelectorAll('.modal-open-indicator');
+            if (activeModals.length <= 1) {
+                document.body.style.overflow = '';
+            }
+        };
+    }, [isOpen]);
 
     const handleImageSelect = (e) => {
         const file = e.target.files[0];
@@ -102,17 +114,16 @@ const MagicImageEditModal = ({ isOpen, onClose, onCreditDeduction }) => {
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
-    if (!isOpen) return null;
-
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className="relative w-full max-w-2xl bg-white dark:bg-[#1a1a1a] border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
-                >
+            {isOpen && (
+                <div className="fixed inset-0 z-[1200] flex items-center justify-center p-3 sm:p-4 bg-slate-950/40 dark:bg-black/60 backdrop-blur-[6px] sm:backdrop-blur-[8px] overflow-y-auto lg:!left-[280px] modal-open-indicator">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        className="relative w-full max-w-2xl bg-white dark:bg-[#1a1a1a] border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] my-auto"
+                    >
                     {/* Header */}
                     <div className="px-6 py-4 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-white/50 dark:bg-black/20 backdrop-blur-xl z-10 shrink-0">
                         <div className="flex items-center gap-3">
@@ -266,6 +277,7 @@ const MagicImageEditModal = ({ isOpen, onClose, onCreditDeduction }) => {
                     />
                 </motion.div>
             </div>
+            )}
         </AnimatePresence>
     );
 };

@@ -36,6 +36,11 @@ const ActionButton = ({ action, isSecondary = false, theme, onRestore }) => (
       e.preventDefault(); // Critical: Prevent focus shift
       if (onRestore) onRestore(); // Re-assert selection highlight
     }}
+    onTouchEnd={(e) => {
+      e.preventDefault(); // Critical: Prevent click emulation/focus shift on mobile
+      e.stopPropagation();
+      action.onClick(e);
+    }}
     onClick={(e) => {
       e.stopPropagation();
       action.onClick(e);
@@ -211,6 +216,11 @@ const SelectionToolbar = ({
             
             <button
               onMouseDown={(e) => { e.preventDefault(); if (onRestoreSelection) onRestoreSelection(); }}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowMore(!showMore);
+              }}
               onClick={() => setShowMore(!showMore)}
               className={`
                 flex items-center justify-between px-3 py-2 rounded-xl transition-all w-full

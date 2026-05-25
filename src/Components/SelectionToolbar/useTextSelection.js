@@ -125,6 +125,25 @@ export const useTextSelection = () => {
       setTimeout(() => processSelection(), 50);
     };
 
+    const handleGlobalTouchStart = (e) => {
+      const toolbar = e.target.closest('.selection-toolbar-container');
+      if (toolbar) {
+        isInteractingWithToolbar.current = true;
+        restoreSelection();
+        return;
+      }
+      isInteractingWithToolbar.current = false;
+    };
+
+    const handleGlobalTouchEnd = (e) => {
+      if (isInteractingWithToolbar.current) {
+        restoreSelection();
+        setTimeout(() => { isInteractingWithToolbar.current = false; }, 200);
+        return;
+      }
+      setTimeout(() => processSelection(), 50);
+    };
+
     // Global listener for focus shifts
     const handleFocus = () => {
       if (selection) restoreSelection();
@@ -132,12 +151,16 @@ export const useTextSelection = () => {
 
     document.addEventListener('mousedown', handleGlobalMouseDown, true); // Use capture phase
     document.addEventListener('mouseup', handleGlobalMouseUp, true);
+    document.addEventListener('touchstart', handleGlobalTouchStart, true);
+    document.addEventListener('touchend', handleGlobalTouchEnd, true);
     window.addEventListener('focus', handleFocus);
 
     return () => {
       document.removeEventListener('selectionchange', handleSelectionChange);
       document.removeEventListener('mousedown', handleGlobalMouseDown, true);
       document.removeEventListener('mouseup', handleGlobalMouseUp, true);
+      document.removeEventListener('touchstart', handleGlobalTouchStart, true);
+      document.removeEventListener('touchend', handleGlobalTouchEnd, true);
       window.removeEventListener('focus', handleFocus);
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };

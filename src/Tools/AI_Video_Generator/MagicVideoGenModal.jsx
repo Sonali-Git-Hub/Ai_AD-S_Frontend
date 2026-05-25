@@ -107,6 +107,17 @@ const CustomSelect = ({ value, onChange, options, disabled }) => {
 
 const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
     const isDark = useIsDark();
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        }
+        return () => {
+            const activeModals = document.querySelectorAll('.modal-open-indicator');
+            if (activeModals.length <= 1) {
+                document.body.style.overflow = '';
+            }
+        };
+    }, [isOpen]);
     const [selectedImage, setSelectedImage] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
     const [prompt, setPrompt] = useState("");
@@ -299,13 +310,11 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
-    if (!isOpen) return null;
-
     return (
         <AnimatePresence>
             {isOpen && (
-            <div className="fixed inset-0 z-[1050] flex items-center justify-center p-2 sm:p-4 bg-transparent backdrop-blur-md">
-                <div className="relative w-full max-w-3xl">
+            <div className="fixed inset-0 z-[1200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/40 dark:bg-black/60 backdrop-blur-[6px] sm:backdrop-blur-[8px] overflow-y-auto lg:!left-[280px] modal-open-indicator">
+                <div className="relative w-full max-w-3xl my-auto">
 
                     <motion.div
                         animate={{
