@@ -20,11 +20,10 @@ const CATEGORIES = [
 ];
 
 const MultiScheduleReminder = () => {
-    const { personalizations, updatePersonalization } = usePersonalization();
+    const { personalizations, updatePersonalization, reminders, setReminders, fetchReminders: globalFetchReminders } = usePersonalization();
     const user = getUserData();
     const isGlobalEnabled = personalizations?.personalization?.enableReminders !== false; // default true 
     
-    const [reminders, setReminders] = useState([]);
     const [loading, setLoading] = useState(true);
     
     // Modal state
@@ -56,15 +55,9 @@ const MultiScheduleReminder = () => {
     }, [isGlobalEnabled]);
 
     const fetchReminders = async () => {
-        if (!user?.token) return;
         try {
             setLoading(true);
-            const res = await axios.get(`${API}/reminders`, {
-                headers: { 'Authorization': `Bearer ${user.token}` }
-            });
-            if (res.data.success) {
-                setReminders(res.data.reminders);
-            }
+            await globalFetchReminders();
         } catch (error) {
             console.error('Failed to fetch reminders:', error);
         } finally {

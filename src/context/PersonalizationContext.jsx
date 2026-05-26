@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { io } from 'socket.io-client';
 import { initSocket } from '../services/socketService';
 import { API } from '../types';
+import { Clock } from 'lucide-react';
 
 
 const PersonalizationContext = createContext();
@@ -79,11 +80,29 @@ export const PersonalizationProvider = ({ children }) => {
     });
     const [notifications, setNotifications] = useState([]);
     const [chatSessions, setChatSessions] = useState([]);
+    const [reminders, setReminders] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const reminderAudioRef = useRef(null);
     const recentNotificationsRef = useRef(new Set());
+    const notifiedRemindersRef = useRef(new Set());
 
     const user = getUserData();
+
+    const fetchReminders = async () => {
+        if (!user?.token) return [];
+        try {
+            const res = await axios.get(`${API}/reminders`, {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+            });
+            if (res.data.success) {
+                setReminders(res.data.reminders || []);
+                return res.data.reminders || [];
+            }
+        } catch (error) {
+            console.error('Failed to fetch reminders:', error);
+        }
+        return [];
+    };
 
     const fetchChatSessions = async () => {
         if (!user?.token) return;
@@ -267,6 +286,12 @@ export const PersonalizationProvider = ({ children }) => {
                 
                 setNotifications(prev => [notification, ...prev]);
 
+                // Mark in notifiedRemindersRef to prevent local duplicate triggering
+                if (notification.id && notification.id.startsWith('reminder_')) {
+                    const reminderId = notification.id.replace('reminder_', '');
+                    notifiedRemindersRef.current.add(reminderId);
+                }
+
                 // Show Toast
                 toast.custom((tObj) => (
                     <div className={`${tObj.visible ? 'animate-enter' : 'animate-leave'} max-w-sm w-full bg-white dark:bg-[#1E1E1E] shadow-2xl rounded-2xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 border border-primary/20 overflow-hidden`}>
@@ -316,6 +341,125 @@ export const PersonalizationProvider = ({ children }) => {
         }
         applyDynamicStyles();
     }, [user?.token]);
+
+    useEffect(() => {
+        if (!user?.token) return;
+
+        // Load reminders on mount/login
+        fetchReminders();
+
+        const checkReminders = async () => {
+            const isGlobalEnabled = personalizations?.personalization?.enableReminders !== false;
+            if (!isGlobalEnabled) return;
+
+            const now = new Date();
+            
+            for (const reminder of reminders) {
+                if (reminder.status !== 'pending' || !reminder.isActive) continue;
+
+                const reminderTime = new Date(reminder.datetime);
+                const timeDiff = now - reminderTime;
+
+                // Trigger if due (time passed or is now, within a 1-minute window)
+                const isDue = timeDiff >= 0 && timeDiff < 60000;
+
+                if (isDue && !notifiedRemindersRef.current.has(reminder._id)) {
+                    notifiedRemindersRef.current.add(reminder._id);
+                    
+                    // 1. Play sound
+                    const audio = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-software-interface-start-2574.mp3");
+                    audio.volume = 0.5;
+                    audio.play().catch(e => console.error("Audio play failed", e));
+
+                    // 2. Visual Toast
+                    toast.custom((tObj) => (
+                        <div className={`${tObj.visible ? 'animate-enter' : 'animate-leave'} max-w-sm w-full bg-white dark:bg-[#1E1E1E] shadow-2xl rounded-2xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 border border-primary/20 overflow-hidden`}>
+                            <div className="flex-1 w-0 p-4">
+                                <div className="flex items-start">
+                                    <div className="flex-shrink-0 pt-0.5">
+                                        <Clock className="h-10 w-10 text-primary animate-pulse" />
+                                    </div>
+                                    <div className="ml-3 flex-1 min-w-0">
+                                        <p className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                            <span>⚠️</span> {reminder.title}
+                                        </p>
+                                        <p className="mt-1 text-[10px] text-gray-500 dark:text-gray-400">
+                                            {reminder.description || 'Time to check your scheduled task.'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex border-l border-gray-100 dark:border-white/5">
+                                <button
+                                    onClick={() => {
+                                        stopReminderVoice();
+                                        toast.dismiss(tObj.id);
+                                    }}
+                                    className="w-full border border-transparent rounded-none rounded-r-2xl px-4 flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/5 focus:outline-none"
+                                >
+                                    Stop
+                                </button>
+                            </div>
+                        </div>
+                    ), { duration: reminder.voice && reminder.voice !== 'none' ? 60000 : 5000 });
+
+                    // 3. Speak Voice if selected
+                    if (reminder.voice && reminder.voice !== 'none') {
+                        speakReminder(reminder.title, reminder.voice, reminder._id);
+                    } else {
+                        const utterance = new SpeechSynthesisUtterance(`Reminder: ${reminder.title}`);
+                        window.speechSynthesis.speak(utterance);
+                    }
+
+                    // 4. Update the reminder in the backend
+                    try {
+                        let updatedReminder;
+                        if (reminder.repeat === 'none') {
+                            const res = await axios.patch(`${API}/reminders/${reminder._id}/complete`, {}, {
+                                headers: { 'Authorization': `Bearer ${user.token}` }
+                            });
+                            updatedReminder = res.data.reminder;
+                        } else {
+                            const nextTime = new Date(reminder.datetime);
+                            if (reminder.repeat === 'daily') nextTime.setDate(nextTime.getDate() + 1);
+                            else if (reminder.repeat === 'weekly') nextTime.setDate(nextTime.getDate() + 7);
+                            else if (reminder.repeat === 'monthly') nextTime.setMonth(nextTime.getMonth() + 1);
+                            else if (reminder.repeat === 'custom') {
+                                const currentDay = nextTime.getDay();
+                                let daysToAdd = 1;
+                                if (reminder.customDays && reminder.customDays.length > 0) {
+                                    for (let i = 1; i <= 7; i++) {
+                                        const nextDayToCheck = (currentDay + i) % 7;
+                                        if (reminder.customDays.includes(nextDayToCheck)) {
+                                            daysToAdd = i;
+                                            break;
+                                        }
+                                    }
+                                }
+                                nextTime.setDate(nextTime.getDate() + daysToAdd);
+                            }
+
+                            const res = await axios.put(`${API}/reminders/${reminder._id}`, {
+                                datetime: nextTime.toISOString()
+                            }, {
+                                headers: { 'Authorization': `Bearer ${user.token}` }
+                            });
+                            updatedReminder = res.data.reminder;
+                        }
+
+                        if (updatedReminder) {
+                            setReminders(prev => prev.map(r => r._id === reminder._id ? updatedReminder : r));
+                        }
+                    } catch (err) {
+                        console.error("Failed to update reminder status on trigger:", err);
+                    }
+                }
+            }
+        };
+
+        const checkInterval = setInterval(checkReminders, 10000); // Check every 10 seconds
+        return () => clearInterval(checkInterval);
+    }, [reminders, user?.token, personalizations]);
 
 
     const stopReminderVoice = () => {
@@ -459,7 +603,10 @@ export const PersonalizationProvider = ({ children }) => {
             refreshChatSessions: fetchChatSessions,
             getSystemPromptExtensions,
             speakReminder,
-            stopReminderVoice
+            stopReminderVoice,
+            reminders,
+            setReminders,
+            fetchReminders
         }}>
             {children}
         </PersonalizationContext.Provider>
