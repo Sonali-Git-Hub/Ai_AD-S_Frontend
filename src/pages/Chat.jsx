@@ -7250,7 +7250,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                                 <div className="relative my-4 group/img-container max-w-full">
                                                   <div className="relative group/image overflow-hidden aspect-auto max-w-[500px] cursor-zoom-in w-fit" onClick={() => setViewingDoc({ url: props.src, type: 'image', name: 'AI Image' })}>
                                                     {msg.role === 'model' && (
-                                                      <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-100 sm:opacity-0 sm:group-hover/img-container:opacity-100 transition-opacity">
+                                                      <div className="absolute top-0 left-0 right-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-10 flex justify-between items-center opacity-100 sm:opacity-0 sm:group-hover/img-container:opacity-100 transition-opacity duration-500 ease-in-out">
                                                         <div className="flex items-center gap-2">
                                                           <Sparkles className="w-4 h-4 text-primary animate-pulse" />
                                                           <span className="text-[10px] font-bold text-white uppercase tracking-widest">AISA™ Generated Asset</span>
@@ -7261,12 +7261,12 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                                       src={props.src}
                                                       alt={props.alt || "AI Image"}
                                                     />
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover/img-container:opacity-100 transition-opacity pointer-events-none" />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover/img-container:opacity-100 transition-opacity duration-500 ease-in-out pointer-events-none" />
                                                   </div>
                                                   <button
                                                     onClick={() => handleDownload(props.src, `AISA_gen_${Date.now()}.png`)}
                                                     disabled={isDownloading}
-                                                    className="absolute bottom-4 right-4 z-20 flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl border border-white/20 text-white shadow-lg transition-all active:scale-95 disabled:opacity-50"
+                                                    className="absolute bottom-4 right-4 z-20 flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl border border-white/20 text-white shadow-lg transition-all duration-300 ease-in-out hover:scale-105 active:scale-95 disabled:opacity-50"
                                                   >
                                                     <div className="flex items-center gap-2">
                                                       {isDownloading ? (
@@ -7339,7 +7339,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                     {/* Dynamic Image Rendering (if not in markdown) */}
                                     {msg.imageUrl && (
                                       <div
-                                        className="relative group/generated mt-4 mb-2 overflow-hidden rounded-2xl transition-all border border-transparent hover:border-primary/25 hover:shadow-lg hover:shadow-primary/10 cursor-zoom-in w-fit max-w-sm"
+                                        className="relative group/generated mt-4 mb-2 overflow-hidden rounded-2xl transition-all duration-500 ease-in-out border border-transparent hover:border-primary/25 hover:shadow-lg hover:shadow-primary/10 cursor-zoom-in w-fit max-w-sm"
                                         onClick={() => {
                                           if (!viewingDoc) setViewingDoc({ url: msg.imageUrl, type: 'image', name: 'Generated Image' });
                                         }}
@@ -7381,7 +7381,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                             }
                                           }}
                                         />
-                                        <div className="absolute bottom-5 right-4 flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover/generated:opacity-100 transition-all scale-100 sm:scale-90 sm:group-hover/generated:scale-100">
+                                        <div className="absolute bottom-5 right-4 flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover/generated:opacity-100 transition-all duration-500 ease-in-out scale-100 sm:scale-90 sm:group-hover/generated:scale-100">
                                           <button
                                             onClick={(e) => {
                                               e.stopPropagation();
@@ -7395,7 +7395,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                               toast.success('Magic Edit mode active! Type your request.');
                                               inputRef.current?.focus();
                                             }}
-                                            className="p-2.5 bg-white/20 backdrop-blur-sm text-primary rounded-xl hover:bg-white/30 shadow-lg border border-white/20"
+                                            className="p-2.5 bg-white/20 backdrop-blur-sm text-primary rounded-xl hover:bg-white/30 shadow-lg border border-white/20 transition-all duration-300 ease-in-out hover:scale-105 active:scale-95"
                                             title="Edit this Image"
                                           >
                                             <Wand2 className="w-4 h-4" />
@@ -7406,7 +7406,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                               e.stopPropagation();
                                               handleCopyImage(msg.imageUrl);
                                             }}
-                                            className="p-2.5 bg-white/20 backdrop-blur-sm text-primary rounded-xl hover:bg-white/30 shadow-lg border border-white/20"
+                                            className="p-2.5 bg-white/20 backdrop-blur-sm text-primary rounded-xl hover:bg-white/30 shadow-lg border border-white/20 transition-all duration-300 ease-in-out hover:scale-105 active:scale-95"
                                             title="Copy Image"
                                           >
                                             <Copy className="w-4 h-4" />
@@ -7417,7 +7417,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                               e.stopPropagation();
                                               handleDownload(msg.imageUrl, 'AISA-generated.png');
                                             }}
-                                            className={`p-2.5 rounded-xl shadow-lg border border-white/20 flex items-center justify-center ${isDownloadingUrl === msg.imageUrl ? 'bg-zinc-600 cursor-wait' : 'bg-primary text-white hover:bg-primary/90'}`}
+                                            className={`p-2.5 rounded-xl shadow-lg border border-white/20 flex items-center justify-center transition-all duration-300 ease-in-out hover:scale-105 active:scale-95 ${isDownloadingUrl === msg.imageUrl ? 'bg-zinc-600 cursor-wait' : 'bg-primary text-white hover:bg-primary/90'}`}
                                             title="Download High-Res"
                                           >
                                             {isDownloadingUrl === msg.imageUrl ? (
