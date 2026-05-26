@@ -1187,67 +1187,61 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
         </div>
 
         {/* Bottom Utils */}
-        <div className="p-4 border-t border-white/5 relative z-20 space-y-3">
+        <div className="px-4 py-4 border-t border-white/5 relative z-20">
+          {isAdmin && (
+            <button
+              onClick={() => { navigate('/dashboard/admin'); onClose(); }}
+              className="w-full h-10 flex items-center justify-center gap-2 mb-5 rounded-xl text-primary bg-primary/10 hover:bg-primary/20 transition-all text-[12px] font-black uppercase tracking-widest border border-primary/20 active:scale-95"
+            >
+              <Shield className="w-3.5 h-3.5" />
+              <span>{t('admin')}</span>
+            </button>
+          )}
 
-
-
-
-          <div className="px-2 py-4 border-t border-white/5 relative z-20">
-            {isAdmin && (
-              <button
-                onClick={() => { navigate('/dashboard/admin'); onClose(); }}
-                className="w-full h-10 flex items-center justify-center gap-2 mb-5 rounded-xl text-primary bg-primary/10 hover:bg-primary/20 transition-all text-[12px] font-black uppercase tracking-widest border border-primary/20 active:scale-95"
-              >
-                <Shield className="w-3.5 h-3.5" />
-                <span>{t('admin')}</span>
-              </button>
-            )}
-
-            <div className={`grid ${token ? 'grid-cols-3' : 'grid-cols-2'} gap-1 px-1`}>
-              {token ? (
-                <>
-                  <button
-                    onClick={() => setIsConnectorsOpen(true)}
-                    className="flex flex-col items-center gap-2 transition-all active:scale-95 group/fbtn"
-                  >
-                    <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
-                      <LayoutGrid className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
-                    </div>
-                    <span className="text-[11px] font-black text-primary/70 uppercase tracking-tight group-hover/fbtn:text-primary transition-colors">Connectors</span>
-                  </button>
-
-                  <button
-                    onClick={() => setIsCreditsOpen(true)}
-                    className="flex flex-col items-center gap-2 transition-all active:scale-95 group/fbtn"
-                  >
-                    <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
-                      <CreditCard className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
-                    </div>
-                    <span className="text-[11px] font-black text-primary/70 uppercase tracking-tight group-hover/fbtn:text-primary transition-colors">Credits</span>
-                  </button>
-                </>
-              ) : (
+          <div className={`grid ${token ? 'grid-cols-3' : 'grid-cols-2'} gap-1 px-1`}>
+            {token ? (
+              <>
                 <button
-                  onClick={() => navigate('/pricing')}
+                  onClick={() => setIsConnectorsOpen(true)}
                   className="flex flex-col items-center gap-2 transition-all active:scale-95 group/fbtn"
                 >
                   <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
-                    <IndianRupee className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
+                    <LayoutGrid className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
                   </div>
-                  <span className="text-[11px] font-black text-primary/70 uppercase tracking-tight group-hover/fbtn:text-primary transition-colors">Pricing</span>
+                  <span className="text-[10px] whitespace-nowrap break-normal font-black text-primary/70 uppercase tracking-tighter group-hover/fbtn:text-primary transition-colors">Connectors</span>
                 </button>
-              )}
 
+                <button
+                  onClick={() => setIsCreditsOpen(true)}
+                  className="flex flex-col items-center gap-2 transition-all active:scale-95 group/fbtn"
+                >
+                  <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
+                    <CreditCard className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
+                  </div>
+                  <span className="text-[10px] whitespace-nowrap break-normal font-black text-primary/70 uppercase tracking-tighter group-hover/fbtn:text-primary transition-colors">Credits</span>
+                </button>
+              </>
+            ) : (
               <button
-                onClick={onOpenSettings}
+                onClick={() => navigate('/pricing')}
                 className="flex flex-col items-center gap-2 transition-all active:scale-95 group/fbtn"
               >
                 <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
-                  <Settings2 className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
+                  <IndianRupee className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
                 </div>
-                <span className="text-[11px] font-black text-primary/70 uppercase tracking-tight group-hover/fbtn:text-primary transition-colors">Settings</span>
+                <span className="text-[10px] whitespace-nowrap break-normal font-black text-primary/70 uppercase tracking-tighter group-hover/fbtn:text-primary transition-colors">Pricing</span>
               </button>
-            </div>
+            )}
+
+            <button
+              onClick={onOpenSettings}
+              className="flex flex-col items-center gap-2 transition-all active:scale-95 group/fbtn"
+            >
+              <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
+                <Settings2 className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
+              </div>
+              <span className="text-[10px] whitespace-nowrap break-normal font-black text-primary/70 uppercase tracking-tighter group-hover/fbtn:text-primary transition-colors">Settings</span>
+            </button>
           </div>
         </div>
       </div>

@@ -908,7 +908,7 @@ const Chat = () => {
                              !excludedFloatingNavTools.includes(selectedLegalTool.id) &&
                              legalView === 'CHAT';
 
-  const [videoAspectRatio, setVideoAspectRatio] = useState('');
+  const [videoAspectRatio, setVideoAspectRatio] = useState('16:9');
   const [videoModelId, setVideoModelId] = useState('veo-3.1-fast-generate-001');
   const [editModelId, setEditModelId] = useState('gemini-2.5-flash');
   const [videoResolution, setVideoResolution] = useState('1080p');
