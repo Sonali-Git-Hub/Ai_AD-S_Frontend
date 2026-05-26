@@ -253,14 +253,37 @@ export const chatStorageService = {
   },
 
   async deleteSession(sessionId) {
+    // 1. Remove from local IndexedDB
     try {
-      await axios.delete(`${API_BASE_URL}/chat/${sessionId}`, {
-        headers: getAuthHeaders(),
-        withCredentials: true
-      });
-    } catch (error) {
       await idbDel(`chat_history_${sessionId}`);
       await idbDel(`chat_meta_${sessionId}`);
+    } catch (e) {
+      console.warn("IndexedDB delete failed", e);
+    }
+
+    // 2. Remove from guestChats in localStorage if guest
+    const guestChatsRaw = localStorage.getItem("guestChats");
+    if (guestChatsRaw) {
+      try {
+        let guestChats = JSON.parse(guestChatsRaw);
+        guestChats = guestChats.filter(c => c.sessionId !== sessionId);
+        localStorage.setItem("guestChats", JSON.stringify(guestChats));
+      } catch (e) {
+        console.error("Failed to remove deleted chat from guestChats", e);
+      }
+    }
+
+    // 3. Remove from backend if authenticated
+    const token = getUserData()?.token || localStorage.getItem("token");
+    if (token && token !== 'undefined' && token !== 'null') {
+      try {
+        await axios.delete(`${API_BASE_URL}/chat/${sessionId}`, {
+          headers: getAuthHeaders(),
+          withCredentials: true
+        });
+      } catch (error) {
+        console.error("Backend delete failed", error.message);
+      }
     }
   },
 
@@ -356,7 +379,31 @@ export const chatStorageService = {
       console.error("Local title update failed:", localErr);
     }
 
-    // 2. Update Backend
+    // 2. Update Guest Chats in localStorage if not authenticated
+    const token = getUserData()?.token || localStorage.getItem("token");
+    if (!token || token === 'undefined' || token === 'null') {
+      const guestChatsRaw = localStorage.getItem("guestChats") || "[]";
+      try {
+        let guestChats = JSON.parse(guestChatsRaw);
+        const existing = guestChats.find(c => c.sessionId === sessionId);
+        if (existing) {
+          existing.title = title;
+          existing.lastModified = Date.now();
+        } else {
+          guestChats.push({
+            sessionId,
+            title,
+            lastModified: Date.now()
+          });
+        }
+        localStorage.setItem("guestChats", JSON.stringify(guestChats));
+      } catch (e) {
+        console.error("Guest localStorage title update failed", e);
+      }
+      return true;
+    }
+
+    // 3. Update Backend for authenticated users
     try {
       await axios.patch(`${API_BASE_URL}/chat/${sessionId}/title`, { title }, {
         headers: getAuthHeaders(),

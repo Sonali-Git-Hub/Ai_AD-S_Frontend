@@ -131,7 +131,7 @@ const ModernDashboard = ({ userName, onToolSelect, activeToolId, activeCategory 
           animate={{ opacity: 1, y: 0 }}
         >
           <h1 className="text-base sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center justify-center gap-1.5">
-            Welcome back, <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-indigo-600 dark:from-violet-400 dark:to-indigo-400 font-black">{userName || 'User'}</span>
+            Welcome, <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-indigo-600 dark:from-violet-400 dark:to-indigo-400 font-black">{userName || 'User'}</span>
             <motion.span
               animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.2, 1.2, 1] }}
               transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}

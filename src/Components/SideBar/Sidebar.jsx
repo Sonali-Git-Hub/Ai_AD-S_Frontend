@@ -122,6 +122,8 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
   const [sessionToShare, setSessionToShare] = useState(null);
   const [currentMode, setMode] = useRecoilState(activeModeData);
   const [expandedHistoryGroups, setExpandedHistoryGroups] = useState({});
+  const [chatToDelete, setChatToDelete] = useState(null);
+  const [isChatDeleteModalOpen, setIsChatDeleteModalOpen] = useState(false);
 
   // ── Live generation status ──────────────────────────────────────
   // Subscribe to the global generation store so generating chats show live dots
@@ -356,31 +358,49 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
   };
 
 
-  const handleDeleteSession = async (e, sessionIdToDelete) => {
+  const handleDeleteSession = (e, sessionIdToDelete) => {
     e.stopPropagation();
+    e.preventDefault();
+    setChatToDelete(sessionIdToDelete);
+    setIsChatDeleteModalOpen(true);
+  };
+
+  const confirmDeleteSession = async () => {
+    if (!chatToDelete) return;
     try {
-      await chatStorageService.deleteSession(sessionIdToDelete);
+      await chatStorageService.deleteSession(chatToDelete);
       // Clean up global generation state for this chat
-      useGenerationStore.getState().clearGeneration(sessionIdToDelete);
+      useGenerationStore.getState().clearGeneration(chatToDelete);
       
       const updatedSessions = await chatStorageService.getSessions(currentProjectId);
       setSessions(updatedSessions);
-      if (currentSessionId === sessionIdToDelete) {
+      if (currentSessionId === chatToDelete) {
         navigate('/dashboard/chat/new');
       }
+      toast.success(t('chatDeleted') || 'Chat deleted successfully');
     } catch (error) {
       console.error('Failed to delete session:', error);
+      toast.error('Failed to delete chat');
+    } finally {
+      setIsChatDeleteModalOpen(false);
+      setChatToDelete(null);
     }
   };
 
   const startRename = (e, session) => {
     e.stopPropagation();
+    e.preventDefault();
     setEditingSessionId(session.sessionId);
     setNewTitle(session.title || "New Chat");
   };
 
   const handleRename = async (e, sessionId) => {
-    e.stopPropagation();
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    if (editingSessionId !== sessionId) return;
+
     if (!newTitle.trim()) {
       setEditingSessionId(null);
       return;
@@ -1003,12 +1023,16 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                                     className="group relative"
                                   >
                                     {editingSessionId === session.sessionId ? (
-                                      <div className="flex items-center gap-3 px-4 py-4 bg-white/5 rounded-2xl border border-primary/40 shadow-2xl mx-2">
+                                      <div 
+                                        className="flex items-center gap-3 px-4 py-4 bg-white/5 rounded-2xl border border-primary/40 shadow-2xl mx-2"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
                                         <input
                                           autoFocus
                                           type="text"
                                           value={newTitle}
                                           onChange={(e) => setNewTitle(e.target.value)}
+                                          onBlur={(e) => handleRename(e, session.sessionId)}
                                           onKeyDown={(e) => {
                                             if (e.key === 'Enter') handleRename(e, session.sessionId);
                                             if (e.key === 'Escape') setEditingSessionId(null);
@@ -1016,6 +1040,10 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                                           className="bg-transparent text-[14px] font-bold text-maintext w-full outline-none"
                                         />
                                         <button
+                                          onMouseDown={(e) => {
+                                            // Prevent onBlur from running before onClick on this button
+                                            e.preventDefault();
+                                          }}
                                           onClick={(e) => handleRename(e, session.sessionId)}
                                           className="text-primary hover:scale-125 transition-transform shrink-0"
                                         >
@@ -1105,6 +1133,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                                               <button
                                                 onClick={(e) => {
                                                   e.stopPropagation();
+                                                  e.preventDefault();
                                                   useGenerationStore.getState().abortGeneration(session.sessionId);
                                                 }}
                                                 className="sidebar-chat-action-btn stop-btn text-red-500 hover:text-red-600 bg-red-500/10 rounded-lg p-1 animate-pulse"
@@ -1114,7 +1143,11 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                                               </button>
                                             ) : (
                                               <button
-                                                onClick={(e) => { e.stopPropagation(); startRename(e, session); }}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  e.preventDefault();
+                                                  startRename(e, session);
+                                                }}
                                                 className="sidebar-chat-action-btn"
                                                 title="Rename Chat"
                                               >
@@ -1122,7 +1155,11 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                                               </button>
                                             )}
                                             <button
-                                              onClick={(e) => { e.stopPropagation(); handleDeleteSession(e, session.sessionId); }}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                e.preventDefault();
+                                                handleDeleteSession(e, session.sessionId);
+                                              }}
                                               className="sidebar-chat-action-btn delete"
                                               title="Delete Chat"
                                             >
@@ -1223,6 +1260,15 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
         title={projects.find(p => p._id === projectToDelete)?.isLegalCase ? t('deleteCaseTitle') : t('deleteProjectTitle')}
         description={projects.find(p => p._id === projectToDelete)?.isLegalCase ? t('deleteCaseDesc') : t('deleteProjectDesc')}
         confirmText={projects.find(p => p._id === projectToDelete)?.isLegalCase ? t('deleteCaseLabel') : t('deleteProjectLabel')}
+      />
+
+      <DeleteConfirmModal
+        isOpen={isChatDeleteModalOpen}
+        onClose={() => setIsChatDeleteModalOpen(false)}
+        onConfirm={confirmDeleteSession}
+        title={t('deleteChatTitle') === 'deleteChatTitle' ? "Delete Chat?" : t('deleteChatTitle')}
+        description={t('deleteChatDesc') === 'deleteChatDesc' ? `This will delete "${sessions.find(s => s.sessionId === chatToDelete)?.title || 'this chat'}". Visit settings to delete any memories saved during this chat.` : t('deleteChatDesc')}
+        confirmText={t('deleteChatLabel') === 'deleteChatLabel' ? "Delete" : t('deleteChatLabel')}
       />
 
       <ShareModal
