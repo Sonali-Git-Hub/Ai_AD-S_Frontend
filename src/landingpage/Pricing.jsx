@@ -292,10 +292,10 @@ const Pricing = () => {
     const getPlanKey = (planName) => {
       const name = planName.toLowerCase();
       if (name.includes('free')) return 'free';
-      if (name.includes('creator')) return 'creator';
-      if (name.includes('startup pro') || name.includes('startup')) return 'startuppro';
-      if (name.includes('agency')) return 'agency';
-      if (name.includes('enterprise')) return 'enterprise';
+      if (name.includes('starter') || name.includes('creator')) return 'creator';
+      if (name.includes('founder') || name.includes('startup pro') || name.includes('startup')) return 'startuppro';
+      if (name.includes('pro') || name.includes('agency')) return 'agency';
+      if (name.includes('business') || name.includes('enterprise')) return 'enterprise';
       return 'free'; // fallback
     };
 
@@ -308,7 +308,7 @@ const Pricing = () => {
               <tr>
                 <th>{t('feature')}</th>
                 {plans.map(p => (
-                  <th key={p._id}>{p.planName}</th>
+                  <th key={p._id}>{getDisplayPlanName(p.planName).toUpperCase()}</th>
                 ))}
               </tr>
             </thead>
@@ -500,7 +500,7 @@ const Pricing = () => {
                     ? t('startForFree')
                     : (billingCycle === 'yearly')
                       ? `${t('upgradeFor')} ₹${totalYearlyAmount}${t('billedYearlySuffix')}`
-                      : t('upgradeTo') + plan.planName}
+                      : t('upgradeTo') + getDisplayPlanName(plan.planName)}
                 </button>
               )}
             </div>
