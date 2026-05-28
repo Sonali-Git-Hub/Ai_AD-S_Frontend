@@ -59,22 +59,7 @@ const Landing = () => {
     const location = useLocation();
     const didInitFromUrl = useRef(false);
 
-    // ── Home Redirect Logic ──
-    // Moved from Navigation.Provider to Landing to prevent unmount flicker
-    useEffect(() => {
-        if (didInitFromUrl.current) return;
-
-        const isInternalNavigation = location.state?.fromLogo === true;
-        const hasToken = user?.token;
-
-        // Only redirect on FIRST entry to the root path if logged in and NOT an internal navigation
-        if (location.pathname === '/' && hasToken && !isInternalNavigation) {
-            navigate('/dashboard/chat', { replace: true });
-        }
-
-        // Mark as initialized so internal navigation (like closing a modal) doesn't trigger this again
-        didInitFromUrl.current = true;
-    }, [location.pathname, user?.token, navigate]);
+    // didInitFromUrl.current is kept for backwards compatibility but we no longer auto-redirect to dashboard from root page.
 
     // ── URL Modal Sync ──
     // Listen to URL changes to open/close modals (handles direct URL, Back button, and navigate)
