@@ -55,26 +55,9 @@ const isAuthenticated = () => {
 // ------------------------------
 // Home Redirect Component
 // ------------------------------
-// Redirects logged-in users to chat on direct access,
-// but allows them to view landing page when clicking logo from within app
+// Always displays the landing page on root to satisfy Google OAuth Branding verification.
+// Users can explicitly enter the dashboard using CTA buttons.
 const HomeRedirect = () => {
-  const hasToken = isAuthenticated();
-  const location = useLocation();
-
-  // Check if user came from clicking the logo (internal navigation)
-  const isInternalNavigation = location.state?.fromLogo === true;
-
-  // If user is logged in
-  if (hasToken) {
-    // Allow viewing landing page if they clicked the logo from within the app
-    if (isInternalNavigation) {
-      return <Landing />;
-    }
-    // Otherwise (direct URL access), redirect to chat
-    return <Navigate to="/dashboard/chat/new" replace state={{ forceGlobal: true }} />;
-  }
-
-  // Non-authenticated users always see the landing page
   return <Landing />;
 };
 

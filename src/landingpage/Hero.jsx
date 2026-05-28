@@ -351,7 +351,7 @@ const Hero = () => {
               transition: 'all 0.3s',
               display: 'inline-block'
             }}>
-              AISA<span aria-hidden="true" style={{ fontSize: '0.55em', verticalAlign: 'super', marginLeft: '1px' }}>TM</span>
+              AISA<span aria-hidden="true" style={{ fontSize: '0.55em', verticalAlign: 'super', marginLeft: '1px' }}>™</span>
             </span>
           </motion.div>
 
@@ -506,7 +506,7 @@ const Hero = () => {
             textAlign: 'center',
           }}
         >
-          AISA™ is an advanced AI platform designed to empower users with intelligent tools for comprehensive research, creative content generation, and insightful data analysis. To provide a seamless experience.
+          AISA™ is an advanced AI platform designed to empower users with intelligent tools for comprehensive research, creative content generation, and insightful data analysis. We use Google Sign-In to securely authenticate users, personalize their workspaces, and synchronize their tasks across devices.
         </motion.p>
 
         {/* Subtitle */}
