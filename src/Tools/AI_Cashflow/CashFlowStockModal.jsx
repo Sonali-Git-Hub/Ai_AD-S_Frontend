@@ -132,6 +132,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
    const [isStockSelectOpen, setIsStockSelectOpen] = useState(false);
    const [chartInterval, setChartInterval] = useState('D');
    const [fullScreenChart, setFullScreenChart] = useState(null);
+   const [chartType, setChartType] = useState('tradingview'); // 'tradingview' or 'standard'
    const [cashflowCost, setCashflowCost] = useState(5);
    const [isMaximized, setIsMaximized] = useState(false);
 
@@ -429,6 +430,30 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
          price: parseFloat(d.close)
       }));
    }, [tabData['Historical chart']]);
+
+   const isRealtimePositiveTrend = useMemo(() => {
+      if (realtimeLineData.length < 2) return true;
+      return parseFloat(realtimeLineData[realtimeLineData.length - 1].price) >= parseFloat(realtimeLineData[0].price);
+   }, [realtimeLineData]);
+
+   const isHistoricalPositiveTrend = useMemo(() => {
+      if (historicalLineData.length < 2) return true;
+      return parseFloat(historicalLineData[historicalLineData.length - 1].price) >= parseFloat(historicalLineData[0].price);
+   }, [historicalLineData]);
+
+   const CustomTooltip = ({ active, payload, label }) => {
+      if (active && payload && payload.length) {
+         return (
+            <div className="bg-white dark:bg-[#1a1a24] border border-black/10 dark:border-white/10 p-3 rounded-xl shadow-xl backdrop-blur-md">
+               <p className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 mb-1 uppercase tracking-wider">{label}</p>
+               <p className="text-sm font-black text-[#111] dark:text-white">
+                  {currencySymbol}{Number(payload[0].value).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+               </p>
+            </div>
+         );
+      }
+      return null;
+   };
 
    if (!isOpen) return null;
 
@@ -741,16 +766,71 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
                                     <p className="text-[9px] sm:text-[12px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-[0.15em] sm:tracking-[0.2em] mt-1">Interactive TradingView Historical Record</p>
                                  </div>
                                  <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
-                                    <div className="flex items-center gap-2 sm:gap-4 text-[8px] sm:text-[10px] font-black text-[#5154ff] uppercase tracking-widest bg-[#5154ff]/10 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-lg">
-                                       <Activity className="w-2.5 h-2.5 sm:w-3 sm:h-3 animate-pulse" /> TradingView
-                                    </div>
+                                    <button 
+                                       onClick={() => setChartType('standard')}
+                                       className={`flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 sm:px-4 sm:py-2 text-[9px] sm:text-[11px] font-black uppercase tracking-wider rounded-lg transition-colors border shadow-sm
+                                          ${chartType === 'standard' 
+                                             ? 'bg-[#5154ff]/10 text-[#5154ff] border-[#5154ff]/20' 
+                                             : 'bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/8 text-gray-700 dark:text-zinc-300 border-gray-200 dark:border-zinc-700'
+                                          }`}
+                                    >
+                                       <BarChart3 className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Standard
+                                    </button>
+                                    <button 
+                                       onClick={() => setChartType('tradingview')}
+                                       className={`flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 sm:px-4 sm:py-2 text-[9px] sm:text-[11px] font-black uppercase tracking-wider rounded-lg transition-colors border shadow-sm
+                                          ${chartType === 'tradingview' 
+                                             ? 'bg-[#5154ff]/10 text-[#5154ff] border-[#5154ff]/20' 
+                                             : 'bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/8 text-gray-700 dark:text-zinc-300 border-gray-200 dark:border-zinc-700'
+                                          }`}
+                                    >
+                                       <Activity className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${chartType === 'tradingview' ? 'animate-pulse' : ''}`} /> TradingView
+                                    </button>
                                     <button onClick={() => setFullScreenChart('historical')} className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 sm:px-4 sm:py-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/8 text-gray-700 dark:text-zinc-300 text-[9px] sm:text-[11px] font-black uppercase tracking-wider rounded-lg transition-colors border border-gray-200 dark:border-zinc-700 shadow-sm">
                                        <Maximize className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Pro View
                                     </button>
                                  </div>
                               </div>
                               <div className="h-[280px] sm:h-[550px] w-full pt-2 sm:pt-4 relative rounded-xl overflow-hidden shadow-inner border border-black/5 dark:border-white/5">
-                                 <TradingViewWidget symbol={selectedStock?.symbol} interval="D" containerId="tv_chart_historical" isDarkMode={isDarkMode} />
+                                 {chartType === 'tradingview' ? (
+                                    <TradingViewWidget symbol={selectedStock?.symbol} interval="D" containerId="tv_chart_historical" isDarkMode={isDarkMode} />
+                                 ) : (
+                                    <div className="w-full h-full p-2 sm:p-4 bg-white dark:bg-[#1E2438]">
+                                       <ResponsiveContainer width="100%" height="100%">
+                                          <AreaChart data={historicalLineData}>
+                                             <defs>
+                                                <linearGradient id="colorHistoricalPrice" x1="0" y1="0" x2="0" y2="1">
+                                                   <stop offset="5%" stopColor={isHistoricalPositiveTrend ? '#10b981' : '#e11d48'} stopOpacity={0.2} />
+                                                   <stop offset="95%" stopColor={isHistoricalPositiveTrend ? '#10b981' : '#e11d48'} stopOpacity={0} />
+                                                </linearGradient>
+                                             </defs>
+                                             <XAxis 
+                                                dataKey="date" 
+                                                axisLine={false} 
+                                                tickLine={false} 
+                                                tick={{ fontSize: 9, fill: isDarkMode ? '#71717a' : '#94a3b8' }} 
+                                                dy={5}
+                                             />
+                                             <YAxis 
+                                                domain={['auto', 'auto']} 
+                                                axisLine={false} 
+                                                tickLine={false} 
+                                                tick={{ fontSize: 9, fill: isDarkMode ? '#71717a' : '#94a3b8' }} 
+                                                tickFormatter={(val) => `${currencySymbol}${val}`}
+                                             />
+                                             <Tooltip content={<CustomTooltip />} />
+                                             <Area 
+                                                type="monotone" 
+                                                dataKey="price" 
+                                                stroke={isHistoricalPositiveTrend ? '#10b981' : '#e11d48'} 
+                                                strokeWidth={2}
+                                                fillOpacity={1} 
+                                                fill="url(#colorHistoricalPrice)" 
+                                             />
+                                          </AreaChart>
+                                       </ResponsiveContainer>
+                                    </div>
+                                 )}
                               </div>
                            </div>
                         )}
