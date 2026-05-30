@@ -170,7 +170,7 @@ const Login = () => {
 
 
   return (
-    <div className="h-screen w-screen flex flex-col items-center justify-center relative overflow-hidden bg-[#f8fafc] dark:bg-[#020617] aisa-scalable-text p-4 md:p-8">
+    <div className="min-h-screen w-screen flex flex-col items-center justify-center relative overflow-x-hidden bg-[#f8fafc] dark:bg-[#020617] aisa-scalable-text p-4 md:p-8">
       {/* Background Blobs - STATIC */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden text-black dark:text-white">
         <div className="absolute top-[-5%] right-[-5%] w-[40%] h-[40%] bg-primary/20 dark:bg-primary/10 blur-[100px] rounded-full" />

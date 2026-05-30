@@ -1884,12 +1884,13 @@ body.modal-open-hide-navbar {
 
 /* ── 2. Lock HTML + Body to prevent Android auto-scroll on focus ──
    This is the #1 fix. `position: fixed` on body stops Chrome from
-   scrolling the page when the keyboard opens. JS also sets this.       */
+   scrolling the page when the keyboard opens. JS also sets this dynamically.
+   Commented out CSS hard-lock to allow scrolling on public pages (landing, pricing, etc.). */
+/*
 @media (max-width: 1023px) {
   html {
     height: 100% !important;
     overflow: hidden !important;
-    /* Prevent any unintended scroll restoration */
     overscroll-behavior: none !important;
   }
 
@@ -1903,7 +1904,6 @@ body.modal-open-hide-navbar {
     overflow: hidden !important;
     overscroll-behavior: none !important;
     -webkit-tap-highlight-color: transparent !important;
-    /* Disable iOS bounce that causes layout jumps */
     -webkit-overflow-scrolling: auto !important;
   }
 
@@ -1918,6 +1918,7 @@ body.modal-open-hide-navbar {
     overflow: hidden !important;
   }
 }
+*/
 
 /* ── 3. Dashboard root container — sized to visual viewport ──
    JS sets inline height directly; this is the CSS fallback.
@@ -1969,9 +1970,10 @@ body.modal-open-hide-navbar {
   }
 }
 
-/* ── 6. Main flex area — overflow clipped, flex column ── */
+/* ── 6. Main flex area — overflow clipped, flex column ──
+   Scoped to #aisa-app-root to avoid breaking public page main containers */
 @media (max-width: 1023px) {
-  main {
+  #aisa-app-root main {
     overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;

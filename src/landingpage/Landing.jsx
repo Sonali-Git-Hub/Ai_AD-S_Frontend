@@ -115,7 +115,7 @@ const Landing = () => {
     };
 
     return (
-        <div style={{ background: isDarkMode ? '#0b0b12' : '#EEF2FF' }} className="min-h-screen flex flex-col relative overflow-hidden aisa-scalable-text">
+        <div style={{ background: isDarkMode ? '#0b0b12' : '#EEF2FF' }} className="min-h-screen flex flex-col relative overflow-x-hidden aisa-scalable-text">
 
 
             {/* ── 3D Immersive Adventure Element ── */}

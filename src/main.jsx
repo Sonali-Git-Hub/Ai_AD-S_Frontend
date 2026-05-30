@@ -9,7 +9,7 @@ import { LanguageProvider } from './context/LanguageContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { PersonalizationProvider } from './context/PersonalizationContext';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, useLocation } from 'react-router-dom';
 
 import ErrorBoundary from './Components/ErrorBoundary';
 
@@ -22,16 +22,20 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 // Definitive fix for Android Chrome mobile keyboard push-up.
 // Strategy: Lock body scroll + track visualViewport + set CSS vars + patch DOM directly.
 const VisualViewportManager = () => {
+  const location = useLocation();
+
   useEffect(() => {
     const isMobile = () => window.innerWidth < 1024;
     const root = document.documentElement;
+    const isDashboardRoute = location.pathname.startsWith('/dashboard');
+    const shouldLock = isMobile() && isDashboardRoute;
     let isSetup = false;
 
     // ── Step 1: Lock body to prevent Android Chrome's auto-scroll on input focus ──
     // This is the most critical fix. When body is position:fixed, the browser
     // cannot scroll it, so focusing an input never shifts the entire page.
     const lockBody = () => {
-      if (!isMobile() || isSetup) return;
+      if (!shouldLock || isSetup) return;
       isSetup = true;
       document.documentElement.style.cssText += ';height:100%;overflow:hidden;';
       document.body.style.cssText += ';position:fixed;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;';
@@ -40,8 +44,7 @@ const VisualViewportManager = () => {
     };
 
     const unlockBody = () => {
-      // Only unlock on desktop
-      if (isMobile()) return;
+      if (shouldLock) return;
       document.documentElement.style.height = '';
       document.documentElement.style.overflow = '';
       document.body.style.position = '';
@@ -85,7 +88,7 @@ const VisualViewportManager = () => {
 
     // ── Step 3: Guard against window scroll (belt and suspenders) ──
     const preventWindowScroll = () => {
-      if (isMobile() && (window.scrollX !== 0 || window.scrollY !== 0)) {
+      if (shouldLock && (window.scrollX !== 0 || window.scrollY !== 0)) {
         window.scrollTo(0, 0);
       }
     };
@@ -113,7 +116,11 @@ const VisualViewportManager = () => {
     };
 
     // ── Initialize ──
-    lockBody();
+    if (shouldLock) {
+      lockBody();
+    } else {
+      unlockBody();
+    }
     updateViewport();
 
     // ── Event Listeners ──
@@ -125,14 +132,22 @@ const VisualViewportManager = () => {
     window.addEventListener('resize', updateViewport, { passive: true });
     window.addEventListener('scroll', preventWindowScroll, { passive: true });
     window.addEventListener('orientationchange', () => {
-      setTimeout(() => { lockBody(); updateViewport(); }, 400);
+      setTimeout(() => {
+        if (shouldLock) {
+          lockBody();
+        } else {
+          unlockBody();
+        }
+        updateViewport();
+      }, 400);
     });
     document.addEventListener('focusin', onFocusIn, true);
     document.addEventListener('focusout', onFocusOut, true);
 
     // ── Handle resize to desktop ──
     const resizeObserver = new ResizeObserver(() => {
-      if (!isMobile()) {
+      const currentShouldLock = isMobile() && window.location.pathname.startsWith('/dashboard');
+      if (!currentShouldLock) {
         unlockBody();
       } else {
         lockBody();
@@ -152,8 +167,10 @@ const VisualViewportManager = () => {
       document.removeEventListener('focusin', onFocusIn, true);
       document.removeEventListener('focusout', onFocusOut, true);
       resizeObserver.disconnect();
+      // Ensure body is unlocked when location changes and this cleanup runs
+      unlockBody();
     };
-  }, []);
+  }, [location.pathname]);
 
   return null;
 };
