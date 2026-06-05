@@ -20,7 +20,7 @@
  * />
  */
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -62,15 +62,12 @@ const ApplePayButton = ({
     disabled = false,
     className = ''
 }) => {
-    const [supported, setSupported] = useState(false);
+    // ✅ Lazy initializer: runs synchronously on first render, avoids React #310
+    // (useEffect + setState caused parent re-render mid-cycle on iPhone Safari)
+    const [supported] = useState(() => isApplePaySupported());
     const [status, setStatus] = useState('ready'); // 'ready' | 'paying' | 'error'
     const [errorMsg, setErrorMsg] = useState('');
     const sessionRef = useRef(null);
-
-    // Check browser support on mount
-    useEffect(() => {
-        setSupported(isApplePaySupported());
-    }, []);
 
     // Hide completely if not supported
     if (!supported) return null;
