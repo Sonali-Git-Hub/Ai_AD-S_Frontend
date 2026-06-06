@@ -47,38 +47,26 @@ function getAuthHeaders() {
     };
 }
 
-// ─── Helper: Is this Safari on Apple device? (for SHOWING the button) ──────────
-// ⚠️ IMPORTANT: We separate UI visibility from payment capability.
-//
-// canMakePayments() returns false if:
-//   - Domain is not yet registered in Apple Developer Console, OR
-//   - User has no card set up in Wallet
-// → This would hide the button even on a perfectly valid iPhone.
-//
-// Correct pattern (per Apple docs):
-//   Show button = ApplePaySession exists + HTTPS
-//   Check canMakePayments() only at click time, show friendly error if needed.
+// ─── Helper: Is this an Apple device (iOS/macOS)? ───────────────────────────
+// We show the Apple Pay button on ALL Apple devices, even if not Safari.
+// At click time, we check if Safari is being used and guide the user if not.
 
-function isSafariWithApplePay() {
+function isAppleDevice() {
     if (typeof window === 'undefined') return false;
+    // Must be HTTPS
+    if (!window.isSecureContext) return false;
+    // Detect iOS or macOS
+    const ua = navigator.userAgent || '';
+    const isIOS = /iPhone|iPad|iPod/.test(ua);
+    const isMac = /Macintosh/.test(ua) && navigator.maxTouchPoints > 0; // iPad masquerading as Mac
+    const isMacDesktop = /Macintosh/.test(ua) && !navigator.maxTouchPoints;
+    return isIOS || isMac || isMacDesktop;
+}
 
-    // Must be HTTPS page
-    if (!window.isSecureContext) {
-        console.warn('[ApplePay] Not a secure context. Button hidden.');
-        return false;
-    }
-
-    // Must be Safari/WebKit that has ApplePaySession
-    if (!window.ApplePaySession) {
-        return false;
-    }
-
-    // Must support at least version 3
-    try {
-        return ApplePaySession.supportsVersion(3);
-    } catch (e) {
-        return false;
-    }
+// ─── Helper: Is this Safari specifically? ────────────────────────────────────
+function isSafari() {
+    const ua = navigator.userAgent || '';
+    return /Safari/.test(ua) && !/Chrome/.test(ua) && !/CriOS/.test(ua) && !/FxiOS/.test(ua);
 }
 
 // ─── Helper: Can the user actually pay right now? (checked at click time) ──────
@@ -104,19 +92,29 @@ const ApplePayButton = ({
     disabled = false,
     className = ''
 }) => {
-    // ✅ Lazy initializer: runs synchronously on first render, avoids React #310
-    // Shows button on any iPhone Safari with HTTPS — canMakePayments() checked at click time
-    const [supported] = useState(() => isSafariWithApplePay());
+    // ✅ Show on any Apple device; actual Safari check is done at click time
+    const [supported] = useState(() => isAppleDevice());
     const [status, setStatus] = useState('ready'); // 'ready' | 'paying' | 'error'
     const [errorMsg, setErrorMsg] = useState('');
     const sessionRef = useRef(null);
 
-    // Hide completely if not supported
+    // Hide completely if not Apple device at all
     if (!supported) return null;
 
     // ── Full Payment Flow ──────────────────────────────────────────────────────
     const handleApplePay = useCallback(async () => {
         if (status === 'paying' || disabled) return;
+
+        // If on Apple device but NOT Safari — guide user to open in Safari
+        if (!isSafari()) {
+            setStatus('error');
+            setErrorMsg('Apple Pay works only in Safari. Tap to open in Safari.');
+            setTimeout(() => {
+                window.open(window.location.href, '_blank', 'noreferrer');
+            }, 800);
+            setTimeout(() => { setStatus('ready'); setErrorMsg(''); }, 4000);
+            return;
+        }
 
         // Check if the user can actually pay (card set up + domain verified)
         if (!canPayNow()) {

@@ -46,7 +46,11 @@ const GooglePayButton = ({
 }) => {
     const containerRef = useRef(null);
     const paymentsClientRef = useRef(null);
-    const [status, setStatus] = useState('loading'); // 'loading' | 'ready' | 'not-supported' | 'paying' | 'error'
+
+    // Google Pay is NOT available on iOS — Apple blocks it. Show Apple Pay instead.
+    const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent);
+
+    const [status, setStatus] = useState(isIOS ? 'not-supported' : 'loading'); // 'loading' | 'ready' | 'not-supported' | 'paying' | 'error'
     const [errorMsg, setErrorMsg] = useState('');
 
     // ── 1. Load Google Pay SDK script ────────────────────────────────────────

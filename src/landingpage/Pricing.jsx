@@ -550,55 +550,66 @@ const Pricing = () => {
                         : t('upgradeTo') + getDisplayPlanName(plan.planName)}
                   </button>
 
-                  {/* ── Google Pay Button (only for paid plans) ── */}
-                  {!isFree && (
-                    <>
-                      <div className="payment-divider">
-                        <span>or pay with</span>
-                      </div>
-                      <GooglePayButton
-                        planId={plan._id}
-                        billingCycle={billingCycle}
-                        amount={billingCycle === 'yearly' ? totalYearlyAmount : displayPrice}
-                        currency="INR"
-                        onSuccess={(data) => {
-                          toast.success(`✅ Google Pay successful! ${getDisplayPlanName(plan.planName)} activated.`);
-                          if (data.credits !== undefined) {
-                            const updatedUser = updateUser({
-                              credits: data.credits,
-                              founderStatus: isStartupProPlan(plan) ? true : userState.user?.founderStatus
-                            });
-                            setUserState({ user: updatedUser });
-                          }
-                        }}
-                        onError={(err) => {
-                          toast.error(err.message || 'Google Pay failed. Please try Razorpay.');
-                        }}
-                        disabled={processing}
-                      />
-                      {/* ── Apple Pay Button (auto-hides on non-Safari) ── */}
-                      <ApplePayButton
-                        planId={plan._id}
-                        billingCycle={billingCycle}
-                        amount={billingCycle === 'yearly' ? totalYearlyAmount : displayPrice}
-                        currency="INR"
-                        onSuccess={(data) => {
-                          toast.success(`✅ Apple Pay successful! ${getDisplayPlanName(plan.planName)} activated.`);
-                          if (data.credits !== undefined) {
-                            const updatedUser = updateUser({
-                              credits: data.credits,
-                              founderStatus: isStartupProPlan(plan) ? true : userState.user?.founderStatus
-                            });
-                            setUserState({ user: updatedUser });
-                          }
-                        }}
-                        onError={(err) => {
-                          toast.error(err.message || 'Apple Pay failed.');
-                        }}
-                        disabled={processing}
-                      />
-                    </>
-                  )}
+                  {/* ── Wallet Pay Buttons (Google Pay / Apple Pay) ── */}
+                  {!isFree && (() => {
+                    const isIOSDevice = /iPhone|iPad|iPod/.test(navigator.userAgent);
+                    return (
+                      <>
+                        <div className="payment-divider">
+                          <span>or pay with</span>
+                        </div>
+
+                        {/* Google Pay — shown on Android & Desktop (not iOS) */}
+                        {!isIOSDevice && (
+                          <GooglePayButton
+                            planId={plan._id}
+                            billingCycle={billingCycle}
+                            amount={billingCycle === 'yearly' ? totalYearlyAmount : displayPrice}
+                            currency="INR"
+                            onSuccess={(data) => {
+                              toast.success(`✅ Google Pay successful! ${getDisplayPlanName(plan.planName)} activated.`);
+                              if (data.credits !== undefined) {
+                                const updatedUser = updateUser({
+                                  credits: data.credits,
+                                  founderStatus: isStartupProPlan(plan) ? true : userState.user?.founderStatus
+                                });
+                                setUserState({ user: updatedUser });
+                              }
+                            }}
+                            onError={(err) => {
+                              toast.error(err.message || 'Google Pay failed. Please try Razorpay.');
+                            }}
+                            disabled={processing}
+                          />
+                        )}
+
+                        {/* Apple Pay — shown on iOS/macOS devices */}
+                        {isIOSDevice && (
+                          <ApplePayButton
+                            planId={plan._id}
+                            billingCycle={billingCycle}
+                            amount={billingCycle === 'yearly' ? totalYearlyAmount : displayPrice}
+                            currency="INR"
+                            onSuccess={(data) => {
+                              toast.success(`✅ Apple Pay successful! ${getDisplayPlanName(plan.planName)} activated.`);
+                              if (data.credits !== undefined) {
+                                const updatedUser = updateUser({
+                                  credits: data.credits,
+                                  founderStatus: isStartupProPlan(plan) ? true : userState.user?.founderStatus
+                                });
+                                setUserState({ user: updatedUser });
+                              }
+                            }}
+                            onError={(err) => {
+                              toast.error(err.message || 'Apple Pay failed.');
+                            }}
+                            disabled={processing}
+                          />
+                        )}
+                      </>
+                    );
+                  })()}
+
                 </div>
               )}
             </div>
