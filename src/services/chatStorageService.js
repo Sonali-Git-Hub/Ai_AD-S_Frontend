@@ -1,7 +1,7 @@
 import axios from "axios";
 import { API } from "../types";
 import { getUserData } from "../userStore/userData";
-import { getDeviceFingerprint } from "../utils/fingerprint";
+import { getDeviceFingerprint } from "../utils/deviceHelper";
 
 const API_BASE_URL = API;
 

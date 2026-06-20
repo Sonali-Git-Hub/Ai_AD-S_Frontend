@@ -1,0 +1,1 @@
+// Shim for react-native (directory index)\nexport * from 'react-native-web';\n// Mock TurboModuleRegistry for compatibility with react-native-reanimated\nexport const TurboModuleRegistry = {\n  get: (moduleName) => {\n    console.warn(`[Shim] TurboModuleRegistry.get(${moduleName}) called - returning null`);\n    return null;\n  },\n};\n

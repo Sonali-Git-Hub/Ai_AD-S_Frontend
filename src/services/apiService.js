@@ -31,9 +31,12 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Clear user data and redirect to login on unauthorized
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      const isMock = localStorage.getItem('token') === 'mock_token';
+      if (!isMock) {
+        // Clear user data and redirect to login on unauthorized
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
     }
 
     if (error.response?.status === 403 && error.response?.data?.code === 'OUT_OF_CREDITS') {
@@ -1335,6 +1338,25 @@ export const apiService = {
 
   // --- Projects ---
   async getProjects() {
+    const isMock = localStorage.getItem('token') === 'mock_token';
+    if (isMock) {
+      const stored = localStorage.getItem('mock_projects');
+      if (stored) return JSON.parse(stored);
+      const defaults = [
+        {
+          _id: 'mock_case_1',
+          name: 'Supreme Court Civil Dispute',
+          isLegalCase: true,
+          caseFacts: 'This is a mock legal case involving land disputation.',
+          legalStrategy: [],
+          evidence: [],
+          hearings: [],
+          citations: []
+        }
+      ];
+      localStorage.setItem('mock_projects', JSON.stringify(defaults));
+      return defaults;
+    }
     try {
       const response = await apiClient.get('/projects');
       return response.data;
@@ -1345,6 +1367,13 @@ export const apiService = {
   },
 
   async getProject(projectId) {
+    const isMock = localStorage.getItem('token') === 'mock_token';
+    if (isMock) {
+      const stored = JSON.parse(localStorage.getItem('mock_projects') || '[]');
+      const project = stored.find(p => p._id === projectId);
+      if (project) return project;
+      throw new Error("Project not found");
+    }
     try {
       const response = await apiClient.get(`/projects/${projectId}`);
       return response.data;
@@ -1355,8 +1384,25 @@ export const apiService = {
   },
 
   async createProject(data) {
+    const isMock = localStorage.getItem('token') === 'mock_token';
+    const payload = typeof data === 'string' ? { name: data } : data;
+    if (isMock) {
+      const stored = JSON.parse(localStorage.getItem('mock_projects') || '[]');
+      const newProj = {
+        _id: `mock_case_${Date.now()}`,
+        name: payload.name || 'Untitled Case',
+        isLegalCase: true,
+        caseFacts: '',
+        legalStrategy: [],
+        evidence: [],
+        hearings: [],
+        citations: []
+      };
+      stored.push(newProj);
+      localStorage.setItem('mock_projects', JSON.stringify(stored));
+      return newProj;
+    }
     try {
-      const payload = typeof data === 'string' ? { name: data } : data;
       const response = await apiClient.post('/projects', payload);
       return response.data;
     } catch (error) {
@@ -1366,6 +1412,20 @@ export const apiService = {
   },
 
   async updateProject(projectId, data) {
+    const isMock = localStorage.getItem('token') === 'mock_token';
+    if (isMock) {
+      const stored = JSON.parse(localStorage.getItem('mock_projects') || '[]');
+      const index = stored.findIndex(p => p._id === projectId);
+      let updatedProject = { ...data };
+      if (index > -1) {
+        stored[index] = { ...stored[index], ...data };
+        updatedProject = stored[index];
+      } else {
+        stored.push(updatedProject);
+      }
+      localStorage.setItem('mock_projects', JSON.stringify(stored));
+      return updatedProject;
+    }
     try {
       const response = await apiClient.put(`/projects/${projectId}`, data);
       return response.data;
@@ -1376,6 +1436,13 @@ export const apiService = {
   },
 
   async deleteProject(projectId) {
+    const isMock = localStorage.getItem('token') === 'mock_token';
+    if (isMock) {
+      const stored = JSON.parse(localStorage.getItem('mock_projects') || '[]');
+      const filtered = stored.filter(p => p._id !== projectId);
+      localStorage.setItem('mock_projects', JSON.stringify(filtered));
+      return { success: true };
+    }
     try {
       const response = await apiClient.delete(`/projects/${projectId}`);
       return response.data;
@@ -1386,6 +1453,17 @@ export const apiService = {
   },
 
   async renameProject(id, name) {
+    const isMock = localStorage.getItem('token') === 'mock_token';
+    if (isMock) {
+      const stored = JSON.parse(localStorage.getItem('mock_projects') || '[]');
+      const index = stored.findIndex(p => p._id === id);
+      if (index > -1) {
+        stored[index].name = name;
+        localStorage.setItem('mock_projects', JSON.stringify(stored));
+        return stored[index];
+      }
+      throw new Error("Project not found");
+    }
     try {
       const response = await apiClient.put(`/projects/${id}`, { name });
       return response.data;
@@ -1556,6 +1634,25 @@ export const apiService = {
   },
 
   async autoAnalyzeCase(caseId, rawText = null) {
+    const isMock = localStorage.getItem('token') === 'mock_token';
+    if (isMock) {
+      return {
+        _id: caseId,
+        intelligence: {
+          strengthScore: 78,
+          winProbability: 82,
+          risks: ["Limitation period threshold", "Witness admissibility challenge"],
+          opportunities: ["Precedent case aligns perfectly", "Inconsistency in FIR timeline"]
+        },
+        tasks: [
+          { id: "task1", title: "Submit Section 65B Certificate", done: false },
+          { id: "task2", title: "File response to injunction application", done: true }
+        ],
+        evidence: [
+          { id: "ev1", name: "Land Sale Deed", admissibility: "High", risk: "Low" }
+        ]
+      };
+    }
     try {
       console.log(`[Frontend] POST /api/projects/${caseId}/analyze`);
       const response = await apiClient.post(`/projects/${caseId}/analyze`, { rawText });

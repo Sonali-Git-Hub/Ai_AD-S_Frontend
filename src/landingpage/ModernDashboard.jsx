@@ -62,12 +62,25 @@ const tabNavStyles = {
   }),
 };
 
-const ModernDashboard = ({ userName, onToolSelect, activeToolId, activeCategory = 'create', onCategoryChange }) => {
+const ModernDashboard = ({ userName, onToolSelect, activeToolId, activeCategory = 'business', onCategoryChange }) => {
   const { t } = useLanguage();
   const isDark = useIsDark();
   const setActiveCategory = onCategoryChange;
 
   const categories = [
+    {
+      id: 'business',
+      title: 'BUSINESS',
+      subtitle: 'Professional enterprise AI solutions',
+      icon: Briefcase,
+      color: '#818cf8',
+      description: '💼 Streamline legal workflows, financial analysis, and social media orchestration with AI precision.',
+      tools: [
+        { id: 'legal', label: t('aiLegal') || 'AI Legal', desc: 'Professional AI legal research.', icon: Scale, color: '#818cf8', premium: true },
+        { id: 'ai_cashflow', label: 'AI Cashflow™', desc: 'Live market analysis and reports.', icon: TrendingUp, color: '#10b981', premium: true },
+        { id: 'aiad_agent', label: t('aiAds') || 'AI ADS', desc: 'Social Media Orchestration.', icon: Megaphone, color: '#eab308', premium: true },
+      ]
+    },
     {
       id: 'create',
       title: 'CREATE',
@@ -95,19 +108,6 @@ const ModernDashboard = ({ userName, onToolSelect, activeToolId, activeCategory 
         { id: 'web_search', label: t('realTimeSearch') || 'Real-Time Search', desc: 'Fast and accurate web search.', icon: Globe, color: '#22d3ee' },
         { id: 'document', label: t('analyzeDocument') || 'Convert Document', desc: 'Analyze or convert documents.', icon: FileText, color: '#3b82f6' },
         { id: 'code', label: t('codeWriter') || 'Code Writer', desc: 'Generate and debug code easily.', icon: Code, color: '#6366f1' },
-      ]
-    },
-    {
-      id: 'business',
-      title: 'BUSINESS',
-      subtitle: 'Professional enterprise AI solutions',
-      icon: Briefcase,
-      color: '#818cf8',
-      description: '💼 Streamline legal workflows, financial analysis, and social media orchestration with AI precision.',
-      tools: [
-        { id: 'legal', label: t('aiLegal') || 'AI Legal', desc: 'Professional AI legal research.', icon: Scale, color: '#818cf8', premium: true },
-        { id: 'ai_cashflow', label: 'AI Cashflow™', desc: 'Live market analysis and reports.', icon: TrendingUp, color: '#10b981', premium: true },
-        { id: 'aiad_agent', label: t('aiAds') || 'AI ADS', desc: 'Social Media Orchestration.', icon: Megaphone, color: '#eab308', premium: true },
       ]
     }
   ];

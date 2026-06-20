@@ -58,7 +58,7 @@ export const AppRoute = {
 };
 
 // API Base URL - window._env_ is runtime config (prioritized for live production), import.meta.env is baked at build time
-const API = window._env_?.VITE_AISA_BACKEND_API || window._env_?.AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || "http://localhost:8080/api";
+const API = import.meta.env.VITE_AISA_BACKEND_API;
 
 const apis = {
   resetPassword: `${API}/auth/reset-password-otp`,

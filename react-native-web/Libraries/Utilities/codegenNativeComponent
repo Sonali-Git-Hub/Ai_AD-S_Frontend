@@ -1,0 +1,2 @@
+// Stub file for codegenNativeComponent without extension
+module.exports = function () { return null; };

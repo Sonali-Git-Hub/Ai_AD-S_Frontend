@@ -540,6 +540,7 @@ export const useAILegalCRM = ({
     setIsRenamingCase,
     handleDeleteCase,
     handleBackToDashboard,
+    handleDashboardBack,
     setIsNewCaseModalOpen,
     setEditingCaseId,
     handleLegalPrecedentsBack,

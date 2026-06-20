@@ -7,23 +7,31 @@ import {
 import { useLanguage } from '../../../context/LanguageContext';
 
 const LegalDashboard = ({
-  legalCases,
-  currentProjectId,
-  handleOpenCase,
-  handleOpenEditModal,
-  handleDeleteCase,
-  isRenamingCase,
-  renameValue,
-  setRenameValue,
-  handleRenameCase,
-  setIsRenamingCase,
-  setIsNewCaseModalOpen,
-  setEditingCaseId,
-  setNewCaseForm,
-  setActiveLegalToolkit,
-  onBack
+  legalCases = [],
+  currentProjectId = null,
+  handleOpenCase = () => {},
+  handleOpenEditModal = () => {},
+  handleDeleteCase = () => {},
+  isRenamingCase = null,
+  renameValue = '',
+  setRenameValue = () => {},
+  handleRenameCase = () => {},
+  setIsRenamingCase = () => {},
+  setIsNewCaseModalOpen = () => {},
+  setEditingCaseId = () => {},
+  setNewCaseForm = () => {},
+  setActiveLegalToolkit = () => {},
+  onBack = () => {}
 }) => {
   const { tLegal } = useLanguage();
+
+  // Debug: Log all props on render
+  console.log('[LegalDashboard] Props:', {
+    legalCases: legalCases?.length ?? 'undefined',
+    currentProjectId,
+    hasHandleOpenCase: typeof handleOpenCase === 'function',
+    hasOnBack: typeof onBack === 'function'
+  });
 
   return (
     <div className="flex-1 flex flex-col w-full min-h-0 overflow-hidden aisa-scalable-text bg-slate-50/30 dark:bg-transparent relative">

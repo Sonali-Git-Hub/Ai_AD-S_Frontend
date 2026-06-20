@@ -1,7 +1,7 @@
 import axios from "axios";
 import { apis } from "../types";
 import { getUserData } from "../userStore/userData";
-import { getDeviceFingerprint } from "../utils/fingerprint";
+import { getDeviceFingerprint } from "../utils/deviceHelper";
 
 export const generateChatResponse = async (history, currentMessage, systemInstruction, attachments, language, abortSignal = null, mode = null, sessionId = null, projectId = null, userMsgId = null, aiMsgId = null, aspectRatio = null, modelId = null) => {
     try {

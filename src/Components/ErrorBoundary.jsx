@@ -12,20 +12,28 @@ class ErrorBoundary extends React.Component {
 
     componentDidCatch(error, errorInfo) {
         this.setState({ error, errorInfo });
-        console.error("Uncaught error:", error, errorInfo);
+        console.error("🚨 ErrorBoundary caught:", error, errorInfo);
+        // Expose for browser console debugging
+        window.AISA_ERROR = { error: error?.toString(), stack: errorInfo?.componentStack };
     }
 
     render() {
         if (this.state.hasError) {
             return (
-                <div className="min-h-screen flex items-center justify-center bg-red-50 p-6">
-                    <div className="bg-white p-8 rounded-xl shadow-xl max-w-4xl w-full border border-red-200">
-                        <h1 className="text-2xl font-bold text-red-600 mb-4">Something went wrong.</h1>
-                        <div className="bg-gray-100 p-4 rounded-lg overflow-auto max-h-96 text-sm font-mono text-gray-800">
-                            <p className="font-bold mb-2">{this.state.error && this.state.error.toString()}</p>
-                            <pre>{this.state.errorInfo && this.state.errorInfo.componentStack}</pre>
-                        </div>
-                    </div>
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 99999,
+                    backgroundColor: '#ff0000',
+                    color: '#ffffff',
+                    padding: '40px',
+                    fontFamily: 'monospace',
+                    fontSize: '16px',
+                    overflow: 'auto'
+                }}>
+                    <h1 style={{ fontSize: '32px', marginBottom: '20px' }}>🚨 REACT ERROR BOUNDARY TRIGGERED</h1>
+                    <p style={{ fontWeight: 'bold', marginBottom: '16px' }}>{this.state.error && this.state.error.toString()}</p>
+                    <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px' }}>{this.state.errorInfo && this.state.errorInfo.componentStack}</pre>
+                    <hr style={{ margin: '20px 0', borderColor: 'white' }} />
+                    <p style={{ fontSize: '14px' }}>Check window.AISA_ERROR in browser console for full details</p>
                 </div>
             );
         }

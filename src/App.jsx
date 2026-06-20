@@ -27,6 +27,7 @@ axios.interceptors.response.use(
 );
 
 function App() {
+  console.log("[DEBUG] App component function is executing...");
   useEffect(() => {
     AOS.init({
       duration: 800,
