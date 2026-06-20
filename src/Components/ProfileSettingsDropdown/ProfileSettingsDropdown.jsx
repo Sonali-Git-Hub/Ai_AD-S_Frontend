@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { apiService } from '../../services/apiService';
 import { jsPDF } from "jspdf";
+import useCreditStore from '../../userStore/useCreditStore';
 import { usePersonalization } from '../../context/PersonalizationContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -32,6 +33,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
     const fileInputRef = useRef(null);
     const [currentUserData, setUserRecoil] = useRecoilState(userData);
     const user = currentUserData.user || getUserData() || {};
+    const { limits, usage, renewalDate } = useCreditStore();
     const {
         personalizations,
         updatePersonalization,
@@ -972,51 +974,56 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                                 <h3 className="text-xs font-bold text-primary uppercase tracking-widest mb-1">{t('currentPlan')}</h3>
                                 <div className="flex items-baseline gap-2 mb-4">
                                     <h2 className="text-3xl font-black text-maintext">{planName.replace(' Plan', '')}</h2>
-                                    <span className="text-xs text-subtext font-medium">/ 1 {t('month')}</span>
+                                    {renewalDate && (
+                                        <span className="text-[10px] text-subtext font-bold">
+                                            • Expiry: {new Date(renewalDate).toLocaleDateString()}
+                                        </span>
+                                    )}
                                 </div>
 
-                                <div className="flex items-center justify-between bg-white/40 dark:bg-black/40 backdrop-blur-md rounded-xl p-4 border border-white/20">
-                                    <div>
-                                        <p className="text-[10px] font-bold text-subtext uppercase tracking-wider">{t('availableCredits')}</p>
-                                        <p className="text-2xl font-black text-primary">{user?.credits || 0}</p>
+                                <div className="bg-white/40 dark:bg-black/40 backdrop-blur-md rounded-xl p-4 border border-white/20 space-y-3">
+                                    <h4 className="text-[10px] font-bold text-subtext uppercase tracking-widest border-b border-white/10 pb-1.5">Usage & Quotas</h4>
+                                    
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="font-semibold text-subtext">Chat:</span>
+                                        <span className="font-black text-maintext">
+                                            {limits?.chat === -1 ? 'Unlimited' : `${usage?.chat || 0} / ${limits?.chat || 100}`}
+                                        </span>
                                     </div>
-                                    <button onClick={() => { window.location.href = '/pricing'; onClose(); }} className="px-4 py-2 bg-primary text-white rounded-lg text-xs font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all">{t('buyMore')}</button>
+
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="font-semibold text-subtext">AI Images:</span>
+                                        <span className="font-black text-maintext">
+                                            {limits?.images === 0 ? 'Not Included' : `${usage?.images || 0} / ${limits?.images || 0} per day`}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="font-semibold text-subtext">AI Carousels:</span>
+                                        <span className="font-black text-maintext">
+                                            {limits?.carousels === 0 ? 'Not Included' : `${usage?.carousels || 0} / ${limits?.carousels || 0} per day`}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="font-semibold text-subtext">AI Videos:</span>
+                                        <span className="font-black text-maintext">
+                                            {limits?.videos === 0 ? 'Not Included' : `${usage?.videos || 0} / ${limits?.videos || 0} per day`}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Recent Usage */}
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('recentCreditUsage')}</h4>
-                                {loadingHistory && <RefreshCcw className="w-3 h-3 animate-spin text-primary" />}
+                        {/* Plan Info */}
+                        <div className="space-y-3">
+                            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">Plan Details</h4>
+                            <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-border/50 text-xs text-subtext space-y-2">
+                                <p>• Image editing: {limits?.editImage ? 'Enabled' : 'Disabled'}</p>
+                                <p>• CashFlow analyzer: {limits?.cashflow ? 'Enabled' : 'Disabled'}</p>
+                                <p>• Daily limits reset at midnight IST.</p>
                             </div>
-
-                            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                {creditLogs.length > 0 ? creditLogs.map(log => (
-                                    <div key={log._id} className="flex items-center justify-between p-4 bg-gray-50/50 dark:bg-zinc-800/30 rounded-xl border border-border group hover:bg-white dark:hover:bg-zinc-800 transition-colors">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${log.credits < 0 ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
-                                                {log.credits < 0 ? <Zap size={14} /> : <CreditCard size={14} />}
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-bold truncate max-w-[150px]">{log.description}</p>
-                                                <p className="text-[10px] text-subtext">{new Date(log.createdAt).toLocaleString()}</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className={`text-sm font-bold ${log.credits < 0 ? 'text-red-500' : 'text-green-500'}`}>
-                                                {log.credits > 0 ? '+' : ''}{log.credits}
-                                            </p>
-                                            <p className="text-[10px] text-subtext">{log.balanceAfter} total</p>
-                                        </div>
-                                    </div>
-                                )) : (
-                                    <div className="py-10 text-center opacity-40">
-                                        <p className="text-sm">{t('noCreditHistory')}</p>
-                                    </div>
-                                )}
-                            </div>
+                            <button onClick={() => { window.location.href = '/pricing'; onClose(); }} className="w-full py-3 bg-primary text-white rounded-xl text-xs font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all uppercase tracking-widest">Upgrade Plan</button>
                         </div>
                     </div>
                 );

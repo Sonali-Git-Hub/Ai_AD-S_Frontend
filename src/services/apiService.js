@@ -31,34 +31,48 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Clear user data and redirect to login on unauthorized
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
 
-    if (error.response?.status === 403 && error.response?.data?.code === 'OUT_OF_CREDITS') {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      user.credits = error.response.data.available || 0;
-      localStorage.setItem('user', JSON.stringify(user));
-
-      window.dispatchEvent(new CustomEvent('out_of_credits'));
-    }
-
-    if (error.response?.status === 403 && (error.response?.data?.code === 'PREMIUM_ONLY' || error.response?.data?.code === 'PLAN_RESTRICTED' || error.response?.data?.code === 'CALENDAR_LIMIT_REACHED' || error.response?.data?.code === 'UPGRADE_REQUIRED')) {
+    // ── QUOTA / PLAN LIMIT ERRORS ─────────────────────────────────────────────────
+    if (error.response?.status === 403) {
       const code = error.response?.data?.code;
       const backendMessage = error.response?.data?.message || error.response?.data?.error;
-      
-      let toolName = 'AI Ads Agent (Visual Render)';
-      if (code === 'CALENDAR_LIMIT_REACHED') toolName = 'AI Ads Agent (Unlimited Strategy)';
-      else if (code === 'UPGRADE_REQUIRED') toolName = 'AI Ads Agent (Unlimited Scraping)';
-      else if (backendMessage?.includes('extraction') || backendMessage?.includes('scrape')) toolName = 'AI Ads Agent (AI Fetch)';
+      const toolName = error.response?.data?.toolName || 'AISA Feature';
 
-      window.dispatchEvent(new CustomEvent('premium_required', { 
-        detail: { 
-          toolName,
-          customMessage: backendMessage || 'This feature requires a paid plan. Please upgrade to continue.'
-        } 
-      }));
+      // New quota system codes
+      if (code === 'QUOTA_EXCEEDED' || code === 'PLAN_RESTRICTED' || code === 'PLAN_EXPIRED') {
+        window.dispatchEvent(new CustomEvent('quota_exceeded', {
+          detail: {
+            code,
+            toolName,
+            customMessage: backendMessage || 'You have reached your plan limit. Please upgrade to continue.',
+            used: error.response?.data?.used,
+            limit: error.response?.data?.limit,
+          }
+        }));
+      }
+
+      // Legacy credit system codes (kept for backward compat)
+      if (code === 'OUT_OF_CREDITS') {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        user.credits = error.response.data.available || 0;
+        localStorage.setItem('user', JSON.stringify(user));
+        window.dispatchEvent(new CustomEvent('out_of_credits'));
+      }
+
+      if (code === 'PREMIUM_ONLY' || code === 'CALENDAR_LIMIT_REACHED' || code === 'UPGRADE_REQUIRED') {
+        let derivedToolName = toolName;
+        if (code === 'CALENDAR_LIMIT_REACHED') derivedToolName = 'AI Ads Agent (Unlimited Strategy)';
+        else if (code === 'UPGRADE_REQUIRED') derivedToolName = 'AI Ads Agent (Unlimited Scraping)';
+        window.dispatchEvent(new CustomEvent('premium_required', {
+          detail: {
+            toolName: derivedToolName,
+            customMessage: backendMessage || 'This feature requires a paid plan. Please upgrade to continue.'
+          }
+        }));
+      }
     }
 
     return Promise.reject(error);
@@ -1302,15 +1316,26 @@ export const apiService = {
 
 
 
-  // --- Credits & Subscription ---
-  async getCreditHistory() {
+  // ── Credits & Subscription (Quota System) ──────────────────────────────────────────────
+  async getQuotaStatus() {
     try {
-      const response = await apiClient.get('/subscription/credit-history');
+      const response = await apiClient.get('/subscription/quota-status');
       return response.data;
     } catch (error) {
-      console.error("Failed to fetch credit history:", error);
-      throw error;
+      console.error('Failed to fetch quota status:', error);
+      // Return a safe default so the app doesn't crash
+      return {
+        success: false,
+        planKey: 'free',
+        limits: { chat: 100, chatScope: 'total', images: 0, carousels: 0, videos: 0, editImage: false, cashflow: false },
+        usage: { chat: 0, images: 0, carousels: 0, videos: 0 },
+      };
     }
+  },
+
+  // Legacy credit methods — kept so old components don't crash
+  async getCreditHistory() {
+    return { success: true, logs: [] };
   },
 
   async getUserCredits() {
@@ -1318,19 +1343,14 @@ export const apiService = {
       const response = await apiClient.get('/subscription/user-credits');
       return response.data;
     } catch (error) {
-      console.error("Failed to fetch user credits:", error);
-      throw error;
+      return { success: false, credits: 0 };
     }
   },
 
   async deductCredits(payload) {
-    try {
-      const response = await apiClient.post('/subscription/deduct-credits', payload);
-      return response.data;
-    } catch (error) {
-      console.error("Failed to deduct credits:", error);
-      throw error;
-    }
+    // No-op stub — credits system replaced by quota system
+    console.log('[API] deductCredits called (no-op, using quota system now)');
+    return { success: true, credits: 0, message: 'Quota system active — no credits to deduct' };
   },
 
   // --- Projects ---

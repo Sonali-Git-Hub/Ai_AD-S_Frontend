@@ -8,6 +8,7 @@ import {
     TrendingUp, DollarSign, Activity, Zap,
     ChevronDown, Save, RefreshCw, ArrowLeft, FileUp,
     Eye, EyeOff, Check, AlertCircle, FileText, PlusCircle, Headphones, BookOpen,
+    MessageSquare, Image, Layers, Clock, Video,
 } from 'lucide-react';
 import { apiService } from '../services/apiService';
 import { getUserData } from '../userStore/userData';
@@ -495,6 +496,14 @@ const PlansTab = () => {
         priceYearly: '',
         credits: '',
         creditsYearly: '',
+        chatLimit: '',
+        chatScope: 'total',
+        imageLimit: '',
+        carouselLimit: '',
+        videoLimit: '',
+        editImageAllowed: false,
+        cashflowAllowed: false,
+        validityDays: '',
         features: ''
     });
     const [deleteModal, setDeleteModal] = useState({ isOpen: false, planId: null });
@@ -523,8 +532,13 @@ const PlansTab = () => {
                 ...form,
                 priceMonthly: Number(form.priceMonthly),
                 priceYearly: Number(form.priceYearly),
-                credits: Number(form.credits),
-                creditsYearly: Number(form.creditsYearly),
+                chatLimit: Number(form.chatLimit),
+                imageLimit: Number(form.imageLimit),
+                carouselLimit: Number(form.carouselLimit),
+                videoLimit: Number(form.videoLimit),
+                validityDays: Number(form.validityDays),
+                editImageAllowed: Boolean(form.editImageAllowed),
+                cashflowAllowed: Boolean(form.cashflowAllowed),
                 features: form.features.split(',').map(f => f.trim()).filter(Boolean)
             };
 
@@ -569,15 +583,35 @@ const PlansTab = () => {
             planName: plan.planName || '',
             priceMonthly: plan.priceMonthly?.toString() || '',
             priceYearly: plan.priceYearly?.toString() || '',
-            credits: plan.credits?.toString() || '',
-            creditsYearly: plan.creditsYearly?.toString() || '',
+            chatLimit: plan.chatLimit?.toString() ?? '100',
+            chatScope: plan.chatScope || 'total',
+            imageLimit: plan.imageLimit?.toString() ?? '0',
+            carouselLimit: plan.carouselLimit?.toString() ?? '0',
+            videoLimit: plan.videoLimit?.toString() ?? '0',
+            editImageAllowed: !!plan.editImageAllowed,
+            cashflowAllowed: !!plan.cashflowAllowed,
+            validityDays: plan.validityDays?.toString() ?? '90',
             features: (plan.features || []).join(', ')
         });
         setShowForm(true);
     };
 
     const resetForm = () => {
-        setForm({ planId: '', planName: '', priceMonthly: '', priceYearly: '', credits: '', creditsYearly: '', features: '' });
+        setForm({
+            planId: '',
+            planName: '',
+            priceMonthly: '',
+            priceYearly: '',
+            chatLimit: '',
+            chatScope: 'total',
+            imageLimit: '',
+            carouselLimit: '',
+            videoLimit: '',
+            editImageAllowed: false,
+            cashflowAllowed: false,
+            validityDays: '',
+            features: ''
+        });
         setEditingPlan(null);
         setShowForm(false);
     };
@@ -606,7 +640,7 @@ const PlansTab = () => {
                     >
                         <div className="bg-white/30 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl p-5 space-y-4">
                             <h3 className="font-bold text-maintext">{editingPlan ? 'Edit Plan' : 'Create New Plan'}</h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                 <input placeholder="Plan ID (e.g. starter-plan)" value={form.planId} onChange={e => setForm(p => ({ ...p, planId: e.target.value }))}
                                     className="bg-white/20 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-xl py-3 px-4 text-sm outline-none focus:border-primary/50 text-maintext" />
                                 <input placeholder="Plan Name" value={form.planName} onChange={e => setForm(p => ({ ...p, planName: e.target.value }))}
@@ -615,10 +649,33 @@ const PlansTab = () => {
                                     className="bg-white/20 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-xl py-3 px-4 text-sm outline-none focus:border-primary/50 text-maintext no-spinner" />
                                 <input placeholder="Price Yearly (₹)" type="number" value={form.priceYearly} onChange={e => setForm(p => ({ ...p, priceYearly: e.target.value }))}
                                     className="bg-white/20 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-xl py-3 px-4 text-sm outline-none focus:border-primary/50 text-maintext no-spinner" />
-                                <input placeholder="Credits (Monthly)" type="number" value={form.credits} onChange={e => setForm(p => ({ ...p, credits: e.target.value }))}
+                                <input placeholder="Validity (Days)" type="number" value={form.validityDays} onChange={e => setForm(p => ({ ...p, validityDays: e.target.value }))}
                                     className="bg-white/20 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-xl py-3 px-4 text-sm outline-none focus:border-primary/50 text-maintext no-spinner" />
-                                <input placeholder="Credits (Yearly)" type="number" value={form.creditsYearly} onChange={e => setForm(p => ({ ...p, creditsYearly: e.target.value }))}
+                                <input placeholder="Chat Limit (-1 for unlimited)" type="number" value={form.chatLimit} onChange={e => setForm(p => ({ ...p, chatLimit: e.target.value }))}
                                     className="bg-white/20 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-xl py-3 px-4 text-sm outline-none focus:border-primary/50 text-maintext no-spinner" />
+                                <select value={form.chatScope} onChange={e => setForm(p => ({ ...p, chatScope: e.target.value }))}
+                                    className="bg-white/20 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-xl py-3 px-4 text-sm outline-none focus:border-primary/50 text-maintext font-bold">
+                                    <option value="total" className="bg-slate-50 dark:bg-zinc-900 text-maintext font-bold">Total Lifetime Cap</option>
+                                    <option value="unlimited" className="bg-slate-50 dark:bg-zinc-900 text-maintext font-bold">Unlimited Chat</option>
+                                </select>
+                                <input placeholder="Daily Image Limit" type="number" value={form.imageLimit} onChange={e => setForm(p => ({ ...p, imageLimit: e.target.value }))}
+                                    className="bg-white/20 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-xl py-3 px-4 text-sm outline-none focus:border-primary/50 text-maintext no-spinner" />
+                                <input placeholder="Daily Carousel Limit" type="number" value={form.carouselLimit} onChange={e => setForm(p => ({ ...p, carouselLimit: e.target.value }))}
+                                    className="bg-white/20 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-xl py-3 px-4 text-sm outline-none focus:border-primary/50 text-maintext no-spinner" />
+                                <input placeholder="Daily Video Limit" type="number" value={form.videoLimit} onChange={e => setForm(p => ({ ...p, videoLimit: e.target.value }))}
+                                    className="bg-white/20 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-xl py-3 px-4 text-sm outline-none focus:border-primary/50 text-maintext no-spinner" />
+                            </div>
+                            <div className="flex flex-wrap gap-6 py-2 px-1">
+                                <label className="flex items-center gap-2 cursor-pointer text-sm text-maintext font-semibold">
+                                    <input type="checkbox" checked={form.editImageAllowed} onChange={e => setForm(p => ({ ...p, editImageAllowed: e.target.checked }))}
+                                        className="w-4 h-4 rounded border-white/20 accent-primary" />
+                                    Image Editing Allowed
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer text-sm text-maintext font-semibold">
+                                    <input type="checkbox" checked={form.cashflowAllowed} onChange={e => setForm(p => ({ ...p, cashflowAllowed: e.target.checked }))}
+                                        className="w-4 h-4 rounded border-white/20 accent-primary" />
+                                    CashFlow Allowed
+                                </label>
                             </div>
                             <input placeholder="Features (comma-separated)" value={form.features} onChange={e => setForm(p => ({ ...p, features: e.target.value }))}
                                 className="w-full bg-white/20 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-xl py-3 px-4 text-sm outline-none focus:border-primary/50 text-maintext" />
@@ -654,10 +711,30 @@ const PlansTab = () => {
                                 </button>
                             </div>
                         </div>
-                        <div className="space-y-1 text-xs text-subtext">
+                        <div className="space-y-1.5 text-xs text-subtext">
                             <p className="flex items-center gap-2">
-                                <Zap className="w-3 h-3 text-amber-500" />
-                                <span className="font-semibold text-maintext">{plan.credits}</span> / {plan.creditsYearly || plan.credits * 12} credits (M/Y)
+                                <MessageSquare className="w-3 h-3 text-primary" />
+                                Chat: <span className="font-semibold text-maintext">{plan.chatLimit === -1 ? 'Unlimited' : `${plan.chatLimit} (${plan.chatScope})`}</span>
+                            </p>
+                            <p className="flex items-center gap-2">
+                                <Image className="w-3 h-3 text-emerald-500" />
+                                Images: <span className="font-semibold text-maintext">{plan.imageLimit}/day</span> (Edit: {plan.editImageAllowed ? 'Yes' : 'No'})
+                            </p>
+                            <p className="flex items-center gap-2">
+                                <Layers className="w-3 h-3 text-indigo-500" />
+                                Carousels: <span className="font-semibold text-maintext">{plan.carouselLimit}/day</span>
+                            </p>
+                            <p className="flex items-center gap-2">
+                                <Video className="w-3 h-3 text-rose-500" />
+                                Videos: <span className="font-semibold text-maintext">{plan.videoLimit}/day</span>
+                            </p>
+                            <p className="flex items-center gap-2">
+                                <TrendingUp className="w-3 h-3 text-amber-500" />
+                                CashFlow: <span className="font-semibold text-maintext">{plan.cashflowAllowed ? 'Yes' : 'No'}</span>
+                            </p>
+                            <p className="flex items-center gap-2">
+                                <Clock className="w-3 h-3 text-subtext" />
+                                Validity: <span className="font-semibold text-maintext">{plan.validityDays} days</span>
                             </p>
                             <p className="flex items-center gap-2 text-[10px] opacity-70">
                                 <CreditCard className="w-3 h-3" />

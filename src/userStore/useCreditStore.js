@@ -3,110 +3,135 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { apiService } from '../services/apiService';
 
 /**
- * Global Credit Store
- * Manages current credits, transaction history, and syncing with backend.
+ * Global Quota Store — replaces the old Credit Store.
+ * Tracks the user's current plan and daily/lifetime usage quotas.
+ *
+ * LEGACY: The old credit fields (currentCredits, deductCredits, etc.) are stubbed
+ * for backward compatibility so components that still reference them don't crash.
  */
 const useCreditStore = create(
   persist(
     (set, get) => ({
-      currentCredits: 0,
-      recentTransactions: [],
+      // ── QUOTA STATE ───────────────────────────────────────────────────────────
+      planKey: 'free',           // 'free' | 'starter' | 'pro' | 'business' | 'admin'
+      planExpired: false,
+      limits: {
+        chat: 100,
+        chatScope: 'total',
+        images: 0,
+        carousels: 0,
+        videos: 0,
+        editImage: false,
+        cashflow: false,
+      },
+      usage: {
+        chat: 0,
+        images: 0,
+        carousels: 0,
+        videos: 0,
+      },
+      planActivatedAt: null,
+      renewalDate: null,
       isLoading: false,
 
-      setCredits: (credits) => set({ currentCredits: credits }),
+      // ── LEGACY COMPAT FIELDS (so old components don't crash) ─────────────────
+      currentCredits: 0,
+      recentTransactions: [],
 
-      // Sync credits from backend to global state
+      // ── SYNC FROM BACKEND ─────────────────────────────────────────────────────
       syncCredits: async () => {
         try {
-          const response = await apiService.getUserCredits();
+          const response = await apiService.getQuotaStatus();
           if (response.success) {
-            set({ currentCredits: response.credits });
-            
-            // Update local user data as well
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            if (user.email) {
-              user.credits = response.credits;
-              localStorage.setItem('user', JSON.stringify(user));
-            }
+            set({
+              planKey: response.planKey || 'free',
+              planExpired: response.planExpired || false,
+              limits: response.limits || {},
+              usage: response.usage || {},
+              planActivatedAt: response.planActivatedAt,
+              renewalDate: response.renewalDate,
+              currentCredits: 0, // legacy stub
+            });
           }
           return response;
         } catch (error) {
-          console.error("[CreditStore] Sync failed:", error);
+          console.error('[QuotaStore] Sync failed:', error);
           return { success: false };
         }
       },
 
-      // Fetch transaction history
-      fetchHistory: async () => {
-        try {
-          const response = await apiService.getCreditHistory();
-          if (response.success) {
-            set({ recentTransactions: response.logs || [] });
+      // ── OPTIMISTIC LOCAL INCREMENT (called after successful action) ───────────
+      incrementLocal: (type) => {
+        set((state) => ({
+          usage: {
+            ...state.usage,
+            [type]: (state.usage[type] || 0) + 1,
           }
-          return response;
-        } catch (error) {
-          console.error("[CreditStore] Fetch history failed:", error);
-          return { success: false };
-        }
+        }));
       },
 
-      // Atomic deduction logic
-      deductCredits: async (toolName, amount = 50, category = "AI Legal") => {
-        try {
-          set({ isLoading: true });
-          const response = await apiService.deductCredits({
-            amount,
-            tool: toolName,
-            category,
-            description: `Used tool: ${toolName}`
-          });
+      // ── CHECK IF ACTION IS WITHIN PLAN LIMITS (client-side pre-check) ────────
+      canPerform: (action) => {
+        const { planKey, limits, usage, planExpired } = get();
+        if (planKey === 'admin') return { allowed: true };
+        if (planExpired) return { allowed: false, reason: 'Your free plan has expired. Please upgrade to continue.' };
 
-          if (response.success) {
-            set((state) => ({
-              currentCredits: response.credits,
-              recentTransactions: [response.log, ...state.recentTransactions].slice(0, 50)
-            }));
-
-            // Sync with local storage
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            if (user.email) {
-              user.credits = response.credits;
-              localStorage.setItem('user', JSON.stringify(user));
+        switch (action) {
+          case 'chat':
+            if (limits.chatScope === 'unlimited') return { allowed: true };
+            if (limits.chat !== -1 && usage.chat >= limits.chat) {
+              return { allowed: false, reason: `You've used all ${limits.chat} messages on the Free plan. Upgrade for unlimited conversations.` };
             }
-            
-            // Dispatch event for UI components not using this store
-            window.dispatchEvent(new CustomEvent('credits_updated', { detail: response.credits }));
-            
-            return { success: true, credits: response.credits };
-          }
-          return response;
-        } catch (error) {
-          console.error("[CreditStore] Deduction failed:", error);
-          const errorData = error.response?.data || {};
-          return { 
-            success: false, 
-            code: errorData.code || 'ERROR',
-            message: errorData.message || "Failed to deduct credits" 
-          };
-        } finally {
-          set({ isLoading: false });
+            return { allowed: true };
+          case 'generate_image':
+            if (!limits.images || limits.images === 0) return { allowed: false, reason: 'Image generation is not available on your current plan. Upgrade to Pro (₹999/mo).' };
+            if (usage.images >= limits.images) return { allowed: false, reason: `You've used your ${limits.images} images for today. Your limit resets tomorrow.` };
+            return { allowed: true };
+          case 'edit_image':
+            if (!limits.editImage) return { allowed: false, reason: 'Image editing requires Starter plan (₹499/mo) or higher.' };
+            return { allowed: true };
+          case 'generate_carousel':
+            if (!limits.carousels || limits.carousels === 0) return { allowed: false, reason: 'Carousel generation requires Pro plan (₹999/mo) or higher.' };
+            if (usage.carousels >= limits.carousels) return { allowed: false, reason: `You've used your ${limits.carousels} carousel${limits.carousels > 1 ? 's' : ''} for today.` };
+            return { allowed: true };
+          case 'generate_video':
+            if (!limits.videos || limits.videos === 0) return { allowed: false, reason: 'Video generation requires Business plan (₹2499/mo).' };
+            if (usage.videos >= limits.videos) return { allowed: false, reason: `You've used your ${limits.videos} videos for today.` };
+            return { allowed: true };
+          case 'cashflow':
+            if (!limits.cashflow) return { allowed: false, reason: 'CashFlow Explorer requires Starter plan (₹499/mo) or higher.' };
+            return { allowed: true };
+          default:
+            return { allowed: true };
         }
       },
 
-      addCredits: (amount) => set((state) => ({ currentCredits: state.currentCredits + amount })),
+      // ── FETCH HISTORY (legacy stub) ──────────────────────────────────────────
+      fetchHistory: async () => ({ success: true, logs: [] }),
 
-      // Add a single transaction to history manually (optional)
-      addTransaction: (transaction) => set((state) => ({
-        recentTransactions: [transaction, ...state.recentTransactions].slice(0, 50)
-      }))
+      // ── LEGACY DEDUCT CREDITS (stub — credits no longer used) ────────────────
+      deductCredits: async (toolName, amount = 0, category = 'General') => {
+        console.log('[QuotaStore] deductCredits called (no-op, credits replaced by quota system)');
+        return { success: true, credits: 0 };
+      },
+
+      // ── LEGACY HELPERS ────────────────────────────────────────────────────────
+      setCredits: (credits) => set({ currentCredits: 0 }),
+      addCredits: (amount) => set({ currentCredits: 0 }),
+      addTransaction: (transaction) => {},
     }),
     {
-      name: 'aisa-credits-storage',
+      name: 'aisa-quota-storage',
       storage: createJSONStorage(() => localStorage),
-      // Only persist credits and history
-      partialize: (state) => ({ 
-        currentCredits: state.currentCredits, 
-        recentTransactions: state.recentTransactions 
+      partialize: (state) => ({
+        planKey: state.planKey,
+        planExpired: state.planExpired,
+        limits: state.limits,
+        usage: state.usage,
+        planActivatedAt: state.planActivatedAt,
+        renewalDate: state.renewalDate,
+        currentCredits: 0,    // keep for legacy compat
+        recentTransactions: [],
       }),
     }
   )

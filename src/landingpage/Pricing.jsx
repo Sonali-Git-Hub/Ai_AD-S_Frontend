@@ -9,6 +9,7 @@ import { userData, updateUser } from '../userStore/userData';
 import { useLanguage } from '../context/LanguageContext';
 import GooglePayButton from '../Components/GooglePayButton';
 import ApplePayButton from '../Components/ApplePayButton';
+import useCreditStore from '../userStore/useCreditStore';
 
 const Pricing = () => {
   const { t } = useLanguage();
@@ -68,13 +69,17 @@ const Pricing = () => {
       const data = await getSubscriptionDetails();
       if (data?.founderStatus) {
         setCurrentPlanName('founder');
+      } else if (data?.plan?.planKey) {
+        setCurrentPlanName(data.plan.planKey.toLowerCase());
+      } else if (data?.subscription?.planId?.planId) {
+        setCurrentPlanName(data.subscription.planId.planId.toLowerCase());
       } else if (data?.subscription?.planId?.planName) {
         setCurrentPlanName(data.subscription.planId.planName.toLowerCase());
       } else {
-        setCurrentPlanName('free');
+        setCurrentPlanName('plan_0');
       }
     } catch (e) {
-      setCurrentPlanName('free');
+      setCurrentPlanName('plan_0');
     }
   };
 
@@ -99,20 +104,36 @@ const Pricing = () => {
     setBillingCycle(prev => prev === 'monthly' ? 'yearly' : 'monthly');
   };
 
-  const calculateEstimations = (credits, isFree = false) => {
+  const renderQuotaSummary = (plan) => {
+    const isFree = plan.priceMonthly === 0 && plan.priceYearly === 0;
+    
     if (isFree) {
-      // Free tier: only chat is available
       return [
-        { text: `≈ ${credits} ${t('chatEstimation')}`, icon: <Zap size={14} /> },
-        { text: `${t('paidPlansOnly')}`, icon: <ImageIcon size={14} />, locked: true },
-        { text: `${t('paidPlansOnly')}`, icon: <Video size={14} />, locked: true }
+        { text: `${plan.chatLimit || 100} total messages cap`, icon: <Zap size={14} /> },
+        { text: `${Math.round((plan.validityDays || 90) / 30)} months validity`, icon: <ShieldAlert size={14} /> },
+        { text: "Lock CashFlow & media creation", icon: <ImageIcon size={14} />, locked: true }
       ];
     }
-    return [
-      { text: `≈ ${credits} ${t('chatEstimation')}`, icon: <Zap size={14} /> },
-      { text: `≈ ${Math.floor(credits / 45)} ${t('imagesEstimation')}`, icon: <ImageIcon size={14} /> },
-      { text: `≈ ${Math.floor(credits / 225)} ${t('secVideoEstimation')}`, icon: <Video size={14} /> }
+
+    const summary = [
+      { text: plan.chatLimit === -1 ? "Unlimited Chats" : `${plan.chatLimit} Messages`, icon: <Zap size={14} /> },
     ];
+
+    if (plan.imageLimit > 0) {
+      summary.push({ text: `${plan.imageLimit} Images / Day (HD/Ultra)`, icon: <ImageIcon size={14} /> });
+    } else {
+      summary.push({ text: plan.editImageAllowed ? "Edit Image (No Gen)" : "No Image Gen/Edit", icon: <ImageIcon size={14} />, locked: !plan.editImageAllowed });
+    }
+
+    if (plan.videoLimit > 0) {
+      summary.push({ text: `${plan.videoLimit} Videos / Day`, icon: <Video size={14} /> });
+    } else if (plan.carouselLimit > 0) {
+      summary.push({ text: `${plan.carouselLimit} Carousel / Day`, icon: <Video size={14} /> });
+    } else {
+      summary.push({ text: "No Carousel/Video Gen", icon: <Video size={14} />, locked: true });
+    }
+
+    return summary;
   };
 
   const handleUpgrade = async (plan) => {
@@ -126,13 +147,12 @@ const Pricing = () => {
       setProcessing(true);
       const orderRes = await createSubscriptionOrder({ planId: plan._id, billingCycle });
       if (orderRes.isFree) {
-        const res = await purchasePlan(plan._id, billingCycle);
-        toast.success(`Successfully upgraded to ${plan.planName}!`);
         const updatedUser = updateUser({
           credits: res.credits,
           founderStatus: plan.planName.toLowerCase() === 'founder plan' ? true : userState.user.founderStatus
         });
         setUserState({ user: updatedUser });
+        useCreditStore.getState().syncCredits();
         setProcessing(false);
         return;
       }
@@ -153,6 +173,7 @@ const Pricing = () => {
               founderStatus: plan.planName.toLowerCase() === 'founder plan' ? true : userState.user.founderStatus
             });
             setUserState({ user: updatedUser });
+            useCreditStore.getState().syncCredits();
           } catch (e) {
             toast.error('Failed to complete upgrade after payment.');
           }
@@ -239,98 +260,79 @@ const Pricing = () => {
   const renderComparisonTable = () => {
     if (!plans.length) return null;
 
-    const comparisonData = [
-      {
-        feature: 'AISA Chat',
-        free: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        creator: <span className="feature-badge">✓ {t('priority')}</span>,
-        startuppro: <span className="feature-badge">✓ {t('priority')}</span>,
-        agency: <span className="feature-badge">✓ {t('priority')}</span>,
-        enterprise: <span className="feature-badge">✓ {t('priority')}</span>,
-      },
-      {
-        feature: 'AISA Generate Image',
-        free: <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>,
-        creator: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        startuppro: <span className="feature-badge">✓ {t('ultraHD')}</span>,
-        agency: <span className="feature-badge">✓ {t('ultraHD')}</span>,
-        enterprise: <span className="feature-badge">✓ {t('ultraHD')}</span>,
-      },
-      {
-        feature: 'AISA Edit Image',
-        free: <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>,
-        creator: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        startuppro: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        agency: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        enterprise: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-      },
-      {
-        feature: 'AISA Generate Video',
-        free: <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>,
-        creator: <span className="feature-badge">✓ 1080p</span>,
-        startuppro: <span className="feature-badge">✓ {t('fourKUltra')}</span>,
-        agency: <span className="feature-badge">✓ {t('fourKUltra')}</span>,
-        enterprise: <span className="feature-badge">✓ {t('fourKUltra')}</span>,
-      },
-      {
-        feature: 'AISA Image -> Video Magic Card',
-        free: <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>,
-        creator: <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>,
-        startuppro: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        agency: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        enterprise: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-      },
-      {
-        feature: 'AISA Web Search',
-        free: <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>,
-        creator: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        startuppro: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        agency: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        enterprise: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-      },
-      {
-        feature: 'AISA Deep Search',
-        free: <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>,
-        creator: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        startuppro: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        agency: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        enterprise: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-      },
-      {
-        feature: 'AISA Code Writer',
-        free: <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>,
-        creator: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        startuppro: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        agency: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        enterprise: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-      },
-      {
-        feature: 'AISA Convert to Audio',
-        free: <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>,
-        creator: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        startuppro: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        agency: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-        enterprise: <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>,
-      },
-      {
-        feature: 'AISA Convert Documents',
-        free: <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>,
-        creator: <span className="feature-badge">{t('advanced')}</span>,
-        startuppro: <span className="feature-badge">{t('advanced')}</span>,
-        agency: <span className="feature-badge" style={{ background: 'linear-gradient(135deg,#7c3aed,#6d28d9)' }}>{t('expert')}</span>,
-        enterprise: <span className="feature-badge" style={{ background: 'linear-gradient(135deg,#2563eb,#1d4ed8)' }}>{t('pro')} + {t('team')}</span>,
-      }
-    ];
+    const getFeatureValue = (featureKey, plan) => {
+      const isFree = plan.priceMonthly === 0 && plan.priceYearly === 0;
+      const planKey = (plan.planId || '').toLowerCase();
 
-    const getPlanKey = (planName) => {
-      const name = planName.toLowerCase();
-      if (name.includes('free')) return 'free';
-      if (name.includes('starter') || name.includes('creator')) return 'creator';
-      if (name.includes('founder') || name.includes('startup pro') || name.includes('startup')) return 'startuppro';
-      if (name.includes('pro') || name.includes('agency')) return 'agency';
-      if (name.includes('business') || name.includes('enterprise')) return 'enterprise';
-      return 'free'; // fallback
+      switch (featureKey) {
+        case 'chat':
+          if (isFree) {
+            return <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>;
+          }
+          return <span className="feature-badge">✓ {t('priority')}</span>;
+
+        case 'generate_image':
+          if (plan.imageLimit > 0) {
+            return <span className="feature-badge">✓ {t('ultraHD')} ({plan.imageLimit}/day)</span>;
+          }
+          return <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>;
+
+        case 'edit_image':
+          if (plan.editImageAllowed) {
+            return <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>;
+          }
+          return <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>;
+
+        case 'generate_video':
+          if (plan.videoLimit > 0) {
+            return <span className="feature-badge">✓ {t('fourKUltra')} ({plan.videoLimit}/day)</span>;
+          }
+          return <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>;
+
+        case 'magic_card':
+          if (plan.videoLimit > 0 || planKey === 'plan_3') {
+            return <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>;
+          }
+          return <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>;
+
+        case 'web_search':
+        case 'deep_search':
+        case 'code_writer':
+        case 'convert_audio':
+          if (planKey !== 'plan_0' && !isFree) {
+            return <span className="flex items-center justify-center"><Check size={20} className="check-icon" /></span>;
+          }
+          return <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>;
+
+        case 'convert_docs':
+          if (planKey === 'plan_1') {
+            return <span className="feature-badge">{t('advanced')}</span>;
+          }
+          if (planKey === 'plan_2') {
+            return <span className="feature-badge" style={{ background: 'linear-gradient(135deg,#7c3aed,#6d28d9)' }}>{t('expert')}</span>;
+          }
+          if (planKey === 'plan_3') {
+            return <span className="feature-badge" style={{ background: 'linear-gradient(135deg,#2563eb,#1d4ed8)' }}>{t('pro')} + {t('team')}</span>;
+          }
+          return <span className="flex items-center justify-center"><X size={20} className="cross-icon" /></span>;
+
+        default:
+          return null;
+      }
     };
+
+    const comparisonData = [
+      { feature: 'AISA Chat', key: 'chat' },
+      { feature: 'AISA Generate Image', key: 'generate_image' },
+      { feature: 'AISA Edit Image', key: 'edit_image' },
+      { feature: 'AISA Generate Video', key: 'generate_video' },
+      { feature: 'AISA Image -> Video Magic Card', key: 'magic_card' },
+      { feature: 'AISA Web Search', key: 'web_search' },
+      { feature: 'AISA Deep Search', key: 'deep_search' },
+      { feature: 'AISA Code Writer', key: 'code_writer' },
+      { feature: 'AISA Convert to Audio', key: 'convert_audio' },
+      { feature: 'AISA Convert Documents', key: 'convert_docs' }
+    ];
 
     return (
       <div className="comparison-section">
@@ -354,7 +356,7 @@ const Pricing = () => {
                   </td>
                   {plans.map(plan => (
                     <td key={`${plan._id}-${row.feature}`}>
-                      {row[getPlanKey(plan.planName)]}
+                      {getFeatureValue(row.key, plan)}
                     </td>
                   ))}
                 </tr>
@@ -375,14 +377,14 @@ const Pricing = () => {
 
   // Map old DB plan names to new display names
   const PLAN_NAME_MAP = {
-    'starter plan': 'Creator',
-    'starter': 'Creator',
-    'founder plan': 'Startup Pro',
-    'founder': 'Startup Pro',
-    'pro': 'Agency',
-    'pro plan': 'Agency',
-    'business': 'Enterprise',
-    'business plan': 'Enterprise',
+    'free': 'Free',
+    'free plan': 'Free',
+    'starter': 'Starter',
+    'starter plan': 'Starter',
+    'pro': 'Pro',
+    'pro plan': 'Pro',
+    'business': 'Business',
+    'business plan': 'Business',
   };
 
   const getDisplayPlanName = (planName) => {
@@ -430,9 +432,14 @@ const Pricing = () => {
           const isCurrentPlan = (() => {
             if (!currentPlanName) return false;
             const pn = plan.planName.toLowerCase();
-            if (currentPlanName === 'startup pro' || currentPlanName === 'startup') return pn.includes('startup');
-            if (currentPlanName === 'free' || currentPlanName === 'free tier') return isFree;
-            return pn.includes(currentPlanName) || currentPlanName.includes(pn.split(' ')[0]);
+            const pid = (plan.planId || '').toLowerCase();
+            const cName = currentPlanName.toLowerCase();
+            if (cName === 'startup pro' || cName === 'startup') return pn.includes('startup');
+            if (cName === 'free' || cName === 'free tier' || cName === 'plan_0') return isFree;
+            if (cName === 'plan_1') return pid === 'plan_1' || pn.includes('starter');
+            if (cName === 'plan_2') return pid === 'plan_2' || pn.includes('pro');
+            if (cName === 'plan_3') return pid === 'plan_3' || pn.includes('business');
+            return pid === cName || pn.includes(cName) || cName.includes(pn.split(' ')[0]);
           })();
 
 
@@ -491,25 +498,20 @@ const Pricing = () => {
               <div className="plan-credits">
                 <Sparkles size={18} />
                 {(() => {
-                  const pn = plan.planName.toLowerCase();
-                  if (pn.includes('founder') || pn.includes('startup pro') || pn.includes('startup')) {
-                    return <span>3000 {t('credits')} <span style={{ color: 'var(--color-primary)', fontWeight: 900 }}>+ AI Action</span></span>;
+                  const isFree = plan.priceMonthly === 0 && plan.priceYearly === 0;
+                  if (isFree) return <span>Free Access Tier</span>;
+                  if (plan.imageLimit === 0 && plan.videoLimit === 0) {
+                    return <span>Starter Package</span>;
                   }
-                  if (pn.includes('starter') || pn.includes('creator')) {
-                    return <span>3000 {t('credits')}</span>;
+                  if (plan.videoLimit > 0) {
+                    return <span>Business Pack</span>;
                   }
-                  if (pn.includes('pro') || pn.includes('agency')) {
-                    return <span>Creator <span style={{ color: 'var(--color-primary)', fontWeight: 900 }}>Workflow Pack</span></span>;
-                  }
-                  if (pn.includes('business') || pn.includes('enterprise')) {
-                    return <span>Business <span style={{ color: 'var(--color-primary)', fontWeight: 900 }}>Automation Access</span></span>;
-                  }
-                  return <span>{displayCredits} {t('credits')}</span>;
+                  return <span>Pro Creator Pack</span>;
                 })()}
               </div>
 
               <div className="credit-details">
-                {calculateEstimations(displayCredits, isFree).map((est, i) => (
+                {renderQuotaSummary(plan).map((est, i) => (
                   <p key={i} className={est.locked ? 'locked-estimation' : ''}>
                     <span style={{ opacity: est.locked ? 0.4 : 1 }}>{est.icon}</span>
                     <span style={{ opacity: est.locked ? 0.4 : 1 }}>{est.text}</span>
@@ -579,6 +581,7 @@ const Pricing = () => {
                                 });
                                 setUserState({ user: updatedUser });
                               }
+                              useCreditStore.getState().syncCredits();
                             }}
                             onError={(err) => {
                               toast.error(err.message || 'Google Pay failed. Please try Razorpay.');
@@ -607,6 +610,7 @@ const Pricing = () => {
                                 });
                                 setUserState({ user: updatedUser });
                               }
+                              useCreditStore.getState().syncCredits();
                             }}
                             onError={(err) => {
                               toast.error(err.message || 'Apple Pay failed.');
@@ -643,44 +647,7 @@ const Pricing = () => {
 
       {renderComparisonTable()}
 
-      <div className="text-center mt-24 mb-10 px-4">
-        <button
-          onClick={() => setShowUpsell(true)}
-          className="bg-primary/10 hover:bg-primary text-primary hover:text-white border border-primary/30 px-6 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all shadow-lg hover:shadow-primary/20 flex items-center gap-2 mx-auto"
-        >
-          <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-          Developer Utility: Test Upsell Popup
-        </button>
-      </div>
-
-      {showUpsell && (
-        <div className="credit-modal-overlay">
-          <div className="credit-modal">
-            <div className="modal-header">
-              <h3 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">{t('instantCreditBoost')}</h3>
-              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{t('extraCreditsRoll')}</p>
-            </div>
-
-            <div className="package-list">
-              {packages.map((pkg) => (
-                <div key={pkg._id} className="package-item group" onClick={() => handleBuyCredits(pkg)}>
-                  <div className="flex flex-col">
-                    <span className="package-credits text-lg font-bold group-hover:text-primary transition-colors">+{pkg.credits} Credits</span>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">One-time purchase</span>
-                  </div>
-                  <div className="bg-primary text-white px-4 py-2 rounded-xl font-bold text-sm shadow-sm group-hover:bg-primary-dark group-hover:scale-105 transition-all">
-                    ₹{pkg.price}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <button className="close-modal" onClick={() => setShowUpsell(false)}>
-              {t('maybeLater')}
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Upsell modal removed since credits packages are deprecated */}
     </div>
   );
 };

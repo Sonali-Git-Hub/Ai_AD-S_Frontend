@@ -2959,7 +2959,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   <CreditCard className="w-8 h-8 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">AI Credits</h2>
+                  <h2 className="text-3xl font-black text-slate-800 dark:text-white uppercase tracking-tighter">Plan Quotas</h2>
                   <p className="text-slate-500 dark:text-slate-400 font-bold uppercase text-xs tracking-widest">Cycle: {usage.billingMonth}</p>
                 </div>
               </div>
@@ -3040,7 +3040,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   <div className="w-10 h-10 rounded-2xl bg-red-500/10 flex items-center justify-center shrink-0"><AlertCircle className="w-5 h-5 text-red-500" /></div>
                   <div>
                     <p className="text-[11px] font-bold text-slate-700 dark:text-zinc-300 leading-relaxed mb-1">
-                      Running low on image credits. Save remaining for your most critical announcements.
+                      Running low on image quota. Save remaining for your most critical announcements.
                     </p>
                     <span className="text-[8px] font-black text-red-500 uppercase">Quota Warning</span>
                   </div>

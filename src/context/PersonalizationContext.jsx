@@ -342,11 +342,15 @@ export const PersonalizationProvider = ({ children }) => {
         applyDynamicStyles();
     }, [user?.token]);
 
+    // Fetch reminders once on mount or when token changes
+    useEffect(() => {
+        if (user?.token) {
+            fetchReminders();
+        }
+    }, [user?.token]);
+
     useEffect(() => {
         if (!user?.token) return;
-
-        // Load reminders on mount/login
-        fetchReminders();
 
         const checkReminders = async () => {
             const isGlobalEnabled = personalizations?.personalization?.enableReminders !== false;

@@ -516,11 +516,11 @@ const Chat = () => {
       }
 
       const plan = (userPlanName || '').toLowerCase();
-      if (plan.includes('starter') || plan.includes('founder')) {
+      if (plan.includes('starter') || plan.includes('pro') || plan.includes('founder')) {
         window.dispatchEvent(new CustomEvent('premium_required', {
           detail: {
             toolName,
-            customMessage: `Text to Video features are not available on the ${userPlanName || 'current'} plan. Please upgrade to Pro or Business to generate videos.`
+            customMessage: `Text to Video features are not available on the ${userPlanName || 'current'} plan. Please upgrade to Business to generate videos.`
           }
         }));
         return false;

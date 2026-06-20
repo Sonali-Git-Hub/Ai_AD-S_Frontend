@@ -86,12 +86,13 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
   const [isConnectorsOpen, setIsConnectorsOpen] = useState(false);
   const [isCreditsOpen, setIsCreditsOpen] = useState(false);
   
-  // Use Global Credit Store
+  // Use Global Quota/Credit Store
   const { 
-    currentCredits, 
-    recentTransactions, 
+    planKey,
+    limits,
+    usage,
+    renewalDate,
     syncCredits, 
-    fetchHistory,
     isLoading: isCreditsLoading 
   } = useCreditStore();
 
@@ -200,7 +201,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
 
   useEffect(() => {
     if (isCreditsOpen && token) {
-      fetchHistory();
+      syncCredits();
     }
   }, [isCreditsOpen, token]);
 
@@ -1218,7 +1219,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
                   <div className="p-2.5 rounded-xl bg-primary/20 border border-primary/10 transition-all hover:bg-primary/30 hover:scale-110 active:scale-90 shadow-sm">
                     <CreditCard className="w-4 h-4 text-primary transition-colors" strokeWidth={2.5} />
                   </div>
-                  <span className="text-[10px] whitespace-nowrap break-normal font-black text-primary/70 uppercase tracking-tighter group-hover/fbtn:text-primary transition-colors">Credits</span>
+                  <span className="text-[10px] whitespace-nowrap break-normal font-black text-primary/70 uppercase tracking-tighter group-hover/fbtn:text-primary transition-colors">Plan</span>
                 </button>
               </>
             ) : (
@@ -1272,7 +1273,7 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
         sessionTitle={sessionToShare?.title || "Shared Chat"}
       />
 
-      {/* Credits Modal */}
+      {/* Credits Modal (Plan & Quotas) */}
       <Transition appear show={isCreditsOpen} as={Fragment}>
         <Dialog as="div" className="relative z-[2000]" onClose={() => setIsCreditsOpen(false)}>
           <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
@@ -1283,54 +1284,77 @@ const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
               <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
                 <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 p-8 text-left align-middle shadow-2xl transition-all border border-zinc-200 dark:border-zinc-800">
                   <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-black text-maintext">Credits & Usage</h3>
+                    <h3 className="text-xl font-black text-maintext">Plan & Quotas</h3>
                     <button onClick={() => setIsCreditsOpen(false)} className="text-subtext hover:text-maintext p-1 rounded-lg hover:bg-black/5 transition-all"><X size={20} /></button>
                   </div>
                   <div className="space-y-6">
                     <div className="p-6 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20">
                       <h4 className="text-xs font-bold text-primary uppercase tracking-widest mb-1">{t('currentPlan')}</h4>
-                      <h2 className="text-3xl font-black mb-4">{planName}</h2>
-                      <div className="flex items-center justify-between bg-white/40 dark:bg-black/40 backdrop-blur-md rounded-xl p-4 border border-white/20">
-                        <div>
-                          <p className="text-[10px] font-bold text-subtext uppercase tracking-wider">{t('availableCredits')}</p>
-                          <p className="text-2xl font-black text-primary">{currentCredits}</p>
+                      <h2 className="text-3xl font-black mb-4">{planName.replace(' Plan', '')}</h2>
+                      
+                      {renewalDate && (
+                        <p className="text-xs text-subtext mb-4 font-semibold">
+                          Renewal/Expiry: {new Date(renewalDate).toLocaleDateString()}
+                        </p>
+                      )}
+
+                      <div className="bg-white/40 dark:bg-black/40 backdrop-blur-md rounded-xl p-4 border border-white/20 space-y-3">
+                        <h4 className="text-[10px] font-bold text-subtext uppercase tracking-widest border-b border-white/10 pb-1.5">Usage & Quotas</h4>
+                        
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-semibold text-subtext">Chat:</span>
+                          <span className="font-black text-maintext">
+                            {limits?.chat === -1 ? 'Unlimited' : `${usage?.chat || 0} / ${limits?.chat || 100} msgs`}
+                          </span>
                         </div>
-                        <button onClick={() => { window.location.href = '/pricing'; }} className="px-4 py-2 bg-primary text-white rounded-lg text-xs font-bold shadow-lg">Buy More</button>
+
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-semibold text-subtext">AI Images:</span>
+                          <span className="font-black text-maintext">
+                            {limits?.images === 0 ? 'Not Included' : `${usage?.images || 0} / ${limits?.images || 0} per day`}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-semibold text-subtext">AI Carousels:</span>
+                          <span className="font-black text-maintext">
+                            {limits?.carousels === 0 ? 'Not Included' : `${usage?.carousels || 0} / ${limits?.carousels || 0} per day`}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-semibold text-subtext">AI Videos:</span>
+                          <span className="font-black text-maintext">
+                            {limits?.videos === 0 ? 'Not Included' : `${usage?.videos || 0} / ${limits?.videos || 0} per day`}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-semibold text-subtext">Image Editing:</span>
+                          <span className={`font-black uppercase text-[10px] ${limits?.editImage ? 'text-green-500' : 'text-subtext'}`}>
+                            {limits?.editImage ? 'Enabled' : 'Disabled'}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-semibold text-subtext">CashFlow:</span>
+                          <span className={`font-black uppercase text-[10px] ${limits?.cashflow ? 'text-green-500' : 'text-subtext'}`}>
+                            {limits?.cashflow ? 'Enabled' : 'Disabled'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex justify-center">
+                        <button onClick={() => { window.location.href = '/pricing'; }} className="w-full py-2 bg-primary text-white rounded-lg text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:opacity-90 transition-all">Upgrade Plan</button>
                       </div>
                     </div>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('recentCreditUsage')}</h4>
-                        {isCreditsLoading && <RefreshCcw size={12} className="text-primary animate-spin" />}
-                      </div>
-                      <div className="space-y-2 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
-                        {recentTransactions.length > 0 ? recentTransactions.map(log => (
-                          <div key={log._id} className="flex items-center justify-between p-3 bg-gray-50/50 dark:bg-white/5 hover:bg-white/10 rounded-xl border border-border/50 transition-all group/log">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover/log:scale-110 ${log.credits < 0 ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
-                                {log.category === 'AI Legal' ? <Scale size={18} /> : <Zap size={18} />}
-                              </div>
-                              <div>
-                                <p className="text-[11px] font-black text-maintext truncate max-w-[150px] uppercase tracking-tight">{log.description}</p>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                    <span className="text-[9px] text-subtext font-bold uppercase opacity-60">{log.category || 'System'}</span>
-                                    <span className="text-[9px] text-subtext opacity-40">•</span>
-                                    <p className="text-[9px] text-subtext opacity-60 font-medium">{new Date(log.createdAt).toLocaleDateString()} {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className={`text-sm font-black ${log.credits < 0 ? 'text-red-500' : 'text-green-500'}`}>
-                                {log.credits > 0 ? '+' : ''}{log.credits}
-                              </p>
-                            </div>
-                          </div>
-                        )) : (
-                          <div className="flex flex-col items-center justify-center py-12 opacity-30">
-                            <History size={32} className="mb-2" />
-                            <p className="text-xs font-bold uppercase tracking-widest">No history yet</p>
-                          </div>
-                        )}
+                    
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">Plan Rules & Reset</h4>
+                      <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-border/50 text-xs text-subtext space-y-2">
+                        <p>• Daily quotas (images, carousels, videos) reset every day at midnight IST.</p>
+                        <p>• Free tier chat limit of 100 messages is a lifetime total cap across all your sessions.</p>
+                        <p>• Premium plans unlock features like high-definition visual models, image editing, and CashFlow.</p>
                       </div>
                     </div>
                   </div>
