@@ -6,7 +6,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { apiService } from '../../../services/apiService';
 import { chatStorageService } from '../../../services/chatStorageService';
-import LegalDashboard from '../components/LegalDashboard';
 
 export const useAILegalCRM = ({
   allProjects,
@@ -294,26 +293,6 @@ export const useAILegalCRM = ({
     }
   };
 
-  const renderCaseDashboard = () => (
-    <LegalDashboard
-      legalCases={legalCases}
-      currentProjectId={currentProjectId}
-      handleOpenCase={handleOpenCase}
-      handleOpenEditModal={handleOpenEditModal}
-      handleDeleteCase={handleDeleteCase}
-      isRenamingCase={isRenamingCase}
-      renameValue={renameValue}
-      setRenameValue={setRenameValue}
-      handleRenameCase={handleRenameCase}
-      setIsRenamingCase={setIsRenamingCase}
-      setIsNewCaseModalOpen={setIsNewCaseModalOpen}
-      setEditingCaseId={setEditingCaseId}
-      setNewCaseForm={setNewCaseForm}
-      setActiveLegalToolkit={setActiveLegalToolkit}
-      onBack={handleDashboardBack}
-    />
-  );
-
   const renderNewCaseModal = () => {
     return (
       <Transition appear show={isNewCaseModalOpen} as={Fragment}>
@@ -529,7 +508,6 @@ export const useAILegalCRM = ({
   }, [currentProjectId, location.pathname, currentMode, currentCase?._id, selectedLegalTool?.id, setCurrentCase, setCurrentMode, setSelectedLegalTool, setLegalView, navigate, setCurrentProjectId]);
 
   return {
-    renderCaseDashboard,
     renderNewCaseModal,
     handleUseInArgument,
     legalCases,

@@ -211,6 +211,7 @@ const DashboardLayout = () => {
   const currentMode = useRecoilValue(activeModeData);
   const selectedLegalTool = useRecoilValue(activeLegalToolData);
   const legalView = useRecoilValue(legalViewData);
+  const isLegalWorkspace = currentMode === 'LEGAL_TOOLKIT' || location.pathname === '/dashboard/cases';
   const isMobile = window.innerWidth < 768;
   const searchParams = new URLSearchParams(location.search);
   const tool = searchParams.get("tool");
@@ -267,7 +268,7 @@ const DashboardLayout = () => {
         />
       </div>
 
-      {!tglState.focusMode && (
+      {!tglState.focusMode && !isLegalWorkspace && (
         <Sidebar
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
@@ -280,7 +281,7 @@ const DashboardLayout = () => {
         {/* ─── FINAL RENDER (Navbar) ─── */}
         {allowNavbar && !isFullScreen && !isSidebarOpen && !tglState.focusMode && (
           <div
-            className={`navbar fixed top-0 left-0 right-0 z-[1001] transition-transform duration-300 lg:left-[280px]
+            className={`navbar fixed top-0 left-0 right-0 z-[1001] transition-transform duration-300 ${isLegalWorkspace ? 'lg:left-0' : 'lg:left-[280px]'}
               ${showOnScroll ? "translate-y-0" : "-translate-y-full"}`}
           >
             <div className="flex items-center justify-between lg:justify-end px-6 py-3 bg-transparent shrink-0">

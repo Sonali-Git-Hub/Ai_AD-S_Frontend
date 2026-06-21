@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback, useMemo, Fragment } from 'reac
 import { 
   Scale, X, MessageSquare, Zap, Briefcase, FileText, Search, Brain, 
   ChevronRight, Shield, Clock, CheckCircle, TrendingUp, FileSearch, 
-  Bookmark, Share2, Download, Plus, History, Filter, Sparkles
+  Bookmark, Share2, Download, Plus, History, Filter, Sparkles,
+  Gavel, Landmark, ScrollText, FileScan, Swords, Target, FileCheck, Waypoints
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Transition, Dialog } from '@headlessui/react';
@@ -57,34 +58,30 @@ const AiLegalContent = ({
   const [editingCaseId, setEditingCaseId] = useState(null);
   const [newCaseForm, setNewCaseForm] = useState({ clientName: '', caseType: '', otherCaseType: '', accused: '', summary: '' });
   const [isNewCaseModalOpen, setIsNewCaseModalOpen] = useState(false);
-
-  // Derive legal cases from allProjects
-  const legalCases = useMemo(() => {
-    const cases = (allProjects || []).filter(p => p.isLegalCase);
-    console.log('[AiLegalContent] Derived legalCases:', cases.length, 'from allProjects:', (allProjects || []).length);
-    return cases;
-  }, [allProjects]);
+  const [localCases, setLocalCases] = useState([]);
+  const [caseManagementFilter, setCaseManagementFilter] = useState('All');
 
   // --- Case Management Handlers (for LegalDashboard sub-view) ---
   const handleOpenCase = useCallback((c) => {
-    console.log('[AiLegalContent] handleOpenCase:', c?.name, c?._id);
+    const caseId = c.id || c._id;
     if (setCurrentCase) setCurrentCase(c);
-    if (setCurrentProjectId) setCurrentProjectId(c._id);
+    if (setCurrentProjectId) setCurrentProjectId(caseId);
     if (setLegalView) setLegalView('CHAT');
     if (setSelectedLegalTool) setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
-    navigate(`/dashboard/case/${c._id}`, { replace: true });
+    navigate(`/dashboard/case/${caseId}`, { replace: true });
   }, [setCurrentCase, setCurrentProjectId, setLegalView, setSelectedLegalTool, navigate]);
 
   const handleOpenEditModal = useCallback((c) => {
+    const caseId = c.id || c._id;
     const standardTypes = ['Civil Case', 'Criminal Case', 'Divorce Case', 'Property Dispute', 'Corporate Legal', 'Consumer Court', 'Labor Dispute'];
     const isOther = c.caseType && !standardTypes.includes(c.caseType);
-    setEditingCaseId(c._id);
+    setEditingCaseId(caseId);
     setNewCaseForm({
       clientName: c.clientName || '',
       caseType: isOther ? 'Other' : (c.caseType || ''),
       otherCaseType: isOther ? c.caseType : '',
       accused: c.accused || '',
-      summary: c.summary || c.caseSummary || ''
+      summary: c.summary || c.caseSummary || c.description || ''
     });
     setIsNewCaseModalOpen(true);
   }, []);
@@ -92,10 +89,7 @@ const AiLegalContent = ({
   const handleDeleteCase = useCallback(async (id) => {
     if (window.confirm('Are you sure you want to delete this case? All data and history will be lost.')) {
       try {
-        await apiService.deleteProject(id);
-        if (setAllProjects) {
-          setAllProjects(prev => prev.filter(p => p._id !== id));
-        }
+        await legalService.deleteCase(id);
         showToast('Case deleted');
         setCaseRefreshKey(prev => prev + 1);
       } catch (err) {
@@ -103,7 +97,7 @@ const AiLegalContent = ({
         showToast('Delete failed');
       }
     }
-  }, [setAllProjects]);
+  }, []);
 
   const handleRenameCase = useCallback(async (id) => {
     if (!renameValue.trim()) {
@@ -111,38 +105,31 @@ const AiLegalContent = ({
       return;
     }
     try {
-      await apiService.updateProject(id, { name: renameValue });
+      await legalService.updateCase(id, { title: renameValue });
       setIsRenamingCase(null);
-      if (setAllProjects) {
-        setAllProjects(prev => prev.map(p => p._id === id ? { ...p, name: renameValue } : p));
-      }
       showToast('Case renamed');
+      setCaseRefreshKey(prev => prev + 1);
     } catch (err) {
       console.error('[AiLegalContent] Rename failed:', err);
       showToast('Rename failed');
     }
-  }, [renameValue, setAllProjects]);
+  }, [renameValue]);
 
   // Fetch cases when entering CASE_MANAGEMENT module
+  const loadLocalCases = async () => {
+    try {
+      const cases = await legalService.getCases();
+      setLocalCases(cases || []);
+    } catch (e) {
+      console.error('[AiLegalContent] Failed to fetch local cases:', e);
+    }
+  };
+
   useEffect(() => {
     if (activeModule === 'CASE_MANAGEMENT') {
-      const fetchCases = async () => {
-        try {
-          const all = await apiService.getProjects();
-          if (setAllProjects) setAllProjects(all || []);
-        } catch (err) {
-          console.error('[AiLegalContent] Failed to fetch cases:', err);
-        }
-      };
-      fetchCases();
+      loadLocalCases();
     }
-  }, [activeModule, caseRefreshKey, setAllProjects]);
-
-  // Debug log: Track AI Legal module mounting
-  useEffect(() => {
-    console.log('[AI Legal] AI Legal Main Component Mounted — file: src/Tools/AI_Legal/components/AiLegalContent.jsx');
-    return () => console.log('[AI Legal] AI Legal Main Component Unmounted');
-  }, []);
+  }, [activeModule, caseRefreshKey]);
 
   // Debounce search query
   useEffect(() => {
@@ -155,7 +142,7 @@ const AiLegalContent = ({
   const legalSubTools = useMemo(() => [
     {
       id: 'legal_my_case',
-      icon: <Briefcase size={22} />,
+      icon: <Gavel size={24} strokeWidth={1.8} />,
       title: 'My Case',
       desc: 'Personal Legal CRM & Case Intelligence System',
       prompt: 'Show me my case intelligence for: ',
@@ -170,7 +157,7 @@ const AiLegalContent = ({
     },
     {
       id: 'legal_research_assistant',
-      icon: <FileSearch size={22} />,
+      icon: <Landmark size={24} strokeWidth={1.8} />,
       title: 'Legal Precedent',
       desc: 'Searchable Case Laws & Citation Generator',
       prompt: 'Find legal precedents for: ',
@@ -185,7 +172,7 @@ const AiLegalContent = ({
     },
     {
       id: 'legal_draft_maker',
-      icon: <FileText size={22} />,
+      icon: <ScrollText size={24} strokeWidth={1.8} />,
       title: 'Draft Maker',
       desc: 'FIR, Affidavit & Agreement Architect',
       prompt: 'I need to draft a legal document for: ',
@@ -200,7 +187,7 @@ const AiLegalContent = ({
     },
     {
       id: 'legal_evidence_checker',
-      icon: <FileSearch size={22} />,
+      icon: <FileScan size={24} strokeWidth={1.8} />,
       title: 'Evidence Analysis',
       desc: 'OCR Scanning & Authenticity Scoring',
       prompt: 'Analyze this evidence for admissibility and risk: ',
@@ -215,7 +202,7 @@ const AiLegalContent = ({
     },
     {
       id: 'legal_argument_builder',
-      icon: <Scale size={22} />,
+      icon: <Swords size={24} strokeWidth={1.8} />,
       title: 'Argument Builder',
       desc: 'Courtroom-Ready Arguments & Counterpoints',
       prompt: 'Help me build a courtroom argument for: ',
@@ -230,7 +217,7 @@ const AiLegalContent = ({
     },
     {
       id: 'legal_case_predictor',
-      icon: <TrendingUp size={22} />,
+      icon: <Target size={24} strokeWidth={1.8} />,
       title: 'Case Predictor',
       desc: 'Success Probability & AI Risk Analysis',
       prompt: 'Predict the outcome for this legal case: ',
@@ -245,7 +232,7 @@ const AiLegalContent = ({
     },
     {
       id: 'legal_contract_analyzer',
-      icon: <CheckCircle size={22} />,
+      icon: <FileCheck size={24} strokeWidth={1.8} />,
       title: 'Contract Review',
       desc: 'Clause Detection & Risky Term Alerts',
       prompt: 'Please analyze this contract for: ',
@@ -260,7 +247,7 @@ const AiLegalContent = ({
     },
     {
       id: 'legal_strategy_engine',
-      icon: <Brain size={22} />,
+      icon: <Waypoints size={24} strokeWidth={1.8} />,
       title: 'Strategy Engine',
       desc: 'Litigation Roadmap & Tactical Suggestions',
       prompt: 'Develop a legal strategy for: ',
@@ -430,12 +417,15 @@ const AiLegalContent = ({
     setRecentActivity(updated || []);
 
     if (tool.id === 'legal_my_case') {
+      console.log("Loading AISA-Mobile Active Cases Module");
+      setCaseManagementFilter('All');
       setActiveModule('CASE_MANAGEMENT');
-    } else if (tool.id === 'legal_general_chat') {
-      setSelectedLegalTool({ id: 'legal_general_chat', name: 'General Legal Chat' });
     } else {
-      // For web, map tool detail launch directly to Recoil activeTool triggers in Chat.jsx
+      // Set the selected tool and transition from DASHBOARD to CHAT view
       setSelectedLegalTool({ id: tool.id, name: tool.title });
+      if (setLegalView) setLegalView('CHAT');
+      if (setMessages) setMessages([]); // Fresh chat — matches AISA-Mobile behavior
+      navigate('/dashboard/chat/new', { replace: true, state: { fromTool: true } });
     }
   };
 
@@ -462,24 +452,11 @@ const AiLegalContent = ({
 
   // --- Sub views ---
   if (activeModule === 'CASE_MANAGEMENT') {
-    console.log('[AiLegalContent] Rendering CASE_MANAGEMENT sub-view, legalCases:', legalCases?.length);
     return (
       <div className="flex-1 flex flex-col w-full h-full min-h-0 bg-slate-50 dark:bg-[#0B1020]/30 overflow-hidden relative">
-        <div className="w-full px-4 sm:px-10 py-4 border-b border-slate-200/60 dark:border-white/5 bg-white/70 dark:bg-[#0B1020]/70 backdrop-blur-xl flex items-center gap-3 shrink-0 z-10">
-          <button 
-            onClick={() => {
-              setActiveModule(null);
-              loadDashboardData();
-            }}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
-          >
-            <ArrowLeft className="text-slate-600 dark:text-slate-400" />
-          </button>
-          <span className="text-lg font-black text-slate-900 dark:text-white tracking-tight">Case Management</span>
-        </div>
         <LegalDashboard 
-          legalCases={legalCases}
-          currentProjectId={null}
+          legalCases={localCases}
+          currentProjectId={currentCase?.id || currentCase?._id || null}
           handleOpenCase={handleOpenCase}
           handleOpenEditModal={handleOpenEditModal}
           handleDeleteCase={handleDeleteCase}
@@ -496,11 +473,48 @@ const AiLegalContent = ({
             setActiveModule(null);
             loadDashboardData();
           }}
+          onAskStrategy={(caseData) => {
+            if (setCurrentCase) setCurrentCase(caseData);
+            if (setCurrentProjectId) setCurrentProjectId(caseData.id || caseData._id);
+            setSelectedLegalTool({ id: 'legal_strategy_engine', name: 'Strategy Engine' });
+            if (setLegalView) setLegalView('CHAT');
+            if (setMessages) setMessages([]);
+            navigate('/dashboard/chat/new', { replace: true, state: { fromTool: true } });
+          }}
+          onViewRoadmap={(caseData) => {
+            if (setCurrentCase) setCurrentCase(caseData);
+            if (setCurrentProjectId) setCurrentProjectId(caseData.id || caseData._id);
+            setSelectedLegalTool({ id: 'legal_strategy_engine', name: 'Strategy Engine' });
+            if (setLegalView) setLegalView('CHAT');
+            if (setMessages) setMessages([]);
+            navigate('/dashboard/chat/new', { replace: true, state: { fromTool: true } });
+          }}
+          onLaunchModuleWithCase={(moduleId, caseData) => {
+            const names = {
+              'legal_argument_builder': 'Argument Builder',
+              'legal_precedents': 'Legal Precedent',
+              'legal_draft_maker': 'Draft Maker',
+              'legal_evidence_checker': 'Evidence Analysis',
+              'legal_case_predictor': 'Case Predictor',
+              'legal_contract_analyzer': 'Contract Review',
+              'legal_strategy_engine': 'Strategy Engine'
+            };
+            if (setCurrentCase) setCurrentCase(caseData);
+            if (setCurrentProjectId) setCurrentProjectId(caseData.id || caseData._id);
+            setSelectedLegalTool({ id: moduleId, name: names[moduleId] || moduleId });
+            if (setLegalView) setLegalView('CHAT');
+            if (setMessages) setMessages([]);
+            navigate('/dashboard/chat/new', { replace: true, state: { fromTool: true } });
+          }}
+          initialFilter={caseManagementFilter}
         />
         <CreateCaseModal 
           isDark={isDark}
-          isVisible={isCreateCaseVisible}
-          onClose={() => setIsCreateCaseVisible(false)}
+          isVisible={isCreateCaseVisible || isNewCaseModalOpen}
+          onClose={() => {
+            setIsCreateCaseVisible(false);
+            setIsNewCaseModalOpen(false);
+          }}
           onSave={handleCreateCase}
         />
       </div>
@@ -577,7 +591,7 @@ const AiLegalContent = ({
       </AnimatePresence>
 
       {/* Main Header */}
-      <div className="w-full px-4 sm:px-10 pt-6 pb-5 flex items-center justify-between shrink-0 border-b border-slate-200/60 dark:border-white/5 bg-white/70 dark:bg-[#0B1020]/70 backdrop-blur-xl z-10 sticky top-0">
+      <div className="w-full px-4 sm:px-6 md:px-10 lg:px-12 pt-5 sm:pt-6 pb-4 sm:pb-5 flex items-center justify-between shrink-0 border-b border-slate-200/60 dark:border-white/5 bg-white/70 dark:bg-[#0B1020]/70 backdrop-blur-xl z-10 sticky top-0">
         <div className="flex items-center gap-3.5">
           <button 
             onClick={onBack}
@@ -599,10 +613,10 @@ const AiLegalContent = ({
       </div>
 
       {/* Content Area */}
-      <div className="px-4 sm:px-10 py-6 space-y-6">
+      <div className="px-4 sm:px-6 md:px-10 lg:px-12 py-5 sm:py-6 space-y-5 sm:space-y-6">
         {/* Stats Section */}
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-pulse">
+          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 animate-pulse">
             {[1, 2, 3].map(i => (
               <div key={i} className="h-24 bg-slate-100 dark:bg-zinc-800/40 rounded-2xl" />
             ))}
@@ -622,10 +636,15 @@ const AiLegalContent = ({
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4">
               {/* Active Cases */}
               <button 
-                onClick={() => setActiveModule('CASE_MANAGEMENT')}
+                onClick={() => {
+                  console.log("Active Cases Card Clicked");
+                  console.log("Loading AISA-Mobile Active Cases Module");
+                  setCaseManagementFilter('Active');
+                  setActiveModule('CASE_MANAGEMENT');
+                }}
                 className="flex-1 flex flex-col justify-between p-4 bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm text-left hover:scale-[1.02] active:scale-95 transition-all"
               >
                 <div className="flex items-center gap-2 mb-2">
@@ -639,7 +658,12 @@ const AiLegalContent = ({
 
               {/* Hearings */}
               <button 
-                onClick={() => setActiveModule('HEARING_MANAGEMENT')}
+                onClick={() => {
+                  console.log("Hearings Card Clicked");
+                  console.log("Loading AISA-Mobile Hearings Module");
+                  console.log("Hearings Route Loaded");
+                  setActiveModule('HEARING_MANAGEMENT');
+                }}
                 className="flex-1 flex flex-col justify-between p-4 bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm text-left hover:scale-[1.02] active:scale-95 transition-all"
               >
                 <div className="flex items-center gap-2 mb-2">
@@ -649,20 +673,6 @@ const AiLegalContent = ({
                   <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Hearings</span>
                 </div>
                 <span className="text-2xl font-black text-slate-900 dark:text-white leading-none">{stats.hearingsCount}</span>
-              </button>
-
-              {/* Compliance */}
-              <button 
-                onClick={() => setActiveModule('COMPLIANCE_CENTER')}
-                className="flex-1 flex flex-col justify-between p-4 bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm text-left hover:scale-[1.02] active:scale-95 transition-all"
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-1.5 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 rounded-lg">
-                    <Shield size={16} />
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Compliance</span>
-                </div>
-                <span className="text-2xl font-black text-slate-900 dark:text-white leading-none">{stats.complianceScore}</span>
               </button>
             </div>
 
@@ -738,7 +748,7 @@ const AiLegalContent = ({
 
           <button 
             onClick={() => setIsSavedToolsVisible(true)}
-            className="w-12 h-12 rounded-2xl bg-white dark:bg-[#1A2540] border border-slate-250 dark:border-white/5 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-sm hover:scale-105 active:scale-95 transition-all relative"
+            className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white dark:bg-[#1A2540] border border-slate-250 dark:border-white/5 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-sm hover:scale-105 active:scale-95 transition-all relative shrink-0"
             title="Saved Tools"
           >
             <Bookmark size={20} className={savedTools.length > 0 ? 'fill-current' : ''} />
@@ -766,7 +776,7 @@ const AiLegalContent = ({
                 sampleOutput: 'According to Section 420 of IPC, the punishment for cheating is...'
               });
             }}
-            className="w-full relative rounded-3xl p-6 sm:p-8 overflow-hidden text-left bg-gradient-to-br from-indigo-600 via-[#5f5ce6] to-[#7c3aed] text-white shadow-2xl shadow-indigo-500/35 hover:scale-[1.005] transition-all group active:scale-[0.99]"
+            className="w-full relative rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-8 overflow-hidden text-left bg-gradient-to-br from-indigo-600 via-[#5f5ce6] to-[#7c3aed] text-white shadow-2xl shadow-indigo-500/35 hover:scale-[1.005] transition-all group active:scale-[0.99]"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-[2.5s] ease-in-out" />
             <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-6">
@@ -786,8 +796,9 @@ const AiLegalContent = ({
                 </div>
               </div>
               <div className="w-full sm:w-auto shrink-0 flex justify-end">
-                <span className="px-5 py-3 bg-white text-indigo-750 font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shrink-0">
-                  START →
+                <span className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 bg-white text-indigo-700 font-black text-xs sm:text-sm uppercase tracking-widest rounded-xl sm:rounded-2xl shadow-lg shadow-black/10 shrink-0 group-hover:shadow-xl group-hover:scale-105 transition-all duration-300">
+                  START
+                  <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
                 </span>
               </div>
             </div>
@@ -807,7 +818,7 @@ const AiLegalContent = ({
               <span className="text-xs font-bold">No templates match "{searchQuery}"</span>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
               {filteredTools.map(tool => {
                 const isSaved = savedTools.some(t => t.toolId === tool.id);
                 return (
@@ -996,7 +1007,7 @@ const AiLegalContent = ({
       {/* FAB - Create Case */}
       <button
         onClick={() => setIsCreateCaseVisible(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-full flex items-center justify-center shadow-xl shadow-indigo-500/30 hover:scale-105 active:scale-95 transition-all z-[100000]"
+        className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] right-4 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-full flex items-center justify-center shadow-xl shadow-indigo-500/30 hover:scale-105 active:scale-95 transition-all z-[100000]"
         title="Create New Case"
       >
         <Plus size={26} />
@@ -1012,7 +1023,7 @@ const AiLegalContent = ({
 
       {/* Save Toast popup */}
       {toastMsg && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white px-5 py-3 rounded-full text-xs font-black uppercase tracking-wider z-[120000] pointer-events-none shadow-xl border border-white/10">
+        <div className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 bg-slate-900/90 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider z-[120000] pointer-events-none shadow-xl border border-white/10 max-w-[90vw] text-center">
           {toastMsg}
         </div>
       )}
