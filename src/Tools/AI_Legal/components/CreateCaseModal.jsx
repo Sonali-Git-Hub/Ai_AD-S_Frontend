@@ -135,7 +135,8 @@ const CreateCaseModal = ({ isDark, isVisible, onClose, onSave }) => {
       name: file.name,
       type: file.type || 'file',
       size: file.size,
-      uploadedAt: new Date().toISOString()
+      uploadedAt: new Date().toISOString(),
+      uri: URL.createObjectURL(file)
     }));
     setCaseData(prev => ({
       ...prev,

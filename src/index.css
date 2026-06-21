@@ -132,6 +132,10 @@
   --typography-links: var(--primary);
   --typography-bold: var(--foreground);
   --typography-bullets: var(--primary);
+
+  /* Responsive Breakpoints */
+  --breakpoint-xs: 475px;
+  --breakpoint-3xl: 1920px;
 }
 
 @layer base {

@@ -65,7 +65,6 @@ import DeleteConfirmModal from '../DeleteConfirmModal.jsx';
 import { useGenerationStore, selectGeneratingChatIds } from '../../userStore/useGenerationStore';
 import { useShallow } from 'zustand/react/shallow';
 import useCreditStore from '../../userStore/useCreditStore';
-import SidebarTools from './SidebarTools';
 
 
 const Sidebar = ({ isOpen, onClose, onOpenSettings }) => {
