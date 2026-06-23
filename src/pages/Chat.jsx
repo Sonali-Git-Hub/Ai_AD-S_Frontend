@@ -390,7 +390,7 @@ const ImageViewer = ({ src, alt }) => {
       </div>
 
       <div
-        className="flex-1 w-full h-full flex items-center justify-center overflow-hidden touch-none"
+        className="flex-1 w-full h-full flex items-center justify-center overflow-hidden touch-none pb-16 sm:pb-24"
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -6632,7 +6632,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-8"
+            className="absolute inset-0 z-[100] bg-transparent backdrop-blur-sm flex items-center justify-center p-4 sm:p-8"
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
@@ -6801,10 +6801,10 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
           className={`relative flex-1 aisa-scalable-text chatgpt-container z-20 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent ${((currentMode === 'LEGAL_TOOLKIT' && !showFloatingNavbar) || location.pathname === '/dashboard/cases') ? 'no-top-padding' : ''} ${((legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT')
             ? 'z-[30] h-full w-full overflow-hidden flex flex-col bg-slate-50 min-h-0'
             : selectedLegalTool?.id === 'legal_general_chat' ? 'overflow-hidden flex flex-col min-h-0'
-            : `overflow-y-auto ${showFloatingNavbar ? 'pt-[72px] sm:mt-0 sm:pt-24' : (currentMode === 'LEGAL_TOOLKIT' || location.pathname === '/dashboard/cases' ? 'pt-4' : 'pt-[72px] sm:mt-0 sm:pt-[76px]')} lg:pt-6 pb-64 md:pb-72`
+            : viewingDoc ? 'overflow-hidden' : `overflow-y-auto ${showFloatingNavbar ? 'pt-[72px] sm:mt-0 sm:pt-24' : (currentMode === 'LEGAL_TOOLKIT' || location.pathname === '/dashboard/cases' ? 'pt-4' : 'pt-[72px] sm:mt-0 sm:pt-[76px]')} lg:pt-6 pb-64 md:pb-72`
             }`}
           style={{
-            overflowY: ((legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT') || selectedLegalTool?.id === 'legal_general_chat' ? 'hidden' : 'auto',
+            overflowY: viewingDoc ? 'hidden' : (((legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT') || selectedLegalTool?.id === 'legal_general_chat' ? 'hidden' : 'auto'),
             height: '100%',
             flex: '1 1 auto',
             display: 'flex',
@@ -8158,7 +8158,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         </AnimatePresence>
 
         {/* Unified Chat Input Container */}
-        {legalView !== 'DASHBOARD' && legalView !== 'PRECEDENTS' && !(currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id && selectedLegalTool.id !== 'legal_my_case') && (
+        {legalView !== 'DASHBOARD' && legalView !== 'PRECEDENTS' && !(currentMode === 'LEGAL_TOOLKIT' && selectedLegalTool?.id && selectedLegalTool.id !== 'legal_my_case') && !viewingDoc && (
           <div className={`absolute bottom-0 left-0 right-0 z-[1001] pointer-events-none aisa-chat-input-container ${(tglState.sidebarOpen && window.innerWidth < 1024) ? 'hidden' : ''}`}>
             {/* Background solid layer to hide text scrolling behind/below input */}
             <div className="relative z-20 bg-slate-50 dark:bg-[#0b0c15] sm:bg-white sm:dark:bg-[#0b0c15]" style={{ padding: '0.5rem 1rem calc(1.75rem + env(safe-area-inset-bottom, 0px)) 1rem' }}>

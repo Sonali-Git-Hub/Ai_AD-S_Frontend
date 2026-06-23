@@ -28,8 +28,9 @@ import { createGooglePayOrder, verifyGooglePayment } from '../services/walletPay
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const GOOGLE_PAY_SDK_URL = 'https://pay.google.com/gp/p/js/pay.js';
-const GOOGLE_PAY_ENV = import.meta.env.VITE_GOOGLE_PAY_ENV || 'TEST';
-const MERCHANT_ID = import.meta.env.VITE_GOOGLE_PAY_MERCHANT_ID;
+const GOOGLE_PAY_ENV = window._env_?.VITE_GOOGLE_PAY_ENV || import.meta.env.VITE_GOOGLE_PAY_ENV || 'TEST';
+const MERCHANT_ID = window._env_?.VITE_GOOGLE_PAY_MERCHANT_ID || import.meta.env.VITE_GOOGLE_PAY_MERCHANT_ID;
+
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 
