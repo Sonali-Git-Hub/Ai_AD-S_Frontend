@@ -157,8 +157,14 @@ const GooglePayButton = ({
                 return;
             }
 
-            console.error('[GooglePay] Payment error:', err);
-            const msg = err.message || 'Payment failed. Please try again.';
+            console.error('[GooglePay] Payment error details:', {
+                statusCode: err?.statusCode || 'N/A',
+                statusMessage: err?.statusMessage || err?.message || 'N/A',
+                stack: err?.stack || 'N/A',
+                rawError: err
+            });
+            console.error('[GooglePay] Complete Error Object:', JSON.stringify(err, Object.getOwnPropertyNames(err)));
+            const msg = err?.statusMessage || err?.message || 'Payment failed. Please try again.';
             setErrorMsg(msg);
             setStatus('error');
             onError?.(err);
