@@ -203,7 +203,7 @@ const CasePredictor = ({ currentCase, onBack, theme }) => {
           {!activePrediction && !isGenerating && (
             <div>
               <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">⋄ FORECAST SIMULATIONS PRESETS</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {QUICK_PRESETS.map(preset => (
                   <button
                     key={preset.name}
@@ -215,7 +215,7 @@ const CasePredictor = ({ currentCase, onBack, theme }) => {
                       else facts = 'Client accused of unauthorized database access. The network audit exhibits overlapping credentials shared among multiple remote external contractors.';
                       triggerPreset(preset.name, facts);
                     }}
-                    className="p-4 bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm hover:shadow-md transition-all text-left"
+                    className="p-4 bg-white dark:bg-[#1A2540] rounded-2xl shadow-sm hover:shadow-md transition-all text-left"
                   >
                     <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-wide block">{preset.name}</span>
                     <span className="text-[10px] text-subtext font-semibold mt-1 block leading-snug">{preset.desc}</span>
@@ -226,7 +226,7 @@ const CasePredictor = ({ currentCase, onBack, theme }) => {
           )}
 
           {/* Form input section */}
-          <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-[28px] p-6 shadow-sm">
+          <div className="bg-white dark:bg-[#1A2540] rounded-[28px] p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-6">
               <Brain size={18} className="text-indigo-600" />
               <h3 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-wider">Neural Case Architect</h3>
@@ -327,26 +327,26 @@ const CasePredictor = ({ currentCase, onBack, theme }) => {
           {activePrediction && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-2xl p-5 shadow-sm text-center flex flex-col items-center justify-center">
+                <div className="bg-white dark:bg-[#1A2540] rounded-2xl p-5 shadow-sm text-center flex flex-col items-center justify-center">
                   <span className="text-2xl font-black text-emerald-500">{activePrediction.stats.successRate}%</span>
                   <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 mt-1">Success Probability</span>
                 </div>
-                <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-2xl p-5 shadow-sm text-center flex flex-col items-center justify-center">
+                <div className="bg-white dark:bg-[#1A2540] rounded-2xl p-5 shadow-sm text-center flex flex-col items-center justify-center">
                   <span className={`text-2xl font-black ${activePrediction.stats.litigationRisk === 'High' ? 'text-red-500' : 'text-amber-500'}`}>{activePrediction.stats.litigationRisk}</span>
                   <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 mt-1">Litigation Risk</span>
                 </div>
-                <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-2xl p-5 shadow-sm text-center flex flex-col items-center justify-center">
+                <div className="bg-white dark:bg-[#1A2540] rounded-2xl p-5 shadow-sm text-center flex flex-col items-center justify-center">
                   <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{activePrediction.stats.precedentSupport}%</span>
                   <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 mt-1">Precedent Support</span>
                 </div>
-                <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-2xl p-5 shadow-sm text-center flex flex-col items-center justify-center">
+                <div className="bg-white dark:bg-[#1A2540] rounded-2xl p-5 shadow-sm text-center flex flex-col items-center justify-center">
                   <span className="text-2xl font-black text-pink-500">{activePrediction.stats.aiConfidence}%</span>
                   <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 mt-1">AI Confidence</span>
                 </div>
               </div>
 
               {/* Detailed Markdown Report */}
-              <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-[28px] p-6 shadow-sm">
+              <div className="bg-white dark:bg-[#1A2540] rounded-[28px] p-6 shadow-sm">
                 <div className="flex items-center gap-2 mb-4 border-b border-slate-100 dark:border-white/5 pb-4">
                   <ShieldCheck size={18} className="text-emerald-500" />
                   <span className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">JUDICIAL REPORT ANALYSIS</span>
@@ -365,7 +365,7 @@ const CasePredictor = ({ currentCase, onBack, theme }) => {
       {historyVisible && (
         <div className="fixed inset-0 z-[120000] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setHistoryVisible(false)} />
-          <div className="relative bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[32px] p-6 max-w-lg w-full max-h-[80vh] flex flex-col shadow-2xl">
+          <div className="relative bg-white dark:bg-zinc-900 rounded-[32px] p-6 max-w-lg w-full max-h-[80vh] flex flex-col shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-4 mb-4">
               <h3 className="text-base font-black text-slate-950 dark:text-white uppercase tracking-wider">Verdicts Forecast Logs</h3>
               <button onClick={() => setHistoryVisible(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full">
@@ -378,7 +378,7 @@ const CasePredictor = ({ currentCase, onBack, theme }) => {
                 <div className="text-center py-10 text-subtext text-xs">No previous forecasts found.</div>
               ) : (
                 historyData.map(item => (
-                  <div key={item.id} className="p-4 bg-slate-50 dark:bg-zinc-800/40 rounded-2xl border border-slate-100 dark:border-zinc-800 flex items-center justify-between gap-4">
+                  <div key={item.id} className="p-4 bg-slate-50 dark:bg-zinc-800/40 rounded-2xl flex items-center justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <h4 className="text-xs font-black text-slate-800 dark:text-white truncate">{item.caseType} Forecast</h4>
                       <p className="text-[10px] text-slate-400 mt-1">{item.timestamp} • Win rate: {item.stats.successRate}%</p>

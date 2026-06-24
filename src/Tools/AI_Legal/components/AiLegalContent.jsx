@@ -680,10 +680,10 @@ const AiLegalContent = ({
                   setCaseManagementFilter('Active');
                   setActiveModule('CASE_MANAGEMENT');
                 }}
-                className="flex-1 flex flex-col justify-between p-4 bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm text-left hover:scale-[1.02] active:scale-95 transition-all"
+                className="flex-1 flex flex-col justify-between p-4 bg-white dark:bg-[#1A2540] rounded-2xl shadow-sm text-left hover:scale-[1.02] active:scale-95 transition-all"
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="p-1.5 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 rounded-lg">
+                  <div className="p-1.5 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-650 dark:text-indigo-400 rounded-lg">
                     <Briefcase size={16} />
                   </div>
                   <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Active Cases</span>
@@ -699,7 +699,7 @@ const AiLegalContent = ({
                   console.log("Hearings Route Loaded");
                   setActiveModule('HEARING_MANAGEMENT');
                 }}
-                className="flex-1 flex flex-col justify-between p-4 bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm text-left hover:scale-[1.02] active:scale-95 transition-all"
+                className="flex-1 flex flex-col justify-between p-4 bg-white dark:bg-[#1A2540] rounded-2xl shadow-sm text-left hover:scale-[1.02] active:scale-95 transition-all"
               >
                 <div className="flex items-center gap-2 mb-2">
                   <div className="p-1.5 bg-amber-50 dark:bg-amber-950/20 text-amber-550 dark:text-amber-400 rounded-lg">
@@ -873,7 +873,7 @@ const AiLegalContent = ({
                 return (
                   <div 
                     key={tool.id}
-                    className="group bg-gradient-to-b from-white to-slate-50/50 dark:from-[#1b254b] dark:to-[#111936] border border-slate-200/85 dark:border-white/[0.06] rounded-[24px] p-5 flex flex-col justify-between gap-5 cursor-pointer shadow-sm hover:-translate-y-1.5 hover:scale-[1.025] hover:shadow-2xl hover:shadow-indigo-550/15 dark:hover:shadow-indigo-500/10 hover:border-indigo-500/40 dark:hover:border-indigo-400/40 active:scale-[0.985] focus-within:ring-2 focus-within:ring-indigo-500/30 transition-all duration-300 ease-out"
+                    className="group bg-gradient-to-b from-white to-slate-50/50 dark:from-[#1b254b] dark:to-[#111936] rounded-[24px] p-5 flex flex-col justify-between gap-5 cursor-pointer shadow-sm hover:-translate-y-1.5 hover:scale-[1.025] hover:shadow-2xl hover:shadow-indigo-550/15 dark:hover:shadow-indigo-500/10 hover:border-indigo-500/40 dark:hover:border-indigo-400/40 active:scale-[0.985] focus-within:ring-2 focus-within:ring-indigo-500/30 transition-all duration-300 ease-out"
                     onClick={() => handleToolPress(tool)}
                     onContextMenu={(e) => {
                       e.preventDefault();
@@ -1027,7 +1027,7 @@ const AiLegalContent = ({
                 </div>
 
                 {/* Sample output */}
-                <div className="p-4 bg-slate-50 dark:bg-black/25 rounded-2xl border border-slate-200/50 dark:border-zinc-800/50 mb-6">
+                <div className="p-4 bg-slate-50 dark:bg-black/25 rounded-2xl mb-6">
                   <div className="flex items-center gap-1.5 mb-2 text-indigo-650 dark:text-indigo-400">
                     <Sparkles size={12} />
                     <span className="text-[8px] font-black uppercase tracking-widest">AI SAMPLE OUTPUT</span>

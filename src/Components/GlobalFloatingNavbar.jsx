@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sun, Moon, User, Menu } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
-import { useRecoilState } from 'recoil';
-import { getUserData, clearUser, toggleState } from '../userStore/userData';
+import { useRecoilState, useRecoilValue } from 'recoil';
+import { getUserData, clearUser, toggleState, activeModeData } from '../userStore/userData';
 import ProfileSettingsDropdown from './ProfileSettingsDropdown/ProfileSettingsDropdown.jsx';
 
 /**
@@ -21,6 +21,8 @@ const GlobalFloatingNavbar = () => {
   const [tglState, setTglState] = useRecoilState(toggleState);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+  const currentMode = useRecoilValue(activeModeData);
+  const isLegalWorkspace = currentMode === 'LEGAL_TOOLKIT' || window.location.pathname === '/dashboard/cases';
 
   useEffect(() => {
     const handleResize = () => setIsDesktop(window.innerWidth >= 1024);
@@ -95,56 +97,60 @@ const GlobalFloatingNavbar = () => {
         className="fixed top-0 right-0 left-0 lg:left-auto z-[1001] p-3 sm:p-5 pointer-events-none flex justify-between lg:justify-end items-center gap-3"
       >
         {/* Left Side: Menu button for mobile */}
-        <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setTglState(prev => ({ ...prev, sidebarOpen: true }))}
-            className="lg:hidden w-10 h-10 flex items-center justify-center bg-white/40 dark:bg-black/20 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl text-primary pointer-events-auto"
-        >
-            <Menu className="w-6 h-6 stroke-[2.5]" />
-        </motion.button>
+        {!isLegalWorkspace && (
+          <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setTglState(prev => ({ ...prev, sidebarOpen: true }))}
+              className="lg:hidden w-10 h-10 flex items-center justify-center bg-white/40 dark:bg-black/20 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl text-primary pointer-events-auto"
+          >
+              <Menu className="w-6 h-6 stroke-[2.5]" />
+          </motion.button>
+        )}
 
-        <div className="hidden lg:flex items-center gap-2.5 pointer-events-auto bg-transparent backdrop-blur-md border border-transparent shadow-none rounded-2xl p-1.5 sm:p-2 transition-all duration-300">
-          
-          {/* Theme Toggle Button - Hidden on mobile if sidebar is open */}
-          {!(tglState.sidebarOpen && window.innerWidth < 1024) && (
-            <motion.button
-              whileHover={{ scale: 1.05, backgroundColor: 'rgba(255,255,255,0.1)' }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl text-primary/80 dark:text-primary transition-colors"
-              title="Toggle Theme"
-            >
-              {theme === 'dark' ? <Sun size={20} strokeWidth={2.5} /> : <Moon size={20} strokeWidth={2.5} />}
-            </motion.button>
-          )}
+        {!isLegalWorkspace && (
+          <div className="hidden lg:flex items-center gap-2.5 pointer-events-auto bg-transparent backdrop-blur-md border border-transparent shadow-none rounded-2xl p-1.5 sm:p-2 transition-all duration-300">
+            
+            {/* Theme Toggle Button - Hidden on mobile if sidebar is open */}
+            {!(tglState.sidebarOpen && window.innerWidth < 1024) && (
+              <motion.button
+                whileHover={{ scale: 1.05, backgroundColor: 'rgba(255,255,255,0.1)' }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl text-primary/80 dark:text-primary transition-colors"
+                title="Toggle Theme"
+              >
+                {theme === 'dark' ? <Sun size={20} strokeWidth={2.5} /> : <Moon size={20} strokeWidth={2.5} />}
+              </motion.button>
+            )}
 
-          {/* Profile Avatar Button */}
-          {token ? (
-            <div className="relative">
+            {/* Profile Avatar Button */}
+            {token ? (
+              <div className="relative">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                  className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center bg-transparent rounded-xl border border-transparent text-primary overflow-hidden"
+                >
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = '/account.png'; }} />
+                  ) : (
+                    <span className="font-bold text-sm uppercase">{user?.name?.charAt(0) || 'U'}</span>
+                  )}
+                </motion.button>
+              </div>
+            ) : (
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center bg-transparent rounded-xl border border-transparent text-primary overflow-hidden"
+                onClick={() => navigate('/login')}
+                className="px-4 h-9 sm:h-10 flex items-center justify-center bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20"
               >
-                {user?.avatar ? (
-                  <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = '/account.png'; }} />
-                ) : (
-                  <span className="font-bold text-sm uppercase">{user?.name?.charAt(0) || 'U'}</span>
-                )}
+                Login
               </motion.button>
-            </div>
-          ) : (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate('/login')}
-              className="px-4 h-9 sm:h-10 flex items-center justify-center bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20"
-            >
-              Login
-            </motion.button>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </motion.nav>
 
       <AnimatePresence>
