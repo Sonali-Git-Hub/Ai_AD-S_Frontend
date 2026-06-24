@@ -608,7 +608,7 @@ const HearingManagement = ({ onBack, isDark, theme }) => {
               {/* Search & Filter - (Not displayed in Calendar view) */}
               {activeTab !== 'Calendar' && (
                 <div className="flex gap-3">
-                  <div className="flex-1 flex items-center bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-2xl px-4 py-3 shadow-sm">
+                  <div className="flex-1 flex items-center bg-white dark:bg-[#1A2540] rounded-2xl px-4 py-3 shadow-sm">
                     <Search size={16} className="text-slate-400 mr-2.5 shrink-0" />
                     <input 
                       type="text"
@@ -696,10 +696,10 @@ const HearingManagement = ({ onBack, isDark, theme }) => {
                     <div 
                       key={hearing.id}
                       onClick={() => openHearingDetails(hearing)}
-                      className={`p-5 bg-white dark:bg-[#1A2540] border rounded-3xl shadow-sm hover:shadow-md cursor-pointer transition-all flex justify-between items-start gap-4 ${
+                      className={`p-5 bg-white dark:bg-[#1A2540] rounded-3xl shadow-sm hover:shadow-md cursor-pointer transition-all flex justify-between items-start gap-4 ${
                         selectedHearing?.id === hearing.id 
-                          ? 'border-indigo-500 ring-2 ring-indigo-500/20' 
-                          : 'border-slate-200 dark:border-white/5'
+                          ? 'ring-2 ring-indigo-500/50' 
+                          : ''
                       }`}
                     >
                       <div className="flex-1 min-w-0">
@@ -791,7 +791,7 @@ const HearingManagement = ({ onBack, isDark, theme }) => {
 
               {/* TAB 2: Calendar layout */}
               {activeTab === 'Calendar' && (
-                <div className="max-w-2xl mx-auto bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-3xl p-5 sm:p-6 shadow-sm space-y-6">
+                <div className="max-w-2xl mx-auto bg-white dark:bg-[#1A2540] rounded-3xl p-5 sm:p-6 shadow-sm space-y-6">
                   
                   {/* Calendar Month Header */}
                   <div className="flex justify-between items-center">
@@ -877,8 +877,8 @@ const HearingManagement = ({ onBack, isDark, theme }) => {
                         <div 
                           key={hearing.id}
                           onClick={() => openHearingDetails(hearing)}
-                          className={`p-4 bg-slate-50 dark:bg-zinc-800/20 border border-slate-200/50 dark:border-white/5 rounded-2xl cursor-pointer hover:scale-[1.005] transition-all flex justify-between items-center gap-4 ${
-                            selectedHearing?.id === hearing.id ? 'ring-1 ring-indigo-500 border-indigo-500' : ''
+                          className={`p-4 bg-slate-50 dark:bg-zinc-800/20 rounded-2xl cursor-pointer hover:scale-[1.005] transition-all flex justify-between items-center gap-4 ${
+                            selectedHearing?.id === hearing.id ? 'ring-2 ring-indigo-500' : ''
                           }`}
                         >
                           <div className="min-w-0 flex-1">
@@ -914,10 +914,10 @@ const HearingManagement = ({ onBack, isDark, theme }) => {
                     <div 
                       key={hearing.id}
                       onClick={() => openHearingDetails(hearing)}
-                      className={`p-5 bg-white dark:bg-[#1A2540] border rounded-3xl shadow-sm hover:shadow-md cursor-pointer transition-all ${
+                      className={`p-5 bg-white dark:bg-[#1A2540] rounded-3xl shadow-sm hover:shadow-md cursor-pointer transition-all ${
                         selectedHearing?.id === hearing.id 
-                          ? 'border-indigo-500 ring-2 ring-indigo-500/20' 
-                          : 'border-slate-200 dark:border-white/5'
+                          ? 'ring-2 ring-indigo-500/50' 
+                          : ''
                       }`}
                     >
                       {/* History header */}
@@ -941,7 +941,7 @@ const HearingManagement = ({ onBack, isDark, theme }) => {
                       <h4 className="text-sm font-black text-slate-900 dark:text-white mb-3">{hearing.caseTitle}</h4>
 
                       {/* AI summary box */}
-                      <div className="flex gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-zinc-800/30 border border-slate-150/40 dark:border-white/5 mb-4 text-xs font-semibold">
+                      <div className="flex gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-zinc-800/30 mb-4 text-xs font-semibold">
                         <Scale size={14} className="text-indigo-500 shrink-0 mt-0.5" />
                         <p className="text-slate-600 dark:text-slate-450 leading-relaxed text-[11px] line-clamp-2">
                           {hearing.summary || 'Case proceeded with preliminary arguments regarding jurisdiction.'}
@@ -1013,7 +1013,7 @@ const HearingManagement = ({ onBack, isDark, theme }) => {
 
                 {selectedHearing && (
                   <div className="space-y-5 flex-1 min-h-0 overflow-y-auto select-text pr-1 custom-scrollbar">
-                    <div className="bg-slate-50 dark:bg-[#1A2540] border border-slate-200/50 dark:border-white/5 rounded-2xl p-4 space-y-3">
+                    <div className="bg-slate-50 dark:bg-[#1A2540] rounded-2xl p-4 space-y-3">
                       <h4 className="text-sm font-black text-slate-900 dark:text-white leading-tight">{selectedHearing.caseTitle}</h4>
                       <div className="h-[1px] bg-slate-250/50 dark:bg-white/5" />
                       
@@ -1042,7 +1042,7 @@ const HearingManagement = ({ onBack, isDark, theme }) => {
                     </div>
 
                     {/* Alarm config status */}
-                    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 border border-indigo-100/50 dark:border-indigo-950/20 rounded-2xl p-4 flex items-center justify-between gap-3 text-xs">
+                    <div className="bg-indigo-50/30 dark:bg-indigo-950/10 rounded-2xl p-4 flex items-center justify-between gap-3 text-xs">
                       <div className="flex items-center gap-2">
                         <Bell size={14} className="text-indigo-500" />
                         <div>
@@ -1070,7 +1070,7 @@ const HearingManagement = ({ onBack, isDark, theme }) => {
                     </div>
 
                     {/* AI summary */}
-                    <div className="p-4 bg-slate-50 dark:bg-zinc-800/10 border border-slate-200/50 dark:border-white/5 rounded-2xl space-y-2">
+                    <div className="p-4 bg-slate-50 dark:bg-zinc-800/10 rounded-2xl space-y-2">
                       <h5 className="text-[10px] font-black uppercase tracking-wider text-slate-800 dark:text-white">AI CASE SUMMARY</h5>
                       <p className="text-xs text-subtext font-semibold leading-relaxed whitespace-pre-line">
                         {selectedHearing.summary || generateCaseSummary(selectedHearing)}
@@ -1097,7 +1097,7 @@ const HearingManagement = ({ onBack, isDark, theme }) => {
                         {selectedHearingDocs.map(doc => (
                           <div 
                             key={doc.id}
-                            className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-[#1A2540] border border-slate-200/50 dark:border-white/5 rounded-xl text-xs"
+                            className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-[#1A2540] rounded-xl text-xs"
                           >
                             <div className="flex items-center gap-2 min-w-0 flex-1">
                               <FileText size={16} className="text-indigo-500 shrink-0" />
@@ -1124,7 +1124,7 @@ const HearingManagement = ({ onBack, isDark, theme }) => {
                           </div>
                         ))}
                         {selectedHearingDocs.length === 0 && (
-                          <p className="text-[10px] text-slate-400 font-bold text-center py-4 bg-slate-50/50 dark:bg-[#131C31] border border-slate-200/50 dark:border-white/5 rounded-xl">
+                          <p className="text-[10px] text-slate-400 font-bold text-center py-4 bg-slate-50/50 dark:bg-[#131C31] rounded-xl">
                             No documents linked.
                           </p>
                         )}
@@ -1413,7 +1413,7 @@ const HearingManagement = ({ onBack, isDark, theme }) => {
                   </div>
 
                   {isReminderCustom && (
-                    <div className="p-3.5 bg-slate-50 dark:bg-black/25 rounded-2xl border border-slate-200/50 dark:border-zinc-800/50 mt-3 space-y-2">
+                    <div className="p-3.5 bg-slate-50 dark:bg-black/25 rounded-2xl mt-3 space-y-2">
                       <span className="text-[9px] font-black uppercase text-slate-450 block">Custom Alarm Duration</span>
                       <div className="flex gap-2">
                         <input 

@@ -428,7 +428,7 @@ const LegalResearch = ({ currentCase, onBack, theme, allProjects = [], onUpdateC
           </div>
 
           {/* Categories Grid */}
-          <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-3xl p-6 shadow-sm">
+          <div className="bg-white dark:bg-[#1A2540] rounded-3xl p-6 shadow-sm">
             <h3 className="text-xs font-black tracking-widest text-slate-400 uppercase mb-4 font-bold">RESEARCH DIRECTORY CLASSIFICATIONS</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {categories.map(c => {
@@ -440,7 +440,7 @@ const LegalResearch = ({ currentCase, onBack, theme, allProjects = [], onUpdateC
                       setSearchQuery(`Find landmarks relating to ${c.title}`);
                       runPrecedentDiscovery({ searchQuery: `Find landmarks relating to ${c.title}` });
                     }}
-                    className="p-4 bg-slate-50 dark:bg-[#131C31] hover:bg-indigo-50 dark:hover:bg-indigo-950/20 border border-slate-200/50 dark:border-white/5 rounded-2xl transition-all flex flex-col items-center text-center justify-center min-h-[110px]"
+                    className="p-4 bg-slate-50 dark:bg-[#131C31] hover:bg-indigo-50 dark:hover:bg-indigo-950/20 rounded-2xl transition-all flex flex-col items-center text-center justify-center min-h-[110px]"
                   >
                     <IconComp size={18} className="text-indigo-500" />
                     <h4 className="text-xs font-bold text-slate-800 dark:text-white mt-2 line-clamp-1">{c.title}</h4>

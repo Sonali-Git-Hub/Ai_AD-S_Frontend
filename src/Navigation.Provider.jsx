@@ -293,39 +293,41 @@ const DashboardLayout = () => {
                 <Menu className="w-6 h-6 stroke-[2.5]" />
               </motion.button>
 
-              <div className="flex items-center gap-2.5 pointer-events-auto bg-transparent backdrop-blur-md border border-transparent shadow-none rounded-2xl p-1.5 sm:p-2 transition-all duration-300">
-                <motion.button
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                  className="w-10 h-10 flex items-center justify-center rounded-xl text-primary transition-colors"
-                >
-                  {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-                </motion.button>
-
-                {token ? (
-                  <div className="relative profile-menu-container">
-                    <motion.button
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                      className="w-10 h-10 flex items-center justify-center bg-transparent rounded-xl border border-transparent text-primary overflow-hidden"
-                    >
-                      {user?.avatar ? (
-                        <img src={user.avatar} alt="P" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = '/account.png'; }} />
-                      ) : (
-                        <User size={20} />
-                      )}
-                    </motion.button>
-                  </div>
-                ) : (
+              {!isLegalWorkspace && (
+                <div className="flex items-center gap-2.5 pointer-events-auto bg-transparent backdrop-blur-md border border-transparent shadow-none rounded-2xl p-1.5 sm:p-2 transition-all duration-300">
                   <motion.button
                     whileTap={{ scale: 0.9 }}
-                    onClick={() => navigate('/login')}
-                    className="px-4 h-10 flex items-center justify-center bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20"
+                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                    className="w-10 h-10 flex items-center justify-center rounded-xl text-primary transition-colors"
                   >
-                    Login
+                    {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
                   </motion.button>
-                )}
-              </div>
+
+                  {token ? (
+                    <div className="relative profile-menu-container">
+                      <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                        className="w-10 h-10 flex items-center justify-center bg-transparent rounded-xl border border-transparent text-primary overflow-hidden"
+                      >
+                        {user?.avatar ? (
+                          <img src={user.avatar} alt="P" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = '/account.png'; }} />
+                        ) : (
+                          <User size={20} />
+                        )}
+                      </motion.button>
+                    </div>
+                  ) : (
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => navigate('/login')}
+                      className="px-4 h-10 flex items-center justify-center bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20"
+                    >
+                      Login
+                    </motion.button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}

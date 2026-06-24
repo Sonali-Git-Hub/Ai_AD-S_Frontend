@@ -4,7 +4,7 @@ import {
   FileText, Copy, Share2, FileDown, History, Search, X, ShieldCheck, 
   Clock, Brain, Target, Scale, BookOpen, AlertTriangle, TrendingUp, 
   Mic, Star, Database, Cpu, BarChart2, Users, ShieldAlert, Briefcase, 
-  Calendar, ChevronDown, ChevronUp, Trash2, Edit2, Eye, Download, Upload, Check
+  Calendar, ChevronDown, ChevronUp, Trash2, Edit2, Eye, Download, Upload, Check, Paperclip
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { generateChatResponse } from '../../../services/geminiService';
@@ -63,6 +63,16 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
   const [inputValue, setInputValue] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [editingFactId, setEditingFactId] = useState(null);
+  
+  // Attachments and Drag & Drop States
+  const [attachments, setAttachments] = useState([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef(null);
+
+  // Chat sessions state
+  const [sessions, setSessions] = useState([]);
+  const [activeSessionId, setActiveSessionId] = useState('');
+
 
   // Form states for proceeding CRUD (timeline/facts)
   const [formEvent, setFormEvent] = useState('');
@@ -80,41 +90,291 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
   const [section1Expanded, setSection1Expanded] = useState(true);
   const [section2Expanded, setSection2Expanded] = useState(true);
 
-  // Load chat history for the active case
+  // Helper to render correct file icon
+  const getFileIcon = (type) => {
+    if (!type) return <FileText size={14} className="text-slate-400" />;
+    if (type.includes('pdf')) return <FileText size={14} className="text-red-500" />;
+    if (type.includes('word') || type.includes('msword') || type.includes('officedocument.word')) return <FileText size={14} className="text-blue-500" />;
+    if (type.startsWith('image/')) return <Eye size={14} className="text-emerald-500" />;
+    if (type.includes('excel') || type.includes('officedocument.spreadsheet') || type.includes('csv')) return <FileText size={14} className="text-green-600" />;
+    return <FileText size={14} className="text-slate-400" />;
+  };
+
+  const handleFilesAdded = async (filesList) => {
+    const supportedTypes = [
+      'application/pdf', 
+      'application/msword', 
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/jpeg', 'image/jpg', 'image/png', 'image/webp',
+      'text/plain', 'text/csv',
+      'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ];
+
+    for (let i = 0; i < filesList.length; i++) {
+      const file = filesList[i];
+      
+      // Determine extension as a fallback type check
+      const ext = file.name.split('.').pop().toLowerCase();
+      const isLegalExtension = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'webp', 'txt', 'csv', 'xls', 'xlsx'].includes(ext);
+
+      if (!supportedTypes.includes(file.type) && !isLegalExtension) {
+        toast.error(`Unsupported file type: ${file.name}`);
+        continue;
+      }
+
+      const id = Date.now().toString() + Math.random().toString(36).substring(2, 5);
+      
+      const newAtt = {
+        id,
+        name: file.name,
+        type: file.type || `application/${ext}`,
+        size: file.size,
+        progress: 0,
+        isUploading: true,
+        dataUrl: ''
+      };
+      
+      setAttachments(prev => [...prev, newAtt]);
+      
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const dataUrl = reader.result;
+        setAttachments(prev => prev.map(a => a.id === id ? { ...a, dataUrl } : a));
+        
+        let progressVal = 0;
+        const interval = setInterval(async () => {
+          progressVal += 20;
+          if (progressVal >= 100) {
+            clearInterval(interval);
+            setAttachments(prev => prev.map(a => a.id === id ? { ...a, progress: 100, isUploading: false } : a));
+            
+            // Sync globally to case documents
+            await saveFileToCase({ name: file.name, type: file.type || `application/${ext}`, size: file.size, dataUrl });
+          } else {
+            setAttachments(prev => prev.map(a => a.id === id ? { ...a, progress: progressVal } : a));
+          }
+        }, 100);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    if (e.target.files) {
+      handleFilesAdded(e.target.files);
+    }
+    e.target.value = '';
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFilesAdded(e.dataTransfer.files);
+    }
+  };
+
+  const removeAttachment = (id) => {
+    setAttachments(prev => prev.filter(a => a.id !== id));
+  };
+
+  const saveFileToCase = async (fileObj) => {
+    if (!currentCase || !currentCase._id) return;
+    try {
+      const newDoc = {
+        id: Date.now().toString() + Math.random().toString(36).substring(2, 5),
+        name: fileObj.name,
+        type: fileObj.type || 'file',
+        size: fileObj.size,
+        uploadedAt: new Date().toISOString(),
+        uri: fileObj.dataUrl // base64 URI
+      };
+
+      const existingDocs = currentCase.documents || [];
+      const updatedDocs = [newDoc, ...existingDocs];
+      const payload = {
+        ...currentCase,
+        documents: updatedDocs
+      };
+      
+      const response = await apiService.updateProject(currentCase._id, payload);
+      if (onUpdateCase) onUpdateCase(response);
+    } catch (e) {
+      console.error("Failed to sync file to case documents", e);
+    }
+  };
+
+  // Load chat history and sessions for the active case
   useEffect(() => {
     if (currentCase) {
-      const stored = localStorage.getItem(`@aisa_arg_chat_${currentCase._id}`);
-      if (stored) {
-        setMessages(JSON.parse(stored));
-      } else {
-        setMessages([
-          {
-            id: '1',
-            role: 'model',
-            content: `Welcome to **AISA Argument Intelligence** for **${currentCase.name}**. I am your Elite Litigation Architect. Select a courtroom simulation to begin.`,
-            timestamp: Date.now(),
-            isSystemLog: true
+      const storedSessions = localStorage.getItem(`@aisa_arg_sessions_${currentCase._id}`);
+      if (storedSessions) {
+        try {
+          const parsed = JSON.parse(storedSessions);
+          if (parsed && Array.isArray(parsed.sessions) && parsed.sessions.length > 0) {
+            setSessions(parsed.sessions);
+            const activeId = parsed.activeSessionId || parsed.sessions[0].id;
+            setActiveSessionId(activeId);
+            const activeSess = parsed.sessions.find(s => s.id === activeId);
+            if (activeSess) {
+              setMessages(activeSess.messages);
+            }
+            return;
           }
-        ]);
+        } catch (e) {
+          console.error("Failed to parse sessions", e);
+        }
       }
+
+      // Check for legacy single chat history to migrate
+      const legacyChat = localStorage.getItem(`@aisa_arg_chat_${currentCase._id}`);
+      const defaultMsgs = [
+        {
+          id: '1',
+          role: 'model',
+          content: `Welcome to **AISA Argument Intelligence** for **${currentCase.name}**. I am your Elite Litigation Architect. Select a courtroom simulation to begin.`,
+          timestamp: Date.now(),
+          isSystemLog: true
+        }
+      ];
+
+      const initialId = 'sess_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+      let initialMsgs = defaultMsgs;
+      let initialTitle = 'Initial Conversation';
+
+      if (legacyChat) {
+        try {
+          const parsedLegacy = JSON.parse(legacyChat);
+          if (Array.isArray(parsedLegacy) && parsedLegacy.length > 0) {
+            initialMsgs = parsedLegacy;
+            const firstUser = parsedLegacy.find(m => m.role === 'user');
+            if (firstUser) {
+              initialTitle = firstUser.content.slice(0, 30) + (firstUser.content.length > 30 ? '...' : '');
+            }
+          }
+        } catch (e) {
+          console.error("Failed to migrate legacy chat history", e);
+        }
+      }
+
+      const initialSession = {
+        id: initialId,
+        title: initialTitle,
+        messages: initialMsgs,
+        timestamp: Date.now()
+      };
+
+      setSessions([initialSession]);
+      setActiveSessionId(initialId);
+      setMessages(initialMsgs);
+
+      localStorage.setItem(`@aisa_arg_sessions_${currentCase._id}`, JSON.stringify({
+        sessions: [initialSession],
+        activeSessionId: initialId
+      }));
     }
   }, [currentCase]);
 
   const saveChatHistory = (updatedMsgs) => {
-    if (currentCase) {
-      localStorage.setItem(`@aisa_arg_chat_${currentCase._id}`, JSON.stringify(updatedMsgs));
+    if (currentCase && activeSessionId) {
+      setSessions(prevSessions => {
+        const updatedSessions = prevSessions.map(s => {
+          if (s.id === activeSessionId) {
+            let title = s.title;
+            if (s.title === 'Initial Conversation' || s.title === 'New Chat') {
+              const firstUser = updatedMsgs.find(m => m.role === 'user');
+              if (firstUser) {
+                title = firstUser.content.slice(0, 30) + (firstUser.content.length > 30 ? '...' : '');
+              }
+            }
+            return {
+              ...s,
+              title,
+              messages: updatedMsgs
+            };
+          }
+          return s;
+        });
+
+        localStorage.setItem(`@aisa_arg_sessions_${currentCase._id}`, JSON.stringify({
+          sessions: updatedSessions,
+          activeSessionId
+        }));
+        return updatedSessions;
+      });
     }
   };
 
+  const handleNewChat = () => {
+    if (!currentCase) return;
+    const newSessionId = 'sess_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+    const defaultMsgs = [
+      {
+        id: '1',
+        role: 'model',
+        content: `Welcome to **AISA Argument Intelligence** for **${currentCase.name}**. I am your Elite Litigation Architect. Select a courtroom simulation to begin.`,
+        timestamp: Date.now(),
+        isSystemLog: true
+      }
+    ];
+
+    const newSession = {
+      id: newSessionId,
+      title: 'New Chat',
+      messages: defaultMsgs,
+      timestamp: Date.now()
+    };
+
+    const updatedSessions = [newSession, ...sessions];
+    setSessions(updatedSessions);
+    setActiveSessionId(newSessionId);
+    setMessages(defaultMsgs);
+
+    localStorage.setItem(`@aisa_arg_sessions_${currentCase._id}`, JSON.stringify({
+      sessions: updatedSessions,
+      activeSessionId: newSessionId
+    }));
+
+    // Focus input
+    setTimeout(() => {
+      const chatInput = document.querySelector('input[placeholder="Describe case details or ask litigation questions..."]');
+      if (chatInput) chatInput.focus();
+    }, 100);
+  };
+
+  const switchSession = (sessionId) => {
+    const sess = sessions.find(s => s.id === sessionId);
+    if (sess) {
+      setActiveSessionId(sessionId);
+      setMessages(sess.messages);
+
+      localStorage.setItem(`@aisa_arg_sessions_${currentCase._id}`, JSON.stringify({
+        sessions,
+        activeSessionId: sessionId
+      }));
+
+      // Focus input
+      setTimeout(() => {
+        const chatInput = document.querySelector('input[placeholder="Describe case details or ask litigation questions..."]');
+        if (chatInput) chatInput.focus();
+      }, 100);
+    }
+  };
+
+
   const handleSendMessage = async (customPrompt = null) => {
     const text = customPrompt || inputValue;
-    if (!text.trim()) return;
+    if (!text.trim() && attachments.length === 0) return;
+
+    const currentAttachments = [...attachments];
+    setAttachments([]);
 
     const userMsg = {
       id: Date.now().toString(),
       role: 'user',
       content: text,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      attachments: currentAttachments.map(a => ({ name: a.name, type: a.type }))
     };
     const newMsgs = [...messages, userMsg];
     setMessages(newMsgs);
@@ -138,11 +398,26 @@ Summary/Facts: ${currentCase.summary || currentCase.caseSummary || currentCase.d
       Format response in clean Markdown.
       Use professional Legal English.`;
 
+      const apiAttachments = currentAttachments.map(att => ({
+        url: att.dataUrl,
+        name: att.name,
+        type: att.type?.startsWith('image/') ? 'image' : 'document'
+      }));
+
+      let promptText = text;
+      if (currentAttachments.length > 0) {
+        const fileNames = currentAttachments.map(a => a.name).join(', ');
+        promptText = `[Attached Files: ${fileNames}]\n${text || 'Please analyze these files.'}`;
+      }
+
       const response = await generateChatResponse(
         newMsgs.filter(m => !m.isSystemLog),
-        text + (caseContext ? `\n\nContext:\n${caseContext}` : ''),
+        promptText + (caseContext ? `\n\nContext:\n${caseContext}` : ''),
         systemPrompt,
-        [], 'English', null, 'legal'
+        apiAttachments,
+        'English',
+        null,
+        'legal'
       );
       const reply = response?.reply || response || '';
 
@@ -278,31 +553,23 @@ Summary/Facts: ${currentCase.summary || currentCase.caseSummary || currentCase.d
             </div>
           </div>
         </div>
-
-        {/* Tabs switcher */}
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#131C31] p-1 rounded-xl border border-black/5 dark:border-white/5">
-          <button
-            onClick={() => setActiveTab('assistant')}
-            className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${activeTab === 'assistant' ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-          >
-            AI War Room
-          </button>
-          <button
-            onClick={() => setActiveTab('timeline')}
-            className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${activeTab === 'timeline' ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-          >
-            Proceedings Timeline
-          </button>
-          <button
-            onClick={() => {
-              setEditingFactId(null);
-              setActiveTab('form');
-            }}
-            className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${activeTab === 'form' ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-          >
-            Add Proceeding
-          </button>
-        </div>
+        {/* Chat History Selector */}
+        {activeTab === 'assistant' && sessions.length > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider hidden sm:inline">History:</span>
+            <select
+              value={activeSessionId}
+              onChange={(e) => switchSession(e.target.value)}
+              className="bg-slate-100 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700 text-xs font-bold text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-xl outline-none focus:border-indigo-500 cursor-pointer max-w-[150px] sm:max-w-[220px] truncate"
+            >
+              {sessions.map(s => (
+                <option key={s.id} value={s.id} className="bg-white dark:bg-zinc-900 text-slate-800 dark:text-slate-100">
+                  {s.title}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 select-text relative">
@@ -312,26 +579,26 @@ Summary/Facts: ${currentCase.summary || currentCase.caseSummary || currentCase.d
             {/* Scrollable messages area */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
               {messages.length === 1 && (
-                <div className="max-w-4xl mx-auto space-y-6">
+                <div className="max-w-7xl mx-auto px-4 space-y-6 w-full">
                   {/* Category selections */}
                   <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">⋄ PRESET SIMULATIONS & ENGINES</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full">
                     {WORKFLOW_CATEGORIES.map(cat => (
-                      <div key={cat.title} className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-3xl p-5 shadow-sm">
-                        <div className="flex items-center gap-2 mb-4">
+                      <div key={cat.title} className="bg-white dark:bg-[#1A2540] rounded-3xl p-5 shadow-sm hover:-translate-y-1 hover:shadow-md hover:scale-[1.01] transition-all duration-300 flex flex-col h-[340px]">
+                        <div className="flex items-center gap-2 mb-4 shrink-0">
                           {cat.icon}
                           <h4 className="text-xs font-black tracking-widest text-indigo-600 uppercase">{cat.title}</h4>
                         </div>
-                        <div className="grid grid-cols-1 gap-3">
+                        <div className="grid grid-cols-1 gap-3 overflow-y-auto pr-1.5 custom-scrollbar flex-1">
                           {cat.items.map(item => (
                             <button
                               key={item.name}
                               onClick={() => handleSendMessage(item.name)}
-                              className="text-left p-3.5 bg-slate-50 dark:bg-[#131C31] hover:bg-indigo-50 dark:hover:bg-indigo-950/20 rounded-2xl border border-slate-200/50 dark:border-white/5 transition-all group"
+                              className="text-left p-3 bg-slate-50 dark:bg-[#131C31] hover:bg-indigo-50 dark:hover:bg-indigo-950/20 rounded-2xl transition-all group min-h-[56px] shrink-0 flex flex-col justify-center"
                             >
-                              <div className="flex items-center justify-between">
+                              <div className="flex items-center justify-between w-full">
                                 <span className="text-xs font-bold text-slate-800 dark:text-white group-hover:text-indigo-600">{item.name}</span>
-                                <Zap size={12} className="text-slate-400 group-hover:text-indigo-600 group-hover:scale-110 transition-all" />
+                                <Zap size={12} className="text-slate-400 group-hover:text-indigo-600 group-hover:scale-110 transition-all shrink-0" />
                               </div>
                               <p className="text-[10px] text-subtext font-semibold mt-1 leading-snug">{item.desc}</p>
                             </button>
@@ -351,6 +618,16 @@ Summary/Facts: ${currentCase.summary || currentCase.caseSummary || currentCase.d
                     </div>
                   )}
                   <div className={`p-5 rounded-3xl text-sm leading-relaxed ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none shadow-md shadow-indigo-500/10' : 'bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-tl-none text-slate-800 dark:text-slate-200 shadow-sm'}`}>
+                    {msg.attachments && msg.attachments.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {msg.attachments.map((att, idx) => (
+                          <div key={idx} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold ${msg.role === 'user' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-700'}`}>
+                            {getFileIcon(att.type)}
+                            <span className="truncate max-w-[150px]">{att.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <div className="prose dark:prose-invert max-w-none text-xs sm:text-sm whitespace-pre-wrap select-text">
                       {msg.content}
                     </div>
@@ -402,21 +679,76 @@ Summary/Facts: ${currentCase.summary || currentCase.caseSummary || currentCase.d
             </div>
 
             {/* Bottom prompt input for chat */}
-            <div className="p-4 bg-white dark:bg-[#0c0c14] border-t border-slate-200 dark:border-white/5 shrink-0 flex items-center gap-2">
-              <input 
-                type="text"
-                placeholder="Describe case details or ask litigation questions..."
-                value={inputValue}
-                onChange={e => setInputValue(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
-                className="flex-1 bg-slate-50 dark:bg-zinc-800/40 border border-slate-200 dark:border-zinc-800 rounded-full px-5 py-3.5 text-sm font-semibold text-slate-800 dark:text-white outline-none focus:border-indigo-500 transition-all"
-              />
-              <button 
-                onClick={() => handleSendMessage()}
-                className="w-12 h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
-              >
-                <Send size={18} />
-              </button>
+            <div 
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={handleDrop}
+              className={`p-4 bg-white dark:bg-[#0c0c14] border-t border-slate-200 dark:border-white/5 shrink-0 flex flex-col gap-2 transition-all ${isDragging ? 'bg-indigo-50/20 dark:bg-indigo-950/20 border-indigo-500' : ''}`}
+            >
+              {/* File preview chips */}
+              {attachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2 max-h-[120px] overflow-y-auto pr-1 custom-scrollbar">
+                  {attachments.map(att => (
+                    <div key={att.id} className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-full text-xs font-semibold">
+                      {getFileIcon(att.type)}
+                      <span className="truncate max-w-[150px] text-slate-700 dark:text-slate-200">{att.name}</span>
+                      {att.isUploading ? (
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold animate-pulse">{att.progress}%</span>
+                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400 animate-ping" />
+                        </div>
+                      ) : (
+                        <button onClick={() => removeAttachment(att.id)} className="text-slate-400 hover:text-red-500 transition-colors shrink-0">
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 w-full">
+                <button
+                  type="button"
+                  onClick={handleNewChat}
+                  className="flex items-center gap-1.5 px-4 h-12 bg-slate-50 dark:bg-zinc-800/40 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200 dark:border-zinc-800 rounded-full text-slate-500 hover:text-indigo-600 active:scale-95 transition-all shrink-0 font-bold text-xs"
+                  title="Start New Chat"
+                >
+                  <Plus size={16} />
+                  <span>New Chat</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-12 h-12 flex items-center justify-center bg-slate-50 dark:bg-zinc-800/40 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200 dark:border-zinc-800 rounded-full text-slate-500 hover:text-indigo-600 active:scale-95 transition-all shrink-0"
+                  title="Upload attachment (PDF, Word, Images, Legal Docs)"
+                >
+                  <Paperclip size={18} />
+                </button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  multiple
+                  onChange={handleFileSelect}
+                  accept="image/*,.pdf,.doc,.docx,.txt,.csv,.xls,.xlsx"
+                  className="hidden"
+                />
+                
+                <input 
+                  type="text"
+                  placeholder="Describe case details or ask litigation questions..."
+                  value={inputValue}
+                  onChange={e => setInputValue(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
+                  className="flex-1 bg-slate-50 dark:bg-zinc-800/40 border border-slate-200 dark:border-zinc-800 rounded-full px-5 py-3.5 text-sm font-semibold text-slate-800 dark:text-white outline-none focus:border-indigo-500 transition-all min-w-0"
+                />
+                <button 
+                  onClick={() => handleSendMessage()}
+                  className="w-12 h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/20 active:scale-95 transition-all shrink-0"
+                >
+                  <Send size={18} />
+                </button>
+              </div>
             </div>
           </div>
         )}

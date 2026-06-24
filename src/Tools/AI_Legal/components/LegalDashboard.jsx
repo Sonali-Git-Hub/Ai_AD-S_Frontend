@@ -827,6 +827,25 @@ const CaseDetailView = ({ item, isDark, onBack, onDelete, onAskStrategy, onViewR
                   className="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 rounded-xl text-xs font-black transition-all">
                   <Edit2 size={12} /> Add or Edit Notes
                 </button>
+
+                {caseData.savedResponses && caseData.savedResponses.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/5 space-y-3">
+                    <h5 className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Saved AI Research Reports</h5>
+                    <div className="space-y-2.5 max-h-[200px] overflow-y-auto pr-1">
+                      {caseData.savedResponses.map((item) => (
+                        <div key={item.id} className="p-3 bg-slate-50 dark:bg-slate-900/10 border border-slate-200/30 dark:border-white/5 rounded-xl">
+                          <div className="flex justify-between items-start gap-2 mb-1">
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 line-clamp-1">{item.query}</span>
+                            <span className="text-[9px] text-slate-400 dark:text-slate-500 shrink-0 font-medium">
+                              {new Date(item.timestamp).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium line-clamp-2 leading-relaxed whitespace-pre-wrap">{item.response}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Evidence Manager */}

@@ -5,7 +5,7 @@ import {
   ChevronRight, Copy, FileDown, Share2, Plus, ArrowLeft,
   Sparkles, FileText, Image as ImageIcon, RotateCcw, Check,
   SlidersHorizontal, ChevronLeft, ChevronUp, Landmark, ShieldAlert, Calendar,
-  Download, Printer, Briefcase
+  Download, Printer, Briefcase, History, MessageSquare, Pin, PinOff, Trash2
 } from 'lucide-react';
 import { generateChatResponse } from '../../../services/geminiService';
 import ReactMarkdown from 'react-markdown';
@@ -14,6 +14,7 @@ import { searchAndFilterCases, getFilterOptions } from '../data/caseDatabase';
 import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
 import { legalService } from '../services/legalService';
+import { apiService } from '../../../services/apiService';
 
 // ─── LEGAL SYSTEM INSTRUCTION (matches AISA-Mobile) ─────────────────────────
 const LEGAL_SYSTEM_INSTRUCTION = `You are the AISA AI General Legal Chat Assistant. You are an expert in law. If a user uploads an image, PDF, or document, perform OCR, analyze the content, and provide structured legal insights. For Images: Provide a Summary, Key points, and Legal observations. For PDFs/Docs: Provide an Overview, Issues, and Recommendations. Never say you cannot view files. IMPORTANT: You must reply in the exact same language as the user's prompt (e.g., if the user asks in Hindi, reply in Hindi). If the user asks you to translate the previous response "in Hindi" or "hindi me batao", translate the current context to Hindi without hesitation.`;
@@ -32,7 +33,7 @@ const safeFormatTime = (ts) => {
 };
 
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
-const LegalChatScreen = ({ onBack, currentCase }) => {
+const LegalChatScreen = ({ onBack, currentCase, onUpdateCase }) => {
   console.log("Legal Chat Screen Mounted");
   console.log("AI Legal General Chat Clicked");
   console.log("Current Theme:", document.documentElement.classList.contains('dark') ? 'dark' : 'light');
@@ -59,14 +60,58 @@ const LegalChatScreen = ({ onBack, currentCase }) => {
       isIntro: true,
     }
   ]);
+  const [sessions, setSessions] = useState([]);
+  const [activeSessionId, setActiveSessionId] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [attachment, setAttachment] = useState(null);
+  const [attachments, setAttachments] = useState([]);
+  const [isDragging, setIsDragging] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
   const [showCasesSheet, setShowCasesSheet] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeDownloadMenu, setActiveDownloadMenu] = useState(null);
   const [activeShareMenu, setActiveShareMenu] = useState(null);
+  const [activeCitationData, setActiveCitationData] = useState(null);
+  const [showHistoryPanel, setShowHistoryPanel] = useState(false);
+  const [pinnedSessions, setPinnedSessions] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('legal_pinned_sessions') || '[]'); }
+    catch { return []; }
+  });
+
+  // ─── HISTORY HANDLERS ──────────────────────────────────────────────────────
+  const handleTogglePin = (chatId, e) => {
+    e.stopPropagation();
+    setPinnedSessions(prev => {
+      const next = prev.includes(chatId) ? prev.filter(id => id !== chatId) : [...prev, chatId];
+      localStorage.setItem('legal_pinned_sessions', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const handleDeleteSession = (chatId, e) => {
+    e.stopPropagation();
+    setSessions(prev => {
+      const updated = prev.filter(s => s.chat_id !== chatId);
+      // Only switch if we deleted the active session
+      if (chatId === activeSessionId) {
+        const remaining = updated;
+        if (remaining.length > 0) {
+          // Switch to first remaining session
+          switchSession(remaining[0].chat_id);
+        } else {
+          // No sessions left — start fresh
+          handleNewChat();
+        }
+      }
+      return updated;
+    });
+    setPinnedSessions(prev => {
+      const next = prev.filter(id => id !== chatId);
+      localStorage.setItem('legal_pinned_sessions', JSON.stringify(next));
+      return next;
+    });
+  };
+
 
   // ─── LEGAL ACTION BAR HANDLERS ─────────────────────────────────────────────
   const handleCopyText = (text, id) => {
@@ -173,7 +218,18 @@ const LegalChatScreen = ({ onBack, currentCase }) => {
     }
   };
 
-  const handleSaveToCase = async (text) => {
+  const getPrecedingUserMessage = (msgId) => {
+    const index = messages.findIndex(m => m.id === msgId);
+    if (index <= 0) return 'AI Legal Query';
+    for (let i = index - 1; i >= 0; i--) {
+      if (messages[i].sender === 'user') {
+        return messages[i].text;
+      }
+    }
+    return 'AI Legal Query';
+  };
+
+  const handleSaveToCase = async (text, queryText = 'AI Legal Research', msgId) => {
     if (!currentCase) {
       toast.error("No active case selected. Please activate a case to use this feature.");
       return;
@@ -186,7 +242,18 @@ const LegalChatScreen = ({ onBack, currentCase }) => {
       const currentDesc = existingCase?.description || "";
       const updatedDesc = `${currentDesc}\n\n--- AI Legal Research Note (${new Date().toLocaleDateString()}) ---\n${text}`.trim();
       
-      await legalService.updateCase(caseId, { description: updatedDesc });
+      const currentSaved = existingCase?.savedResponses || [];
+      const newResponse = {
+        id: msgId || Date.now().toString(),
+        query: queryText,
+        response: text,
+        timestamp: new Date().toISOString()
+      };
+      
+      await legalService.updateCase(caseId, {
+        description: updatedDesc,
+        savedResponses: [newResponse, ...currentSaved]
+      });
       
       // Save timeline event
       await legalService.saveTimelineEvent({
@@ -328,42 +395,115 @@ const LegalChatScreen = ({ onBack, currentCase }) => {
     setTimeout(() => inputRef.current?.focus(), 300);
   }, []);
 
-  // ─── CHAT HISTORY ──────────────────────────────────────────────────────────
+  // ─── CHAT SESSIONS & HISTORY ────────────────────────────────────────────────
   const saveChatHistory = useCallback(async (msgs) => {
     try {
       const raw = localStorage.getItem('legal_chat_history');
       const currentList = raw ? JSON.parse(raw) : [];
+
+      const firstUserMsg = msgs.find(m => m.sender === 'user');
+      const title = firstUserMsg 
+        ? (firstUserMsg.text.slice(0, 30) + (firstUserMsg.text.length > 30 ? '...' : ''))
+        : 'New Chat';
+
       const newSessionItem = {
         chat_id: chatIdRef.current,
         toolName,
+        title,
         timestamp: Date.now(),
         messages: msgs.map(m => ({ ...m, timestamp: m.timestamp?.toISOString?.() || m.timestamp }))
       };
+
       const existingIndex = currentList.findIndex(s => s.chat_id === chatIdRef.current);
       if (existingIndex >= 0) {
         currentList[existingIndex] = newSessionItem;
       } else {
         currentList.push(newSessionItem);
       }
+
       localStorage.setItem('legal_chat_history', JSON.stringify(currentList));
+
+      // Update local state list
+      const generalSessions = currentList.filter(s => s.toolName === toolName);
+      generalSessions.sort((a, b) => b.timestamp - a.timestamp);
+      setSessions(generalSessions);
     } catch (e) {
       console.error('[LegalChatScreen] saveChatHistory failed', e);
     }
-  }, []);
+  }, [toolName]);
+
+  // Load sessions on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('legal_chat_history');
+      const currentList = raw ? JSON.parse(raw) : [];
+      const generalSessions = currentList.filter(s => s.toolName === toolName);
+
+      if (generalSessions.length > 0) {
+        generalSessions.sort((a, b) => b.timestamp - a.timestamp);
+        setSessions(generalSessions);
+
+        const latestSession = generalSessions[0];
+        chatIdRef.current = latestSession.chat_id;
+        setActiveSessionId(latestSession.chat_id);
+
+        const parsedMsgs = latestSession.messages.map(m => ({
+          ...m,
+          timestamp: m.timestamp ? new Date(m.timestamp) : new Date()
+        }));
+        setMessages(parsedMsgs);
+      } else {
+        // Initial session
+        const initialId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+        chatIdRef.current = initialId;
+        setActiveSessionId(initialId);
+
+        const initialMsgs = [
+          {
+            id: '1',
+            text: `Hello! I am your AI ${toolName}. ${toolDesc} How can I assist you today?`,
+            sender: 'ai',
+            timestamp: new Date(),
+            isIntro: true,
+          }
+        ];
+        setMessages(initialMsgs);
+
+        const newSessionItem = {
+          chat_id: initialId,
+          toolName,
+          title: 'New Chat',
+          timestamp: Date.now(),
+          messages: initialMsgs
+        };
+
+        const newList = [newSessionItem, ...currentList];
+        localStorage.setItem('legal_chat_history', JSON.stringify(newList));
+        setSessions([newSessionItem]);
+      }
+    } catch (e) {
+      console.error("Failed to load sessions in LegalChatScreen", e);
+    }
+  }, [toolName]);
 
   useEffect(() => {
-    if (messages.length > 1) saveChatHistory(messages);
+    if (messages.length > 1) {
+      saveChatHistory(messages);
+    }
   }, [messages, saveChatHistory]);
 
   // ─── SEND MESSAGE ──────────────────────────────────────────────────────────
   const sendMessage = async (overrideText) => {
     const text = (overrideText && typeof overrideText === 'string') ? overrideText.trim() : inputValue.trim();
-    if (!text && !attachment) return;
+    if (!text && attachments.length === 0) return;
+
+    const currentAttachments = [...attachments];
+    setAttachments([]);
 
     const userMsg = {
       id: Date.now().toString(),
       text: text || '',
-      attachment: attachment ? { name: attachment.name, type: attachment.type } : null,
+      attachments: currentAttachments.map(a => ({ name: a.name, type: a.type })),
       sender: 'user',
       timestamp: new Date(),
     };
@@ -371,8 +511,6 @@ const LegalChatScreen = ({ onBack, currentCase }) => {
     setMessages(prev => [...prev, userMsg]);
     setInputValue('');
     setIsTyping(true);
-    const currentAttachment = attachment;
-    setAttachment(null);
 
     try {
       const apiHistory = messages.filter(m => !m.isIntro).map(m => ({
@@ -380,16 +518,16 @@ const LegalChatScreen = ({ onBack, currentCase }) => {
         parts: [{ text: m.text }]
       }));
 
-      let apiAttachments = [];
-      let promptText = text;
+      let apiAttachments = currentAttachments.map(att => ({
+        url: att.dataUrl,
+        name: att.name || 'uploaded_file',
+        type: att.type?.startsWith('image/') ? 'image' : 'document'
+      }));
 
-      if (currentAttachment?.dataUrl) {
-        apiAttachments.push({
-          url: currentAttachment.dataUrl,
-          name: currentAttachment.name || 'uploaded_file',
-          type: currentAttachment.type?.startsWith('image/') ? 'image' : 'document'
-        });
-        promptText = `[Attached File: ${currentAttachment.name}]\n${text || 'Please analyze this attachment.'}`;
+      let promptText = text;
+      if (currentAttachments.length > 0) {
+        const fileNames = currentAttachments.map(a => a.name).join(', ');
+        promptText = `[Attached Files: ${fileNames}]\n${text || 'Please analyze these attachments.'}`;
       }
 
       console.log('[LegalChat] Sending message — attachments:', apiAttachments.length);
@@ -463,19 +601,115 @@ const LegalChatScreen = ({ onBack, currentCase }) => {
   };
 
   // ─── FILE ATTACHMENT ───────────────────────────────────────────────────────
-  const handleFileSelect = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setAttachment({
+  const getFileIcon = (type) => {
+    if (!type) return <FileText size={14} className="text-slate-400" />;
+    if (type.includes('pdf')) return <FileText size={14} className="text-red-500" />;
+    if (type.includes('word') || type.includes('msword') || type.includes('officedocument.word')) return <FileText size={14} className="text-blue-500" />;
+    if (type.startsWith('image/')) return <ImageIcon size={14} className="text-emerald-500" />;
+    if (type.includes('excel') || type.includes('officedocument.spreadsheet') || type.includes('csv')) return <FileText size={14} className="text-green-600" />;
+    return <FileText size={14} className="text-slate-400" />;
+  };
+
+  const handleFilesAdded = async (filesList) => {
+    const supportedTypes = [
+      'application/pdf', 
+      'application/msword', 
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/jpeg', 'image/jpg', 'image/png', 'image/webp',
+      'text/plain', 'text/csv',
+      'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ];
+
+    for (let i = 0; i < filesList.length; i++) {
+      const file = filesList[i];
+      const ext = file.name.split('.').pop().toLowerCase();
+      const isLegalExtension = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'webp', 'txt', 'csv', 'xls', 'xlsx'].includes(ext);
+
+      if (!supportedTypes.includes(file.type) && !isLegalExtension) {
+        toast.error(`Unsupported file type: ${file.name}`);
+        continue;
+      }
+
+      const id = Date.now().toString() + Math.random().toString(36).substring(2, 5);
+      
+      const newAtt = {
+        id,
         name: file.name,
-        type: file.type,
-        dataUrl: reader.result,
-      });
-    };
-    reader.readAsDataURL(file);
+        type: file.type || `application/${ext}`,
+        size: file.size,
+        progress: 0,
+        isUploading: true,
+        dataUrl: ''
+      };
+      
+      setAttachments(prev => [...prev, newAtt]);
+      
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const dataUrl = reader.result;
+        setAttachments(prev => prev.map(a => a.id === id ? { ...a, dataUrl } : a));
+        
+        let progressVal = 0;
+        const interval = setInterval(async () => {
+          progressVal += 20;
+          if (progressVal >= 100) {
+            clearInterval(interval);
+            setAttachments(prev => prev.map(a => a.id === id ? { ...a, progress: 100, isUploading: false } : a));
+            
+            // Sync to case documents
+            await saveFileToCase({ name: file.name, type: file.type || `application/${ext}`, size: file.size, dataUrl });
+          } else {
+            setAttachments(prev => prev.map(a => a.id === id ? { ...a, progress: progressVal } : a));
+          }
+        }, 100);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    if (e.target.files) {
+      handleFilesAdded(e.target.files);
+    }
     e.target.value = '';
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFilesAdded(e.dataTransfer.files);
+    }
+  };
+
+  const removeAttachment = (id) => {
+    setAttachments(prev => prev.filter(a => a.id !== id));
+  };
+
+  const saveFileToCase = async (fileObj) => {
+    if (!currentCase || !currentCase._id) return;
+    try {
+      const newDoc = {
+        id: Date.now().toString() + Math.random().toString(36).substring(2, 5),
+        name: fileObj.name,
+        type: fileObj.type || 'file',
+        size: fileObj.size,
+        uploadedAt: new Date().toISOString(),
+        uri: fileObj.dataUrl // base64 URI
+      };
+
+      const existingDocs = currentCase.documents || [];
+      const updatedDocs = [newDoc, ...existingDocs];
+      const payload = {
+        ...currentCase,
+        documents: updatedDocs
+      };
+      
+      const response = await apiService.updateProject(currentCase._id, payload);
+      if (onUpdateCase) onUpdateCase(response);
+    } catch (e) {
+      console.error("Failed to sync file to case documents", e);
+    }
   };
 
   // ─── COPY ──────────────────────────────────────────────────────────────────
@@ -488,15 +722,85 @@ const LegalChatScreen = ({ onBack, currentCase }) => {
   };
 
   // ─── NEW CHAT ──────────────────────────────────────────────────────────────
-  const handleNewChat = () => {
-    chatIdRef.current = Date.now().toString(36) + Math.random().toString(36).substr(2);
-    setMessages([{
+  const handleNewChat = async () => {
+    // Save current session before creating a new one
+    try {
+      await saveChatHistory(messages);
+    } catch (e) {
+      console.error('Failed to save current session before new chat', e);
+    }
+
+    // Generate a fresh chat ID and set as active
+    const newId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+    chatIdRef.current = newId;
+    setActiveSessionId(newId);
+
+    // Clear any attachments from previous chat
+    setAttachments([]);
+
+    // Initialize new chat with welcome AI message
+    const newMsgs = [{
       id: '1',
       text: `Hello! I am your AI ${toolName}. ${toolDesc} How can I assist you today?`,
       sender: 'ai',
       timestamp: new Date(),
       isIntro: true,
-    }]);
+    }];
+    setMessages(newMsgs);
+
+    // Persist the newly created empty session in history
+    try {
+      const raw = localStorage.getItem('legal_chat_history');
+      const currentList = raw ? JSON.parse(raw) : [];
+      const newSessionItem = {
+        chat_id: newId,
+        toolName,
+        title: 'New Chat',
+        timestamp: Date.now(),
+        messages: newMsgs,
+      };
+      const newList = [newSessionItem, ...currentList];
+      localStorage.setItem('legal_chat_history', JSON.stringify(newList));
+      const generalSessions = newList.filter(s => s.toolName === toolName);
+      generalSessions.sort((a, b) => b.timestamp - a.timestamp);
+      setSessions(generalSessions);
+    } catch (e) {
+      console.error('Failed to add new session to history', e);
+    }
+
+    // Scroll to top of chat window
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Focus input after a short delay
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
+  };
+
+  const switchSession = (sessionId) => {
+    try {
+      const raw = localStorage.getItem('legal_chat_history');
+      const currentList = raw ? JSON.parse(raw) : [];
+      const sess = currentList.find(s => s.chat_id === sessionId);
+      if (sess) {
+        chatIdRef.current = sessionId;
+        setActiveSessionId(sessionId);
+
+        const parsedMsgs = sess.messages.map(m => ({
+          ...m,
+          timestamp: m.timestamp ? new Date(m.timestamp) : new Date()
+        }));
+        setMessages(parsedMsgs);
+
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 100);
+      }
+    } catch (e) {
+      console.error("Failed to switch session in LegalChatScreen", e);
+    }
   };
 
   // ─── CASES DATABASE SEARCH & FILTER ────────────────────────────────────────
@@ -527,10 +831,88 @@ const LegalChatScreen = ({ onBack, currentCase }) => {
             <span className="legal-chat-header-sub">AI Engine Active</span>
           </div>
         </div>
-        <div className="legal-chat-header-actions">
-          <button className="legal-chat-action-btn" onClick={handleNewChat} title="New Chat">
-            <RotateCcw size={16} />
+
+        {/* History Button */}
+        <div className="legal-history-btn-wrap">
+          <button
+            className="legal-chat-action-btn legal-history-btn"
+            onClick={() => setShowHistoryPanel(v => !v)}
+            title="Chat History"
+          >
+            <History size={18} />
           </button>
+
+          {/* History Dropdown Panel */}
+          {showHistoryPanel && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowHistoryPanel(false)} />
+              <div className="legal-history-panel">
+                <div className="legal-history-panel-header">
+                  <History size={14} />
+                  <span>Chat History</span>
+                </div>
+                {(() => {
+                  // Only show sessions with real titles (not empty "New Chat" sessions)
+                  const realSessions = sessions.filter(s => s.title && s.title.trim() !== '' && s.title !== 'New Chat');
+                  if (realSessions.length === 0) return (
+                    <div className="legal-history-empty">
+                      <MessageSquare size={28} />
+                      <p>No previous chats</p>
+                    </div>
+                  );
+                  const pinned = realSessions.filter(s => pinnedSessions.includes(s.chat_id));
+                  const unpinned = realSessions.filter(s => !pinnedSessions.includes(s.chat_id));
+                  const renderItem = (s) => (
+                    <div key={s.chat_id} className="legal-history-item-wrap">
+                      <button
+                        className={`legal-history-item ${s.chat_id === activeSessionId ? 'active' : ''}`}
+                        onClick={() => { switchSession(s.chat_id); setShowHistoryPanel(false); }}
+                      >
+                        {pinnedSessions.includes(s.chat_id)
+                          ? <Pin size={12} style={{ color: '#f59e0b', flexShrink: 0 }} />
+                          : <MessageSquare size={13} style={{ flexShrink: 0 }} />
+                        }
+                        <span>{s.title || 'Untitled Chat'}</span>
+                      </button>
+                      <div className="legal-history-item-actions">
+                        <button
+                          className={`legal-history-action-btn ${pinnedSessions.includes(s.chat_id) ? 'pinned' : ''}`}
+                          onClick={(e) => handleTogglePin(s.chat_id, e)}
+                          title={pinnedSessions.includes(s.chat_id) ? 'Unpin' : 'Pin'}
+                        >
+                          {pinnedSessions.includes(s.chat_id) ? <PinOff size={13} /> : <Pin size={13} />}
+                        </button>
+                        <button
+                          className="legal-history-action-btn delete"
+                          onClick={(e) => handleDeleteSession(s.chat_id, e)}
+                          title="Delete"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                  return (
+                    <div className="legal-history-list">
+                      {pinned.length > 0 && (
+                        <>
+                          <div className="legal-history-section-label">📌 Pinned</div>
+                          {pinned.map(renderItem)}
+                          {unpinned.length > 0 && <div className="legal-history-divider" />}
+                        </>
+                      )}
+                      {unpinned.length > 0 && (
+                        <>
+                          {pinned.length > 0 && <div className="legal-history-section-label">Recent</div>}
+                          {unpinned.map(renderItem)}
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -553,10 +935,14 @@ const LegalChatScreen = ({ onBack, currentCase }) => {
                   </div>
                 )}
                 <div className={`legal-msg-bubble ${isAi ? 'legal-bubble-ai' : 'legal-bubble-user'}`}>
-                  {msg.attachment && (
-                    <div className="legal-msg-attachment-chip">
-                      <Paperclip size={12} />
-                      <span>{msg.attachment.name}</span>
+                  {msg.attachments && msg.attachments.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {msg.attachments.map((att, idx) => (
+                        <div key={idx} className="legal-msg-attachment-chip">
+                          {getFileIcon(att.type)}
+                          <span>{att.name}</span>
+                        </div>
+                      ))}
                     </div>
                   )}
                   {isAi ? (
@@ -601,7 +987,7 @@ const LegalChatScreen = ({ onBack, currentCase }) => {
 
                       {/* Share Menu */}
                       <div className="relative">
-                        <button onClick={() => setActiveShareMenu(activeShareMenu === msg.id ? null : msg.id)} className="legal-research-action-btn flex items-center gap-1 font-bold hover:text-indigo-600 transition-colors" title="Share options">
+                        <button onClick={() => handleShareReport(msg.text, msg.id)} className="legal-research-action-btn flex items-center gap-1 font-bold hover:text-indigo-600 transition-colors" title="Share options">
                           <Share2 size={13} />
                           <span>Share Report</span>
                         </button>
@@ -611,30 +997,14 @@ const LegalChatScreen = ({ onBack, currentCase }) => {
                             <div className="absolute left-0 bottom-full mb-2 z-20 w-38 rounded-lg bg-white dark:bg-[#1e293b] border border-slate-200/80 dark:border-white/10 shadow-xl p-1 flex flex-col gap-0.5">
                               <button onClick={() => { handleShareEmail(msg.text); setActiveShareMenu(null); }} className="w-full text-left px-2.5 py-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 rounded-md transition-colors">Email Report</button>
                               <button onClick={() => { handleShareLink(); setActiveShareMenu(null); }} className="w-full text-left px-2.5 py-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 rounded-md transition-colors">Copy Link</button>
-                              <button onClick={() => { handleShareInternal(); setActiveShareMenu(null); }} className="w-full text-left px-2.5 py-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 rounded-md transition-colors">Internal Case Share</button>
+                              <button onClick={() => { handleExportPDF(msg.text); setActiveShareMenu(null); }} className="w-full text-left px-2.5 py-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-white/5 rounded-md transition-colors">Download PDF</button>
                             </div>
                           </>
                         )}
                       </div>
-                      <span className="text-slate-200 dark:text-white/10 select-none">|</span>
 
-                      <button onClick={() => handleSaveToCase(msg.text)} className="legal-research-action-btn flex items-center gap-1 font-bold hover:text-indigo-600 transition-colors" title="Save to Case">
-                        <Briefcase size={13} />
-                        <span>Save to Case</span>
-                      </button>
-                      <span className="text-slate-200 dark:text-white/10 select-none">|</span>
 
-                      <button onClick={() => handleAddToEvidence(msg.text)} className="legal-research-action-btn flex items-center gap-1 font-bold hover:text-indigo-600 transition-colors" title="Add to Evidence">
-                        <ShieldAlert size={13} />
-                        <span>Add to Evidence</span>
-                      </button>
-                      <span className="text-slate-200 dark:text-white/10 select-none">|</span>
 
-                      <button onClick={() => handleCreateCitation(msg.text)} className="legal-research-action-btn flex items-center gap-1 font-bold hover:text-indigo-600 transition-colors" title="Create Citation">
-                        <Landmark size={13} />
-                        <span>Create Citation</span>
-                      </button>
-                      <span className="text-slate-200 dark:text-white/10 select-none">|</span>
 
                       <button onClick={() => handlePrint(msg.text)} className="legal-research-action-btn flex items-center gap-1 font-bold hover:text-indigo-600 transition-colors" title="Print Report">
                         <Printer size={13} />
@@ -673,68 +1043,101 @@ const LegalChatScreen = ({ onBack, currentCase }) => {
       </div>
 
       {/* ── INPUT BAR ─────────────────────────────────────────────────── */}
-      <div className="legal-chat-input-area">
-        {attachment && (
-          <div className="legal-attachment-preview">
-            <Paperclip size={14} style={{ color: toolColor }} />
-            <span className="legal-attachment-name">{attachment.name}</span>
-            <button className="legal-attachment-remove" onClick={() => setAttachment(null)}>
-              <X size={14} />
-            </button>
+      <div 
+        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={handleDrop}
+        className={`legal-chat-input-area flex flex-col gap-2 transition-all ${isDragging ? 'bg-indigo-50/20 dark:bg-indigo-950/20 border-indigo-500' : ''}`}
+      >
+        {attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2 p-2 max-h-[120px] overflow-y-auto pr-1 custom-scrollbar">
+            {attachments.map(att => (
+              <div key={att.id} className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-full text-xs font-semibold">
+                {getFileIcon(att.type)}
+                <span className="truncate max-w-[150px] text-slate-700 dark:text-slate-200">{att.name}</span>
+                {att.isUploading ? (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold animate-pulse">{att.progress}%</span>
+                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400 animate-ping" />
+                  </div>
+                ) : (
+                  <button onClick={() => removeAttachment(att.id)} className="text-slate-400 hover:text-red-500 transition-colors shrink-0">
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
         )}
-        <form className="legal-chat-input-form" onSubmit={(e) => { e.preventDefault(); sendMessage(); }}>
-          <button
-            type="button"
-            className="legal-input-icon-btn"
-            onClick={() => fileInputRef.current?.click()}
-            title="Attach file"
-          >
-            <Paperclip size={18} style={{ color: attachment ? toolColor : undefined }} />
-          </button>
+        <div className="legal-chat-input-row">
+          <div className="legal-chat-input-buttons">
+            <button
+              type="button"
+              className="legal-input-action-btn legal-input-action-btn-label"
+              onClick={handleNewChat}
+              title="Start New Chat"
+            >
+              <Plus size={15} />
+              <span>New Chat</span>
+            </button>
+            
+            <button
+              type="button"
+              className={`legal-input-action-btn ${attachments.length > 0 ? 'active' : ''}`}
+              onClick={() => fileInputRef.current?.click()}
+              title="Attach file"
+            >
+              <Paperclip size={18} style={{ color: attachments.length > 0 ? toolColor : undefined }} />
+            </button>
+          </div>
+
           <input
             type="file"
             ref={fileInputRef}
+            multiple
             onChange={handleFileSelect}
-            accept="image/*,.pdf,.doc,.docx"
+            accept="image/*,.pdf,.doc,.docx,.txt,.csv,.xls,.xlsx"
             style={{ display: 'none' }}
           />
-          <button
-            type="button"
-            className="legal-cases-btn"
-            onClick={() => setShowCasesSheet(true)}
-            title="Browse Cases"
-          >
-            <Scale size={14} />
-            <span>Cases</span>
-          </button>
-          <textarea
-            ref={inputRef}
-            className="legal-chat-input"
-            value={inputValue}
-            onChange={(e) => {
-              setInputValue(e.target.value);
-              e.target.style.height = 'auto';
-              e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-              }
-            }}
-            placeholder={`Ask ${toolName}...`}
-            rows={1}
-          />
-          <button
-            type="submit"
-            className="legal-send-btn"
-            disabled={!inputValue.trim() && !attachment}
-            style={{ backgroundColor: (!inputValue.trim() && !attachment) ? '#94a3b8' : toolColor }}
-          >
-            <Send size={16} />
-          </button>
-        </form>
+
+          <form className="legal-chat-input-form" onSubmit={(e) => { e.preventDefault(); sendMessage(); }}>
+            <button
+              type="button"
+              className="legal-input-icon-btn legal-input-action-btn-cases legal-input-action-btn-label"
+              onClick={() => setShowCasesSheet(true)}
+              title="Browse Cases"
+            >
+              <Scale size={14} />
+              <span>Cases</span>
+            </button>
+            <textarea
+              ref={inputRef}
+              className="legal-chat-input"
+              value={inputValue}
+              onChange={(e) => {
+                setInputValue(e.target.value);
+                e.target.style.height = 'auto';
+                e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage();
+                }
+              }}
+              placeholder={`Ask ${toolName}...`}
+              rows={1}
+            />
+            <button
+              type="submit"
+              className="legal-send-btn"
+              disabled={!inputValue.trim() && attachments.length === 0}
+              style={{ backgroundColor: (!inputValue.trim() && attachments.length === 0) ? '#94a3b8' : toolColor }}
+            >
+              <Send size={16} />
+            </button>
+          </form>
+        </div>
       </div>
 
       {/* ── CASES BOTTOM SHEET ────────────────────────────────────────── */}
@@ -1065,6 +1468,61 @@ const LegalChatScreen = ({ onBack, currentCase }) => {
         )}
       </AnimatePresence>
 
+      {/* Citation Modal */}
+      {activeCitationData && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setActiveCitationData(null)}>
+          <div className="bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-white/10 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/5">
+              <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">Legal Citations Generator</h3>
+              <button onClick={() => setActiveCitationData(null)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {/* Bluebook Citation */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Bluebook Citation</span>
+                <div className="flex gap-2">
+                  <div className="flex-1 p-3 bg-slate-50 dark:bg-black/20 border border-slate-200/50 dark:border-white/5 rounded-xl text-xs font-mono select-all text-slate-800 dark:text-slate-200 break-all leading-relaxed">
+                    {activeCitationData.bluebook}
+                  </div>
+                  <button onClick={() => { navigator.clipboard.writeText(activeCitationData.bluebook); toast.success("Bluebook citation copied"); }} className="p-3 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 rounded-xl flex items-center justify-center shrink-0">
+                    <Copy size={16} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Indian Legal Citation */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-black uppercase tracking-wider text-violet-600 dark:text-violet-400">Indian Legal Citation</span>
+                <div className="flex gap-2">
+                  <div className="flex-1 p-3 bg-slate-50 dark:bg-black/20 border border-slate-200/50 dark:border-white/5 rounded-xl text-xs font-mono select-all text-slate-800 dark:text-slate-200 break-all leading-relaxed">
+                    {activeCitationData.indian}
+                  </div>
+                  <button onClick={() => { navigator.clipboard.writeText(activeCitationData.indian); toast.success("Indian citation copied"); }} className="p-3 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 rounded-xl flex items-center justify-center shrink-0">
+                    <Copy size={16} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Court Reference Format */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Court Reference Format</span>
+                <div className="flex gap-2">
+                  <div className="flex-1 p-3 bg-slate-50 dark:bg-black/20 border border-slate-200/50 dark:border-white/5 rounded-xl text-xs font-mono select-all text-slate-800 dark:text-slate-200 break-all leading-relaxed">
+                    {activeCitationData.courtRef}
+                  </div>
+                  <button onClick={() => { navigator.clipboard.writeText(activeCitationData.courtRef); toast.success("Court reference copied"); }} className="p-3 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-950/50 rounded-xl flex items-center justify-center shrink-0">
+                    <Copy size={16} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         .legal-chat-screen {
           display: flex;
@@ -1134,6 +1592,194 @@ const LegalChatScreen = ({ onBack, currentCase }) => {
         }
         .dark .legal-chat-action-btn { background: rgba(255,255,255,0.05); color: #94a3b8; }
         .legal-chat-action-btn:hover { color: #4f46e5; background: rgba(79,70,229,0.1); }
+
+        /* ── HISTORY BUTTON & PANEL ──────────────────────── */
+        .legal-history-btn-wrap {
+          position: relative;
+          margin-left: auto;
+          flex-shrink: 0;
+        }
+        .legal-history-btn {
+          background: rgba(0,0,0,0.04) !important;
+          border: 1px solid rgba(0,0,0,0.06) !important;
+        }
+        .dark .legal-history-btn {
+          background: rgba(255,255,255,0.06) !important;
+          border-color: rgba(255,255,255,0.08) !important;
+        }
+        .legal-history-panel {
+          position: absolute;
+          top: calc(100% + 10px);
+          right: 0;
+          width: 260px;
+          max-height: 360px;
+          background: #ffffff;
+          border: 1px solid rgba(0,0,0,0.08);
+          border-radius: 16px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+          z-index: 50;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        .dark .legal-history-panel {
+          background: #1e293b;
+          border-color: rgba(255,255,255,0.08);
+          box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        .legal-history-panel-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px 16px;
+          font-size: 12px;
+          font-weight: 800;
+          color: #1e293b;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          border-bottom: 1px solid rgba(0,0,0,0.06);
+          flex-shrink: 0;
+        }
+        .dark .legal-history-panel-header {
+          color: #f1f5f9;
+          border-color: rgba(255,255,255,0.06);
+        }
+        .legal-history-list {
+          overflow-y: auto;
+          padding: 6px;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .legal-history-list::-webkit-scrollbar { width: 4px; }
+        .legal-history-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 4px; }
+        .dark .legal-history-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
+        .legal-history-item {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          padding: 9px 12px;
+          border-radius: 10px;
+          border: none;
+          background: none;
+          cursor: pointer;
+          text-align: left;
+          color: #475569;
+          font-size: 13px;
+          font-weight: 600;
+          transition: all 0.15s;
+          width: 100%;
+        }
+        .legal-history-item span {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          flex: 1;
+        }
+        .legal-history-item:hover {
+          background: rgba(79,70,229,0.06);
+          color: #4f46e5;
+        }
+        .dark .legal-history-item { color: #94a3b8; }
+        .dark .legal-history-item:hover {
+          background: rgba(129,140,248,0.1);
+          color: #818cf8;
+        }
+        .legal-history-item.active {
+          background: rgba(79,70,229,0.1);
+          color: #4f46e5;
+          font-weight: 800;
+        }
+        .dark .legal-history-item.active {
+          background: rgba(129,140,248,0.15);
+          color: #818cf8;
+        }
+        .legal-history-empty {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 32px 16px;
+          color: #94a3b8;
+          gap: 10px;
+          font-size: 12px;
+          font-weight: 600;
+        }
+        .legal-history-empty p { margin: 0; }
+        .legal-history-item-wrap {
+          position: relative;
+          display: flex;
+          align-items: center;
+          border-radius: 10px;
+          overflow: hidden;
+        }
+        .legal-history-item-wrap .legal-history-item {
+          flex: 1;
+          min-width: 0;
+          border-radius: 10px 0 0 10px;
+        }
+        .legal-history-item-actions {
+          display: none;
+          align-items: center;
+          gap: 2px;
+          padding: 0 6px;
+          flex-shrink: 0;
+          background: rgba(241,245,249,0.9);
+          height: 100%;
+          min-height: 36px;
+        }
+        .dark .legal-history-item-actions {
+          background: rgba(30,41,59,0.9);
+        }
+        .legal-history-item-wrap:hover .legal-history-item-actions {
+          display: flex;
+        }
+        .legal-history-action-btn {
+          width: 26px;
+          height: 26px;
+          border-radius: 6px;
+          border: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          background: none;
+          color: #94a3b8;
+          transition: all 0.15s;
+          flex-shrink: 0;
+        }
+        .legal-history-action-btn:hover {
+          background: rgba(79,70,229,0.1);
+          color: #4f46e5;
+        }
+        .legal-history-action-btn.pinned {
+          color: #f59e0b;
+        }
+        .legal-history-action-btn.pinned:hover {
+          background: rgba(245,158,11,0.1);
+          color: #d97706;
+        }
+        .legal-history-action-btn.delete:hover {
+          background: rgba(239,68,68,0.1);
+          color: #ef4444;
+        }
+        .dark .legal-history-action-btn { color: #475569; }
+        .dark .legal-history-action-btn:hover { background: rgba(129,140,248,0.1); color: #818cf8; }
+        .legal-history-section-label {
+          font-size: 10px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: #94a3b8;
+          padding: 6px 12px 4px;
+        }
+        .dark .legal-history-section-label { color: #475569; }
+        .legal-history-divider {
+          height: 1px;
+          background: rgba(0,0,0,0.06);
+          margin: 4px 8px;
+        }
+        .dark .legal-history-divider { background: rgba(255,255,255,0.06); }
 
         /* ── MESSAGES ───────────────────────────────────── */
         .legal-chat-messages {
@@ -1318,7 +1964,94 @@ const LegalChatScreen = ({ onBack, currentCase }) => {
           color: #64748b; display: flex;
         }
         .dark .legal-attachment-remove { color: #94a3b8; }
+        .legal-chat-input-row {
+          display: flex;
+          align-items: flex-end;
+          gap: 10px;
+          width: 100%;
+        }
+        .legal-chat-input-buttons {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-shrink: 0;
+          margin-bottom: 4px;
+        }
+        .legal-input-action-btn {
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #f1f5f9;
+          border: 1px solid rgba(0,0,0,0.06);
+          color: #64748b;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          flex-shrink: 0;
+        }
+        .dark .legal-input-action-btn {
+          background: #1e293b;
+          border-color: rgba(255,255,255,0.06);
+          color: #94a3b8;
+        }
+        .legal-input-action-btn:hover {
+          color: #4f46e5;
+          background: #e2e8f0;
+          transform: scale(1.05);
+        }
+        .dark .legal-input-action-btn:hover {
+          color: #818cf8;
+          background: #334155;
+        }
+        .legal-input-action-btn.active {
+          color: #4f46e5;
+          background: rgba(79,70,229,0.1);
+          border-color: rgba(79,70,229,0.2);
+        }
+        .dark .legal-input-action-btn.active {
+          color: #818cf8;
+          background: rgba(129,140,248,0.15);
+          border-color: rgba(129,140,248,0.25);
+        }
+        /* Pill variant with icon + label text */
+        .legal-input-action-btn-label {
+          width: auto !important;
+          border-radius: 20px !important;
+          padding: 0 12px !important;
+          gap: 5px;
+          font-size: 11px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.4px;
+          white-space: nowrap;
+        }
+        .legal-input-action-btn-label:hover {
+          transform: none !important;
+        }
+        .legal-input-action-btn-cases {
+          background: rgba(79,70,229,0.08);
+          border-color: rgba(79,70,229,0.15);
+          color: #4f46e5;
+        }
+        .dark .legal-input-action-btn-cases {
+          background: rgba(129,140,248,0.1);
+          border-color: rgba(129,140,248,0.15);
+          color: #818cf8;
+        }
+        .legal-input-action-btn-cases:hover {
+          background: rgba(79,70,229,0.15);
+          border-color: rgba(79,70,229,0.3);
+          color: #4f46e5;
+        }
+        .dark .legal-input-action-btn-cases:hover {
+          background: rgba(129,140,248,0.2);
+          border-color: rgba(129,140,248,0.3);
+          color: #818cf8;
+        }
         .legal-chat-input-form {
+          flex: 1; min-width: 0;
           display: flex; align-items: flex-end; gap: 6px;
           background: #f1f5f9;
           border-radius: 24px; padding: 6px 8px;
@@ -1369,6 +2102,50 @@ const LegalChatScreen = ({ onBack, currentCase }) => {
         }
         .legal-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .legal-send-btn:not(:disabled):hover { transform: scale(1.05); }
+
+        /* ── NEW CHAT BUTTON ────────────────────────────── */
+        .legal-new-chat-btn {
+          display: flex; align-items: center; gap: 5px;
+          padding: 5px 12px; border-radius: 20px; flex-shrink: 0;
+          background: #f1f5f9; border: 1px solid rgba(0,0,0,0.08);
+          color: #64748b; font-size: 11px; font-weight: 800;
+          cursor: pointer; white-space: nowrap;
+          text-transform: uppercase; letter-spacing: 0.5px;
+          transition: all 0.2s; min-height: 34px;
+        }
+        .dark .legal-new-chat-btn {
+          background: rgba(255,255,255,0.05);
+          border-color: rgba(255,255,255,0.08);
+          color: #94a3b8;
+        }
+        .legal-new-chat-btn:hover {
+          background: rgba(79,70,229,0.1);
+          border-color: rgba(79,70,229,0.3);
+          color: #4f46e5;
+        }
+        .legal-new-chat-btn:active { transform: scale(0.96); }
+
+        /* ── HISTORY SESSION DROPDOWN ───────────────────── */
+        .legal-chat-history-select {
+          background: #f1f5f9;
+          border: 1px solid rgba(0,0,0,0.08);
+          border-radius: 14px;
+          color: #334155;
+          font-size: 11px; font-weight: 700;
+          padding: 5px 10px;
+          outline: none; cursor: pointer;
+          max-width: 180px;
+          text-overflow: ellipsis;
+          transition: border-color 0.2s;
+        }
+        .dark .legal-chat-history-select {
+          background: rgba(255,255,255,0.06);
+          border-color: rgba(255,255,255,0.1);
+          color: #e2e8f0;
+        }
+        .legal-chat-history-select:focus {
+          border-color: rgba(79,70,229,0.5);
+        }
 
         /* ── CASES SHEET ────────────────────────────────── */
         .legal-cases-overlay {
@@ -1747,6 +2524,8 @@ const LegalChatScreen = ({ onBack, currentCase }) => {
           .legal-chat-input { font-size: 13px; min-height: 30px; }
           .legal-input-icon-btn { width: 30px; height: 30px; }
           .legal-send-btn { width: 30px; height: 30px; }
+          .legal-input-action-btn { width: 32px; height: 32px; }
+          .legal-chat-input-buttons { gap: 4px; margin-bottom: 2px; }
           .legal-msg-bubble { padding: 10px 12px; border-radius: 14px; }
           .legal-msg-ai-text { font-size: 13px; line-height: 1.55; }
           .legal-msg-user-text { font-size: 13px; }
@@ -1762,6 +2541,8 @@ const LegalChatScreen = ({ onBack, currentCase }) => {
           .legal-chat-messages { padding: 16px 10px 8px; gap: 12px; }
           .legal-chat-header { padding: 10px 12px; }
           .legal-chat-input-area { padding: 6px 8px calc(8px + env(safe-area-inset-bottom, 0px)); }
+          .legal-input-action-btn { width: 34px; height: 34px; }
+          .legal-chat-input-buttons { gap: 6px; margin-bottom: 3px; }
           .legal-cases-btn span { display: none; }
           .legal-cases-btn { padding: 6px 8px; }
         }
@@ -1780,7 +2561,6 @@ const LegalChatScreen = ({ onBack, currentCase }) => {
           .legal-chat-messages { padding: 24px 5% 14px; gap: 16px; }
           .legal-chat-header { padding: 14px 24px; }
           .legal-chat-input-area { padding: 10px 20px calc(12px + env(safe-area-inset-bottom, 0px)); }
-          .legal-chat-input-form { max-width: 90%; margin: 0 auto; }
           .legal-cases-container { align-items: center; padding: 24px; }
           .legal-cases-sheet { max-width: 420px; border-radius: 24px; max-height: 80vh; }
         }
@@ -1795,13 +2575,11 @@ const LegalChatScreen = ({ onBack, currentCase }) => {
         @media (min-width: 1280px) {
           .legal-chat-messages { padding: 28px 12%; }
           .legal-msg-row { max-width: 65%; }
-          .legal-chat-input-form { max-width: 800px; margin: 0 auto; }
         }
         /* Ultra-wide / 4K (1920px+) */
         @media (min-width: 1920px) {
           .legal-chat-messages { padding: 32px 18%; }
           .legal-msg-row { max-width: 55%; }
-          .legal-chat-input-form { max-width: 900px; }
           .legal-msg-ai-text { font-size: 15px; }
           .legal-msg-user-text { font-size: 15px; }
         }

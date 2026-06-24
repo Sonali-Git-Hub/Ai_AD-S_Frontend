@@ -459,22 +459,22 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
 
           {/* Stats Header */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-3xl p-5 shadow-sm flex flex-col items-center justify-center text-center">
+            <div className="bg-white dark:bg-[#1A2540] rounded-3xl p-5 shadow-sm flex flex-col items-center justify-center text-center">
               <TrendingUp className="text-emerald-500" size={20} />
               <span className="text-lg font-black text-emerald-500 mt-2">{stats.strategyStrength}{stats.strategyStrength !== '--' ? '%' : ''}</span>
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Strategy Score</span>
             </div>
-            <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-3xl p-5 shadow-sm flex flex-col items-center justify-center text-center">
-              <AlertTriangle className={stats.courtRisk === 'High' ? 'text-red-500' : 'text-amber-500'} size={20} />
+            <div className="bg-white dark:bg-[#1A2540] rounded-3xl p-5 shadow-sm flex flex-col items-center justify-center text-center">
+              <AlertTriangle className={stats.courtRisk === 'High' ? 'text-red-500' : 'text-amber-505'} size={20} />
               <span className={`text-lg font-black mt-2 ${stats.courtRisk === 'High' ? 'text-red-500' : 'text-amber-500'}`}>{stats.courtRisk}</span>
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Litigation Risk</span>
             </div>
-            <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-3xl p-5 shadow-sm flex flex-col items-center justify-center text-center">
+            <div className="bg-white dark:bg-[#1A2540] rounded-3xl p-5 shadow-sm flex flex-col items-center justify-center text-center">
               <Scale className="text-indigo-500" size={20} />
               <span className="text-lg font-black text-indigo-500 mt-2">{stats.precedentSupport}{stats.precedentSupport !== '--' ? '%' : ''}</span>
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Precedent Support</span>
             </div>
-            <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-3xl p-5 shadow-sm flex flex-col items-center justify-center text-center">
+            <div className="bg-white dark:bg-[#1A2540] rounded-3xl p-5 shadow-sm flex flex-col items-center justify-center text-center">
               <Brain className="text-pink-500" size={20} />
               <span className="text-lg font-black text-pink-500 mt-2">{stats.confidenceRate}{stats.confidenceRate !== '--' ? '%' : ''}</span>
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">AI Confidence</span>
@@ -482,7 +482,7 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
           </div>
 
           {/* Quick Tools Grid Section */}
-          <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-3xl p-6 shadow-sm">
+          <div className="bg-white dark:bg-[#1A2540] rounded-3xl p-6 shadow-sm">
             <h3 className="text-xs font-black tracking-widest text-slate-400 uppercase mb-4">SPECIALIZED WAR ROOM ROADMAPS</h3>
             
             <div className="flex flex-col md:flex-row gap-4 mb-4">
@@ -502,7 +502,7 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
                   <button
                     key={cat}
                     onClick={() => setToolsCategory(cat)}
-                    className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${toolsCategory === cat ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-50 dark:bg-[#131C31] text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 border border-slate-200/50 dark:border-white/5'}`}
+                    className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${toolsCategory === cat ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-50 dark:bg-[#131C31] text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                   >
                     {cat}
                   </button>
@@ -515,7 +515,7 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
                 <button
                   key={t.id}
                   onClick={() => triggerQuickTool(t.id, t.name)}
-                  className="text-left p-4 bg-slate-50 dark:bg-[#131C31] border border-slate-200/50 dark:border-white/5 hover:border-indigo-500/50 rounded-2xl transition-all group flex flex-col justify-between min-h-[100px]"
+                  className="text-left p-4 bg-slate-50 dark:bg-[#131C31] hover:border-indigo-500/50 rounded-2xl transition-all group flex flex-col justify-between min-h-[100px]"
                 >
                   <div>
                     <h4 className="text-xs font-bold text-slate-800 dark:text-white group-hover:text-indigo-600 truncate">{t.name}</h4>
@@ -528,7 +528,7 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
           </div>
 
           {/* Form and Input Area */}
-          <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-3xl p-6 shadow-md space-y-5">
+          <div className="bg-white dark:bg-[#1A2540] rounded-3xl p-6 shadow-md space-y-5">
             <div className="flex items-center gap-2 border-b border-slate-100 dark:border-white/5 pb-3">
               <BookOpen size={16} className="text-indigo-600 dark:text-indigo-400" />
               <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">AI LITIGATION SCENARIO ARCHITECT</h3>
@@ -604,7 +604,7 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
 
           {/* Result Strategy Report */}
           {strategyResult && (
-            <div ref={scrollRef} className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-3xl p-6 shadow-md space-y-6">
+            <div ref={scrollRef} className="bg-white dark:bg-[#1A2540] rounded-3xl p-6 shadow-md space-y-6">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-3">
                 <div className="flex items-center gap-2">
                   <Shield className="text-emerald-500" size={16} />
@@ -657,7 +657,7 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
       {historyVisible && (
         <div className="fixed inset-0 z-[120000] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setHistoryVisible(false)} />
-          <div className="relative bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[32px] max-w-lg w-full max-h-[80%] flex flex-col overflow-hidden shadow-2xl p-6">
+          <div className="relative bg-white dark:bg-zinc-900 rounded-[32px] max-w-lg w-full max-h-[80%] flex flex-col overflow-hidden shadow-2xl p-6">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-4 shrink-0">
               <h3 className="text-lg font-black text-slate-900 dark:text-white">Litigation Strategy Logs</h3>
               <button onClick={() => setHistoryVisible(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full">
@@ -683,7 +683,7 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
                 h.title?.toLowerCase().includes(historySearch.toLowerCase()) || 
                 h.caseFacts?.toLowerCase().includes(historySearch.toLowerCase())
               ).map(item => (
-                <div key={item.id} className="flex justify-between items-start p-4 bg-slate-50 dark:bg-[#1A2540] border border-slate-200/50 dark:border-white/5 rounded-2xl shadow-sm hover:shadow-md transition-all">
+                <div key={item.id} className="flex justify-between items-start p-4 bg-slate-50 dark:bg-[#1A2540] rounded-2xl shadow-sm hover:shadow-md transition-all">
                   <button
                     onClick={() => {
                       setActiveStrategy(item);

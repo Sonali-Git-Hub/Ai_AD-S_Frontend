@@ -460,7 +460,7 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
           </div>
 
           {/* Quick Tools Grid Section */}
-          <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-3xl p-6 shadow-sm">
+          <div className="bg-white dark:bg-[#1A2540] rounded-3xl p-6 shadow-sm">
             <h3 className="text-xs font-black tracking-widest text-slate-400 uppercase mb-4">SPECIALIZED CONTRACT REVIEW MODULES</h3>
             
             <div className="flex flex-col md:flex-row gap-4 mb-4">
@@ -480,7 +480,7 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
                   <button
                     key={cat}
                     onClick={() => setToolsCategory(cat)}
-                    className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${toolsCategory === cat ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-50 dark:bg-[#131C31] text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 border border-slate-200/50 dark:border-white/5'}`}
+                    className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${toolsCategory === cat ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-50 dark:bg-[#131C31] text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                   >
                     {cat}
                   </button>
@@ -493,7 +493,7 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
                 <button
                   key={t.id}
                   onClick={() => triggerQuickTool(t.id)}
-                  className="text-left p-4 bg-slate-50 dark:bg-[#131C31] border border-slate-200/50 dark:border-white/5 hover:border-indigo-500/50 rounded-2xl transition-all group flex flex-col justify-between min-h-[100px]"
+                  className="text-left p-4 bg-slate-50 dark:bg-[#131C31] hover:border-indigo-500/50 rounded-2xl transition-all group flex flex-col justify-between min-h-[100px]"
                 >
                   <div>
                     <h4 className="text-xs font-bold text-slate-800 dark:text-white group-hover:text-indigo-600 truncate">{t.name}</h4>

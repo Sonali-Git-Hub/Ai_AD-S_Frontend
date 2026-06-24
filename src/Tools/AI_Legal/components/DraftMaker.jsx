@@ -395,7 +395,7 @@ const DraftMaker = ({ currentCase, onBack, theme, allProjects = [] }) => {
       <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar min-h-0 select-text">
         {/* Step: CATEGORY_SELECTION */}
         {currentStep === 'CATEGORY_SELECTION' && (
-          <div className="max-w-4xl mx-auto space-y-6">
+          <div className="max-w-7xl mx-auto px-4 space-y-6 w-full">
             <div className="relative flex items-center bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-2xl px-4 py-3.5 shadow-sm">
               <Search className="text-slate-400 mr-3" size={20} />
               <input 
@@ -412,22 +412,22 @@ const DraftMaker = ({ currentCase, onBack, theme, allProjects = [] }) => {
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full">
               {filteredCategories.map(cat => (
-                <div key={cat.title} className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-[24px] p-5 shadow-sm">
-                  <div className="flex items-center gap-2 mb-4">
+                <div key={cat.title} className="bg-white dark:bg-[#1A2540] rounded-[24px] p-5 shadow-sm hover:-translate-y-1 hover:shadow-md hover:scale-[1.01] transition-all duration-300 flex flex-col h-[360px]">
+                  <div className="flex items-center gap-2 mb-4 shrink-0">
                     {cat.icon}
                     <h4 className="text-xs font-black tracking-widest text-indigo-600 dark:text-indigo-400 uppercase">{cat.title}</h4>
                   </div>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex-1 flex flex-col gap-2 overflow-y-auto pr-1.5 custom-scrollbar">
                     {cat.items.map(item => (
                       <button
                         key={item}
                         onClick={() => handleCategorySelect(item)}
-                        className="flex items-center justify-between p-3 bg-slate-50 dark:bg-[#131C31] hover:bg-indigo-50 dark:hover:bg-indigo-950/20 text-left border border-slate-200/50 dark:border-white/5 rounded-xl transition-all"
+                        className="flex items-center justify-between p-3 bg-slate-50 dark:bg-[#131C31] hover:bg-indigo-50 dark:hover:bg-indigo-950/20 text-left rounded-xl transition-all shrink-0 min-h-[44px]"
                       >
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{item}</span>
-                        <ChevronRight size={14} className="text-slate-400" />
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 break-words pr-2">{item}</span>
+                        <ChevronRight size={14} className="text-slate-400 shrink-0" />
                       </button>
                     ))}
                   </div>
