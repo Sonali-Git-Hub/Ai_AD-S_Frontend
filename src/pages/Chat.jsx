@@ -6871,7 +6871,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="flex-1 flex flex-col w-full select-text min-h-0 h-full"
+                className="flex-1 flex flex-col w-full select-text min-h-0 min-h-full"
               >
                 {/* 🚀 MINI STICKY CASE BREADCRUMB (Lightweight & Non-obstructive) */}
                 <AnimatePresence>
@@ -7418,7 +7418,15 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                               <button
                                                 onClick={(e) => {
                                                   e.stopPropagation();
-                                                  setExpandedMessages(prev => ({ ...prev, [msg.id]: !prev[msg.id] }));
+                                                  setExpandedMessages(prev => {
+                                                    const next = { ...prev, [msg.id]: !prev[msg.id] };
+                                                    if (next[msg.id]) {
+                                                      setTimeout(() => {
+                                                        scrollToBottom(true, 'smooth');
+                                                      }, 100);
+                                                    }
+                                                    return next;
+                                                  });
                                                 }}
                                                 className="read-more-btn"
                                                 title={expandedMessages[msg.id] ? 'Show less' : 'Read full response'}
@@ -8012,6 +8020,8 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 </AnimatePresence>
 
                 <div ref={messagesEndRef} />
+                {/* Spacer to allow scrolling past the fixed bottom input area */}
+                <div className="h-64 md:h-72 shrink-0 pointer-events-none" />
               </motion.div>
             )}
           </AnimatePresence>
