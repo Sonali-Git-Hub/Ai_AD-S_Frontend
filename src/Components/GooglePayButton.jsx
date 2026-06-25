@@ -43,11 +43,13 @@ const GooglePayButton = ({
     currency = 'INR',
     onSuccess,
     onError,
+    onProcessing,
     disabled = false,
     className = ''
 }) => {
     const containerRef = useRef(null);
     const paymentsClientRef = useRef(null);
+    const isProcessingRef = useRef(false);
 
     // Google Pay is NOT available on iOS — Apple blocks it. Show Apple Pay instead.
     const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent);
@@ -127,8 +129,11 @@ const GooglePayButton = ({
 
     // ── 3. Handle the full payment flow ──────────────────────────────────────
     const handleGooglePay = useCallback(async () => {
+        if (isProcessingRef.current) return;
         if (!paymentsClientRef.current || status !== 'ready' || disabled) return;
 
+        isProcessingRef.current = true;
+        onProcessing?.(true);
         setStatus('paying');
         setErrorMsg('');
 
@@ -140,6 +145,8 @@ const GooglePayButton = ({
                 // Free plan — no payment needed
                 onSuccess?.({ isFree: true });
                 setStatus('ready');
+                isProcessingRef.current = false;
+                onProcessing?.(false);
                 return;
             }
 
@@ -163,7 +170,12 @@ const GooglePayButton = ({
 
             onSuccess?.(result);
             setStatus('ready');
+            isProcessingRef.current = false;
+            onProcessing?.(false);
         } catch (err) {
+            isProcessingRef.current = false;
+            onProcessing?.(false);
+
             // Google Pay cancelled by user — not really an error
             if (err?.statusCode === 'CANCELED' || err?.message?.includes('CANCELED')) {
                 console.log('[GooglePay] Payment cancelled by user.');
@@ -189,7 +201,7 @@ const GooglePayButton = ({
                 setErrorMsg('');
             }, 4000);
         }
-    }, [status, disabled, planId, packageId, billingCycle, currency, onSuccess, onError]);
+    }, [status, disabled, planId, packageId, billingCycle, currency, onSuccess, onError, onProcessing]);
 
     // ── 4. Render ─────────────────────────────────────────────────────────────
     if (status === 'not-supported') return null; // Hide button if Google Pay not supported

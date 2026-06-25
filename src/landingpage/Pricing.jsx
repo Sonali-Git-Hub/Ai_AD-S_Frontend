@@ -666,6 +666,7 @@ const Pricing = () => {
                             onError={(err) => {
                               toast.error(err.message || 'Google Pay failed. Please try Razorpay.');
                             }}
+                            onProcessing={(val) => setProcessing(val)}
                             disabled={processing}
                           />
                         )}
@@ -695,6 +696,7 @@ const Pricing = () => {
                             onError={(err) => {
                               toast.error(err.message || 'Apple Pay failed.');
                             }}
+                            onProcessing={(val) => setProcessing(val)}
                             disabled={processing}
                           />
                         )}

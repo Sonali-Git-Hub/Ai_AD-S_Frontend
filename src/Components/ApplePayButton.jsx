@@ -89,6 +89,7 @@ const ApplePayButton = ({
     currency = 'INR',
     onSuccess,
     onError,
+    onProcessing,
     disabled = false,
     className = ''
 }) => {
@@ -97,18 +98,25 @@ const ApplePayButton = ({
     const [status, setStatus] = useState('ready'); // 'ready' | 'paying' | 'error'
     const [errorMsg, setErrorMsg] = useState('');
     const sessionRef = useRef(null);
+    const isProcessingRef = useRef(false);
 
     // Hide completely if not Apple device at all
     if (!supported) return null;
 
     // ── Full Payment Flow ──────────────────────────────────────────────────────
     const handleApplePay = useCallback(async () => {
+        if (isProcessingRef.current) return;
         if (status === 'paying' || disabled) return;
+
+        isProcessingRef.current = true;
+        onProcessing?.(true);
 
         // If on Apple device but NOT Safari — guide user to open in Safari
         if (!isSafari()) {
             setStatus('error');
             setErrorMsg('Apple Pay works only in Safari. Tap to open in Safari.');
+            isProcessingRef.current = false;
+            onProcessing?.(false);
             setTimeout(() => {
                 window.open(window.location.href, '_blank', 'noreferrer');
             }, 800);
@@ -120,6 +128,8 @@ const ApplePayButton = ({
         if (!canPayNow()) {
             setStatus('error');
             setErrorMsg('Apple Pay is not set up on this device. Please add a card in Wallet.');
+            isProcessingRef.current = false;
+            onProcessing?.(false);
             setTimeout(() => { setStatus('ready'); setErrorMsg(''); }, 4000);
             onError?.(new Error('Apple Pay not available — no card or domain not registered'));
             return;
@@ -143,6 +153,8 @@ const ApplePayButton = ({
             if (orderData.isFree) {
                 onSuccess?.({ isFree: true });
                 setStatus('ready');
+                isProcessingRef.current = false;
+                onProcessing?.(false);
                 return;
             }
 
@@ -218,6 +230,8 @@ const ApplePayButton = ({
                         session.completePayment(ApplePaySession.STATUS_SUCCESS);
                         setStatus('ready');
                         onSuccess?.(verifyData);
+                        isProcessingRef.current = false;
+                        onProcessing?.(false);
                     } else {
                         session.completePayment(ApplePaySession.STATUS_FAILURE);
                         throw new Error(verifyData.message || 'Payment verification failed');
@@ -227,6 +241,8 @@ const ApplePayButton = ({
                     setStatus('error');
                     setErrorMsg(err.message || 'Payment failed');
                     onError?.(err);
+                    isProcessingRef.current = false;
+                    onProcessing?.(false);
                     setTimeout(() => { setStatus('ready'); setErrorMsg(''); }, 4000);
                 }
             };
@@ -235,6 +251,8 @@ const ApplePayButton = ({
             session.oncancel = () => {
                 console.log('[ApplePay] Payment cancelled by user.');
                 setStatus('ready');
+                isProcessingRef.current = false;
+                onProcessing?.(false);
             };
 
             // ── Start the Apple Pay sheet ─────────────────────────────────────
@@ -245,9 +263,11 @@ const ApplePayButton = ({
             setStatus('error');
             setErrorMsg(err.message || 'Something went wrong. Please try again.');
             onError?.(err);
+            isProcessingRef.current = false;
+            onProcessing?.(false);
             setTimeout(() => { setStatus('ready'); setErrorMsg(''); }, 4000);
         }
-    }, [status, disabled, planId, packageId, billingCycle, currency, onSuccess, onError]);
+    }, [status, disabled, planId, packageId, billingCycle, currency, onSuccess, onError, onProcessing]);
 
     // ── Render ────────────────────────────────────────────────────────────────
     return (
