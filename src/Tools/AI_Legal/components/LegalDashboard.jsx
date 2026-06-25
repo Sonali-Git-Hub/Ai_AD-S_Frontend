@@ -1046,7 +1046,7 @@ const LegalDashboard = ({
     setFilter(initialFilter);
   }, [initialFilter]);
 
-  const filters = ['All', 'Active', 'Pending', 'Closed', 'High Risk'];
+  const filters = ['All', 'Active'];
 
   const filteredCases = useMemo(() => {
     let result = legalCases;

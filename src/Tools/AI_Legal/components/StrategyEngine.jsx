@@ -3,736 +3,1566 @@ import {
   ChevronLeft, ChevronRight, Gavel, Plus, FileText, Copy, 
   Share2, FileDown, History, Search, X, Shield, Clock, 
   Brain, Scale, BookOpen, AlertTriangle, TrendingUp, Mic, 
-  Database, Cpu, Briefcase, Building2, Landmark, Folder, Printer, CheckCircle2
+  Database, Cpu, Briefcase, Building2, Landmark, Folder, Printer, CheckCircle2,
+  Award, Check, Eye, RefreshCw, Send, AlertCircle, Trash2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { generateChatResponse } from '../../../services/geminiService';
 import { apiService } from '../../../services/apiService';
 import { consumePrefillIntent, mapCaseToForm } from '../services/activeModuleService';
+import { getUserData } from '../../../userStore/userData';
 
+// Specialized litigation roadmap templates
 const allTools = [
-  { id: 'Bail', name: 'Bail Strategy', desc: 'Pre-arrest roadmap', category: 'Criminal', icon: Gavel },
-  { id: 'Criminal', name: 'Criminal Defense', desc: 'Theft & incident plans', category: 'Criminal', icon: Shield },
-  { id: 'Civil', name: 'Civil Litigation', desc: 'Damages & breach', category: 'Civil', icon: Scale },
-  { id: 'Cyber', name: 'Cyber Crime Plan', desc: 'Telemetry & routing logs', category: 'Cyber', icon: Cpu },
-  { id: 'AnticipatoryBail', name: 'Anticipatory Bail', desc: 'Preventive arrest stay', category: 'Criminal', icon: Shield },
-  { id: 'FIRResponse', name: 'FIR Response', desc: 'Counter-complaint tactics', category: 'Criminal', icon: FileText },
-  { id: 'EvidencePlanning', name: 'Evidence Planning', desc: 'Collection & chain rules', category: 'Civil', icon: Database },
-  { id: 'AppealStrategy', name: 'Appeal Strategy', desc: 'High court escalations', category: 'Civil', icon: TrendingUp },
-  { id: 'CrossExamination', name: 'Cross Examination', desc: 'Witness questioning', category: 'Trial', icon: Mic },
-  { id: 'WitnessPreparation', name: 'Witness Preparation', desc: 'Testimony guidelines', category: 'Trial', icon: Mic },
-  { id: 'SettlementStrategy', name: 'Settlement Strategy', desc: 'Mediation & negotiation', category: 'Corporate', icon: Briefcase },
-  { id: 'Property', name: 'Property Dispute', desc: 'Possession boundary checks', category: 'Civil', icon: Building2 },
-  { id: 'Corporate', name: 'Corporate Defense', desc: 'Shareholder diluting veto', category: 'Corporate', icon: Briefcase },
-  { id: 'ContractDispute', name: 'Contract Dispute', desc: 'Breach of terms action', category: 'Civil', icon: FileText },
-  { id: 'ArbitrationPlan', name: 'Arbitration Plan', desc: 'ADR & settlement plans', category: 'Corporate', icon: BookOpen },
-  { id: 'RecoveryStrategy', name: 'Recovery Strategy', desc: 'Debt collection roadmap', category: 'Civil', icon: Landmark },
-  { id: 'TaxLitigation', name: 'Tax Litigation', desc: 'Assessment appeals', category: 'Corporate', icon: BookOpen },
-  { id: 'CyberFraudDefense', name: 'Cyber Fraud Defense', desc: 'Digital theft & scams', category: 'Cyber', icon: Cpu },
-  { id: 'CriminalAppeal', name: 'Criminal Appeal', desc: 'Sentence reduction', category: 'Criminal', icon: Gavel },
-  { id: 'ConsumerComplaint', name: 'Consumer Complaint', desc: 'Defective goods/services', category: 'Civil', icon: AlertTriangle },
-  { id: 'DocumentationReview', name: 'Documentation Review', desc: 'Clause analysis', category: 'Trial', icon: FileText },
-  { id: 'HearingPreparation', name: 'Hearing Preparation', desc: 'Final arguments', category: 'Trial', icon: Gavel }
+  { id: 'Bail', name: 'Bail Strategy', desc: 'Pre-arrest roadmap & stay', category: 'Criminal' },
+  { id: 'Criminal', name: 'Criminal Defense', desc: 'Theft & investigation plans', category: 'Criminal' },
+  { id: 'Civil', name: 'Civil Litigation', desc: 'Damages & contract breach', category: 'Civil' },
+  { id: 'Cyber', name: 'Cyber Crime Plan', desc: 'Digital theft & forensics logs', category: 'Cyber' },
+  { id: 'AnticipatoryBail', name: 'Anticipatory Bail', desc: 'Preventive arrest & warrants', category: 'Criminal' },
+  { id: 'FIRResponse', name: 'FIR Response', desc: 'Quashing petitions & counter', category: 'Criminal' },
+  { id: 'EvidencePlanning', name: 'Evidence Planning', desc: 'Municipal & land deed records', category: 'Civil' },
+  { id: 'AppealStrategy', name: 'Appeal Strategy', desc: 'High Court & judicial errors', category: 'Civil' },
+  { id: 'CrossExamination', name: 'Cross Examination', desc: 'Witness questioning strategies', category: 'Trial' },
+  { id: 'WitnessPreparation', name: 'Witness Preparation', desc: 'Testimony guidelines & chief', category: 'Trial' },
+  { id: 'SettlementStrategy', name: 'Settlement Plan', desc: 'Mediation & trade settlement', category: 'Corporate' },
 ];
 
 const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdateCase }) => {
   const isDark = theme === 'dark';
+  
+  // Platform States
   const [caseTitle, setCaseTitle] = useState('');
   const [caseFacts, setCaseFacts] = useState('');
   const [linkedCaseId, setLinkedCaseId] = useState(currentCase?._id || '');
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  // Strategy States
+  // Active Case Auto-load flag
+  const [useActiveCase, setUseActiveCase] = useState(false);
+
+  // Simulation & Loader States
   const [isAuditing, setIsAuditing] = useState(false);
+  const [auditStep, setAuditStep] = useState('');
   const [strategyResult, setStrategyResult] = useState(null);
+  
+  // Tabs & Navigation
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'roadmap' | 'evidence' | 'opponent' | 'judge' | 'precedents' | 'negotiation' | 'planner' | 'readiness' | 'logs'
   const [historyVisible, setHistoryVisible] = useState(false);
-  const [historyData, setHistoryData] = useState([]);
   const [historySearch, setHistorySearch] = useState('');
-  const [activeStrategy, setActiveStrategy] = useState(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [speechUtterance, setSpeechUtterance] = useState(null);
 
-  // Tools Grid State
-  const [toolsSearchQuery, setToolsSearchQuery] = useState('');
-  const [toolsCategory, setToolsCategory] = useState('All');
-  const [prefillBanner, setPrefillBanner] = useState(null);
+  // Audit Logs & Task Manager
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [newTaskText, setNewTaskText] = useState('');
 
   const scrollRef = useRef(null);
 
-  // ── On mount: consume prefill intent from "Use Active Case" ──
+  // --- Hydration & Setup ---
+  useEffect(() => {
+    if (currentCase) {
+      setLinkedCaseId(currentCase._id);
+      hydrateFromCase(currentCase);
+    } else {
+      resetPlatformState();
+    }
+  }, [currentCase]);
+
+  // Handle active prefill intent from workspace
   useEffect(() => {
     const intent = consumePrefillIntent('legal_strategy_engine');
     if (intent?.caseData) {
       const mapped = mapCaseToForm(intent.caseData);
-      if (mapped.caseTitle) setCaseTitle(mapped.caseTitle);
-      if (mapped.caseFacts) setCaseFacts(mapped.caseFacts);
       const caseId = intent.caseData?._id || intent.caseData?.id;
-      if (caseId) { setLinkedCaseId(caseId); loadStrategyHistory(caseId); }
-      setPrefillBanner({ caseTitle: mapped.caseTitle || intent.caseData?.name || 'Active Case' });
-      toast.success(`✓ Case data loaded for strategy`, { icon: '🏆', duration: 3000 });
-    }
-  }, []); // eslint-disable-line
-
-  useEffect(() => {
-    if (currentCase) {
-      setLinkedCaseId(currentCase._id);
-      loadStrategyHistory(currentCase._id);
-      setCaseTitle(currentCase.name || '');
-      setCaseFacts(currentCase.description || '');
-      setStrategyResult(null);
-      setActiveStrategy(null);
-    } else {
-      setHistoryData([]);
-      setStrategyResult(null);
-      setActiveStrategy(null);
-    }
-  }, [currentCase]);
-
-  const loadStrategyHistory = async (caseId) => {
-    try {
-      const targetCase = allProjects.find(p => p._id === caseId);
-      let dbHistory = targetCase?.strategiesHistory || [];
-
-      // Check legacy local storage history to migrate
-      const localData = localStorage.getItem('aisa_litigation_strategies_history');
-      if (localData && targetCase) {
-        try {
-          const parsedLocal = JSON.parse(localData);
-          const localForCase = parsedLocal.filter(h => h.caseId === caseId);
-          if (localForCase.length > 0) {
-            const merged = [...dbHistory];
-            localForCase.forEach(item => {
-              if (!merged.some(m => m.id === item.id)) {
-                merged.push(item);
-              }
-            });
-            const payload = {
-              ...targetCase,
-              strategiesHistory: merged
-            };
-            const response = await apiService.updateProject(caseId, payload);
-            if (onUpdateCase) onUpdateCase(response);
-            dbHistory = merged;
-
-            const remainingLocal = parsedLocal.filter(h => h.caseId !== caseId);
-            if (remainingLocal.length > 0) {
-              localStorage.setItem('aisa_litigation_strategies_history', JSON.stringify(remainingLocal));
-            } else {
-              localStorage.removeItem('aisa_litigation_strategies_history');
-            }
-          }
-        } catch (err) {
-          console.error("Error migrating strategy history", err);
-        }
+      if (caseId) {
+        setLinkedCaseId(caseId);
+        hydrateFromCase(intent.caseData);
       }
-
-      setHistoryData(dbHistory);
-    } catch (e) {
-      console.error('[StrategyEngine] Error loading history', e);
+      setUseActiveCase(true);
+      autoLoadCaseDetails(intent.caseData);
+      toast.success(`✓ Case workspace prefilled successfully`, { icon: '🏛️' });
     }
+  }, []);
+
+  const resetPlatformState = () => {
+    setCaseTitle('');
+    setCaseFacts('');
+    setStrategyResult(null);
+    setAuditLogs([]);
+    setTasks([]);
   };
 
-  const saveStrategyToHistory = async (strategy) => {
-    const caseId = linkedCaseId || currentCase?._id;
-    if (!caseId) return;
-    try {
-      const targetCase = allProjects.find(p => p._id === caseId);
-      if (!targetCase) return;
-      const strategyWithCase = {
-        ...strategy,
-        caseId: caseId
-      };
-      const existingHistory = targetCase.strategiesHistory || [];
-      const updated = [strategyWithCase, ...existingHistory.filter(h => h.id !== strategy.id)];
-
-      const payload = {
-        ...targetCase,
-        strategiesHistory: updated
-      };
-      const response = await apiService.updateProject(caseId, payload);
-      if (onUpdateCase) onUpdateCase(response);
-      setHistoryData(updated);
-    } catch (e) {
-      console.error('[StrategyEngine] Error saving history', e);
-    }
-  };
-
-  const deleteHistoryItem = async (id) => {
-    const caseId = linkedCaseId || currentCase?._id;
-    if (!caseId) return;
-    try {
-      const targetCase = allProjects.find(p => p._id === caseId);
-      if (!targetCase) return;
-      const existingHistory = targetCase.strategiesHistory || [];
-      const updated = existingHistory.filter(h => h.id !== id);
-
-      const payload = {
-        ...targetCase,
-        strategiesHistory: updated
-      };
-      const response = await apiService.updateProject(caseId, payload);
-      if (onUpdateCase) onUpdateCase(response);
-      setHistoryData(updated);
-      toast.success("Strategy log deleted successfully");
-      if (activeStrategy?.id === id) {
-        setActiveStrategy(null);
-        setStrategyResult(null);
-      }
-    } catch (e) {
-      console.error('[StrategyEngine] Error deleting history', e);
-    }
-  };
-
-  const handleCaseSelect = (caseId) => {
-    setLinkedCaseId(caseId);
-    if (caseId) {
-      const selected = allProjects.find(c => c._id === caseId);
-      if (selected) {
-        setCaseTitle(selected.name);
-        setCaseFacts(selected.description || selected.summary || '');
-        loadStrategyHistory(caseId);
-        toast.success(`Context linked to case: ${selected.name}`);
-      }
+  const hydrateFromCase = (caseObj) => {
+    if (!caseObj) return;
+    const ls = caseObj.litigationStrategy;
+    if (ls) {
+      setCaseTitle(ls.caseTitle || caseObj.name || '');
+      setCaseFacts(ls.caseFacts || caseObj.description || '');
+      setStrategyResult(ls.activeStrategy || null);
+      setTasks(ls.tasks || []);
+      setAuditLogs(ls.auditLogs || []);
     } else {
-      setLinkedCaseId('');
+      resetPlatformState();
+      setCaseTitle(caseObj.name || '');
+      setCaseFacts(caseObj.description || '');
     }
   };
 
-  const triggerQuickTool = (moduleId, moduleName) => {
-    let sampleFacts = '';
-    let title = '';
+  // Auto load context variables when "Use Active Case" is enabled
+  const autoLoadCaseDetails = (targetCase) => {
+    const activeObj = targetCase || currentCase || allProjects.find(p => p._id === linkedCaseId);
+    if (!activeObj) return;
 
-    if (moduleId === 'Bail') {
-      title = 'Bail Hearing Strategy - Anticipatory Request';
-      sampleFacts = `Anticipatory bail request under IPC Cyber Fraud provisions. Police are seeking physical arrest. Client alleges arbitrary framing and demonstrates full willingness to cooperate with the local investigative team.`;
-    } else if (moduleId === 'Criminal') {
-      title = 'Criminal Defense Strategy - Theft Accusation';
-      sampleFacts = `Prosecution alleges theft based entirely on circumstantial CCTV footage of low resolution. No physical recovery has been recorded, and the accused lacks any previous criminal records.`;
-    } else if (moduleId === 'Civil') {
-      title = 'Civil Litigation Strategy - Breach of Contract';
-      sampleFacts = `Plaintiff claims damages of $150,000 for delayed delivery of software code. Defendant asserts delayed payment of mandatory mobilization fee as the primary cause of operational postponement.`;
-    } else if (moduleId === 'Cyber') {
-      title = 'Cyber Crime Defense - Unauthorized Intrusion';
-      sampleFacts = `Client accused of unauthorized database access. The network audit exhibits overlapping credentials shared among multiple remote external contractors during the specified time period.`;
-    } else if (moduleId === 'Property') {
-      title = 'Property Dispute Planning - Adverse Possession';
-      sampleFacts = `Adverse possession claims over a boundary fence held continuously for 14 years. Plaintiff holds old physical sale deed records but hasn't physically occupied the property in two decades.`;
-    } else if (moduleId === 'Breach') {
-      title = 'Contract Breach Strategy - Indemnity Claim';
-      sampleFacts = `Partner seeks unilateral indemnification for third-party hosting service outage. The primary service levels agreement (SLA) excludes server provider failures from direct liability exposure.`;
-    } else if (moduleId === 'Corporate') {
-      title = 'Corporate Legal Defense - Shareholder Veto';
-      sampleFacts = `Minority shareholder seeks injunction against capital raising round, asserting dilution and lack of proper statutory meeting notice. Board has documented proof of digital notice delivery.`;
-    } else if (moduleId === 'AnticipatoryBail') {
-      title = 'Anticipatory Bail Strategy';
-      sampleFacts = `Client fears imminent arrest in a financial fraud case. Looking to secure an anticipatory bail. No prior criminal record. Ready to surrender passport and cooperate fully with investigators.`;
-    } else if (moduleId === 'FIRResponse') {
-      title = 'FIR Response & Quashing';
-      sampleFacts = `A fabricated FIR has been filed against the client over a personal dispute. Seeking strategy to file a counter-complaint and petition the High Court to quash the FIR under section 482.`;
-    } else if (moduleId === 'EvidencePlanning') {
-      title = 'Evidence Collection Planning';
-      sampleFacts = `Preparing for a civil property dispute. Need a roadmap for collecting municipal records, verifying older land deeds, and securing testimonies from long-term neighbors to establish adverse possession.`;
-    } else if (moduleId === 'AppealStrategy') {
-      title = 'High Court Appeal Strategy';
-      sampleFacts = `Lower court ruled against the client in a breach of contract case, misinterpreting the force majeure clause. Need an appeal strategy focusing on the legal error and precedents on pandemic-related contract failures.`;
-    } else if (moduleId === 'CrossExamination') {
-      title = 'Cross Examination Tactics';
-      sampleFacts = `Hostile witness is scheduled to testify next week. Witness has previously given contradictory statements to the police. Need a line of questioning to expose these contradictions and establish lack of credibility.`;
-    } else if (moduleId === 'WitnessPreparation') {
-      title = 'Witness Preparation Plan';
-      sampleFacts = `Preparing a key expert witness (forensic accountant) for a corporate embezzlement trial. Need to outline the structure of direct examination and prepare the witness for aggressive cross-examination by the defense.`;
-    } else if (moduleId === 'SettlementStrategy') {
-      title = 'Settlement & Negotiation Strategy';
-      sampleFacts = `Client wants to settle a long-running family business dispute. The opposing party is demanding an unreasonable valuation. Need a mediation strategy to force a realistic compromise without admitting liability.`;
-    } else if (moduleId === 'ContractDispute') {
-      title = 'Contract Dispute Resolution';
-      sampleFacts = `Vendor failed to deliver critical software components on time, triggering penalty clauses. Vendor claims scope creep. Need a strategy to enforce penalties or terminate the agreement favorably.`;
-    } else if (moduleId === 'ArbitrationPlan') {
-      title = 'Arbitration Proceedings Plan';
-      sampleFacts = `Initiating binding arbitration in Singapore over an international trade dispute. The opposing party is delaying the appointment of the arbitrator. Need a procedural roadmap to force compliance.`;
-    } else if (moduleId === 'RecoveryStrategy') {
-      title = 'Debt Recovery Strategy';
-      sampleFacts = `A corporate client owes $500,000 in unpaid invoices for over 6 months. Need a strategy starting from legal notices to initiating insolvency proceedings to maximize recovery chances.`;
-    } else if (moduleId === 'TaxLitigation') {
-      title = 'Tax Assessment Appeal';
-      sampleFacts = `The tax authority has disallowed $1M in legitimate business expenses and imposed a 50% penalty. Need an appeal strategy before the tribunal focusing on statutory interpretation and recent favorable case laws.`;
-    } else if (moduleId === 'CyberFraudDefense') {
-      title = 'Cyber Fraud Defense';
-      sampleFacts = `Client's company is accused of facilitating a crypto scam due to a vulnerability in their platform. Need a defense strategy separating the platform's liability from the actions of malicious third-party actors.`;
-    } else if (moduleId === 'CriminalAppeal') {
-      title = 'Criminal Sentence Appeal';
-      sampleFacts = `Client was convicted of negligence and sentenced to 3 years. The trial judge ignored key exculpatory evidence regarding equipment failure. Need an appeal strategy to suspend the sentence and overturn the conviction.`;
-    } else if (moduleId === 'ConsumerComplaint') {
-      title = 'Consumer Court Strategy';
-      sampleFacts = `A real estate developer delayed apartment possession by 4 years. Need a strategy to file a class-action consumer complaint demanding immediate possession and 18% annual interest as compensation.`;
-    } else if (moduleId === 'DocumentationReview') {
-      title = 'Litigation Documentation Review';
-      sampleFacts = `Reviewing a 500-page bundle of email correspondences between the founders before a partnership split. Need a strategy to identify admissions of liability and breaches of fiduciary duty.`;
-    } else if (moduleId === 'HearingPreparation') {
-      title = 'Final Hearing Preparation';
-      sampleFacts = `Final arguments in a trademark infringement suit are next month. Need a roadmap to synthesize 3 years of evidence, expert reports, and case laws into a compelling 30-minute oral presentation.`;
-    } else {
-      title = `${moduleName || 'Legal Strategy'} - Initial Roadmap`;
-      sampleFacts = `Developing comprehensive courtroom strategies and defense plans tailored for ${moduleName || 'this specific legal matter'}. Analyzing opponent tactics, risk exposure, and precedent support.`;
-    }
+    const mapped = mapCaseToForm(activeObj);
+    const title = activeObj.name || activeObj.title || '';
+    
+    // Assemble visual context facts outline
+    const assembledFacts = [
+      `Court: ${mapped.courtName || 'District/High Court'}`,
+      `Client Name (Party 1): ${mapped.petitioner || 'N/A'}`,
+      `Opposing Party (Opponent): ${mapped.respondent || 'N/A'}`,
+      `Case Category: ${mapped.caseType || 'Litigation'}`,
+      `Case Number: ${mapped.caseNumber || 'N/A'}`,
+      `Witnesses Matrix: ${mapped.evidenceSummary || 'N/A'}`,
+      `Case Summary facts:\n${mapped.caseFacts || ''}`
+    ].filter(Boolean).join('\n');
 
     setCaseTitle(title);
-    setCaseFacts(sampleFacts);
-    toast.success(`Template loaded: ${title}`);
-
-    runStrategyAuditor({
-      title,
-      caseFacts: sampleFacts
-    });
+    setCaseFacts(assembledFacts);
   };
 
-  const runStrategyAuditor = async (customState) => {
-    const stateToUse = customState || {
-      title: caseTitle || 'Custom Courtroom Strategy',
-      caseFacts
+  const handleUseActiveCaseToggle = (checked) => {
+    setUseActiveCase(checked);
+    if (checked) {
+      autoLoadCaseDetails();
+    } else {
+      resetPlatformState();
+      if (currentCase) {
+        setCaseTitle(currentCase.name || '');
+        setCaseFacts(currentCase.description || '');
+      }
+    }
+  };
+
+  // Ensure case is created in database (Manual fallback)
+  const ensureCaseCreated = async () => {
+    let activeId = linkedCaseId || currentCase?._id;
+    let activeProj = currentCase || allProjects.find(p => p._id === activeId);
+
+    if (!activeId) {
+      setIsSyncing(true);
+      const title = `Litigation Strategy: ${caseTitle || 'Custom Courtroom Matter'}`;
+      try {
+        const newProj = await apiService.createProject({
+          name: title,
+          isLegalCase: true,
+          description: `Automatically created for litigation strategy of ${caseTitle || 'matter'}.`
+        });
+        activeId = newProj._id;
+        activeProj = newProj;
+        setLinkedCaseId(activeId);
+        if (onUpdateCase) onUpdateCase(newProj);
+        toast.success(`📁 Database Case created: "${title}"`);
+      } catch (e) {
+        console.error("Auto-create case failed", e);
+      } finally {
+        setIsSyncing(false);
+      }
+    }
+    return { activeId, activeProj };
+  };
+
+  // Sync state changes directly to the database
+  const syncToDatabase = async (updates) => {
+    const activeId = linkedCaseId || currentCase?._id;
+    if (!activeId) return;
+    setIsSyncing(true);
+    try {
+      const activeProj = allProjects.find(p => p._id === activeId) || currentCase;
+      const currentLs = activeProj?.litigationStrategy || {};
+      const payload = {
+        ...activeProj,
+        litigationStrategy: {
+          ...currentLs,
+          caseTitle,
+          caseFacts,
+          activeStrategy: strategyResult,
+          tasks,
+          auditLogs,
+          ...updates
+        }
+      };
+      const response = await apiService.updateProject(activeId, payload);
+      if (onUpdateCase) onUpdateCase(response);
+    } catch (e) {
+      console.error("Database sync failed", e);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Push audit logs
+  const logAudit = async (action, details, customLogsList = null) => {
+    const timestamp = new Date().toISOString();
+    const userEmail = getUserData()?.email || 'System User';
+    const userName = getUserData()?.name || 'Advocate';
+    const newLog = {
+      timestamp,
+      action,
+      details,
+      editedBy: `${userName} (${userEmail})`
     };
 
-    if (!stateToUse.caseFacts.trim()) {
-      toast.error("Please provide case facts or link to a case to run strategy simulation.");
+    const targetList = customLogsList || auditLogs;
+    const updatedLogs = [...targetList, newLog];
+    setAuditLogs(updatedLogs);
+
+    await syncToDatabase({ auditLogs: updatedLogs });
+  };
+
+  // --- Task Manager & Checklist ---
+  const handleAddTask = async () => {
+    if (!newTaskText.trim()) return;
+    const newTask = {
+      id: `task_${Date.now()}`,
+      task: newTaskText.trim(),
+      completed: false
+    };
+    const updatedTasks = [...tasks, newTask];
+    setTasks(updatedTasks);
+    setNewTaskText('');
+
+    await syncToDatabase({ tasks: updatedTasks });
+    await logAudit("Task Appended", `Added procedural strategy task: "${newTask.task}"`);
+    toast.success("Task appended to checklist.");
+  };
+
+  const handleToggleTask = async (taskId) => {
+    const updatedTasks = tasks.map(t => t.id === taskId ? { ...t, completed: !t.completed } : t);
+    setTasks(updatedTasks);
+
+    await syncToDatabase({ tasks: updatedTasks });
+    const target = tasks.find(t => t.id === taskId);
+    await logAudit("Task Toggled", `Marked task "${target.task}" as ${!target.completed ? 'COMPLETED' : 'PENDING'}`);
+  };
+
+  const handleDeleteTask = async (taskId) => {
+    const target = tasks.find(t => t.id === taskId);
+    const updatedTasks = tasks.filter(t => t.id !== taskId);
+    setTasks(updatedTasks);
+
+    await syncToDatabase({ tasks: updatedTasks });
+    await logAudit("Task Deleted", `Removed task: "${target.task}"`);
+  };
+
+  // --- Dynamic Court Readiness Score ---
+  const readinessMetrics = useMemo(() => {
+    if (strategyResult && strategyResult.readiness) {
+      const base = strategyResult.readiness;
+      const totalTasks = tasks.length;
+      const completedTasks = tasks.filter(t => t.completed).length;
+      const taskPercentage = totalTasks > 0 ? Math.round((completedTasks * 100) / totalTasks) : 100;
+      
+      const overall = Math.round((base.evidence + base.witness + base.documentation + base.argument + taskPercentage) / 5);
+      return {
+        ...base,
+        taskPercentage,
+        overall
+      };
+    }
+    return {
+      evidence: '--',
+      witness: '--',
+      documentation: '--',
+      argument: '--',
+      taskPercentage: '--',
+      overall: '--'
+    };
+  }, [strategyResult, tasks]);
+
+  // --- AI Litigation Auditor ---
+  const runLitigationSimulation = async () => {
+    if (!caseFacts.trim()) {
+      toast.error("Please provide case facts or load templates first.");
       return;
     }
 
+    const { activeId } = await ensureCaseCreated();
+
     setIsAuditing(true);
     setStrategyResult(null);
+    setAuditStep('Contextualizing case facts...');
 
-    const tid = toast.loading("Simulating litigation roadmaps...");
-
-    const isRoadmap = stateToUse.mode === 'roadmap';
+    const toastId = toast.loading("AI War Room calculating legal exposure & roadmap...");
 
     try {
-      const systemPrompt = isRoadmap ? `You are the AISA Enterprise Litigation Roadmap Generator. You build clear, step-by-step legal timelines and milestones.
-      
-      CRITICAL FORMATTING INSTRUCTIONS:
-      Always output a valid markdown with the following exactly matching sections:
-      ### **AISA CASE ROADMAP**
-      
-      **Case Stage:** [Current Stage]
-      **Strategy Score:** [Timeline Certainty]% | **Litigation Risk:** [Low/Moderate/High]
-      
-      #### **1. IMMEDIATE LEGAL STEPS**
-      * [Step 1]: [Explanation].
-      * [Step 2]: [Explanation].
-      
-      #### **2. EXPECTED TIMELINE & HEARING FLOW**
-      * [Month/Phase 1]: [What to expect].
-      * [Month/Phase 2]: [What to expect].
-      
-      #### **3. REQUIRED DOCUMENTS & PREPARATION**
-      * [Document/Evidence]: [Why it is needed].` 
-      : `You are the AISA Enterprise Litigation Strategy War Room. You generate courtroom plans, rebuttals, tactics, roadmaps, and judge pattern insights.
-      
-      CRITICAL FORMATTING INSTRUCTIONS:
-      Always output a valid markdown with the following exactly matching sections:
-      ### **AISA LITIGATION STRATEGY REPORT**
-      
-      **Case Classification:** [Brief Title/Type]
-      **Strategy Score:** [Strategy Strength]% | **Litigation Risk:** [Low/Moderate/High]
-      
-      #### **1. PRIMARY STRATEGY & LEGAL ARCHITECTURE**
-      * [Strategic Action/Point] (Strength: [High/Moderate]): [Detailed courtroom strategy explanation].
-      * [Second Strategic Action/Point] (Strength: [High/Moderate]): [Explanation].
-      
-      #### **2. COURTROOM ATTACK & DEFENSE TACTICS**
-      * [Attack Tactic 1]: [Detailed explanation of how to execute cross-examination or challenge evidence].
-      * [Attack Tactic 2]: [Explanation].
-      
-      #### **3. RECOMMENDED WAR ROOM ACTIONS**
-      * **Immediate Action:** [Urgent procedural filing advice].
-      * **Preservation Action:** [Advice on preserving evidence or obtaining records].`;
+      const systemPrompt = `You are a professional courtroom litigation attorney and judicial strategy architect.
+Analyze the provided legal matter facts. Output your complete strategy assessment as a single valid JSON object.
+Do NOT write conversational text outside the "json" code block. Double quote keys.
 
-      const query = `
-      Case Title: ${stateToUse.title}
-      Case Facts: ${stateToUse.caseFacts}
-      `;
+JSON Schema:
+{
+  "stats": {
+    "overallStrategyScore": <Integer 0-100>,
+    "winningProbability": <Integer 0-100>,
+    "litigationRisk": <Integer 0-100>,
+    "evidenceStrength": <Integer 0-100>,
+    "precedentSupport": <Integer 0-100>,
+    "aiConfidence": <Integer 0-100>,
+    "courtReadiness": <Integer 0-100>,
+    "missingEvidenceCount": <Integer>,
+    "missingDocumentsCount": <Integer>,
+    "settlementProbability": <Integer 0-100>,
+    "appealRisk": <Integer 0-100>,
+    "opponentRiskLevel": "<Low | Medium | High>"
+  },
+  "strategies": {
+    "primary": { "title": "Primary Legal Strategy", "description": "Courtroom arguments focus on this central claim." },
+    "alternative": { "title": "Alternative Legal Strategy", "description": "Secondary line of defense if primary is challenged." },
+    "backup": { "title": "Backup Safety Strategy", "description": "Procedural actions to execute." },
+    "emergency": { "title": "Emergency Escalation Strategy", "description": "Filing stays or appeals immediately." }
+  },
+  "winningRoadmap": [
+    { "stage": "Investigation", "status": "Completed", "description": "Forensic timeline of events compiled." },
+    { "stage": "Evidence Collection", "status": "In Progress", "description": "Staging municipal records and deeds." },
+    { "stage": "Notice", "status": "Staged", "description": "Send legal demand notice to opposite party." },
+    { "stage": "Filing", "status": "Staged", "description": "File main suit/petition in registry." },
+    { "stage": "Interim Relief", "status": "Staged", "description": "File injunction or temporary stay petition." },
+    { "stage": "Witness Examination", "status": "Staged", "description": "Chief examination of primary client." },
+    { "stage": "Cross Examination", "status": "Staged", "description": "Expose hostile contradictions." },
+    { "stage": "Final Arguments", "status": "Staged", "description": "Synthesize case law precedents." },
+    { "stage": "Judgment", "status": "Staged", "description": "Wait for decree or judicial order." },
+    { "stage": "Appeal", "status": "Staged", "description": "Prepare grounds of appeal if required." }
+  ],
+  "evidenceStrategy": {
+    "strong": [{ "evidence": "Primary proof name", "reason": "Why it is legally binding" }],
+    "weak": [{ "evidence": "Corroborative proof", "reason": "Why it lacks direct force" }],
+    "missing": [{ "evidence": "Missing record", "reason": "Need to request immediately" }],
+    "priority": [{ "evidence": "High priority record", "reason": "Should secure first" }],
+    "sequence": ["Evidence Step 1", "Evidence Step 2"]
+  },
+  "witnessStrategy": {
+    "key": [{ "witness": "Key witness role", "purpose": "Explain facts of event" }],
+    "optional": [{ "witness": "Optional character witness", "purpose": "Support credibility" }],
+    "weak": [{ "witness": "Vulnerable witness", "purpose": "Susceptible to timelines" }],
+    "crossExamination": [
+      { "topic": "Credibility challenge", "questions": ["Question 1?"], "followUps": ["Follow-up?"], "traps": ["Trap question?"] }
+    ]
+  },
+  "opponentStrategy": {
+    "likelyDefence": "Summary of likely opposition defense tactics",
+    "likelyObjections": ["Objection 1", "Objection 2"],
+    "counterArguments": ["Counter 1", "Counter 2"],
+    "appealPossibility": "High probability of appeal to higher court",
+    "delayStrategy": "Likely to seek frequent adjournments using procedural rules"
+  },
+  "counterStrategy": [
+    { "opponentArgument": "Opponent claim", "counterResponse": "Your rebuttal", "evidenceRequired": "Proof to rebut", "applicableLaw": "BSA or CPC rule", "recommendedAction": "Action to take" }
+  ],
+  "judgePerspective": {
+    "likelyQuestions": ["Judicial question 1?"],
+    "courtConcerns": ["Concern 1", "Concern 2"],
+    "weakAreas": ["Weak link in case"],
+    "legalObservations": ["Relevant judicial observations"],
+    "expectedFocusAreas": ["Primary focus points"]
+  },
+  "precedents": [
+    { "citation": "Supreme Court Citation", "court": "Supreme Court of India", "summary": "Core legal principle settled", "similarityScore": 95, "type": "Binding Precedent" }
+  ],
+  "laws": [
+    { "section": "Section code", "act": "BSA / BNS / CPC / IT Act", "applicability": "Applicability details" }
+  ],
+  "timeline": [
+    { "phase": "Notice Stage", "duration": "15 Days", "description": "Drafting and dispatching legal notice." }
+  ],
+  "risks": {
+    "legal": 20,
+    "evidence": 30,
+    "procedural": 10,
+    "financial": 40,
+    "strategic": 15,
+    "riskPercentage": 25
+  },
+  "settlement": {
+    "settlementChance": 50,
+    "negotiationStrategy": "Mediation approach details",
+    "mediationPossibility": "High mediation suitability",
+    "arbitrationSuitability": "Arbitration clauses valid"
+  },
+  "negotiationPositions": {
+    "opening": "Opening negotiation demands",
+    "middle": "Realistic middle ground demands",
+    "final": "Bottom line target",
+    "fallback": "Litigation recovery fallback"
+  },
+  "crossExamPlanner": [
+    { "witness": "Witness name", "mainQuestions": ["Q1"], "followUps": ["F1"], "contradictionQuestions": ["C1"], "credibilityQuestions": ["CR1"], "closingQuestions": ["CL1"] }
+  ],
+  "finalArguments": {
+    "opening": "Opening statement outlines",
+    "arguments": ["Legal argument 1"],
+    "evidenceRefs": ["Evidence reference code"],
+    "laws": ["Statutory section"],
+    "precedents": ["Precedents citation"],
+    "prayer": "prayer request to court",
+    "submission": "Final submission request"
+  },
+  "appealStrategy": {
+    "grounds": ["Ground 1", "Ground 2"],
+    "timeline": "30 days from decree copy",
+    "additionalEvidence": ["Additional documents needed"],
+    "higherCourtStrategy": "High Court approach"
+  },
+  "readiness": {
+    "evidence": 80,
+    "witness": 70,
+    "documentation": 75,
+    "argument": 85,
+    "overall": 77
+  },
+  "pendingTasks": [
+    { "task": "Collect registry petition copy", "completed": false },
+    { "task": "File vakalatnama and memo", "completed": false }
+  ],
+  "aiRecommendations": {
+    "doFirst": ["Action 1"],
+    "doNext": ["Action 2"],
+    "avoid": ["Action to avoid"],
+    "criticalIssues": ["Critical issue identified"],
+    "priorityImprovements": ["Priority improvement needed"]
+  }
+}`;
 
-      const response = await generateChatResponse([], query, systemPrompt, [], 'English', null, 'legal');
+      setAuditStep('Precedents database search...');
+      const response = await generateChatResponse(
+        [],
+        `Matter Title: ${caseTitle || 'Custom Courtroom Strategy'}\n\nCase Facts Scenario:\n${caseFacts}`,
+        systemPrompt,
+        [],
+        'English',
+        null,
+        'legal'
+      );
+
       const responseText = response.reply || response || '';
-
-      // Parse dynamic indicators
-      let strategyStrength = 75;
-      let precedentSupport = 80;
-      let courtRisk = 'Moderate';
-
+      let parsed = null;
       try {
-        const strengthMatch = responseText.match(/Strategy Score:\s*(\d+)%/i) || responseText.match(/Strategy Strength:\s*(\d+)%/i);
-        if (strengthMatch) {
-          strategyStrength = parseInt(strengthMatch[1]);
-          precedentSupport = Math.min(98, strategyStrength + 6);
-        }
-
-        const riskMatch = responseText.match(/Litigation Risk:\s*(\w+)/i) || responseText.match(/Risk Level:\s*(\w+)/i);
-        if (riskMatch) {
-          const parsedRisk = riskMatch[1].trim();
-          if (['High', 'Moderate', 'Low'].includes(parsedRisk)) courtRisk = parsedRisk;
+        const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/) || responseText.match(/(\{[\s\S]*\})/);
+        if (jsonMatch) {
+          parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+        } else {
+          parsed = JSON.parse(responseText.trim());
         }
       } catch (err) {
-        console.log("[Parsing Strategy Stats] Fallback used", err);
+        console.error("JSON parsing failed, fallback used", err);
       }
 
-      const newStrategy = {
-        id: Date.now().toString(),
-        title: stateToUse.title,
-        caseFacts: stateToUse.caseFacts,
-        timestamp: new Date().toLocaleString(),
-        stats: { strategyStrength, courtRisk, precedentSupport, confidenceRate: 95 },
-        report: responseText
-      };
+      if (!parsed || !parsed.stats) {
+        throw new Error("Unable to parse structured litigation strategy metrics.");
+      }
 
-      setActiveStrategy(newStrategy);
-      setStrategyResult(newStrategy);
-      await saveStrategyToHistory(newStrategy);
-      toast.success("Litigation strategy generated!", { id: tid });
-    } catch (error) {
-      console.error('[StrategyEngine] API Error:', error);
-      toast.error("Failed to build strategy plan.", { id: tid });
+      setStrategyResult(parsed);
+      
+      // Seed task manager with generated tasks
+      if (parsed.pendingTasks?.length > 0) {
+        const newTasks = parsed.pendingTasks.map((t, idx) => ({
+          id: `task_${Date.now()}_${idx}`,
+          task: t.task,
+          completed: false
+        }));
+        setTasks(newTasks);
+        await syncToDatabase({
+          activeStrategy: parsed,
+          tasks: newTasks
+        });
+      } else {
+        await syncToDatabase({
+          activeStrategy: parsed
+        });
+      }
+
+      toast.success("AI litigation strategy compiled!", { id: toastId });
+
+      // Save audit log
+      const timestamp = new Date().toISOString();
+      const userEmail = getUserData()?.email || 'System User';
+      const userName = getUserData()?.name || 'Advocate';
+      const newLog = {
+        timestamp,
+        action: 'AI Litigation Strategy Simulated',
+        details: `Simulated legal exposure. Winning Probability: ${parsed.stats.winningProbability}%. Risk Rating: ${parsed.stats.opponentRiskLevel}. Court Readiness: ${parsed.stats.courtReadiness}%. Mapped ${parsed.precedents?.length || 0} precedents.`,
+        editedBy: `${userName} (${userEmail})`
+      };
+      const updatedLogs = [...auditLogs, newLog];
+      setAuditLogs(updatedLogs);
+      await syncToDatabase({ auditLogs: updatedLogs });
+
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to compile litigation strategy.", { id: toastId });
     } finally {
       setIsAuditing(false);
-      setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 300);
+      setAuditStep('');
     }
   };
 
-  const handleCopy = (text) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Report copied to clipboard!");
+  // --- Exports & Sharing ---
+  const handleCopyReport = () => {
+    if (!strategyResult) return;
+    const reportText = JSON.stringify(strategyResult, null, 2);
+    navigator.clipboard.writeText(reportText);
+    toast.success("Litigation JSON report copied to clipboard!");
+    logAudit("Copied Strategy Report", "Copied litigation strategy report.");
   };
 
-  const handleShare = async (text) => {
+  const handleShareReport = async () => {
+    if (!strategyResult) return;
+    const shareText = `AISA Litigation Strategy for ${caseTitle}. Winning Prob: ${strategyResult.stats?.winningProbability}%. Risk: ${strategyResult.stats?.opponentRiskLevel}.`;
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: caseTitle || 'Litigation Strategy Report',
-          text: text
-        });
-      } catch (error) {
-        console.error(error);
-      }
+        await navigator.share({ title: `Strategy Report: ${caseTitle}`, text: shareText });
+        logAudit("Shared Strategy Report", "Shared strategy metadata report.");
+      } catch (e) { console.log(e); }
     } else {
-      handleCopy(text);
+      navigator.clipboard.writeText(shareText);
+      toast.success("Summary copied!");
     }
   };
 
-  const getHtmlContent = (text) => {
-    const parsedReport = text
-      .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-      .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-      .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-      .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/gim, '<em>$1</em>')
-      .replace(/\n/g, '<br/>');
-
-    return `
-      <html>
-      <head>
-        <style>
-          body { font-family: 'Times New Roman', serif; padding: 40px; line-height: 1.6; font-size: 13pt; color: #0f172a; }
-          h1 { text-align: center; text-transform: uppercase; font-size: 16pt; font-weight: bold; margin-bottom: 24px; color: #4f46e5; border-bottom: 2px solid #4f46e5; padding-bottom: 10px; }
-          h2 { font-size: 14pt; font-weight: bold; margin-top: 20px; margin-bottom: 12px; }
-          h3 { font-size: 13pt; font-weight: bold; margin-top: 16px; margin-bottom: 8px; }
-          strong { font-weight: bold; }
-          .footer { margin-top: 50px; border-top: 1px solid #e2e8f0; font-size: 10pt; text-align: center; padding-top: 15px; color: #64748b; }
-        </style>
-      </head>
-      <body>
-        <h1>AISA COURTROOM LITIGATION STRATEGY</h1>
-        <p><strong>Simulation Date:</strong> ${new Date().toLocaleDateString()}</p>
-        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin-bottom: 20px;"/>
-        ${parsedReport}
-        <div class="footer">Generated by AISA Litigation Strategy Engine - ${new Date().toLocaleDateString()}</div>
-      </body>
-      </html>
-    `;
-  };
-
-  const handleExportPDF = (text) => {
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(getHtmlContent(text));
-      printWindow.document.close();
-      printWindow.focus();
-      printWindow.print();
-    }
-  };
-
-  const handleSpeech = (text) => {
+  const handleSpeechSummary = () => {
     if (isSpeaking) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
-    } else {
-      const cleanText = text.replace(/[#*`]/g, '');
-      const utterance = new SpeechSynthesisUtterance(cleanText);
+    } else if (strategyResult) {
+      const text = `Litigation Strategy Summary for ${caseTitle}. Winning probability is ${strategyResult.stats?.winningProbability} percent. Court readiness is ${strategyResult.stats?.courtReadiness} percent. Litigation risk is ${strategyResult.stats?.litigationRisk} percent. Primary Strategy: ${strategyResult.strategies?.primary?.description}`;
+      const utterance = new SpeechSynthesisUtterance(text);
       utterance.onend = () => setIsSpeaking(false);
       utterance.onerror = () => setIsSpeaking(false);
       window.speechSynthesis.speak(utterance);
-      setSpeechUtterance(utterance);
       setIsSpeaking(true);
     }
   };
 
-  const filteredTools = useMemo(() => {
-    return allTools.filter(t => {
-      const matchSearch = t.name.toLowerCase().includes(toolsSearchQuery.toLowerCase()) || 
-                          t.desc.toLowerCase().includes(toolsSearchQuery.toLowerCase());
-      const matchCat = toolsCategory === 'All' || t.category === toolsCategory;
-      return matchSearch && matchCat;
-    });
-  }, [toolsSearchQuery, toolsCategory]);
+  const handlePrintPDF = () => {
+    if (!strategyResult) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error("Popup blocked! Enable popups to print/export PDF.");
+      return;
+    }
 
-  const stats = activeStrategy ? activeStrategy.stats : { strategyStrength: '--', courtRisk: '--', precedentSupport: '--', confidenceRate: '--' };
+    const html = `
+      <html>
+      <head>
+        <title>AISA Litigation Strategy Report - ${caseTitle}</title>
+        <style>
+          body { font-family: 'Times New Roman', serif; padding: 45px; line-height: 1.5; color: #0f172a; }
+          .header { text-align: center; border-bottom: 2px solid #4f46e5; padding-bottom: 15px; margin-bottom: 30px; }
+          .title { text-transform: uppercase; font-size: 18pt; font-weight: bold; color: #4f46e5; margin: 0; }
+          .meta-section { margin-bottom: 25px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
+          .meta-grid { display: grid; grid-template-cols: 1fr 1fr; gap: 15px; font-size: 11pt; }
+          .section-title { font-size: 14pt; font-weight: bold; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; color: #1e1b4b; margin-top: 30px; margin-bottom: 10px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 10.5pt; }
+          th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; }
+          th { background-color: #f1f5f9; font-weight: bold; }
+          .footer { margin-top: 60px; border-top: 1px solid #e2e8f0; font-size: 9pt; text-align: center; padding-top: 15px; color: #64748b; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div style="font-size: 9pt; font-weight: bold; letter-spacing: 2px; color: #4f46e5; margin-bottom: 5px;">AISA ENTERPRISE LITIGATION STRATEGY</div>
+          <h1 class="title">AI Courtroom Strategy & Exposure Report</h1>
+          <div style="margin-top: 5px; font-size: 11pt;">Matter: <strong>${caseTitle}</strong></div>
+        </div>
+
+        <div class="meta-section">
+          <div class="meta-grid">
+            <div>
+              <p><strong>Winning Probability:</strong> ${strategyResult.stats?.winningProbability}%</p>
+              <p><strong>Litigation Risk Score:</strong> ${strategyResult.stats?.litigationRisk}%</p>
+              <p><strong>Precedent Support:</strong> ${strategyResult.stats?.precedentSupport}%</p>
+            </div>
+            <div>
+              <p><strong>Court Readiness Rating:</strong> ${strategyResult.stats?.courtReadiness}%</p>
+              <p><strong>AI Confidence Rate:</strong> ${strategyResult.stats?.aiConfidence}%</p>
+              <p><strong>Opponent Risk Status:</strong> ${strategyResult.stats?.opponentRiskLevel}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title">1. Litigation Strategies Outline</div>
+        <p><strong>Primary strategy:</strong> ${strategyResult.strategies?.primary?.description}</p>
+        <p><strong>Alternative strategy:</strong> ${strategyResult.strategies?.alternative?.description}</p>
+        <p><strong>Backup Strategy:</strong> ${strategyResult.strategies?.backup?.description}</p>
+
+        <div class="section-title">2. Winning Roadmap timeline</div>
+        <ul>
+          ${strategyResult.winningRoadmap?.map(t => `
+            <li style="margin-bottom: 8px;"><strong>${t.stage}:</strong> ${t.description} (Status: ${t.status})</li>
+          `).join('') || '<li>None</li>'}
+        </ul>
+
+        <div class="section-title">3. Admissible Evidence Strategy</div>
+        <p><strong>Strongest Evidence:</strong></p>
+        <ul>${strategyResult.evidenceStrategy?.strong?.map(e => `<li>${e.evidence}: ${e.reason}</li>`).join('') || '<li>None</li>'}</ul>
+        <p><strong>Missing Key Evidence:</strong></p>
+        <ul>${strategyResult.evidenceStrategy?.missing?.map(e => `<li>${e.evidence}: ${e.reason}</li>`).join('') || '<li>None</li>'}</ul>
+
+        <div class="section-title">4. Judicial Precedents & Citations</div>
+        <ul>
+          ${strategyResult.precedents?.map(p => `
+            <li style="margin-bottom: 10px;">
+              <strong>${p.citation}</strong> (${p.court}) - Similarity: ${p.similarityScore}%
+              <br/><span style="font-size: 10pt; color: #4b5563;">Summary: ${p.summary}</span>
+            </li>
+          `).join('') || '<li>None</li>'}
+        </ul>
+
+        <div class="footer">
+          Generated automatically by AISA Litigation Strategy Platform on ${new Date().toLocaleString()}
+          <br/>Authentic case counsel records copy.
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      logAudit("Exported PDF Strategy", "Exported printable litigation strategy PDF report.");
+    }, 500);
+  };
+
+  const handleExportDoc = () => {
+    if (!strategyResult) return;
+    const docContent = `
+AISA LITIGATION STRATEGY PLATFORM REPORT
+========================================
+
+Matter: ${caseTitle}
+Simulated Date: ${new Date().toLocaleDateString()}
+Winning Probability: ${strategyResult.stats?.winningProbability}%
+Litigation Risk Score: ${strategyResult.stats?.litigationRisk}%
+Precedent Support: ${strategyResult.stats?.precedentSupport}%
+Overall Readiness Score: ${readinessMetrics.overall}%
+
+STRATEGIC BRIEF:
+----------------
+- Primary Defense: ${strategyResult.strategies?.primary?.description}
+- Alternative Defense: ${strategyResult.strategies?.alternative?.description}
+- Backup Strategy: ${strategyResult.strategies?.backup?.description}
+- Emergency Action: ${strategyResult.strategies?.emergency?.description}
+
+COURTROOM MILESTONES ROADMAP:
+-----------------------------
+${strategyResult.winningRoadmap?.map((t, idx) => `${idx + 1}. ${t.stage} [${t.status}]: ${t.description}`).join('\n')}
+
+EVIDENCE & CUSTODY STRATEGY:
+----------------------------
+Strong Elements:
+${strategyResult.evidenceStrategy?.strong?.map(e => `* ${e.evidence} - ${e.reason}`).join('\n')}
+Missing Elements:
+${strategyResult.evidenceStrategy?.missing?.map(e => `* ${e.evidence} - ${e.reason}`).join('\n')}
+Priority sequencing:
+${strategyResult.evidenceStrategy?.sequence?.map((s, i) => `  Phase ${i + 1}: ${s}`).join('\n')}
+
+WITNESS CROSS EXAMINATION PREPARATION:
+-------------------------------------
+Key Witness:
+${strategyResult.witnessStrategy?.key?.map(w => `* ${w.witness}: ${w.purpose}`).join('\n')}
+Hostile Cross Trap Questions:
+${strategyResult.witnessStrategy?.crossExamination?.map(x => `
+Topic: ${x.topic}
+  Main: ${x.questions?.join(', ')}
+  Traps: ${x.traps?.join(', ')}
+`).join('\n')}
+
+OPPONENT DEFENSE ANALYSIS:
+--------------------------
+- Expected Defense: ${strategyResult.opponentStrategy?.likelyDefence}
+- Anticipated Objections: ${strategyResult.opponentStrategy?.likelyObjections?.join(', ')}
+- Delay tactics expected: ${strategyResult.opponentStrategy?.delayStrategy}
+
+STATUTORY LEGISLATIVE ENGINES (BNS/CPC):
+----------------------------------------
+${strategyResult.laws?.map(l => `- Section ${l.section} under ${l.act}: ${l.applicability}`).join('\n')}
+
+BINDING JUDICIAL CITATIONS:
+---------------------------
+${strategyResult.precedents?.map(p => `- [${p.similarityScore}% matches] ${p.citation} (${p.court}): ${p.summary}`).join('\n')}
+
+PROCEDURAL TASKS CHECKLIST:
+---------------------------
+${tasks.map(t => `- [${t.completed ? 'x' : ' '}] ${t.task}`).join('\n')}
+
+Generated by AISA AI Litigation Strategy Suite. Confidential record.
+`;
+
+    const blob = new Blob([docContent], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${caseTitle.replace(/\s+/g, '_')}_AISA_Strategy_Report.doc`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    logAudit("Downloaded DOCX Strategy", "Downloaded litigation strategy document brief.");
+    toast.success("Word document strategy report downloaded!");
+  };
+
+  const handleQuickToolSelect = (toolId, toolName) => {
+    let facts = '';
+    let title = '';
+    
+    if (toolId === 'Bail') {
+      title = 'Bail Application Strategy - Cyber Crime';
+      facts = `Filing for Anticipatory Bail in a financial technology embezzlement case. Police are conducting investigation under BNS section 318. Prosecution relies on server logins from the client's home IP address. Client claims shared Wi-Fi networks and arbitrary registration of FIR without prelim audit.`;
+    } else if (toolId === 'Criminal') {
+      title = 'Criminal Defense Plan - Possession Claim';
+      facts = `Accused of possession of stolen artifacts under property theft rules. CCTV evidence is low-frame rates and does not show face. Accused has clean record, established store, and bought items with transaction receipts.`;
+    } else if (toolId === 'Civil') {
+      title = 'Civil Suits Brief - Contract Delay';
+      facts = `Recovery suit for contract delays. Plaintiff demands 12L INR liquidated damages. Defendant states delays are caused by direct delays in designs approval and lack of prompt mobilization payments by the Plaintiff.`;
+    } else if (toolId === 'Cyber') {
+      title = 'Cyber Forensic Defense Strategy';
+      facts = `Server database breach litigation. Opponent alleges security breach from user account. User logs show session tokens were active from overlapping geo-locations (Delhi and Singapore) within 5 minutes.`;
+    } else if (toolId === 'AnticipatoryBail') {
+      title = 'Anticipatory Bail - Economic Offence';
+      facts = `Apprehension of arrest in relation to bank loan default. Matter under corporate scanner. Ready to surrender passport, provide corporate security bonds, and join local police inquiry.`;
+    } else if (toolId === 'FIRResponse') {
+      title = 'FIR Response Brief';
+      facts = `FIR filed alleging cheating. Dispute is purely civil regarding business partnership split. No criminal element. Filing petition under section 482 for quashing FIR.`;
+    } else if (toolId === 'EvidencePlanning') {
+      title = 'Property Title Evidence Strategy';
+      facts = `Title declaration suit. Seeking adverse possession proofs. Overlapping title deeds from 1994. Long-term electricity bills, land revenue taxes, and neighbor testimonies are staged.`;
+    } else if (toolId === 'AppealStrategy') {
+      title = 'Appeal - Lower Court Injunction Error';
+      facts = `Appeal against lower court order refusing interim stay in property eviction. Trial judge failed to weigh balance of convenience and irreparable injury rules.`;
+    } else if (toolId === 'CrossExamination') {
+      title = 'Cross Examination Roadmap - Contract Witness';
+      facts = `Cross-examination of opposing project manager. Witness email logs explicitly admit that project requirements were altered unilaterally midway, contradicting deposition facts.`;
+    } else if (toolId === 'WitnessPreparation') {
+      title = 'Witness Preparation - Forensic Accountant';
+      facts = `Preparing forensic auditor to testify on financial ledger audits. Ready for cross questions regarding auditing methodologies and data sample sizes.`;
+    } else if (toolId === 'SettlementStrategy') {
+      title = 'Settlement Brief - Franchise Split';
+      facts = `ADR mediation regarding contract breach. Opponent demands 50L INR. Client offers 15L settlement backed by documented revenue losses during lockouts.`;
+    }
+
+    setCaseTitle(title);
+    setCaseFacts(facts);
+    toast.success(`Template loaded: ${title}`);
+    
+    // Auto simulate
+    performStrategySimulationInternal(title, facts);
+  };
+
+  const performStrategySimulationInternal = async (title, factsText) => {
+    setIsAuditing(true);
+    setStrategyResult(null);
+    setAuditStep('Calculating legal timelines...');
+    const toastId = toast.loading("AI War Room compiling litigation report...");
+
+    try {
+      const systemPrompt = `You are a professional courtroom litigation attorney and judicial strategy architect.
+Analyze the provided legal matter facts. Output your complete strategy assessment as a single valid JSON object.
+Do NOT write conversational text outside the "json" code block. Double quote keys. Match the schema.`;
+
+      const response = await generateChatResponse(
+        [],
+        `Matter Title: ${title}\n\nCase Facts Scenario:\n${factsText}`,
+        systemPrompt,
+        [],
+        'English',
+        null,
+        'legal'
+      );
+
+      const responseText = response.reply || response || '';
+      let parsed = null;
+      try {
+        const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/) || responseText.match(/(\{[\s\S]*\})/);
+        if (jsonMatch) {
+          parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+        } else {
+          parsed = JSON.parse(responseText.trim());
+        }
+      } catch (err) {
+        console.error("Simulation parse failed", err);
+      }
+
+      if (!parsed) throw new Error("Parse error.");
+
+      setStrategyResult(parsed);
+      if (parsed.pendingTasks?.length > 0) {
+        const newTasks = parsed.pendingTasks.map((t, idx) => ({
+          id: `task_${Date.now()}_${idx}`,
+          task: t.task,
+          completed: false
+        }));
+        setTasks(newTasks);
+        await syncToDatabase({ activeStrategy: parsed, tasks: newTasks });
+      } else {
+        await syncToDatabase({ activeStrategy: parsed });
+      }
+
+      toast.success("AI litigation strategy compiled!", { id: toastId });
+      
+      const timestamp = new Date().toISOString();
+      const userEmail = getUserData()?.email || 'System User';
+      const userName = getUserData()?.name || 'Advocate';
+      const newLog = {
+        timestamp,
+        action: 'AI Litigation Strategy Simulated',
+        details: `Simulated legal exposure. Winning Probability: ${parsed.stats.winningProbability}%. Risk Rating: ${parsed.stats.opponentRiskLevel}. Court Readiness: ${parsed.stats.courtReadiness}%. Mapped ${parsed.precedents?.length || 0} precedents.`,
+        editedBy: `${userName} (${userEmail})`
+      };
+      const updatedLogs = [...auditLogs, newLog];
+      setAuditLogs(updatedLogs);
+      await syncToDatabase({ auditLogs: updatedLogs });
+
+    } catch (e) {
+      toast.error("Failed to build litigation strategy.", { id: toastId });
+    } finally {
+      setIsAuditing(false);
+      setAuditStep('');
+    }
+  };
+
+  // Dynamic statistics
+  const stats = useMemo(() => {
+    if (strategyResult && strategyResult.stats) {
+      return strategyResult.stats;
+    }
+    return {
+      overallStrategyScore: '--',
+      winningProbability: '--',
+      litigationRisk: '--',
+      evidenceStrength: '--',
+      precedentSupport: '--',
+      aiConfidence: '--',
+      courtReadiness: '--',
+      missingEvidenceCount: '--',
+      missingDocumentsCount: '--',
+      settlementProbability: '--',
+      appealRisk: '--',
+      opponentRiskLevel: '--'
+    };
+  }, [strategyResult]);
 
   return (
-    <div className="flex-1 flex flex-col w-full h-full min-h-0 bg-slate-50 dark:bg-transparent overflow-hidden">
+    <div className="flex-1 flex flex-col w-full h-full min-h-0 bg-slate-50 dark:bg-transparent overflow-hidden select-none">
+      
       {/* Header bar */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-white/5 bg-white/80 dark:bg-[#0B1020]/80 backdrop-blur-xl shrink-0">
+      <div className={`flex items-center justify-between px-6 py-4 border-b shrink-0 ${isDark ? 'border-slate-800 bg-[#0B1020]/80' : 'border-slate-200 bg-white'} backdrop-blur-xl`}>
         <div className="flex items-center gap-3">
           <button 
             onClick={onBack} 
-            className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
+            className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-zinc-800 text-slate-400' : 'hover:bg-slate-100 text-slate-600'}`}
           >
-            <ChevronLeft size={20} className="text-slate-600 dark:text-slate-400" />
+            <ChevronLeft size={20} />
           </button>
           <div>
-            <h2 className="text-lg font-black text-slate-900 dark:text-white leading-none tracking-tight">Strategy Engine</h2>
-            <div className="flex items-center gap-1.5 mt-1">
+            <h2 className={`text-lg font-black leading-none tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>AI Litigation Strategy Platform</h2>
+            <div className="flex items-center gap-1.5 mt-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-              <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">LITIGATION WAR ROOM ACTIVE</span>
+              <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">COURTROOM LITIGATION WAR ROOM ACTIVE</span>
+              {isSyncing && (
+                <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-wider animate-pulse ml-2">✓ DB Synced</span>
+              )}
             </div>
           </div>
         </div>
 
         <button 
           onClick={() => setHistoryVisible(true)} 
-          className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200/30 rounded-xl text-xs font-black uppercase tracking-wider"
+          className={`flex items-center gap-1.5 px-3.5 py-2 border rounded-xl text-xs font-black uppercase tracking-wider transition-colors ${isDark ? 'bg-[#1A2540] border-slate-800 text-indigo-400 hover:bg-[#202E50]' : 'bg-indigo-50 border-indigo-200/30 text-indigo-600 hover:bg-indigo-100'}`}
         >
           <History size={14} />
           <span>Strategy Archive</span>
         </button>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar min-h-0 select-text">
-        <div className="max-w-5xl mx-auto space-y-6">
-
-          {/* Stats Header */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white dark:bg-[#1A2540] rounded-3xl p-5 shadow-sm flex flex-col items-center justify-center text-center">
-              <TrendingUp className="text-emerald-500" size={20} />
-              <span className="text-lg font-black text-emerald-500 mt-2">{stats.strategyStrength}{stats.strategyStrength !== '--' ? '%' : ''}</span>
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Strategy Score</span>
+      {/* Main Panel Layout */}
+      <div className="flex-1 flex w-full min-h-0 overflow-hidden">
+        
+        {/* Left Input Sidebar */}
+        <div className={`w-80 flex flex-col border-r shrink-0 overflow-y-auto custom-scrollbar p-5 space-y-5 ${isDark ? 'border-slate-800 bg-[#0c1224]' : 'border-slate-200 bg-white'}`}>
+          
+          {/* Use Active Case Toggle */}
+          <div className="flex items-center justify-between p-3.5 border rounded-2xl bg-indigo-500/5 border-indigo-500/10">
+            <div className="flex items-center gap-2">
+              <Folder size={16} className="text-indigo-500 shrink-0" />
+              <div>
+                <p className="text-[10px] font-black text-slate-800 dark:text-white uppercase leading-none">Use Active Case</p>
+                <p className="text-[8px] text-slate-400 mt-1">Sync case details dossier</p>
+              </div>
             </div>
-            <div className="bg-white dark:bg-[#1A2540] rounded-3xl p-5 shadow-sm flex flex-col items-center justify-center text-center">
-              <AlertTriangle className={stats.courtRisk === 'High' ? 'text-red-500' : 'text-amber-505'} size={20} />
-              <span className={`text-lg font-black mt-2 ${stats.courtRisk === 'High' ? 'text-red-500' : 'text-amber-500'}`}>{stats.courtRisk}</span>
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Litigation Risk</span>
-            </div>
-            <div className="bg-white dark:bg-[#1A2540] rounded-3xl p-5 shadow-sm flex flex-col items-center justify-center text-center">
-              <Scale className="text-indigo-500" size={20} />
-              <span className="text-lg font-black text-indigo-500 mt-2">{stats.precedentSupport}{stats.precedentSupport !== '--' ? '%' : ''}</span>
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Precedent Support</span>
-            </div>
-            <div className="bg-white dark:bg-[#1A2540] rounded-3xl p-5 shadow-sm flex flex-col items-center justify-center text-center">
-              <Brain className="text-pink-500" size={20} />
-              <span className="text-lg font-black text-pink-500 mt-2">{stats.confidenceRate}{stats.confidenceRate !== '--' ? '%' : ''}</span>
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">AI Confidence</span>
-            </div>
+            <input 
+              type="checkbox"
+              checked={useActiveCase}
+              onChange={e => handleUseActiveCaseToggle(e.target.checked)}
+              className="w-4 h-4 text-indigo-600 border-slate-350 rounded focus:ring-indigo-500"
+            />
           </div>
 
-          {/* Quick Tools Grid Section */}
-          <div className="bg-white dark:bg-[#1A2540] rounded-3xl p-6 shadow-sm">
-            <h3 className="text-xs font-black tracking-widest text-slate-400 uppercase mb-4">SPECIALIZED WAR ROOM ROADMAPS</h3>
-            
-            <div className="flex flex-col md:flex-row gap-4 mb-4">
-              <div className="flex-1 flex items-center bg-slate-50 dark:bg-[#131C31] border border-slate-200 dark:border-white/5 rounded-xl px-4 py-2.5">
-                <Search className="text-slate-400 mr-2 shrink-0" size={16} />
-                <input 
-                  type="text" 
-                  placeholder="Search strategies..."
-                  className="w-full bg-transparent border-none text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-0"
-                  value={toolsSearchQuery}
-                  onChange={e => setToolsSearchQuery(e.target.value)}
-                />
-              </div>
+          {/* Case Title */}
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Matter Name</label>
+            <input
+              type="text"
+              placeholder="e.g. Trademark Infringement Suit"
+              value={caseTitle}
+              onChange={e => setCaseTitle(e.target.value)}
+              className={`w-full border rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none ${isDark ? 'bg-black/20 border-zinc-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+              disabled={useActiveCase}
+            />
+          </div>
 
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full no-scrollbar">
-                {['All', 'Criminal', 'Civil', 'Corporate', 'Cyber', 'Trial'].map(cat => (
-                  <button
-                    key={cat}
-                    onClick={() => setToolsCategory(cat)}
-                    className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${toolsCategory === cat ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-50 dark:bg-[#131C31] text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
+          {/* Case Facts Scenario */}
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Case Facts Scenario Details</label>
+            <textarea
+              rows={6}
+              placeholder="Describe legal timeline dispute details, evidence, witnesses, previous arguments..."
+              value={caseFacts}
+              onChange={e => setCaseFacts(e.target.value)}
+              className={`w-full border rounded-xl px-3.5 py-2.5 text-xs font-medium outline-none resize-none ${isDark ? 'bg-black/20 border-zinc-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+              disabled={useActiveCase}
+            />
+          </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
-              {filteredTools.map(t => (
+          <button
+            onClick={runLitigationSimulation}
+            disabled={isAuditing}
+            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50"
+          >
+            Simulate Litigation Strategy
+          </button>
+
+          {/* specialized war room roadmap templates */}
+          <div className="border border-slate-250 dark:border-slate-800 rounded-2xl p-4 bg-slate-500/5 space-y-3">
+            <h3 className="text-[9px] font-black tracking-widest text-slate-400 uppercase">LOAD TEMPLATE SCENARIOS</h3>
+            <div className="grid grid-cols-1 gap-1.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+              {allTools.map(t => (
                 <button
                   key={t.id}
-                  onClick={() => triggerQuickTool(t.id, t.name)}
-                  className="text-left p-4 bg-slate-50 dark:bg-[#131C31] hover:border-indigo-500/50 rounded-2xl transition-all group flex flex-col justify-between min-h-[100px]"
+                  onClick={() => handleQuickToolSelect(t.id, t.name)}
+                  className={`text-left p-2.5 bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-xl transition-all hover:border-indigo-500/40 group flex flex-col justify-between`}
                 >
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-800 dark:text-white group-hover:text-indigo-600 truncate">{t.name}</h4>
-                    <p className="text-[10px] text-slate-400 mt-1 leading-snug font-medium line-clamp-2">{t.desc}</p>
-                  </div>
-                  <span className="text-[8px] font-bold text-indigo-500 uppercase tracking-widest mt-2">{t.category}</span>
+                  <h4 className="text-[10px] font-black text-slate-800 dark:text-white group-hover:text-indigo-500 truncate">{t.name}</h4>
+                  <p className="text-[8px] text-slate-400 leading-none mt-1 truncate">{t.desc}</p>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Active Case Prefill Banner */}
-          {prefillBanner && (
-            <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/10 border border-emerald-200 dark:border-emerald-900/30 rounded-2xl shadow-sm">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center shrink-0">
-                <CheckCircle2 size={16} className="text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-black text-emerald-700 dark:text-emerald-400">Active Case: {prefillBanner.caseTitle}</p>
-                <p className="text-[10px] text-emerald-600/70 dark:text-emerald-500/60 font-medium mt-0.5">Case facts pre-loaded — click Simulate or Generate Roadmap</p>
-              </div>
-              <button onClick={() => setPrefillBanner(null)} className="p-1 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded-full text-emerald-500 shrink-0"><X size={13} /></button>
-            </div>
-          )}
+        </div>
 
-          {/* Form and Input Area */}
-          <div className="bg-white dark:bg-[#1A2540] rounded-3xl p-6 shadow-md space-y-5">
-            <div className="flex items-center gap-2 border-b border-slate-100 dark:border-white/5 pb-3">
-              <BookOpen size={16} className="text-indigo-600 dark:text-indigo-400" />
-              <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">AI LITIGATION SCENARIO ARCHITECT</h3>
+        {/* Right main workspace view */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar px-6 py-6 space-y-6">
+          <div className="max-w-6xl w-full mx-auto space-y-6 select-text">
+
+            {/* Dynamic Litigation stats dashboard */}
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+              {[
+                { label: 'Strategy Score', val: stats.overallStrategyScore, col: 'text-indigo-500' },
+                { label: 'Winning Prob.', val: stats.winningProbability, col: 'text-emerald-500' },
+                { label: 'Litigation Risk', val: stats.litigationRisk, col: 'text-red-500' },
+                { label: 'Evidence Strength', val: stats.evidenceStrength, col: 'text-violet-500' },
+                { label: 'Precedent Support', val: stats.precedentSupport, col: 'text-emerald-500' },
+                { label: 'AI Confidence', val: stats.aiConfidence, col: 'text-pink-500' },
+              ].map(s => (
+                <div key={s.label} className={`border rounded-2xl p-4 text-center shadow-sm flex flex-col items-center justify-center ${isDark ? 'bg-[#131c31]/30 border-slate-800' : 'bg-white border-slate-200'}`}>
+                  <span className={`text-base font-black ${s.col}`}>{s.val}{s.val !== '--' ? '%' : ''}</span>
+                  <span className="text-[8px] text-slate-400 font-extrabold uppercase tracking-widest mt-1">{s.label}</span>
+                </div>
+              ))}
             </div>
 
-            {/* Case Sync */}
-            {allProjects.length > 0 && (
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[9px] font-black uppercase tracking-widest text-slate-500">Link to MyCase</label>
-                <select
-                  value={linkedCaseId}
-                  onChange={e => handleCaseSelect(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-xs font-bold outline-none text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500/20"
-                >
-                  <option value="">Manual Entry (No Sync)</option>
-                  {allProjects.map(c => (
-                    <option key={c._id} value={c._id}>{c.name}</option>
-                  ))}
-                </select>
+            {/* Second row stats */}
+            {strategyResult && (
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-3 animate-fadeIn">
+                {[
+                  { label: 'Court Readiness', val: readinessMetrics.overall + '%', col: 'text-indigo-500' },
+                  { label: 'Missing Evidence', val: stats.missingEvidenceCount, col: 'text-amber-500' },
+                  { label: 'Missing Docs', val: stats.missingDocumentsCount, col: 'text-amber-550' },
+                  { label: 'Settlement Prob.', val: stats.settlementProbability + '%', col: 'text-emerald-500' },
+                  { label: 'Appeal Risk', val: stats.appealRisk + '%', col: 'text-red-500' },
+                  { label: 'Opponent Risk', val: stats.opponentRiskLevel, col: 'text-red-500 font-black' },
+                ].map(s => (
+                  <div key={s.label} className={`border rounded-2xl p-3 text-center shadow-sm flex flex-col items-center justify-center ${isDark ? 'bg-[#131c31]/30 border-slate-800' : 'bg-white border-slate-200'}`}>
+                    <span className={`text-xs font-black ${s.col}`}>{s.val}</span>
+                    <span className="text-[8px] text-slate-400 font-extrabold uppercase tracking-widest mt-1">{s.label}</span>
+                  </div>
+                ))}
               </div>
             )}
 
-            {/* Case Title */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[9px] font-black uppercase tracking-widest text-slate-500">Matter Name</label>
-              <input
-                type="text"
-                placeholder="e.g. Injunction against Tenant eviction"
-                value={caseTitle}
-                onChange={e => setCaseTitle(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-xl px-4 py-3.5 text-xs font-bold outline-none text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500/20"
-              />
-            </div>
+            {/* Staged fact view / Initial state */}
+            {caseFacts && !strategyResult && !isAuditing && (
+              <div className={`p-6 border rounded-3xl text-center shadow-md ${isDark ? 'bg-[#131c31]/20 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <Scale className="mx-auto text-indigo-500 mb-3" size={32} />
+                <h3 className="text-sm font-black text-slate-850 dark:text-white mb-1.5 uppercase">Case Facts Staged</h3>
+                <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed mb-4">Litigation details are staged. Run the AI litigation strategy calculator to simulate roadmaps, map precedents, and construct final arguments checklists.</p>
+                <button
+                  onClick={runLitigationSimulation}
+                  className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-wider transition-all"
+                >
+                  Analyze & Generate Strategy Brief
+                </button>
+              </div>
+            )}
 
-            {/* Case Facts */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[9px] font-black uppercase tracking-widest text-slate-500">Case Facts & Scenario</label>
-              <textarea
-                rows={5}
-                placeholder="Describe current case stage, timeline, dispute details..."
-                value={caseFacts}
-                onChange={e => setCaseFacts(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-xs font-medium outline-none text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500/20 resize-none"
-              />
-            </div>
-
-            {/* Options Row */}
-            <div className="flex gap-4">
-              <button
-                onClick={() => runStrategyAuditor({ title: caseTitle, caseFacts, mode: 'strategy' })}
-                disabled={isAuditing}
-                className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-wider transition-all active:scale-95 shadow-lg shadow-indigo-500/20 disabled:opacity-50"
-              >
-                Simulate Strategy Report
-              </button>
-              <button
-                onClick={() => runStrategyAuditor({ title: caseTitle, caseFacts, mode: 'roadmap' })}
-                disabled={isAuditing}
-                className="flex-1 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs uppercase tracking-wider transition-all active:scale-95 shadow-lg shadow-emerald-500/20 disabled:opacity-50"
-              >
-                Generate Milestone Roadmap
-              </button>
-            </div>
-          </div>
-
-          {/* Thinking State */}
-          {isAuditing && (
-            <div className="flex flex-col items-center justify-center py-10 gap-3">
-              <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-              <span className="text-xs font-black uppercase tracking-widest text-indigo-500 animate-pulse">Running scenario engine calculations...</span>
-            </div>
-          )}
-
-          {/* Result Strategy Report */}
-          {strategyResult && (
-            <div ref={scrollRef} className="bg-white dark:bg-[#1A2540] rounded-3xl p-6 shadow-md space-y-6">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-3">
-                <div className="flex items-center gap-2">
-                  <Shield className="text-emerald-500" size={16} />
-                  <h3 className="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">LITIGATION WAR ROOM STRATEGY REPORT</h3>
+            {/* Audit Status Screen */}
+            {isAuditing && (
+              <div className={`p-8 border rounded-3xl text-center shadow-md space-y-4 ${isDark ? 'bg-[#131c31]/20 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                <div className="space-y-1">
+                  <h3 className="text-sm font-black text-indigo-500 animate-pulse uppercase tracking-wider">AISA War Room Active</h3>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{auditStep || 'Simulating litigation outcomes...'}</p>
                 </div>
+                <div className="w-48 bg-slate-100 dark:bg-black/30 h-1.5 rounded-full mx-auto overflow-hidden">
+                  <div className="h-full bg-indigo-600 animate-progress rounded-full w-2/3" />
+                </div>
+              </div>
+            )}
+
+            {/* Results workspace tabs */}
+            {strategyResult && (
+              <div className="space-y-4 animate-fadeIn">
                 
-                {/* Actions */}
-                <div className="flex items-center gap-1.5">
-                  <button 
-                    onClick={() => handleCopy(strategyResult.report)}
-                    className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg text-slate-500 hover:text-indigo-600"
-                    title="Copy Strategy"
-                  >
-                    <Copy size={14} />
-                  </button>
-                  <button 
-                    onClick={() => handleShare(strategyResult.report)}
-                    className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg text-slate-500 hover:text-indigo-600"
-                    title="Share Strategy"
-                  >
-                    <Share2 size={14} />
-                  </button>
-                  <button 
-                    onClick={() => handleSpeech(strategyResult.report)}
-                    className={`p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg ${isSpeaking ? 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/20' : 'text-slate-500'}`}
-                    title="Speak Strategy"
-                  >
-                    <Mic size={14} />
-                  </button>
-                  <button 
-                    onClick={() => handleExportPDF(strategyResult.report)}
-                    className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg text-indigo-600 hover:text-indigo-700"
-                    title="Print PDF"
-                  >
-                    <Printer size={14} />
-                  </button>
+                {/* Tabs selection */}
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-zinc-800 pb-2">
+                  <div className="flex gap-1 overflow-x-auto pb-1.5 no-scrollbar max-w-full">
+                    {[
+                      { id: 'overview', name: 'Strategies Overview', icon: Gavel },
+                      { id: 'roadmap', name: 'Winning Roadmap', icon: TrendingUp },
+                      { id: 'evidence', name: 'Evidence & Witness', icon: Shield },
+                      { id: 'opponent', name: 'Opponent Strategy', icon: Eye },
+                      { id: 'judge', name: 'Precedents & Judge', icon: Landmark },
+                      { id: 'negotiation', name: 'Settlement & Neg', icon: Briefcase },
+                      { id: 'planner', name: 'Trial Planner', icon: FileText },
+                      { id: 'readiness', name: 'Readiness & Tasks', icon: CheckCircle2 },
+                    ].map(t => {
+                      const Icon = t.icon;
+                      return (
+                        <button
+                          key={t.id}
+                          onClick={() => setActiveTab(t.id)}
+                          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === t.id ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-[#131C31] text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-350'}`}
+                        >
+                          <Icon size={12} />
+                          <span>{t.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Actions bar */}
+                  <div className="flex items-center gap-1 shrink-0 ml-4">
+                    <button 
+                      onClick={handleCopyReport}
+                      className={`p-2 rounded-lg text-slate-500 hover:text-indigo-600 transition-colors ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-slate-100'}`}
+                      title="Copy Strategy Report"
+                    >
+                      <Copy size={14} />
+                    </button>
+                    <button 
+                      onClick={handleShareReport}
+                      className={`p-2 rounded-lg text-slate-500 hover:text-indigo-600 transition-colors ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-slate-100'}`}
+                      title="Share Summary"
+                    >
+                      <Share2 size={14} />
+                    </button>
+                    <button 
+                      onClick={handleSpeechSummary}
+                      className={`p-2 rounded-lg transition-colors ${isSpeaking ? 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/20' : 'text-slate-500'} ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-slate-100'}`}
+                      title="Read Aloud Summary"
+                    >
+                      <Mic size={14} />
+                    </button>
+                    <button 
+                      onClick={handlePrintPDF}
+                      className={`p-2 rounded-lg text-indigo-600 hover:text-indigo-750 transition-colors ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-slate-100'}`}
+                      title="Print PDF Strategy"
+                    >
+                      <Printer size={14} />
+                    </button>
+                    <button 
+                      onClick={handleExportDoc}
+                      className={`p-2 rounded-lg text-emerald-600 hover:text-emerald-700 transition-colors ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-slate-100'}`}
+                      title="Export Word brief"
+                    >
+                      <FileDown size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Workspace tab contents */}
+                <div className={`border rounded-3xl p-6 shadow-md min-h-[350px] ${isDark ? 'bg-[#1A2540] border-slate-800' : 'bg-white border-slate-200'}`}>
+                  
+                  {/* Overview Panel */}
+                  {activeTab === 'overview' && (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {[
+                          { key: 'primary', label: 'Primary Legal Strategy', color: 'border-indigo-500/20 bg-indigo-500/5 text-indigo-500' },
+                          { key: 'alternative', label: 'Alternative Legal Strategy', color: 'border-violet-500/20 bg-violet-500/5 text-violet-500' },
+                          { key: 'backup', label: 'Backup Safety Strategy', color: 'border-amber-500/20 bg-amber-500/5 text-amber-550' },
+                          { key: 'emergency', label: 'Emergency Escalation Strategy', color: 'border-red-500/20 bg-red-500/5 text-red-500' },
+                        ].map(s => (
+                          <div key={s.key} className={`p-5 border rounded-2xl shadow-sm space-y-2 ${s.color}`}>
+                            <div className="flex items-center gap-2">
+                              <Shield size={16} />
+                              <h4 className="text-xs font-black uppercase tracking-wider">{s.label}</h4>
+                            </div>
+                            <p className="text-xs font-bold text-slate-700 dark:text-slate-250 leading-relaxed">
+                              {strategyResult.strategies?.[s.key]?.description || 'Litigation defense parameter not compiled.'}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="h-[1px] bg-slate-200 dark:bg-zinc-800/80" />
+
+                      <div className="space-y-3">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">AI Strategic Counsel Advice</span>
+                        <div className="p-4 bg-emerald-500/5 border border-emerald-500/15 rounded-2xl flex items-start gap-3">
+                          <CheckCircle2 size={20} className="text-emerald-500 shrink-0 mt-0.5" />
+                          <div className="space-y-1 text-xs">
+                            <span className="font-black text-emerald-500 uppercase tracking-wider">Litigation Suitability</span>
+                            <p className="font-semibold text-slate-600 dark:text-slate-350 leading-normal">{strategyResult.finalOpinion?.reasoning}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Winning Roadmap Chevron Timelines */}
+                  {activeTab === 'roadmap' && (
+                    <div className="space-y-6">
+                      <div className="flex flex-col gap-4">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Visual Courtroom Timeline Roadmap</span>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {strategyResult.winningRoadmap?.map((item, idx) => (
+                            <div key={idx} className="p-4 border border-slate-200/50 dark:border-zinc-800/60 rounded-2xl flex gap-3.5 items-start bg-slate-500/5">
+                              <span className={`w-6 h-6 rounded-lg text-[10px] font-black flex items-center justify-center shrink-0 ${item.status === 'Completed' ? 'bg-emerald-500 text-white' : (item.status === 'In Progress' ? 'bg-indigo-500 text-white' : 'bg-slate-300 text-slate-600')}`}>
+                                {idx + 1}
+                              </span>
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">{item.stage}</h4>
+                                  <span className={`px-2 py-0.5 rounded-md text-[8px] font-bold uppercase ${item.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-500' : (item.status === 'In Progress' ? 'bg-indigo-500/10 text-indigo-500' : 'bg-slate-300/10 text-slate-450')}`}>
+                                    {item.status}
+                                  </span>
+                                </div>
+                                <p className="text-xs font-semibold text-slate-500 leading-normal">{item.description}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Evidence & Witness */}
+                  {activeTab === 'evidence' && (
+                    <div className="space-y-6">
+                      
+                      {/* Evidence strategy */}
+                      <div className="space-y-4">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Evidence Strategy Roadmap</span>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Strong */}
+                          <div className="p-4 border border-emerald-500/10 bg-emerald-500/5 rounded-2xl space-y-2">
+                            <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Strong Admissible Evidence</span>
+                            <ul className="space-y-2">
+                              {strategyResult.evidenceStrategy?.strong?.map((e, idx) => (
+                                <li key={idx} className="text-xs font-semibold leading-relaxed text-slate-700 dark:text-slate-300">
+                                  <strong>{e.evidence}</strong>: {e.reason}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          {/* Missing */}
+                          <div className="p-4 border border-red-500/10 bg-red-500/5 rounded-2xl space-y-2">
+                            <span className="text-[9px] font-black text-red-500 uppercase tracking-widest">Missing Key Evidence Gaps</span>
+                            <ul className="space-y-2">
+                              {strategyResult.evidenceStrategy?.missing?.map((e, idx) => (
+                                <li key={idx} className="text-xs font-semibold leading-relaxed text-slate-700 dark:text-slate-300">
+                                  <strong>{e.evidence}</strong>: {e.reason}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+
+                        {/* Sequence */}
+                        <div className="p-4 border border-slate-200/50 dark:border-zinc-800 bg-slate-500/5 rounded-2xl space-y-2">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Recommended Evidence Presentation Sequence</span>
+                          <ol className="list-decimal pl-4 space-y-1.5 text-xs font-semibold text-slate-655 dark:text-slate-300">
+                            {strategyResult.evidenceStrategy?.sequence?.map((s, idx) => (
+                              <li key={idx}>{s}</li>
+                            ))}
+                          </ol>
+                        </div>
+                      </div>
+
+                      <div className="h-[1px] bg-slate-200 dark:bg-zinc-800/80" />
+
+                      {/* Witness strategy */}
+                      <div className="space-y-4">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Witness Prep & Examination Plans</span>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {[
+                            { label: 'Key Testimony Witnesses', list: strategyResult.witnessStrategy?.key, col: 'border-indigo-500/10 bg-indigo-500/5 text-indigo-500' },
+                            { label: 'Corroborative Optional Witnesses', list: strategyResult.witnessStrategy?.optional, col: 'border-violet-500/10 bg-violet-500/5 text-violet-500' },
+                            { label: 'Vulnerable Weak Witnesses', list: strategyResult.witnessStrategy?.weak, col: 'border-amber-500/10 bg-amber-500/5 text-amber-500' }
+                          ].map(w => (
+                            <div key={w.label} className={`p-4 border rounded-2xl space-y-2 ${w.col}`}>
+                              <span className="text-[9px] font-black uppercase tracking-widest">{w.label}</span>
+                              <ul className="space-y-2">
+                                {w.list?.map((item, idx) => (
+                                  <li key={idx} className="text-xs font-bold leading-normal text-slate-700 dark:text-slate-350">
+                                    {item.witness}: <span className="font-semibold text-slate-500">{item.purpose}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                    </div>
+                  )}
+
+                  {/* Opponent & Counter Strategy */}
+                  {activeTab === 'opponent' && (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-4 border border-slate-200/50 dark:border-zinc-850 rounded-2xl bg-slate-500/5 space-y-2">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Opponent Expected Defense Tactics</span>
+                          <p className="text-xs font-semibold text-slate-500 leading-relaxed">{strategyResult.opponentStrategy?.likelyDefence}</p>
+                        </div>
+                        <div className="p-4 border border-slate-200/50 dark:border-zinc-850 rounded-2xl bg-slate-500/5 space-y-2">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Expected Objections & Delay strategies</span>
+                          <p className="text-xs font-semibold text-slate-500 leading-relaxed">
+                            <strong>Objections:</strong> {strategyResult.opponentStrategy?.likelyObjections?.join(', ')}
+                            <br/><br/>
+                            <strong>Delay Tactics:</strong> {strategyResult.opponentStrategy?.delayStrategy}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="h-[1px] bg-slate-200 dark:bg-zinc-800/80" />
+
+                      {/* Rebuttals table */}
+                      <div className="space-y-3">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Counter-Strategy Rebuttal Matrix</span>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs font-bold">
+                            <thead>
+                              <tr className="border-b border-slate-200 dark:border-zinc-800 text-slate-400">
+                                <th className="py-2.5 px-2 uppercase tracking-wider text-[9px]">Opponent Argument</th>
+                                <th className="py-2.5 px-2 uppercase tracking-wider text-[9px]">Counter Response</th>
+                                <th className="py-2.5 px-2 uppercase tracking-wider text-[9px]">Evidence/Law Required</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/30">
+                              {strategyResult.counterStrategy?.map((c, idx) => (
+                                <tr key={idx} className="hover:bg-slate-500/5 transition-colors">
+                                  <td className="py-3 px-2 text-slate-900 dark:text-white align-top">{c.opponentArgument}</td>
+                                  <td className="py-3 px-2 text-slate-600 dark:text-slate-400 font-medium align-top">
+                                    <p>{c.counterResponse}</p>
+                                    <p className="text-indigo-500 font-bold mt-1 text-[10px]">Action: {c.recommendedAction}</p>
+                                  </td>
+                                  <td className="py-3 px-2 text-slate-500 align-top">
+                                    <p><strong>Proof:</strong> {c.evidenceRequired}</p>
+                                    <p className="text-violet-500 mt-1 font-bold"><strong>Law:</strong> {c.applicableLaw}</p>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Precedents & Judge */}
+                  {activeTab === 'judge' && (
+                    <div className="space-y-6">
+                      
+                      {/* Judge perspective */}
+                      <div className="space-y-3">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Expected Judicial Perspectives</span>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="p-4 border border-violet-500/10 bg-violet-500/5 rounded-2xl space-y-2">
+                            <span className="text-[9px] font-black text-violet-500 uppercase tracking-widest">Likely Judicial Questions & Focus Areas</span>
+                            <ul className="space-y-1.5">
+                              {strategyResult.judgePerspective?.likelyQuestions?.map((q, i) => (
+                                <li key={i} className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-start gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-violet-500 mt-1.5 shrink-0" />
+                                  <span>{q}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          <div className="p-4 border border-red-500/10 bg-red-500/5 rounded-2xl space-y-2">
+                            <span className="text-[9px] font-black text-red-500 uppercase tracking-widest">Trial Concerns & Vulnerable Links</span>
+                            <ul className="space-y-1.5">
+                              {strategyResult.judgePerspective?.courtConcerns?.map((c, i) => (
+                                <li key={i} className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-start gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 shrink-0" />
+                                  <span>{c}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="h-[1px] bg-slate-200 dark:bg-zinc-800/80" />
+
+                      {/* Judgments precedents */}
+                      <div className="space-y-3">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Favorable Judicial Precedents & Citations</span>
+                        <div className="grid grid-cols-1 gap-3">
+                          {strategyResult.precedents?.map((p, idx) => (
+                            <div key={idx} className="p-4 rounded-xl border border-slate-200/50 dark:border-zinc-800 bg-slate-500/5 space-y-2">
+                              <div className="flex justify-between items-center">
+                                <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">{p.citation}</h4>
+                                <span className="px-2.5 py-0.5 bg-emerald-500/10 text-emerald-500 rounded-md text-[8px] font-black uppercase">
+                                  {p.similarityScore}% Matches
+                                </span>
+                              </div>
+                              <p className="text-xs font-bold text-indigo-500 uppercase tracking-wider leading-none">{p.court} • {p.type}</p>
+                              <p className="text-xs font-semibold text-slate-500 leading-normal">{p.summary}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="h-[1px] bg-slate-200 dark:bg-zinc-800/80" />
+
+                      {/* Laws */}
+                      <div className="space-y-3">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Statutory Legislative applicability report (BNS / CPC)</span>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {strategyResult.laws?.map((l, idx) => (
+                            <div key={idx} className="p-3.5 border border-slate-100 dark:border-zinc-850 bg-slate-500/5 rounded-2xl">
+                              <span className="text-[9px] font-black text-violet-500 uppercase tracking-widest">Section {l.section} - {l.act}</span>
+                              <p className="text-xs font-semibold text-slate-650 dark:text-slate-350 mt-1 leading-relaxed">{l.applicability}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                    </div>
+                  )}
+
+                  {/* Negotiation & Settlement */}
+                  {activeTab === 'negotiation' && (
+                    <div className="space-y-6">
+                      <div className="flex justify-between items-center p-4 border border-slate-200/50 dark:border-zinc-850 rounded-2xl bg-[#131c31]/10">
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Settlement Probability Chance</span>
+                          <h4 className="text-2xl font-black text-emerald-500 mt-0.5">{strategyResult.settlement?.settlementChance}%</h4>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[8px] font-extrabold text-indigo-500 bg-indigo-500/10 px-2.5 py-1 rounded-full uppercase tracking-widest">
+                            Mediation: {strategyResult.settlement?.mediationPossibility || 'Good'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <p className="text-xs font-semibold text-slate-500 leading-relaxed">
+                        <strong>Negotiation Strategy:</strong> {strategyResult.settlement?.negotiationStrategy}
+                      </p>
+
+                      <div className="h-[1px] bg-slate-200 dark:bg-zinc-800/80" />
+
+                      {/* Positions */}
+                      <div className="space-y-3">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Negotiation Position Outlines</span>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {[
+                            { label: 'Opening position demand', val: strategyResult.negotiationPositions?.opening, col: 'border-indigo-500/10 bg-indigo-500/5 text-indigo-500' },
+                            { label: 'Middle target compromise', val: strategyResult.negotiationPositions?.middle, col: 'border-violet-500/10 bg-violet-500/5 text-violet-500' },
+                            { label: 'Final bottom line position', val: strategyResult.negotiationPositions?.final, col: 'border-amber-500/10 bg-amber-500/5 text-amber-500' },
+                            { label: 'Litigation recovery fallback', val: strategyResult.negotiationPositions?.fallback, col: 'border-red-500/10 bg-red-500/5 text-red-500' },
+                          ].map(p => (
+                            <div key={p.label} className={`p-4 border rounded-2xl space-y-1.5 ${p.col}`}>
+                              <span className="text-[9px] font-black uppercase tracking-widest">{p.label}</span>
+                              <p className="text-xs font-semibold leading-relaxed text-slate-700 dark:text-slate-300">{p.val || 'Position details pending.'}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Trial Planner */}
+                  {activeTab === 'planner' && (
+                    <div className="space-y-6">
+                      
+                      {/* Cross exam questions */}
+                      <div className="space-y-4">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Cross-Examination Questions Planner</span>
+                        
+                        <div className="grid grid-cols-1 gap-4">
+                          {strategyResult.crossExamPlanner?.map((item, idx) => (
+                            <div key={idx} className="p-4 border border-slate-200/50 dark:border-zinc-800 bg-slate-500/5 rounded-2xl space-y-4">
+                              <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Witness Target: {item.witness}</h4>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-semibold text-slate-500">
+                                <div className="space-y-1">
+                                  <span className="text-[9px] font-black text-slate-450 uppercase">Main Questions Line</span>
+                                  <ul className="list-disc pl-4 space-y-1">
+                                    {item.mainQuestions?.map((q, i) => <li key={i}>{q}</li>)}
+                                  </ul>
+                                </div>
+                                <div className="space-y-1">
+                                  <span className="text-[9px] font-black text-indigo-500 uppercase">Follow-up inquiries</span>
+                                  <ul className="list-disc pl-4 space-y-1">
+                                    {item.followUps?.map((q, i) => <li key={i}>{q}</li>)}
+                                  </ul>
+                                </div>
+                                <div className="space-y-1">
+                                  <span className="text-[9px] font-black text-red-500 uppercase">Contradiction questions</span>
+                                  <ul className="list-disc pl-4 space-y-1">
+                                    {item.contradictionQuestions?.map((q, i) => <li key={i}>{q}</li>)}
+                                  </ul>
+                                </div>
+                                <div className="space-y-1">
+                                  <span className="text-[9px] font-black text-violet-500 uppercase">Credibility challenges</span>
+                                  <ul className="list-disc pl-4 space-y-1">
+                                    {item.credibilityQuestions?.map((q, i) => <li key={i}>{q}</li>)}
+                                  </ul>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="h-[1px] bg-slate-200 dark:bg-zinc-800/80" />
+
+                      {/* Final arguments planner */}
+                      <div className="space-y-4">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Final argument planner outlines</span>
+                        <div className="p-4 border border-indigo-500/10 bg-indigo-500/5 rounded-2xl space-y-3 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
+                          <p><strong>Opening arguments statement:</strong> {strategyResult.finalArguments?.opening}</p>
+                          <p><strong>Key legal arguments points:</strong> {strategyResult.finalArguments?.arguments?.join(', ')}</p>
+                          <p><strong>Favorable Precedent references:</strong> {strategyResult.finalArguments?.precedents?.join(', ')}</p>
+                          <p><strong>Statutory Prayers / reliefs sought:</strong> <span className="text-indigo-500 font-bold">"{strategyResult.finalArguments?.prayer}"</span></p>
+                        </div>
+                      </div>
+
+                    </div>
+                  )}
+
+                  {/* Readiness & Tasks */}
+                  {activeTab === 'readiness' && (
+                    <div className="space-y-6">
+                      
+                      {/* Readiness scores dashboard */}
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        {[
+                          { label: 'Evidence readiness', val: readinessMetrics.evidence, col: 'text-indigo-500' },
+                          { label: 'Witness readiness', val: readinessMetrics.witness, col: 'text-violet-500' },
+                          { label: 'Documentation readiness', val: readinessMetrics.documentation, col: 'text-emerald-500' },
+                          { label: 'Arguments readiness', val: readinessMetrics.argument, col: 'text-emerald-550' },
+                          { label: 'Overall Readiness', val: readinessMetrics.overall, col: 'text-indigo-650 font-black' },
+                        ].map(r => (
+                          <div key={r.label} className="p-4 border border-slate-100 dark:border-zinc-800 bg-slate-500/5 rounded-2xl text-center">
+                            <span className={`text-base font-black ${r.col}`}>{r.val}%</span>
+                            <p className="text-[8px] text-slate-450 font-extrabold uppercase mt-1 tracking-wider leading-none">{r.label}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="h-[1px] bg-slate-200 dark:bg-zinc-800/80" />
+
+                      {/* Interactive task manager */}
+                      <div className="space-y-4">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Litigation task checklist manager</span>
+                        
+                        {/* Task List */}
+                        <div className="space-y-2 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
+                          {tasks.map(t => (
+                            <div key={t.id} className="p-3 border border-slate-200/50 dark:border-zinc-800 bg-slate-500/5 rounded-xl flex items-center justify-between gap-3 animate-fadeIn">
+                              <div className="flex items-center gap-3">
+                                <input
+                                  type="checkbox"
+                                  checked={t.completed}
+                                  onChange={() => handleToggleTask(t.id)}
+                                  className="w-4 h-4 text-indigo-600 border-slate-350 rounded focus:ring-indigo-500"
+                                />
+                                <span className={`text-xs font-bold ${t.completed ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-white'}`}>
+                                  {t.task}
+                                </span>
+                              </div>
+                              <button 
+                                onClick={() => handleDeleteTask(t.id)}
+                                className="p-1 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-500 rounded-lg"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          ))}
+                          {tasks.length === 0 && (
+                            <div className="text-center py-6 text-xs text-slate-400 font-semibold bg-slate-500/5 rounded-xl">
+                              No tasks created. Add a task below to start tracking.
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Add Task Input */}
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Add custom task e.g. File caveat petition..."
+                            value={newTaskText}
+                            onChange={e => setNewTaskText(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && handleAddTask()}
+                            className={`flex-1 border rounded-xl px-4 py-2.5 text-xs font-bold outline-none ${isDark ? 'bg-black/25 border-zinc-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                          />
+                          <button
+                            onClick={handleAddTask}
+                            className="px-4 py-2.5 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shrink-0"
+                          >
+                            Add Task
+                          </button>
+                        </div>
+                      </div>
+
+                    </div>
+                  )}
+
                 </div>
               </div>
+            )}
 
-              <div className="prose dark:prose-invert max-w-none text-xs sm:text-sm whitespace-pre-wrap select-text leading-relaxed text-slate-800 dark:text-slate-200">
-                {strategyResult.report}
-              </div>
-            </div>
-          )}
-
+          </div>
         </div>
+
       </div>
 
-      {/* History Modal */}
+      {/* History Archive Modal */}
       {historyVisible && (
         <div className="fixed inset-0 z-[120000] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setHistoryVisible(false)} />
-          <div className="relative bg-white dark:bg-zinc-900 rounded-[32px] max-w-lg w-full max-h-[80%] flex flex-col overflow-hidden shadow-2xl p-6">
+          <div className="relative bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 rounded-[32px] max-w-lg w-full max-h-[80%] flex flex-col overflow-hidden shadow-2xl p-6">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-4 shrink-0">
-              <h3 className="text-lg font-black text-slate-900 dark:text-white">Litigation Strategy Logs</h3>
+              <h3 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-wider">Strategy Archive Logs</h3>
               <button onClick={() => setHistoryVisible(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full">
                 <X size={20} className="text-slate-400" />
               </button>
@@ -740,10 +1570,10 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
 
             {/* Search */}
             <div className="flex items-center bg-slate-50 dark:bg-[#131C31] border border-slate-200 dark:border-white/5 rounded-xl px-3 py-2 mt-4 shrink-0">
-              <Search size={16} className="text-slate-400 mr-2" />
+              <Search size={14} className="text-slate-400 mr-2" />
               <input 
                 type="text"
-                placeholder="Search strategies..."
+                placeholder="Search past strategies..."
                 className="w-full bg-transparent border-none text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-0"
                 value={historySearch}
                 onChange={e => setHistorySearch(e.target.value)}
@@ -755,43 +1585,49 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
               {historyData.filter(h => 
                 h.title?.toLowerCase().includes(historySearch.toLowerCase()) || 
                 h.caseFacts?.toLowerCase().includes(historySearch.toLowerCase())
-              ).map(item => (
-                <div key={item.id} className="flex justify-between items-start p-4 bg-slate-50 dark:bg-[#1A2540] rounded-2xl shadow-sm hover:shadow-md transition-all">
+              ).map((item, idx) => (
+                <div key={item.id || idx} className="p-4 bg-slate-50 dark:bg-[#1A2540] border border-slate-200/50 dark:border-white/5 rounded-2xl shadow-sm">
                   <button
                     onClick={() => {
-                      setActiveStrategy(item);
-                      setStrategyResult(item);
+                      setStrategyResult(item.activeStrategy || item);
                       setHistoryVisible(false);
                       toast.success(`Loaded strategy: ${item.title}`);
                     }}
-                    className="flex-1 text-left min-w-0"
+                    className="w-full text-left min-w-0"
                   >
-                    <h4 className="text-xs font-bold text-slate-800 dark:text-white truncate">{item.title}</h4>
-                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-1">{item.timestamp}</p>
+                    <div className="flex justify-between items-start">
+                      <h4 className="text-xs font-black text-slate-800 dark:text-white truncate">{item.title}</h4>
+                      <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider shrink-0 ml-2">
+                        {item.timestamp}
+                      </span>
+                    </div>
                     <p className="text-[10px] text-slate-500 mt-2 font-medium line-clamp-2">{item.caseFacts}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-950/20 text-[9px] font-bold text-indigo-600 rounded-md">Score: {item.stats.strategyStrength}%</span>
-                      <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/20 text-[9px] font-bold text-emerald-600 rounded-md">Risk: {item.stats.courtRisk}</span>
+                    <div className="flex items-center gap-2 mt-2.5">
+                      <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-950/20 text-[8px] font-black uppercase text-indigo-600 rounded-md">Score: {item.stats?.overallStrategyScore || item.stats?.strategyStrength}%</span>
+                      <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/20 text-[8px] font-black uppercase text-emerald-600 rounded-md">Prob: {item.stats?.winningProbability || 'N/A'}%</span>
                     </div>
                   </button>
-                  <button 
-                    onClick={() => deleteHistoryItem(item.id)}
-                    className="p-1 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg text-red-500 shrink-0 ml-2"
-                  >
-                    <X size={16} />
-                  </button>
+                  <div className="flex justify-end border-t border-slate-100 dark:border-white/5 pt-2.5 mt-2.5">
+                    <button 
+                      onClick={() => deleteHistoryItem(item.id)}
+                      className="p-1 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg text-red-500 flex items-center gap-1 text-[9px] font-black uppercase"
+                    >
+                      <Trash2 size={12} /> Delete Log
+                    </button>
+                  </div>
                 </div>
               ))}
               {historyData.length === 0 && (
                 <div className="text-center py-10">
-                  <Folder size={32} className="mx-auto text-slate-300 dark:text-zinc-700" />
-                  <p className="text-xs font-semibold text-slate-400 mt-2">No roadmaps archived.</p>
+                  <Folder size={32} className="mx-auto text-slate-350 dark:text-zinc-700" />
+                  <p className="text-xs font-semibold text-slate-400 mt-2">No strategy roadmaps saved.</p>
                 </div>
               )}
             </div>
           </div>
         </div>
       )}
+
     </div>
   );
 };
