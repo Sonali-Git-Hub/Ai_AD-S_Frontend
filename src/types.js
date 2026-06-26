@@ -57,8 +57,8 @@ export const AppRoute = {
   ADMIN_DASHBOARD: "/dashboard/admin",
 };
 
-// API Base URL - window._env_ is runtime config (prioritized for live production), import.meta.env is baked at build time
-const API ="https://aisa24.com/api";
+// API Base URL - reads from VITE_AISA_BACKEND_API env variable (set in .env), falls back to production
+const API = import.meta.env.VITE_AISA_BACKEND_API || "https://aisa24.com/api";
 
 const apis = {
   resetPassword: `${API}/auth/reset-password-otp`,

@@ -1072,8 +1072,9 @@ html.lenis body {
 }
 
 .chatgpt-text {
-  font-size: 14px;
-  line-height: 1.55;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 26px; /* 24-28px */
   letter-spacing: normal;
   color: #374151;
   width: 100%;
@@ -1085,7 +1086,8 @@ html.lenis body {
 
 @media (max-width: 768px) {
   .chatgpt-text {
-    font-size: 13px;
+    font-size: 15px;
+    line-height: 24px;
   }
 }
 
@@ -1269,7 +1271,9 @@ html.lenis body {
 }
 
 .chatgpt-text h1 {
-  font-size: 20px;
+  font-size: 30px; /* 28-32px */
+  font-weight: 700;
+  line-height: 38px; /* 36-40px */
   margin-top: 1.5rem;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   padding-bottom: 0.5rem;
@@ -1280,18 +1284,39 @@ html.lenis body {
 }
 
 .chatgpt-text h2 {
-  font-size: 18px;
+  font-size: 23px; /* 22-24px */
+  font-weight: 600; /* Semibold */
+  line-height: 31px; /* 30-32px */
   margin-top: 1.25rem;
 }
 
 .chatgpt-text h3 {
-  font-size: 16px;
+  font-size: 19px; /* 18-20px */
+  font-weight: 600; /* Semibold */
+  line-height: 28px;
   margin-top: 1rem;
 }
 
 .chatgpt-text p {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 26px; /* 24-28px */
   margin-bottom: 1rem;
-  line-height: 1.6;
+}
+
+/* Custom small text and caption styles inside chat section */
+.chatgpt-text .small-text,
+.chatgpt-text small {
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  line-height: 21px !important; /* 20-22px */
+}
+
+.chatgpt-text .caption,
+.chatgpt-text caption {
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  line-height: 18px !important;
 }
 
 /* List Styles Rewrite for ChatGPT-like appearance */
@@ -1304,6 +1329,9 @@ html.lenis body {
 }
 
 .chatgpt-text li {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 26px;
   margin-bottom: 6px;
   padding-left: 0.25rem;
 }
@@ -2282,5 +2310,26 @@ body.modal-open-hide-navbar {
 .chatgpt-container:has(.legal-chat-screen) {
   padding-bottom: 0px !important;
   padding-top: 0px !important;
+}
+
+/* Mobile overrides to scale down the chat section font sizes proportionally on smaller devices */
+@media (max-width: 768px) {
+  .chatgpt-text h1 {
+    font-size: 24px !important;
+    line-height: 32px !important;
+  }
+  .chatgpt-text h2 {
+    font-size: 20px !important;
+    line-height: 28px !important;
+  }
+  .chatgpt-text h3 {
+    font-size: 17px !important;
+    line-height: 24px !important;
+  }
+  .chatgpt-text p,
+  .chatgpt-text li {
+    font-size: 15px !important;
+    line-height: 23px !important;
+  }
 }
 
