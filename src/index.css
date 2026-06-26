@@ -2276,9 +2276,11 @@ body.modal-open-hide-navbar {
   }
 }
 
-/* Zero bottom padding for chatgpt-container when hosting legal tools to prevent empty space below the input */
+/* Zero bottom & top padding for chatgpt-container when hosting legal tools to prevent empty space */
 .chatgpt-container.legal-chat-active,
+.chatgpt-container.legal-no-padding,
 .chatgpt-container:has(.legal-chat-screen) {
   padding-bottom: 0px !important;
+  padding-top: 0px !important;
 }
 
