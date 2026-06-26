@@ -716,8 +716,28 @@ const fileInputRef = useRef(null);
   };
 
   const handleNewChat = async () => {
-    if (!currentCase) return;
     setIsCreatingChat(true);
+    if (!currentCase) {
+      const defaultMsgs = [
+        {
+          id: '1',
+          role: 'model',
+          content: 'Welcome to **AISA Argument Intelligence**. I am your Elite Litigation Architect. Describe your case facts or select a courtroom workflow to build a winning strategy.',
+          timestamp: Date.now(),
+          isSystemLog: true
+        }
+      ];
+      setMessages(defaultMsgs);
+      setInputValue('');
+      setAttachments([]);
+      setActiveSessionId('');
+      setTimeout(() => {
+        const chatInput = document.querySelector('input[placeholder="Describe case details or ask litigation questions..."]');
+        if (chatInput) chatInput.focus();
+      }, 100);
+      setIsCreatingChat(false);
+      return;
+    }
     // Save current chat session to history before creating new chat
     await saveChatHistory(messages);
 
@@ -1148,127 +1168,7 @@ FORMATTING RULES:
           <span className="hidden sm:inline whitespace-nowrap">Build Argument</span>
         </button>
 
-        {/* History Icon Button + Panel */}
-        {activeTab === 'assistant' && (
-          <div className="relative">
-            <button
-              onClick={() => setShowHistoryPanel(v => !v)}
-              title="Chat History"
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-xs font-bold ${
-                showHistoryPanel
-                  ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700 text-indigo-600'
-                  : 'bg-slate-100 dark:bg-zinc-800/60 border-slate-200 dark:border-zinc-700 text-slate-500 dark:text-slate-400 hover:border-indigo-400 hover:text-indigo-600'
-              }`}
-            >
-              <History size={16} />
-              <span className="hidden sm:inline">History</span>
-              {sessions.filter(s => s.title && s.title !== 'New Chat' && s.title !== 'Initial Conversation').length > 0 && (
-                <span className="ml-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-indigo-600 text-white text-[9px] font-black">
-                  {sessions.filter(s => s.title && s.title !== 'New Chat' && s.title !== 'Initial Conversation').length}
-                </span>
-              )}
-            </button>
 
-            {/* History Dropdown Panel */}
-            {showHistoryPanel && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowHistoryPanel(false)} />
-                <div className="absolute right-0 top-full mt-2 z-50 w-72 rounded-2xl bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden">
-                  {/* Panel Header */}
-                  <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-black/20">
-                    <History size={14} className="text-indigo-600" />
-                    <span className="text-[11px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200">Chat History</span>
-                  </div>
-
-                  {/* Session List */}
-                  <div className="max-h-72 overflow-y-auto py-1.5 custom-scrollbar">
-                    {(() => {
-                      const realSessions = sessions.filter(s => s.title && s.title.trim() !== '' && s.title !== 'New Chat' && s.title !== 'Initial Conversation')
-                         // Sort sessions by timestamp descending (latest first)
-                         .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                      if (realSessions.length === 0) return (
-                        <div className="flex flex-col items-center justify-center py-8 gap-2">
-                          <MessageSquare size={28} className="text-slate-300 dark:text-zinc-700" />
-                          <p className="text-xs text-slate-400 font-semibold">No previous chats</p>
-                        </div>
-                      );
-                      const pinned = realSessions.filter(s => pinnedSessions.includes(s.id));
-                      const unpinned = realSessions.filter(s => !pinnedSessions.includes(s.id));
-                      const renderItem = (s) => (
-                        <div key={s.id} className="flex items-center gap-1 px-2 group">
-                          <button
-                            className={`flex-1 flex items-center gap-2 px-3 py-2.5 rounded-xl text-left transition-all text-xs font-semibold ${
-                              s.id === activeSessionId
-                                ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600'
-                                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5'
-                            }`}
-                            onClick={() => { switchSession(s.id); setShowHistoryPanel(false); }}
-                          >
-                            {pinnedSessions.includes(s.id)
-                              ? <Pin size={11} className="text-amber-500 shrink-0" />
-                              : <MessageSquare size={11} className="text-slate-400 shrink-0" />
-                            }
-                            <span className="truncate flex-1">{s.title || 'Untitled Chat'}</span>
-                               {/* Date/Time */}
-                               {s.timestamp && (
-                                 <span className="text-[9px] text-slate-500 dark:text-slate-400 whitespace-nowrap ml-2">
-                                   {new Date(s.timestamp).toLocaleDateString()} {new Date(s.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                 </span>
-                               )}
-                          </button>
-                             {/* Preview snippet */}
-                             {s.messages && s.messages.length > 0 && (
-                               <span className="text-[9px] text-slate-500 dark:text-slate-400 truncate ml-2 max-w-[120px]">
-                                 {s.messages[0].content.slice(0, 30)}{s.messages[0].content.length > 30 ? '...' : ''}
-                               </span>
-                             )}
-                          {/* Pin & Delete Actions */}
-                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                            <button
-                              onClick={(e) => handleTogglePin(s.id, e)}
-                              title={pinnedSessions.includes(s.id) ? 'Unpin' : 'Pin'}
-                              className={`p-1.5 rounded-lg transition-colors ${
-                                pinnedSessions.includes(s.id)
-                                  ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/30'
-                                  : 'text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/30'
-                              }`}
-                            >
-                              {pinnedSessions.includes(s.id) ? <PinOff size={12} /> : <Pin size={12} />}
-                            </button>
-                            <button
-                              onClick={(e) => handleDeleteSession(s.id, e)}
-                              title="Delete session"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                      return (
-                        <div>
-                          {pinned.length > 0 && (
-                            <>
-                              <div className="px-4 py-1.5 text-[9px] font-black uppercase tracking-widest text-amber-500">📌 Pinned</div>
-                              {pinned.map(renderItem)}
-                              {unpinned.length > 0 && <div className="mx-4 my-1 border-t border-slate-100 dark:border-white/5" />}
-                            </>
-                          )}
-                          {unpinned.length > 0 && (
-                            <>
-                              {pinned.length > 0 && <div className="px-4 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400">Recent</div>}
-                              {unpinned.map(renderItem)}
-                            </>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        )}
       </div>
 
       <div className="flex-1 overflow-y-auto min-h-0 select-text relative">
