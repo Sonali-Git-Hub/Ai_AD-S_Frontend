@@ -16,8 +16,167 @@ import LanguageToggle from './shared/LanguageToggle';
 import CopyOutputButton from './shared/CopyOutputButton';
 import OutputActionToolbar from '../../../Components/OutputActionToolbar';
 
+// ─── LEGAL MARKDOWN RENDERER ────────────────────────────────────────────────
+/**
+ * Converts AI-generated Markdown text into professional legal document JSX.
+ * Handles: # H1, ## H2, ### H3, **bold**, *italic*, - bullets, 1. numbered lists,
+ * --- dividers, and typed paragraphs. Used exclusively in Argument Builder.
+ */
+const renderLegalMarkdown = (text) => {
+  if (!text) return null;
+  const lines = text.split('\n');
+  const elements = [];
+  let i = 0;
+  let listBuffer = [];
+  let listType = null; // 'ul' | 'ol'
+
+  const flushList = () => {
+    if (!listBuffer.length) return;
+    if (listType === 'ol') {
+      elements.push(
+        <ol key={`ol-${i}`} style={{ margin: '8px 0 12px 0', paddingLeft: '22px', lineHeight: '1.75' }}>
+          {listBuffer.map((item, idx) => (
+            <li key={idx} style={{ marginBottom: '4px', fontSize: '13.5px', color: 'inherit' }}
+              dangerouslySetInnerHTML={{ __html: inlineStyles(item) }} />
+          ))}
+        </ol>
+      );
+    } else {
+      elements.push(
+        <ul key={`ul-${i}`} style={{ margin: '8px 0 12px 0', paddingLeft: '20px', lineHeight: '1.75', listStyleType: 'disc' }}>
+          {listBuffer.map((item, idx) => (
+            <li key={idx} style={{ marginBottom: '4px', fontSize: '13.5px', color: 'inherit' }}
+              dangerouslySetInnerHTML={{ __html: inlineStyles(item) }} />
+          ))}
+        </ul>
+      );
+    }
+    listBuffer = [];
+    listType = null;
+  };
+
+  const inlineStyles = (str) => {
+    // **bold**
+    str = str.replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight:700">$1</strong>');
+    // *italic* or _italic_
+    str = str.replace(/(?:\*|_)(.+?)(?:\*|_)/g, '<em>$1</em>');
+    // `code`
+    str = str.replace(/`(.+?)`/g, '<code style="background:rgba(99,102,241,0.08);padding:1px 5px;border-radius:4px;font-size:12px">$1</code>');
+    return str;
+  };
+
+  while (i < lines.length) {
+    const raw = lines[i];
+    const line = raw.trimEnd();
+
+    // Blank line — flush list, add spacing
+    if (!line.trim()) {
+      flushList();
+      elements.push(<div key={`br-${i}`} style={{ height: '6px' }} />);
+      i++;
+      continue;
+    }
+
+    // Horizontal rule
+    if (/^---+$/.test(line.trim()) || /^\*\*\*+$/.test(line.trim())) {
+      flushList();
+      elements.push(
+        <hr key={`hr-${i}`} style={{ border: 'none', borderTop: '1.5px solid rgba(99,102,241,0.18)', margin: '18px 0' }} />
+      );
+      i++;
+      continue;
+    }
+
+    // H1 (#)
+    if (/^# /.test(line)) {
+      flushList();
+      const content = line.replace(/^# /, '');
+      elements.push(
+        <h1 key={`h1-${i}`} style={{
+          fontSize: '17px', fontWeight: '800', letterSpacing: '-0.3px',
+          color: 'inherit', margin: '20px 0 10px 0', paddingBottom: '8px',
+          borderBottom: '2px solid rgba(99,102,241,0.25)', lineHeight: '1.35'
+        }} dangerouslySetInnerHTML={{ __html: inlineStyles(content) }} />
+      );
+      i++;
+      continue;
+    }
+
+    // H2 (##)
+    if (/^## /.test(line)) {
+      flushList();
+      const content = line.replace(/^## /, '');
+      elements.push(
+        <h2 key={`h2-${i}`} style={{
+          fontSize: '14.5px', fontWeight: '800', color: '#4f46e5',
+          margin: '16px 0 7px 0', letterSpacing: '0.1px', lineHeight: '1.4',
+          textTransform: 'none'
+        }} dangerouslySetInnerHTML={{ __html: inlineStyles(content) }} />
+      );
+      i++;
+      continue;
+    }
+
+    // H3 (###)
+    if (/^### /.test(line)) {
+      flushList();
+      const content = line.replace(/^### /, '');
+      elements.push(
+        <h3 key={`h3-${i}`} style={{
+          fontSize: '13px', fontWeight: '700', color: '#6366f1',
+          margin: '12px 0 5px 0', lineHeight: '1.4'
+        }} dangerouslySetInnerHTML={{ __html: inlineStyles(content) }} />
+      );
+      i++;
+      continue;
+    }
+
+    // H4 (####)
+    if (/^#### /.test(line)) {
+      flushList();
+      const content = line.replace(/^#### /, '');
+      elements.push(
+        <h4 key={`h4-${i}`} style={{
+          fontSize: '12px', fontWeight: '700', color: '#7c3aed',
+          margin: '10px 0 4px 0', lineHeight: '1.4'
+        }} dangerouslySetInnerHTML={{ __html: inlineStyles(content) }} />
+      );
+      i++;
+      continue;
+    }
+
+    // Unordered list item (- or * or •)
+    if (/^[-*•] /.test(line.trimStart())) {
+      if (listType !== 'ul') { flushList(); listType = 'ul'; }
+      listBuffer.push(line.replace(/^\s*[-*•] /, ''));
+      i++;
+      continue;
+    }
+
+    // Ordered list item (1. 2. etc)
+    if (/^\s*\d+\.\s/.test(line)) {
+      if (listType !== 'ol') { flushList(); listType = 'ol'; }
+      listBuffer.push(line.replace(/^\s*\d+\.\s*/, ''));
+      i++;
+      continue;
+    }
+
+    // Normal paragraph
+    flushList();
+    elements.push(
+      <p key={`p-${i}`} style={{
+        margin: '0 0 8px 0', fontSize: '13.5px', lineHeight: '1.75', color: 'inherit'
+      }} dangerouslySetInnerHTML={{ __html: inlineStyles(line) }} />
+    );
+    i++;
+  }
+
+  flushList();
+  return elements;
+};
+
 // ─── PER-MESSAGE LANGUAGE TOGGLE WRAPPER ────────────────────────────────────
-const AiMessageWithLangToggle = ({ text, outputLang, getDisplayText, translateText, onLangChange }) => {
+const AiMessageWithLangToggle = ({ text, outputLang, getDisplayText, translateText, onLangChange, isLegalReport }) => {
   const [displayText, setDisplayText] = useState(text);
   const [isTranslating, setIsTranslating] = useState(false);
   const isMountedRef = useRef(true);
@@ -36,13 +195,11 @@ const AiMessageWithLangToggle = ({ text, outputLang, getDisplayText, translateTe
       setDisplayText(text);
       return;
     }
-
     const cached = getDisplayText(text);
     if (cached && cached !== text) {
       setDisplayText(cached);
       return;
     }
-
     setIsTranslating(true);
     translateText(text).then((translated) => {
       if (isMountedRef.current) setDisplayText(translated);
@@ -64,15 +221,23 @@ const AiMessageWithLangToggle = ({ text, outputLang, getDisplayText, translateTe
       </div>
 
       {isTranslating && (
-        <div className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-505 mb-2 animate-pulse">
-          <span className="w-2.5 h-2.5 border-2 border-indigo-505 border-t-transparent rounded-full animate-spin" />
+        <div className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-500 mb-2 animate-pulse">
+          <span className="w-2.5 h-2.5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
           अनुवाद हो रहा है...
         </div>
       )}
 
-      <div className={`transition-opacity duration-200 ${isTranslating ? 'opacity-50' : 'opacity-100'} prose dark:prose-invert max-w-none text-xs sm:text-sm whitespace-pre-wrap select-text`}>
-        {displayText}
-      </div>
+      {isLegalReport ? (
+        /* ── Professional legal document renderer ── */
+        <div className={`ab-legal-report select-text transition-opacity duration-200 ${isTranslating ? 'opacity-50' : 'opacity-100'}`}>
+          {renderLegalMarkdown(displayText)}
+        </div>
+      ) : (
+        /* ── Plain welcome/system message renderer ── */
+        <div className={`transition-opacity duration-200 ${isTranslating ? 'opacity-50' : 'opacity-100'} prose dark:prose-invert max-w-none text-xs sm:text-sm whitespace-pre-wrap select-text`}>
+          {displayText}
+        </div>
+      )}
     </div>
   );
 };
@@ -94,6 +259,7 @@ const AiResponseCard = ({ msg }) => {
         getDisplayText={getDisplayText}
         translateText={translateText}
         onLangChange={setOutputLang}
+        isLegalReport={!msg.isSystemLog}
       />
       {msg.role !== 'user' && !msg.isSystemLog && (
         <OutputActionToolbar
@@ -663,9 +829,106 @@ Summary/Facts: ${currentCase.summary || currentCase.caseSummary || currentCase.d
 `;
       }
 
-      const systemPrompt = `You are the AISA Enterprise Litigation Strategy War Room. You build courtroom arguments, rebuttals, cross-examination structures, and win probability reports.
-Format response in clean Markdown.
-Use professional Legal English.`;
+      const systemPrompt = `You are AISA™ — an enterprise-grade AI Litigation Architect and courtroom strategy engine.
+
+CRITICAL INSTRUCTION: For EVERY response, you MUST generate a complete, structured legal argument report using EXACTLY the 12-section format below. Never respond in plain chat style. Never skip any section. Never change the structure. Only the legal content changes based on the user's case.
+
+If the user asks a quick question, interpret it as a case scenario and still produce the full structured report.
+
+MANDATORY REPORT FORMAT (use Markdown headings and formatting exactly as shown):
+
+# ⚖️ AISA ARGUMENT INTELLIGENCE REPORT
+
+---
+
+## 1. CASE OVERVIEW
+- **Case Title:**
+- **Petitioner / Plaintiff / Prosecution:**
+- **Respondent / Defendant / Accused:**
+- **Court / Tribunal / Forum:**
+- **Case Type:** (Civil / Criminal / Corporate / Labour / Family / Property / Tax / Consumer / Constitutional / Arbitration / Banking / Cyber / IPR / Service / etc.)
+- **Applicable Law / Jurisdiction:**
+- **Relevant Acts / Sections / IPC / BNS:**
+- **Date of Filing / Incident:**
+
+---
+
+## 2. FACTS OF THE CASE
+[Concise numbered factual summary — what happened, when, who, where, how]
+
+---
+
+## 3. LEGAL ISSUES
+[Numbered list of the core legal questions the court must decide]
+
+---
+
+## 4. APPLICABLE LAWS & STATUTORY PROVISIONS
+[List each relevant Act, Section, Article, Rule, Regulation with a one-line explanation of its applicability]
+
+---
+
+## 5. RELEVANT JUDGMENTS / LANDMARK CASES
+[List at least 3–5 binding or persuasive precedents with citation, year, court, and relevant holding]
+
+---
+
+## 6. ARGUMENTS FOR THE PETITIONER / PLAINTIFF / PROSECUTION
+### 6.1 Primary Legal Arguments
+### 6.2 Supporting Statutory Provisions
+### 6.3 Supporting Case Law & Precedents
+
+---
+
+## 7. ARGUMENTS FOR THE RESPONDENT / DEFENDANT
+### 7.1 Counter-Arguments
+### 7.2 Supporting Statutory Provisions
+### 7.3 Supporting Case Law & Precedents
+
+---
+
+## 8. EVIDENCE ANALYSIS
+### 8.1 Available Evidence
+### 8.2 Missing / Weak Evidence
+### 8.3 Evidence Strength Assessment
+### 8.4 Evidence Weakness Assessment
+
+---
+
+## 9. LEGAL STRATEGY
+### 9.1 Best Litigation Strategy
+### 9.2 Courtroom Approach
+### 9.3 Procedural Recommendations
+
+---
+
+## 10. RISK ANALYSIS
+- **Strengths:**
+- **Weaknesses:**
+- **Litigation Risks:**
+- **Estimated Success Probability:** [X%] — [Brief rationale]
+
+---
+
+## 11. RECOMMENDED NEXT STEPS
+[Numbered action items — what the lawyer/client should do immediately and over the next 30/60/90 days]
+
+---
+
+## 12. FINAL LEGAL OPINION
+[Clear, authoritative legal opinion — conclusion, strongest argument, recommended relief sought, and likelihood of success]
+
+---
+
+FORMATTING RULES:
+- Always use the exact section numbers and headings above.
+- Use **bold** for all key legal terms, section numbers, case names, and party names.
+- Use bullet points or numbered lists within sections.
+- Keep language formal, precise, and litigation-ready.
+- Preserve all IPC/BNS section numbers, case citations, dates, and evidence IDs exactly.
+- If the user selects Hindi output, write every section in Hindi but keep legal citations (section numbers, case names, Acts) in English.
+- Do not add extra sections. Do not remove any section. Do not change heading names.
+- This is a court-ready document, not a chat message.`;
 
       const apiAttachments = currentAttachments.map(att => ({
         url: att.dataUrl,
@@ -910,7 +1173,9 @@ Use professional Legal English.`;
                   {/* Session List */}
                   <div className="max-h-72 overflow-y-auto py-1.5 custom-scrollbar">
                     {(() => {
-                      const realSessions = sessions.filter(s => s.title && s.title.trim() !== '' && s.title !== 'New Chat' && s.title !== 'Initial Conversation');
+                      const realSessions = sessions.filter(s => s.title && s.title.trim() !== '' && s.title !== 'New Chat' && s.title !== 'Initial Conversation')
+                         // Sort sessions by timestamp descending (latest first)
+                         .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
                       if (realSessions.length === 0) return (
                         <div className="flex flex-col items-center justify-center py-8 gap-2">
                           <MessageSquare size={28} className="text-slate-300 dark:text-zinc-700" />
@@ -934,7 +1199,19 @@ Use professional Legal English.`;
                               : <MessageSquare size={11} className="text-slate-400 shrink-0" />
                             }
                             <span className="truncate flex-1">{s.title || 'Untitled Chat'}</span>
+                               {/* Date/Time */}
+                               {s.timestamp && (
+                                 <span className="text-[9px] text-slate-500 dark:text-slate-400 whitespace-nowrap ml-2">
+                                   {new Date(s.timestamp).toLocaleDateString()} {new Date(s.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                 </span>
+                               )}
                           </button>
+                             {/* Preview snippet */}
+                             {s.messages && s.messages.length > 0 && (
+                               <span className="text-[9px] text-slate-500 dark:text-slate-400 truncate ml-2 max-w-[120px]">
+                                 {s.messages[0].content.slice(0, 30)}{s.messages[0].content.length > 30 ? '...' : ''}
+                               </span>
+                             )}
                           {/* Pin & Delete Actions */}
                           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                             <button
@@ -1029,11 +1306,11 @@ Use professional Legal English.`;
                       AI
                     </div>
                   )}
-                  <div className={`p-5 rounded-3xl text-sm leading-relaxed ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none shadow-md shadow-indigo-500/10' : 'bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-tl-none text-slate-800 dark:text-slate-200 shadow-sm'}`}>
+                  <div className={`p-5 rounded-3xl text-sm leading-relaxed break-words ${msg.role === 'user' ? 'bg-slate-100 dark:bg-[#1e293b] text-slate-900 dark:text-slate-100 rounded-tr-none shadow-sm' : 'bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-tl-none text-slate-800 dark:text-slate-200 shadow-sm'}`}>
                     {msg.attachments && msg.attachments.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-3">
                         {msg.attachments.map((att, idx) => (
-                          <div key={idx} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold ${msg.role === 'user' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-700'}`}>
+                          <div key={idx} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold ${msg.role === 'user' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800' : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-zinc-700'}`}>
                             {getFileIcon(att.type)}
                             <span className="truncate max-w-[150px]">{att.name}</span>
                           </div>
@@ -1065,16 +1342,29 @@ Use professional Legal English.`;
               )}
             </div>
 
-            {/* Bottom prompt input for chat */}
-            <div 
+            {/* ── NEW CHAT BUTTON — above input bar, left-aligned (mirrors LegalChatScreen) ── */}
+            <div className="w-full px-4 pb-2 flex justify-start shrink-0">
+              <button
+                type="button"
+                className="ab-new-chat-inline"
+                onClick={handleNewChat}
+                title="Start New Chat"
+              >
+                <Plus size={14} />
+                <span>New Chat</span>
+              </button>
+            </div>
+
+            {/* Bottom input — matches General Legal Chat exactly */}
+            <div
               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
               onDragLeave={() => setIsDragging(false)}
               onDrop={handleDrop}
-              className={`p-4 bg-white dark:bg-[#0c0c14] border-t border-slate-200 dark:border-white/5 shrink-0 flex flex-col gap-2 transition-all ${isDragging ? 'bg-indigo-50/20 dark:bg-indigo-950/20 border-indigo-500' : ''}`}
+              className={`ab-chat-input-area flex flex-col gap-2 transition-all ${isDragging ? 'bg-indigo-50/20 dark:bg-indigo-950/20 border-indigo-500' : ''}`}
             >
               {/* File preview chips */}
               {attachments.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-2 max-h-[120px] overflow-y-auto pr-1 custom-scrollbar">
+                <div className="flex flex-wrap gap-2 p-2 max-h-[120px] overflow-y-auto pr-1 custom-scrollbar">
                   {attachments.map(att => (
                     <div key={att.id} className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-full text-xs font-semibold">
                       {getFileIcon(att.type)}
@@ -1094,49 +1384,336 @@ Use professional Legal English.`;
                 </div>
               )}
 
-              <div className="flex items-center gap-2 w-full">
-                <button
-                  type="button"
-                  onClick={handleNewChat}
-                  className="flex items-center gap-1.5 px-4 h-12 bg-slate-50 dark:bg-zinc-800/40 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200 dark:border-zinc-800 rounded-full text-slate-500 hover:text-indigo-600 active:scale-95 transition-all shrink-0 font-bold text-xs"
-                  title="Start New Chat"
-                >
-                  <Plus size={16} />
-                  <span>New Chat</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-12 h-12 flex items-center justify-center bg-slate-50 dark:bg-zinc-800/40 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200 dark:border-zinc-800 rounded-full text-slate-500 hover:text-indigo-600 active:scale-95 transition-all shrink-0"
-                  title="Upload attachment (PDF, Word, Images, Legal Docs)"
-                >
-                  <Paperclip size={18} />
-                </button>
+              <div className="ab-chat-input-row">
+                {/* Attachment button */}
+                <div className="ab-chat-input-buttons">
+                  <button
+                    type="button"
+                    className={`ab-input-action-btn${attachments.length > 0 ? ' active' : ''}`}
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Attach file (PDF, Word, Images, Legal Docs)"
+                  >
+                    <Paperclip size={18} style={{ color: attachments.length > 0 ? '#4f46e5' : undefined }} />
+                  </button>
+                </div>
+
                 <input
                   type="file"
                   ref={fileInputRef}
                   multiple
                   onChange={handleFileSelect}
                   accept="image/*,.pdf,.doc,.docx,.txt,.csv,.xls,.xlsx"
-                  className="hidden"
+                  style={{ display: 'none' }}
                 />
-                
-                <input 
-                  type="text"
-                  placeholder="Describe case details or ask litigation questions..."
-                  value={inputValue}
-                  onChange={e => setInputValue(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
-                  className="flex-1 bg-slate-50 dark:bg-zinc-800/40 border border-slate-200 dark:border-zinc-800 rounded-full px-5 py-3.5 text-sm font-semibold text-slate-800 dark:text-white outline-none focus:border-indigo-500 transition-all min-w-0"
-                />
-                <button 
-                  onClick={() => handleSendMessage()}
-                  className="w-12 h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/20 active:scale-95 transition-all shrink-0"
+
+                {/* Input form pill — mirrors General Legal Chat exactly */}
+                <form
+                  className="ab-chat-input-form"
+                  onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}
                 >
-                  <Send size={18} />
-                </button>
+                  <textarea
+                    placeholder="Describe case details or ask litigation questions..."
+                    value={inputValue}
+                    onChange={e => {
+                      setInputValue(e.target.value);
+                      e.target.style.height = 'auto';
+                      e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+                    }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage();
+                      }
+                    }}
+                    rows={1}
+                    className="ab-chat-input"
+                  />
+                  <button
+                    type="submit"
+                    className="ab-send-btn"
+                    disabled={!inputValue.trim() && attachments.length === 0}
+                    style={{ backgroundColor: (!inputValue.trim() && attachments.length === 0) ? '#94a3b8' : '#4f46e5' }}
+                  >
+                    <Send size={16} />
+                  </button>
+                </form>
               </div>
+
+              {/* Safe-area bottom spacer */}
+              <div className="ab-safe-area-bottom" />
             </div>
+
+            {/* Scoped CSS — mirrors General Legal Chat input area exactly */}
+            <style>{`
+              /* ── Professional Legal Report Renderer ────────────────────── */
+              .ab-legal-report {
+                font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+                font-size: 13.5px;
+                line-height: 1.75;
+                color: #1e293b;
+                max-width: 100%;
+                word-break: break-word;
+              }
+              .dark .ab-legal-report {
+                color: #e2e8f0;
+              }
+              .ab-legal-report h1 {
+                font-size: 17px;
+                font-weight: 800;
+                letter-spacing: -0.3px;
+                margin: 20px 0 10px 0;
+                padding-bottom: 8px;
+                border-bottom: 2px solid rgba(99,102,241,0.25);
+                line-height: 1.35;
+                color: inherit;
+              }
+              .ab-legal-report h2 {
+                font-size: 14.5px;
+                font-weight: 800;
+                color: #4f46e5;
+                margin: 18px 0 7px 0;
+                letter-spacing: 0.1px;
+                line-height: 1.4;
+              }
+              .dark .ab-legal-report h2 { color: #818cf8; }
+              .ab-legal-report h3 {
+                font-size: 13px;
+                font-weight: 700;
+                color: #6366f1;
+                margin: 13px 0 5px 0;
+                line-height: 1.4;
+              }
+              .dark .ab-legal-report h3 { color: #a5b4fc; }
+              .ab-legal-report h4 {
+                font-size: 12px;
+                font-weight: 700;
+                color: #7c3aed;
+                margin: 10px 0 4px 0;
+                line-height: 1.4;
+              }
+              .dark .ab-legal-report h4 { color: #c4b5fd; }
+              .ab-legal-report p {
+                margin: 0 0 8px 0;
+                font-size: 13.5px;
+                line-height: 1.75;
+                color: inherit;
+              }
+              .ab-legal-report ul {
+                margin: 8px 0 12px 0;
+                padding-left: 20px;
+                list-style-type: disc;
+                line-height: 1.75;
+              }
+              .ab-legal-report ol {
+                margin: 8px 0 12px 0;
+                padding-left: 22px;
+                line-height: 1.75;
+              }
+              .ab-legal-report li {
+                margin-bottom: 4px;
+                font-size: 13.5px;
+                color: inherit;
+              }
+              .ab-legal-report strong { font-weight: 700; }
+              .ab-legal-report em { font-style: italic; }
+              .ab-legal-report hr {
+                border: none;
+                border-top: 1.5px solid rgba(99,102,241,0.18);
+                margin: 18px 0;
+              }
+              .ab-legal-report code {
+                background: rgba(99,102,241,0.08);
+                padding: 1px 5px;
+                border-radius: 4px;
+                font-size: 12px;
+                font-family: monospace;
+              }
+              /* ── Chat input area ────────────────────────────────── */
+              .ab-chat-input-area {
+                flex-shrink: 0;
+                padding: 8px 12px 0px 12px;
+                background: #ffffff;
+                border-top: 1px solid rgba(0,0,0,0.06);
+              }
+              .dark .ab-chat-input-area {
+                background: #1e293b;
+                border-top-color: rgba(255,255,255,0.06);
+              }
+              .ab-chat-input-row {
+                display: flex;
+                align-items: flex-end;
+                gap: 10px;
+                width: 100%;
+              }
+              .ab-chat-input-buttons {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex-shrink: 0;
+                margin-bottom: 4px;
+              }
+              .ab-input-action-btn {
+                width: 38px;
+                height: 38px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #f1f5f9;
+                border: 1px solid rgba(0,0,0,0.06);
+                color: #64748b;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                flex-shrink: 0;
+              }
+              .dark .ab-input-action-btn {
+                background: #1e293b;
+                border-color: rgba(255,255,255,0.06);
+                color: #94a3b8;
+              }
+              .ab-input-action-btn:hover {
+                color: #4f46e5;
+                background: #e2e8f0;
+                transform: scale(1.05);
+              }
+              .dark .ab-input-action-btn:hover {
+                color: #818cf8;
+                background: #334155;
+              }
+              .ab-input-action-btn.active {
+                color: #4f46e5;
+                background: rgba(79,70,229,0.1);
+                border-color: rgba(79,70,229,0.2);
+              }
+              .dark .ab-input-action-btn.active {
+                color: #818cf8;
+                background: rgba(129,140,248,0.15);
+                border-color: rgba(129,140,248,0.25);
+              }
+              .ab-chat-input-form {
+                flex: 1;
+                min-width: 0;
+                display: flex;
+                align-items: flex-end;
+                gap: 6px;
+                background: #f1f5f9;
+                border-radius: 24px;
+                padding: 6px 8px;
+                border: 1px solid rgba(0,0,0,0.06);
+                transition: border-color 0.2s;
+              }
+              .dark .ab-chat-input-form {
+                background: #0f172a;
+                border-color: rgba(255,255,255,0.06);
+              }
+              .ab-chat-input-form:focus-within {
+                border-color: rgba(79,70,229,0.4);
+              }
+              .ab-new-chat-inline {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                padding: 5px 12px;
+                border-radius: 20px;
+                background: rgba(241,245,249,0.8);
+                border: 1px solid rgba(0,0,0,0.08);
+                color: #64748b;
+                font-size: 11px;
+                font-weight: 800;
+                cursor: pointer;
+                white-space: nowrap;
+                flex-shrink: 0;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                transition: all 0.2s;
+                min-height: 34px;
+                width: auto;
+                height: auto;
+              }
+              .dark .ab-new-chat-inline {
+                background: rgba(255,255,255,0.05);
+                border-color: rgba(255,255,255,0.08);
+                color: #94a3b8;
+              }
+              .ab-new-chat-inline:hover {
+                background: rgba(79,70,229,0.1);
+                border-color: rgba(79,70,229,0.3);
+                color: #4f46e5;
+              }
+              .dark .ab-new-chat-inline:hover {
+                background: rgba(129,140,248,0.1);
+                border-color: rgba(129,140,248,0.3);
+                color: #818cf8;
+              }
+              .ab-new-chat-inline:active { transform: scale(0.96); }
+              .ab-chat-input {
+                flex: 1;
+                border: none;
+                outline: none;
+                background: transparent;
+                font-size: 14px;
+                line-height: 1.5;
+                resize: none;
+                color: #1e293b;
+                min-height: 34px;
+                max-height: 120px;
+                padding: 6px 4px;
+                font-family: inherit;
+                overflow-y: auto;
+              }
+              .dark .ab-chat-input { color: #e2e8f0; }
+              .ab-chat-input::placeholder { color: #94a3b8; }
+              .dark .ab-chat-input::placeholder { color: #475569; }
+              @media (max-width: 1023px) {
+                .ab-chat-input { font-size: max(16px, 0.9rem) !important; }
+              }
+              .ab-send-btn {
+                width: 34px;
+                height: 34px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: none;
+                cursor: pointer;
+                color: white;
+                flex-shrink: 0;
+                transition: all 0.2s;
+              }
+              .ab-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+              .ab-send-btn:not(:disabled):hover { transform: scale(1.05); }
+              .ab-safe-area-bottom {
+                height: env(safe-area-inset-bottom, 0px);
+                flex-shrink: 0;
+              }
+              @media (max-width: 374px) {
+                .ab-chat-input-area { padding: 5px 6px 0px; }
+                .ab-chat-input-form { padding: 4px 6px; border-radius: 20px; }
+                .ab-chat-input { font-size: 13px; min-height: 30px; }
+                .ab-send-btn { width: 30px; height: 30px; }
+                .ab-input-action-btn { width: 32px; height: 32px; }
+                .ab-chat-input-buttons { gap: 4px; margin-bottom: 2px; }
+                .ab-new-chat-inline span { display: none; }
+                .ab-new-chat-inline { padding: 5px 6px; }
+              }
+              @media (min-width: 375px) and (max-width: 639px) {
+                .ab-chat-input-area { padding: 6px 8px 0px; }
+                .ab-input-action-btn { width: 34px; height: 34px; }
+                .ab-chat-input-buttons { gap: 6px; margin-bottom: 3px; }
+              }
+              @media (min-width: 600px) and (max-width: 767px) {
+                .ab-chat-input-area { padding: 8px 14px 0px; }
+              }
+              @media (min-width: 768px) {
+                .ab-chat-input-area { padding: 10px 20px 0px; }
+              }
+              @media (min-width: 1280px) {
+                .ab-chat-input-area { padding: 10px 24px 0px; }
+              }
+              @media (max-width: 1023px) and (orientation: landscape) and (max-height: 500px) {
+                .ab-chat-input-area { padding: 4px 10px 0px; }
+              }
+            `}</style>
           </div>
         )}
 

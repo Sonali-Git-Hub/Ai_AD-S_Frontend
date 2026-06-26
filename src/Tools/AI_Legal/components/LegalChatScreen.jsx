@@ -1939,9 +1939,13 @@ const LegalChatScreen = ({ onBack, currentCase, onUpdateCase }) => {
           border-color: rgba(255,255,255,0.06);
         }
         .legal-bubble-user {
-          background: linear-gradient(135deg, #4f46e5, #6366f1);
-          color: white;
+          background: #f1f5f9;
+          color: #0f172a;
           border-bottom-right-radius: 6px;
+        }
+        .dark .legal-bubble-user {
+          background: #1e293b;
+          color: #f1f5f9;
         }
         .legal-msg-ai-text {
           font-size: 14px; line-height: 1.65;
@@ -1980,7 +1984,8 @@ const LegalChatScreen = ({ onBack, currentCase, onUpdateCase }) => {
           font-weight: 700;
         }
         .dark .legal-msg-ai-text th { background: rgba(79,70,229,0.15); }
-        .legal-msg-user-text { margin: 0; font-size: 14px; line-height: 1.5; }
+        .legal-msg-user-text { margin: 0; font-size: 14px; line-height: 1.6; color: #0f172a; }
+        .dark .legal-msg-user-text { color: #f1f5f9; }
         .legal-msg-attachment-chip {
           display: flex; align-items: center; gap: 6px;
           padding: 4px 10px; border-radius: 8px; margin-bottom: 6px;
