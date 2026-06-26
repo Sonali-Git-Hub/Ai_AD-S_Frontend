@@ -22,7 +22,7 @@ const StatusBadge = ({ status }) => {
     'High Risk': 'bg-red-50 dark:bg-red-950/20 text-red-500 border-red-200/50'
   };
   return (
-    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${colors[status] || colors['Active']}`}>
+    <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border ${colors[status] || colors['Active']}`}>
       {status || 'Active'}
     </span>
   );
@@ -1187,7 +1187,7 @@ const LegalDashboard = ({
       <div className="flex-1 overflow-y-auto custom-scrollbar px-4 sm:px-6 md:px-10 lg:px-12 py-6 sm:py-8 overscroll-contain touch-pan-y"
         style={{ WebkitOverflowScrolling: 'touch', scrollBehavior: 'smooth' }}>
         {filteredCases.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid gap-4 sm:gap-6 grid-cols-[repeat(auto-fit,_minmax(250px,_1fr))]">
             {filteredCases.map((c) => (
               <motion.div key={c._id || c.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
                 whileHover={{ y: -6, scale: 1.01 }}
@@ -1197,7 +1197,7 @@ const LegalDashboard = ({
                 <div className="flex justify-between items-start mb-4 sm:mb-5">
                   <div className="flex items-center gap-2 sm:gap-3">
                     <div className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl ${currentProjectId === (c.id || c._id) ? 'bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-indigo-50 dark:bg-[#131C31] text-indigo-600'} transition-colors`}>
-                      <FolderOpen className="w-5 h-5 sm:w-6 sm:h-6" />
+                      <FolderOpen className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
                     <StatusBadge status={c.status || 'Active'} />
                   </div>
@@ -1233,15 +1233,15 @@ const LegalDashboard = ({
                       <button onClick={() => setIsRenamingCase(null)} className="p-1 text-slate-400"><X size={14} /></button>
                     </div>
                   ) : (
-                    <h3 className="text-sm sm:text-base font-black text-slate-800 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{c.name || c.title}</h3>
+                    <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{c.name || c.title}</h3>
                   )}
                   <div className="flex flex-col gap-1">
-                    <p className="text-[9px] sm:text-xs text-subtext font-bold uppercase tracking-widest flex items-center gap-1 sm:gap-1.5">
+                    <p className="text-[8px] sm:text-xs text-subtext font-bold uppercase tracking-widest flex items-center gap-1 sm:gap-1.5">
                       <Users size={10} className="sm:w-[11px] sm:h-[11px]" />
                       {c.clientName || 'Private Client'}
                     </p>
                     {c.caseType && (
-                      <p className="text-[8px] sm:text-[10px] text-indigo-600 dark:text-indigo-400 font-black uppercase tracking-widest flex items-center gap-1 sm:gap-1.5">
+                      <p className="text-[7px] sm:text-[9px] text-indigo-600 dark:text-indigo-400 font-black uppercase tracking-widest flex items-center gap-1 sm:gap-1.5">
                         <Scale size={10} className="sm:w-[11px] sm:h-[11px]" />
                         {c.caseType}
                       </p>
@@ -1250,7 +1250,7 @@ const LegalDashboard = ({
                 </div>
 
                 <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-slate-100 dark:border-white/5">
-                  <span className="text-[9px] sm:text-[10px] text-subtext font-bold uppercase tracking-tighter">
+                  <span className="text-[8px] sm:text-[9px] text-subtext font-bold uppercase tracking-tighter">
                     {new Date(c.updatedAt || Date.now()).toLocaleDateString()}
                   </span>
                   <div className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 group-hover:translate-x-1 transition-transform">

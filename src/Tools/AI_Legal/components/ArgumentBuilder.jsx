@@ -326,12 +326,13 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [editingFactId, setEditingFactId] = useState(null);
+  const [isCreatingChat, setIsCreatingChat] = useState(false);
   
   // Attachments and Drag & Drop States
   const [attachments, setAttachments] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+const fileInputRef = useRef(null);
 
   // Chat sessions state
   const [sessions, setSessions] = useState([]);
@@ -716,6 +717,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
 
   const handleNewChat = async () => {
     if (!currentCase) return;
+    setIsCreatingChat(true);
     // Save current chat session to history before creating new chat
     await saveChatHistory(messages);
 
@@ -744,6 +746,13 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
     setMessages(defaultMsgs);
     setInputValue('');
     setAttachments([]);
+    setIsGenerating(false);
+    setActiveTab('assistant');
+    setShowBuildArgument(false);
+    // Scroll to top of messages container
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = 0;
+    }
 
     // Persist the new session without overwriting its empty history
     try {
@@ -766,6 +775,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
       const chatInput = document.querySelector('input[placeholder="Describe case details or ask litigation questions..."]');
       if (chatInput) chatInput.focus();
     }, 100);
+    setIsCreatingChat(false);
   };
 
   const switchSession = async (sessionId) => {
@@ -1344,12 +1354,13 @@ FORMATTING RULES:
 
             {/* ── NEW CHAT BUTTON — above input bar, left-aligned (mirrors LegalChatScreen) ── */}
             <div className="w-full px-4 pb-2 flex justify-start shrink-0">
-              <button
-                type="button"
-                className="ab-new-chat-inline"
-                onClick={handleNewChat}
-                title="Start New Chat"
-              >
+                <button
+                  type="button"
+                  className="ab-new-chat-inline"
+                  onClick={handleNewChat}
+                  disabled={isCreatingChat}
+                  title="Start New Chat"
+                >
                 <Plus size={14} />
                 <span>New Chat</span>
               </button>
