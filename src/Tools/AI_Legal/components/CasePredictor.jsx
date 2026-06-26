@@ -63,9 +63,13 @@ const CasePredictor = ({ currentCase, onBack, theme, allProjects = [], onUpdateC
 
   const [translatedReportText, setTranslatedReportText] = useState('');
 
-  const originalReportText = useMemo(() => {
-    return displayPrediction?.reports?.[selectedReportTab] || displayPrediction?.report || '';
-  }, [displayPrediction, selectedReportTab]);
+  const displayPrediction = useMemo(() => {
+  return activePrediction || (historyData && historyData.length > 0 ? historyData[0] : null);
+}, [activePrediction, historyData]);
+
+const originalReportText = useMemo(() => {
+  return displayPrediction?.reports?.[selectedReportTab] || displayPrediction?.report || '';
+}, [displayPrediction, selectedReportTab]);
 
   // Re-run translation whenever original report or language changes
   useEffect(() => {
@@ -733,10 +737,7 @@ Ensure all report values in "reports" are long, detailed, professional legal bri
     );
   };
 
-  // Choose prediction context to render in metrics dashboard (active or latest from logs)
-  const displayPrediction = useMemo(() => {
-    return activePrediction || (historyData && historyData.length > 0 ? historyData[0] : null);
-  }, [activePrediction, historyData]);
+
 
   return (
     <div className={`flex-1 flex flex-col w-full h-full min-h-0 overflow-hidden transition-colors duration-300 ${
