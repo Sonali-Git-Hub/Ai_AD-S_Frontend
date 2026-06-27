@@ -7176,7 +7176,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                         <Skeleton />
                                       ) : (
                                         <div className="flex flex-col">
-                                          <div className={`collapsible-container ${msg.content && msg.content.length > 350 && msg.id !== typingMessageId && !expandedMessages[msg.id] ? 'collapsed-message' : ''}`}>
+                                          <div className={`collapsible-container ${msg.content && msg.content.length > 350 && msg.id !== typingMessageId && expandedMessages[msg.id] === false ? 'collapsed-message' : ''}`}>
                                             <ReactMarkdown
                                               className="select-text"
                                               remarkPlugins={[remarkGfm]}
@@ -7420,7 +7420,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                                 onClick={(e) => {
                                                   e.stopPropagation();
                                                   setExpandedMessages(prev => {
-                                                    const next = { ...prev, [msg.id]: !prev[msg.id] };
+                                                    const next = { ...prev, [msg.id]: prev[msg.id] === false };
                                                     if (next[msg.id]) {
                                                       setTimeout(() => {
                                                         scrollToBottom(true, 'smooth');
@@ -7430,16 +7430,16 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                                   });
                                                 }}
                                                 className="read-more-btn"
-                                                title={expandedMessages[msg.id] ? 'Show less' : 'Read full response'}
-                                                aria-expanded={!!expandedMessages[msg.id]}
+                                                title={expandedMessages[msg.id] !== false ? 'Show less' : 'Read full response'}
+                                                aria-expanded={expandedMessages[msg.id] !== false}
                                               >
                                                 <span className="read-more-btn__text">
-                                                  {expandedMessages[msg.id]
+                                                  {expandedMessages[msg.id] !== false
                                                     ? 'Show less'
                                                     : `Read Full Response ↓`}
                                                 </span>
                                                 <ChevronDown
-                                                  className={`read-more-btn__icon ${expandedMessages[msg.id] ? 'rotated' : ''}`}
+                                                  className={`read-more-btn__icon ${expandedMessages[msg.id] !== false ? 'rotated' : ''}`}
                                                 />
                                               </button>
                                             </div>

@@ -563,7 +563,7 @@ const SharedChat = () => {
                   {(msg.content || msg.text) && (
                     <div className={`chat-bubble-text break-words overflow-wrap-anywhere ${msg.role === 'model' ? 'prose prose-sm max-w-none' : ''}`}>
                       <div className="flex flex-col">
-                        <div className={`collapsible-container ${msg.content && msg.content.length > 350 && !expandedMessages[idx] ? 'collapsed-message' : ''}`}>
+                        <div className={`collapsible-container ${msg.content && msg.content.length > 350 && expandedMessages[idx] === false ? 'collapsed-message' : ''}`}>
                           <ReactMarkdown
                             remarkPlugins={[remarkGfm]}
                             components={{
@@ -758,19 +758,19 @@ const SharedChat = () => {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setExpandedMessages(prev => ({ ...prev, [idx]: !prev[idx] }));
+                                setExpandedMessages(prev => ({ ...prev, [idx]: prev[idx] === false }));
                               }}
                               className="read-more-btn"
-                              title={expandedMessages[idx] ? 'Show less' : 'Read full response'}
-                              aria-expanded={!!expandedMessages[idx]}
+                              title={expandedMessages[idx] !== false ? 'Show less' : 'Read full response'}
+                              aria-expanded={expandedMessages[idx] !== false}
                             >
                               <span className="read-more-btn__text">
-                                {expandedMessages[idx]
+                                {expandedMessages[idx] !== false
                                   ? 'Show less'
                                   : `Read Full Response ↓`}
                               </span>
                               <ChevronDown
-                                className={`read-more-btn__icon ${expandedMessages[idx] ? 'rotated' : ''}`}
+                                className={`read-more-btn__icon ${expandedMessages[idx] !== false ? 'rotated' : ''}`}
                               />
                             </button>
                           </div>
