@@ -1482,15 +1482,36 @@ const STATUS_META = {
     active:    { label: 'Active',    color: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
     completed: { label: 'Completed', color: 'bg-green-500/15 text-green-400 border-green-500/30' },
     abandoned: { label: 'Abandoned', color: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
+    failed:    { label: 'Failed',    color: 'bg-red-500/15 text-red-400 border-red-500/30' },
 };
 
 const MODE_LABELS = {
     NORMAL_CHAT: 'Normal Chat',
+    chat: 'Normal Chat',
+    CHAT: 'Normal Chat',
     web_search: 'Web Search',
     DEEP_SEARCH: 'Deep Search',
     CODE_WRITER: 'Code Writer',
     CODING_HELP: 'Code Writer',
+    code: 'Code Writer',
     LEGAL_TOOLKIT: 'AI Legal',
+    legal: 'AI Legal',
+    IMAGE_GENERATION: 'Generate Image',
+    imageGen: 'Generate Image',
+    image: 'Generate Image',
+    VIDEO_GENERATION: 'Generate Video',
+    videoGen: 'Generate Video',
+    video: 'Generate Video',
+    AUDIO_CONVERT: 'Convert to Audio',
+    audioGen: 'Convert to Audio',
+    audio: 'Convert to Audio',
+    DOCUMENT_CONVERT: 'Convert Documents',
+    document: 'Convert Documents',
+    IMAGE_EDIT: 'Edit Image',
+    editImage: 'Edit Image',
+    edit_image: 'Edit Image',
+    CASHFLOW: 'AI CashFlow',
+    ai_cashflow: 'AI CashFlow',
 };
 
 const SessionStatusBadge = ({ status }) => {
@@ -1590,6 +1611,7 @@ const ChatSessionsTab = () => {
         { label: 'Active Now', value: stats?.statusCounts?.active ?? '—', icon: Activity, color: 'text-blue-400' },
         { label: 'Completed', value: stats?.statusCounts?.completed ?? '—', icon: Check, color: 'text-green-400' },
         { label: 'Abandoned', value: stats?.statusCounts?.abandoned ?? '—', icon: AlertCircle, color: 'text-amber-400' },
+        { label: 'Failed', value: stats?.statusCounts?.failed ?? '—', icon: Ban, color: 'text-red-400' },
         { label: 'Total Messages', value: stats?.totalMessages ?? '—', icon: Layers, color: 'text-purple-400' },
         { label: 'Avg Messages/Session', value: stats?.avgMessages ?? '—', icon: TrendingUp, color: 'text-cyan-400' },
         { label: 'Avg Duration', value: stats?.avgDuration ?? '—', icon: Clock, color: 'text-pink-400' },
@@ -1599,7 +1621,7 @@ const ChatSessionsTab = () => {
     return (
         <div className="space-y-6">
             {/* Summary Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-3">
                 {statCards.map((card, i) => (
                     <motion.div
                         key={i}
@@ -1644,6 +1666,7 @@ const ChatSessionsTab = () => {
                             <option value="active">Active</option>
                             <option value="completed">Completed</option>
                             <option value="abandoned">Abandoned</option>
+                            <option value="failed">Failed</option>
                         </select>
                     </div>
 
@@ -1661,6 +1684,12 @@ const ChatSessionsTab = () => {
                             <option value="DEEP_SEARCH">Deep Search</option>
                             <option value="CODE_WRITER">Code Writer</option>
                             <option value="LEGAL_TOOLKIT">AI Legal</option>
+                            <option value="IMAGE_GENERATION">Generate Image</option>
+                            <option value="VIDEO_GENERATION">Generate Video</option>
+                            <option value="AUDIO_CONVERT">Convert to Audio</option>
+                            <option value="DOCUMENT_CONVERT">Convert Documents</option>
+                            <option value="IMAGE_EDIT">Edit Image</option>
+                            <option value="CASHFLOW">AI CashFlow</option>
                         </select>
                     </div>
 
