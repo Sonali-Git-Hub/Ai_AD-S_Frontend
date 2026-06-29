@@ -68,8 +68,6 @@ const apis = {
   notifications: `${API}/notifications`,
   agents: `${API}/agents`,
   buyAgent: `${API}/agents/buy`,
-  getUserAgents: `${API}/agents/get_my_agents`,
-  getMyAgents: `${API}/agents/me`,
   chatAgent: `${API}/chat`,
   shareEmail: (sessionId) => `${API}/chat/${sessionId}/share/email`,
   support: `${API}/support`,

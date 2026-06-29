@@ -977,6 +977,17 @@ export const apiService = {
     }
   },
 
+  async sendEmailToUser(payload) {
+    try {
+      const response = await apiClient.post('/admin/send-email', payload);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to send email to user:", error);
+      throw error;
+    }
+  },
+
+
   async getAllUsers() {
     try {
       const response = await apiClient.get('/user/all');
