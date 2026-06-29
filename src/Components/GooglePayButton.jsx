@@ -59,6 +59,11 @@ const GooglePayButton = ({
 
     // ── 1. Load Google Pay SDK script ────────────────────────────────────────
     useEffect(() => {
+        if (currency === 'INR') {
+            setStatus('ready');
+            return;
+        }
+
         if (window.google?.payments?.api) {
             initializeGooglePay();
             return;
@@ -80,7 +85,7 @@ const GooglePayButton = ({
         return () => {
             script.removeEventListener('load', initializeGooglePay);
         };
-    }, []);
+    }, [currency, initializeGooglePay]);
 
     // ── 2. Initialize Google Pay client & check if supported ─────────────────
     const initializeGooglePay = useCallback(async () => {
@@ -130,7 +135,8 @@ const GooglePayButton = ({
     // ── 3. Handle the full payment flow ──────────────────────────────────────
     const handleGooglePay = useCallback(async () => {
         if (isProcessingRef.current) return;
-        if (!paymentsClientRef.current || status !== 'ready' || disabled) return;
+        if (status !== 'ready' || disabled) return;
+        if (currency !== 'INR' && !paymentsClientRef.current) return;
 
         isProcessingRef.current = true;
         onProcessing?.(true);
@@ -150,7 +156,76 @@ const GooglePayButton = ({
                 return;
             }
 
-            // Open the Google Pay payment sheet
+            if (currency === 'INR') {
+                // For India UPI payment, initialize custom Razorpay overlay to open Google Pay directly
+                const options = {
+                    key: window._env_?.VITE_RAZORPAY_KEY_ID || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_SBFlInxBiRfOGd',
+                    amount: Math.round(orderData.amount * 100),
+                    currency: "INR",
+                    name: "AISA™",
+                    description: `Upgrade to ${orderData.itemName || 'Plan'}`,
+                    order_id: orderData.orderId,
+                    prefill: {
+                        method: 'upi'
+                    },
+                    config: {
+                        display: {
+                            blocks: {
+                                upi: {
+                                    name: 'Pay using Google Pay',
+                                    instruments: [
+                                        {
+                                            method: 'upi',
+                                            apps: ['google_pay']
+                                        }
+                                    ]
+                                }
+                            },
+                            sequence: ['block.upi'],
+                            preferences: {
+                                show_default_blocks: false
+                            }
+                        }
+                    },
+                    handler: async function (response) {
+                        try {
+                            setStatus('paying');
+                            const result = await verifyGooglePayment({
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_signature: response.razorpay_signature,
+                                planId,
+                                packageId,
+                                billingCycle
+                            });
+                            onSuccess?.(result);
+                            setStatus('ready');
+                            isProcessingRef.current = false;
+                            onProcessing?.(false);
+                        } catch (e) {
+                            setErrorMsg(e.message || 'Payment verification failed');
+                            setStatus('error');
+                            onError?.(e);
+                            isProcessingRef.current = false;
+                            onProcessing?.(false);
+                        }
+                    },
+                    modal: {
+                        ondismiss: function () {
+                            setStatus('ready');
+                            isProcessingRef.current = false;
+                            onProcessing?.(false);
+                        }
+                    },
+                    theme: { color: "#000000" }
+                };
+
+                const rzp = new window.Razorpay(options);
+                rzp.open();
+                return;
+            }
+
+            // Open the Google Pay payment sheet (for Global cards)
             const paymentData = await paymentsClientRef.current.loadPaymentData(orderData.googlePayConfig);
 
             // paymentData contains the encrypted payment token from Google
