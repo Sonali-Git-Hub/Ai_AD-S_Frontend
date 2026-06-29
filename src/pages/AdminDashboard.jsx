@@ -9,7 +9,7 @@ import {
     ChevronDown, Save, RefreshCw, ArrowLeft, FileUp,
     Eye, EyeOff, Check, AlertCircle, FileText, PlusCircle, Headphones, BookOpen,
     MessageSquare, Image, Layers, Clock, Video,
-    Filter, ChevronLeft, ChevronRight, User as UserIcon, Bot, Calendar,
+    Filter, ChevronLeft, ChevronRight, User as UserIcon, Bot, Calendar, Mail,
 } from 'lucide-react';
 import { apiService } from '../services/apiService';
 import { getUserData } from '../userStore/userData';
@@ -32,13 +32,14 @@ const LoadingSpinner = () => (
 const TabButton = ({ active, icon: Icon, label, onClick }) => (
     <button
         onClick={onClick}
-        className={`flex items-center gap-2.5 px-5 py-3 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${active
+        title={label}
+        className={`flex items-center gap-2 px-3 py-2.5 sm:px-5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${active
             ? 'bg-primary text-white shadow-lg shadow-primary/30'
             : 'text-subtext hover:bg-white/20 dark:hover:bg-white/10 hover:text-maintext'
             }`}
     >
-        <Icon className="w-4 h-4" />
-        {label}
+        <Icon className="w-4 h-4 shrink-0" />
+        <span className="hidden sm:inline">{label}</span>
     </button>
 );
 
@@ -130,7 +131,7 @@ const OverviewTab = () => {
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <StatCard icon={Users} label={t('totalUsers')} value={stats?.totalUsers ?? 0} />
                 <StatCard icon={Activity} label={t('activeSubscriptions')} value={stats?.activeSubscriptions ?? 0} color="emerald-500" />
                 <StatCard icon={DollarSign} label={t('totalRevenue')} value={`₹${stats?.totalRevenue ?? 0}`} color="amber-500" />
@@ -284,7 +285,7 @@ const UsersTab = () => {
                         layout
                         className="bg-white/30 dark:bg-white/5 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-xl p-4 hover:border-primary/20 transition-all"
                     >
-                        <div className="flex items-center justify-between flex-wrap gap-3">
+                        <div className="flex items-start sm:items-center justify-between flex-wrap gap-3">
                             <div className="flex items-center gap-3 min-w-0">
                                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
                                     {user.avatar ? (
@@ -343,9 +344,9 @@ const UsersTab = () => {
                                 exit={{ height: 0, opacity: 0 }}
                                 className="overflow-hidden border-t border-white/10 mt-3 pt-3"
                             >
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
                                     <select
-                                        className="bg-white/20 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs text-maintext"
+                                        className="flex-1 min-w-[120px] bg-white/20 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs text-maintext"
                                         value={upgradeData.planName}
                                         onChange={(e) => setUpgradeData({ ...upgradeData, planName: e.target.value })}
                                     >
@@ -356,14 +357,14 @@ const UsersTab = () => {
                                     </select>
                                     <input
                                         type="date"
-                                        className="bg-white/20 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs text-maintext"
+                                        className="flex-1 min-w-[120px] bg-white/20 dark:bg-black/20 border border-white/20 dark:border-white/10 rounded-lg px-2 py-1.5 text-xs text-maintext"
                                         value={upgradeData.expiryDate}
                                         onChange={(e) => setUpgradeData({ ...upgradeData, expiryDate: e.target.value })}
                                     />
                                     <button
                                         onClick={() => handleManualUpgrade(user._id || user.id)}
                                         disabled={isUpgrading === (user._id || user.id)}
-                                        className="px-3 py-1.5 bg-primary text-white rounded-lg text-xs font-bold hover:opacity-90 transition-all"
+                                        className="px-3 py-1.5 bg-primary text-white rounded-lg text-xs font-bold hover:opacity-90 transition-all whitespace-nowrap"
                                     >
                                         {isUpgrading === (user._id || user.id) ? t('loading') : t('upgrade')}
                                     </button>
@@ -1534,6 +1535,43 @@ const ChatSessionsTab = () => {
     const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 15, totalPages: 1 });
     const [selectedSession, setSelectedSession] = useState(null);
     const [detailLoading, setDetailLoading] = useState(false);
+    const [mailModal, setMailModal] = useState({ isOpen: false, email: '', subject: '', message: '', sending: false });
+
+    const handleOpenMailModal = (email) => {
+        setMailModal({
+            isOpen: true,
+            email: email || '',
+            subject: 'Notification from AISA Admin',
+            message: '',
+            sending: false
+        });
+    };
+
+    const handleSendMail = async (e) => {
+        e.preventDefault();
+        if (!mailModal.email || !mailModal.message) {
+            toast.error('Recipient email and message are required.');
+            return;
+        }
+        setMailModal(prev => ({ ...prev, sending: true }));
+        try {
+            const res = await apiService.sendEmailToUser({
+                toEmail: mailModal.email,
+                subject: mailModal.subject || 'Message from AISA Admin',
+                message: mailModal.message
+            });
+            if (res.success) {
+                toast.success('Email sent successfully!');
+                setMailModal({ isOpen: false, email: '', subject: '', message: '', sending: false });
+            } else {
+                toast.error(res.message || 'Failed to send email.');
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to send email.');
+        } finally {
+            setMailModal(prev => ({ ...prev, sending: false }));
+        }
+    };
 
     // ── Filters ────────────────────────────────────────────────────────────────
     const [search, setSearch] = useState('');
@@ -1621,14 +1659,14 @@ const ChatSessionsTab = () => {
     return (
         <div className="space-y-6">
             {/* Summary Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2 sm:gap-3">
                 {statCards.map((card, i) => (
                     <motion.div
                         key={i}
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.04 }}
-                        className="bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl p-4 flex flex-col gap-2 hover:border-primary/30 transition-all group"
+                        className="bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 flex flex-col gap-1.5 sm:gap-2 hover:border-primary/30 transition-all group"
                     >
                         <card.icon className={`w-4 h-4 ${card.color}`} />
                         <p className={`text-xl font-black ${statsLoading ? 'opacity-30 animate-pulse' : ''} text-maintext`}>
@@ -1640,10 +1678,10 @@ const ChatSessionsTab = () => {
             </div>
 
             {/* Filters */}
-            <div className="bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl p-4">
-                <div className="flex flex-wrap gap-3 items-end">
+            <div className="bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row flex-wrap gap-2 sm:gap-3 items-stretch sm:items-end">
                     {/* Search */}
-                    <div className="relative flex-1 min-w-48">
+                    <div className="relative w-full sm:flex-1 sm:min-w-48">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-subtext" />
                         <input
                             type="text"
@@ -1653,9 +1691,11 @@ const ChatSessionsTab = () => {
                             className="w-full bg-white/30 dark:bg-white/5 border border-white/20 dark:border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none focus:border-primary/50 transition-all placeholder:text-subtext/40 text-maintext"
                         />
                     </div>
+                    {/* Filters row - wraps on mobile */}
+                    <div className="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto items-end">
 
                     {/* Status */}
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
                         <label className="text-[10px] font-bold text-subtext uppercase tracking-wider">Status</label>
                         <select
                             value={filterStatus}
@@ -1671,7 +1711,7 @@ const ChatSessionsTab = () => {
                     </div>
 
                     {/* Mode */}
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
                         <label className="text-[10px] font-bold text-subtext uppercase tracking-wider">Mode</label>
                         <select
                             value={filterMode}
@@ -1694,7 +1734,7 @@ const ChatSessionsTab = () => {
                     </div>
 
                     {/* Date From */}
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1 flex-1 min-w-[110px]">
                         <label className="text-[10px] font-bold text-subtext uppercase tracking-wider">From</label>
                         <input
                             type="date"
@@ -1705,7 +1745,7 @@ const ChatSessionsTab = () => {
                     </div>
 
                     {/* Date To */}
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1 flex-1 min-w-[110px]">
                         <label className="text-[10px] font-bold text-subtext uppercase tracking-wider">To</label>
                         <input
                             type="date"
@@ -1716,6 +1756,7 @@ const ChatSessionsTab = () => {
                     </div>
 
                     {/* Clear */}
+                    </div>
                     {(search || filterStatus || filterMode || dateFrom || dateTo) && (
                         <button
                             onClick={() => { setSearch(''); setFilterStatus(''); setFilterMode(''); setDateFrom(''); setDateTo(''); }}
@@ -1740,8 +1781,8 @@ const ChatSessionsTab = () => {
                     </button>
                 </div>
 
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                <div className="overflow-x-auto -mx-px">
+                    <table className="w-full min-w-[720px] text-sm">
                         <thead>
                             <tr className="border-b border-white/10">
                                 {['Session ID', 'User', 'Email', 'Mode', 'Start Time', 'Duration', 'Total', 'User', 'AI', 'Status'].map((h, i) => (
@@ -1786,7 +1827,21 @@ const ChatSessionsTab = () => {
                                             <span className="font-semibold text-maintext text-xs whitespace-nowrap">{s.userName || 'Guest'}</span>
                                         </td>
                                         <td className="px-4 py-3">
-                                            <span className="text-subtext text-xs whitespace-nowrap">{s.userEmail || '—'}</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-subtext text-xs whitespace-nowrap">{s.userEmail || '—'}</span>
+                                                {s.userEmail && s.userEmail !== '—' && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleOpenMailModal(s.userEmail);
+                                                        }}
+                                                        className="p-1 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                                        title="Send Email to User"
+                                                    >
+                                                        <Mail className="w-3 h-3" />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-4 py-3">
                                             <span className="text-xs text-subtext whitespace-nowrap">{MODE_LABELS[s.detectedMode] || s.detectedMode || '—'}</span>
@@ -1850,7 +1905,7 @@ const ChatSessionsTab = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+                        className="fixed inset-0 z-[2050] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4"
                         onClick={(e) => { if (e.target === e.currentTarget) setSelectedSession(null); }}
                     >
                         <motion.div
@@ -1891,7 +1946,17 @@ const ChatSessionsTab = () => {
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-5 border-b border-white/10">
                                         {[
                                             { label: 'User', value: selectedSession.userName || 'Guest' },
-                                            { label: 'Email', value: selectedSession.userEmail || '—' },
+                                            { label: 'Email', value: selectedSession.userEmail ? (
+                                                <div className="flex items-center justify-between gap-1">
+                                                    <span>{selectedSession.userEmail}</span>
+                                                    <button
+                                                        onClick={() => handleOpenMailModal(selectedSession.userEmail)}
+                                                        className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/20 hover:bg-primary/30 text-primary text-[9px] font-bold uppercase transition-all"
+                                                    >
+                                                        <Mail className="w-2.5 h-2.5" /> Send
+                                                    </button>
+                                                </div>
+                                            ) : '—' },
                                             { label: 'Status', value: <SessionStatusBadge status={selectedSession.sessionStatus} /> },
                                             { label: 'Mode', value: MODE_LABELS[selectedSession.detectedMode] || selectedSession.detectedMode || '—' },
                                             { label: 'Duration', value: selectedSession.duration || '—' },
@@ -1950,6 +2015,109 @@ const ChatSessionsTab = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Send Email Modal */}
+            <AnimatePresence>
+                {mailModal.isOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[2100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+                        onClick={() => setMailModal(prev => ({ ...prev, isOpen: false }))}
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="bg-white dark:bg-[#12141a] border border-white/20 dark:border-white/10 rounded-3xl shadow-2xl w-full max-w-lg p-6 relative overflow-hidden"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                        <Mail className="w-5 h-5 text-primary" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-maintext text-lg font-bold">Send Email to User</h3>
+                                        <p className="text-xs text-subtext">Direct communication from AISA™ Admin</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setMailModal(prev => ({ ...prev, isOpen: false }))}
+                                    className="p-2 rounded-xl hover:bg-white/10 text-subtext hover:text-maintext transition-all"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleSendMail} className="space-y-4">
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[10px] font-bold text-subtext uppercase tracking-wider">To</label>
+                                    <input
+                                        type="email"
+                                        readOnly
+                                        disabled
+                                        value={mailModal.email}
+                                        className="w-full bg-white/20 dark:bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-sm text-subtext outline-none cursor-not-allowed"
+                                    />
+                                </div>
+
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[10px] font-bold text-subtext uppercase tracking-wider font-semibold">Subject</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={mailModal.subject}
+                                        onChange={e => setMailModal(prev => ({ ...prev, subject: e.target.value }))}
+                                        className="w-full bg-white/30 dark:bg-white/5 border border-white/20 dark:border-white/10 rounded-xl py-2.5 px-4 text-sm text-maintext outline-none focus:border-primary/50 transition-all"
+                                        placeholder="Enter email subject..."
+                                    />
+                                </div>
+
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[10px] font-bold text-subtext uppercase tracking-wider font-semibold font-bold">Message</label>
+                                    <textarea
+                                        required
+                                        rows={6}
+                                        value={mailModal.message}
+                                        onChange={e => setMailModal(prev => ({ ...prev, message: e.target.value }))}
+                                        className="w-full bg-white/30 dark:bg-white/5 border border-white/20 dark:border-white/10 rounded-xl py-2.5 px-4 text-sm text-maintext outline-none focus:border-primary/50 transition-all resize-none"
+                                        placeholder="Write your email message here..."
+                                    />
+                                </div>
+
+                                <div className="flex justify-end gap-3 pt-4 border-t border-white/10 mt-6">
+                                    <button
+                                        type="button"
+                                        onClick={() => setMailModal(prev => ({ ...prev, isOpen: false }))}
+                                        className="px-5 py-2.5 rounded-xl text-sm font-bold text-subtext hover:text-maintext transition-all hover:bg-white/5"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={mailModal.sending}
+                                        className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white text-sm font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all flex items-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {mailModal.sending ? (
+                                            <>
+                                                <RefreshCw className="w-4 h-4 animate-spin" />
+                                                Sending...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Mail className="w-4 h-4" />
+                                                Send Email
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
@@ -2003,28 +2171,28 @@ const AdminDashboard = () => {
 
     return (
         <div className="h-full overflow-y-auto">
-            <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+            <div className="max-w-7xl mx-auto p-3 sm:p-5 lg:p-8 space-y-4 sm:space-y-6">
                 {/* Header */}
-                <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center justify-between flex-wrap gap-3">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-white/5 backdrop-blur-xl flex items-center justify-center shadow-lg border border-white/10 overflow-hidden">
-                            <img src={logo} alt="AISA" className="w-9 h-9 object-contain" />
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/5 backdrop-blur-xl flex items-center justify-center shadow-lg border border-white/10 overflow-hidden shrink-0">
+                            <img src={logo} alt="AISA" className="w-7 h-7 sm:w-9 sm:h-9 object-contain" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-black text-maintext tracking-tight">{t('adminDashboard')}</h1>
-                            <p className="text-xs text-subtext font-semibold uppercase tracking-wider">{t('platformManagementConsole')}</p>
+                            <h1 className="text-xl sm:text-2xl font-black text-maintext tracking-tight">{t('adminDashboard')}</h1>
+                            <p className="text-[10px] sm:text-xs text-subtext font-semibold uppercase tracking-wider hidden sm:block">{t('platformManagementConsole')}</p>
                         </div>
                     </div>
                     <button
                         onClick={() => navigate('/dashboard/chat')}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-subtext hover:text-maintext hover:bg-white/20 dark:hover:bg-white/10 transition-all border border-white/20 dark:border-white/10"
+                        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-subtext hover:text-maintext hover:bg-white/20 dark:hover:bg-white/10 transition-all border border-white/20 dark:border-white/10 shrink-0"
                     >
-                        <ArrowLeft className="w-4 h-4" /> {t('backToChat')}
+                        <ArrowLeft className="w-4 h-4" /> <span className="hidden xs:inline sm:inline">{t('backToChat')}</span>
                     </button>
                 </div>
 
                 {/* Tab Navigation */}
-                <div className="flex items-center gap-2 overflow-x-auto pb-2 admin-horizontal-scrollbar">
+                <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto pb-2 admin-horizontal-scrollbar scrollbar-hide">
                     {tabs.map(tab => (
                         <TabButton
                             key={tab.id}
