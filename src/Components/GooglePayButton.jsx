@@ -57,37 +57,7 @@ const GooglePayButton = ({
     const [status, setStatus] = useState(isIOS ? 'not-supported' : 'loading'); // 'loading' | 'ready' | 'not-supported' | 'paying' | 'error'
     const [errorMsg, setErrorMsg] = useState('');
 
-    // ── 1. Load Google Pay SDK script ────────────────────────────────────────
-    useEffect(() => {
-        if (currency === 'INR') {
-            setStatus('ready');
-            return;
-        }
-
-        if (window.google?.payments?.api) {
-            initializeGooglePay();
-            return;
-        }
-
-        const existingScript = document.querySelector(`script[src="${GOOGLE_PAY_SDK_URL}"]`);
-        if (existingScript) {
-            existingScript.addEventListener('load', initializeGooglePay);
-            return;
-        }
-
-        const script = document.createElement('script');
-        script.src = GOOGLE_PAY_SDK_URL;
-        script.async = true;
-        script.onload = initializeGooglePay;
-        script.onerror = () => setStatus('not-supported');
-        document.head.appendChild(script);
-
-        return () => {
-            script.removeEventListener('load', initializeGooglePay);
-        };
-    }, [currency, initializeGooglePay]);
-
-    // ── 2. Initialize Google Pay client & check if supported ─────────────────
+    // ── 1. Initialize Google Pay client & check if supported ─────────────────
     const initializeGooglePay = useCallback(async () => {
         try {
             // In PRODUCTION, pass merchantInfo to PaymentsClient
@@ -131,6 +101,36 @@ const GooglePayButton = ({
             setStatus('not-supported');
         }
     }, []);
+
+    // ── 2. Load Google Pay SDK script ────────────────────────────────────────
+    useEffect(() => {
+        if (currency === 'INR') {
+            setStatus('ready');
+            return;
+        }
+
+        if (window.google?.payments?.api) {
+            initializeGooglePay();
+            return;
+        }
+
+        const existingScript = document.querySelector(`script[src="${GOOGLE_PAY_SDK_URL}"]`);
+        if (existingScript) {
+            existingScript.addEventListener('load', initializeGooglePay);
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = GOOGLE_PAY_SDK_URL;
+        script.async = true;
+        script.onload = initializeGooglePay;
+        script.onerror = () => setStatus('not-supported');
+        document.head.appendChild(script);
+
+        return () => {
+            script.removeEventListener('load', initializeGooglePay);
+        };
+    }, [currency, initializeGooglePay]);
 
     // ── 3. Handle the full payment flow ──────────────────────────────────────
     const handleGooglePay = useCallback(async () => {
