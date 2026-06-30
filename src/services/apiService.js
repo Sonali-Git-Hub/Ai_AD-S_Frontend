@@ -705,6 +705,26 @@ export const apiService = {
     }
   },
 
+  async getAdminAnalytics(range = '7d') {
+    try {
+      const response = await apiClient.get('/admin/analytics', { params: { range } });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch admin analytics:', error.message);
+      throw error;
+    }
+  },
+
+  async getAdminErrorDrillDown(mode, range = '7d') {
+    try {
+      const response = await apiClient.get(`/admin/analytics/errors/${encodeURIComponent(mode)}`, { params: { range } });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch error drill-down:', error.message);
+      throw error;
+    }
+  },
+
   // --- Agents ---
   async getCreatedAgents() {
     try {

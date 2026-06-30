@@ -10,6 +10,7 @@ import {
     Eye, EyeOff, Check, AlertCircle, FileText, PlusCircle, Headphones, BookOpen,
     MessageSquare, Image, Layers, Clock, Video,
     Filter, ChevronLeft, ChevronRight, User as UserIcon, Bot, Calendar, Mail,
+    PieChart, AlertTriangle, Cpu, TrendingDown, BarChart2,
 } from 'lucide-react';
 import { apiService } from '../services/apiService';
 import { getUserData } from '../userStore/userData';
@@ -2123,6 +2124,610 @@ const ChatSessionsTab = () => {
 };
 
 
+// ═══════════════════════════════
+// ANALYTICS TAB
+// ═══════════════════════════════
+const AnalyticsTab = () => {
+    const [data, setData]         = useState(null);
+    const [loading, setLoading]   = useState(true);
+    const [range, setRange]       = useState('7d');
+    const [refreshing, setRefreshing] = useState(false);
+
+    // Drill-down state
+    const [drillMode, setDrillMode]     = useState(null); // which mode was clicked
+    const [drillData, setDrillData]     = useState(null);
+    const [drillLoading, setDrillLoading] = useState(false);
+    const [drawerOpen, setDrawerOpen]   = useState(false);
+
+    const fetchAnalytics = async (isManual = false) => {
+        if (isManual) setRefreshing(true);
+        else setLoading(true);
+        try {
+            const res = await apiService.getAdminAnalytics(range);
+            setData(res.analytics);
+        } catch (err) {
+            console.error('Analytics fetch failed:', err);
+            toast.error('Failed to load analytics');
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+    const openDrillDown = async (mode) => {
+        setDrillMode(mode);
+        setDrawerOpen(true);
+        setDrillLoading(true);
+        setDrillData(null);
+        try {
+            const res = await apiService.getAdminErrorDrillDown(mode, range);
+            setDrillData(res.drillDown);
+        } catch (err) {
+            console.error('Drill-down fetch failed:', err);
+            toast.error('Failed to load error details');
+        } finally {
+            setDrillLoading(false);
+        }
+    };
+
+    useEffect(() => { fetchAnalytics(); }, [range]);
+
+
+    const MODE_LABELS = {
+        NORMAL_CHAT: 'AI Chat',
+        LEGAL_TOOLKIT: 'Legal Toolkit',
+        IMAGE_GENERATION: 'Image Generation',
+        VIDEO_GENERATION: 'Video Generation',
+        IMAGE_EDIT: 'Image Edit',
+        AUDIO_CONVERT: 'Audio Convert',
+        DOCUMENT_CONVERT: 'Document Convert',
+        CODE_WRITER: 'Code Writer',
+        CASHFLOW: 'Cashflow',
+        RAG: 'RAG / Knowledge',
+    };
+
+    const MODE_COLORS = [
+        '#6C63FF', '#FF6584', '#43D9B2', '#FFB347', '#4FC3F7',
+        '#E57373', '#81C784', '#FFD54F', '#BA68C8', '#4DB6AC'
+    ];
+
+    const getLabel = (mode) => MODE_LABELS[mode] || mode || 'Unknown';
+
+    const maxModeCount = data?.modeUsage?.[0]?.count || 1;
+    const maxErrorCount = data?.errorByMode?.[0]?.errorCount || 1;
+
+    if (loading) return (
+        <div className="flex flex-col items-center justify-center py-24 gap-4">
+            <RefreshCw className="w-8 h-8 text-primary animate-spin" />
+            <p className="text-subtext text-sm">Loading analytics...</p>
+        </div>
+    );
+
+    const mainContent = (
+        <div className="space-y-6">
+            {/* Header Row */}
+            <div className="flex items-center justify-between flex-wrap gap-3">
+                <div>
+                    <h2 className="text-lg font-black text-maintext flex items-center gap-2">
+                        <PieChart className="w-5 h-5 text-primary" /> Analytics Overview
+                    </h2>
+                    <p className="text-xs text-subtext mt-0.5">Error rates, card usage & trends</p>
+                </div>
+                <div className="flex items-center gap-2">
+                    {/* Range Selector */}
+                    <div className="flex gap-1 bg-white/10 dark:bg-white/5 rounded-xl p-1 border border-white/20">
+                        {['24h','7d','30d','90d'].map(r => (
+                            <button
+                                key={r}
+                                onClick={() => setRange(r)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    range === r
+                                        ? 'bg-primary text-white shadow-md'
+                                        : 'text-subtext hover:text-maintext hover:bg-white/10'
+                                }`}
+                            >{r}</button>
+                        ))}
+                    </div>
+                    <button
+                        onClick={() => fetchAnalytics(true)}
+                        disabled={refreshing}
+                        className="p-2 rounded-lg hover:bg-primary/10 text-primary transition-all disabled:opacity-50"
+                        title="Refresh"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                </div>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <motion.div initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:0}}
+                    className="bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl p-5 group hover:border-primary/30 transition-all">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <MessageSquare className="w-5 h-5 text-primary" />
+                        </div>
+                    </div>
+                    <p className="text-2xl font-black text-maintext">{data?.summary?.totalSessions ?? 0}</p>
+                    <p className="text-xs font-semibold text-subtext uppercase tracking-wider mt-1">Total Sessions</p>
+                </motion.div>
+
+                <motion.div initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:0.05}}
+                    className="bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl p-5 group hover:border-red-400/30 transition-all">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center">
+                            <AlertTriangle className="w-5 h-5 text-red-400" />
+                        </div>
+                        <span className={`text-xs font-bold px-2 py-1 rounded-lg ${
+                            data?.summary?.errorRate > 20 ? 'text-red-400 bg-red-400/10' :
+                            data?.summary?.errorRate > 10 ? 'text-amber-400 bg-amber-400/10' :
+                            'text-green-400 bg-green-400/10'
+                        }`}>{data?.summary?.errorRate ?? 0}%</span>
+                    </div>
+                    <p className="text-2xl font-black text-maintext">{data?.summary?.totalErrors ?? 0}</p>
+                    <p className="text-xs font-semibold text-subtext uppercase tracking-wider mt-1">Error Sessions</p>
+                </motion.div>
+
+                <motion.div initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:0.1}}
+                    className="bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl p-5 group hover:border-emerald-400/30 transition-all">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                            <Users className="w-5 h-5 text-emerald-400" />
+                        </div>
+                    </div>
+                    <p className="text-2xl font-black text-maintext">{data?.summary?.newUsers ?? 0}</p>
+                    <p className="text-xs font-semibold text-subtext uppercase tracking-wider mt-1">New Users</p>
+                </motion.div>
+
+                <motion.div initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:0.15}}
+                    className="bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl p-5 group hover:border-amber-400/30 transition-all">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                            <Zap className="w-5 h-5 text-amber-400" />
+                        </div>
+                    </div>
+                    <p className="text-lg font-black text-maintext truncate">{getLabel(data?.summary?.topMode)}</p>
+                    <p className="text-xs font-semibold text-subtext uppercase tracking-wider mt-1">Top Used Card</p>
+                </motion.div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Card / Mode Usage */}
+                <div className="bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl overflow-hidden">
+                    <div className="flex items-center justify-between p-5 border-b border-white/20 dark:border-white/10">
+                        <h3 className="font-bold text-maintext flex items-center gap-2">
+                            <BarChart2 className="w-4 h-4 text-primary" /> Card Usage Breakdown
+                        </h3>
+                        <span className="text-xs text-subtext bg-white/10 px-2 py-1 rounded-lg">Last {range}</span>
+                    </div>
+                    <div className="p-5 space-y-3">
+                        {(data?.modeUsage || []).length === 0 ? (
+                            <p className="text-center text-subtext text-sm py-6">No data for this period</p>
+                        ) : (
+                            (data?.modeUsage || []).map((m, i) => (
+                                <div key={i} className="space-y-1">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{backgroundColor: MODE_COLORS[i % MODE_COLORS.length]}} />
+                                            <span className="text-sm font-semibold text-maintext">{getLabel(m._id)}</span>
+                                        </div>
+                                        <div className="flex items-center gap-3 text-xs text-subtext">
+                                            <span className="font-bold text-maintext">{m.count}</span>
+                                            <span>sessions</span>
+                                        </div>
+                                    </div>
+                                    <div className="w-full bg-white/10 dark:bg-white/5 rounded-full h-1.5">
+                                        <motion.div
+                                            initial={{width: 0}}
+                                            animate={{width: `${Math.round((m.count / maxModeCount) * 100)}%`}}
+                                            transition={{duration: 0.6, delay: i * 0.05}}
+                                            className="h-1.5 rounded-full"
+                                            style={{backgroundColor: MODE_COLORS[i % MODE_COLORS.length]}}
+                                        />
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+
+                {/* Error by Mode — CLICKABLE for drill-down */}
+                <div className="bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl overflow-hidden">
+                    <div className="flex items-center justify-between p-5 border-b border-white/20 dark:border-white/10">
+                        <h3 className="font-bold text-maintext flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4 text-red-400" /> Errors by Card/Mode
+                        </h3>
+                        <span className="text-xs text-red-400 bg-red-400/10 px-2 py-1 rounded-lg flex items-center gap-1">
+                            <Eye className="w-3 h-3" /> Click to inspect
+                        </span>
+                    </div>
+                    <div className="p-5 space-y-2">
+                        {(data?.errorByMode || []).length === 0 ? (
+                            <p className="text-center text-subtext text-sm py-6">🎉 No errors in this period!</p>
+                        ) : (
+                            (data?.errorByMode || []).map((m, i) => (
+                                <button
+                                    key={i}
+                                    onClick={() => openDrillDown(m._id)}
+                                    className="w-full text-left group p-3 rounded-xl border border-transparent hover:border-red-400/30 hover:bg-red-400/5 transition-all cursor-pointer space-y-1.5"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2.5 h-2.5 rounded-full bg-red-400/70 shrink-0" />
+                                            <span className="text-sm font-semibold text-maintext group-hover:text-red-400 transition-colors">{getLabel(m._id)}</span>
+                                        </div>
+                                        <div className="flex items-center gap-3 text-xs">
+                                            <span className="font-bold text-red-400">{m.errorCount} errors</span>
+                                            <span className="text-subtext">{m.uniqueSessionCount} sessions</span>
+                                            <ChevronRight className="w-3.5 h-3.5 text-subtext group-hover:text-red-400 transition-colors" />
+                                        </div>
+                                    </div>
+                                    <div className="w-full bg-white/10 dark:bg-white/5 rounded-full h-1.5">
+                                        <motion.div
+                                            initial={{width: 0}}
+                                            animate={{width: `${Math.round((m.errorCount / maxErrorCount) * 100)}%`}}
+                                            transition={{duration: 0.6, delay: i * 0.05}}
+                                            className="h-1.5 rounded-full bg-gradient-to-r from-red-500 to-red-400"
+                                        />
+                                    </div>
+                                </button>
+                            ))
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Daily Trend */}
+                <div className="bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl overflow-hidden">
+                    <div className="flex items-center justify-between p-5 border-b border-white/20 dark:border-white/10">
+                        <h3 className="font-bold text-maintext flex items-center gap-2">
+                            <TrendingUp className="w-4 h-4 text-emerald-400" /> Daily Sessions Trend
+                        </h3>
+                    </div>
+                    <div className="p-5">
+                        {(data?.dailyTrend || []).length === 0 ? (
+                            <p className="text-center text-subtext text-sm py-6">No trend data</p>
+                        ) : (
+                            <div className="space-y-2">
+                                {/* Mini bar chart */}
+                                <div className="flex items-end gap-1.5 h-28">
+                                    {(data?.dailyTrend || []).map((d, i) => {
+                                        const maxSessions = Math.max(...(data?.dailyTrend || []).map(x => x.sessions), 1);
+                                        const heightPct = Math.max(4, Math.round((d.sessions / maxSessions) * 100));
+                                        return (
+                                            <div key={i} className="flex flex-col items-center flex-1 gap-1" title={`${d._id}: ${d.sessions} sessions`}>
+                                                <motion.div
+                                                    initial={{height:0}}
+                                                    animate={{height: `${heightPct}%`}}
+                                                    transition={{duration:0.5, delay: i*0.03}}
+                                                    className="w-full rounded-t-md bg-gradient-to-t from-primary to-primary/50 min-h-[4px]"
+                                                    style={{height: `${heightPct}%`}}
+                                                />
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <div className="flex justify-between text-[10px] text-subtext px-0.5">
+                                    <span>{data?.dailyTrend?.[0]?._id?.slice(5)}</span>
+                                    <span>{data?.dailyTrend?.[Math.floor((data?.dailyTrend?.length||0)/2)]?._id?.slice(5)}</span>
+                                    <span>{data?.dailyTrend?.[data?.dailyTrend?.length-1]?._id?.slice(5)}</span>
+                                </div>
+                                <div className="mt-2 grid grid-cols-2 gap-2">
+                                    {(data?.dailyTrend || []).slice(-3).reverse().map((d, i) => (
+                                        <div key={i} className="flex items-center justify-between p-2 bg-white/10 dark:bg-white/5 rounded-xl text-xs">
+                                            <span className="text-subtext">{d._id?.slice(5)}</span>
+                                            <span className="font-bold text-primary">{d.sessions}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Error Categories */}
+                <div className="bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl overflow-hidden">
+                    <div className="flex items-center justify-between p-5 border-b border-white/20 dark:border-white/10">
+                        <h3 className="font-bold text-maintext flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4 text-amber-400" /> Error Categories
+                        </h3>
+                    </div>
+                    <div className="p-5 space-y-3">
+                        {(data?.topErrors || []).length === 0 ? (
+                            <p className="text-center text-subtext text-sm py-6">🎉 Zero errors found!</p>
+                        ) : (
+                            (data?.topErrors || []).map((e, i) => {
+                                const colors = {
+                                    'Timeout': '#FFB347',
+                                    'Task Failed': '#FF6584',
+                                    'AI Refusal': '#4FC3F7',
+                                    'System Error': '#E57373',
+                                    'General Error': '#BA68C8'
+                                };
+                                const color = colors[e.category] || '#6C63FF';
+                                const maxC = data?.topErrors?.[0]?.count || 1;
+                                return (
+                                    <div key={i} className="flex items-center gap-3 p-3 bg-white/10 dark:bg-white/5 rounded-xl border border-white/10 hover:border-white/20 transition-all">
+                                        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{backgroundColor: color+'20'}}>
+                                            <AlertTriangle className="w-4 h-4" style={{color}} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="text-sm font-semibold text-maintext">{e.category}</span>
+                                                <span className="text-xs font-bold" style={{color}}>{e.count}</span>
+                                            </div>
+                                            <div className="w-full bg-white/10 rounded-full h-1">
+                                                <motion.div
+                                                    initial={{width:0}}
+                                                    animate={{width: `${Math.round((e.count/maxC)*100)}%`}}
+                                                    transition={{duration:0.5, delay: i*0.05}}
+                                                    className="h-1 rounded-full"
+                                                    style={{backgroundColor: color}}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Recent Error Sessions Table */}
+            {(data?.recentErrorSessions || []).length > 0 && (
+                <div className="bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl overflow-hidden">
+                    <div className="flex items-center justify-between p-5 border-b border-white/20 dark:border-white/10">
+                        <h3 className="font-bold text-maintext flex items-center gap-2">
+                            <TrendingDown className="w-4 h-4 text-red-400" /> Recent Error Sessions
+                        </h3>
+                        <span className="text-xs text-subtext">Top {data?.recentErrorSessions?.length} sessions with errors</span>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b border-white/10">
+                                    <th className="text-left p-4 text-xs font-bold text-subtext uppercase tracking-wider">Session ID</th>
+                                    <th className="text-left p-4 text-xs font-bold text-subtext uppercase tracking-wider">Mode / Card</th>
+                                    <th className="text-left p-4 text-xs font-bold text-subtext uppercase tracking-wider">Errors</th>
+                                    <th className="text-left p-4 text-xs font-bold text-subtext uppercase tracking-wider">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {(data?.recentErrorSessions || []).map((s, i) => (
+                                    <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                        <td className="p-4">
+                                            <span className="font-mono text-xs text-primary bg-primary/10 px-2 py-1 rounded-lg">
+                                                {s.sessionId?.substring(0, 16)}...
+                                            </span>
+                                        </td>
+                                        <td className="p-4">
+                                            <span className="text-xs font-semibold text-maintext">{getLabel(s.mode)}</span>
+                                        </td>
+                                        <td className="p-4">
+                                            <span className="text-xs font-bold text-red-400 bg-red-400/10 px-2 py-1 rounded-lg">
+                                                {s.errorCount} errors
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-xs text-subtext">
+                                            {s.createdAt ? new Date(s.createdAt).toLocaleDateString('en-IN', {day:'2-digit', month:'short'}) : '-'}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+
+    // ── DRILL-DOWN DRAWER ────────────────────────────────────────────────────
+    const maxPatternCount = drillData?.patterns?.[0]?.count || 1;
+    const maxDailyErr     = Math.max(...(drillData?.dailyErrors || []).map(d => d.errorCount), 1);
+
+    return (
+        <div className="space-y-6 relative">
+            {/* ── Main Analytics Body ─── */}
+            {mainContent}
+
+            {/* ── Slide-over Drawer Overlay ─── */}
+            <AnimatePresence>
+                {drawerOpen && (
+                    <>
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setDrawerOpen(false)}
+                            className="fixed inset-0 lg:left-[280px] bg-black/50 backdrop-blur-sm z-40"
+                        />
+                        {/* Drawer */}
+                        <motion.div
+                            initial={{ x: '100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '100%' }}
+                            transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+                            className="fixed right-0 top-0 h-full w-full max-w-xl bg-white dark:bg-[#0f0f1a] border-l border-white/20 dark:border-white/10 z-50 overflow-y-auto shadow-2xl"
+                        >
+                            {/* Drawer Header */}
+                            <div className="sticky top-0 bg-white/90 dark:bg-[#0f0f1a]/90 backdrop-blur-xl border-b border-white/20 dark:border-white/10 p-5 z-10">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <div className="w-2.5 h-2.5 rounded-full bg-red-400 animate-pulse" />
+                                            <span className="text-xs font-bold text-red-400 uppercase tracking-widest">Error Analysis</span>
+                                        </div>
+                                        <h2 className="text-lg font-black text-maintext">{MODE_LABELS[drillMode] || drillMode}</h2>
+                                        <p className="text-xs text-subtext mt-0.5">Last {range} • Detailed error breakdown</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setDrawerOpen(false)}
+                                        className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-subtext hover:text-maintext transition-all"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+
+                                {/* Quick stats row */}
+                                {drillData && (
+                                    <div className="grid grid-cols-2 gap-3 mt-4">
+                                        <div className="bg-red-500/10 border border-red-400/20 rounded-xl p-3 text-center">
+                                            <p className="text-xl font-black text-red-400">{drillData.totalErrorInstances}</p>
+                                            <p className="text-[10px] text-subtext uppercase tracking-wider mt-0.5">Total Errors</p>
+                                        </div>
+                                        <div className="bg-amber-500/10 border border-amber-400/20 rounded-xl p-3 text-center">
+                                            <p className="text-xl font-black text-amber-400">{drillData.affectedSessions}</p>
+                                            <p className="text-[10px] text-subtext uppercase tracking-wider mt-0.5">Affected Sessions</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Drawer Body */}
+                            <div className="p-5 space-y-5">
+                                {drillLoading ? (
+                                    <div className="flex flex-col items-center justify-center py-20 gap-4">
+                                        <RefreshCw className="w-7 h-7 text-primary animate-spin" />
+                                        <p className="text-subtext text-sm">Analyzing errors...</p>
+                                    </div>
+                                ) : drillData ? (
+                                    <>
+                                        {/* ── Error Pattern Breakdown ─── */}
+                                        <div>
+                                            <h3 className="text-sm font-bold text-maintext mb-3 flex items-center gap-2">
+                                                <AlertTriangle className="w-4 h-4 text-amber-400" /> Error Type Breakdown
+                                            </h3>
+                                            <div className="space-y-2">
+                                                {drillData.patterns.map((p, i) => (
+                                                    <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-3">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{backgroundColor: p.color}} />
+                                                                <span className="text-sm font-semibold text-maintext">{p.label}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 text-xs">
+                                                                <span className="font-bold" style={{color: p.color}}>{p.count}×</span>
+                                                                <span className="text-subtext">{p.sessionCount} sessions</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="w-full bg-white/10 rounded-full h-1.5 mb-2">
+                                                            <motion.div
+                                                                initial={{width: 0}}
+                                                                animate={{width: `${Math.round((p.count / maxPatternCount) * 100)}%`}}
+                                                                transition={{duration: 0.5, delay: i * 0.04}}
+                                                                className="h-1.5 rounded-full"
+                                                                style={{backgroundColor: p.color}}
+                                                            />
+                                                        </div>
+                                                        {/* Sample error messages */}
+                                                        {p.samples.length > 0 && (
+                                                            <div className="space-y-1 mt-2">
+                                                                <p className="text-[10px] text-subtext uppercase tracking-wider font-bold">Sample Messages:</p>
+                                                                {p.samples.map((sample, si) => (
+                                                                    <div key={si} className="bg-black/10 dark:bg-black/30 rounded-lg px-3 py-2 text-xs text-subtext font-mono leading-relaxed border border-white/5">
+                                                                        "{sample.length > 200 ? sample.substring(0, 200) + '...' : sample}"
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* ── Tool/Sub-feature Breakdown ─── */}
+                                        {drillData.toolStats.length > 0 && drillData.toolStats[0].tool !== 'General' && (
+                                            <div>
+                                                <h3 className="text-sm font-bold text-maintext mb-3 flex items-center gap-2">
+                                                    <Layers className="w-4 h-4 text-primary" /> Errors by Sub-Tool
+                                                </h3>
+                                                <div className="space-y-2">
+                                                    {drillData.toolStats.slice(0, 6).map((t, i) => (
+                                                        <div key={i} className="flex items-center justify-between p-2.5 bg-white/5 rounded-xl border border-white/10">
+                                                            <span className="text-sm text-maintext font-medium">{t.tool}</span>
+                                                            <span className="text-xs font-bold text-red-400 bg-red-400/10 px-2 py-0.5 rounded-lg">{t.count} errors</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* ── Daily Error Trend ─── */}
+                                        {drillData.dailyErrors.length > 0 && (
+                                            <div>
+                                                <h3 className="text-sm font-bold text-maintext mb-3 flex items-center gap-2">
+                                                    <TrendingDown className="w-4 h-4 text-red-400" /> Daily Error Trend
+                                                </h3>
+                                                <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                                                    <div className="flex items-end gap-1.5 h-20">
+                                                        {drillData.dailyErrors.map((d, i) => {
+                                                            const heightPct = Math.max(4, Math.round((d.errorCount / maxDailyErr) * 100));
+                                                            return (
+                                                                <div key={i} className="flex flex-col items-center flex-1 gap-1" title={`${d._id}: ${d.errorCount} errors`}>
+                                                                    <motion.div
+                                                                        initial={{height: 0}}
+                                                                        animate={{height: `${heightPct}%`}}
+                                                                        transition={{duration: 0.4, delay: i * 0.03}}
+                                                                        className="w-full rounded-t-sm bg-gradient-to-t from-red-500 to-red-300"
+                                                                        style={{height: `${heightPct}%`}}
+                                                                    />
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                    <div className="flex justify-between text-[9px] text-subtext mt-1">
+                                                        <span>{drillData.dailyErrors[0]?._id?.slice(5)}</span>
+                                                        <span>{drillData.dailyErrors[drillData.dailyErrors.length-1]?._id?.slice(5)}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* ── Recent Error Sessions ─── */}
+                                        {drillData.recentSessions.length > 0 && (
+                                            <div>
+                                                <h3 className="text-sm font-bold text-maintext mb-3 flex items-center gap-2">
+                                                    <Clock className="w-4 h-4 text-subtext" /> Recent Affected Sessions
+                                                </h3>
+                                                <div className="space-y-2">
+                                                    {drillData.recentSessions.map((s, i) => (
+                                                        <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-2">
+                                                            <div className="flex items-center justify-between flex-wrap gap-2">
+                                                                <span className="font-mono text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-lg">
+                                                                    {s.sessionId?.substring(0, 20)}...
+                                                                </span>
+                                                                <div className="flex items-center gap-2 text-xs">
+                                                                    <span className="text-red-400 font-bold bg-red-400/10 px-2 py-0.5 rounded-lg">{s.errorCount} errors</span>
+                                                                    <span className="text-subtext">{s.createdAt ? new Date(s.createdAt).toLocaleDateString('en-IN', {day:'2-digit',month:'short'}) : '-'}</span>
+                                                                </div>
+                                                            </div>
+                                                            {s.topError && (
+                                                                <p className="text-[11px] text-subtext bg-black/10 dark:bg-black/30 rounded-lg px-2.5 py-1.5 font-mono leading-relaxed border border-white/5 line-clamp-3">
+                                                                    {s.topError}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <div className="text-center py-16 text-subtext">No data available</div>
+                                )}
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
+
+
 const AdminDashboard = () => {
     const { t } = useLanguage();
     const [activeTab, setActiveTab] = useState('overview'); 
@@ -2144,6 +2749,7 @@ const AdminDashboard = () => {
         { id: 'overview', label: t('overview'), icon: BarChart3 },
         { id: 'users', label: t('users'), icon: Users },
         { id: 'chat-sessions', label: 'Chat Sessions', icon: MessageSquare },
+        { id: 'analytics', label: 'Analytics', icon: PieChart },
         { id: 'plans', label: t('plans'), icon: CreditCard },
         { id: 'tool-limit', label: t('toolLimit') || 'Tool Limit', icon: Shield },
         { id: 'legal', label: t('legalPages'), icon: FileText },
@@ -2157,6 +2763,7 @@ const AdminDashboard = () => {
             case 'overview': return <OverviewTab />;
             case 'users': return <UsersTab />;
             case 'chat-sessions': return <ChatSessionsTab />;
+            case 'analytics': return <AnalyticsTab />;
             case 'plans': return <PlansTab />;
             case 'tool-limit': return <ToolLimitTab />;
             case 'legal': return <LegalPagesTab />;
