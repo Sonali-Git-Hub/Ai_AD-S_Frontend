@@ -284,7 +284,26 @@ const AiResponseCard = ({ msg, currentCase, chatIdRef, handleRegenerateMessage, 
           <ReactMarkdown 
             remarkPlugins={[remarkGfm]}
             components={{
-              blockquote: CustomBlockquote
+              blockquote: CustomBlockquote,
+              table: ({ children }) => (
+                <div className="w-full overflow-x-auto my-4 custom-scrollbar rounded-xl border border-slate-200">
+                  <table className="w-full border-collapse">
+                    {children}
+                  </table>
+                </div>
+              ),
+              pre: ({ children }) => (
+                <pre className="overflow-x-auto max-w-full bg-slate-50 dark:bg-slate-900 p-4 rounded-xl custom-scrollbar text-[11px] font-mono my-4">
+                  {children}
+                </pre>
+              ),
+              code: ({ node, inline, className, children, ...props }) => {
+                return (
+                  <code className={`${className || ''} bg-slate-50 dark:bg-slate-900 px-1.5 py-0.5 rounded text-[11px] font-mono break-all`} {...props}>
+                    {children}
+                  </code>
+                );
+              }
             }}
           >
             {getDisplayText(msg.text)}
@@ -316,24 +335,24 @@ const AiResponseCard = ({ msg, currentCase, chatIdRef, handleRegenerateMessage, 
           <div className="flex flex-wrap items-center gap-3">
             <button onClick={handleCopyText} className="flex items-center gap-1 hover:text-[#4F46E5] transition-colors" title="Copy text">
               {copied ? <Check size={13} /> : <Copy size={13} />}
-              <span>Copy</span>
+              <span className="hidden sm:inline">Copy</span>
             </button>
 
             <button onClick={handleReadAloud} className="flex items-center gap-1 hover:text-[#4F46E5] transition-colors" title="Read Aloud">
               <Volume2 size={13} />
-              <span>Read Aloud</span>
+              <span className="hidden sm:inline">Read Aloud</span>
             </button>
 
             <button onClick={() => handleRegenerateMessage(msg.id)} className="flex items-center gap-1 hover:text-[#4F46E5] transition-colors" title="Regenerate strategy">
               <RotateCcw size={13} />
-              <span>Regenerate</span>
+              <span className="hidden sm:inline">Regenerate</span>
             </button>
 
             {/* Download Dropdown */}
             <div className="relative">
               <button onClick={() => setActiveDownloadMenu(prev => !prev)} className="flex items-center gap-1 hover:text-[#4F46E5] transition-colors" title="Export file">
                 <Download size={13} />
-                <span>Export</span>
+                <span className="hidden sm:inline">Export</span>
               </button>
               {activeDownloadMenu && (
                 <>
@@ -351,7 +370,7 @@ const AiResponseCard = ({ msg, currentCase, chatIdRef, handleRegenerateMessage, 
             <div className="relative">
               <button onClick={() => setActiveShareMenu(prev => !prev)} className="flex items-center gap-1 hover:text-[#4F46E5] transition-colors" title="Share options">
                 <Share2 size={13} />
-                <span>Share</span>
+                <span className="hidden sm:inline">Share</span>
               </button>
               {activeShareMenu && (
                 <>
@@ -373,7 +392,7 @@ const AiResponseCard = ({ msg, currentCase, chatIdRef, handleRegenerateMessage, 
                 title="More legal options"
               >
                 <SlidersHorizontal size={13} />
-                <span>More Actions</span>
+                <span className="hidden sm:inline">More Actions</span>
               </button>
               {moreMenuOpen && (
                 <>
@@ -407,7 +426,7 @@ const AiResponseCard = ({ msg, currentCase, chatIdRef, handleRegenerateMessage, 
 
             <button onClick={handlePrint} className="flex items-center gap-1 hover:text-[#4F46E5] transition-colors" title="Print Report">
               <Printer size={13} />
-              <span>Print</span>
+              <span className="hidden sm:inline">Print</span>
             </button>
           </div>
         </div>
@@ -1726,8 +1745,8 @@ Please continue the conversation naturally using this context. Never ask the use
     <div className="flex flex-col h-full w-full bg-[#FAFBFD] font-sans relative overflow-hidden select-text text-slate-800">
       
       {/* ─── STICKY HEADER ──────────────────────────────────────────────── */}
-      <header className="h-[72px] bg-white border-b border-[#E5E7EB] px-6 flex items-center justify-between sticky top-0 z-40 shadow-sm shrink-0">
-        <div className="flex items-center gap-3">
+      <header className="h-[72px] bg-white border-b border-[#E5E7EB] px-3 sm:px-6 flex items-center justify-between sticky top-0 z-40 shadow-sm shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button 
             onClick={onBack} 
             className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
@@ -1745,24 +1764,25 @@ Please continue the conversation naturally using this context. Never ask the use
               style={{ mixBlendMode: 'multiply' }}
               alt="AI LEGAL" 
             />
-            <h1 className="text-sm font-black text-slate-900 uppercase tracking-wider">AI LEGAL™ Chat</h1>
+            <h1 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wider">AI LEGAL™ Chat</h1>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 select-none">
+        <div className="flex items-center gap-1.5 sm:gap-3 select-none">
           {/* Export Chat dropdown */}
           <div className="relative">
             <button
               type="button"
               onClick={() => setExportDropdownOpen(!exportDropdownOpen)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
                 exportDropdownOpen
                   ? 'border-[#4F46E5] text-[#4F46E5] bg-[#4F46E5]/5'
                   : 'border-slate-200 text-slate-600 hover:bg-slate-50'
               }`}
+              title="Export Chat"
             >
               <Download size={13} />
-              <span>Export Chat</span>
+              <span className="hidden sm:inline">Export</span>
             </button>
 
             {exportDropdownOpen && (
@@ -1797,23 +1817,25 @@ Please continue the conversation naturally using this context. Never ask the use
           <button 
             type="button"
             onClick={() => setShowHistoryPanel(!showHistoryPanel)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
               showHistoryPanel 
                 ? 'border-[#4F46E5] text-[#4F46E5] bg-[#4F46E5]/5' 
                 : 'border-slate-200 text-slate-600 hover:bg-slate-50'
             }`}
+            title="History"
           >
             <History size={13} />
-            <span>History</span>
+            <span className="hidden sm:inline">History</span>
           </button>
 
           <button
             type="button"
             onClick={() => handleNewChat(false)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#4F46E5] text-white hover:bg-[#4338CA] rounded-xl text-xs font-black uppercase tracking-wider shadow-sm transition-all shrink-0 cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-[#4F46E5] text-white hover:bg-[#4338CA] rounded-xl text-xs font-black uppercase tracking-wider shadow-sm transition-all shrink-0 cursor-pointer"
+            title="New Chat"
           >
             <Plus size={14} />
-            <span>New Chat</span>
+            <span className="hidden sm:inline">New Chat</span>
           </button>
         </div>
       </header>
@@ -1831,21 +1853,32 @@ Please continue the conversation naturally using this context. Never ask the use
           
           {messages.filter(m => !m.isIntro).length === 0 ? (
             /* ─── EMPTY STATE VIEW (GENERAL LEGAL CHAT HERO) ─── */
-            <div className="space-y-8 py-6 max-w-[760px] mx-auto w-full text-center font-sans select-none flex flex-col items-center">
+            <div className="space-y-4 md:space-y-8 py-2 md:py-6 max-w-[760px] mx-auto w-full text-center font-sans select-none flex flex-col items-center mt-6 md:mt-0">
               
               {/* General Chat Hero */}
-              <div className="flex flex-col items-center justify-center gap-4 text-center my-6">
-                <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-950/20 text-[#4F46E5] rounded-3xl flex items-center justify-center mb-2 shadow-lg shadow-indigo-500/5">
-                  <Scale size={40} className="text-[#4F46E5]" />
+              <div className="flex flex-col items-center justify-center gap-3 md:gap-4 text-center my-4 md:my-6">
+                <div className="w-16 h-16 md:w-20 md:h-20 bg-indigo-50 dark:bg-indigo-950/20 text-[#4F46E5] rounded-3xl flex items-center justify-center mb-1 md:mb-2 shadow-lg shadow-indigo-500/5">
+                  <Scale className="w-8 h-8 md:w-10 md:h-10 text-[#4F46E5]" />
                 </div>
-                <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-wider">AI LEGAL CHAT</h1>
-                <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 max-w-md leading-relaxed">
+                <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-wider">AI LEGAL CHAT</h1>
+                <p className="text-[11px] md:text-sm font-semibold text-slate-500 dark:text-slate-400 max-w-sm md:max-w-md leading-relaxed hidden md:block">
                   Professional legal research and assistance.
                 </p>
+                <div className="block md:hidden space-y-2 mt-1 px-4">
+                  <p className="text-[12px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest">
+                    Professional Legal Research Assistant
+                  </p>
+                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 max-w-[280px] mx-auto leading-relaxed">
+                    Ask any legal question, upload evidence, draft legal documents, analyze judgments, or search case law.
+                  </p>
+                  <p className="text-sm font-black text-indigo-600 dark:text-indigo-400 mt-6 tracking-wide">
+                    How can I help you today?
+                  </p>
+                </div>
               </div>
 
-              {/* Suggestions Grid */}
-              <div className="w-full space-y-4 pt-2">
+              {/* Suggestions Grid (Desktop/Tablet Only) */}
+              <div className="w-full space-y-4 pt-2 hidden md:block">
                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block text-left pl-1">Example Suggestions</span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   {[
@@ -1957,7 +1990,7 @@ Please continue the conversation naturally using this context. Never ask the use
                   
                   {isAi ? (
                     /* AI message document card layout */
-                    <div className="space-y-2 pr-8">
+                    <div className="space-y-2 pr-2 sm:pr-8">
                       <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-[#4F46E5] pl-1">
                         <img 
                           src="/logo/ai_legal_monochrome.png" 
@@ -1968,7 +2001,7 @@ Please continue the conversation naturally using this context. Never ask the use
                         <span>AI LEGAL™ Copilot</span>
                       </div>
 
-                      <div className="bg-white border border-[#E7EAF3] rounded-[18px] p-6 sm:p-8 shadow-[0_4px_18px_rgba(15,23,42,.05)] leading-relaxed select-text hover:shadow-md transition-shadow">
+                      <div className="bg-white border border-[#E7EAF3] rounded-[18px] p-4 sm:p-8 shadow-[0_4px_18px_rgba(15,23,42,.05)] leading-relaxed select-text hover:shadow-md transition-shadow">
                         <AiResponseCard
                           msg={msg}
                           currentCase={currentCase}
@@ -2032,7 +2065,7 @@ Please continue the conversation naturally using this context. Never ask the use
                                       const hiddenContext = buildHiddenContext(card, msg.text);
                                       sendMessage(cleanTitle, hiddenContext);
                                     }}
-                                    className="h-[34px] px-3.5 bg-white border border-[#4F46E5]/15 hover:border-[#4F46E5] hover:bg-[#4F46E5]/5 rounded-full transition-all flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-[#4F46E5] shadow-xs select-none shrink-0"
+                                    className="min-h-[34px] py-1.5 px-3 bg-white border border-[#4F46E5]/15 hover:border-[#4F46E5] hover:bg-[#4F46E5]/5 rounded-full transition-all flex items-center gap-1.5 text-[11px] font-bold text-slate-700 hover:text-[#4F46E5] shadow-xs select-none max-w-full text-left"
                                   >
                                     <span className="w-3.5 h-3.5 flex items-center justify-center shrink-0">{card.icon}</span>
                                     <span>{cleanTitle}</span>
@@ -2046,7 +2079,7 @@ Please continue the conversation naturally using this context. Never ask the use
                     </div>
                   ) : (
                     /* User prompt card bubble layout */
-                    <div className="flex justify-end pl-16">
+                    <div className="flex justify-end pl-4 sm:pl-16">
                       <div className="flex flex-col items-end gap-1.5 max-w-full">
                         <div className="bg-white border border-slate-200 text-slate-800 p-4 rounded-2xl rounded-tr-none text-xs leading-relaxed font-semibold shadow-sm max-w-full">
                           {msg.attachments && msg.attachments.length > 0 && (
@@ -2182,13 +2215,13 @@ Please continue the conversation naturally using this context. Never ask the use
       </main>
 
       {/* ─── STICKY BOTTOM INPUT FLOATING CONTAINER ──────────────────── */}
-      <footer className="shrink-0 bg-gradient-to-t from-[#FAFBFD] via-[#FAFBFD]/95 to-transparent pt-4 pb-6 px-4 border-t border-slate-200/60 sticky bottom-0 z-30">
-        <div className="max-w-[960px] mx-auto space-y-3">
+      <footer className="shrink-0 bg-gradient-to-t from-[#FAFBFD] via-[#FAFBFD]/95 to-transparent pt-3 md:pt-4 px-2 sm:px-4 border-t border-slate-200/60 sticky bottom-0 z-30" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 16px) + 12px)' }}>
+        <div className="max-w-[960px] mx-auto space-y-3 w-full">
           
 
 
           {attachments.length > 0 && (
-            <div className="flex flex-wrap gap-2 p-2 bg-white border border-slate-200 rounded-2xl max-h-[100px] overflow-y-auto shrink-0 shadow-sm">
+            <div className="flex flex-wrap gap-2 p-2 bg-white border border-slate-200 rounded-2xl max-h-[100px] overflow-y-auto shrink-0 shadow-sm mx-1">
               {attachments.map(att => (
                 <div key={att.id} className="flex items-center gap-2 px-3 py-1 bg-slate-50 border border-slate-200 rounded-full text-[10px] font-bold">
                   {getFileIcon(att.type)}
@@ -2206,13 +2239,13 @@ Please continue the conversation naturally using this context. Never ask the use
           )}
 
           {/* ChatGPT-style Round Input Bar */}
-          <div className="bg-white border border-[#E5E7EB] rounded-full p-2 flex items-center gap-2 shadow-md hover:shadow-lg transition-shadow relative">
+          <div className="bg-white border border-[#E5E7EB] rounded-full p-1.5 md:p-2 flex items-center gap-1 sm:gap-2 shadow-md hover:shadow-lg transition-shadow relative w-full overflow-hidden">
             
             {/* Plus button popup Actions Grid */}
             {showPlusMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowPlusMenu(false)} />
-                <div className="absolute bottom-full mb-3 left-4 right-4 md:left-0 md:right-auto z-50 w-[calc(100vw-2rem)] md:w-[480px] bg-white border border-slate-200 rounded-3xl shadow-2xl p-4 space-y-3 font-sans select-none animate-fadeIn text-left">
+                <div className="absolute bottom-[calc(100%+8px)] mb-1 left-2 right-2 md:left-0 md:right-auto z-50 w-auto md:w-[480px] bg-white border border-slate-200 rounded-3xl shadow-2xl p-4 space-y-3 font-sans select-none animate-fadeIn text-left">
                   <div className="flex justify-between items-center pb-2 border-b border-slate-100">
                     <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Quick AI Actions</span>
                     <button 
@@ -2224,7 +2257,7 @@ Please continue the conversation naturally using this context. Never ask the use
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto custom-scrollbar p-0.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[300px] overflow-y-auto custom-scrollbar p-0.5">
                     {QUICK_AI_ACTIONS.map((action) => (
                       <button
                         key={action.name}
@@ -2249,20 +2282,20 @@ Please continue the conversation naturally using this context. Never ask the use
             <button 
               type="button" 
               onClick={() => setShowPlusMenu(prev => !prev)}
-              className={`p-2.5 rounded-full transition-colors border-none bg-transparent cursor-pointer ${showPlusMenu ? 'text-[#4F46E5] bg-[#4F46E5]/10' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
+              className={`p-2 sm:p-2.5 rounded-full transition-colors border-none bg-transparent cursor-pointer shrink-0 flex items-center justify-center ${showPlusMenu ? 'text-[#4F46E5] bg-[#4F46E5]/10' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
               title="Quick AI Actions"
             >
-              <Plus size={16} />
+              <Plus size={18} />
             </button>
 
             {/* Attachments button */}
             <button 
               type="button" 
               onClick={() => fileInputRef.current?.click()}
-              className={`p-2.5 rounded-full transition-colors border-none bg-transparent cursor-pointer ${attachments.length > 0 ? 'text-[#4F46E5] bg-[#4F46E5]/5' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
+              className={`p-2 sm:p-2.5 rounded-full transition-colors border-none bg-transparent cursor-pointer shrink-0 flex items-center justify-center ${attachments.length > 0 ? 'text-[#4F46E5] bg-[#4F46E5]/5' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
               title="Attach document/image"
             >
-              <Paperclip size={16} />
+              <Paperclip size={18} />
             </button>
 
             <input
@@ -2283,7 +2316,7 @@ Please continue the conversation naturally using this context. Never ask the use
                   sendMessage(); 
                 }
               }}
-              className="flex-1 flex items-center gap-2"
+              className="flex-1 flex items-center gap-1 sm:gap-2 min-w-0"
             >
               <input 
                 ref={inputRef}
@@ -2291,41 +2324,41 @@ Please continue the conversation naturally using this context. Never ask the use
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder="Ask AI to draft, analyze or strategize..."
-                className="flex-1 bg-transparent border-none text-xs font-semibold focus:ring-0 p-0 text-slate-700 placeholder-slate-400 outline-none"
+                className="flex-1 w-full min-w-0 bg-transparent border-none text-[13px] sm:text-xs font-semibold focus:ring-0 p-0 text-slate-700 placeholder-slate-400 outline-none truncate"
               />
 
               <button 
                 type="button" 
                 onClick={handleVoiceInput}
-                className={`p-2.5 rounded-full transition-colors shrink-0 border-none bg-transparent cursor-pointer ${
+                className={`p-2 sm:p-2.5 rounded-full transition-colors shrink-0 border-none bg-transparent cursor-pointer flex items-center justify-center ${
                   isListening ? 'text-red-500 animate-pulse bg-red-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
                 }`}
                 title="Voice input"
               >
-                <Mic size={16} />
+                <Mic size={18} />
               </button>
 
               {(isTyping || generationState === 'streaming') ? (
                 <button 
                   type="button" 
                   onClick={handleStop}
-                  className="p-2.5 rounded-full transition-all shrink-0 bg-red-500 hover:bg-red-600 text-white shadow-sm flex items-center justify-center animate-pulse border-none cursor-pointer"
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-full transition-all shrink-0 bg-red-500 hover:bg-red-600 text-white shadow-sm flex items-center justify-center animate-pulse border-none cursor-pointer"
                   title="Stop generating"
                 >
-                  <Square size={10} className="fill-white stroke-none" />
+                  <Square size={14} className="fill-white stroke-none" />
                 </button>
               ) : (
                 <button 
                   type="submit" 
                   disabled={!inputValue.trim() && attachments.length === 0}
-                  className={`p-2.5 rounded-full transition-all shrink-0 border-none cursor-pointer ${
+                  className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full transition-all shrink-0 border-none flex items-center justify-center cursor-pointer ${
                     (inputValue.trim() || attachments.length > 0)
-                      ? 'bg-[#4F46E5] text-white hover:bg-[#4338CA]'
+                      ? 'bg-[#4F46E5] text-white hover:bg-[#4338CA] shadow-md shadow-indigo-500/20'
                       : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                   }`}
                   title="Send query"
                 >
-                  <Send size={14} />
+                  <Send size={16} className={inputValue.trim() || attachments.length > 0 ? "ml-0.5" : ""} />
                 </button>
               )}
             </form>
@@ -2368,7 +2401,7 @@ Please continue the conversation naturally using this context. Never ask the use
               onClick={() => setShowCasesSheet(false)}
             />
             <motion.div
-              className="fixed inset-x-0 bottom-0 z-50 bg-white border-t border-slate-200 rounded-t-[24px] max-h-[85vh] flex flex-col shadow-2xl"
+              className="fixed inset-x-0 bottom-0 md:max-w-2xl md:mx-auto z-50 bg-white border-t border-slate-200 rounded-t-[24px] max-h-[85vh] flex flex-col shadow-2xl"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
@@ -2413,8 +2446,8 @@ Please continue the conversation naturally using this context. Never ask the use
                       key={c.id} 
                       className="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm hover:border-[#4F46E5] hover:shadow transition-all"
                     >
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
                           <span className="text-xs font-black text-slate-900 block">{c.name}</span>
                           <span className="text-[10px] text-slate-400 mt-1 block font-bold uppercase tracking-wider">{c.category} • {c.courtType}</span>
                           <p className="text-xs text-slate-500 mt-2 font-medium line-clamp-2 leading-relaxed">{c.landmarkJudgments?.[0]?.legalPrinciple || 'Standard legal disputable matter guidance template.'}</p>
@@ -2422,7 +2455,7 @@ Please continue the conversation naturally using this context. Never ask the use
                         
                         <button
                           onClick={() => handleSelectCase(c)}
-                          className="px-3 py-1.5 bg-[#4F46E5] text-white hover:bg-[#4338CA] rounded-lg text-[10px] font-black uppercase tracking-wider shadow-sm transition-colors shrink-0"
+                          className="px-3 py-1.5 bg-[#4F46E5] text-white hover:bg-[#4338CA] rounded-lg text-[10px] font-black uppercase tracking-wider shadow-sm transition-colors w-full sm:w-auto text-center shrink-0"
                         >
                           Select Case
                         </button>
@@ -2454,7 +2487,7 @@ Please continue the conversation naturally using this context. Never ask the use
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'tween', duration: 0.25 }}
-              className="fixed right-0 top-0 bottom-0 w-80 bg-white border-l border-slate-200 z-[100001] shadow-2xl flex flex-col font-sans select-none"
+              className="fixed right-0 top-0 bottom-0 w-full sm:w-80 bg-white border-l border-slate-200 z-[100001] shadow-2xl flex flex-col font-sans select-none"
             >
               <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -2601,7 +2634,7 @@ Please continue the conversation naturally using this context. Never ask the use
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'tween', duration: 0.25 }}
-              className="fixed right-0 top-0 bottom-0 w-96 bg-white border-l border-slate-200 z-[100001] shadow-2xl flex flex-col font-sans select-none text-left"
+              className="fixed right-0 top-0 bottom-0 w-full sm:w-96 bg-white border-l border-slate-200 z-[100001] shadow-2xl flex flex-col font-sans select-none text-left"
             >
               <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -2696,7 +2729,7 @@ Please continue the conversation naturally using this context. Never ask the use
       {/* Floating Smart Context Tooltip */}
       {selectedTextMenu && (
         <div 
-          className="fixed z-[200000] bg-slate-900 text-white rounded-xl shadow-2xl p-1 flex items-center gap-0.5 smart-context-tooltip text-[10px] font-bold select-none"
+          className="fixed z-[200000] bg-slate-900 text-white rounded-xl shadow-2xl p-1 flex flex-wrap justify-center max-w-[calc(100vw-2rem)] gap-0.5 smart-context-tooltip text-[10px] font-bold select-none"
           style={{ 
             left: `${selectedTextMenu.x}px`, 
             top: `${selectedTextMenu.y}px`, 

@@ -619,6 +619,20 @@ const renderCleanLegalDraft = (text, isDark, draftPlaceholders = [], placeholder
 const DraftMaker = ({ currentCase, onBack, theme, allProjects = [] }) => {
   const isDark = theme === 'dark';
 
+  // ── Responsive layout hooks ──
+  const [isMobile, setIsMobile] = useState(false);
+  const [compareMobileTab, setCompareMobileTab] = useState('refined'); // 'refined' | 'original'
+  const [isMobilePreviewMenuOpen, setIsMobilePreviewMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // ── Navigation state ──
   const [step, setStep] = useState('SELECT'); // SELECT | FORM | GENERATING | PREVIEW | SAVED
   const [selectedType, setSelectedType] = useState(null);
@@ -2380,221 +2394,275 @@ CRITICAL MASTER RULES:
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 dark:border-zinc-800 bg-white dark:bg-[#111726] shrink-0 sticky top-0 z-[1000] shadow-sm select-none h-16">
         {step === 'PREVIEW' ? (
-          // Combined workspace layout top header
           <>
-            {/* Left */}
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setStep('FORM')}
-                className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full transition-colors border-none bg-transparent cursor-pointer text-slate-500"
-              >
-                <ChevronLeft size={18} />
-              </button>
-              <div className="flex items-center gap-2 text-left">
-                <h2 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">
-                  {selectedType || 'Legal Draft'}
-                </h2>
-                <span className="px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-950/20 text-[#5B3DF5] border border-indigo-100/20 rounded text-[8px] font-black uppercase tracking-wider">
-                  {outputLang === 'hi' ? 'Hindi Draft' : 'English Draft'}
+            {/* Desktop Preview Header */}
+            <div className="hidden md:flex items-center justify-between w-full">
+              {/* Left */}
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStep('FORM')}
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full transition-colors border-none bg-transparent cursor-pointer text-slate-500"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <div className="flex items-center gap-2 text-left">
+                  <h2 className="text-sm font-black text-slate-808 dark:text-white uppercase tracking-tight">
+                    {selectedType || 'Legal Draft'}
+                  </h2>
+                  <span className="px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-950/20 text-[#5B3DF5] border border-indigo-100/20 rounded text-[8px] font-black uppercase tracking-wider">
+                    {outputLang === 'hi' ? 'Hindi Draft' : 'English Draft'}
+                  </span>
+                  <span className="flex items-center gap-1 flex-row">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                    <span className="text-[8px] font-black text-green-500 uppercase tracking-widest">AI Active</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Center */}
+              <div className="bg-slate-100 dark:bg-zinc-850 p-0.5 rounded-xl flex items-center select-none">
+                <button
+                  type="button"
+                  onClick={() => setEditorMode('READ')}
+                  className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border-none cursor-pointer ${
+                    editorMode === 'READ'
+                      ? 'bg-white dark:bg-[#1A2540] text-[#5B3DF5] shadow-sm'
+                      : 'text-slate-505 hover:text-slate-700'
+                  }`}
+                >
+                  Read Mode
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditorMode('EDIT')}
+                  className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border-none cursor-pointer ${
+                    editorMode === 'EDIT'
+                      ? 'bg-white dark:bg-[#1A2540] text-[#5B3DF5] shadow-sm'
+                      : 'text-slate-505 hover:text-slate-700'
+                  }`}
+                >
+                  Edit Mode
+                </button>
+              </div>
+
+              {/* Right */}
+              <div className="flex items-center gap-3">
+                {/* Language Selector */}
+                <div className="flex items-center bg-slate-100 dark:bg-zinc-805 p-0.5 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => handleDraftLangChange('en')}
+                    className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase transition-all border-none cursor-pointer ${
+                      outputLang === 'en' ? 'bg-white dark:bg-[#1A2540] text-[#5B3DF5] shadow-sm' : 'text-slate-500'
+                    }`}
+                  >
+                    EN
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDraftLangChange('hi')}
+                    className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase transition-all border-none cursor-pointer ${
+                      outputLang === 'hi' ? 'bg-white dark:bg-[#1A2540] text-[#5B3DF5] shadow-sm' : 'text-slate-500'
+                    }`}
+                  >
+                    हिन्दी
+                  </button>
+                </div>
+
+                {/* Auto Save Status Indicator */}
+                <span className={`text-[8.5px] font-black uppercase tracking-widest px-2 py-1.5 rounded-lg ${
+                  autoSaveStatus === 'saving' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/20' :
+                  autoSaveStatus === 'saved' ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/20' :
+                  autoSaveStatus === 'failed' ? 'text-rose-600 dark:text-rose-450 bg-rose-50 dark:bg-rose-950/20' :
+                  'text-amber-650 dark:text-amber-405 bg-amber-50 dark:bg-amber-950/20'
+                }`}>
+                  {autoSaveStatus === 'saving' ? 'Saving...' :
+                   autoSaveStatus === 'saved' ? 'Saved' :
+                   autoSaveStatus === 'failed' ? 'Failed' : 'Offline'}
                 </span>
-                <span className="flex items-center gap-1 flex-row">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                  <span className="text-[8px] font-black text-green-500 uppercase tracking-widest">AI Active</span>
-                </span>
+
+                {/* Standard Controls */}
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#5B3DF5] hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-sm border-none cursor-pointer"
+                >
+                  <Save size={12} />
+                  <span>Save</span>
+                </button>
+
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsDownloadOpen(!isDownloadOpen)}
+                    className="flex items-center gap-1 px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-zinc-800 border border-slate-200 dark:border-zinc-800 rounded-xl text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-355 transition-all cursor-pointer bg-white dark:bg-transparent"
+                  >
+                    <Download size={12} />
+                    <span>Download</span>
+                  </button>
+                  {isDownloadOpen && (
+                    <>
+                      <div className="fixed inset-0 z-[119999]" onClick={() => setIsDownloadOpen(false)} />
+                      <div className="absolute right-0 mt-2 w-[160px] bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/10 shadow-2xl rounded-xl p-1.5 z-[120000] text-left">
+                        <button
+                          onClick={() => { handleExportPDF(); setIsDownloadOpen(false); }}
+                          className="w-full px-3 py-2 text-xs font-semibold text-slate-705 dark:text-slate-350 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:text-[#5B3DF5] rounded-lg flex items-center gap-2 border-none bg-transparent cursor-pointer"
+                        >
+                          <FileDown size={13} />
+                          <span>PDF</span>
+                        </button>
+                        <button
+                          onClick={() => { handleExportDOCX(); setIsDownloadOpen(false); }}
+                          className="w-full px-3 py-2 text-xs font-semibold text-slate-705 dark:text-slate-350 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:text-[#5B3DF5] rounded-lg flex items-center gap-2 border-none bg-transparent cursor-pointer"
+                        >
+                          <FileCheck size={13} />
+                          <span>DOCX</span>
+                        </button>
+                        <button
+                          onClick={() => { handleExportTXT(); setIsDownloadOpen(false); }}
+                          className="w-full px-3 py-2 text-xs font-semibold text-slate-705 dark:text-slate-350 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:text-[#5B3DF5] rounded-lg flex items-center gap-2 border-none bg-transparent cursor-pointer"
+                        >
+                          <FileText size={13} />
+                          <span>TXT</span>
+                        </button>
+                        <button
+                          onClick={() => { handleExportHTML(); setIsDownloadOpen(false); }}
+                          className="w-full px-3 py-2 text-xs font-semibold text-slate-705 dark:text-slate-355 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:text-[#5B3DF5] rounded-lg flex items-center gap-2 border-none bg-transparent cursor-pointer"
+                        >
+                          <Globe size={13} />
+                          <span>HTML</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsShareModalOpen(true)}
+                  className="p-2 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-slate-300 rounded-xl transition-all border-none bg-white dark:bg-transparent cursor-pointer"
+                  title="Share Document"
+                >
+                  <Share2 size={13} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handlePrint}
+                  className="p-2 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-slate-305 rounded-xl transition-all border-none bg-white dark:bg-transparent cursor-pointer"
+                  title="Print Document"
+                >
+                  <Printer size={13} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setShowVersionHistory(!showVersionHistory); setSidebarOpen(true); }}
+                  className="p-2 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-slate-305 rounded-xl transition-all border-none bg-white dark:bg-transparent cursor-pointer"
+                  title="Version History"
+                >
+                  <History size={13} />
+                </button>
               </div>
             </div>
 
-            {/* Center */}
-            <div className="bg-slate-100 dark:bg-zinc-850 p-0.5 rounded-xl flex items-center select-none">
-              <button
-                type="button"
-                onClick={() => setEditorMode('READ')}
-                className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border-none cursor-pointer ${
-                  editorMode === 'READ'
-                    ? 'bg-white dark:bg-[#1A2540] text-[#5B3DF5] shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                Read Mode
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditorMode('EDIT')}
-                className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border-none cursor-pointer ${
-                  editorMode === 'EDIT'
-                    ? 'bg-white dark:bg-[#1A2540] text-[#5B3DF5] shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                Edit Mode
-              </button>
-            </div>
-
-            {/* Right */}
-            <div className="flex items-center gap-3">
-              {/* Language Selector */}
-              <div className="flex items-center bg-slate-100 dark:bg-zinc-805 p-0.5 rounded-xl">
+            {/* Mobile Compact Preview Header */}
+            <div className="flex md:hidden items-center justify-between w-full select-none">
+              <div className="flex items-center gap-2 min-w-0">
                 <button
                   type="button"
-                  onClick={() => handleDraftLangChange('en')}
-                  className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase transition-all border-none cursor-pointer ${
-                    outputLang === 'en' ? 'bg-white dark:bg-[#1A2540] text-[#5B3DF5] shadow-sm' : 'text-slate-500'
-                  }`}
+                  onClick={() => setStep('FORM')}
+                  className="p-2 hover:bg-slate-105 dark:hover:bg-zinc-805 rounded-full transition-colors border-none bg-transparent cursor-pointer text-slate-500 shrink-0"
                 >
-                  EN
+                  <ChevronLeft size={20} />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => handleDraftLangChange('hi')}
-                  className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase transition-all border-none cursor-pointer ${
-                    outputLang === 'hi' ? 'bg-white dark:bg-[#1A2540] text-[#5B3DF5] shadow-sm' : 'text-slate-500'
-                  }`}
-                >
-                  हिन्दी
-                </button>
+                <div className="flex flex-col text-left min-w-0">
+                  <h2 className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tight truncate max-w-[120px] sm:max-w-[160px]">
+                    {selectedType || 'Legal Draft'}
+                  </h2>
+                  <span className="text-[8px] font-black text-green-500 uppercase tracking-widest flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                    AI Active
+                  </span>
+                </div>
               </div>
 
-              {/* Auto Save Status Indicator */}
-              <span className={`text-[8.5px] font-black uppercase tracking-widest px-2 py-1.5 rounded-lg ${
-                autoSaveStatus === 'saving' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/20' :
-                autoSaveStatus === 'saved' ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/20' :
-                autoSaveStatus === 'failed' ? 'text-rose-600 dark:text-rose-450 bg-rose-50 dark:bg-rose-950/20' :
-                'text-amber-650 dark:text-amber-405 bg-amber-50 dark:bg-amber-950/20'
-              }`}>
-                {autoSaveStatus === 'saving' ? 'Saving...' :
-                 autoSaveStatus === 'saved' ? 'Saved' :
-                 autoSaveStatus === 'failed' ? 'Failed' : 'Offline'}
-              </span>
-
-              {/* Standard Controls */}
-              <button
-                type="button"
-                onClick={handleSave}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#5B3DF5] hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-sm border-none cursor-pointer"
-              >
-                <Save size={12} />
-                <span>Save</span>
-              </button>
-
-              <div className="relative">
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
-                  onClick={() => setIsDownloadOpen(!isDownloadOpen)}
-                  className="flex items-center gap-1 px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-zinc-800 border border-slate-200 dark:border-zinc-800 rounded-xl text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-355 transition-all cursor-pointer bg-white dark:bg-transparent"
+                  onClick={handleSave}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-[#5B3DF5] hover:bg-[#4a30cc] text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all shadow-sm border-none cursor-pointer"
                 >
-                  <Download size={12} />
-                  <span>Download</span>
+                  <Save size={10} />
+                  <span>Save</span>
                 </button>
-                {isDownloadOpen && (
-                  <>
-                    <div className="fixed inset-0 z-[119999]" onClick={() => setIsDownloadOpen(false)} />
-                    <div className="absolute right-0 mt-2 w-[160px] bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/10 shadow-2xl rounded-xl p-1.5 z-[120000] text-left">
-                      <button
-                        onClick={() => { handleExportPDF(); setIsDownloadOpen(false); }}
-                        className="w-full px-3 py-2 text-xs font-semibold text-slate-705 dark:text-slate-350 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:text-[#5B3DF5] rounded-lg flex items-center gap-2 border-none bg-transparent cursor-pointer"
-                      >
-                        <FileDown size={13} />
-                        <span>PDF</span>
-                      </button>
-                      <button
-                        onClick={() => { handleExportDOCX(); setIsDownloadOpen(false); }}
-                        className="w-full px-3 py-2 text-xs font-semibold text-slate-705 dark:text-slate-350 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:text-[#5B3DF5] rounded-lg flex items-center gap-2 border-none bg-transparent cursor-pointer"
-                      >
-                        <FileCheck size={13} />
-                        <span>DOCX</span>
-                      </button>
-                      <button
-                        onClick={() => { handleExportTXT(); setIsDownloadOpen(false); }}
-                        className="w-full px-3 py-2 text-xs font-semibold text-slate-705 dark:text-slate-350 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:text-[#5B3DF5] rounded-lg flex items-center gap-2 border-none bg-transparent cursor-pointer"
-                      >
-                        <FileText size={13} />
-                        <span>TXT</span>
-                      </button>
-                      <button
-                        onClick={() => { handleExportHTML(); setIsDownloadOpen(false); }}
-                        className="w-full px-3 py-2 text-xs font-semibold text-slate-705 dark:text-slate-350 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:text-[#5B3DF5] rounded-lg flex items-center gap-2 border-none bg-transparent cursor-pointer"
-                      >
-                        <Globe size={13} />
-                        <span>HTML</span>
-                      </button>
-                    </div>
-                  </>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setIsMobilePreviewMenuOpen(true)}
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl transition-colors border-none bg-transparent cursor-pointer text-slate-600 dark:text-slate-400"
+                >
+                  <MoreVertical size={18} />
+                </button>
               </div>
-
-              <button
-                type="button"
-                onClick={() => setIsShareModalOpen(true)}
-                className="p-2 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-slate-300 rounded-xl transition-all border-none bg-white dark:bg-transparent cursor-pointer"
-                title="Share Document"
-              >
-                <Share2 size={13} />
-              </button>
-
-              <button
-                type="button"
-                onClick={handlePrint}
-                className="p-2 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-slate-300 rounded-xl transition-all border-none bg-white dark:bg-transparent cursor-pointer"
-                title="Print Document"
-              >
-                <Printer size={13} />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowVersionHistory(!showVersionHistory)}
-                className="p-2 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-slate-300 rounded-xl transition-all border-none bg-white dark:bg-transparent cursor-pointer"
-                title="Version History"
-              >
-                <History size={13} />
-              </button>
             </div>
           </>
         ) : (
           // Default header for other stages (FORM, SELECT, etc.)
           <>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 min-w-0 select-none">
               <button
                 onClick={step === 'SELECT' ? onBack : () => {
-                  if (step === 'FORM') setStep('SELECT');
-                  else setStep('SELECT');
+                  if (step === 'FORM') {
+                    setInputSource(null);
+                    setStep('SELECT');
+                  } else {
+                    setStep('SELECT');
+                  }
                 }}
-                className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full transition-colors border-none bg-transparent cursor-pointer text-slate-500"
+                className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full transition-colors border-none bg-transparent cursor-pointer text-slate-500 shrink-0"
               >
                 <ChevronLeft size={20} className="text-slate-600 dark:text-slate-400" />
               </button>
-              <div>
+              <div className="min-w-0">
                 <div className="flex flex-col text-left">
-                  <span className="text-[9px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500 leading-none mb-1">
+                  <span className="text-[8px] sm:text-[9px] font-extrabold uppercase tracking-widest text-slate-405 dark:text-slate-500 leading-none mb-0.5">
                     Draft Maker
                   </span>
-                  <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white leading-tight tracking-tight uppercase">
+                  <h2 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white leading-tight uppercase truncate max-w-[150px] sm:max-w-[250px]">
                     {step === 'SELECT' ? 'Legal Templates' : selectedType || 'Legal Draft'}
                   </h2>
-                  <div className="flex items-center gap-2 mt-1 select-none">
-                    <span className="text-[8px] font-black px-1.5 py-0.5 bg-slate-100 dark:bg-indigo-950/40 text-slate-500 dark:text-indigo-400 border border-slate-200/20 rounded-md uppercase tracking-wider">
-                      {step === 'SELECT' ? 'AI Drafting Workspace' : 'Form Configuration'}
-                    </span>
-                    <span className="flex items-center gap-1 shrink-0">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                      <span className="text-[8px] font-black text-green-500 uppercase tracking-widest">
-                        AI Active
-                      </span>
-                    </span>
-                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setStep('SAVED')}
-                className="px-3.5 py-1.5 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-white rounded-xl text-xs font-black uppercase transition-all shadow-sm active:scale-95 bg-white dark:bg-transparent cursor-pointer"
-              >
-                Saved Templates
-              </button>
+            <div className="flex items-center gap-1.5 shrink-0 select-none">
+              {step === 'SELECT' ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setStep('SAVED')}
+                    className="px-2.5 py-1.5 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-white rounded-xl text-[9px] sm:text-xs font-black uppercase transition-all shadow-sm bg-white dark:bg-transparent cursor-pointer active:scale-95"
+                  >
+                    Saved
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStep('HISTORY')}
+                    className="px-2.5 py-1.5 border border-slate-202 dark:border-zinc-800 text-slate-705 dark:text-white rounded-xl text-[9px] sm:text-xs font-black uppercase transition-all shadow-sm bg-white dark:bg-transparent cursor-pointer active:scale-95"
+                  >
+                    History
+                  </button>
+                </>
+              ) : step === 'SAVED' || step === 'HISTORY' ? (
+                <button
+                  type="button"
+                  onClick={() => setStep('SELECT')}
+                  className="px-2.5 py-1.5 bg-[#5B3DF5] text-white rounded-xl text-[9px] sm:text-xs font-black uppercase transition-all shadow-sm border-none cursor-pointer active:scale-95"
+                >
+                  Templates
+                </button>
+              ) : null}
             </div>
           </>
         )}
@@ -3394,7 +3462,7 @@ CRITICAL MASTER RULES:
                           {renderWizardField(field)}
                           <div className="flex justify-between items-center select-none pt-2 border-t border-slate-100/60 dark:border-zinc-800/60 mt-2">
                             {hasValue ? (
-                              <span className="text-[9px] text-emerald-606 font-bold uppercase flex items-center gap-1">
+                              <span className="text-[9px] text-emerald-600 font-bold uppercase flex items-center gap-1">
                                 ✓ Completed & Saved
                               </span>
                             ) : (
@@ -3408,8 +3476,6 @@ CRITICAL MASTER RULES:
                     })}
                   </div>
                 </div>
-
-                {/* Generate Button Area */}
                 <div className="pt-6 border-t dark:border-white/5 flex flex-col items-center gap-3 select-none">
                   <button
                     type="button"
@@ -3434,22 +3500,23 @@ CRITICAL MASTER RULES:
           }
 
           return (
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 w-full pb-24">
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-                
-                {/* Sticky Progress Indicator Sidebar (3 cols) */}
-                <div className="md:col-span-3 space-y-4 sticky top-6">
-                  <div className="p-4 border rounded-3xl bg-white dark:bg-[#131c31]/20 border-slate-200 dark:border-slate-800 text-left select-none">
-                    <span className="text-[9px] font-black uppercase text-[#5B3DF5] tracking-widest block mb-1">Wizard Progress</span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl font-black text-slate-800 dark:text-white">{completionPercentage}%</span>
-                      <div className="flex-1 bg-slate-200 dark:bg-zinc-800 rounded-full h-2 overflow-hidden">
-                        <div className="bg-[#5B3DF5] h-full rounded-full transition-all duration-300" style={{ width: `${completionPercentage}%` }} />
-                      </div>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 w-full pb-24 animate-fadeIn">
+              
+              {/* Responsive Progress Stepper (Desktop Sidebar vs Mobile Header Stepper) */}
+              {isMobile ? (
+                <div className="flex md:hidden flex-col w-full bg-white dark:bg-[#131c31]/20 p-4 border border-slate-200 dark:border-zinc-800 rounded-3xl space-y-3 mb-4 select-none text-left">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <span className="text-[8px] font-black uppercase text-[#5B3DF5] tracking-widest block">Step {wizardStep} of 6</span>
+                      <h4 className="text-xs font-black text-slate-808 dark:text-white uppercase mt-0.5">{stepsList[wizardStep - 1]?.label}</h4>
                     </div>
+                    <span className="text-xs font-black text-[#5B3DF5]">{completionPercentage}%</span>
                   </div>
-
-                  <div className="flex flex-col gap-2 text-left select-none">
+                  <div className="w-full bg-slate-100 dark:bg-zinc-850 rounded-full h-1.5 overflow-hidden">
+                    <div className="bg-[#5B3DF5] h-full rounded-full transition-all duration-300" style={{ width: `${completionPercentage}%` }} />
+                  </div>
+                  {/* Horizontal quick stepper */}
+                  <div className="flex justify-between items-center gap-1.5 pt-1 overflow-x-auto no-scrollbar">
                     {stepsList.map(s => {
                       const isPast = s.id < wizardStep;
                       const isCurrent = s.id === wizardStep;
@@ -3461,25 +3528,70 @@ CRITICAL MASTER RULES:
                             if (s.id <= wizardMaxReached) setWizardStep(s.id);
                           }}
                           disabled={s.id > wizardMaxReached}
-                          className={`p-3 border rounded-2xl text-left transition-all ${
+                          className={`h-7 px-3 border rounded-xl text-[9px] font-black uppercase transition-all shrink-0 flex items-center justify-center gap-1 ${
                             isCurrent
-                              ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20'
+                              ? 'border-[#5B3DF5] bg-indigo-50 text-[#5B3DF5] dark:bg-indigo-950/40'
                               : isPast
-                              ? 'border-slate-200 dark:border-zinc-800 hover:bg-slate-100/50 text-slate-600'
-                              : 'border-slate-100 dark:border-zinc-900 opacity-40 cursor-not-allowed'
+                              ? 'border-slate-200 dark:border-zinc-800 text-slate-500 bg-white dark:bg-transparent'
+                              : 'border-slate-100 dark:border-zinc-900 text-slate-350 opacity-40 cursor-not-allowed'
                           }`}
                         >
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-black w-4 h-4 rounded-full bg-slate-200 dark:bg-zinc-800 flex items-center justify-center">
-                              {s.id}
-                            </span>
-                            <span className="text-[11px] font-black uppercase tracking-wider">{s.label}</span>
-                          </div>
+                          <span>{s.id}</span>
+                          <span className="hidden sm:inline">{s.label.split(' ')[0]}</span>
                         </button>
                       );
                     })}
                   </div>
                 </div>
+              ) : null}
+
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                
+                {/* Sticky Progress Indicator Sidebar (3 cols) */}
+                {!isMobile ? (
+                  <div className="md:col-span-3 space-y-4 sticky top-6">
+                    <div className="p-4 border rounded-3xl bg-white dark:bg-[#131c31]/20 border-slate-200 dark:border-slate-805 text-left select-none">
+                      <span className="text-[9px] font-black uppercase text-[#5B3DF5] tracking-widest block mb-1">Wizard Progress</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl font-black text-slate-808 dark:text-white">{completionPercentage}%</span>
+                        <div className="flex-1 bg-slate-200 dark:bg-zinc-800 rounded-full h-2 overflow-hidden">
+                          <div className="bg-[#5B3DF5] h-full rounded-full transition-all duration-300" style={{ width: `${completionPercentage}%` }} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2 text-left select-none">
+                      {stepsList.map(s => {
+                        const isPast = s.id < wizardStep;
+                        const isCurrent = s.id === wizardStep;
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => {
+                              if (s.id <= wizardMaxReached) setWizardStep(s.id);
+                            }}
+                            disabled={s.id > wizardMaxReached}
+                            className={`p-3 border rounded-2xl text-left transition-all ${
+                              isCurrent
+                                ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/20'
+                                : isPast
+                                ? 'border-slate-200 dark:border-zinc-800 hover:bg-slate-100/50 text-slate-650'
+                                : 'border-slate-100 dark:border-zinc-900 opacity-40 cursor-not-allowed'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-black w-4 h-4 rounded-full bg-slate-200 dark:bg-zinc-800 flex items-center justify-center">
+                                {s.id}
+                              </span>
+                              <span className="text-[11px] font-black uppercase tracking-wider">{s.label}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
 
                 {/* Form fields content viewport (9 cols) */}
                 <div className="md:col-span-9 space-y-6">
@@ -3610,7 +3722,7 @@ CRITICAL MASTER RULES:
                   </div>
 
                   {/* Wizard control buttons footer */}
-                  <div className="flex justify-between items-center select-none">
+                  <div className="flex justify-between items-center select-none p-4 pb-safe md:p-0 bg-white dark:bg-[#111726] md:bg-transparent border-t md:border-none border-slate-200 dark:border-zinc-800 sticky md:relative bottom-0 z-[100] w-full mt-4">
                     <button
                       type="button"
                       disabled={wizardStep === 1}
@@ -3918,10 +4030,10 @@ CRITICAL MASTER RULES:
               )}
 
               {/* Two Column Legal Workspace (Outline Removed) */}
-              <div className="flex-1 flex overflow-hidden w-full relative min-h-0 select-none">
+              <div className="flex-1 flex flex-col md:flex-row overflow-hidden w-full relative min-h-0 select-none">
                 
                 {/* 1. Center Workspace - A4 Paper Sheets view */}
-                <div className="flex-1 bg-slate-100 dark:bg-[#090D15] p-8 overflow-y-auto flex flex-col items-center custom-scrollbar relative min-h-0 select-text">
+                <div className="flex-1 bg-slate-100 dark:bg-[#090D15] p-4 md:p-8 overflow-y-auto flex flex-col items-center custom-scrollbar relative min-h-0 select-text">
                   
                   {/* Inline loading overlay */}
                   {isCopilotRefining && (
@@ -3936,20 +4048,22 @@ CRITICAL MASTER RULES:
                   )}
 
                   {/* A4 Page Layout Sheets container */}
-                  <div className="flex flex-col items-center gap-8 w-full select-text pb-24">
+                  <div className="flex flex-col items-center gap-4 md:gap-8 w-full select-text pb-24">
                     {documentPages.map((pageText, pageIdx) => (
                       <div 
                         key={pageIdx}
-                        className="bg-white border border-slate-205 shadow-xl w-[816px] min-h-[1056px] p-16 text-left relative flex flex-col rounded-lg transition-transform duration-200 select-text bg-white"
+                        className={`bg-white border border-slate-205 shadow-xl text-left relative flex flex-col rounded-lg transition-transform duration-200 select-text bg-white ${
+                          isMobile ? 'w-full p-6 my-2' : 'w-[816px] min-h-[1056px] p-16'
+                        }`}
                         style={{
-                          transform: `scale(${zoomPercent / 100})`,
+                          transform: isMobile ? 'none' : `scale(${zoomPercent / 100})`,
                           transformOrigin: 'top center',
                           fontFamily: '"Times New Roman", Times, serif',
                           color: '#000000'
                         }}
                       >
                         {/* Page Number Indicator */}
-                        <div className="absolute top-6 right-16 text-[9px] font-black text-slate-400 select-none uppercase tracking-widest">
+                        <div className="absolute top-6 right-6 md:right-16 text-[9px] font-black text-slate-400 select-none uppercase tracking-widest">
                           Page {pageIdx + 1} of {documentPages.length}
                         </div>
 
@@ -3961,7 +4075,9 @@ CRITICAL MASTER RULES:
                               newPages[pageIdx] = e.target.value;
                               handleDraftChange(newPages.join('\n'));
                             }}
-                            className="w-full h-full min-h-[900px] bg-transparent border-none text-black outline-none resize-none font-serif text-[12pt] leading-[1.6] text-justify focus:ring-0 focus:outline-none"
+                            className={`w-full bg-transparent border-none text-black outline-none resize-none font-serif text-[12pt] leading-[1.6] text-justify focus:ring-0 focus:outline-none ${
+                              isMobile ? 'h-auto min-h-[400px]' : 'h-full min-h-[900px]'
+                            }`}
                             style={{
                               fontFamily: '"Times New Roman", Times, serif',
                               color: '#000000'
@@ -3969,7 +4085,7 @@ CRITICAL MASTER RULES:
                           />
                         ) : (
                           <div 
-                            className="w-full h-full min-h-[900px] text-black font-serif text-[12pt] leading-[1.6] text-justify whitespace-pre-wrap select-text selection:bg-indigo-200/50"
+                            className="w-full h-full min-h-[300px] md:min-h-[900px] text-black font-serif text-[12pt] leading-[1.6] text-justify whitespace-pre-wrap select-text selection:bg-indigo-200/50"
                             style={{
                               fontFamily: '"Times New Roman", Times, serif',
                               color: '#000000'
@@ -3983,337 +4099,597 @@ CRITICAL MASTER RULES:
                   </div>
 
                   {/* Zoom controls float widget */}
-                  <div className="fixed bottom-6 bg-white dark:bg-[#111726] border border-slate-205 dark:border-zinc-800 px-4 py-2 rounded-2xl shadow-xl flex items-center gap-3 z-30 select-none">
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Zoom</span>
-                    {[80, 100, 125, 150].map(pct => (
-                      <button
-                        key={pct}
-                        type="button"
-                        onClick={() => setZoomPercent(pct)}
-                        className={`px-2 py-1 rounded-lg text-[9px] font-black border-none cursor-pointer ${
-                          zoomPercent === pct
-                            ? 'bg-[#5B3DF5] text-white shadow-sm'
-                            : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
-                        }`}
-                      >
-                        {pct}%
-                      </button>
-                    ))}
-                  </div>
+                  {!isMobile && (
+                    <div className="fixed bottom-6 bg-white dark:bg-[#111726] border border-slate-205 dark:border-zinc-800 px-4 py-2 rounded-2xl shadow-xl flex items-center gap-3 z-30 select-none">
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Zoom</span>
+                      {[80, 100, 125, 150].map(pct => (
+                        <button
+                          key={pct}
+                          type="button"
+                          onClick={() => setZoomPercent(pct)}
+                          className={`px-2 py-1 rounded-lg text-[9px] font-black border-none cursor-pointer ${
+                            zoomPercent === pct
+                              ? 'bg-[#5B3DF5] text-white shadow-sm'
+                              : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {pct}%
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Floating FAB for Copilot on mobile when collapsed */}
+                  {isMobile && !sidebarOpen && (
+                    <button
+                      type="button"
+                      onClick={() => setSidebarOpen(true)}
+                      className="fixed bottom-20 right-6 w-12 h-12 bg-[#5B3DF5] text-white rounded-full shadow-2xl flex items-center justify-center z-[1999] border-none cursor-pointer hover:scale-105 active:scale-95 transition-all"
+                      title="AI Copilot"
+                    >
+                      <Sparkles size={20} />
+                    </button>
+                  )}
                 </div>
 
                 {/* 2. Right Sidebar - AI Copilot or Version History (Collapsible & Resizable) */}
-                {sidebarOpen ? (
-                  <div 
-                    className="border-l border-slate-200 dark:border-zinc-800 bg-white dark:bg-[#111726] flex flex-col shrink-0 relative select-none"
-                    style={{ width: `${sidebarWidth}px` }}
-                  >
-                    {/* Resize handle border (left edge of the sidebar) */}
-                    <div 
-                      onMouseDown={startResizing}
-                      className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-[#5B3DF5]/30 active:bg-[#5B3DF5] transition-colors z-50 select-none"
-                    />
-
-                    {showVersionHistory ? (
-                      /* Version History View */
-                      <div className="flex flex-col h-full w-full overflow-hidden select-none">
-                        <div className="p-4 border-b border-slate-200 dark:border-zinc-800 flex justify-between items-center bg-slate-50 dark:bg-black/10 shrink-0">
-                          <div className="flex items-center gap-2">
-                            <History size={16} className="text-[#5B3DF5]" />
-                            <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">Version History</h4>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSidebarOpen(false);
-                                localStorage.setItem('@aisa_copilot_sidebar_open', 'false');
-                              }}
-                              className="p-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-full border-none bg-transparent cursor-pointer text-slate-400"
-                              title="Collapse Sidebar"
-                            >
-                              <ChevronRight size={16} />
-                            </button>
-                            <button 
-                              type="button" 
-                              onClick={() => setShowVersionHistory(false)} 
-                              className="p-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-full border-none bg-transparent cursor-pointer text-slate-400"
-                              title="Close History"
-                            >
-                              <X size={16} />
-                            </button>
-                          </div>
-                        </div>
+                {sidebarOpen && (
+                  isMobile ? (
+                    /* Mobile Drawer/Bottom Sheet for Copilot/History */
+                    <>
+                      <div 
+                        className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[2000] select-none"
+                        onClick={() => setSidebarOpen(false)}
+                      />
+                      <div className="fixed bottom-0 left-0 right-0 max-h-[85vh] bg-white dark:bg-[#111726] border-t border-slate-200 dark:border-zinc-800 rounded-t-3xl shadow-2xl flex flex-col z-[2001] select-none overflow-hidden animate-slideUp">
+                        {/* Drawer pull handle */}
+                        <div className="w-12 h-1 bg-slate-300 dark:bg-zinc-700 rounded-full mx-auto my-3 shrink-0" />
                         
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar text-left font-sans select-none">
-                          {draftVersionHistory.length === 0 ? (
-                            <div className="text-center py-8 text-xs text-slate-400 font-medium">
-                              No version logs found. Manual and auto-saves will show here.
+                        <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+                          {showVersionHistory ? (
+                            /* Version History View */
+                            <div className="flex flex-col h-full w-full overflow-hidden select-none">
+                              <div className="p-4 border-b border-slate-200 dark:border-zinc-800 flex justify-between items-center bg-slate-50 dark:bg-black/10 shrink-0">
+                                <div className="flex items-center gap-2">
+                                  <History size={16} className="text-[#5B3DF5]" />
+                                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">Version History</h4>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setSidebarOpen(false)}
+                                  className="p-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-full border-none bg-transparent cursor-pointer text-slate-400"
+                                >
+                                  <X size={16} />
+                                </button>
+                              </div>
+                              
+                              <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar text-left font-sans select-none pb-12">
+                                {draftVersionHistory.length === 0 ? (
+                                  <div className="text-center py-8 text-xs text-slate-400 font-medium">
+                                    No version logs found. Manual and auto-saves will show here.
+                                  </div>
+                                ) : (
+                                  <div className="space-y-3">
+                                    {draftVersionHistory.map((version, idx) => (
+                                      <div 
+                                        key={idx} 
+                                        className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-black/10 hover:border-[#5B3DF5] transition-colors relative"
+                                      >
+                                        <div className="flex justify-between items-start mb-1">
+                                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-[#5B3DF5]">
+                                            v{version.version}
+                                          </span>
+                                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{version.timestamp}</span>
+                                        </div>
+                                        <h5 className="text-[11px] font-extrabold text-slate-705 dark:text-slate-300 truncate pr-6">
+                                          {version.name || `Version ${version.version}`}
+                                        </h5>
+                                        
+                                        <div className="flex flex-wrap gap-2.5 mt-2 pt-2 border-t border-slate-100 dark:border-zinc-800/50">
+                                          <button
+                                            type="button"
+                                            onClick={() => { handleRestoreVersion(version); setSidebarOpen(false); }}
+                                            className="text-[9px] font-black uppercase text-[#5B3DF5] hover:underline bg-transparent border-none cursor-pointer"
+                                          >
+                                            Restore
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleDuplicateVersion(version)}
+                                            className="text-[9px] font-black uppercase text-slate-500 hover:text-slate-705 hover:underline bg-transparent border-none cursor-pointer"
+                                          >
+                                            Duplicate
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const newName = prompt('Enter new version name:', version.name || `Version ${version.version}`);
+                                              if (newName !== null) handleRenameVersion(idx, newName);
+                                            }}
+                                            className="text-[9px] font-black uppercase text-slate-500 hover:text-slate-705 hover:underline bg-transparent border-none cursor-pointer"
+                                          >
+                                            Rename
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => { setCompareVersion(version); setSidebarOpen(false); }}
+                                            className="text-[9px] font-black uppercase text-indigo-600 hover:underline bg-transparent border-none cursor-pointer ml-auto"
+                                          >
+                                            Compare
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           ) : (
-                            <div className="space-y-3">
-                              {draftVersionHistory.map((version, idx) => (
-                                <div 
-                                  key={idx} 
-                                  className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-black/10 hover:border-[#5B3DF5] transition-colors relative"
-                                >
-                                  <div className="flex justify-between items-start mb-1">
-                                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-[#5B3DF5]">
-                                      v{version.version}
-                                    </span>
-                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{version.timestamp}</span>
-                                  </div>
-                                  <h5 className="text-[11px] font-extrabold text-slate-705 dark:text-slate-300 truncate pr-6">
-                                    {version.name || `Version ${version.version}`}
-                                  </h5>
-                                  <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-1 mb-2">
-                                    By: {version.user || 'You'}
-                                  </div>
-                                  
-                                  <div className="flex flex-wrap gap-2.5 mt-2 pt-2 border-t border-slate-100 dark:border-zinc-800/50">
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRestoreVersion(version)}
-                                      className="text-[9px] font-black uppercase text-[#5B3DF5] hover:underline bg-transparent border-none cursor-pointer"
-                                    >
-                                      Restore
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDuplicateVersion(version)}
-                                      className="text-[9px] font-black uppercase text-slate-500 hover:text-slate-705 hover:underline bg-transparent border-none cursor-pointer"
-                                    >
-                                      Duplicate
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const newName = prompt('Enter new version name:', version.name || `Version ${version.version}`);
-                                        if (newName !== null) handleRenameVersion(idx, newName);
-                                      }}
-                                      className="text-[9px] font-black uppercase text-slate-500 hover:text-slate-705 hover:underline bg-transparent border-none cursor-pointer"
-                                    >
-                                      Rename
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setCompareVersion(version)}
-                                      className="text-[9px] font-black uppercase text-indigo-600 hover:underline bg-transparent border-none cursor-pointer ml-auto"
-                                    >
-                                      Compare
-                                    </button>
-                                  </div>
+                            /* AI Copilot View */
+                            <div className="flex flex-col h-full w-full overflow-hidden select-none">
+                              {/* Copilot Header */}
+                              <div className="p-4 border-b border-slate-200 dark:border-zinc-800 flex justify-between items-center bg-slate-50 dark:bg-black/10 shrink-0 select-none">
+                                <div className="flex items-center gap-2">
+                                  <Sparkles size={16} className="text-[#5B3DF5]" />
+                                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">AI Copilot</h4>
                                 </div>
-                              ))}
+                                <button
+                                  type="button"
+                                  onClick={() => setSidebarOpen(false)}
+                                  className="p-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-full border-none bg-transparent cursor-pointer text-slate-400"
+                                >
+                                  <X size={16} />
+                                </button>
+                              </div>
+
+                              {/* Copilot Tab Switchers */}
+                              <div className="grid grid-cols-4 border-b dark:border-zinc-800 select-none shrink-0">
+                                {['Assistant', 'Suggestions', 'Case Laws', 'Citations'].map(tab => (
+                                  <button
+                                    key={tab}
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveCopilotTab(tab);
+                                      localStorage.setItem('@aisa_copilot_active_tab', tab);
+                                    }}
+                                    className={`py-3 text-[8.5px] font-black uppercase tracking-wider text-center border-b-2 border-t-0 border-x-0 cursor-pointer ${
+                                      activeCopilotTab === tab
+                                        ? 'border-[#5B3DF5] text-[#5B3DF5] bg-[#5B3DF5]/[0.01]'
+                                        : 'border-transparent text-slate-500 hover:text-slate-700'
+                                    }`}
+                                  >
+                                    {tab.split(' ')[0]}
+                                  </button>
+                                ))}
+                              </div>
+
+                              {/* Copilot Tab Viewport */}
+                              <div className="flex-1 overflow-y-auto p-4 space-y-5 custom-scrollbar text-left select-none pb-12">
+                                {activeCopilotTab === 'Assistant' && (
+                                  <div className="space-y-4">
+                                    <div className="space-y-2">
+                                      <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-455">AI Copilot Quick Actions</h4>
+                                      <div className="grid grid-cols-1 gap-2">
+                                        {[
+                                          { label: 'Improve Draft Structure', act: 'Improve headings, logical alignment, flow, and remove repetitions', title: 'Improve Draft Structure' },
+                                          { label: 'Strengthen Legal Arguments', act: 'Identify weaker logic, introduce statutory provisions, and add legal reasoning', title: 'Strengthen Arguments' },
+                                          { label: 'Check Legal Grammar', act: 'Review punctuation, syntax alignment, and style while keeping terminology', title: 'Check Legal Grammar' },
+                                          { label: 'Simplify Language complexity', act: 'Simplify complex legal English expressions to clear, plain professional English', title: 'Simplify Language' },
+                                          { label: 'Verify Legal Citations', act: 'Validate statutory codes, rules, Acts, and highlight incorrect citations', title: 'Verify Legal Citations' }
+                                        ].map(item => (
+                                          <button
+                                            key={item.label}
+                                            type="button"
+                                            disabled={isCopilotRefining}
+                                            onClick={() => { handleCopilotQuickAction(item.title, item.act); setSidebarOpen(false); }}
+                                            className={`w-full flex items-center gap-2 p-2.5 border border-slate-100 dark:border-zinc-800 rounded-xl text-[10.5px] font-bold text-left transition-colors bg-slate-50/50 dark:bg-black/10 cursor-pointer select-none border-none ${
+                                              isCopilotRefining ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#5B3DF5] hover:bg-indigo-50/20'
+                                            }`}
+                                          >
+                                            <span className="text-[#5B3DF5]"><Sparkles size={11} /></span>
+                                            <span>{item.label}</span>
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+
+                                    {/* Document Insights */}
+                                    <div className="p-4 border rounded-2xl bg-slate-50 dark:bg-black/10 dark:border-zinc-800 space-y-3 border-none">
+                                      <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-500">Document Insights</h4>
+                                      <div className="space-y-2 text-[10px] text-slate-600 dark:text-slate-400 font-semibold">
+                                        <div className="flex justify-between">
+                                          <span>Estimated Pages</span>
+                                          <span className="font-bold text-slate-800 dark:text-white">{Math.ceil(wordCount / 350)} Page(s)</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span>Word Count</span>
+                                          <span className="font-bold text-slate-800 dark:text-white">{wordCount} Words</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                          <span>Reading Time</span>
+                                          <span className="font-bold text-slate-800 dark:text-white">{readingTime} min</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {activeCopilotTab === 'Suggestions' && (
+                                  <div className="space-y-4">
+                                    <div className="space-y-3">
+                                      <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-455">AI Audit & Recommendations</h4>
+                                      {[
+                                        { title: 'Formatting Spacing Alignment', desc: 'Heading gaps conform to standard court guidelines.' },
+                                        { title: 'Check Witness Annotation', desc: 'No witness information is present. We recommend adding details of at least one witness.' },
+                                        { title: 'Check Missing Annexures', desc: 'No annexure files mapped. We recommend appending proof index sheets.' }
+                                      ].map((item, idx) => (
+                                        <div key={idx} className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-black/10 space-y-1.5">
+                                          <h5 className="text-[10px] font-black text-slate-800 dark:text-white uppercase">{item.title}</h5>
+                                          <p className="text-[10.5px] text-slate-550 leading-relaxed font-semibold">{item.desc}</p>
+                                          <button 
+                                            type="button" 
+                                            onClick={() => { handleCopilotQuickAction(item.title, `Apply recommendation: ${item.desc}`); setSidebarOpen(false); }}
+                                            className="text-[9px] font-black uppercase text-[#5B3DF5] border-none bg-transparent cursor-pointer"
+                                          >
+                                            Apply
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {activeCopilotTab === 'Case Laws' && (
+                                  <div className="space-y-4">
+                                    <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-455">Relevant Precedents</h4>
+                                    <div className="space-y-3">
+                                      {[
+                                        { title: 'State of Maharashtra v. Rajesh (2021)', desc: 'Precedent defining requirements for Station House Officer FIR registrations under section 154.' },
+                                        { title: 'Karan Singh v. Union of India (2018)', desc: 'Supreme Court guidelines regarding delays in filing first information reports.' },
+                                        { title: 'Lalita Kumari v. Govt. of U.P. (2014)', desc: 'Constitution Bench guidelines regarding mandatory registration of FIR under Section 154 CrPC.' }
+                                      ].map(law => (
+                                        <div key={law.title} className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-black/10 space-y-1">
+                                          <h5 className="text-[10px] font-black uppercase text-slate-800 dark:text-white">{law.title}</h5>
+                                          <p className="text-[10px] text-slate-550 leading-relaxed font-semibold">{law.desc}</p>
+                                          <button 
+                                            type="button"
+                                            onClick={() => { handleInsertCitation(`[Citation Precedent: ${law.title}]`); setSidebarOpen(false); }}
+                                            className="text-[9px] font-black uppercase text-[#5B3DF5] border-none bg-transparent cursor-pointer mt-1"
+                                          >
+                                            + Insert Citation
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {activeCopilotTab === 'Citations' && (
+                                  <div className="space-y-4">
+                                    <h4 className="text-[9px] font-black uppercase tracking-widest text-[#5B3DF5]">Citations & Annotations</h4>
+                                    <div className="space-y-3">
+                                      {[
+                                        { title: 'Section 154, CrPC', desc: 'Information in cognizable cases.' },
+                                        { title: 'Section 420, IPC', desc: 'Cheating and dishonestly inducing delivery of property.' },
+                                        { title: 'Section 34, IPC', desc: 'Acts done by several persons in furtherance of common intention.' }
+                                      ].map(cit => (
+                                        <div key={cit.title} className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-black/10 space-y-1">
+                                          <h5 className="text-[10px] font-black uppercase text-slate-800 dark:text-white">{cit.title}</h5>
+                                          <p className="text-[10px] text-slate-550 leading-relaxed font-semibold">{cit.desc}</p>
+                                          <button 
+                                            type="button"
+                                            onClick={() => { handleInsertCitation(`[Citation Code: ${cit.title}]`); setSidebarOpen(false); }}
+                                            className="text-[9px] font-black uppercase text-[#5B3DF5] border-none bg-transparent cursor-pointer mt-1"
+                                          >
+                                            + Insert Citation
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           )}
                         </div>
                       </div>
-                    ) : (
-                      /* AI Copilot View */
-                      <div className="flex flex-col h-full w-full overflow-hidden select-none">
-                        {/* Copilot Header */}
-                        <div className="p-4 border-b border-slate-200 dark:border-zinc-800 flex justify-between items-center bg-slate-50 dark:bg-black/10 shrink-0 select-none">
-                          <div className="flex items-center gap-2">
-                            <Sparkles size={16} className="text-[#5B3DF5]" />
-                            <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">AI Copilot</h4>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSidebarOpen(false);
-                              localStorage.setItem('@aisa_copilot_sidebar_open', 'false');
-                            }}
-                            className="p-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-full border-none bg-transparent cursor-pointer text-slate-400"
-                            title="Collapse Sidebar"
-                          >
-                            <ChevronRight size={16} />
-                          </button>
-                        </div>
+                    </>
+                  ) : (
+                    /* Desktop Sidebar */
+                    <div 
+                      className="border-l border-slate-200 dark:border-zinc-800 bg-white dark:bg-[#111726] flex flex-col shrink-0 relative select-none"
+                      style={{ width: `${sidebarWidth}px` }}
+                    >
+                      {/* Resize handle border (left edge of the sidebar) */}
+                      <div 
+                        onMouseDown={startResizing}
+                        className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-[#5B3DF5]/30 active:bg-[#5B3DF5] transition-colors z-50 select-none"
+                      />
 
-                        {/* Copilot Tab Switchers */}
-                        <div className="grid grid-cols-4 border-b dark:border-zinc-800 select-none shrink-0">
-                          {['Assistant', 'Suggestions', 'Case Laws', 'Citations'].map(tab => (
-                            <button
-                              key={tab}
-                              type="button"
-                              onClick={() => {
-                                setActiveCopilotTab(tab);
-                                localStorage.setItem('@aisa_copilot_active_tab', tab);
-                              }}
-                              className={`py-3 text-[8.5px] font-black uppercase tracking-wider text-center border-b-2 border-t-0 border-x-0 cursor-pointer ${
-                                activeCopilotTab === tab
-                                  ? 'border-[#5B3DF5] text-[#5B3DF5] bg-[#5B3DF5]/[0.01]'
-                                  : 'border-transparent text-slate-500 hover:text-slate-700'
-                              }`}
-                            >
-                              {tab.split(' ')[0]}
-                            </button>
-                          ))}
-                        </div>
-
-                        {/* Copilot Tab Viewport */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-5 custom-scrollbar text-left select-none animate-fadeIn">
-                          {activeCopilotTab === 'Assistant' && (
-                            <div className="space-y-4">
-                              <div className="space-y-2">
-                                <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-455">AI Copilot Quick Actions</h4>
-                                <div className="grid grid-cols-1 gap-2">
-                                  {[
-                                    { label: 'Improve Draft Structure', act: 'Improve headings, logical alignment, flow, and remove repetitions', title: 'Improve Draft Structure' },
-                                    { label: 'Strengthen Legal Arguments', act: 'Identify weaker logic, introduce statutory provisions, and add legal reasoning', title: 'Strengthen Arguments' },
-                                    { label: 'Check Legal Grammar', act: 'Review punctuation, syntax alignment, and style while keeping terminology', title: 'Check Legal Grammar' },
-                                    { label: 'Simplify Language complexity', act: 'Simplify complex legal English expressions to clear, plain professional English', title: 'Simplify Language' },
-                                    { label: 'Verify Legal Citations', act: 'Validate statutory codes, rules, Acts, and highlight incorrect citations', title: 'Verify Legal Citations' }
-                                  ].map(item => (
-                                    <button
-                                      key={item.label}
-                                      type="button"
-                                      disabled={isCopilotRefining}
-                                      onClick={() => handleCopilotQuickAction(item.title, item.act)}
-                                      className={`w-full flex items-center gap-2 p-2.5 border border-slate-100 dark:border-zinc-800 rounded-xl text-[10.5px] font-bold text-left transition-colors bg-slate-50/50 dark:bg-black/10 cursor-pointer select-none border-none ${
-                                        isCopilotRefining ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#5B3DF5] hover:bg-indigo-50/20'
-                                      }`}
-                                    >
-                                      <span className="text-[#5B3DF5]"><Sparkles size={11} /></span>
-                                      <span>{item.label}</span>
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-
-                              {/* Document Insights */}
-                              <div className="p-4 border rounded-2xl bg-slate-50 dark:bg-black/10 dark:border-zinc-800 space-y-3 border-none">
-                                <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-500">Document Insights</h4>
-                                <div className="space-y-2 text-[10px] text-slate-600 dark:text-slate-400 font-semibold">
-                                  <div className="flex justify-between">
-                                    <span>Estimated Pages</span>
-                                    <span className="font-bold text-slate-800 dark:text-white">{Math.ceil(wordCount / 350)} Page(s)</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span>Word Count</span>
-                                    <span className="font-bold text-slate-800 dark:text-white">{wordCount} Words</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span>Reading Time</span>
-                                    <span className="font-bold text-slate-800 dark:text-white">{readingTime} min</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span>AI Confidence</span>
-                                    <span className="font-bold text-emerald-650">98%</span>
-                                  </div>
-                                </div>
-
-                                <div className="space-y-1.5 pt-1">
-                                  <div className="flex justify-between text-[9px] font-black uppercase text-slate-500">
-                                    <span>Draft Readiness</span>
-                                    <span>92%</span>
-                                  </div>
-                                  <div className="w-full bg-slate-200 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden">
-                                    <div className="bg-emerald-500 h-full rounded-full" style={{ width: '92%' }} />
-                                  </div>
-                                </div>
-                              </div>
+                      {showVersionHistory ? (
+                        /* Version History View */
+                        <div className="flex flex-col h-full w-full overflow-hidden select-none">
+                          <div className="p-4 border-b border-slate-200 dark:border-zinc-800 flex justify-between items-center bg-slate-50 dark:bg-black/10 shrink-0">
+                            <div className="flex items-center gap-2">
+                              <History size={16} className="text-[#5B3DF5]" />
+                              <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">Version History</h4>
                             </div>
-                          )}
-
-                          {activeCopilotTab === 'Suggestions' && (
-                            <div className="space-y-4">
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSidebarOpen(false);
+                                  localStorage.setItem('@aisa_copilot_sidebar_open', 'false');
+                                }}
+                                className="p-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-full border-none bg-transparent cursor-pointer text-slate-400"
+                                title="Collapse Sidebar"
+                              >
+                                <ChevronRight size={16} />
+                              </button>
+                              <button 
+                                type="button" 
+                                onClick={() => setShowVersionHistory(false)} 
+                                className="p-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-full border-none bg-transparent cursor-pointer text-slate-400"
+                                title="Close History"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                          </div>
+                          
+                          <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar text-left font-sans select-none">
+                            {draftVersionHistory.length === 0 ? (
+                              <div className="text-center py-8 text-xs text-slate-400 font-medium">
+                                No version logs found. Manual and auto-saves will show here.
+                              </div>
+                            ) : (
                               <div className="space-y-3">
-                                <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-455">AI Audit & Recommendations</h4>
-                                {[
-                                  { title: 'Formatting Spacing Alignment', desc: 'Heading gaps conform to standard court guidelines.' },
-                                  { title: 'Check Witness Annotation', desc: 'No witness information is present. We recommend adding details of at least one witness.' },
-                                  { title: 'Check Missing Annexures', desc: 'No annexure files mapped. We recommend appending proof index sheets.' }
-                                ].map((item, idx) => (
-                                  <div key={idx} className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-black/10 space-y-1.5">
-                                    <h5 className="text-[10px] font-black text-slate-800 dark:text-white uppercase">{item.title}</h5>
-                                    <p className="text-[10.5px] text-slate-550 leading-relaxed font-semibold">{item.desc}</p>
-                                    <div className="flex gap-2">
-                                      <button 
-                                        type="button" 
-                                        onClick={() => handleCopilotQuickAction(item.title, `Apply recommendation: ${item.desc}`)}
-                                        className="text-[9px] font-black uppercase text-[#5B3DF5] border-none bg-transparent cursor-pointer"
+                                {draftVersionHistory.map((version, idx) => (
+                                  <div 
+                                    key={idx} 
+                                    className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-black/10 hover:border-[#5B3DF5] transition-colors relative"
+                                  >
+                                    <div className="flex justify-between items-start mb-1">
+                                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-[#5B3DF5]">
+                                        v{version.version}
+                                      </span>
+                                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{version.timestamp}</span>
+                                    </div>
+                                    <h5 className="text-[11px] font-extrabold text-slate-705 dark:text-slate-300 truncate pr-6">
+                                      {version.name || `Version ${version.version}`}
+                                    </h5>
+                                    <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-1 mb-2">
+                                      By: {version.user || 'You'}
+                                    </div>
+                                    
+                                    <div className="flex flex-wrap gap-2.5 mt-2 pt-2 border-t border-slate-100 dark:border-zinc-800/50">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRestoreVersion(version)}
+                                        className="text-[9px] font-black uppercase text-[#5B3DF5] hover:underline bg-transparent border-none cursor-pointer"
                                       >
-                                        Apply
+                                        Restore
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDuplicateVersion(version)}
+                                        className="text-[9px] font-black uppercase text-slate-500 hover:text-slate-705 hover:underline bg-transparent border-none cursor-pointer"
+                                      >
+                                        Duplicate
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const newName = prompt('Enter new version name:', version.name || `Version ${version.version}`);
+                                          if (newName !== null) handleRenameVersion(idx, newName);
+                                        }}
+                                        className="text-[9px] font-black uppercase text-slate-500 hover:text-slate-705 hover:underline bg-transparent border-none cursor-pointer"
+                                      >
+                                        Rename
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setCompareVersion(version)}
+                                        className="text-[9px] font-black uppercase text-indigo-600 hover:underline bg-transparent border-none cursor-pointer ml-auto"
+                                      >
+                                        Compare
                                       </button>
                                     </div>
                                   </div>
                                 ))}
                               </div>
-                            </div>
-                          )}
-
-                          {activeCopilotTab === 'Case Laws' && (
-                            <div className="space-y-4">
-                              <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-455">Relevant Precedents</h4>
-                              <div className="space-y-3">
-                                {[
-                                  { title: 'State of Maharashtra v. Rajesh (2021)', desc: 'Precedent defining requirements for Station House Officer FIR registrations under section 154.' },
-                                  { title: 'Karan Singh v. Union of India (2018)', desc: 'Supreme Court guidelines regarding delays in filing first information reports.' },
-                                  { title: 'Lalita Kumari v. Govt. of U.P. (2014)', desc: 'Constitution Bench guidelines regarding mandatory registration of FIR under Section 154 CrPC.' }
-                                ].map(law => (
-                                  <div key={law.title} className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-black/10 space-y-1">
-                                    <h5 className="text-[10px] font-black uppercase text-slate-800 dark:text-white">{law.title}</h5>
-                                    <p className="text-[10px] text-slate-550 leading-relaxed font-semibold">{law.desc}</p>
-                                    <button 
-                                      type="button"
-                                      onClick={() => handleInsertCitation(`[Citation Precedent: ${law.title}]`)}
-                                      className="text-[9px] font-black uppercase text-[#5B3DF5] border-none bg-transparent cursor-pointer mt-1"
-                                    >
-                                      + Insert Citation
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {activeCopilotTab === 'Citations' && (
-                            <div className="space-y-4">
-                              <h4 className="text-[9px] font-black uppercase tracking-widest text-[#5B3DF5]">Citations & Annotations</h4>
-                              <div className="space-y-3">
-                                {[
-                                  { title: 'Section 154, CrPC', desc: 'Information in cognizable cases.' },
-                                  { title: 'Section 420, IPC', desc: 'Cheating and dishonestly inducing delivery of property.' },
-                                  { title: 'Section 34, IPC', desc: 'Acts done by several persons in furtherance of common intention.' }
-                                ].map(cit => (
-                                  <div key={cit.title} className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-black/10 space-y-1">
-                                    <h5 className="text-[10px] font-black uppercase text-slate-800 dark:text-white">{cit.title}</h5>
-                                    <p className="text-[10px] text-slate-550 leading-relaxed font-semibold">{cit.desc}</p>
-                                    <button 
-                                      type="button"
-                                      onClick={() => handleInsertCitation(`[Citation Code: ${cit.title}]`)}
-                                      className="text-[9px] font-black uppercase text-[#5B3DF5] border-none bg-transparent cursor-pointer mt-1"
-                                    >
-                                      + Insert Citation
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  /* Floating AI Badge indicator when sidebar is collapsed */
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 flex flex-col items-center z-40 pr-0.5 select-none animate-fadeIn">
-                    <div className="w-[1px] h-10 bg-slate-200 dark:bg-zinc-800" />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSidebarOpen(true);
-                        localStorage.setItem('@aisa_copilot_sidebar_open', 'true');
-                      }}
-                      className="my-2 p-2 bg-[#5B3DF5] text-white hover:bg-indigo-700 rounded-l-xl flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest cursor-pointer select-none vertical-text shadow-md border-none"
-                      style={{ writingMode: 'vertical-lr' }}
-                    >
-                      <span>🤖 AI Assistant</span>
-                    </button>
-                    <div className="w-[1px] h-10 bg-slate-200 dark:bg-zinc-800" />
-                  </div>
+                      ) : (
+                        /* AI Copilot View */
+                        <div className="flex flex-col h-full w-full overflow-hidden select-none">
+                          {/* Copilot Header */}
+                          <div className="p-4 border-b border-slate-200 dark:border-zinc-800 flex justify-between items-center bg-slate-50 dark:bg-black/10 shrink-0 select-none">
+                            <div className="flex items-center gap-2">
+                              <Sparkles size={16} className="text-[#5B3DF5]" />
+                              <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">AI Copilot</h4>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                  setSidebarOpen(false);
+                                  localStorage.setItem('@aisa_copilot_sidebar_open', 'false');
+                                }}
+                              className="p-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-full border-none bg-transparent cursor-pointer text-slate-400"
+                              title="Collapse Sidebar"
+                            >
+                              <ChevronRight size={16} />
+                            </button>
+                          </div>
+
+                          {/* Copilot Tab Switchers */}
+                          <div className="grid grid-cols-4 border-b dark:border-zinc-800 select-none shrink-0">
+                            {['Assistant', 'Suggestions', 'Case Laws', 'Citations'].map(tab => (
+                              <button
+                                key={tab}
+                                type="button"
+                                onClick={() => {
+                                    setActiveCopilotTab(tab);
+                                    localStorage.setItem('@aisa_copilot_active_tab', tab);
+                                  }}
+                                className={`py-3 text-[8.5px] font-black uppercase tracking-wider text-center border-b-2 border-t-0 border-x-0 cursor-pointer ${
+                                    activeCopilotTab === tab
+                                      ? 'border-[#5B3DF5] text-[#5B3DF5] bg-[#5B3DF5]/[0.01]'
+                                      : 'border-transparent text-slate-500 hover:text-slate-700'
+                                  }`}
+                              >
+                                {tab.split(' ')[0]}
+                              </button>
+                            ))}
+                          </div>
+
+                          {/* Copilot Tab Viewport */}
+                          <div className="flex-1 overflow-y-auto p-4 space-y-5 custom-scrollbar text-left select-none animate-fadeIn">
+                            {activeCopilotTab === 'Assistant' && (
+                              <div className="space-y-4">
+                                <div className="space-y-2">
+                                  <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-455">AI Copilot Quick Actions</h4>
+                                  <div className="grid grid-cols-1 gap-2">
+                                    {[
+                                        { label: 'Improve Draft Structure', act: 'Improve headings, logical alignment, flow, and remove repetitions', title: 'Improve Draft Structure' },
+                                        { label: 'Strengthen Legal Arguments', act: 'Identify weaker logic, introduce statutory provisions, and add legal reasoning', title: 'Strengthen Arguments' },
+                                        { label: 'Check Legal Grammar', act: 'Review punctuation, syntax alignment, and style while keeping terminology', title: 'Check Legal Grammar' },
+                                        { label: 'Simplify Language complexity', act: 'Simplify complex legal English expressions to clear, plain professional English', title: 'Simplify Language' },
+                                        { label: 'Verify Legal Citations', act: 'Validate statutory codes, rules, Acts, and highlight incorrect citations', title: 'Verify Legal Citations' }
+                                      ].map(item => (
+                                        <button
+                                          key={item.label}
+                                          type="button"
+                                          disabled={isCopilotRefining}
+                                          onClick={() => handleCopilotQuickAction(item.title, item.act)}
+                                          className={`w-full flex items-center gap-2 p-2.5 border border-slate-100 dark:border-zinc-800 rounded-xl text-[10.5px] font-bold text-left transition-colors bg-slate-50/50 dark:bg-black/10 cursor-pointer select-none border-none ${
+                                            isCopilotRefining ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#5B3DF5] hover:bg-indigo-50/20'
+                                          }`}
+                                        >
+                                          <span className="text-[#5B3DF5]"><Sparkles size={11} /></span>
+                                          <span>{item.label}</span>
+                                        </button>
+                                      ))}
+                                  </div>
+                                </div>
+
+                                {/* Document Insights */}
+                                <div className="p-4 border rounded-2xl bg-slate-50 dark:bg-black/10 dark:border-zinc-800 space-y-3 border-none">
+                                  <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-500">Document Insights</h4>
+                                  <div className="space-y-2 text-[10px] text-slate-600 dark:text-slate-400 font-semibold">
+                                    <div className="flex justify-between">
+                                      <span>Estimated Pages</span>
+                                      <span className="font-bold text-slate-800 dark:text-white">{Math.ceil(wordCount / 350)} Page(s)</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>Word Count</span>
+                                      <span className="font-bold text-slate-800 dark:text-white">{wordCount} Words</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>Reading Time</span>
+                                      <span className="font-bold text-slate-800 dark:text-white">{readingTime} min</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>AI Confidence</span>
+                                      <span className="font-bold text-emerald-650">98%</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-1.5 pt-1">
+                                    <div className="flex justify-between text-[9px] font-black uppercase text-slate-500">
+                                      <span>Draft Readiness</span>
+                                      <span>92%</span>
+                                    </div>
+                                    <div className="w-full bg-slate-200 dark:bg-zinc-850 h-1.5 rounded-full overflow-hidden">
+                                      <div className="bg-emerald-500 h-full rounded-full" style={{ width: '92%' }} />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {activeCopilotTab === 'Suggestions' && (
+                              <div className="space-y-4">
+                                <div className="space-y-3">
+                                  <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-455">AI Audit & Recommendations</h4>
+                                  {[
+                                      { title: 'Formatting Spacing Alignment', desc: 'Heading gaps conform to standard court guidelines.' },
+                                      { title: 'Check Witness Annotation', desc: 'No witness information is present. We recommend adding details of at least one witness.' },
+                                      { title: 'Check Missing Annexures', desc: 'No annexure files mapped. We recommend appending proof index sheets.' }
+                                    ].map((item, idx) => (
+                                      <div key={idx} className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-black/10 space-y-1.5">
+                                        <h5 className="text-[10px] font-black text-slate-800 dark:text-white uppercase">{item.title}</h5>
+                                        <p className="text-[10.5px] text-slate-550 leading-relaxed font-semibold">{item.desc}</p>
+                                        <div className="flex gap-2">
+                                          <button 
+                                            type="button" 
+                                            onClick={() => handleCopilotQuickAction(item.title, `Apply recommendation: ${item.desc}`)}
+                                            className="text-[9px] font-black uppercase text-[#5B3DF5] border-none bg-transparent cursor-pointer"
+                                          >
+                                            Apply
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {activeCopilotTab === 'Case Laws' && (
+                              <div className="space-y-4">
+                                <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-455">Relevant Precedents</h4>
+                                <div className="space-y-3">
+                                  {[
+                                      { title: 'State of Maharashtra v. Rajesh (2021)', desc: 'Precedent defining requirements for Station House Officer FIR registrations under section 154.' },
+                                      { title: 'Karan Singh v. Union of India (2018)', desc: 'Supreme Court guidelines regarding delays in filing first information reports.' },
+                                      { title: 'Lalita Kumari v. Govt. of U.P. (2014)', desc: 'Constitution Bench guidelines regarding mandatory registration of FIR under Section 154 CrPC.' }
+                                    ].map(law => (
+                                      <div key={law.title} className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-black/10 space-y-1">
+                                        <h5 className="text-[10px] font-black uppercase text-slate-800 dark:text-white">{law.title}</h5>
+                                        <p className="text-[10px] text-slate-550 leading-relaxed font-semibold">{law.desc}</p>
+                                        <button 
+                                          type="button"
+                                          onClick={() => handleInsertCitation(`[Citation Precedent: ${law.title}]`)}
+                                          className="text-[9px] font-black uppercase text-[#5B3DF5] border-none bg-transparent cursor-pointer mt-1"
+                                        >
+                                          + Insert Citation
+                                        </button>
+                                      </div>
+                                    ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {activeCopilotTab === 'Citations' && (
+                              <div className="space-y-4">
+                                <h4 className="text-[9px] font-black uppercase tracking-widest text-[#5B3DF5]">Citations & Annotations</h4>
+                                <div className="space-y-3">
+                                  {[
+                                      { title: 'Section 154, CrPC', desc: 'Information in cognizable cases.' },
+                                      { title: 'Section 420, IPC', desc: 'Cheating and dishonestly inducing delivery of property.' },
+                                      { title: 'Section 34, IPC', desc: 'Acts done by several persons in furtherance of common intention.' }
+                                    ].map(cit => (
+                                      <div key={cit.title} className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-black/10 space-y-1">
+                                        <h5 className="text-[10px] font-black uppercase text-slate-800 dark:text-white">{cit.title}</h5>
+                                        <p className="text-[10px] text-slate-550 leading-relaxed font-semibold">{cit.desc}</p>
+                                        <button 
+                                          type="button"
+                                          onClick={() => handleInsertCitation(`[Citation Code: ${cit.title}]`)}
+                                          className="text-[9px] font-black uppercase text-[#5B3DF5] border-none bg-transparent cursor-pointer mt-1"
+                                        >
+                                          + Insert Citation
+                                        </button>
+                                      </div>
+                                    ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
                 )}
 
               {/* AI Copilot Refinement Comparison Modal */}
@@ -5256,6 +5632,96 @@ CRITICAL MASTER RULES:
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* ── Mobile Options Drawer ── */}
+      {isMobilePreviewMenuOpen && (
+        <div className="fixed inset-0 z-[125000] flex items-end justify-center select-none">
+          {/* Overlay */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setIsMobilePreviewMenuOpen(false)} />
+          
+          {/* Bottom Sheet content */}
+          <div className="relative bg-white dark:bg-[#111726] border-t border-slate-200 dark:border-zinc-800 rounded-t-3xl w-full max-h-[80vh] shadow-2xl flex flex-col z-10 overflow-hidden animate-slideUp">
+            {/* Grab handle */}
+            <div className="w-12 h-1 bg-slate-350 dark:bg-zinc-700 rounded-full mx-auto my-3 shrink-0" />
+            
+            <div className="px-6 pb-6 pt-2 space-y-4 overflow-y-auto">
+              <div className="border-b pb-2 dark:border-zinc-800">
+                <h3 className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">Document Actions</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 gap-2.5">
+                <button
+                  onClick={() => {
+                    setIsMobilePreviewMenuOpen(false);
+                    setShowVersionHistory(true);
+                    setSidebarOpen(true);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-slate-50 dark:hover:bg-zinc-800/40 rounded-2xl text-[13px] font-bold text-slate-700 dark:text-slate-200 border-none bg-transparent cursor-pointer text-left"
+                >
+                  <History size={16} className="text-[#5B3DF5]" />
+                  <span>Version History</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setIsMobilePreviewMenuOpen(false);
+                    setIsProtectedEditing(true);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-slate-50 dark:hover:bg-zinc-800/40 rounded-2xl text-[13px] font-bold text-slate-700 dark:text-slate-200 border-none bg-transparent cursor-pointer text-left"
+                >
+                  <Edit2 size={16} className="text-indigo-500" />
+                  <span>Edit Placeholders</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setIsMobilePreviewMenuOpen(false);
+                    setIsShareModalOpen(true);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-slate-50 dark:hover:bg-zinc-800/40 rounded-2xl text-[13px] font-bold text-slate-700 dark:text-slate-200 border-none bg-transparent cursor-pointer text-left"
+                >
+                  <Share2 size={16} className="text-indigo-500" />
+                  <span>Share Document</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setIsMobilePreviewMenuOpen(false);
+                    handlePrint();
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-slate-50 dark:hover:bg-zinc-800/40 rounded-2xl text-[13px] font-bold text-slate-700 dark:text-slate-200 border-none bg-transparent cursor-pointer text-left"
+                >
+                  <Printer size={16} className="text-indigo-500" />
+                  <span>Print Document</span>
+                </button>
+              </div>
+
+              <div className="border-t border-slate-100 dark:border-zinc-800 pt-3">
+                <p className="text-[10px] font-extrabold uppercase text-slate-400 dark:text-slate-500 mb-2">Export formats</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { label: 'PDF', action: handleExportPDF, icon: <FileDown size={16} /> },
+                    { label: 'DOCX', action: handleExportDOCX, icon: <FileCheck size={16} /> },
+                    { label: 'TXT', action: handleDownload, icon: <FileText size={16} /> }
+                  ].map(fmt => (
+                    <button
+                      key={fmt.label}
+                      onClick={() => {
+                        setIsMobilePreviewMenuOpen(false);
+                        fmt.action();
+                      }}
+                      className="py-3 px-2 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800/60 rounded-xl hover:border-[#5B3DF5] hover:bg-indigo-50/20 text-slate-800 dark:text-slate-200 transition-all flex flex-col items-center justify-center gap-1 border-none cursor-pointer"
+                    >
+                      <span className="text-[#5B3DF5]">{fmt.icon}</span>
+                      <span className="text-[10px] font-black">{fmt.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

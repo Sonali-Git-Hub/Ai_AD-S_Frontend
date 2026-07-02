@@ -89,8 +89,41 @@
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
 }
 
-/* Mobile Adjustments */
-@media (max-width: 768px) {
+/* Responsive Modals and Adjustments */
+@media (max-width: 1023px) {
+    .precedent-modal-body {
+        flex-direction: column !important;
+        overflow-y: auto !important;
+        display: flex !important;
+    }
+
+    .precedent-modal-main,
+    .precedent-modal-sidebar {
+        width: 100% !important;
+        padding: 20px !important;
+        height: auto !important;
+        overflow-y: visible !important;
+        border: none !important;
+    }
+
+    .precedent-modal-sidebar {
+        background: var(--lp-card) !important;
+        border-top: 1px solid var(--lp-border) !important;
+    }
+
+    .precedent-modal-footer {
+        padding: 20px !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+    }
+
+    .precedent-modal-footer button {
+        width: 100% !important;
+        margin: 0 !important;
+    }
+}
+
+@media (max-width: 767px) {
     .precedent-modal-overlay {
         padding: 0 !important;
         background: var(--lp-bg) !important;
@@ -108,44 +141,78 @@
         padding: 16px !important;
     }
 
-    .precedent-modal-body {
-        flex-direction: column !important;
-        overflow-y: auto !important;
-        display: block !important;
-    }
-
     .precedent-modal-main,
     .precedent-modal-sidebar {
-        width: 100% !important;
         padding: 16px !important;
-        height: auto !important;
-        overflow-y: visible !important;
-        border: none !important;
-    }
-
-    .precedent-modal-sidebar {
-        background: var(--lp-card) !important;
-        border-top: 1px solid var(--lp-border) !important;
-        border-bottom: 100px solid var(--lp-card) !important; /* Extra space for footer */
     }
 
     .precedent-modal-footer {
         padding: 16px !important;
-        gap: 12px !important;
-        position: fixed !important;
-        bottom: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        background: var(--lp-bg) !important;
-        box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.2) !important;
-        z-index: 50 !important;
-        border-top: 1px solid var(--lp-border) !important;
     }
+}
 
-    .precedent-modal-footer button {
-        width: 100% !important;
-        margin: 0 !important;
-    }
+/* Custom Responsive Grids for Directory */
+.research-stats-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+@media (min-width: 640px) {
+    .research-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) {
+    .research-stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.research-category-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+@media (min-width: 380px) {
+    .research-category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 640px) {
+    .research-category-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) {
+    .research-category-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+.featured-acts-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+@media (min-width: 640px) {
+    .featured-acts-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) {
+    .featured-acts-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.popular-cases-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+@media (min-width: 640px) {
+    .popular-cases-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) {
+    .popular-cases-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.recent-judgments-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+@media (min-width: 640px) {
+    .recent-judgments-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) {
+    .recent-judgments-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 /* Utils */

@@ -689,7 +689,51 @@ const CaseDetailView = ({ item, isDark, onBack, onDelete, onAskStrategy, onViewR
   const [selectedPrecedent, setSelectedPrecedent] = useState(null);
   
   // Workspace UI states
-  const [showAiAssistant, setShowAiAssistant] = useState(true);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const [showAiAssistant, setShowAiAssistant] = useState(() => window.innerWidth >= 768);
+
+  const openAssistant = () => {
+    setShowAiAssistant(true);
+    if (window.innerWidth < 768) {
+      window.history.pushState({ assistantOpen: true }, '');
+    }
+  };
+
+  const closeAssistant = () => {
+    setShowAiAssistant(false);
+    if (window.innerWidth < 768 && window.history.state?.assistantOpen) {
+      window.history.back();
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = (event) => {
+      if (window.innerWidth < 768 && showAiAssistant) {
+        setShowAiAssistant(false);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [showAiAssistant]);
+
+  const tabsContainerRef = useRef(null);
+
+  const handleTabClick = (tabId, event) => {
+    setActiveTab(tabId);
+    if (window.innerWidth < 768 && event && event.currentTarget) {
+      event.currentTarget.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center'
+      });
+    }
+  };
   const [isAssistantMaximized, setIsAssistantMaximized] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [isChatSending, setIsChatSending] = useState(false);
@@ -698,6 +742,409 @@ const CaseDetailView = ({ item, isDark, onBack, onDelete, onAskStrategy, onViewR
   const [showSidebarHistory, setShowSidebarHistory] = useState(false);
   const [showSidebarPlusMenu, setShowSidebarPlusMenu] = useState(false);
   const [sidebarSessions, setSidebarSessions] = useState([]);
+  const [historySearchQuery, setHistorySearchQuery] = useState('');
+  const [pinnedSessionIds, setPinnedSessionIds] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('pinned_sessions') || '[]');
+    } catch {
+      return [];
+    }
+  });
+  const draftsRef = useRef({});
+  const attachmentsRef = useRef({});
+
+  const handleChatInputChange = (val) => {
+    setChatInput(val);
+    if (activeSessionId) {
+      draftsRef.current[activeSessionId] = val;
+    }
+  };
+
+  useEffect(() => {
+    if (activeSessionId) {
+      setChatInput(draftsRef.current[activeSessionId] || '');
+      setTimeout(() => {
+        if (sidebarScrollRef.current) {
+          sidebarScrollRef.current.scrollTop = sidebarScrollRef.current.scrollHeight;
+        }
+      }, 100);
+    }
+  }, [activeSessionId]);
+
+  const handleTogglePinSession = (sId) => {
+    setPinnedSessionIds(prev => {
+      const next = prev.includes(sId) ? prev.filter(id => id !== sId) : [...prev, sId];
+      localStorage.setItem('pinned_sessions', JSON.stringify(next));
+      return next;
+    });
+    toast.success("Conversation pin status updated");
+  };
+
+  const handleRenameSession = async (session, newTitle) => {
+    const sId = session.chat_id || session.sessionId;
+    const success = await chatStorageService.updateSessionTitle(sId, newTitle);
+    if (success) {
+      toast.success("Conversation renamed successfully");
+      loadSidebarSessions();
+    } else {
+      toast.error("Failed to rename conversation");
+    }
+  };
+
+  const handleDeleteSession = async (session) => {
+    if (confirm("Are you sure you want to delete this conversation?")) {
+      const sId = session.chat_id || session.sessionId;
+      await chatStorageService.deleteSession(sId);
+      toast.success("Conversation deleted successfully");
+      if (sId === activeSessionId) {
+        const caseId = caseData.id || caseData._id;
+        const targetSessionId = `case_chat_${caseId}_${Date.now()}`;
+        setActiveSessionId(targetSessionId);
+        setAiMessages([]);
+      }
+      loadSidebarSessions();
+    }
+  };
+
+  const handleDuplicateSession = async (session) => {
+    const sId = session.chat_id || session.sessionId;
+    const newSessionId = `case_chat_${caseData.id || caseData._id}_${Date.now()}`;
+    const historyData = await chatStorageService.getHistory(sId);
+    if (historyData && Array.isArray(historyData.messages)) {
+      for (const msg of historyData.messages) {
+        await chatStorageService.saveMessage(newSessionId, msg, `Duplicate: ${session.title}`, caseData.id || caseData._id);
+      }
+      toast.success("Conversation duplicated successfully!");
+      loadSidebarSessions();
+    } else {
+      toast.error("Failed to duplicate conversation");
+    }
+  };
+
+  const handleExportSession = (session) => {
+    const sId = session.chat_id || session.sessionId;
+    chatStorageService.getHistory(sId).then(historyData => {
+      if (historyData && Array.isArray(historyData.messages)) {
+        const text = historyData.messages.map(m => `[${m.role.toUpperCase()}] ${m.content}`).join('\n\n');
+        const blob = new Blob([text], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${session.title || 'conversation'}.md`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success("Conversation exported as Markdown!");
+      }
+    });
+  };
+
+  const handleSelectSession = async (session) => {
+    const sId = session.chat_id || session.sessionId;
+    setActiveSessionId(sId);
+    const historyData = await chatStorageService.getHistory(sId);
+    if (historyData && Array.isArray(historyData.messages)) {
+      setAiMessages(historyData.messages);
+    }
+    setShowSidebarHistory(false);
+  };
+
+  const filteredSessions = useMemo(() => {
+    const query = historySearchQuery.toLowerCase();
+    let items = sidebarSessions.filter(s => 
+      (s.title || '').toLowerCase().includes(query)
+    );
+    return items.sort((a, b) => {
+      const aId = a.chat_id || a.sessionId;
+      const bId = b.chat_id || b.sessionId;
+      const aPinned = pinnedSessionIds.includes(aId);
+      const bPinned = pinnedSessionIds.includes(bId);
+      if (aPinned && !bPinned) return -1;
+      if (!aPinned && bPinned) return 1;
+      return (b.lastModified || 0) - (a.lastModified || 0);
+    });
+  }, [sidebarSessions, historySearchQuery, pinnedSessionIds]);
+  const HistoryItem = ({ session, isActive, onSelect, onRename, onDelete, onDuplicate, onPin, onExport, isPinned }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [renameVal, setRenameVal] = useState(session.title || 'New Chat');
+    const [showActionsMenu, setShowActionsMenu] = useState(false);
+    const actionsMenuRef = useRef(null);
+
+    const handleSaveRename = (e) => {
+      e.preventDefault();
+      if (renameVal.trim()) {
+        onRename(renameVal);
+        setIsEditing(false);
+      }
+    };
+
+    useEffect(() => {
+      const handleClickOutside = (e) => {
+        if (actionsMenuRef.current && !actionsMenuRef.current.contains(e.target)) {
+          setShowActionsMenu(false);
+        }
+      };
+      if (showActionsMenu) {
+        document.addEventListener('mousedown', handleClickOutside);
+      }
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showActionsMenu]);
+
+    const dateObj = new Date(session.timestamp || session.lastModified || Date.now());
+    const displayDate = dateObj.toLocaleDateString();
+    const displayTime = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    return (
+      <div 
+        className={`group relative w-full p-3 rounded-xl border transition-all cursor-pointer flex flex-col gap-1.5 ${
+          isActive 
+            ? 'bg-indigo-50/40 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-900/40 text-[#4F46E5]' 
+            : 'bg-white dark:bg-zinc-800/80 border-slate-100 dark:border-zinc-800/80 text-slate-750 dark:text-slate-350 hover:bg-slate-50/50 dark:hover:bg-zinc-800/40 hover:border-slate-200 dark:hover:border-zinc-700'
+        }`}
+        onClick={() => !isEditing && onSelect()}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            {isEditing ? (
+              <form onSubmit={handleSaveRename} className="flex items-center gap-1.5 w-full" onClick={e => e.stopPropagation()}>
+                <input 
+                  type="text"
+                  value={renameVal}
+                  onChange={(e) => setRenameVal(e.target.value)}
+                  className="flex-1 bg-slate-50 dark:bg-zinc-800 border border-indigo-500 rounded-lg px-2 py-1 text-xs font-bold text-slate-800 dark:text-white outline-none"
+                  autoFocus
+                />
+                <button type="submit" className="p-1 text-green-500 hover:text-green-650 bg-transparent border-none cursor-pointer"><Check size={14} /></button>
+                <button type="button" onClick={() => setIsEditing(false)} className="p-1 text-slate-400 hover:text-slate-500 bg-transparent border-none cursor-pointer"><X size={14} /></button>
+              </form>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                {isPinned && <Pin size={11} className="text-amber-500 shrink-0 transform rotate-45" />}
+                <h4 className="text-xs font-bold truncate leading-tight select-none pr-6">
+                  {session.title || 'New Chat'}
+                </h4>
+              </div>
+            )}
+          </div>
+          
+          {!isEditing && (
+            <div className="relative shrink-0 animate-in fade-in" onClick={e => e.stopPropagation()}>
+              <button 
+                onClick={() => setShowActionsMenu(!showActionsMenu)}
+                className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg text-slate-400 hover:text-slate-600 transition-colors cursor-pointer border-none bg-transparent"
+                aria-label="Conversation actions"
+              >
+                <MoreVertical size={13} />
+              </button>
+              
+              {showActionsMenu && (
+                <div 
+                  ref={actionsMenuRef}
+                  className="absolute right-0 top-full mt-1 z-[120000] w-36 bg-white dark:bg-zinc-850 border border-slate-200 dark:border-zinc-700 rounded-xl shadow-xl p-1.5 space-y-0.5 text-left"
+                >
+                  <button 
+                    onClick={() => { onSelect(); setShowActionsMenu(false); }}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-zinc-800/50 rounded-lg text-[10px] font-bold text-slate-700 dark:text-gray-200 transition-colors border-none bg-transparent cursor-pointer text-left"
+                  >
+                    <Eye size={12} className="text-slate-400" />
+                    <span>Resume Chat</span>
+                  </button>
+                  <button 
+                    onClick={() => { setIsEditing(true); setShowActionsMenu(false); }}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-zinc-800/50 rounded-lg text-[10px] font-bold text-slate-700 dark:text-gray-200 transition-colors border-none bg-transparent cursor-pointer text-left"
+                  >
+                    <Edit2 size={12} className="text-slate-400" />
+                    <span>Rename</span>
+                  </button>
+                  <button 
+                    onClick={() => { onPin(); setShowActionsMenu(false); }}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-zinc-800/50 rounded-lg text-[10px] font-bold text-slate-700 dark:text-gray-200 transition-colors border-none bg-transparent cursor-pointer text-left"
+                  >
+                    <Pin size={12} className="text-slate-400" />
+                    <span>{isPinned ? 'Unpin' : 'Pin'}</span>
+                  </button>
+                  <button 
+                    onClick={() => { onDuplicate(); setShowActionsMenu(false); }}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-zinc-800/50 rounded-lg text-[10px] font-bold text-slate-700 dark:text-gray-200 transition-colors border-none bg-transparent cursor-pointer text-left"
+                  >
+                    <Copy size={12} className="text-slate-400" />
+                    <span>Duplicate</span>
+                  </button>
+                  <button 
+                    onClick={() => { onExport(); setShowActionsMenu(false); }}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-zinc-800/50 rounded-lg text-[10px] font-bold text-slate-700 dark:text-gray-200 transition-colors border-none bg-transparent cursor-pointer text-left"
+                  >
+                    <Download size={12} className="text-slate-400" />
+                    <span>Export</span>
+                  </button>
+                  <button 
+                    onClick={() => { onDelete(); setShowActionsMenu(false); }}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg text-[10px] font-bold text-red-500 transition-colors border-none bg-transparent cursor-pointer text-left"
+                  >
+                    <Trash2 size={12} />
+                    <span>Delete</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider text-slate-400 select-none">
+          <div className="flex items-center gap-1.5">
+            <span>{displayDate}</span>
+            <span>•</span>
+            <span>{displayTime}</span>
+          </div>
+          {isActive && (
+            <span className="flex items-center gap-1 text-emerald-500 font-extrabold normal-case">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Active
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const HistoryDrawer = () => {
+    useEffect(() => {
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+          setShowSidebarHistory(false);
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
+    const drawerRef = useRef(null);
+    useEffect(() => {
+      if (!showSidebarHistory) return;
+      const focusableElements = drawerRef.current?.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusableElements && focusableElements.length > 0) {
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+        
+        const handleTab = (e) => {
+          if (e.key === 'Tab') {
+            if (e.shiftKey) {
+              if (document.activeElement === firstElement) {
+                lastElement.focus();
+                e.preventDefault();
+              }
+            } else {
+              if (document.activeElement === lastElement) {
+                firstElement.focus();
+                e.preventDefault();
+              }
+            }
+          }
+        };
+        window.addEventListener('keydown', handleTab);
+        firstElement.focus();
+        return () => window.removeEventListener('keydown', handleTab);
+      }
+    }, [showSidebarHistory]);
+
+    return (
+      <AnimatePresence>
+        {showSidebarHistory && (
+          <div className="fixed inset-0 z-50 flex items-end md:items-stretch md:justify-end select-none">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setShowSidebarHistory(false)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-[1px] z-0"
+            />
+            
+            <motion.div
+              ref={drawerRef}
+              initial={isMobile ? { y: "100%" } : { x: "100%" }}
+              animate={isMobile ? { y: 0 } : { x: 0 }}
+              exit={isMobile ? { y: "100%" } : { x: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 220 }}
+              className={`relative z-10 bg-white dark:bg-zinc-900 shadow-2xl flex flex-col overflow-hidden ${
+                isMobile 
+                ? 'w-full h-[85vh] rounded-t-3xl pb-safe' 
+                : 'w-[400px] h-full border-l border-[#E5E7EB] dark:border-zinc-800'
+              }`}
+            >
+              <div className="p-4 border-b border-[#E5E7EB] dark:border-zinc-800 shrink-0 bg-white dark:bg-zinc-900 select-none">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <History size={16} className="text-[#4F46E5]" />
+                    <h3 className="text-sm font-bold text-slate-800 dark:text-white">Conversation History</h3>
+                  </div>
+                  <button
+                    onClick={() => setShowSidebarHistory(false)}
+                    className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer border-none bg-transparent"
+                    aria-label="Close history"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={historySearchQuery}
+                    onChange={(e) => setHistorySearchQuery(e.target.value)}
+                    placeholder="Search history..."
+                    className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-zinc-800/50 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs font-bold text-slate-800 dark:text-white outline-none focus:border-[#4F46E5] transition-colors"
+                  />
+                  {historySearchQuery && (
+                    <button 
+                      onClick={() => setHistorySearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 border-none bg-transparent cursor-pointer"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                {filteredSessions.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+                    <div className="w-12 h-12 bg-slate-50 dark:bg-zinc-800 text-slate-400 rounded-2xl flex items-center justify-center mb-3">
+                      <History size={20} />
+                    </div>
+                    <p className="text-xs font-bold text-slate-800 dark:text-white">No conversation history</p>
+                    <p className="text-[10px] text-slate-400 mt-1 max-w-[200px]">Start a new conversation to build your case history.</p>
+                  </div>
+                ) : (
+                  filteredSessions.map((session) => {
+                    const sId = session.chat_id || session.sessionId;
+                    const isActive = sId === activeSessionId;
+                    return (
+                      <HistoryItem 
+                        key={sId}
+                        session={session}
+                        isActive={isActive}
+                        onSelect={() => handleSelectSession(session)}
+                        onRename={(newTitle) => handleRenameSession(session, newTitle)}
+                        onDelete={() => handleDeleteSession(session)}
+                        onDuplicate={() => handleDuplicateSession(session)}
+                        onPin={() => handleTogglePinSession(sId)}
+                        onExport={() => handleExportSession(session)}
+                        isPinned={pinnedSessionIds.includes(sId)}
+                      />
+                    );
+                  })
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    );
+  };
+
   const [notesText, setNotesText] = useState(item?.description || item?.summary || '');
 
   // Arguments Sub-Navigation states
@@ -1465,11 +1912,11 @@ ${notesText || 'No summary details'}
 
   // Render Sub-Tabs
   const renderOverview = () => (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in duration-300">
-      <div className="md:col-span-2 space-y-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 animate-in fade-in duration-300">
+      <div className="md:col-span-2 space-y-4 md:space-y-6">
         {/* Case Summary Card */}
-        <div className="bg-white dark:bg-[#1A2540] border border-[#E5E7EB] dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-white dark:bg-[#1A2540] border border-[#E5E7EB] dark:border-zinc-800 rounded-xl p-4 sm:p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-white">CASE SUMMARY</h4>
             <div className="flex items-center gap-2">
               {caseData.summary && (
@@ -1490,7 +1937,7 @@ ${notesText || 'No summary details'}
             </div>
           </div>
           {caseData.summary && !isEditingFacts ? (
-            <div className="space-y-4 text-xs font-semibold text-slate-705 dark:text-slate-350 leading-relaxed mb-0 p-4 bg-indigo-50/20 dark:bg-indigo-950/10 rounded-xl border border-indigo-100/40">
+            <div className="space-y-4 text-xs font-semibold text-slate-755 dark:text-slate-350 leading-relaxed mb-0 p-4 bg-indigo-50/20 dark:bg-indigo-950/10 rounded-xl border border-indigo-100/40">
               <p className="font-bold text-[#4F46E5] text-xs">✨ AI-GENERATED LEGAL SUMMARY</p>
               <div className="whitespace-pre-wrap leading-relaxed">{caseData.summary}</div>
             </div>
@@ -1505,15 +1952,15 @@ ${notesText || 'No summary details'}
         </div>
       </div>
 
-      <div className="md:col-span-1 space-y-6">
+      <div className="md:col-span-1 space-y-4 md:space-y-6">
         {/* Win Probability Card */}
-        <div className="bg-white dark:bg-[#1A2540] border border-[#E5E7EB] dark:border-zinc-800 rounded-2xl p-5 shadow-sm flex flex-col items-center justify-center text-center relative overflow-hidden">
+        <div className="bg-white dark:bg-[#1A2540] border border-[#E5E7EB] dark:border-zinc-800 rounded-xl p-4 sm:p-5 shadow-sm flex flex-col items-center justify-center text-center relative overflow-hidden">
           {isAnalyzing && (
             <div className="absolute inset-0 bg-white/50 dark:bg-zinc-950/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
               <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
             </div>
           )}
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-white mb-4">WIN PROBABILITY</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-white mb-2 sm:mb-4">WIN PROBABILITY</span>
           <div className="relative flex items-center justify-center w-24 h-24">
             <svg className="w-24 h-24 transform -rotate-90">
               <circle cx="48" cy="48" r="38" className="stroke-slate-100 dark:stroke-zinc-800" strokeWidth="7" fill="transparent" />
@@ -1523,20 +1970,20 @@ ${notesText || 'No summary details'}
               <span className="text-xl font-black text-slate-855 dark:text-white">{winProbability}%</span>
             </div>
           </div>
-          <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 mt-4 leading-tight">BASED ON CURRENT EVIDENCE AND PRECEDENT STRENGTH</span>
+          <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 mt-2.5 sm:mt-4 leading-tight">BASED ON CURRENT EVIDENCE AND PRECEDENT STRENGTH</span>
         </div>
 
         {/* Task Progress Card */}
-        <div className="bg-white dark:bg-[#1A2540] border border-[#E5E7EB] dark:border-zinc-800 rounded-2xl p-5 shadow-sm">
-          <h5 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-white mb-2">TASK PROGRESS</h5>
+        <div className="bg-white dark:bg-[#1A2540] border border-[#E5E7EB] dark:border-zinc-800 rounded-xl p-4 sm:p-5 shadow-sm">
+          <h5 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-white mb-1.5 sm:mb-2">TASK PROGRESS</h5>
           <div className="flex items-center justify-between text-[10px] font-semibold text-gray-500 uppercase">
             <span>Completed steps</span>
             <span>{taskPercentage}% ({completedTasks}/{totalTasks})</span>
           </div>
-          <div className="w-full bg-slate-100 dark:bg-zinc-800 h-2 rounded-full overflow-hidden mt-3">
+          <div className="w-full bg-slate-100 dark:bg-zinc-800 h-2 rounded-full overflow-hidden mt-2.5 sm:mt-3">
             <div className="bg-[#4F46E5] h-full rounded-full transition-all duration-500" style={{ width: `${taskPercentage}%` }} />
           </div>
-          <button onClick={() => setIsTaskModalVisible(true)} className="text-xs font-bold text-[#4F46E5] hover:underline mt-4 block">Manage Tasks</button>
+          <button onClick={() => setIsTaskModalVisible(true)} className="text-xs font-bold text-[#4F46E5] hover:underline mt-2.5 sm:mt-4 block">Manage Tasks</button>
         </div>
       </div>
     </div>
@@ -5211,81 +5658,153 @@ const triggerBackgroundArgumentsSync = async (targetData, manual = false) => {
 
   return (
     <>
-      <div className="flex-1 overflow-y-auto custom-scrollbar w-full bg-slate-50/30 dark:bg-transparent relative pb-24">
-        {/* Workspace Sticky Header */}
-        <div className="sticky top-0 z-20 bg-white dark:bg-[#0b0c15] border-b border-[#E5E7EB] dark:border-zinc-800 px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={onBack} 
-              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-500 transition-colors border border-[#E5E7EB] dark:border-zinc-700 bg-white dark:bg-zinc-900"
-            >
-              <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-            </button>
-            <div>
-              <div className="flex items-center gap-3 flex-wrap">
-                <h2 className="text-md sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-none">{caseData.title || caseData.name || "Rajesh Sharma vs Amit Verma"}</h2>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#DEF7EC] text-[#03543F] tracking-wide">ACTIVE</span>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#E1EFFE] text-[#1E429F] tracking-wide">MEDIUM</span>
+      <div className="flex-1 overflow-y-auto custom-scrollbar w-full bg-slate-50/30 dark:bg-transparent relative pb-24" id="workspace-scroll-container">
+        {/* Workspace Sticky Header Container */}
+        <div className="sticky top-0 z-20 bg-white dark:bg-[#0b0c15] border-b border-[#E5E7EB] dark:border-zinc-800 flex flex-col">
+          {isMobile ? (
+            <>
+              {/* Compact Mobile Header */}
+              <div className="px-4 pt-3 pb-2 flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={onBack} 
+                    className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-500 border border-[#E5E7EB] dark:border-zinc-700 bg-white dark:bg-zinc-900 shrink-0"
+                  >
+                    <ArrowLeft className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h2 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate max-w-[150px] xs:max-w-[200px]">
+                        {caseData.title || caseData.name || "Rajesh Sharma vs Amit Verma"}
+                      </h2>
+                      <span className="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase bg-[#DEF7EC] text-[#03543F]">ACTIVE</span>
+                      <span className="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase bg-[#E1EFFE] text-[#1E429F]">MEDIUM</span>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[9px] text-gray-500 dark:text-gray-400 pl-10 truncate">
+                  Client: {caseData.clientName || 'Rajesh Sharma'} • Opponent: {caseData.opponentName || 'Amit Verma'} • Court: {caseData.courtName || 'District Court'}
+                </p>
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
-                Client: {caseData.clientName || 'Rajesh Sharma'} • Opponent: {caseData.opponentName || 'Amit Verma'} • Court: {caseData.courtName || 'District Court'}
-              </p>
+
+              {/* Mobile Action Buttons */}
+              <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide px-4 py-2 bg-gray-50/50 dark:bg-zinc-900/20 border-t border-[#E5E7EB] dark:border-zinc-800 select-none shrink-0" style={{ whiteSpace: 'nowrap', WebkitOverflowScrolling: 'touch' }}>
+                <button 
+                  onClick={openAssistant} 
+                  className="flex items-center justify-center gap-1.5 px-3 h-9 rounded-xl text-xs font-bold transition-all bg-indigo-50 dark:bg-indigo-950/40 text-[#4F46E5] shrink-0 min-h-[44px]"
+                >
+                  <Sparkles size={12} className="text-[#4F46E5]" />
+                  <span>Show AI</span>
+                </button>
+                <button 
+                  onClick={handleExportCaseFile}
+                  className="flex items-center justify-center gap-1.5 px-3 h-9 rounded-xl text-xs font-bold transition-all border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-700 dark:text-gray-300 shrink-0 min-h-[44px]"
+                >
+                  <Download size={12} />
+                  <span>Export</span>
+                </button>
+                <button 
+                  onClick={handleShareCase}
+                  className="flex items-center justify-center gap-1.5 px-3 h-9 rounded-xl text-xs font-bold transition-all border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-700 dark:text-gray-300 shrink-0 min-h-[44px]"
+                >
+                  <Share2 size={12} />
+                  <span>Share</span>
+                </button>
+                <button 
+                  onClick={() => {
+                    if (confirm("Are you sure you want to delete this case?")) {
+                      onDelete(caseData.id || caseData._id);
+                    }
+                  }}
+                  className="flex items-center justify-center w-9 h-9 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/20 text-gray-400 hover:text-red-500 border border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0 min-h-[44px]"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            </>
+          ) : (
+            /* Desktop Sticky Header */
+            <div className="px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={onBack} 
+                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-500 transition-colors border border-[#E5E7EB] dark:border-zinc-700 bg-white dark:bg-zinc-900"
+                >
+                  <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                </button>
+                <div>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h2 className="text-md sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-none">{caseData.title || caseData.name || "Rajesh Sharma vs Amit Verma"}</h2>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#DEF7EC] text-[#03543F] tracking-wide">ACTIVE</span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#E1EFFE] text-[#1E429F] tracking-wide">MEDIUM</span>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+                    Client: {caseData.clientName || 'Rajesh Sharma'} • Opponent: {caseData.opponentName || 'Amit Verma'} • Court: {caseData.courtName || 'District Court'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2 self-stretch sm:self-auto justify-end">
+                <button 
+                  onClick={() => setShowAiAssistant(!showAiAssistant)} 
+                  className="px-4 py-2 rounded-full text-xs font-bold transition-all bg-indigo-50 dark:bg-indigo-950/40 text-[#4F46E5] hover:opacity-90 flex items-center gap-2 h-9"
+                >
+                  <Sparkles size={14} className="text-[#4F46E5]" />
+                  <span>{showAiAssistant ? "Hide AI" : "Show AI"}</span>
+                </button>
+                <button 
+                  onClick={handleExportCaseFile}
+                  className="px-4 py-2 rounded-full text-xs font-bold transition-all border border-[#E5E7EB] dark:border-zinc-800 bg-white text-gray-700 hover:bg-gray-50 flex items-center gap-2 h-9"
+                >
+                  <Download size={14} /> Export
+                </button>
+                <button 
+                  onClick={handleShareCase}
+                  className="px-4 py-2 rounded-full text-xs font-bold transition-all border border-[#E5E7EB] dark:border-zinc-800 bg-white text-gray-700 hover:bg-gray-50 flex items-center gap-2 h-9"
+                >
+                  <Share2 size={14} /> Share
+                </button>
+                <button 
+                  onClick={() => {
+                    if (confirm("Are you sure you want to delete this case?")) {
+                      onDelete(caseData.id || caseData._id);
+                    }
+                  }}
+                  className="p-2 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
             </div>
+          )}
+
+          {/* Sticky Tab Bar */}
+          <div 
+            ref={tabsContainerRef}
+            className="flex items-center gap-1.5 pt-2 px-4 pb-2 bg-white dark:bg-[#0b0c15] border-t border-[#E5E7EB] dark:border-zinc-800 overflow-x-auto scrollbar-hide shrink-0 scroll-smooth"
+            style={{ display: 'flex', overflowX: 'auto', whiteSpace: 'nowrap', WebkitOverflowScrolling: 'touch' }}
+          >
+            {tabsList.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={(e) => handleTabClick(tab.id, e)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-all border shrink-0 min-h-[44px] ${
+                  activeTab === tab.id 
+                  ? 'bg-white dark:bg-zinc-900 border-[#E5E7EB] dark:border-zinc-800 shadow-sm text-[#4F46E5]' 
+                  : 'bg-transparent border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-50/50 dark:hover:bg-zinc-800/30'
+                }`}
+              >
+                <tab.icon size={13} className={activeTab === tab.id ? 'text-[#4F46E5]' : 'text-gray-400'} />
+                <span>{tab.name}</span>
+              </button>
+            ))}
           </div>
-          
-          <div className="flex items-center gap-2 self-stretch sm:self-auto justify-end">
-            <button 
-              onClick={() => setShowAiAssistant(!showAiAssistant)} 
-              className="px-4 py-2 rounded-full text-xs font-bold transition-all bg-indigo-50 dark:bg-indigo-950/40 text-[#4F46E5] hover:opacity-90 flex items-center gap-2 h-9"
-            >
-              <Sparkles size={14} className="text-[#4F46E5]" />
-              <span>{showAiAssistant ? "Hide AI" : "Show AI"}</span>
-            </button>
-            <button 
-              onClick={handleExportCaseFile}
-              className="px-4 py-2 rounded-full text-xs font-bold transition-all border border-[#E5E7EB] dark:border-zinc-800 bg-white text-gray-700 hover:bg-gray-50 flex items-center gap-2 h-9"
-            >
-              <Download size={14} /> Export
-            </button>
-            <button 
-              onClick={handleShareCase}
-              className="px-4 py-2 rounded-full text-xs font-bold transition-all border border-[#E5E7EB] dark:border-zinc-800 bg-white text-gray-700 hover:bg-gray-50 flex items-center gap-2 h-9"
-            >
-              <Share2 size={14} /> Share
-            </button>
-            <button 
-              onClick={() => {
-                if (confirm("Are you sure you want to delete this case?")) {
-                  onDelete(caseData.id || caseData._id);
-                }
-              }}
-              className="p-2 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20"
-            >
-              <Trash2 size={18} />
-            </button>
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5 pt-3 px-3 pb-1.5 bg-white dark:bg-[#0b0c15] border-b border-[#E5E7EB] dark:border-zinc-800 overflow-x-auto custom-scrollbar shrink-0">
-          {tabsList.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-all border ${
-                activeTab === tab.id 
-                ? 'bg-white dark:bg-zinc-900 border-[#E5E7EB] dark:border-zinc-800 shadow-sm text-[#4F46E5]' 
-                : 'bg-transparent border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-50/50 dark:hover:bg-zinc-800/30'
-              }`}
-            >
-              <tab.icon size={13} className={activeTab === tab.id ? 'text-[#4F46E5]' : 'text-gray-400'} />
-              <span>{tab.name}</span>
-            </button>
-          ))}
         </div>
 
         {/* Main Workspace Body layout */}
         <div className="flex-1 flex overflow-hidden min-h-0 relative">
           {/* Left Column content */}
-          <div className="flex-1 overflow-y-auto p-6 scroll-smooth">
+          <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 scroll-smooth">
             {activeTab === 'overview' && renderOverview()}
             {activeTab === 'timeline' && renderTimeline()}
             {activeTab === 'hearings' && renderHearings()}
@@ -5306,8 +5825,8 @@ const triggerBackgroundArgumentsSync = async (targetData, manual = false) => {
             <div className="hidden lg:block lg:w-[320px] xl:w-[360px] shrink-0" />
           )}
 
-          {/* Right Sidebar Column (Col 3) */}
-          {showAiAssistant && (
+          {/* Right Sidebar Column (Col 3) - Desktop / Tablet */}
+          {!isMobile && showAiAssistant && (
             isAssistantMaximized ? (
               <FullScreenCaseAssistant
                 onRestore={() => setIsAssistantMaximized(false)}
@@ -5339,7 +5858,7 @@ const triggerBackgroundArgumentsSync = async (targetData, manual = false) => {
                   <div className="flex items-center gap-1.5">
                     <button 
                       onClick={handleToggleSidebarHistory}
-                      className={`p-1 rounded hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer border-none bg-transparent flex items-center gap-1 text-[10px] font-bold ${
+                      className={`p-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer border-none bg-transparent flex items-center gap-1 text-[10px] font-bold ${
                         showSidebarHistory ? 'text-[#4F46E5]' : 'text-gray-400 hover:text-gray-600 dark:hover:text-white'
                       }`}
                       title="Chat History"
@@ -5348,7 +5867,7 @@ const triggerBackgroundArgumentsSync = async (targetData, manual = false) => {
                     </button>
                     <button 
                       onClick={() => setIsAssistantMaximized(!isAssistantMaximized)}
-                      className="p-1 rounded hover:bg-slate-50 dark:hover:bg-zinc-800 text-gray-400 hover:text-gray-650 dark:hover:text-white transition-colors cursor-pointer border-none bg-transparent"
+                      className="p-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-zinc-800 text-gray-400 hover:text-gray-655 dark:hover:text-white transition-colors cursor-pointer border-none bg-transparent"
                       title="Expand to fullscreen"
                     >
                       <Maximize2 size={13} />
@@ -5360,72 +5879,254 @@ const triggerBackgroundArgumentsSync = async (targetData, manual = false) => {
                 <div 
                   ref={sidebarScrollRef}
                   onScroll={handleSidebarScroll}
-                  className="flex-1 overflow-y-auto p-4 space-y-4 text-xs scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent relative"
+                  className="flex-1 overflow-y-auto p-4 space-y-4 text-xs scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent relative animate-in fade-in duration-200"
                 >
-                  {showSidebarHistory ? (
-                    <div className="space-y-4 py-2">
-                      <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-2">Case Conversation History</div>
-                      {sidebarSessions.length === 0 ? (
-                        <div className="text-center py-8 text-slate-400 font-semibold">No previous chats in this case</div>
-                      ) : (
-                        (() => {
-                          const nowTime = Date.now();
-                          const oneDay = 24 * 60 * 60 * 1000;
-                          const today = sidebarSessions.filter(s => nowTime - s.timestamp < oneDay);
-                          const yesterday = sidebarSessions.filter(s => nowTime - s.timestamp >= oneDay && nowTime - s.timestamp < 2 * oneDay);
-                          const last7Days = sidebarSessions.filter(s => nowTime - s.timestamp >= 2 * oneDay && nowTime - s.timestamp < 7 * oneDay);
-                          const older = sidebarSessions.filter(s => nowTime - s.timestamp >= 7 * oneDay);
-                          
-                          const renderGroup = (title, items) => {
-                            if (items.length === 0) return null;
-                            return (
-                              <div className="space-y-2">
-                                <div className="text-[9px] font-black uppercase text-indigo-650 dark:text-indigo-400 tracking-widest border-b border-slate-100 dark:border-zinc-800 pb-1">{title}</div>
-                                <div className="space-y-1">
-                                  {items.map((s) => (
-                                    <button
-                                      key={s.chat_id}
-                                      onClick={async () => {
-                                        setActiveSessionId(s.chat_id);
-                                        const historyData = await chatStorageService.getHistory(s.chat_id);
-                                        if (historyData && Array.isArray(historyData.messages)) {
-                                          setAiMessages(historyData.messages);
-                                        }
-                                        setShowSidebarHistory(false);
-                                      }}
-                                      className={`w-full text-left p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors border border-transparent hover:border-slate-100 dark:hover:border-zinc-800 cursor-pointer bg-transparent font-semibold flex flex-col gap-1 ${
-                                        s.chat_id === activeSessionId ? 'bg-indigo-50/30 dark:bg-indigo-950/20 text-[#4F46E5] border-indigo-100/50 dark:border-indigo-900/30' : 'text-slate-700 dark:text-slate-350'
-                                      }`}
-                                    >
-                                      <span className="truncate text-xs font-bold">{s.title || 'New Chat'}</span>
-                                      <span className="text-[9px] text-slate-400 font-medium font-mono">
-                                        {new Date(s.timestamp).toLocaleDateString()} • {new Date(s.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                      </span>
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            );
-                          };
-                          
-                          return (
-                            <div className="space-y-4">
-                              {renderGroup("Today", today)}
-                              {renderGroup("Yesterday", yesterday)}
-                              {renderGroup("Last 7 Days", last7Days)}
-                              {renderGroup("Older", older)}
+                  <>
+                    {!hasUserMessages && (
+                      <div className="p-4 bg-indigo-50/40 dark:bg-indigo-950/15 border border-indigo-100/50 dark:border-indigo-900/30 rounded-2xl space-y-3 text-slate-700 dark:text-slate-350">
+                        <p className="font-bold text-xs text-indigo-750 dark:text-indigo-400">👋 Hello! I have loaded this case.</p>
+                        <p className="text-[11px] leading-relaxed">Ask me anything about:</p>
+                        <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-[10px] font-bold text-slate-650 dark:text-slate-400">
+                          <div className="flex items-center gap-1">
+                            <span className="text-emerald-500 font-black">✓</span> Evidence
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-emerald-500 font-black">✓</span> Timeline
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-emerald-500 font-black">✓</span> Drafts
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-emerald-500 font-black">✓</span> Arguments
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-emerald-500 font-black">✓</span> Laws & Acts
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-emerald-500 font-black">✓</span> Research
+                          </div>
+                          <div className="col-span-2 flex items-center gap-1">
+                            <span className="text-emerald-500 font-black">✓</span> Previous Orders
+                          </div>
+                        </div>
+                        <p className="text-[11px] pt-1">How can I help?</p>
+                      </div>
+                    )}
+
+                    {visibleSidebarMessages.map((msg, i) => (
+                      <div key={i} className="flex flex-col animate-in slide-in-from-bottom-2 duration-200">
+                        <span className={`text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-1 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+                          {msg.role === 'user' ? 'ADVOCATE' : 'AI ASSISTANT'}
+                        </span>
+                        <div className={`p-3 rounded-2xl max-w-[90%] leading-relaxed font-semibold ${
+                          msg.role === 'user'
+                            ? 'bg-[#4F46E5] text-white rounded-tr-none ml-auto'
+                            : 'bg-slate-50 dark:bg-zinc-800/30 border border-[#E5E7EB] dark:border-zinc-800 text-slate-700 dark:text-slate-350 rounded-tl-none mr-auto'
+                        }`}>
+                          {msg.role === 'user' ? (
+                            <p className="whitespace-pre-wrap">{msg.content}</p>
+                          ) : (
+                            <div className="prose prose-slate max-w-none dark:prose-invert">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]} components={MarkdownComponents}>
+                                {highlightLegalTerms(msg.content)}
+                              </ReactMarkdown>
                             </div>
-                          );
-                        })()
-                      )}
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {isChatSending && (!visibleSidebarMessages.length || visibleSidebarMessages[visibleSidebarMessages.length - 1]?.role !== 'model') && (
+                      <div className="flex items-center gap-1.5 p-3 bg-slate-50 dark:bg-zinc-850 rounded-2xl rounded-tl-none border border-slate-200 dark:border-zinc-800 w-20">
+                        <div className="w-1.5 h-1.5 bg-[#4F46E5] rounded-full animate-bounce" />
+                        <div className="w-1.5 h-1.5 bg-[#4F46E5] rounded-full animate-bounce delay-100" />
+                        <div className="w-1.5 h-1.5 bg-[#4F46E5] rounded-full animate-bounce delay-200" />
+                      </div>
+                    )}
+
+                    <div ref={messagesEndRef} />
+                  </>
+                </div>
+
+                {/* Bottom Chat Input Area */}
+                <div className="p-4 border-t border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0 select-none">
+                  <form onSubmit={handleSendAiMessage} className="flex items-center gap-2 pl-3 pr-4 py-2 bg-gray-50 dark:bg-zinc-850/50 border border-[#E5E7EB] dark:border-zinc-800 rounded-2xl w-full relative">
+                    {/* Plus button Actions Grid */}
+                    {showSidebarPlusMenu && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setShowSidebarPlusMenu(false)} />
+                        <div className="absolute bottom-full mb-3 left-2 z-50 w-72 bg-white border border-slate-200 rounded-2xl shadow-2xl p-3 space-y-2.5 font-sans select-none text-left">
+                          <div className="flex justify-between items-center pb-1.5 border-b border-slate-100">
+                            <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Quick AI Actions</span>
+                            <button 
+                              type="button" 
+                              onClick={() => setShowSidebarPlusMenu(false)}
+                              className="text-slate-400 hover:text-slate-650 border-none bg-transparent cursor-pointer"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-1 max-h-[220px] overflow-y-auto custom-scrollbar p-0.5">
+                            {QUICK_AI_ACTIONS.map((action) => (
+                              <button
+                                key={action.name}
+                                type="button"
+                                onClick={() => {
+                                  handleChatInputChange(action.prompt);
+                                  setShowSidebarPlusMenu(false);
+                                  const inp = document.querySelector('input[placeholder="Type message..."]');
+                                  inp?.focus();
+                                }}
+                                className="flex items-center gap-2.5 p-1.5 hover:bg-indigo-50/30 border border-transparent hover:border-[#4F46E5] rounded-xl text-[10px] font-bold text-slate-750 text-left transition-all cursor-pointer bg-transparent border-none"
+                              >
+                                <span className="p-1 bg-slate-50 rounded shadow-sm shrink-0">{getActionIcon(action.icon)}</span>
+                                <span className="truncate">{action.name}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    <button 
+                      type="button" 
+                      onClick={() => setShowSidebarPlusMenu(prev => !prev)}
+                      className={`p-2 transition-colors border-none bg-transparent cursor-pointer shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center ${
+                        showSidebarPlusMenu ? 'text-[#4F46E5] bg-[#4F46E5]/10 rounded-xl' : 'text-gray-400 hover:text-[#4F46E5]'
+                      }`}
+                      title="Quick Actions"
+                    >
+                      <Plus size={16} />
+                    </button>
+
+                    <button 
+                      type="button" 
+                      onClick={() => document.getElementById('workspace-doc-upload').click()}
+                      className="p-2 text-gray-400 hover:text-[#4F46E5] transition-colors border-none bg-transparent cursor-pointer shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      title="Upload Documents"
+                    >
+                      <Paperclip size={16} />
+                    </button>
+
+                    <input 
+                      type="text" 
+                      value={chatInput}
+                      onChange={(e) => handleChatInputChange(e.target.value)}
+                      placeholder="Type message..."
+                      className="flex-1 bg-transparent border-none text-[11px] font-semibold focus:ring-0 p-0 text-slate-700 dark:text-white outline-none min-w-0"
+                    />
+
+                    <button 
+                      type="button" 
+                      onClick={handleVoiceInputSidebar}
+                      className={`p-2 transition-colors border-none bg-transparent cursor-pointer shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center ${
+                        isListeningSidebar ? 'text-red-500 animate-pulse' : 'text-gray-400 hover:text-[#4F46E5]'
+                      }`}
+                      title="Voice Input"
+                    >
+                      <Mic size={16} />
+                    </button>
+
+                    {isChatSending ? (
+                      <button 
+                        type="button" 
+                        onClick={handleStopGeneration} 
+                        className="w-[30px] h-[30px] sm:w-[32px] sm:h-[32px] rounded-full bg-[#EF4444] text-white hover:bg-red-650 hover:opacity-95 transition-all border-none cursor-pointer flex items-center justify-center shrink-0 min-h-[44px] min-w-[44px]"
+                        title="Stop generation"
+                      >
+                        <X size={15} className="text-white font-black stroke-[3px]" />
+                      </button>
+                    ) : (
+                      <button 
+                        type="submit" 
+                        disabled={!chatInput.trim()}
+                        className={`w-[30px] h-[30px] sm:w-[32px] sm:h-[32px] rounded-full transition-all border-none cursor-pointer flex items-center justify-center shrink-0 min-h-[44px] min-w-[44px] ${
+                          chatInput.trim()
+                            ? 'bg-[#4F46E5] text-white hover:bg-[#4338CA]'
+                            : 'text-gray-300 cursor-not-allowed'
+                        }`}
+                        title="Send message"
+                      >
+                        <Send size={12} />
+                      </button>
+                    )}
+                  </form>
+                </div>
+                {showSidebarScrollBtn && (
+                  <button
+                    type="button"
+                    onClick={scrollToSidebarBottom}
+                    className="absolute bottom-[90px] left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-full shadow-lg text-[10px] font-bold text-[#4F46E5] dark:text-indigo-400 hover:bg-slate-50 dark:hover:bg-zinc-750 transition-all cursor-pointer select-none animate-bounce"
+                  >
+                    <ChevronDown size={11} />
+                    <span>Scroll to Latest</span>
+                  </button>
+                )}
+              </div>
+            )
+          )}
+
+          {/* Right Sidebar Column (Col 3) - Mobile overlay / bottom sheet drawer */}
+          <AnimatePresence>
+            {isMobile && showAiAssistant && (
+              <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40 backdrop-blur-[1.5px] select-none">
+                {/* Click outside backdrop to close */}
+                <div className="absolute inset-0 z-0" onClick={closeAssistant} />
+                
+                <motion.div
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "100%" }}
+                  transition={{ type: "spring", damping: 25, stiffness: 220 }}
+                  className="relative z-10 w-full h-[85vh] bg-white dark:bg-zinc-900 rounded-t-3xl shadow-2xl flex flex-col overflow-hidden pb-safe"
+                >
+                  {/* Drag / Pull handle bar */}
+                  <div className="w-12 h-1.5 bg-slate-350 dark:bg-zinc-700 rounded-full mx-auto my-3 cursor-pointer shrink-0" onClick={closeAssistant} />
+                  
+                  {/* Drawer Header */}
+                  <div className="px-4 pb-3 border-b border-[#E5E7EB] dark:border-zinc-800 flex items-center justify-between select-none shrink-0">
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={closeAssistant}
+                        className="p-1 rounded hover:bg-slate-50 dark:hover:bg-zinc-800 text-gray-555 hover:text-gray-700 dark:hover:text-white transition-colors cursor-pointer border-none bg-transparent mr-1"
+                        title="Back to Case Workspace"
+                      >
+                        <ArrowLeft size={16} />
+                      </button>
+                      <Scale size={15} className="text-[#4F46E5]" />
+                      <div className="flex flex-col">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-white">⚖ Case Assistant</h4>
+                        <span className="flex items-center gap-1 text-[9px] text-emerald-500 font-bold uppercase tracking-wide">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          AI Online
+                        </span>
+                      </div>
                     </div>
-                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <button 
+                        onClick={handleToggleSidebarHistory}
+                        className={`p-1.5 rounded hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer border-none bg-transparent flex items-center gap-1 text-[10px] font-bold ${
+                          showSidebarHistory ? 'text-[#4F46E5]' : 'text-gray-400 hover:text-gray-655 dark:hover:text-white'
+                        }`}
+                        title="Chat History"
+                      >
+                        <History size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Message List Container */}
+                  <div 
+                    ref={sidebarScrollRef}
+                    onScroll={handleSidebarScroll}
+                    className="flex-1 overflow-y-auto p-4 space-y-4 text-xs scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent relative"
+                  >
                     <>
                       {!hasUserMessages && (
                         <div className="p-4 bg-indigo-50/40 dark:bg-indigo-950/15 border border-indigo-100/50 dark:border-indigo-900/30 rounded-2xl space-y-3 text-slate-700 dark:text-slate-350">
                           <p className="font-bold text-xs text-indigo-750 dark:text-indigo-400">👋 Hello! I have loaded this case.</p>
                           <p className="text-[11px] leading-relaxed">Ask me anything about:</p>
-                          <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-[10px] font-bold text-slate-650 dark:text-slate-400">
+                          <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-[10px] font-bold text-slate-655 dark:text-slate-400">
                             <div className="flex items-center gap-1">
                               <span className="text-emerald-500 font-black">✓</span> Evidence
                             </div>
@@ -5453,14 +6154,14 @@ const triggerBackgroundArgumentsSync = async (targetData, manual = false) => {
                       )}
 
                       {visibleSidebarMessages.map((msg, i) => (
-                        <div key={i} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                          <span className={`text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-1`}>
+                        <div key={i} className="flex flex-col animate-in slide-in-from-bottom-2 duration-200">
+                          <span className={`text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-1 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
                             {msg.role === 'user' ? 'ADVOCATE' : 'AI ASSISTANT'}
                           </span>
                           <div className={`p-3 rounded-2xl max-w-[90%] leading-relaxed font-semibold ${
                             msg.role === 'user'
-                              ? 'bg-[#4F46E5] text-white rounded-tr-none'
-                              : 'bg-slate-50 dark:bg-zinc-800/30 border border-[#E5E7EB] dark:border-zinc-800 text-slate-700 dark:text-slate-350 rounded-tl-none'
+                              ? 'bg-[#4F46E5] text-white rounded-tr-none ml-auto'
+                              : 'bg-slate-50 dark:bg-zinc-800/30 border border-[#E5E7EB] dark:border-zinc-800 text-slate-705 dark:text-slate-350 rounded-tl-none mr-auto'
                           }`}>
                             {msg.role === 'user' ? (
                               <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -5484,18 +6185,12 @@ const triggerBackgroundArgumentsSync = async (targetData, manual = false) => {
 
                       <div ref={messagesEndRef} />
                     </>
-                  )}
-                </div>
+                  </div>
 
-                {/* Bottom Chat Input Area */}
-                <div className="p-4 border-t border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0 select-none">
-                  {showSidebarHistory ? (
-                    <div className="text-center text-[10px] text-slate-400 font-bold select-none py-1">
-                      Choose a past conversation session to resume chatting
-                    </div>
-                  ) : (
-                    <form onSubmit={handleSendAiMessage} className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-zinc-850/50 border border-[#E5E7EB] dark:border-zinc-800 rounded-2xl w-full relative">
-                      {/* Plus button popup Actions Grid */}
+                  {/* Bottom Chat Input Area */}
+                  <div className="p-4 border-t border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0 select-none pb-[calc(16px+env(safe-area-inset-bottom))]">
+                    <form onSubmit={handleSendAiMessage} className="flex items-center gap-2 pl-3 pr-4 py-2 bg-gray-50 dark:bg-zinc-850/50 border border-[#E5E7EB] dark:border-zinc-800 rounded-2xl w-full relative">
+                      {/* Plus button Actions Grid */}
                       {showSidebarPlusMenu && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setShowSidebarPlusMenu(false)} />
@@ -5505,7 +6200,7 @@ const triggerBackgroundArgumentsSync = async (targetData, manual = false) => {
                               <button 
                                 type="button" 
                                 onClick={() => setShowSidebarPlusMenu(false)}
-                                className="text-slate-400 hover:text-slate-650 border-none bg-transparent cursor-pointer"
+                                className="text-slate-400 hover:text-slate-655 border-none bg-transparent cursor-pointer"
                               >
                                 <X size={12} />
                               </button>
@@ -5517,7 +6212,7 @@ const triggerBackgroundArgumentsSync = async (targetData, manual = false) => {
                                   key={action.name}
                                   type="button"
                                   onClick={() => {
-                                    setChatInput(action.prompt);
+                                    handleChatInputChange(action.prompt);
                                     setShowSidebarPlusMenu(false);
                                     const inp = document.querySelector('input[placeholder="Type message..."]');
                                     inp?.focus();
@@ -5536,81 +6231,84 @@ const triggerBackgroundArgumentsSync = async (targetData, manual = false) => {
                       <button 
                         type="button" 
                         onClick={() => setShowSidebarPlusMenu(prev => !prev)}
-                        className={`p-1 transition-colors border-none bg-transparent cursor-pointer ${
-                          showSidebarPlusMenu ? 'text-[#4F46E5] bg-[#4F46E5]/10 rounded' : 'text-gray-400 hover:text-[#4F46E5]'
+                        className={`p-2 transition-colors border-none bg-transparent cursor-pointer shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center ${
+                          showSidebarPlusMenu ? 'text-[#4F46E5] bg-[#4F46E5]/10 rounded-xl' : 'text-gray-400 hover:text-[#4F46E5]'
                         }`}
                         title="Quick Actions"
                       >
-                        <Plus size={14} />
+                        <Plus size={16} />
                       </button>
 
                       <button 
                         type="button" 
                         onClick={() => document.getElementById('workspace-doc-upload').click()}
-                        className="p-1 text-gray-400 hover:text-[#4F46E5] transition-colors border-none bg-transparent cursor-pointer"
+                        className="p-2 text-gray-400 hover:text-[#4F46E5] transition-colors border-none bg-transparent cursor-pointer shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center"
                         title="Upload Documents"
                       >
-                        <Paperclip size={14} />
+                        <Paperclip size={16} />
                       </button>
+
                       <input 
                         type="text" 
                         value={chatInput}
-                        onChange={(e) => setChatInput(e.target.value)}
+                        onChange={(e) => handleChatInputChange(e.target.value)}
                         placeholder="Type message..."
-                        className="flex-1 bg-transparent border-none text-[11px] font-semibold focus:ring-0 p-0 text-slate-700 dark:text-white outline-none"
+                        className="flex-1 bg-transparent border-none text-[11px] font-semibold focus:ring-0 p-0 text-slate-700 dark:text-white outline-none min-w-0"
                       />
+
                       <button 
                         type="button" 
                         onClick={handleVoiceInputSidebar}
-                        className={`p-1 transition-colors border-none bg-transparent cursor-pointer ${
+                        className={`p-2 transition-colors border-none bg-transparent cursor-pointer shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center ${
                           isListeningSidebar ? 'text-red-500 animate-pulse' : 'text-gray-400 hover:text-[#4F46E5]'
                         }`}
                         title="Voice Input"
                       >
-                        <Mic size={14} />
+                        <Mic size={16} />
                       </button>
+
                       {isChatSending ? (
                         <button 
                           type="button" 
                           onClick={handleStopGeneration} 
-                          className="p-1.5 rounded-full bg-[#EF4444] text-white hover:opacity-90 transition-all border-none cursor-pointer flex items-center justify-center"
+                          className="w-[30px] h-[30px] sm:w-[32px] sm:h-[32px] rounded-full bg-[#EF4444] text-white hover:bg-red-650 hover:opacity-95 transition-all border-none cursor-pointer flex items-center justify-center shrink-0 min-h-[44px] min-w-[44px]"
                           title="Stop generation"
                         >
-                          <Square size={10} fill="white" />
+                          <X size={15} className="text-white font-black stroke-[3px]" />
                         </button>
                       ) : (
                         <button 
                           type="submit" 
                           disabled={!chatInput.trim()}
-                          className={`p-1.5 rounded-full transition-all border-none cursor-pointer ${
+                          className={`w-[30px] h-[30px] sm:w-[32px] sm:h-[32px] rounded-full transition-all border-none cursor-pointer flex items-center justify-center shrink-0 min-h-[44px] min-w-[44px] ${
                             chatInput.trim()
                               ? 'bg-[#4F46E5] text-white hover:bg-[#4338CA]'
                               : 'text-gray-300 cursor-not-allowed'
                           }`}
                           title="Send message"
                         >
-                          <Send size={10} />
+                          <Send size={12} />
                         </button>
                       )}
                     </form>
+                  </div>
+                  {showSidebarScrollBtn && (
+                    <button
+                      type="button"
+                      onClick={scrollToSidebarBottom}
+                      className="absolute bottom-[90px] left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-full shadow-lg text-[10px] font-bold text-[#4F46E5] dark:text-indigo-400 hover:bg-slate-50 dark:hover:bg-zinc-750 transition-all cursor-pointer select-none animate-bounce"
+                    >
+                      <ChevronDown size={11} />
+                      <span>Scroll to Latest</span>
+                    </button>
                   )}
-                </div>
-                {showSidebarScrollBtn && (
-                  <button
-                    type="button"
-                    onClick={scrollToSidebarBottom}
-                    className="absolute bottom-[90px] left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-full shadow-lg text-[10px] font-bold text-[#4F46E5] dark:text-indigo-400 hover:bg-slate-50 dark:hover:bg-zinc-750 transition-all cursor-pointer select-none animate-bounce"
-                  >
-                    <ChevronDown size={11} />
-                    <span>Scroll to Latest</span>
-                  </button>
-                )}
+                </motion.div>
               </div>
-            )
-          )}
+            )}
+          </AnimatePresence>
         </div>
       </div>
-
+      <HistoryDrawer />
       <input 
         type="file" 
         id="workspace-doc-upload" 
@@ -6003,7 +6701,7 @@ const LegalDashboard = ({
       {/* Filter + Search Bar (Horizontal Toolbar) */}
       <div className="px-4 sm:px-6 md:px-10 lg:px-12 py-3.5 flex flex-col md:flex-row items-stretch md:items-center gap-3 shrink-0 border-b border-slate-200/60 dark:border-zinc-800 bg-white dark:bg-[#0b0c15]">
         {/* Search box */}
-        <div className="flex-1 flex items-center gap-2 bg-gray-50/50 dark:bg-zinc-900/50 border border-[#E5E7EB] dark:border-zinc-800 rounded-xl px-3 py-2 w-full md:max-w-md">
+        <div className="flex items-center gap-2 bg-gray-50/50 dark:bg-zinc-900/50 border border-[#E5E7EB] dark:border-zinc-800 rounded-xl px-3 py-2.5 w-full md:max-w-md min-h-[44px]">
           <Search size={14} className="text-slate-400 shrink-0" />
           <input 
             value={searchQuery} 
@@ -6018,11 +6716,11 @@ const LegalDashboard = ({
           )}
         </div>
 
-        {/* Filters Group */}
-        <div className="flex flex-wrap items-center gap-2.5 md:ml-auto">
+        {/* Filters Group - Horizontal Scrolling Row on Mobile */}
+        <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide w-full md:w-auto select-none shrink-0" style={{ display: 'flex', overflowX: 'auto', whiteSpace: 'nowrap', gap: '12px' }}>
           {/* Status Dropdown */}
-          <div className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-300">
-            <span className="text-gray-400 dark:text-gray-500 font-bold">Status:</span>
+          <div className="flex items-center justify-between gap-1.5 px-3 py-2 bg-white dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-300 min-h-[44px] flex-1 md:flex-none justify-center shrink-0">
+            <span className="text-gray-400 dark:text-gray-550 font-bold">Status:</span>
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
@@ -6036,12 +6734,12 @@ const LegalDashboard = ({
           </div>
 
           {/* Court Dropdown */}
-          <div className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-300">
-            <span className="text-gray-400 dark:text-gray-500 font-bold">Court:</span>
+          <div className="flex items-center justify-between gap-1.5 px-3 py-2 bg-white dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-300 min-h-[44px] flex-1 md:flex-none justify-center shrink-0">
+            <span className="text-gray-400 dark:text-gray-550 font-bold">Court:</span>
             <select
               value={selectedCourt}
               onChange={(e) => setSelectedCourt(e.target.value)}
-              className="bg-transparent border-none p-0 focus:ring-0 text-xs font-bold text-gray-800 dark:text-white cursor-pointer outline-none max-w-[140px]"
+              className="bg-transparent border-none p-0 focus:ring-0 text-xs font-bold text-gray-800 dark:text-white cursor-pointer outline-none max-w-[120px] truncate"
             >
               {availableCourts.map(court => (
                 <option key={court} value={court}>{court}</option>
@@ -6050,8 +6748,8 @@ const LegalDashboard = ({
           </div>
 
           {/* Sort Dropdown */}
-          <div className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-300">
-            <span className="text-gray-400 dark:text-gray-500 font-bold">Sort by:</span>
+          <div className="flex items-center justify-between gap-1.5 px-3 py-2 bg-white dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-300 min-h-[44px] flex-1 md:flex-none justify-center shrink-0">
+            <span className="text-gray-400 dark:text-gray-505 font-bold">Sort:</span>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
@@ -6063,117 +6761,248 @@ const LegalDashboard = ({
               <option value="Status">Status</option>
             </select>
           </div>
+        </div>
 
-          {/* View Toggles */}
-          <div className="flex items-center border border-[#E5E7EB] dark:border-zinc-800 rounded-xl overflow-hidden shrink-0">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-2 transition-colors ${viewMode === 'grid' ? 'bg-gray-100 dark:bg-zinc-800 text-[#4F46E5]' : 'bg-white dark:bg-zinc-900 text-gray-400 hover:text-gray-650'}`}
-              title="Grid View"
-            >
-              <LayoutDashboard size={14} />
-            </button>
-            <button
-              onClick={() => setViewMode('table')}
-              className={`p-2 border-l border-[#E5E7EB] dark:border-zinc-800 transition-colors ${viewMode === 'table' ? 'bg-gray-100 dark:bg-zinc-800 text-[#4F46E5]' : 'bg-white dark:bg-zinc-900 text-gray-400 hover:text-gray-655'}`}
-              title="Table View"
-            >
-              <ClipboardList size={14} />
-            </button>
-          </div>
+        {/* View Toggles - directly below filters on mobile, md:ml-auto on desktop */}
+        <div className="flex items-center border border-[#E5E7EB] dark:border-zinc-800 rounded-xl overflow-hidden shrink-0 w-full md:w-auto md:ml-auto justify-center min-h-[44px] bg-white dark:bg-zinc-900">
+          <button
+            onClick={() => setViewMode('grid')}
+            className={`flex-1 md:flex-none p-2.5 px-4 transition-colors flex items-center justify-center min-h-[44px] ${viewMode === 'grid' ? 'bg-gray-100 dark:bg-zinc-850 text-[#4F46E5]' : 'bg-transparent text-gray-400 hover:text-gray-605 dark:hover:text-white'}`}
+            title="Grid View"
+          >
+            <LayoutDashboard size={14} className="mr-1.5" />
+            <span className="text-xs font-bold">Grid</span>
+          </button>
+          <button
+            onClick={() => setViewMode('table')}
+            className={`flex-1 md:flex-none p-2.5 px-4 border-l border-[#E5E7EB] dark:border-zinc-800 transition-colors flex items-center justify-center min-h-[44px] ${viewMode === 'table' ? 'bg-gray-100 dark:bg-zinc-850 text-[#4F46E5]' : 'bg-transparent text-gray-400 hover:text-gray-655'}`}
+            title="Table View"
+          >
+            <ClipboardList size={14} className="mr-1.5" />
+            <span className="text-xs font-bold">List</span>
+          </button>
         </div>
       </div>
-
       {/* Main Container */}
       <div className="flex-1 overflow-y-auto custom-scrollbar px-4 sm:px-6 md:px-10 lg:px-12 py-6 overscroll-contain touch-pan-y"
         style={{ WebkitOverflowScrolling: 'touch', scrollBehavior: 'smooth' }}>
         
         {filteredCases.length > 0 ? (
-          <div className="bg-white dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 rounded-xl shadow-sm overflow-hidden">
-            {viewMode === 'table' ? (
-              <div className="hidden md:block overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs font-semibold">
-                  <thead>
-                    <tr className="border-b border-[#E5E7EB] dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50 text-[10px] text-gray-400 dark:text-gray-550 uppercase tracking-wider font-bold">
-                      <th className="px-6 py-4 font-bold">Case Name</th>
-                      <th className="px-6 py-4 font-bold">Case Type</th>
-                      <th className="px-6 py-4 font-bold">Court</th>
-                      <th className="px-6 py-4 font-bold">Next Hearing</th>
-                      <th className="px-6 py-4 font-bold">Status</th>
-                      <th className="px-6 py-4 text-center font-bold">Actions</th>
-                      <th className="px-6 py-4 text-right font-bold">Open Workspace</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#E5E7EB] dark:divide-zinc-800">
-                    {filteredCases.map((c) => (
-                      <tr 
-                        key={c._id || c.id} 
-                        className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/30 transition-all duration-150 group cursor-pointer"
-                        onClick={() => handleCaseClick(c)}
-                      >
-                        <td className="px-6 py-4 max-w-[280px]" onClick={e => isRenamingCase === (c.id || c._id) && e.stopPropagation()}>
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 bg-amber-50 dark:bg-amber-950/20 text-amber-500 rounded-lg shrink-0">
-                              <FolderOpen size={16} className="fill-current text-amber-500" />
+          <div className="bg-white dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 rounded-xl shadow-sm overflow-hidden transition-all duration-200">
+            <AnimatePresence mode="wait">
+              {viewMode === 'table' ? (
+                <motion.div 
+                  key="table-view"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="overflow-x-auto w-full scrollbar-thin"
+                >
+                  <table className="w-full text-left border-collapse text-xs font-semibold min-w-[900px] md:min-w-0">
+                    <thead>
+                      <tr className="border-b border-[#E5E7EB] dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50 text-[10px] text-gray-400 dark:text-gray-550 uppercase tracking-wider font-bold">
+                        <th className="px-6 py-4 font-bold sticky left-0 bg-gray-50 dark:bg-zinc-900 z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Case Name</th>
+                        <th className="px-6 py-4 font-bold">Case Type</th>
+                        <th className="px-6 py-4 font-bold">Court</th>
+                        <th className="px-6 py-4 font-bold">Next Hearing</th>
+                        <th className="px-6 py-4 font-bold">Status</th>
+                        <th className="px-6 py-4 text-center font-bold">Actions</th>
+                        <th className="px-6 py-4 text-right font-bold sticky right-0 bg-gray-50 dark:bg-zinc-900 z-20 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]">Open Workspace</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#E5E7EB] dark:divide-zinc-800">
+                      {filteredCases.map((c) => (
+                        <tr 
+                          key={c._id || c.id} 
+                          className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/30 transition-all duration-150 group cursor-pointer"
+                          onClick={() => handleCaseClick(c)}
+                        >
+                          <td className="px-6 py-4 max-w-[280px] sticky left-0 bg-white dark:bg-zinc-900 group-hover:bg-slate-50 dark:group-hover:bg-zinc-805 transition-colors z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]" onClick={e => isRenamingCase === (c.id || c._id) && e.stopPropagation()}>
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-amber-50 dark:bg-amber-950/20 text-amber-500 rounded-lg shrink-0">
+                                <FolderOpen size={16} className="fill-current text-amber-500" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                {isRenamingCase === (c.id || c._id) ? (
+                                  <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                                    <input 
+                                      autoFocus 
+                                      value={renameValue} 
+                                      onChange={e => setRenameValue(e.target.value)}
+                                      className="bg-slate-50 dark:bg-black/20 border border-[#4F46E5] rounded-lg px-2 py-1 text-xs font-bold w-full outline-none text-slate-800 dark:text-white"
+                                      onKeyDown={e => e.key === 'Enter' && handleRenameCase(c.id || c._id)} 
+                                    />
+                                    <button onClick={() => handleRenameCase(c.id || c._id)} className="p-1 text-green-500 shrink-0"><Check size={14} /></button>
+                                    <button onClick={() => setIsRenamingCase(null)} className="p-1 text-slate-400 shrink-0"><X size={14} /></button>
+                                  </div>
+                                ) : (
+                                  <span className="font-bold text-slate-800 dark:text-white truncate block group-hover:text-[#4F46E5] transition-colors">
+                                    {c.name || c.title || "Untitled Case"}
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                            <div className="min-w-0 flex-1">
-                              {isRenamingCase === (c.id || c._id) ? (
-                                <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
-                                  <input 
-                                    autoFocus 
-                                    value={renameValue} 
-                                    onChange={e => setRenameValue(e.target.value)}
-                                    className="bg-slate-50 dark:bg-black/20 border border-[#4F46E5] rounded-lg px-2 py-1 text-xs font-bold w-full outline-none text-slate-800 dark:text-white"
-                                    onKeyDown={e => e.key === 'Enter' && handleRenameCase(c.id || c._id)} 
-                                  />
-                                  <button onClick={() => handleRenameCase(c.id || c._id)} className="p-1 text-green-500 shrink-0"><Check size={14} /></button>
-                                  <button onClick={() => setIsRenamingCase(null)} className="p-1 text-slate-400 shrink-0"><X size={14} /></button>
-                                </div>
-                              ) : (
-                                <span className="font-bold text-slate-800 dark:text-white truncate block group-hover:text-[#4F46E5] transition-colors">
-                                  {c.name || c.title || "Untitled Case"}
-                                </span>
+                          </td>
+                          <td className="px-6 py-4 text-slate-650 dark:text-gray-300">
+                            {c.caseType || 'General Litigation'}
+                          </td>
+                          <td className="px-6 py-4 text-slate-650 dark:text-gray-300">
+                            {c.courtName || c.court || 'District Court'}
+                          </td>
+                          <td className="px-6 py-4 text-slate-500">
+                            {c.nextHearingDate || c.nextHearing || 'None'}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider ${getStatusStyles(c.status)}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${getStatusDot(c.status)}`} />
+                              {getStatusLabel(c.status)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-center" onClick={e => e.stopPropagation()}>
+                            <div className="relative inline-block text-left">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveActionDropdown(activeActionDropdown === (c.id || c._id) ? null : (c.id || c._id));
+                                }}
+                                className="p-1.5 hover:bg-gray-155 dark:hover:bg-zinc-800 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
+                              >
+                                <MoreVertical size={15} />
+                              </button>
+                              {activeActionDropdown === (c.id || c._id) && (
+                                <>
+                                  <div className="fixed inset-0 z-30" onClick={() => setActiveActionDropdown(null)} />
+                                  <div className="absolute right-0 mt-1 w-36 bg-white dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 rounded-xl shadow-lg py-1.5 z-45 animate-in fade-in slide-in-from-top-1 duration-150">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveActionDropdown(null);
+                                        handleOpenEditModal(c);
+                                      }}
+                                      className="w-full text-left px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-zinc-850 text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2"
+                                    >
+                                      <Edit2 size={13} /> Edit
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveActionDropdown(null);
+                                        setIsRenamingCase(c.id || c._id);
+                                        setRenameValue(c.name || c.title);
+                                      }}
+                                      className="w-full text-left px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-zinc-850 text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2"
+                                    >
+                                      <Edit2 size={13} /> Rename
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveActionDropdown(null);
+                                        toast.success("Case archived");
+                                      }}
+                                      className="w-full text-left px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-zinc-855 text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2"
+                                    >
+                                      <Bookmark size={13} /> Archive
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveActionDropdown(null);
+                                        toast.success("Case duplicated");
+                                      }}
+                                      className="w-full text-left px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-zinc-855 text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2"
+                                    >
+                                      <Share2 size={13} /> Duplicate
+                                    </button>
+                                    <div className="border-t border-[#E5E7EB] dark:border-zinc-800 my-1" />
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveActionDropdown(null);
+                                        if (confirm("Are you sure you want to delete this case?")) {
+                                          handleDeleteCase(c.id || c._id);
+                                        }
+                                      }}
+                                      className="w-full text-left px-3.5 py-2 hover:bg-red-50 dark:hover:bg-red-950/20 text-xs font-bold text-red-650 flex items-center gap-2"
+                                    >
+                                      <Trash2 size={13} /> Delete
+                                    </button>
+                                  </div>
+                                </>
                               )}
                             </div>
+                          </td>
+                          <td className="px-6 py-4 text-right sticky right-0 bg-white dark:bg-zinc-900 group-hover:bg-slate-50 dark:group-hover:bg-zinc-805 transition-colors z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCaseClick(c);
+                              }}
+                              className="text-xs font-bold text-[#4F46E5] hover:underline whitespace-nowrap inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform"
+                            >
+                              Open Workspace <ChevronRight size={13} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="grid-view"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 p-5 bg-gray-50/30 dark:bg-transparent"
+                >
+                  {filteredCases.map((c) => (
+                    <div 
+                      key={c._id || c.id}
+                      onClick={() => handleCaseClick(c)}
+                      className="group relative bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center gap-2.5">
+                          <div className="p-3 bg-indigo-50 dark:bg-indigo-950/20 text-[#4F46E5] rounded-xl">
+                            <FolderOpen size={16} className="fill-current" />
                           </div>
-                        </td>
-                        <td className="px-6 py-4 text-slate-650 dark:text-gray-300">
-                          {c.caseType || 'General Litigation'}
-                        </td>
-                        <td className="px-6 py-4 text-slate-650 dark:text-gray-300">
-                          {c.courtName || c.court || 'District Court'}
-                        </td>
-                        <td className="px-6 py-4 text-slate-500">
-                          {c.nextHearingDate || c.nextHearing || 'None'}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider ${getStatusStyles(c.status)}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${getStatusDot(c.status)}`} />
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${getStatusStyles(c.status)}`}>
+                            <span className={`w-1 h-1 rounded-full ${getStatusDot(c.status)}`} />
                             {getStatusLabel(c.status)}
                           </span>
-                        </td>
-                        <td className="px-6 py-4 text-center" onClick={e => e.stopPropagation()}>
-                          <div className="relative inline-block text-left">
+                        </div>
+                        <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                            (c.priority || 'Medium').toLowerCase() === 'high' || (c.priority || 'Medium').toLowerCase() === 'critical' || (c.priority || 'Medium').toLowerCase() === 'urgent'
+                              ? 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/30'
+                              : 'bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-900/30'
+                          }`}>
+                            {c.priority || 'Medium'}
+                          </span>
+                          <div className="relative">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setActiveActionDropdown(activeActionDropdown === (c.id || c._id) ? null : (c.id || c._id));
                               }}
-                              className="p-1.5 hover:bg-gray-155 dark:hover:bg-zinc-800 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
+                              className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg text-slate-400 transition-colors"
                             >
-                              <MoreVertical size={15} />
+                              <MoreVertical size={14} />
                             </button>
                             {activeActionDropdown === (c.id || c._id) && (
                               <>
                                 <div className="fixed inset-0 z-30" onClick={() => setActiveActionDropdown(null)} />
-                                <div className="absolute right-0 mt-1 w-36 bg-white dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 rounded-xl shadow-lg py-1.5 z-40 animate-in fade-in slide-in-from-top-1 duration-150">
+                                <div className="absolute right-0 mt-1 w-36 bg-white dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 rounded-xl shadow-lg py-1.5 z-45 animate-in fade-in slide-in-from-top-1 duration-150">
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setActiveActionDropdown(null);
                                       handleOpenEditModal(c);
                                     }}
-                                    className="w-full text-left px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2"
+                                    className="w-full text-left px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-zinc-850 text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2"
                                   >
                                     <Edit2 size={13} /> Edit
                                   </button>
@@ -6184,7 +7013,7 @@ const LegalDashboard = ({
                                       setIsRenamingCase(c.id || c._id);
                                       setRenameValue(c.name || c.title);
                                     }}
-                                    className="w-full text-left px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2"
+                                    className="w-full text-left px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-zinc-850 text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2"
                                   >
                                     <Edit2 size={13} /> Rename
                                   </button>
@@ -6194,7 +7023,7 @@ const LegalDashboard = ({
                                       setActiveActionDropdown(null);
                                       toast.success("Case archived");
                                     }}
-                                    className="w-full text-left px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2"
+                                    className="w-full text-left px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-zinc-855 text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2"
                                   >
                                     <Bookmark size={13} /> Archive
                                   </button>
@@ -6204,7 +7033,7 @@ const LegalDashboard = ({
                                       setActiveActionDropdown(null);
                                       toast.success("Case duplicated");
                                     }}
-                                    className="w-full text-left px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2"
+                                    className="w-full text-left px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-zinc-855 text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2"
                                   >
                                     <Share2 size={13} /> Duplicate
                                   </button>
@@ -6217,7 +7046,7 @@ const LegalDashboard = ({
                                         handleDeleteCase(c.id || c._id);
                                       }
                                     }}
-                                    className="w-full text-left px-3.5 py-2 hover:bg-red-50 dark:hover:bg-red-950/20 text-xs font-bold text-red-600 flex items-center gap-2"
+                                    className="w-full text-left px-3.5 py-2 hover:bg-red-50 dark:hover:bg-red-950/20 text-xs font-bold text-red-650 flex items-center gap-2"
                                   >
                                     <Trash2 size={13} /> Delete
                                   </button>
@@ -6225,104 +7054,53 @@ const LegalDashboard = ({
                               </>
                             )}
                           </div>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCaseClick(c);
-                            }}
-                            className="text-xs font-bold text-[#4F46E5] hover:underline whitespace-nowrap inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform"
-                          >
-                            Open Workspace <ChevronRight size={13} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : null}
-
-            {/* Mobile stacked cards / Grid View fallback */}
-            <div className={`${viewMode === 'grid' ? 'grid' : 'grid md:hidden'} gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 p-5 bg-gray-50/30 dark:bg-transparent`}>
-              {filteredCases.map((c) => (
-                <div 
-                  key={c._id || c.id}
-                  onClick={() => handleCaseClick(c)}
-                  className="group relative bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer"
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-3 bg-indigo-50 dark:bg-indigo-950/20 text-[#4F46E5] rounded-xl">
-                        <FolderOpen size={16} className="fill-current" />
+                        </div>
                       </div>
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${getStatusStyles(c.status)}`}>
-                        {getStatusLabel(c.status)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                      <button 
-                        onClick={() => handleOpenEditModal(c)}
-                        className="p-1.5 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg text-slate-500 transition-colors"
-                      >
-                        <Edit2 size={13} />
-                      </button>
-                      <button 
-                        onClick={() => {
-                          if (confirm("Are you sure you want to delete this case?")) {
-                            handleDeleteCase(c.id || c._id);
-                          }
-                        }}
-                        className="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg text-red-500 transition-colors"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </div>
 
-                  <div className="space-y-1.5 mb-4">
-                    {isRenamingCase === (c.id || c._id) ? (
-                      <div className="flex gap-2" onClick={e => e.stopPropagation()}>
-                        <input 
-                          autoFocus 
-                          value={renameValue} 
-                          onChange={e => setRenameValue(e.target.value)}
-                          className="bg-slate-50 dark:bg-black/20 border border-[#4F46E5] rounded-lg px-2 py-1 text-xs font-bold w-full outline-none text-slate-800 dark:text-white"
-                          onKeyDown={e => e.key === 'Enter' && handleRenameCase(c.id || c._id)} 
-                        />
-                        <button onClick={() => handleRenameCase(c.id || c._id)} className="p-1 text-green-500"><Check size={14} /></button>
-                        <button onClick={() => setIsRenamingCase(null)} className="p-1 text-slate-400"><X size={14} /></button>
+                      <div className="space-y-1.5 mb-4">
+                        {isRenamingCase === (c.id || c._id) ? (
+                          <div className="flex gap-2" onClick={e => e.stopPropagation()}>
+                            <input 
+                              autoFocus 
+                              value={renameValue} 
+                              onChange={e => setRenameValue(e.target.value)}
+                              className="bg-slate-50 dark:bg-black/20 border border-[#4F46E5] rounded-lg px-2 py-1 text-xs font-bold w-full outline-none text-slate-800 dark:text-white"
+                              onKeyDown={e => e.key === 'Enter' && handleRenameCase(c.id || c._id)} 
+                            />
+                            <button onClick={() => handleRenameCase(c.id || c._id)} className="p-1 text-green-500"><Check size={14} /></button>
+                            <button onClick={() => setIsRenamingCase(null)} className="p-1 text-slate-400"><X size={14} /></button>
+                          </div>
+                        ) : (
+                          <h3 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-white truncate group-hover:text-[#4F46E5] transition-colors">
+                            {c.name || c.title || "Untitled Case"}
+                          </h3>
+                        )}
+                        <div className="flex flex-col gap-1 text-[10px] text-slate-450 uppercase tracking-wider font-bold">
+                          <p className="flex items-center gap-1.5">
+                            <Users size={11} className="text-slate-400" />
+                            {c.clientName || 'Private Client'}
+                          </p>
+                          <p className="flex items-center gap-1.5 text-[#4F46E5]">
+                            <Scale size={11} />
+                            {c.caseType || 'General Litigation'}
+                          </p>
+                        </div>
                       </div>
-                    ) : (
-                      <h3 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-white truncate group-hover:text-[#4F46E5] transition-colors">
-                        {c.name || c.title || "Untitled Case"}
-                      </h3>
-                    )}
-                    <div className="flex flex-col gap-1 text-[10px] text-slate-450 uppercase tracking-wider font-bold">
-                      <p className="flex items-center gap-1.5">
-                        <Users size={11} className="text-slate-400" />
-                        {c.clientName || 'Private Client'}
-                      </p>
-                      <p className="flex items-center gap-1.5 text-[#4F46E5]">
-                        <Scale size={11} />
-                        {c.caseType || 'General Litigation'}
-                      </p>
-                    </div>
-                  </div>
 
-                  <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-zinc-800">
-                    <span className="text-[9px] text-slate-400 font-bold uppercase">
-                      {new Date(c.updatedAt || Date.now()).toLocaleDateString()}
-                    </span>
-                    <div className="flex items-center gap-0.5 text-[#4F46E5]">
-                      <span className="text-[10px] font-bold uppercase tracking-wider">Open Case</span>
-                      <ChevronRight size={13} />
+                      <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-zinc-800">
+                        <span className="text-[9px] text-slate-400 font-bold uppercase">
+                          {new Date(c.updatedAt || Date.now()).toLocaleDateString()}
+                        </span>
+                        <div className="flex items-center gap-0.5 text-[#4F46E5]">
+                          <span className="text-[10px] font-bold uppercase tracking-wider">Open Case</span>
+                          <ChevronRight size={13} />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         ) : (
           /* Empty State */

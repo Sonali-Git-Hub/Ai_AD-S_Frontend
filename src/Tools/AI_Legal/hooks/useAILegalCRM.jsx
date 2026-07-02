@@ -47,7 +47,7 @@ export const useAILegalCRM = ({
 
   // ─── Direct Case Dashboard Route Handler ───
   useEffect(() => {
-    if (location.pathname === '/dashboard/cases') {
+    if (location.pathname === '/dashboard/legal') {
       // Set all states atomically to prevent flash of blank/wrong content
       if (currentProjectId !== null) setCurrentProjectId(null);
       if (currentCase !== null) setCurrentCase(null);
@@ -76,7 +76,7 @@ export const useAILegalCRM = ({
   };
 
   const handleBackToDashboard = () => {
-    if (location.pathname === '/dashboard/cases') return;
+    if (location.pathname === '/dashboard/legal') return;
     // Set view to DASHBOARD first to prevent blank screen flash during navigation
     setLegalView('DASHBOARD');
     setCurrentMode('LEGAL_TOOLKIT');
@@ -84,7 +84,7 @@ export const useAILegalCRM = ({
     setCurrentCase(null);
     setCurrentProjectId(null);
     // setMessages([]); // REMOVED for master fix: Keep messages in state until new session loads
-    navigate('/dashboard/cases', { replace: true });
+    navigate('/dashboard/legal', { replace: true });
   };
 
   const handleUseInArgument = (argument) => {
@@ -246,8 +246,8 @@ export const useAILegalCRM = ({
     // setMessages([]); // REMOVED for master fix: Let initChat handle clearing if session changes
 
     // Navigate to the dedicated case route
-    if (location.pathname !== `/dashboard/cases/${c._id}/chat`) {
-      navigate(`/dashboard/cases/${c._id}/chat`, { replace: true });
+    if (location.pathname !== `/dashboard/legal/cases/${c._id}/chat`) {
+      navigate(`/dashboard/legal/cases/${c._id}/chat`, { replace: true });
     }
 
     setTimeout(() => {
@@ -266,7 +266,7 @@ export const useAILegalCRM = ({
           setCurrentProjectId(null);
           setCurrentCase(null);
           setLegalView('DASHBOARD');
-          navigate('/dashboard/cases', { replace: true });
+          navigate('/dashboard/legal', { replace: true });
         }
       } catch (err) {
         toast.error("Delete failed");
@@ -469,7 +469,7 @@ export const useAILegalCRM = ({
 
       try {
         const response = await apiService.getProject(currentProjectId);
-        if (location.pathname === '/dashboard/cases') return;
+        if (location.pathname === '/dashboard/legal') return;
 
         if (response) {
           if (currentCase?._id !== response._id) setCurrentCase(response);
