@@ -29,7 +29,7 @@ const APPLE_PAY_MERCHANT_ID = import.meta.env.VITE_APPLE_PAY_MERCHANT_ID || 'mer
 
 // ⚠️ Safety check: Apple Pay REQUIRES HTTPS for both the page AND all API calls.
 // If BASE_URL is HTTP (e.g. stale cached env-config), log the error and block Apple Pay.
-if (BASE_URL.startsWith('https://')) {
+if (!BASE_URL.startsWith('https://')) {
     console.error(
         '[ApplePay] ❌ BASE_URL is insecure (HTTP). Apple Pay will be blocked.\n' +
         'BASE_URL =', BASE_URL, '\n' +
