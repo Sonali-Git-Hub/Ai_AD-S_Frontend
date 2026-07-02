@@ -376,11 +376,11 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
                                 </p>
                             </div>
 
-                            <div className="case-card-footer flex items-center justify-between pt-3 border-t border-border">
+                            <div className="case-card-footer flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border">
                                 <span className="text-[9px] text-subtext/60 font-bold uppercase tracking-wider">
                                     {new Date(c.updatedAt).toLocaleDateString()}
                                 </span>
-                                <button className="analyze-btn flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-600 bg-indigo-500/5 hover:bg-indigo-500/10 px-3 py-1.5 rounded-full border border-indigo-500/10 transition-all">
+                                <button className="analyze-btn flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-600 bg-indigo-500/5 hover:bg-indigo-500/10 px-3 py-1.5 rounded-full border border-indigo-500/10 transition-all shrink-0">
                                     Analyze Precedents <ArrowRight size={12} />
                                 </button>
                             </div>
@@ -448,8 +448,8 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
     return (
         <div className="precedent-module-container flex-1 flex flex-col min-h-0 bg-white dark:bg-[#0B1020] rounded-3xl overflow-hidden border border-slate-200 dark:border-white/5 shadow-2xl m-4">
             {/* Header */}
-            <div className="precedent-header px-4 sm:px-8 py-4 sm:py-6 bg-white/90 dark:bg-[#0B1020]/90 border-b border-slate-200 dark:border-white/5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 sticky top-0 z-20 backdrop-blur-md">
-                <div className="flex items-start sm:items-center gap-3 sm:gap-4">
+            <div className="precedent-header px-4 sm:px-8 py-4 sm:py-6 bg-white/90 dark:bg-[#0B1020]/90 border-b border-slate-200 dark:border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-4 sticky top-0 z-20 backdrop-blur-md">
+                <div className="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0 flex-1">
                     <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
@@ -460,7 +460,7 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
                     </motion.button>
                     <div className="min-w-0 flex-1">
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1 sm:mb-0">
-                            <h2 className="text-lg sm:text-xl font-black text-maintext truncate">
+                            <h2 className="text-lg sm:text-xl font-black text-maintext break-words">
                                 {t('legalPrecedentsTitle')}
                             </h2>
                             {activeCase && mode === 'CURRENT' && (
@@ -682,19 +682,19 @@ const PrecedentCard = ({ caseItem, onClick, onCopyCitation, t }) => {
             onClick={onClick}
         >
             <div className="precedent-card-body p-6">
-                <div className="precedent-card-header flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                        <h3 className="text-base font-black text-maintext leading-snug">
+                <div className="precedent-card-header flex flex-col sm:flex-row justify-between items-start gap-3 mb-4">
+                    <div className="flex-1 min-w-0">
+                        <h3 className="text-sm sm:text-base font-black text-maintext leading-snug break-words">
                             {case_identity.case_name || caseItem.case_name}
                         </h3>
-                        <div className="flex items-center gap-3 mt-1 text-[11px] text-maintext/90 font-bold uppercase tracking-wider">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-[9px] sm:text-[10px] md:text-[11px] text-maintext/90 font-bold uppercase tracking-wider">
                             <span className="flex items-center gap-1"><Gavel size={12} /> {case_identity.court || caseItem.court}</span>
-                            <span>•</span>
+                            <span className="hidden sm:inline">•</span>
                             <span className="flex items-center gap-1"><Calendar size={12} /> {case_identity.year || caseItem.year}</span>
                         </div>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                        <div className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-[10px] font-black">
+                    <div className="shrink-0">
+                        <div className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-[9px] sm:text-[10px] font-black whitespace-nowrap">
                             {similarity.relevance_score || caseItem.relevance_score || 0}% {t('relevance')}
                         </div>
                     </div>
@@ -714,27 +714,27 @@ const PrecedentCard = ({ caseItem, onClick, onCopyCitation, t }) => {
                     />
                 </div>
 
-                <div className="precedent-card-footer flex items-center justify-between">
+                <div className="precedent-card-footer flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4 pt-3 border-t border-slate-100 dark:border-white/5">
                     <div className="precedent-tags-container flex flex-wrap gap-1.5">
                         {caseItem.tags?.slice(0, 3).map((tag, i) => (
-                            <span key={i} className="px-2 py-0.5 bg-background text-subtext rounded-md text-[9px] font-bold uppercase tracking-tight">
+                            <span key={i} className="px-2 py-0.5 bg-slate-50 dark:bg-background text-subtext rounded-md text-[9px] font-bold uppercase tracking-tight border border-slate-100 dark:border-transparent">
                                 {tag}
                             </span>
                         ))}
                     </div>
-                    <div className="precedent-actions flex items-center gap-2">
+                    <div className="precedent-actions flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
                         <button
                             onClick={(e) => { e.stopPropagation(); onCopyCitation(); }}
-                            className="p-2 hover:bg-border rounded-lg text-subtext hover:text-indigo-400 transition-all group/btn"
+                            className="p-2 hover:bg-slate-100 dark:hover:bg-border rounded-lg text-subtext hover:text-indigo-400 transition-all group/btn"
                             title="Copy Citation"
                         >
-                            <Copy size={16} className="group-hover/btn:scale-110 transition-transform" />
+                            <Copy size={15} className="group-hover/btn:scale-110 transition-transform" />
                         </button>
                         <motion.div
                             whileHover={{ x: 4 }}
-                            className="flex items-center gap-1 text-[10px] font-black text-maintext uppercase tracking-widest"
+                            className="flex items-center gap-1 text-[10px] font-black text-maintext uppercase tracking-widest cursor-pointer"
                         >
-                            {t('intelligenceReport')} <ChevronRight size={14} />
+                            {t('intelligenceReport')} <ChevronRight size={14} className="text-indigo-500" />
                         </motion.div>
                     </div>
                 </div>
@@ -805,31 +805,31 @@ export const CaseDetailView = ({
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 20 }}
                 transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                className="precedent-detail-modal relative w-full max-w-[1200px] h-full sm:h-[90vh] bg-white dark:bg-[#0B1020] rounded-0 sm:rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col border border-slate-200 dark:border-white/5"
+                className="precedent-detail-modal relative w-full lg:max-w-[1200px] md:max-w-[95%] h-full md:h-[90vh] bg-white dark:bg-[#0B1020] rounded-none md:rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col border border-slate-200 dark:border-white/5"
             >
                 {/* Header Section */}
                 <div className="precedent-modal-header px-6 sm:px-8 py-5 sm:py-6 bg-white dark:bg-[#131C31]/50 border-b border-slate-200 dark:border-white/5 flex justify-between items-center sticky top-0 z-20 backdrop-blur-md">
-                    <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
                         <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/20">
                             <Gavel size={20} className="text-white" />
                         </div>
-                        <div className="overflow-hidden">
-                            <h2 className="text-lg sm:text-xl font-bold text-maintext truncate tracking-tight leading-tight mb-0.5 sm:mb-1">
+                        <div className="min-w-0 flex-1">
+                            <h2 className="text-base sm:text-lg md:text-xl font-bold text-maintext break-words tracking-tight leading-tight mb-0.5 sm:mb-1">
                                 {case_identity.case_name || caseItem.case_name}
                             </h2>
-                            <div className="flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-1 text-[10px] sm:text-[11px] text-subtext font-semibold uppercase tracking-wider">
-                                <span className="flex items-center gap-1.5"><Scale size={12} /> {case_identity.court || caseItem.court}</span>
-                                <span className="flex items-center gap-1.5"><Calendar size={12} /> {case_identity.year || caseItem.year}</span>
-                                <span className="flex items-center gap-1.5"><FileText size={12} /> {case_identity.citation || caseItem.citation}</span>
+                            <div className="flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-1.5 text-[9px] sm:text-[10px] md:text-[11px] text-subtext font-semibold uppercase tracking-wider">
+                                <span className="flex items-center gap-1.5"><Scale size={12} className="shrink-0" /> {case_identity.court || caseItem.court}</span>
+                                <span className="flex items-center gap-1.5"><Calendar size={12} className="shrink-0" /> {case_identity.year || caseItem.year}</span>
+                                <span className="flex items-center gap-1.5"><FileText size={12} className="shrink-0" /> {case_identity.citation || caseItem.citation}</span>
                                 {(case_identity.district || case_identity.area) && (
-                                    <span className="flex items-center gap-1.5 text-indigo-400"><MapPin size={12} /> {[case_identity.district, case_identity.area].filter(Boolean).join(', ')}</span>
+                                    <span className="flex items-center gap-1.5 text-indigo-400"><MapPin size={12} className="shrink-0" /> {[case_identity.district, case_identity.area].filter(Boolean).join(', ')}</span>
                                 )}
                             </div>
                         </div>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-card rounded-xl transition-all text-subtext hover:text-maintext"
+                        className="p-2 hover:bg-card rounded-xl transition-all text-subtext hover:text-maintext shrink-0 ml-2"
                     >
                         <X size={24} />
                     </button>
@@ -857,9 +857,25 @@ export const CaseDetailView = ({
                 </AnimatePresence>
 
                 {/* Content Grid */}
-                <div className="precedent-modal-body flex-1 overflow-hidden flex flex-col md:flex-row">
+                <div className="precedent-modal-body flex-1 overflow-hidden flex flex-col lg:flex-row">
                     {/* LEFT PANEL - Primary Content (65%) */}
-                    <div className="precedent-modal-main md:w-[65%] overflow-y-auto custom-scrollbar px-6 sm:px-8 py-6 sm:py-8 space-y-6 min-h-0 overscroll-contain">
+                    <div className="precedent-modal-main w-full lg:w-[65%] overflow-y-auto custom-scrollbar px-6 sm:px-8 py-6 sm:py-8 space-y-6 min-h-0 overscroll-contain">
+                        {/* Relevance Score (Mobile Only: Top Summary Card) */}
+                        <div className="block md:hidden bg-card p-5 rounded-[20px] border border-border shadow-sm space-y-4 mb-4">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[11px] font-black text-maintext uppercase tracking-widest">Relevance Match</span>
+                                <div className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-[11px] font-bold">
+                                    {similarity.relevance_score || caseItem.relevance_score || 0}% {t('relevance')}
+                                </div>
+                            </div>
+                            <div className="w-full h-1.5 bg-background rounded-full overflow-hidden">
+                                <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${similarity.relevance_score || caseItem.relevance_score || 0}%` }}
+                                    className="h-full bg-emerald-500 rounded-full"
+                                />
+                            </div>
+                        </div>
 
                         {/* Case Facts */}
                         <div className="bg-white dark:bg-[#1A2540] p-6 rounded-[20px] border border-slate-200 dark:border-white/5 shadow-sm">
@@ -916,7 +932,7 @@ export const CaseDetailView = ({
                     </div>
 
                     {/* RIGHT PANEL - Insights (35%) */}
-                    <div className="precedent-modal-sidebar md:w-[35%] bg-background border-l border-border p-6 sm:p-8 space-y-6 overflow-y-auto custom-scrollbar">
+                    <div className="precedent-modal-sidebar w-full lg:w-[35%] bg-background lg:border-l border-t lg:border-t-0 border-border p-6 sm:p-8 space-y-6 overflow-y-auto custom-scrollbar">
 
                         {/* SMART ACTIONS */}
                         <div className="space-y-4">
@@ -1019,8 +1035,8 @@ export const CaseDetailView = ({
                             )}
                         </AnimatePresence>
 
-                        {/* Relevance Score */}
-                        <div className="bg-card p-6 rounded-[20px] border border-border shadow-sm space-y-4">
+                        {/* Relevance Score (Desktop / Tablet) */}
+                        <div className="hidden md:block bg-card p-6 rounded-[20px] border border-border shadow-sm space-y-4">
                             <div className="flex items-center justify-between">
                                 <span className="text-[11px] font-black text-maintext uppercase tracking-widest">Relevance Match</span>
                                 <div className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-[11px] font-bold">
@@ -1101,56 +1117,54 @@ export const CaseDetailView = ({
                 </div>
 
                 {/* Footer Action Bar */}
-                <div className="precedent-modal-footer px-6 sm:px-8 py-4 sm:py-5 bg-background border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 sticky bottom-0 z-20">
+                <div className="precedent-modal-footer px-6 sm:px-8 py-4 sm:py-5 bg-background border-t border-border flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4 sticky bottom-0 z-20">
                     <button
                         onClick={onCopyCitation}
-                        className="btn-tertiary-cta mobile-priority-3 flex items-center justify-center gap-2 px-5 py-3 text-[11px] font-black uppercase tracking-widest rounded-xl w-full sm:w-auto"
+                        className="btn-tertiary-cta md:order-1 order-3 flex items-center justify-center gap-2 px-5 py-3 text-[11px] font-black uppercase tracking-widest rounded-xl w-full md:w-auto md:mr-auto min-h-[48px]"
                     >
                         <Copy size={16} /> {t('copyOfficialCitation')}
                     </button>
 
-                    <div className="flex items-center gap-3 w-full sm:w-auto">
-                        <button
-                            onClick={onDownloadPDF}
-                            disabled={isPdfLoading}
-                            className={`flex items-center justify-center gap-2 px-8 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${isPdfLoading
-                                ? 'bg-card text-subtext cursor-not-allowed border border-border'
-                                : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 active:scale-[0.98]'
-                                } w-full sm:w-auto`}
-                        >
-                            {isPdfLoading ? (
-                                <>
-                                    <div className="w-4 h-4 border-2 border-border border-t-indigo-600 rounded-full animate-spin" />
-                                    <span>{t('generatingPDF')}</span>
-                                </>
-                            ) : (
-                                <>
-                                    <FileDown size={16} />
-                                    <span>{t('downloadPDF')}</span>
-                                </>
-                            )}
-                        </button>
+                    <button
+                        onClick={onDownloadPDF}
+                        disabled={isPdfLoading}
+                        className={`md:order-2 order-2 flex items-center justify-center gap-2 px-8 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${isPdfLoading
+                            ? 'bg-card text-subtext cursor-not-allowed border border-border'
+                            : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 active:scale-[0.98]'
+                            } w-full md:w-auto min-h-[48px]`}
+                    >
+                        {isPdfLoading ? (
+                            <>
+                                <div className="w-4 h-4 border-2 border-border border-t-indigo-600 rounded-full animate-spin" />
+                                <span>{t('generatingPDF')}</span>
+                            </>
+                        ) : (
+                            <>
+                                <FileDown size={16} />
+                                <span>{t('downloadPDF')}</span>
+                            </>
+                        )}
+                    </button>
 
-                        <button
-                            onClick={onSave}
-                            disabled={loadingStates.save || isSaved}
-                            className={`btn-secondary-cta mobile-priority-1 flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest ${loadingStates.save ? 'btn-loading' : ''} ${isSaved ? 'btn-success' : ''} ${isSaved ? 'cursor-not-allowed' : ''}`}
-                        >
-                            {loadingStates.save ? (
-                                <span>Saving...</span>
-                            ) : isSaved ? (
-                                <>
-                                    <CheckCircle2 size={16} />
-                                    <span>Saved ✓</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Bookmark size={16} fill="none" />
-                                    <span>{t('save')}</span>
-                                </>
-                            )}
-                        </button>
-                    </div>
+                    <button
+                        onClick={onSave}
+                        disabled={loadingStates.save || isSaved}
+                        className={`md:order-3 order-1 btn-secondary-cta flex items-center justify-center gap-2 px-8 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest ${loadingStates.save ? 'btn-loading' : ''} ${isSaved ? 'btn-success' : ''} ${isSaved ? 'cursor-not-allowed' : ''} w-full md:w-auto min-h-[48px]`}
+                    >
+                        {loadingStates.save ? (
+                            <span>Saving...</span>
+                        ) : isSaved ? (
+                            <>
+                                <CheckCircle2 size={16} />
+                                <span>Saved ✓</span>
+                            </>
+                        ) : (
+                            <>
+                                <Bookmark size={16} fill="none" />
+                                <span>{t('save')}</span>
+                            </>
+                        )}
+                    </button>
                 </div>
             </motion.div>
         </motion.div>
@@ -1294,7 +1308,7 @@ export const CaseSelectionModal = ({ isOpen, onClose, onSelect, cases, currentPr
 
 export const ResearchStats = () => {
     return (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="research-stats-grid">
             <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-3xl p-5 shadow-sm flex flex-col items-center justify-center text-center">
                 <Landmark className="text-indigo-500 dark:text-indigo-400" size={20} />
                 <span className="text-base sm:text-lg font-black text-indigo-500 mt-2">14,230+</span>
@@ -1362,7 +1376,7 @@ export const ResearchCategoryGrid = ({ onSelect }) => {
             <h3 className="text-[11px] font-black text-subtext uppercase tracking-[0.2em] flex items-center gap-2">
                 <Layout size={14} className="text-indigo-500 animate-pulse" /> Research Directory Classifications
             </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div className="research-category-grid">
                 {categories.map(c => (
                     <CategoryCard
                         key={c.id}
@@ -1398,7 +1412,7 @@ export const FeaturedActs = ({ onSelect }) => {
             <h3 className="text-[11px] font-black text-[#94A3B8] uppercase tracking-[0.2em] flex items-center gap-2">
                 <BookOpen size={14} className="text-indigo-500" /> Featured Acts & Statutes
             </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            <div className="featured-acts-grid">
                 {acts.map((act, idx) => (
                     <motion.div
                         key={idx}
@@ -1431,7 +1445,7 @@ export const PopularCases = ({ onSelect }) => {
             <h3 className="text-[11px] font-black text-[#94A3B8] uppercase tracking-[0.2em] flex items-center gap-2">
                 <Gavel size={14} className="text-indigo-500" /> Popular Landmark Case Laws
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="popular-cases-grid">
                 {casesList.map((c, idx) => (
                     <motion.div
                         key={idx}
@@ -1466,7 +1480,7 @@ export const RecentJudgments = ({ onSelect }) => {
             <h3 className="text-[11px] font-black text-[#94A3B8] uppercase tracking-[0.2em] flex items-center gap-2">
                 <History size={14} className="text-indigo-500" /> Recent Judgments & Decisions
             </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="recent-judgments-grid">
                 {judgments.map((j, idx) => (
                     <motion.div
                         key={idx}

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, Fragment } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, useOutletContext, Outlet } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Send, SendHorizontal, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, AlertCircle, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe, Sliders, PlayCircle, Brain, ImagePlus, PlaySquare, RefreshCcw, TrendingUp, Zap, Gavel, Navigation, Rocket, Megaphone, Scale, ArrowLeft, ChevronRight, Briefcase, Calendar, Users, FolderOpen, Save, Sun, Moon, LayoutDashboard } from 'lucide-react';
 import LegalLogo from '../Tools/AI_Legal/components/LegalLogo';
@@ -1096,16 +1096,16 @@ const Chat = () => {
   // ─── Deep Link Case & General Chat Route Handling ───
   const lastHydratedRef = useRef(null);
   useEffect(() => {
-    const isGeneralChatRoute = location.pathname.startsWith('/dashboard/chat');
-    const isCasesDashboardRoute = location.pathname === '/dashboard/cases';
-    const isCaseAssistantRoute = location.pathname.startsWith('/dashboard/cases/') && location.pathname.endsWith('/chat');
-    const isLegacyCaseRoute = location.pathname.startsWith('/dashboard/case/');
+    const path = location.pathname;
+    const isGeneralChatRoute = path.startsWith('/dashboard/chat');
+    const isCasesDashboardRoute = path === '/dashboard/legal';
+    const isCaseAssistantRoute = path.startsWith('/dashboard/legal/cases/') && path.endsWith('/chat');
+    const isLegacyCaseRoute = path.startsWith('/dashboard/case/');
+    const isLegalToolRoute = path.startsWith('/dashboard/legal/') && !path.startsWith('/dashboard/legal/cases/');
 
     if (isGeneralChatRoute) {
       lastHydratedRef.current = null;
       console.log("[RouteSync] Entering General Chat route. Syncing context.");
-      
-      // Clear case context if present
       if (currentProjectId && currentProjectId !== 'default' && currentProjectId !== 'all') {
         setCurrentProjectId('default');
         localStorage.setItem('aisa_active_project_id', 'default');
@@ -1114,8 +1114,6 @@ const Chat = () => {
         setCurrentCase(null);
         localStorage.removeItem('aisa_current_case');
       }
-      
-      // If we were on Case Assistant tool, clear it to NORMAL_CHAT
       if (selectedLegalTool?.id === 'legal_my_case') {
         setSelectedLegalTool(null);
         setCurrentMode('NORMAL_CHAT');
@@ -1124,49 +1122,69 @@ const Chat = () => {
     } else if (isCasesDashboardRoute) {
       lastHydratedRef.current = null;
       console.log("[RouteSync] Entering Legal Cases Dashboard.");
-      
-      // Clear case context
-      if (currentProjectId && currentProjectId !== 'default' && currentProjectId !== 'all') {
-        setCurrentProjectId('default');
-        localStorage.setItem('aisa_active_project_id', 'default');
+      if (currentProjectId !== null) {
+        setCurrentProjectId(null);
+        localStorage.removeItem('aisa_active_project_id');
       }
       if (currentCase !== null) {
         setCurrentCase(null);
         localStorage.removeItem('aisa_current_case');
       }
-      
-      // Force Legal Toolkit & dashboard view
-      if (currentMode !== 'LEGAL_TOOLKIT') {
-        setCurrentMode('LEGAL_TOOLKIT');
+      if (currentMode !== 'LEGAL_TOOLKIT') setCurrentMode('LEGAL_TOOLKIT');
+      if (legalView !== 'DASHBOARD') setLegalView('DASHBOARD');
+      if (activeTool !== 'legal') setActiveTool('legal');
+      if (selectedLegalTool !== null) setSelectedLegalTool(null);
+    } else if (isCaseAssistantRoute || isLegacyCaseRoute || isLegalToolRoute) {
+      let activeCaseId = caseId;
+      if (isCaseAssistantRoute) {
+        const match = path.match(/\/cases\/([a-f\d]{24})/i);
+        if (match) activeCaseId = match[1];
       }
-      if (legalView !== 'DASHBOARD') {
-        setLegalView('DASHBOARD');
+      const searchParams = new URLSearchParams(location.search);
+      const queryCaseId = searchParams.get('caseId') || searchParams.get('projectId');
+      if (queryCaseId && /^[a-f\d]{24}$/i.test(queryCaseId)) {
+        activeCaseId = queryCaseId;
       }
-      if (activeTool !== 'legal') {
-        setActiveTool('legal');
-      }
-    } else if (isCaseAssistantRoute || isLegacyCaseRoute) {
-      const activeCaseId = caseId;
+
       if (activeCaseId && /^[a-f\d]{24}$/i.test(activeCaseId)) {
-        console.log(`[RouteSync] Entering Case Assistant. Case ID: ${activeCaseId}`);
+        console.log(`[RouteSync] Entering Case Assistant/Tool. Case ID: ${activeCaseId}`);
         if (currentProjectId !== activeCaseId) {
           setCurrentProjectId(activeCaseId);
           localStorage.setItem('aisa_active_project_id', activeCaseId);
         }
-        if (currentMode !== 'LEGAL_TOOLKIT') {
-          setCurrentMode('LEGAL_TOOLKIT');
-        }
-        if (selectedLegalTool?.id !== 'legal_my_case') {
-          setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
-        }
-        if (activeTool !== 'legal') {
-          setActiveTool('legal');
-        }
-        if (legalView !== 'CHAT') {
-          setLegalView('CHAT');
+        if (currentMode !== 'LEGAL_TOOLKIT') setCurrentMode('LEGAL_TOOLKIT');
+        if (activeTool !== 'legal') setActiveTool('legal');
+        
+        if (isLegalToolRoute) {
+          const toolNameMap = {
+            'draft': { id: 'legal_draft_maker', name: 'Draft Maker' },
+            'arguments': { id: 'legal_argument_builder', name: 'Argument Builder' },
+            'precedents': { id: 'legal_research_assistant', name: 'Legal Precedent' },
+            'evidence': { id: 'legal_evidence_checker', name: 'Evidence Analysis' },
+            'contracts': { id: 'legal_contract_analyzer', name: 'Contract Review' },
+            'predictor': { id: 'legal_case_predictor', name: 'Case Predictor' },
+            'strategy': { id: 'legal_strategy_engine', name: 'Strategy Engine' },
+            'compliance': { id: 'legal_compliance_checker', name: 'Compliance Center' },
+            'hearings': { id: 'legal_hearings', name: 'Hearing Management' },
+            'chat': { id: 'legal_general_chat', name: 'General Chat' }
+          };
+          const endPart = path.split('/').pop();
+          const toolObj = toolNameMap[endPart];
+          if (toolObj) {
+            if (selectedLegalTool?.id !== toolObj.id) setSelectedLegalTool(toolObj);
+            if (endPart === 'precedents') {
+              if (legalView !== 'PRECEDENTS') setLegalView('PRECEDENTS');
+            } else {
+              if (legalView !== 'CHAT') setLegalView('CHAT');
+            }
+          }
+        } else {
+          if (selectedLegalTool?.id !== 'legal_my_case') {
+            setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
+          }
+          if (legalView !== 'CHAT') setLegalView('CHAT');
         }
 
-        // Fetch case project if not loaded or mismatch
         if (currentCase?._id !== activeCaseId) {
           apiService.getProject(activeCaseId)
             .then(proj => {
@@ -1180,7 +1198,6 @@ const Chat = () => {
             });
         }
 
-        // Recovery of session
         const ws = getWorkspace(activeCaseId);
         if (lastHydratedRef.current !== activeCaseId) {
           lastHydratedRef.current = activeCaseId;
@@ -1190,22 +1207,24 @@ const Chat = () => {
           }
         }
       }
-    } else {
-      // Normal chat or other modes
-      lastHydratedRef.current = null;
-      if (currentProjectId && currentProjectId !== 'default' && currentProjectId !== 'all') {
-        setCurrentProjectId('default');
-        localStorage.setItem('aisa_active_project_id', 'default');
-        setCurrentCase(null);
-        localStorage.removeItem('aisa_current_case');
-        if (currentMode === 'LEGAL_TOOLKIT') {
-          setCurrentMode('NORMAL_CHAT');
-          setSelectedLegalTool(null);
-          setActiveTool(null);
-        }
-      }
     }
-  }, [location.pathname, caseId, currentProjectId, currentCase?._id, selectedLegalTool?.id, currentMode, activeTool, legalView, setMessages, getWorkspace, navigate]);
+  }, [location.pathname, caseId, currentProjectId, currentCase?._id, selectedLegalTool?.id, currentMode, activeTool, legalView, setMessages, getWorkspace, navigate, setCurrentProjectId, setCurrentCase, setCurrentMode, setSelectedLegalTool, setLegalView, setActiveTool]);
+
+  // Restore scroll position when returning to the chat view
+  useEffect(() => {
+    const isChatView = location.pathname.startsWith('/dashboard/chat') || 
+                       location.pathname.startsWith('/dashboard/legal/cases/');
+    if (isChatView && chatContainerRef.current) {
+      const activeId = sessionId || currentProjectId || 'new';
+      const ws = getWorkspace(activeId);
+      const savedScroll = ws?.uiState?.scrollPosition || 0;
+      setTimeout(() => {
+        if (chatContainerRef.current) {
+          chatContainerRef.current.scrollTop = savedScroll;
+        }
+      }, 80);
+    }
+  }, [location.pathname, sessionId, currentProjectId]);
 
   // Listen for 'forceGlobal' navigation state to reset case context
   useEffect(() => {
@@ -1297,7 +1316,7 @@ const Chat = () => {
               onBack: () => {
                 setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
                 setLegalView('DASHBOARD');
-                navigate('/dashboard/cases', { replace: true });
+                navigate('/dashboard/legal', { replace: true });
               },
               theme: effectiveDarkMode ? 'dark' : 'light',
               allProjects,
@@ -3793,7 +3812,7 @@ const Chat = () => {
           lastLoadedSessionRef.current = 'new';
 
           // Only clear messages if we are NOT in the middle of a redirect to a case session
-          const isCaseRoute = location.pathname.startsWith('/dashboard/case/') || location.pathname.startsWith('/dashboard/cases/');
+          const isCaseRoute = location.pathname.startsWith('/dashboard/case/') || location.pathname.startsWith('/dashboard/legal/cases/');
           if (!isCaseRoute) {
             setMessages([]);
           }
@@ -3824,29 +3843,14 @@ const Chat = () => {
 
           const user = getUserData();
           if (user && user.token && !memory) {
-            try {
-              const res = await axios.get(`${apis.baseUrl}/memory`, {
-                headers: { Authorization: `Bearer ${user.token}` }
-              });
+            axios.get(`${apis.baseUrl}/memory`, {
+              headers: { Authorization: `Bearer ${user.token}` }
+            })
+            .then(res => {
               const mem = res.data;
               setMemoryRecoil(mem);
-              if (mem && mem.isMemoryEnabled) {
-                const name = mem.name || user.name || "friend";
-                const business = mem.businessType;
-                // if (!mem.name && !mem.businessType && sessionId === 'new') setShowOnboarding(true);
-
-                // let greeting = `Hello ${name}! 👋 Welcome back. `;
-                // if (business) greeting += `How is everything going with your ${business} work? `;
-                // greeting += "I've loaded your context and I'm ready to assist. What can we achieve today?";
-
-                // setMessages([{
-                //   id: 'welcome-' + Date.now(),
-                //   role: 'model',
-                //   content: greeting,
-                //   timestamp: new Date()
-                // }]);
-              }
-            } catch (e) { console.warn("Memory load failed", e); }
+            })
+            .catch(e => console.warn("Memory load failed", e));
           }
         }
 
@@ -6888,10 +6892,10 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
         <div
           ref={chatContainerRef}
           onScroll={handleScroll}
-          className={`relative flex-1 aisa-scalable-text chatgpt-container z-20 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent ${selectedLegalTool?.id === 'legal_general_chat' ? 'legal-chat-active' : ''} ${(((legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT') || (selectedLegalTool?.id && selectedLegalTool.id !== 'legal_my_case')) ? 'legal-no-padding' : ''} ${((currentMode === 'LEGAL_TOOLKIT' && !showFloatingNavbar) || location.pathname === '/dashboard/cases') ? 'no-top-padding' : ''} ${(((legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT') || (selectedLegalTool?.id && selectedLegalTool.id !== 'legal_my_case'))
+          className={`relative flex-1 aisa-scalable-text chatgpt-container z-20 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent ${selectedLegalTool?.id === 'legal_general_chat' ? 'legal-chat-active' : ''} ${(((legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT') || (selectedLegalTool?.id && selectedLegalTool.id !== 'legal_my_case')) ? 'legal-no-padding' : ''} ${((currentMode === 'LEGAL_TOOLKIT' && !showFloatingNavbar) || location.pathname === '/dashboard/legal') ? 'no-top-padding' : ''} ${(((legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT') || (selectedLegalTool?.id && selectedLegalTool.id !== 'legal_my_case'))
             ? 'z-[30] h-full w-full overflow-hidden flex flex-col bg-transparent min-h-0'
             : selectedLegalTool?.id === 'legal_general_chat' ? 'overflow-hidden flex flex-col min-h-0'
-            : viewingDoc ? 'overflow-hidden' : `overflow-y-auto ${showFloatingNavbar ? 'pt-[72px] sm:mt-0 sm:pt-24' : (currentMode === 'LEGAL_TOOLKIT' || location.pathname === '/dashboard/cases' ? 'pt-4' : 'pt-[72px] sm:mt-0 sm:pt-[76px]')} lg:pt-6 pb-64 md:pb-72`
+            : viewingDoc ? 'overflow-hidden' : `overflow-y-auto ${showFloatingNavbar ? 'pt-[72px] sm:mt-0 sm:pt-24' : (currentMode === 'LEGAL_TOOLKIT' || location.pathname === '/dashboard/legal' ? 'pt-4' : 'pt-[72px] sm:mt-0 sm:pt-[76px]')} lg:pt-6 pb-64 md:pb-72`
             }`}
           style={{
             overflowY: viewingDoc || ((legalView === 'DASHBOARD' || legalView === 'PRECEDENTS') && currentMode === 'LEGAL_TOOLKIT') || selectedLegalTool?.id === 'legal_general_chat' || (selectedLegalTool?.id && selectedLegalTool.id !== 'legal_my_case') ? 'hidden' : 'auto',
@@ -6904,136 +6908,86 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
           }}
         >
           <AnimatePresence mode="wait">
-            {legalView === 'PRECEDENTS' && currentMode === 'LEGAL_TOOLKIT' ? (
-              <motion.div
-                key="legal-precedents"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex-1 flex flex-col w-full h-full min-h-0"
-              >
-                <LegalPrecedents
-                  projectId={currentCase?._id}
-                  onBack={handleLegalPrecedentsBack}
-                  cases={legalCases}
-                  onSelectCase={(c) => {
-                    setCurrentProjectId(c._id);
-                    setCurrentCase(c);
-                  }}
-                  onUpdateCase={(updated) => {
-                    setCurrentCase(updated);
-                    setAllProjects(prev => prev.map(c => c._id === updated._id ? updated : c));
-                    if (updated?._id) {
-                      const searchParams = new URLSearchParams(window.location.search);
-                      if (searchParams.get('caseId') !== updated._id) {
-                        searchParams.set('caseId', updated._id);
-                        navigate(`${window.location.pathname}?${searchParams.toString()}`, { replace: true });
-                      }
-                    }
-                  }}
-                  onCreateCase={() => setIsNewCaseModalOpen(true)}
-                  onUseInArgument={handleUseInArgument}
-                />
-              </motion.div>
-            ) : (legalView === 'DASHBOARD' || (!currentCase && location.pathname === '/dashboard/cases')) && currentMode === 'LEGAL_TOOLKIT' ? (
-              <motion.div
-                key="legal-dashboard"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="flex-1 flex flex-col w-full select-text min-h-0"
-              >
-                <AiLegalContent
-                  isDark={isDarkMode}
-                  setSelectedLegalTool={setSelectedLegalTool}
-                  currentCase={currentCase}
-                  setCurrentCase={setCurrentCase}
-                  allProjects={allProjects}
-                  setAllProjects={setAllProjects}
-                  setCurrentProjectId={setCurrentProjectId}
-                  setMessages={setMessages}
-                  setLegalView={setLegalView}
-                  onBack={handleDashboardBack}
-                />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="legal-workspace"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className={`flex-1 flex flex-col w-full select-text min-h-0 ${
-                  (selectedLegalTool?.id && selectedLegalTool.id !== 'legal_my_case') 
-                    ? 'h-full' 
-                    : 'min-h-full'
-                }`}
-              >
-                {/* 🚀 MINI STICKY CASE BREADCRUMB (Lightweight & Non-obstructive) */}
-                <AnimatePresence>
-                  {!isHeaderVisible && currentMode === 'LEGAL_TOOLKIT' && currentCase && selectedLegalTool?.id !== 'legal_general_chat' && (
-                    <motion.div
-                      initial={{ y: -20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: -20, opacity: 0 }}
-                      className="fixed top-4 left-1/2 -translate-x-1/2 z-[50] flex items-center gap-2 px-4 py-1.5 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border border-slate-200 dark:border-zinc-800 rounded-full shadow-lg pointer-events-none sm:pointer-events-auto"
-                    >
-                      <Briefcase size={12} className="text-indigo-600" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white truncate max-w-[150px]">
-                        {currentCase.name}
-                      </span>
-                      <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-zinc-700" />
-                      <span className="text-[9px] font-bold text-indigo-600 uppercase tracking-widest">
-                        {activeTool || 'AI Legal'}
-                      </span>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+            {(() => {
+              const isChatRoute = location.pathname.startsWith('/dashboard/chat') || 
+                                  location.pathname.startsWith('/dashboard/legal/cases/') ||
+                                  location.pathname.startsWith('/dashboard/case/');
+              
+              const outletProps = {
+                currentCase,
+                setCurrentCase,
+                allProjects,
+                setAllProjects,
+                currentProjectId,
+                setCurrentProjectId,
+                theme: effectiveDarkMode ? 'dark' : 'light',
+                onBack: () => navigate('/dashboard/legal'),
+                onUpdateCase: (updated) => {
+                  setCurrentCase(updated);
+                  setAllProjects(prev => prev.map(p => p._id === updated._id ? updated : p));
+                  if (updated?._id) {
+                    setCurrentProjectId(updated._id);
+                    localStorage.setItem('aisa_active_project_id', updated._id);
+                  }
+                },
+                projectId: currentCase?._id,
+                cases: legalCases,
+                onSelectCase: (c) => {
+                  setCurrentProjectId(c._id);
+                  setCurrentCase(c);
+                },
+                onCreateCase: () => setIsNewCaseModalOpen(true),
+                onUseInArgument: handleUseInArgument,
+                messages,
+                setMessages,
+                isSessionLoading,
+                effectiveDarkMode,
+                isDarkMode,
+                setSelectedLegalTool,
+                setLegalView,
+                handleBackToDashboard,
+                isRenamingCase,
+                renameValue,
+                setRenameValue,
+                handleRenameCase,
+                handleDeleteCase,
+                activeTool
+              };
 
-                {currentMode === 'LEGAL_TOOLKIT' && currentProjectId && selectedLegalTool?.id === 'legal_my_case' && (
-                  <LegalWorkspaceHeader
-                    currentCase={currentCase}
-                    isRenamingCase={isRenamingCase}
-                    renameValue={renameValue}
-                    setRenameValue={setRenameValue}
-                    handleRenameCase={handleRenameCase}
-                    setIsRenamingCase={setIsRenamingCase}
-                    handleDeleteCase={handleDeleteCase}
-                    handleBackToDashboard={handleBackToDashboard}
-                    selectedLegalTool={selectedLegalTool}
-                    activeTool={activeTool}
-                  />
-                )}
-                {isSessionLoading ? (
-                  <div className="flex-1 flex items-center justify-center min-h-[50vh]">
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 animate-pulse">Loading Session...</span>
-                    </div>
-                  </div>
-                ) : selectedLegalTool?.id === 'legal_general_chat' ? (
-                  <React.Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" /></div>}>
-                    <LegalChatScreen
-                      onBack={handleBackToDashboard}
+              return isChatRoute ? (
+                <motion.div
+                  key="legal-workspace"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex-1 flex flex-col w-full select-text min-h-0 min-h-full"
+                >
+                  {currentMode === 'LEGAL_TOOLKIT' && currentProjectId && selectedLegalTool?.id === 'legal_my_case' && (
+                    <LegalWorkspaceHeader
                       currentCase={currentCase}
-                      onUpdateCase={(updated) => {
-                        setCurrentCase(updated);
-                        setAllProjects(prev => prev.map(p => p._id === updated._id ? updated : p));
-                        if (updated?._id) {
-                          const searchParams = new URLSearchParams(window.location.search);
-                          if (searchParams.get('caseId') !== updated._id) {
-                            searchParams.set('caseId', updated._id);
-                            navigate(`${window.location.pathname}?${searchParams.toString()}`, { replace: true });
-                          }
-                        }
-                      }}
+                      isRenamingCase={isRenamingCase}
+                      renameValue={renameValue}
+                      setRenameValue={setRenameValue}
+                      handleRenameCase={handleRenameCase}
+                      setIsRenamingCase={setIsRenamingCase}
+                      handleDeleteCase={handleDeleteCase}
+                      handleBackToDashboard={handleBackToDashboard}
+                      selectedLegalTool={selectedLegalTool}
+                      activeTool={activeTool}
                     />
-                  </React.Suspense>
-                ) : selectedLegalTool?.id && selectedLegalTool.id !== 'legal_my_case' ? (
-                  renderActiveLegalToolWorkspace()
-                ) : messages.length > 0 && (
-                  <>
+                  )}
+                  {isSessionLoading ? (
+                    <div className="flex-1 flex items-center justify-center min-h-[50vh]">
+                      <div className="flex flex-col items-center gap-4">
+                        <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 animate-pulse">Loading Session...</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {messages.length > 0 && (
+                        <>
 
                     {messages.map((msg, idx) => {
                       const isMediaFeature = msg.mode === MODES.IMAGE_GENERATION ||
@@ -8110,7 +8064,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                   </div>
                 )}
 
-                {messages.length === 0 && !isSessionLoading && !isHydrating && currentCase && selectedLegalTool?.id === 'legal_my_case' && location.pathname !== '/dashboard/cases' && (
+                {messages.length === 0 && !isSessionLoading && !isHydrating && currentCase && selectedLegalTool?.id === 'legal_my_case' && location.pathname !== '/dashboard/legal' && (
                   <LegalWorkspaceWelcome currentCase={currentCase} />
                 )}
 
@@ -8128,8 +8082,17 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                 {!(selectedLegalTool?.id && selectedLegalTool.id !== 'legal_my_case') && currentMode !== 'LEGAL_TOOLKIT' && (
                   <div className="h-64 md:h-72 shrink-0 pointer-events-none" />
                 )}
-              </motion.div>
-            )}
+                    </>
+                  )}
+                  <div ref={messagesEndRef} />
+                  {!(selectedLegalTool?.id && selectedLegalTool.id !== 'legal_my_case') && currentMode !== 'LEGAL_TOOLKIT' && (
+                    <div className="h-64 md:h-72 shrink-0 pointer-events-none" />
+                  )}
+                </motion.div>
+              ) : (
+                <Outlet context={outletProps} />
+              );
+            })()}
           </AnimatePresence>
         </div>
 
@@ -8271,7 +8234,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         setCurrentCase(null);
                         setCurrentProjectId(null);
 
-                        navigate('/dashboard/cases', { replace: true });
+                        navigate('/dashboard/legal', { replace: true });
                         toast.success("AI Legal™ Activated");
                       }
                     }}
@@ -8856,7 +8819,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 setIsMagicEditing(false);
                                 if (!isCurrentlyLegal) {
                                   setActiveTool('legal');
-                                  navigate('/dashboard/cases', { replace: true });
+                                  navigate('/dashboard/legal', { replace: true });
                                   toast.success("AI Legal Enabled ⚖️");
                                 } else {
                                   setActiveTool(null);
@@ -10159,7 +10122,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
               setActiveLegalToolkit(false);
               fetchLegalCases();
               // Sync URL for route-based navbar visibility
-              navigate('/dashboard/cases', { replace: true });
+              navigate('/dashboard/legal', { replace: true });
               return;
             }
 
@@ -10223,3 +10186,204 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
 };
 
 export default Chat; 
+
+// ─── NESTED ROUTING WRAPPERS ───
+
+
+export const AiLegalContentRoute = () => {
+  const context = useOutletContext();
+  return (
+    <motion.div
+      key="legal-dashboard"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="flex-1 flex flex-col w-full select-text min-h-0"
+    >
+      <AiLegalContent
+        isDark={context.isDarkMode}
+        setSelectedLegalTool={context.setSelectedLegalTool}
+        currentCase={context.currentCase}
+        setCurrentCase={context.setCurrentCase}
+        allProjects={context.allProjects}
+        setAllProjects={context.setAllProjects}
+        setCurrentProjectId={context.setCurrentProjectId}
+        setMessages={context.setMessages}
+        setLegalView={context.setLegalView}
+        onBack={context.handleBackToDashboard}
+      />
+    </motion.div>
+  );
+};
+
+export const LegalPrecedentsRoute = () => {
+  const context = useOutletContext();
+  return (
+    <motion.div
+      key="legal-precedents"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="flex-1 flex flex-col w-full h-full min-h-0"
+    >
+      <LegalPrecedents
+        projectId={context.projectId}
+        onBack={context.onBack}
+        cases={context.cases}
+        onSelectCase={context.onSelectCase}
+        onUpdateCase={context.onUpdateCase}
+        onCreateCase={context.onCreateCase}
+        onUseInArgument={context.onUseInArgument}
+      />
+    </motion.div>
+  );
+};
+
+export const DraftMakerRoute = () => {
+  const context = useOutletContext();
+  return (
+    <motion.div
+      key="draft-maker-workspace"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="flex-1 flex flex-col w-full select-text min-h-0 h-full"
+    >
+      <DraftMaker {...context} />
+    </motion.div>
+  );
+};
+
+export const ArgumentBuilderRoute = () => {
+  const context = useOutletContext();
+  return (
+    <motion.div
+      key="argument-builder-workspace"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="flex-1 flex flex-col w-full select-text min-h-0 h-full"
+    >
+      <ArgumentBuilder {...context} />
+    </motion.div>
+  );
+};
+
+export const CasePredictorRoute = () => {
+  const context = useOutletContext();
+  return (
+    <motion.div
+      key="case-predictor-workspace"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="flex-1 flex flex-col w-full select-text min-h-0 h-full"
+    >
+      <CasePredictor {...context} />
+    </motion.div>
+  );
+};
+
+export const ContractReviewRoute = () => {
+  const context = useOutletContext();
+  return (
+    <motion.div
+      key="contract-review-workspace"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="flex-1 flex flex-col w-full select-text min-h-0 h-full"
+    >
+      <ContractReview {...context} />
+    </motion.div>
+  );
+};
+
+export const EvidenceAnalysisRoute = () => {
+  const context = useOutletContext();
+  return (
+    <motion.div
+      key="evidence-analysis-workspace"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="flex-1 flex flex-col w-full select-text min-h-0 h-full"
+    >
+      <EvidenceAnalysis {...context} />
+    </motion.div>
+  );
+};
+
+export const StrategyEngineRoute = () => {
+  const context = useOutletContext();
+  return (
+    <motion.div
+      key="strategy-engine-workspace"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="flex-1 flex flex-col w-full select-text min-h-0 h-full"
+    >
+      <StrategyEngine {...context} />
+    </motion.div>
+  );
+};
+
+export const ComplianceRoute = () => {
+  const context = useOutletContext();
+  return (
+    <motion.div
+      key="compliance-workspace"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="flex-1 flex flex-col w-full select-text min-h-0 h-full"
+    >
+      <ComplianceCenter {...context} />
+    </motion.div>
+  );
+};
+
+export const HearingsRoute = () => {
+  const context = useOutletContext();
+  return (
+    <motion.div
+      key="hearings-workspace"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="flex-1 flex flex-col w-full select-text min-h-0 h-full"
+    >
+      <HearingManagement {...context} />
+    </motion.div>
+  );
+};
+
+export const LegalChatScreenRoute = () => {
+  const context = useOutletContext();
+  return (
+    <motion.div
+      key="legal-chat-workspace"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="flex-1 flex flex-col w-full select-text min-h-0 h-full"
+    >
+      <LegalChatScreen
+        onBack={context.handleBackToDashboard}
+        currentCase={context.currentCase}
+        onUpdateCase={context.onUpdateCase}
+      />
+    </motion.div>
+  );
+};

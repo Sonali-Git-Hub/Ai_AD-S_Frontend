@@ -88,7 +88,7 @@ const AiLegalContent = ({
     if (setCurrentProjectId) setCurrentProjectId(caseId);
     if (setLegalView) setLegalView('CHAT');
     if (setSelectedLegalTool) setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
-    navigate(`/dashboard/cases/${caseId}/chat`, { replace: true });
+    navigate(`/dashboard/legal/cases/${caseId}/chat`, { replace: true });
   }, [setCurrentCase, setCurrentProjectId, setLegalView, setSelectedLegalTool, navigate]);
 
   const handleOpenEditModal = useCallback(async (c) => {
@@ -482,7 +482,20 @@ const AiLegalContent = ({
       setSelectedLegalTool({ id: tool.id, name: tool.title });
       if (setLegalView) setLegalView('CHAT');
       if (setMessages) setMessages([]); // Fresh chat — matches AISA-Mobile behavior
-      navigate('/dashboard/chat/new', { replace: true, state: { fromTool: true } });
+      const toolRoutes = {
+        'legal_draft_maker': '/dashboard/legal/draft',
+        'legal_argument_builder': '/dashboard/legal/arguments',
+        'legal_research_assistant': '/dashboard/legal/precedents',
+        'legal_evidence_checker': '/dashboard/legal/evidence',
+        'legal_contract_analyzer': '/dashboard/legal/contracts',
+        'legal_case_predictor': '/dashboard/legal/predictor',
+        'legal_strategy_engine': '/dashboard/legal/strategy',
+        'legal_compliance_checker': '/dashboard/legal/compliance',
+        'legal_hearings': '/dashboard/legal/hearings',
+        'legal_general_chat': '/dashboard/legal/chat'
+      };
+      const targetRoute = toolRoutes[tool.id] || '/dashboard/legal';
+      navigate(targetRoute);
     }
   };
 

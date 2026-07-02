@@ -5,7 +5,19 @@ import Landing from './landingpage/Landing';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import VerificationForm from './pages/VerificationForm';
-import Chat from './pages/Chat';
+import Chat, {
+  AiLegalContentRoute,
+  LegalChatScreenRoute,
+  DraftMakerRoute,
+  EvidenceAnalysisRoute,
+  StrategyEngineRoute,
+  ContractReviewRoute,
+  CasePredictorRoute,
+  ArgumentBuilderRoute,
+  LegalPrecedentsRoute,
+  ComplianceRoute,
+  HearingsRoute
+} from './pages/Chat';
 import Sidebar from './Components/SideBar/Sidebar.jsx';
 import AiPersonalAssistantDashboard from './Tools/AI_Personal_Assistant/Dashboard';
 import Pricing from './landingpage/Pricing';
@@ -439,7 +451,7 @@ const SSOInterceptor = ({ children }) => {
 
 const NavigateToCaseChat = () => {
   const { caseId } = useParams();
-  return <Navigate to={`/dashboard/cases/${caseId}/chat`} replace />;
+  return <Navigate to={`/dashboard/legal/cases/${caseId}/chat`} replace />;
 };
 
 const NavigateProvider = () => {
@@ -481,10 +493,27 @@ const NavigateProvider = () => {
         >
           <Route index element={<Navigate to="chat/new" replace state={{ forceGlobal: true }} />} />
           <Route path="chat" element={<Navigate to="new" replace state={{ forceGlobal: true }} />} />
-          <Route path="chat/:sessionId" element={<Chat />} />
-          <Route path="cases" element={<Chat />} />
+          <Route element={<Chat />}>
+            <Route path="chat/new" element={null} />
+            <Route path="chat/:sessionId" element={null} />
+            <Route path="cases" element={<Navigate to="/dashboard/legal" replace />} />
+            <Route path="cases/:caseId/chat" element={null} />
+            
+            {/* AI Legal Nested Routes */}
+            <Route path="legal" element={<AiLegalContentRoute />} />
+            <Route path="legal/chat" element={<LegalChatScreenRoute />} />
+            <Route path="legal/cases/:caseId/chat" element={null} />
+            <Route path="legal/draft" element={<DraftMakerRoute />} />
+            <Route path="legal/evidence" element={<EvidenceAnalysisRoute />} />
+            <Route path="legal/strategy" element={<StrategyEngineRoute />} />
+            <Route path="legal/contracts" element={<ContractReviewRoute />} />
+            <Route path="legal/predictor" element={<CasePredictorRoute />} />
+            <Route path="legal/arguments" element={<ArgumentBuilderRoute />} />
+            <Route path="legal/precedents" element={<LegalPrecedentsRoute />} />
+            <Route path="legal/compliance" element={<ComplianceRoute />} />
+            <Route path="legal/hearings" element={<HearingsRoute />} />
+          </Route>
           <Route path="case/:caseId" element={<NavigateToCaseChat />} />
-          <Route path="cases/:caseId/chat" element={<Chat />} />
           <Route path="social-agent" element={<ProtectedRoute><SocialAgentPage /></ProtectedRoute>} />
           <Route path="ai-personal-assistant" element={<ProtectedRoute><AiPersonalAssistantDashboard /></ProtectedRoute>} />
           <Route path="ai-base" element={<ProtectedRoute><Suspense fallback={<div className="flex h-full items-center justify-center">Loading AI Base...</div>}><AiBase /></Suspense></ProtectedRoute>} />

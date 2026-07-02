@@ -2069,10 +2069,10 @@ JSON Schema:
     
     return (
       <div 
-        className={`border rounded-2xl p-5 shadow-md transition-all duration-750 ${isDark ? 'bg-[#0f162a] border-slate-800' : 'bg-white border-slate-200'}`}
+        className={`border rounded-2xl p-4 md:p-5 shadow-md transition-all duration-750 ${isDark ? 'bg-[#0f162a] border-slate-800' : 'bg-white border-slate-200'}`}
         style={{ animation: 'fadeSlideUp 0.4s ease forwards' }}
       >
-        <div className="flex items-center justify-between mb-3.5 gap-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3.5 gap-2">
           <h5 className="text-[10px] font-black uppercase tracking-widest text-indigo-400 flex items-center gap-1.5">
             {icon}
             <span>{title}</span>
@@ -2195,10 +2195,10 @@ JSON Schema:
       <div className="space-y-6">
         
         {/* Executive Summary Panel */}
-        <div className={`border rounded-3xl p-6 shadow-xl space-y-4 transition-all duration-500 ${isDark ? 'bg-[#0f162a] border-slate-800' : 'bg-white border-slate-200'}`}>
-          <div className="flex justify-between items-center border-b pb-3 border-slate-800/40">
+        <div className={`border rounded-2xl md:rounded-3xl p-4 md:p-6 shadow-xl space-y-4 transition-all duration-500 ${isDark ? 'bg-[#0f162a] border-slate-800' : 'bg-white border-slate-200'}`}>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-3 border-slate-800/40">
             <h4 className="text-xs font-black uppercase tracking-widest text-indigo-400">Executive Summary</h4>
-            <div className="flex items-center gap-1.5 justify-end shrink-0">
+            <div className="flex flex-wrap items-center gap-1.5 justify-end shrink-0 w-full sm:w-auto">
               <LanguageToggle lang={outputLang} onChange={handleForensicLangChange} isTranslating={isForensicTranslating} />
               <button onClick={() => handleCopyText(forensicResult.ocrText)} className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-slate-800 text-slate-400 hover:text-indigo-400' : 'hover:bg-slate-200 text-slate-500 hover:text-indigo-650'}`} title="Copy OCR">
                 <Copy size={13} />
@@ -2246,7 +2246,7 @@ JSON Schema:
 
         {/* 1. Evidence Overview Card */}
         {visibleSections.includes('overview') && (
-          <div className={`border rounded-2xl p-5 shadow-md transition-all duration-700 text-left ${isDark ? 'bg-[#0f162a] border-slate-800' : 'bg-white border-slate-200'}`}
+          <div className={`border rounded-2xl p-4 md:p-5 shadow-md transition-all duration-700 text-left ${isDark ? 'bg-[#0f162a] border-slate-800' : 'bg-white border-slate-200'}`}
             style={{ animation: 'fadeSlideUp 0.4s ease forwards' }}>
             <h5 className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-3 flex items-center gap-1.5">
               <Database size={12} /> SECTION 1: Evidence Overview
@@ -2949,54 +2949,54 @@ JSON Schema:
   };
 
   return (
-    <div className={`flex-1 flex flex-col w-full h-full min-h-0 ${isDark ? 'bg-[#070b16] text-slate-100' : 'bg-slate-50 text-slate-800'} overflow-hidden`}>
+    <div className={`flex-1 flex flex-col w-full h-full min-h-0 ${isDark ? 'bg-[#070b16] text-slate-100' : 'bg-slate-50 text-slate-800'} overflow-x-hidden overflow-y-auto lg:overflow-hidden`}>
       
       {/* ── Redesigned Header ── */}
-      <div className={`flex flex-col md:flex-row items-start md:items-center justify-between px-6 py-4 border-b bg-white border-slate-200 text-slate-900 shadow-sm shrink-0 gap-4`}>
+      <div className={`flex flex-col md:flex-row items-start md:items-center justify-between px-3 md:px-6 py-3 md:py-4 border-b bg-white border-slate-200 text-slate-900 shadow-sm shrink-0 gap-3 md:gap-4`}>
         {/* Left Side: Brand, Title, Subtitle, Status */}
-        <div className="flex items-start gap-3 text-left">
+        <div className="flex items-start gap-2 md:gap-3 text-left">
           <button 
             onClick={onBack} 
-            className="p-2.5 rounded-xl transition-colors border hover:bg-slate-50 border-slate-205 mt-1"
+            className="p-2 md:p-2.5 rounded-xl transition-colors border hover:bg-slate-50 border-slate-205 mt-1 shrink-0"
             title="Go back"
           >
             <ChevronLeft size={16} className="text-slate-600" />
           </button>
           
           <div className="space-y-0.5">
-            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-              <h1 className="text-sm font-black uppercase tracking-wider text-indigo-600">
+            <div className="flex flex-wrap items-center gap-x-1.5 md:gap-x-2.5 gap-y-1">
+              <h1 className="text-xs md:text-sm font-black uppercase tracking-wider text-indigo-600">
                 AI LEGAL™
               </h1>
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-              <h2 className="text-sm font-extrabold text-slate-800">
+              <span className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-slate-300 hidden sm:block" />
+              <h2 className="text-[11px] md:text-sm font-extrabold text-slate-800">
                 Evidence Analysis Engine
               </h2>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border bg-emerald-50 border-emerald-200 text-emerald-700 text-[8.5px] font-black uppercase">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 md:px-2.5 md:py-0.5 rounded-full border bg-emerald-50 border-emerald-200 text-emerald-700 text-[7.5px] md:text-[8.5px] font-black uppercase whitespace-nowrap">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
                 Secure Analysis Ready
               </span>
             </div>
-            <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+            <p className="text-[8.5px] md:text-[10px] font-medium text-slate-500 uppercase tracking-wider">
               Evidence Authentication • Integrity Review • Court Readiness
             </p>
           </div>
         </div>
 
         {/* Right Side: Active Case Selector & Evidence Library button */}
-        <div className="flex items-center gap-5 w-full md:w-auto justify-between md:justify-end">
+        <div className="flex items-center gap-3 sm:gap-5 w-full md:w-auto justify-between md:justify-end mt-1 md:mt-0">
           {/* Active Case Selector */}
-          <div className="flex flex-col text-left">
-            <span className="text-[8.5px] font-black text-slate-450 uppercase tracking-wider block">Current Case</span>
+          <div className="flex flex-col text-left flex-1 md:flex-none min-w-0">
+            <span className="text-[7.5px] md:text-[8.5px] font-black text-slate-450 uppercase tracking-wider block">Current Case</span>
             {linkedCaseId ? (
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs font-bold text-slate-850 truncate max-w-[180px]">
+              <div className="flex items-center gap-1.5 md:gap-2 mt-1 w-full">
+                <span className="text-[10px] md:text-xs font-bold text-slate-850 truncate max-w-[100px] sm:max-w-[180px]">
                   {(allProjects.find(p => p._id === linkedCaseId)?.name) || currentCase?.name || 'Active Case'}
                 </span>
                 <select
                   value={linkedCaseId}
                   onChange={e => handleCaseSelect(e.target.value)}
-                  className="border border-slate-200 bg-white rounded-lg px-2 py-0.5 text-[9px] font-black text-slate-500 uppercase tracking-wider cursor-pointer hover:border-indigo-400 outline-none"
+                  className="border border-slate-200 bg-white rounded-lg px-1.5 py-0.5 md:px-2 md:py-0.5 text-[8px] md:text-[9px] font-black text-slate-500 uppercase tracking-wider cursor-pointer hover:border-indigo-400 outline-none max-w-full truncate flex-1 min-w-0"
                 >
                   <option value="">Switch</option>
                   {allProjects.map(c => (
@@ -3005,12 +3005,12 @@ JSON Schema:
                 </select>
               </div>
             ) : (
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs font-bold text-rose-500 italic">No Case Selected</span>
+              <div className="flex items-center gap-1.5 md:gap-2 mt-1 w-full">
+                <span className="text-[10px] md:text-xs font-bold text-rose-500 italic shrink-0">No Case Selected</span>
                 <select
                   value={linkedCaseId}
                   onChange={e => handleCaseSelect(e.target.value)}
-                  className="border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg px-3 py-1 text-[9px] font-black uppercase tracking-wider cursor-pointer outline-none transition-all"
+                  className="border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg px-2 py-1 md:px-3 md:py-1 text-[8px] md:text-[9px] font-black uppercase tracking-wider cursor-pointer outline-none transition-all w-full truncate flex-1 min-w-0"
                 >
                   <option value="">Select Case</option>
                   {allProjects.map(c => (
@@ -3024,23 +3024,24 @@ JSON Schema:
           {/* Evidence Library Button */}
           <button 
             onClick={() => setHistoryVisible(true)} 
-            className="flex items-center justify-center gap-1.5 px-4.5 py-2 bg-indigo-50 border border-indigo-200 text-indigo-650 hover:bg-indigo-100 rounded-xl text-xs font-bold transition-all shrink-0"
+            className="flex items-center justify-center gap-1.5 px-3 py-1.5 md:px-4.5 md:py-2 bg-indigo-50 border border-indigo-200 text-indigo-650 hover:bg-indigo-100 rounded-xl text-[10px] md:text-xs font-bold transition-all shrink-0 whitespace-nowrap"
           >
-            <Folder size={13} className="text-indigo-550" />
-            <span>Evidence Library ({historyData.length})</span>
+            <Folder size={13} className="text-indigo-550 shrink-0" />
+            <span className="hidden sm:inline">Evidence Library ({historyData.length})</span>
+            <span className="inline sm:hidden">Library ({historyData.length})</span>
           </button>
         </div>
       </div>
 
       {/* ── Main Container ── */}
-      <div className="flex-1 px-6 py-6 overflow-hidden min-h-0 flex flex-col">
+      <div className="flex-1 px-3 md:px-6 py-4 md:py-6 lg:overflow-hidden flex flex-col">
         <div className="max-w-7xl mx-auto w-full h-full min-h-0 flex flex-col">
           
           {/* ── Two-Column Operational Workbench ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-0 overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-0 lg:overflow-hidden">
             
             {/* ── LEFT: Control Upload & Target inputs ── */}
-            <div className="lg:col-span-5 flex flex-col gap-6 h-full overflow-y-auto pr-2 custom-scrollbar min-h-0 pb-4">
+            <div className="lg:col-span-5 flex flex-col gap-5 lg:gap-6 h-auto lg:h-full lg:overflow-y-auto pr-0 lg:pr-2 custom-scrollbar min-h-0 pb-4">
               
               {/* Staged Case Prefill Indicator */}
               {prefillBanner && (
@@ -3173,20 +3174,22 @@ JSON Schema:
                 </div>
 
                 {/* Initiate forensic Analysis button */}
-                <button
-                  type="button"
-                  onClick={runForensicScanner}
-                  disabled={isAuditing || (!evidenceNotes.trim() && !selectedFile)}
-                  className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-indigo-600/20 disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
-                >
-                  <Fingerprint size={15} />
-                  <span>Initiate Forensic Analysis</span>
-                </button>
+                <div className="sticky bottom-4 z-20 lg:static lg:bottom-auto lg:z-auto mt-2">
+                  <button
+                    type="button"
+                    onClick={runForensicScanner}
+                    disabled={isAuditing || (!evidenceNotes.trim() && !selectedFile)}
+                    className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 shadow-[0_10px_40px_-10px_rgba(79,70,229,0.7)] disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2"
+                  >
+                    <Fingerprint size={15} />
+                    <span>Initiate Forensic Analysis</span>
+                  </button>
+                </div>
               </div>
             </div>
 
             {/* ── RIGHT: Results Viewport ── */}
-            <div ref={reportRef} className="lg:col-span-7 flex flex-col gap-6 h-full overflow-y-auto pl-2 custom-scrollbar min-h-0 pb-4">
+            <div ref={reportRef} className="lg:col-span-7 flex flex-col gap-5 lg:gap-6 h-auto lg:h-full lg:overflow-y-auto pl-0 lg:pl-2 custom-scrollbar min-h-0 pb-8 mt-4 lg:mt-0">
               {renderForensicWorkspace()}
             </div>
           </div>
@@ -3195,9 +3198,9 @@ JSON Schema:
 
       {/* ── Evidence Library Drawer/Modal ── */}
       {historyVisible && (
-        <div className="fixed inset-0 z-[120000] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[120000] flex items-end sm:items-center justify-center sm:p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setHistoryVisible(false)} />
-          <div className={`relative border rounded-[32px] max-w-lg w-full max-h-[80%] flex flex-col overflow-hidden shadow-2xl p-6 bg-white border-slate-205`}>
+          <div className={`relative border rounded-t-3xl sm:rounded-[32px] max-w-lg w-full h-[90%] sm:h-auto max-h-[100%] sm:max-h-[80%] flex flex-col overflow-hidden shadow-2xl p-4 sm:p-6 bg-white border-slate-205`}>
             <div className="flex items-center justify-between border-b pb-4 shrink-0 border-slate-200">
               <div className="text-left">
                 <h3 className="text-md font-black uppercase tracking-wider flex items-center gap-1.5 text-slate-850">
