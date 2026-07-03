@@ -271,7 +271,7 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
         } catch (error) {
             console.error("Video Generation Error:", error);
             if (error.response?.data?.error === "Insufficient credits") {
-                toast.error(`Insufficient credits (Need ${getCreditCost()} credits)`);
+                toast.error("Usage limit reached. Please upgrade your plan.");
             } else {
                 toast.error(error.response?.data?.message || error.response?.data?.error || "Failed to generate video");
             }
@@ -407,7 +407,7 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
                                             {showHistory ? 'Your Video History' : 'Image to Video Magic'}
                                         </h2>
                                         <p className="text-[8px] sm:text-[9px] text-slate-500 font-bold uppercase tracking-[0.15em] sm:tracking-[0.2em]">
-                                            {showHistory ? 'Previously generated videos' : `Google Vertex AI Veo ⚡ ${getCreditCost()} Credits`}
+                                            {showHistory ? 'Previously generated videos' : 'Google Vertex AI Veo ⚡ Cinematic Video Synthesis'}
                                         </p>
                                     </div>
                                 </div>
