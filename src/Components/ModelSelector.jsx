@@ -76,12 +76,6 @@ const ModelSelector = ({ isOpen, onClose, toolType, currentModel, onSelectModel,
 
                                             <div className="flex items-center gap-4 text-xs">
                                                 <div className="flex items-center gap-1 text-subtext">
-                                                    <DollarSign className="w-3 h-3" />
-                                                    <span className="font-medium">
-                                                        {model.price === 0 ? 'Free' : `$${model.price}/use`}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center gap-1 text-subtext">
                                                     <Zap className="w-3 h-3" />
                                                     <span>{model.speed}</span>
                                                 </div>

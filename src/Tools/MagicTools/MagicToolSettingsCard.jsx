@@ -254,12 +254,8 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
                                                                         <div className="flex items-center justify-between mb-1">
                                                                             <span className={`text-[14px] font-black truncate pr-2 transition-colors ${isActive ? (isDark ? 'text-white' : 'text-slate-900') : (isDark ? 'text-zinc-300' : 'text-slate-700')}`}>{model.name}</span>
 
-                                                                            <div className="flex items-center gap-1.5 shrink-0">
-                                                                                <span className={`text-[8.5px] font-black uppercase tracking-[0.1em] transition-colors ${isActive ? 'text-primary' : (isDark ? 'text-zinc-500' : 'text-slate-500')}`}>
-                                                                                    {model.price === 0 ? 'Free' : `${model.price} CR`}
-                                                                                </span>
-
-                                                                                {isActive && (
+                                                                            {isActive && (
+                                                                                <div className="flex items-center gap-1.5 shrink-0">
                                                                                     <motion.div
                                                                                         initial={{ scale: 0, rotate: -90 }}
                                                                                         animate={{ scale: 1, rotate: 0 }}
@@ -268,8 +264,8 @@ const MagicToolSettingsCard = ({ isOpen, onClose, toolType, config, onChange, pr
                                                                                     >
                                                                                         <Check size={12} className="text-primary" strokeWidth={4} />
                                                                                     </motion.div>
-                                                                                )}
-                                                                            </div>
+                                                                                </div>
+                                                                            )}
                                                                         </div>
                                                                         <p className={`text-[10.5px] font-medium leading-snug transition-colors line-clamp-2 ${isActive ? (isDark ? 'text-zinc-400' : 'text-slate-500') : (isDark ? 'text-zinc-500' : 'text-slate-400 group-hover:text-slate-600')}`}>{model.description}</p>
                                                                     </div>

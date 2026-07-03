@@ -79,7 +79,7 @@ const MagicImageEditModal = ({ isOpen, onClose, onCreditDeduction }) => {
         } catch (error) {
             console.error("Image Edit Error:", error);
             if (error.response?.data?.error === "Insufficient credits") {
-                toast.error("Insufficient credits (Need 20 credits)");
+                toast.error("Usage limit reached. Please upgrade your plan.");
             } else {
                 toast.error(error.response?.data?.message || error.response?.data?.error || "Failed to edit image");
             }
@@ -132,7 +132,7 @@ const MagicImageEditModal = ({ isOpen, onClose, onCreditDeduction }) => {
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-bold text-maintext">AI Image Editor</h2>
-                                    <p className="text-xs text-subtext font-medium">Google Vertex AI Magic ⚡ 20 Credits</p>
+                                    <p className="text-xs text-subtext font-medium">Google Vertex AI Magic ⚡ Intelligent Image Editing</p>
                                 </div>
                             </div>
                             <button
