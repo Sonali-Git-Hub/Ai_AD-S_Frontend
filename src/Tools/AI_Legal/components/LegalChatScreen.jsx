@@ -833,15 +833,7 @@ Please continue the conversation naturally using this context. Never ask the use
     recognition.start();
   };
 
-  const [messages, setMessages] = useState([
-    {
-      id: '1',
-      text: `Hello! I am your AI ${toolName}. ${toolDesc} How can I assist you today?`,
-      sender: 'ai',
-      timestamp: new Date(),
-      isIntro: true,
-    }
-  ]);
+  const [messages, setMessages] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState('');
   const [inputValue, setInputValue] = useState('');
@@ -1090,10 +1082,11 @@ Please continue the conversation naturally using this context. Never ask the use
   const loadSessionHistory = async (sessionId) => {
     try {
       const history = await chatStorageService.getHistory(sessionId);
-      if (history && Array.isArray(history.messages)) {
-        const parsedMsgs = history.messages.map(mapDbMessageToLocal);
-        setMessages(parsedMsgs);
-      }
+      const messagesList = history && Array.isArray(history.messages) 
+        ? history.messages 
+        : (Array.isArray(history) ? history : []);
+      const parsedMsgs = messagesList.map(mapDbMessageToLocal);
+      setMessages(parsedMsgs);
     } catch (e) {
       console.error("Failed to load session history", e);
     }
@@ -1113,12 +1106,20 @@ Please continue the conversation naturally using this context. Never ask the use
 
     try {
       await chatStorageService.saveMessage(chatIdRef.current, dbMsg, title, currentCase?._id);
-      setSessions(prev => prev.map(s => {
-        if (s.chat_id === chatIdRef.current) {
-          return { ...s, title, timestamp: Date.now() };
+      setSessions(prev => {
+        const previewText = dbMsg.content || dbMsg.text || '';
+        const exists = prev.some(s => s.chat_id === chatIdRef.current);
+        if (exists) {
+          return prev.map(s => {
+            if (s.chat_id === chatIdRef.current) {
+              return { ...s, title, timestamp: Date.now(), preview: previewText };
+            }
+            return s;
+          });
+        } else {
+          return [{ chat_id: chatIdRef.current, title, timestamp: Date.now(), preview: previewText }, ...prev];
         }
-        return s;
-      }));
+      });
     } catch (e) {
       console.error('[LegalChatScreen] saveChatHistory failed', e);
     }
@@ -1130,24 +1131,58 @@ Please continue the conversation naturally using this context. Never ask the use
       try {
         const dbSessions = await chatStorageService.getSessions(currentCase?._id);
         const filteredDb = dbSessions.filter(s => s.activeTool === 'General Legal Chat');
-        const mapped = filteredDb.map(s => ({
-          chat_id: s.sessionId || s.chat_id,
-          title: s.title || 'New Chat',
-          timestamp: s.lastModified || s.timestamp || Date.now(),
+        
+        // Asynchronously populate previews for each session in history
+        const mapped = await Promise.all(filteredDb.map(async s => {
+          const chatId = s.sessionId || s.chat_id;
+          let preview = '';
+          try {
+            const history = await chatStorageService.getHistory(chatId);
+            if (history && Array.isArray(history.messages) && history.messages.length > 0) {
+              const lastMsg = history.messages[history.messages.length - 1];
+              preview = lastMsg.content || lastMsg.text || '';
+            } else if (Array.isArray(history) && history.length > 0) {
+              const lastMsg = history[history.length - 1];
+              preview = lastMsg.content || lastMsg.text || '';
+            }
+          } catch (e) {
+            console.warn("Failed to load preview for", chatId, e);
+          }
+          return {
+            chat_id: chatId,
+            title: s.title || 'New Chat',
+            timestamp: s.lastModified || s.timestamp || Date.now(),
+            preview: preview
+          };
         }));
+
         mapped.sort((a, b) => b.timestamp - a.timestamp);
         setSessions(mapped);
 
+        // Check if there is an active session ID in localStorage to restore
+        const caseId = currentCase?._id || currentCase?.id || 'general';
+        const storageKey = `aisa_active_legal_chat_session_id_${caseId}`;
+        const activeId = localStorage.getItem(storageKey);
+
         const isPathNew = window.location.pathname.endsWith('/new');
 
-        if (!isPathNew) {
-          if (mapped.length > 0) {
-            chatIdRef.current = mapped[0].chat_id;
-            setActiveSessionId(mapped[0].chat_id);
-            await loadSessionHistory(mapped[0].chat_id);
+        if (isPathNew) {
+          await handleNewChat(false);
+        } else if (activeId) {
+          const exists = mapped.some(s => s.chat_id === activeId);
+          if (exists) {
+            chatIdRef.current = activeId;
+            setActiveSessionId(activeId);
+            await loadSessionHistory(activeId);
           } else {
-            await handleNewChat(false);
+            // Unsaved new session
+            chatIdRef.current = activeId;
+            setActiveSessionId(activeId);
+            setMessages([]);
           }
+        } else {
+          // Scenario 1: Fresh conversation on entering general chat
+          await handleNewChat(false);
         }
       } catch (e) {
         console.error("Failed loading chat sessions", e);
@@ -1163,8 +1198,10 @@ Please continue the conversation naturally using this context. Never ask the use
     }
   }, [location.pathname]);
 
+  // Save history on messages updates if active messages exist
   useEffect(() => {
-    if (messages.length > 1) {
+    const activeMessages = messages.filter(m => !m.isIntro);
+    if (activeMessages.length > 0) {
       saveChatHistory(messages);
     }
   }, [messages, saveChatHistory]);
@@ -1650,7 +1687,16 @@ Please continue the conversation naturally using this context. Never ask the use
     setActiveSessionId(newId);
     setAttachments([]);
     setInputValue('');
+    setIsTyping(false);
+    setGenerationState('idle');
     setTimeout(() => inputRef.current?.focus(), 150);
+
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+
+    const caseId = currentCase?._id || currentCase?.id || 'general';
+    localStorage.setItem(`aisa_active_legal_chat_session_id_${caseId}`, newId);
 
     if (currentCase && isAutoAnalysis) {
       const promptText = `Provide a comprehensive legal analysis and strategy advice for the case: ${currentCase.title || currentCase.name}`;
@@ -1658,7 +1704,7 @@ Please continue the conversation naturally using this context. Never ask the use
       setMessages([userMsg]);
       setIsTyping(true);
 
-      const newSessionItem = { chat_id: newId, title: 'Case Analysis', timestamp: Date.now() };
+      const newSessionItem = { chat_id: newId, title: 'Case Analysis', timestamp: Date.now(), preview: promptText };
       setSessions(prev => [newSessionItem, ...prev]);
 
       const dbMsg = mapLocalMessageToDb(userMsg);
@@ -1684,26 +1730,15 @@ Please continue the conversation naturally using this context. Never ask the use
         setIsTyping(false);
       }
     } else {
-      const newMsgs = [{
-        id: '1',
-        text: `Hello! I am your AI ${toolName}. Ask me anything about statutes, bare acts, case research, or litigation strategy.`,
-        sender: 'ai',
-        timestamp: new Date(),
-        isIntro: true,
-      }];
-      setMessages(newMsgs);
-      const newSessionItem = { chat_id: newId, title: 'New Chat', timestamp: Date.now() };
-      setSessions(prev => [newSessionItem, ...prev]);
-      const dbMsg = mapLocalMessageToDb(newMsgs[0]);
-      dbMsg.activeTool = 'General Legal Chat';
-      dbMsg.mode = 'NORMAL_CHAT';
-      await chatStorageService.saveMessage(newId, dbMsg, 'New Chat', currentCase?._id);
+      setMessages([]);
     }
   };
 
   const switchSession = async (sessionId) => {
     chatIdRef.current = sessionId;
     setActiveSessionId(sessionId);
+    const caseId = currentCase?._id || currentCase?.id || 'general';
+    localStorage.setItem(`aisa_active_legal_chat_session_id_${caseId}`, sessionId);
     await loadSessionHistory(sessionId);
   };
 
@@ -1860,21 +1895,12 @@ Please continue the conversation naturally using this context. Never ask the use
                 <div className="w-16 h-16 md:w-20 md:h-20 bg-indigo-50 dark:bg-indigo-950/20 text-[#4F46E5] rounded-3xl flex items-center justify-center mb-1 md:mb-2 shadow-lg shadow-indigo-500/5">
                   <Scale className="w-8 h-8 md:w-10 md:h-10 text-[#4F46E5]" />
                 </div>
-                <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-wider">AI LEGAL CHAT</h1>
-                <p className="text-[11px] md:text-sm font-semibold text-slate-500 dark:text-slate-400 max-w-sm md:max-w-md leading-relaxed hidden md:block">
-                  Professional legal research and assistance.
+                <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                  <span>⚖️</span> AI Legal Assistant
+                </h1>
+                <p className="text-xs sm:text-sm font-bold text-[#4F46E5] uppercase tracking-[0.2em] mt-1">
+                  Start a new legal conversation
                 </p>
-                <div className="block md:hidden space-y-2 mt-1 px-4">
-                  <p className="text-[12px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest">
-                    Professional Legal Research Assistant
-                  </p>
-                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 max-w-[280px] mx-auto leading-relaxed">
-                    Ask any legal question, upload evidence, draft legal documents, analyze judgments, or search case law.
-                  </p>
-                  <p className="text-sm font-black text-indigo-600 dark:text-indigo-400 mt-6 tracking-wide">
-                    How can I help you today?
-                  </p>
-                </div>
               </div>
 
               {/* Suggestions Grid (Desktop/Tablet Only) */}
@@ -2560,9 +2586,14 @@ Please continue the conversation naturally using this context. Never ask the use
                                 onClick={() => { switchSession(s.chat_id); setShowHistoryPanel(false); }}
                                 className="flex-1 text-left font-bold truncate flex flex-col gap-0.5 pl-1 border-none bg-transparent cursor-pointer"
                               >
-                                <span className="truncate">{s.title || 'New Chat'}</span>
-                                <span className="text-[9px] text-slate-400 font-medium font-mono">
-                                  {new Date(s.timestamp).toLocaleDateString()} • Template: Copilot
+                                <span className="truncate text-xs text-slate-800 dark:text-white font-bold">{s.title || 'New Chat'}</span>
+                                {s.preview && (
+                                  <span className="text-[10px] text-slate-450 dark:text-slate-500 font-medium truncate max-w-[200px] block">
+                                    {s.preview}
+                                  </span>
+                                )}
+                                <span className="text-[9px] text-slate-400 font-medium font-mono block">
+                                  Last Updated: {new Date(s.timestamp).toLocaleDateString()} at {new Date(s.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                               </button>
 

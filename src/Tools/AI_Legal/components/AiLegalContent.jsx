@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, Fragment } from 'react';
 import { 
-  Scale, X, MessageSquare, Zap, Briefcase, FileText, Search, Brain, 
-  ChevronRight, Shield, Clock, CheckCircle, TrendingUp, FileSearch, 
+  Scale, X, MessageSquare, Search, 
+  ChevronRight, Clock, CheckCircle, TrendingUp, FileSearch, 
   Bookmark, Share2, Download, Plus, History, Filter, Sparkles,
   Gavel, Landmark, ScrollText, FileScan, Swords, Target, FileCheck, Waypoints,
   Folder, Library, Fingerprint, Radar, Network, MessageCircle,
@@ -47,7 +47,6 @@ const AiLegalContent = ({
   const [isSavedToolsVisible, setIsSavedToolsVisible] = useState(false);
   const [toastMsg, setToastMsg] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [showTour, setShowTour] = useState(false);
   const [caseRefreshKey, setCaseRefreshKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -437,31 +436,16 @@ const AiLegalContent = ({
     }
   };
 
-  const checkTourStatus = useCallback(() => {
-    try {
-      const status = localStorage.getItem('aisa_legal_tour_seen');
-      if (!status) {
-        setShowTour(true);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }, []);
-
   useEffect(() => {
     loadDashboardData();
-    checkTourStatus();
     loadSavedTools();
-  }, [loadDashboardData, checkTourStatus, loadSavedTools]);
-
-  const completeTour = () => {
     try {
-      localStorage.setItem('aisa_legal_tour_seen', 'true');
-      setShowTour(false);
+      const caseId = currentCase?._id || currentCase?.id || 'general';
+      localStorage.removeItem(`aisa_active_legal_chat_session_id_${caseId}`);
     } catch (e) {
       console.error(e);
     }
-  };
+  }, [loadDashboardData, loadSavedTools, currentCase]);
 
   const handleToolPress = (tool) => {
     setSelectedTool(tool);
@@ -706,49 +690,6 @@ const AiLegalContent = ({
 
   return (
     <div className="flex-1 flex flex-col w-full min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar bg-transparent aisa-scalable-text">
-      {/* Welcome Tour Modal */}
-      <AnimatePresence>
-        {showTour && (
-          <div className="fixed inset-0 z-[120000] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={completeTour} />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="relative z-10 w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[2rem] p-8 text-center shadow-2xl"
-            >
-              <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-650 dark:text-indigo-400 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <Shield size={36} />
-              </div>
-              <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">Welcome to AISA Legal Elite</h3>
-              <p className="text-xs text-subtext font-semibold mt-3 max-w-sm leading-relaxed mx-auto">
-                You are now using our enterprise-grade AI legal suite. Every tool is backed by real-time precedent analysis and 98% accuracy verification.
-              </p>
-              
-              <div className="space-y-3 mt-6 mb-8 text-left max-w-xs mx-auto">
-                {[
-                  { icon: <Zap size={16} className="text-indigo-600 dark:text-indigo-400" />, text: 'Real-time Case Prediction' },
-                  { icon: <FileText size={16} className="text-indigo-600 dark:text-indigo-400" />, text: 'Automated Drafting Engine' },
-                  { icon: <Brain size={16} className="text-indigo-600 dark:text-indigo-400" />, text: 'Neural Evidence Analysis' }
-                ].map((f, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    {f.icon}
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-350">{f.text}</span>
-                  </div>
-                ))}
-              </div>
-
-              <button 
-                onClick={completeTour}
-                className="w-full py-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:opacity-90 text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95 shadow-xl shadow-indigo-500/20"
-              >
-                Get Started
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
       {/* Main Header */}
       <div className="w-full px-4 sm:px-6 md:px-10 lg:px-12 pt-5 sm:pt-6 pb-4 sm:pb-5 flex items-center justify-between shrink-0 border-b border-slate-200/60 dark:border-white/5 bg-white/70 dark:bg-[#0B1020]/70 backdrop-blur-xl z-10 sticky top-0">
         <div className="flex items-center gap-3.5">

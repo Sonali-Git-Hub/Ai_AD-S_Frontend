@@ -1792,6 +1792,11 @@ export const apiService = {
     try {
       console.log(`[Frontend] POST /api/projects/${caseId}/analyze`);
       const response = await apiClient.post(`/projects/${caseId}/analyze`, { rawText });
+      
+      // Invalidate the cache after successful analysis
+      window.__projectsCache = null;
+      window.__projectsPromise = null;
+
       console.log(`[Frontend] Auto-analyze success:`, {
         strength: response.data?.intelligence?.strengthScore,
         win: response.data?.intelligence?.winProbability,
