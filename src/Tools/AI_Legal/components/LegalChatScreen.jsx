@@ -2239,7 +2239,7 @@ Please continue the conversation naturally using this context. Never ask the use
           )}
 
           {/* ChatGPT-style Round Input Bar */}
-          <div className="bg-white border border-[#E5E7EB] rounded-full p-1.5 md:p-2 flex items-center gap-1 sm:gap-2 shadow-md hover:shadow-lg transition-shadow relative w-full overflow-hidden">
+          <div className="bg-white border border-[#E5E7EB] rounded-full p-1.5 md:p-2 flex items-center gap-1 sm:gap-2 shadow-md hover:shadow-lg transition-shadow relative w-full">
             
             {/* Plus button popup Actions Grid */}
             {showPlusMenu && (
@@ -2262,12 +2262,12 @@ Please continue the conversation naturally using this context. Never ask the use
                       <button
                         key={action.name}
                         type="button"
+                        disabled={isTyping || generationState === 'streaming'}
                         onClick={() => {
-                          setInputValue(action.prompt);
                           setShowPlusMenu(false);
-                          inputRef.current?.focus();
+                          sendMessage(action.prompt);
                         }}
-                        className="flex items-center gap-2.5 p-2 bg-slate-50 hover:bg-indigo-50/30 border border-slate-100 hover:border-[#4F46E5] rounded-xl text-[11px] font-bold text-slate-750 text-left transition-all cursor-pointer border-none"
+                        className="flex items-center gap-2.5 p-2 bg-slate-50 hover:bg-indigo-50/30 border border-slate-100 hover:border-[#4F46E5] rounded-xl text-[11px] font-bold text-slate-750 text-left transition-all cursor-pointer border-none disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <span className="p-1.5 bg-white rounded-lg shadow-sm">{getActionIcon(action.icon)}</span>
                         <span>{action.name}</span>

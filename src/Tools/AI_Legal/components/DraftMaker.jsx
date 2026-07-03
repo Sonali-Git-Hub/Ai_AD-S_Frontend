@@ -681,6 +681,10 @@ const DraftMaker = ({ currentCase, onBack, theme, allProjects = [] }) => {
   const [draftVersionHistory, setDraftVersionHistory] = useState([]);
   const [autoSaveStatus, setAutoSaveStatus] = useState('saved'); // 'saved', 'saving', 'failed', 'offline'
 
+  // ── Wizard (step-by-step pleading filler) state ──
+  const [wizardStep, setWizardStep] = useState(1);
+  const [wizardMaxReached, setWizardMaxReached] = useState(1);
+
   // ── Saved drafts state ──
   const [savedDrafts, setSavedDrafts] = useState([]);
   const [loadingDrafts, setLoadingDrafts] = useState(false);
@@ -3341,7 +3345,7 @@ CRITICAL MASTER RULES:
                       }}
                       className="w-full py-3 bg-[#5B3DF5] hover:bg-[#4E34D9] text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all"
                     >
-                      Open Wizard
+                      Start Drafting
                     </button>
                   </div>
 

@@ -55,6 +55,25 @@ const AiLegalContent = ({
   const [showPreview, setShowPreview] = useState(false);
   const [selectedChip, setSelectedChip] = useState('All');
 
+  // ─── FAB + Onboarding State ─────────────────────────────────────────────────
+  const [showFabOnboarding, setShowFabOnboarding] = useState(() => {
+    try { return !localStorage.getItem('aiLegal.caseOnboardingCompleted'); } catch { return false; }
+  });
+
+  const dismissFabOnboarding = useCallback((openCreate = false) => {
+    try { localStorage.setItem('aiLegal.caseOnboardingCompleted', 'true'); } catch {}
+    setShowFabOnboarding(false);
+    if (openCreate) setIsCreateCaseVisible(true);
+  }, []);
+
+  // ESC key closes FAB onboarding
+  useEffect(() => {
+    if (!showFabOnboarding) return;
+    const onKey = (e) => { if (e.key === 'Escape') dismissFabOnboarding(false); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [showFabOnboarding, dismissFabOnboarding]);
+
   // --- Case Management Local State (for LegalDashboard sub-view) ---
   const [isRenamingCase, setIsRenamingCase] = useState(null);
   const [renameValue, setRenameValue] = useState('');
@@ -1061,6 +1080,133 @@ const AiLegalContent = ({
           {toastMsg}
         </div>
       )}
+
+      {/* ─── FLOATING ACTION BUTTON (FAB) ──────────────────────────────── */}
+      <div
+        className="fixed bottom-6 right-6 z-[9999]"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      >
+        <button
+          id="legal-fab-create-case"
+          type="button"
+          title="Create New Case"
+          aria-label="Create New Case"
+          onClick={() => {
+            if (showFabOnboarding) dismissFabOnboarding(true);
+            else setIsCreateCaseVisible(true);
+          }}
+          className="relative w-14 h-14 rounded-full bg-[#4F46E5] hover:bg-[#4338CA] text-white shadow-2xl shadow-indigo-500/40 flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:ring-offset-2 group"
+        >
+          {/* Pulse rings during onboarding */}
+          {showFabOnboarding && (
+            <>
+              <span className="absolute inset-0 rounded-full bg-[#4F46E5] opacity-20 animate-ping" style={{ animationDuration: '1.4s' }} />
+              <span className="absolute inset-0 rounded-full bg-[#4F46E5] opacity-10 animate-ping" style={{ animationDuration: '1.8s', animationDelay: '0.3s' }} />
+            </>
+          )}
+          <Plus size={22} className="relative z-10 transition-transform duration-200 group-hover:rotate-90" />
+          {/* Hover tooltip */}
+          <span className="absolute right-full mr-3 whitespace-nowrap bg-slate-900 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none select-none shadow-xl">
+            Create New Case
+          </span>
+        </button>
+      </div>
+
+      {/* ─── FIRST-TIME ONBOARDING COACH MARK ────────────────────────────── */}
+      <AnimatePresence>
+        {showFabOnboarding && (
+          <>
+            {/* Dimmed backdrop */}
+            <motion.div
+              key="fab-onboarding-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="fixed inset-0 z-[9998] bg-black/50 backdrop-blur-[2px]"
+              onClick={() => dismissFabOnboarding(false)}
+              aria-hidden="true"
+            />
+
+            {/* Tooltip card above the FAB */}
+            <motion.div
+              key="fab-onboarding-card"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Create Your First Case"
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.97 }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              className="fixed bottom-[92px] right-6 z-[10000] w-[300px] sm:w-[340px] bg-white rounded-3xl shadow-2xl border border-slate-200/80 p-5 flex flex-col gap-4"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-2xl bg-[#4F46E5] flex items-center justify-center shrink-0 shadow-md shadow-indigo-500/30">
+                    <Scale size={16} className="text-white" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[#4F46E5]">AI Legal</p>
+                    <h3 className="text-sm font-black text-slate-900 leading-tight">Create Your First Case</h3>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => dismissFabOnboarding(false)}
+                  className="p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors border-none bg-transparent cursor-pointer shrink-0 mt-0.5"
+                  aria-label="Close"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-slate-700 leading-relaxed">
+                  Welcome to AI Legal. Start by creating a case.
+                </p>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Click the <strong className="text-[#4F46E5]">+</strong> button to add your first legal matter, upload documents, and unlock AI-powered tools like:
+                </p>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-1">
+                  {['Contract Review', 'Evidence Analysis', 'Case Prediction', 'Strategy Engine'].map(tool => (
+                    <div key={tool} className="flex items-center gap-1.5 text-[10px] font-bold text-slate-600">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#4F46E5] shrink-0" />
+                      {tool}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => dismissFabOnboarding(true)}
+                  className="flex-1 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-indigo-500/20 active:scale-95"
+                >
+                  Create Case
+                </button>
+                <button
+                  type="button"
+                  onClick={() => dismissFabOnboarding(false)}
+                  className="flex-1 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border border-slate-200 active:scale-95"
+                >
+                  Got it
+                </button>
+              </div>
+
+              {/* Arrow pointing to FAB */}
+              <div
+                className="absolute -bottom-2.5 right-8 w-5 h-5 bg-white rotate-45 border-r border-b border-slate-200/80"
+                aria-hidden="true"
+              />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

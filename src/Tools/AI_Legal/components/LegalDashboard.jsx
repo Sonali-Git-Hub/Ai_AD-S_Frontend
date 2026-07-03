@@ -17,6 +17,7 @@ import { useLanguage } from '../../../context/LanguageContext';
 import { legalService } from '../services/legalService';
 import { getActiveModule } from '../services/activeModuleService';
 import toast from 'react-hot-toast';
+import { createPortal } from 'react-dom';
 import { apiService } from '../../../services/apiService';
 import { generateChatResponse } from '../../../services/geminiService';
 import TimelineDetailsModal from './TimelineDetailsModal';
@@ -136,7 +137,7 @@ const MarkdownComponents = {
   }
 };
 
-// ─── Status badge component ──────────────────────────────────────────
+// â”€â”€â”€ Status badge component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const StatusBadge = ({ status }) => {
   const colors = {
     'Active': 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 border-emerald-200/50',
@@ -151,7 +152,7 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-// ─── Quick Actions Modal ─────────────────────────────────────────────
+// â”€â”€â”€ Quick Actions Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const QuickActionsModal = ({ visible, onClose, phoneNumber, countryCode }) => {
   if (!visible) return null;
   const fullPhone = phoneNumber ? `${countryCode || '+91'}${phoneNumber}` : null;
@@ -210,8 +211,8 @@ const QuickActionsModal = ({ visible, onClose, phoneNumber, countryCode }) => {
   );
 };
 
-// ─── Module Router Modal ─────────────────────────────────────────────
-// ─── Single reusable ModuleCard ──────────────────────────────────────
+// â”€â”€â”€ Module Router Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€â”€ Single reusable ModuleCard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ModuleCard = React.memo(({ module: m, isActive, onSelect }) => {
   const handleClick = useCallback((e) => {
     e.preventDefault();
@@ -244,7 +245,7 @@ const ModuleCard = React.memo(({ module: m, isActive, onSelect }) => {
           : 'border border-transparent hover:bg-slate-50 dark:hover:bg-zinc-800/50 hover:border-slate-100 dark:hover:border-zinc-700/50'
       ].join(' ')}
     >
-      {/* Module icon — pointer-events: none so clicks always reach the wrapper */}
+      {/* Module icon â€” pointer-events: none so clicks always reach the wrapper */}
       <div
         aria-hidden="true"
         style={{ pointerEvents: 'none' }}
@@ -258,7 +259,7 @@ const ModuleCard = React.memo(({ module: m, isActive, onSelect }) => {
         <span role="img" aria-hidden="true">{m.icon}</span>
       </div>
 
-      {/* Name + description — pointer-events: none */}
+      {/* Name + description â€” pointer-events: none */}
       <div className="min-w-0 flex-1" style={{ pointerEvents: 'none' }}>
         <p className={`text-sm font-black leading-tight ${isActive ? 'text-violet-700 dark:text-violet-300' : 'text-slate-900 dark:text-white'}`}>
           {m.name}
@@ -266,7 +267,7 @@ const ModuleCard = React.memo(({ module: m, isActive, onSelect }) => {
         <p className="text-[10px] text-slate-400 font-semibold mt-0.5 leading-snug">{m.desc}</p>
       </div>
 
-      {/* Status badge — pointer-events: none */}
+      {/* Status badge â€” pointer-events: none */}
       <div style={{ pointerEvents: 'none' }} className="shrink-0">
         {isActive ? (
           <span className="flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-[9px] font-black uppercase tracking-widest rounded-full shadow-sm shadow-violet-500/20">
@@ -284,15 +285,15 @@ const ModuleCard = React.memo(({ module: m, isActive, onSelect }) => {
 });
 ModuleCard.displayName = 'ModuleCard';
 
-// ─── Module Router Modal ─────────────────────────────────────────────
+// â”€â”€â”€ Module Router Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ALL_MODULES = [
-  { id: 'legal_argument_builder', name: 'Argument Builder', desc: 'Draft courtroom strategies and arguments', icon: '⚖️' },
-  { id: 'legal_precedents',       name: 'Legal Precedent',  desc: 'AI precedent and citation explorer',       icon: '🏛️' },
-  { id: 'legal_draft_maker',      name: 'Draft Maker',      desc: 'Generate court-ready legal drafts',        icon: '📝' },
-  { id: 'legal_evidence_checker', name: 'Evidence Analysis',desc: 'Analyze legal documents and evidence',     icon: '🔍' },
-  { id: 'legal_case_predictor',   name: 'Case Predictor',   desc: 'Judicial scanner and forecast',            icon: '🎯' },
-  { id: 'legal_contract_analyzer',name: 'Contract Review',  desc: 'Agreement review and compliance',          icon: '📋' },
-  { id: 'legal_strategy_engine',  name: 'Strategy Engine',  desc: 'Litigation Roadmap & Tactical Suggestions',icon: '🗺️' },
+  { id: 'legal_argument_builder', name: 'Argument Builder', desc: 'Draft courtroom strategies and arguments', icon: 'âš–ï¸' },
+  { id: 'legal_precedents',       name: 'Legal Precedent',  desc: 'AI precedent and citation explorer',       icon: 'ðŸ›ï¸' },
+  { id: 'legal_draft_maker',      name: 'Draft Maker',      desc: 'Generate court-ready legal drafts',        icon: 'ðŸ“' },
+  { id: 'legal_evidence_checker', name: 'Evidence Analysis',desc: 'Analyze legal documents and evidence',     icon: 'ðŸ”' },
+  { id: 'legal_case_predictor',   name: 'Case Predictor',   desc: 'Judicial scanner and forecast',            icon: 'ðŸŽ¯' },
+  { id: 'legal_contract_analyzer',name: 'Contract Review',  desc: 'Agreement review and compliance',          icon: 'ðŸ“‹' },
+  { id: 'legal_strategy_engine',  name: 'Strategy Engine',  desc: 'Litigation Roadmap & Tactical Suggestions',icon: 'ðŸ—ºï¸' },
 ];
 
 const ModuleRouterModal = ({ visible, onClose, caseData, onLaunchModule, activeModuleId }) => {
@@ -316,7 +317,7 @@ const ModuleRouterModal = ({ visible, onClose, caseData, onLaunchModule, activeM
     );
   }, [search]);
 
-  // Single shared handler — fires once regardless of which element inside the card was touched
+  // Single shared handler â€” fires once regardless of which element inside the card was touched
   const handleSelectModule = useCallback((moduleId) => {
     if (launchingRef.current) return;   // guard against double-tap
     launchingRef.current = true;
@@ -355,7 +356,7 @@ const ModuleRouterModal = ({ visible, onClose, caseData, onLaunchModule, activeM
               <h2 className="text-base font-black text-slate-900 dark:text-white">Open Case In...</h2>
               {caseData && (
                 <p className="text-[10px] text-slate-400 font-bold mt-0.5 truncate max-w-[280px]">
-                  📁 {caseData.title || caseData.name || 'Selected Case'}
+                  ðŸ“ {caseData.title || caseData.name || 'Selected Case'}
                 </p>
               )}
             </div>
@@ -368,7 +369,7 @@ const ModuleRouterModal = ({ visible, onClose, caseData, onLaunchModule, activeM
             </button>
           </div>
 
-          {/* Search — no autoFocus so it doesn't interfere with touch on mobile */}
+          {/* Search â€” no autoFocus so it doesn't interfere with touch on mobile */}
           <div className="flex items-center gap-2 bg-slate-50 dark:bg-black/20 rounded-xl px-3 py-2.5 border border-slate-100 dark:border-white/5">
             <Search size={15} className="text-slate-400 shrink-0" aria-hidden="true" />
             <input
@@ -381,7 +382,7 @@ const ModuleRouterModal = ({ visible, onClose, caseData, onLaunchModule, activeM
           </div>
         </div>
 
-        {/* Module list — each card is a fully-clickable ModuleCard */}
+        {/* Module list â€” each card is a fully-clickable ModuleCard */}
         <div
           className="flex-1 overflow-y-auto p-3 space-y-1.5"
           role="list"
@@ -417,7 +418,7 @@ const ModuleRouterModal = ({ visible, onClose, caseData, onLaunchModule, activeM
 };
 
 
-// ─── Task Modal ──────────────────────────────────────────────────────
+// â”€â”€â”€ Task Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const TaskModal = ({ visible, onClose, onSave, editingTask }) => {
   const [form, setForm] = useState({ title: '', description: '', date: '', priority: 'Normal' });
   const priorities = ['Low', 'Normal', 'High', 'Urgent', 'Critical'];
@@ -475,7 +476,7 @@ const TaskModal = ({ visible, onClose, onSave, editingTask }) => {
   );
 };
 
-// ─── Timeline Event Modal ────────────────────────────────────────────
+// â”€â”€â”€ Timeline Event Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const TimelineModal = ({ visible, onClose, onSave, editingEvent }) => {
   const [form, setForm] = useState({ title: '', status: 'Scheduled', court: '', date: '' });
 
@@ -533,7 +534,7 @@ const TimelineModal = ({ visible, onClose, onSave, editingEvent }) => {
   );
 };
 
-// ─── Notes Modal ─────────────────────────────────────────────────────
+// â”€â”€â”€ Notes Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const NotesModal = ({ visible, onClose, onSave, initialText }) => {
   const [text, setText] = useState('');
   useEffect(() => { if (visible) setText(initialText || ''); }, [visible, initialText]);
@@ -567,7 +568,7 @@ const NotesModal = ({ visible, onClose, onSave, initialText }) => {
   );
 };
 
-// ─── Document Viewer Modal ───────────────────────────────────────────
+// â”€â”€â”€ Document Viewer Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const DocViewerModal = ({ visible, onClose, doc }) => {
   if (!visible || !doc) return null;
   const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(doc.name?.split('.').pop()?.toLowerCase());
@@ -635,7 +636,7 @@ const DocViewerModal = ({ visible, onClose, doc }) => {
   );
 };
 
-// ─── Case Detail View ────────────────────────────────────────────────
+// â”€â”€â”€ Case Detail View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const CaseDetailView = ({ item, isDark, onBack, onDelete, onAskStrategy, onViewRoadmap, onLaunchModuleWithCase }) => {
   const { tLegal } = useLanguage();
   const [activeTab, setActiveTab] = useState('overview');
@@ -992,7 +993,7 @@ const CaseDetailView = ({ item, isDark, onBack, onDelete, onAskStrategy, onViewR
         <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider text-slate-400 select-none">
           <div className="flex items-center gap-1.5">
             <span>{displayDate}</span>
-            <span>•</span>
+            <span>â€¢</span>
             <span>{displayTime}</span>
           </div>
           {isActive && (
@@ -1530,7 +1531,7 @@ const CaseDetailView = ({ item, isDark, onBack, onDelete, onAskStrategy, onViewR
         await legalService.updateCase(caseData.id || caseData._id, { description: summaryText });
         setCaseData(updated);
         setNotesText(summaryText);
-        toast.success("✓ AI Case Summary generated successfully!", { id: toastId });
+        toast.success("âœ“ AI Case Summary generated successfully!", { id: toastId });
       } else {
         toast.error("Failed to generate summary. Please enter it manually.", { id: toastId });
       }
@@ -1549,7 +1550,7 @@ const CaseDetailView = ({ item, isDark, onBack, onDelete, onAskStrategy, onViewR
           const docs = (prev.documents || []).map(d => d.id === docObj.id ? analyzedDoc : d);
           return { ...prev, documents: docs };
         });
-        toast.success(`✓ AI Analysis complete: ${docObj.name}`);
+        toast.success(`âœ“ AI Analysis complete: ${docObj.name}`);
       }
     } catch (err) {
       console.error("[Document Analysis] Failed to analyze document", err);
@@ -1595,7 +1596,7 @@ const CaseDetailView = ({ item, isDark, onBack, onDelete, onAskStrategy, onViewR
         await legalService.updateCase(caseData.id || caseData._id, { documents: updatedDocs });
         const updatedData = { ...caseData, documents: updatedDocs };
         setCaseData(updatedData);
-        toast.success(`✓ Uploaded, OCR Complete & Merged: ${file.name}`);
+        toast.success(`âœ“ Uploaded, OCR Complete & Merged: ${file.name}`);
         
         triggerDocumentAnalysis(newDoc, updatedData);
         triggerLiveAnalysisSilent(updatedData);
@@ -1645,14 +1646,14 @@ const CaseDetailView = ({ item, isDark, onBack, onDelete, onAskStrategy, onViewR
 
   const handleAutoAnalyze = async () => {
     setIsAnalyzing(true);
-    const tid = toast.loading("⚖️ AI Legal Brain is analyzing your case...");
+    const tid = toast.loading("âš–ï¸ AI Legal Brain is analyzing your case...");
     try {
       const analyzed = await apiService.autoAnalyzeCase(
         caseData.id || caseData._id,
         notesText || caseData.title || caseData.name
       );
       setCaseData(analyzed);
-      toast.success("✅ Intelligence report generated!", { id: tid });
+      toast.success("âœ… Intelligence report generated!", { id: tid });
       
       const winProb = analyzed.intelligence?.winProbability || analyzed.win_probability || 50;
       setAiMessages(prev => [...prev, {
@@ -1788,7 +1789,7 @@ Help the lawyer with legal research, tactics, draft checks, or analysis about th
       const errorMsg = {
         id: Date.now().toString(),
         role: 'model',
-        content: "⚠️ I encountered an error checking the case files. Please try again."
+        content: "âš ï¸ I encountered an error checking the case files. Please try again."
       };
       setAiMessages(prev => [...prev, errorMsg]);
       if (activeSessionId) {
@@ -1810,7 +1811,7 @@ Help the lawyer with legal research, tactics, draft checks, or analysis about th
       a.download = `case_copilot_chat_${(caseData.title || caseData.name || 'export').replace(/[^a-z0-9]/gi, '_')}.txt`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success("✓ Chat exported successfully!");
+      toast.success("âœ“ Chat exported successfully!");
     } catch (e) {
       toast.error("Failed to export chat.");
     }
@@ -1829,7 +1830,7 @@ Help the lawyer with legal research, tactics, draft checks, or analysis about th
       a.download = `copilot_response.txt`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success("✓ Response downloaded successfully!");
+      toast.success("âœ“ Response downloaded successfully!");
     } catch (e) {
       toast.error("Failed to download response.");
     }
@@ -1854,7 +1855,7 @@ ${notesText || 'No summary details'}
       a.download = `${(caseData.title || caseData.name || '').replace(/[^a-z0-9]/gi, '_')}_case_file.txt`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success("✓ Case file downloaded successfully!");
+      toast.success("âœ“ Case file downloaded successfully!");
     } catch (e) {
       toast.error("Failed to export case file.");
     }
@@ -1868,7 +1869,7 @@ ${notesText || 'No summary details'}
       }).catch(() => {});
     } else {
       navigator.clipboard.writeText(window.location.href);
-      toast.success("✓ Case link copied to clipboard!");
+      toast.success("âœ“ Case link copied to clipboard!");
     }
   };
 
@@ -1938,7 +1939,7 @@ ${notesText || 'No summary details'}
           </div>
           {caseData.summary && !isEditingFacts ? (
             <div className="space-y-4 text-xs font-semibold text-slate-755 dark:text-slate-350 leading-relaxed mb-0 p-4 bg-indigo-50/20 dark:bg-indigo-950/10 rounded-xl border border-indigo-100/40">
-              <p className="font-bold text-[#4F46E5] text-xs">✨ AI-GENERATED LEGAL SUMMARY</p>
+              <p className="font-bold text-[#4F46E5] text-xs">âœ¨ AI-GENERATED LEGAL SUMMARY</p>
               <div className="whitespace-pre-wrap leading-relaxed">{caseData.summary}</div>
             </div>
           ) : (
@@ -2119,7 +2120,7 @@ ${notesText || 'No summary details'}
             <div className="p-4 bg-indigo-50 dark:bg-indigo-950/20 text-[#4F46E5] rounded-full mb-4">
               <Calendar size={32} />
             </div>
-            <h4 className="text-base font-black text-slate-850 dark:text-white uppercase tracking-wider mb-2">📅 No AI Timeline Available Yet</h4>
+            <h4 className="text-base font-black text-slate-850 dark:text-white uppercase tracking-wider mb-2">ðŸ“… No AI Timeline Available Yet</h4>
             <p className="text-xs text-slate-450 dark:text-slate-400 font-semibold max-w-md mx-auto leading-relaxed mb-6">
               AI could not generate a case timeline because no structured case summary or chronological legal events are available.
             </p>
@@ -2275,7 +2276,7 @@ ${notesText || 'No summary details'}
                       {/* Badge row */}
                       <div className="flex flex-wrap items-center gap-2 mb-3 text-[10px] font-bold text-slate-400 dark:text-slate-400">
                         <span className="text-slate-800 dark:text-white uppercase tracking-wider">{evt.date}</span>
-                        <span>•</span>
+                        <span>â€¢</span>
                         {evt.isAiGenerated && (
                           <span className="px-1.5 py-0.5 bg-violet-50 dark:bg-violet-950/20 text-[#4F46E5] rounded text-[8px] font-black uppercase tracking-wider border border-violet-200/10 flex items-center gap-0.5">
                             <Sparkles size={8} /> AI
@@ -2382,7 +2383,7 @@ ${notesText || 'No summary details'}
           <div className="p-4 bg-indigo-50 dark:bg-indigo-950/20 text-[#4F46E5] rounded-full mb-4">
             <Gavel size={32} />
           </div>
-          <h4 className="text-base font-black text-slate-850 dark:text-white uppercase tracking-wider mb-2">📅 No Hearing Information Available</h4>
+          <h4 className="text-base font-black text-slate-850 dark:text-white uppercase tracking-wider mb-2">ðŸ“… No Hearing Information Available</h4>
           <p className="text-xs text-slate-450 dark:text-slate-400 font-semibold max-w-md mx-auto leading-relaxed mb-6">
             AI could not detect any hearing details because the case currently contains no hearing-related information.
           </p>
@@ -2455,7 +2456,7 @@ ${notesText || 'No summary details'}
       a.href = url;
       a.download = `hearing_appearances_docket_${(caseData.title || caseData.name || 'case').replace(/\s+/g, '_')}.txt`;
       a.click();
-      toast.success("✓ Hearing Appearances Docket downloaded successfully!");
+      toast.success("âœ“ Hearing Appearances Docket downloaded successfully!");
       setShowHearingOverflow(false);
     };
 
@@ -2465,7 +2466,7 @@ ${notesText || 'No summary details'}
       a.href = dataStr;
       a.download = `case_profile_${(caseData.title || caseData.name || 'case').replace(/\s+/g, '_')}.json`;
       a.click();
-      toast.success("✓ Case JSON Profile exported successfully!");
+      toast.success("âœ“ Case JSON Profile exported successfully!");
       setShowHearingOverflow(false);
     };
 
@@ -2483,7 +2484,7 @@ ${notesText || 'No summary details'}
             </h3>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-450 dark:text-slate-400 font-semibold">
               <p>Court: <span className="font-bold text-slate-755 dark:text-slate-300">{caseData.courtName || 'Delhi District Court'}</span></p>
-              <span className="hidden sm:inline">•</span>
+              <span className="hidden sm:inline">â€¢</span>
               <p>Stage: <span className="font-bold text-slate-755 dark:text-slate-300">{caseData.stage || 'Pleadings / Trial'}</span></p>
             </div>
           </div>
@@ -2539,7 +2540,7 @@ ${notesText || 'No summary details'}
             {nextHearing ? (
               <div>
                 <h4 className="text-base font-black text-slate-800 dark:text-white">{nextHearing.date}, {nextHearing.time || '10:30 AM'}</h4>
-                <p className="text-[10px] text-slate-450 dark:text-slate-400 font-bold uppercase mt-1">Before {nextHearing.judge || 'Justice Dixit'} • {nextHearing.courtRoom || 'Courtroom 3'}</p>
+                <p className="text-[10px] text-slate-450 dark:text-slate-400 font-bold uppercase mt-1">Before {nextHearing.judge || 'Justice Dixit'} â€¢ {nextHearing.courtRoom || 'Courtroom 3'}</p>
               </div>
             ) : (
               <div>
@@ -2636,7 +2637,7 @@ ${notesText || 'No summary details'}
                     {/* Badge header row */}
                     <div className="flex flex-wrap items-center gap-2 mb-3 text-[10px] font-bold text-slate-400 dark:text-slate-400">
                       <span className="text-slate-800 dark:text-white uppercase tracking-wider">{h.date}, {h.time || '10:30 AM'}</span>
-                      <span>•</span>
+                      <span>â€¢</span>
                       <span className="uppercase tracking-wider">{h.courtRoom || 'Courtroom 3'}</span>
                       
                       <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ml-2 ${statStyle}`}>
@@ -2659,7 +2660,7 @@ ${notesText || 'No summary details'}
                     {/* Judge Subtitle */}
                     <div className="flex items-center gap-x-2 text-[10px] text-slate-450 dark:text-slate-400 font-bold mt-1">
                       <span>Before: <span className="text-slate-700 dark:text-slate-200">{h.judge || 'Justice Dixit'}</span></span>
-                      <span>•</span>
+                      <span>â€¢</span>
                       <span className="px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-950/20 text-[#4F46E5] border border-indigo-200/10 rounded flex items-center gap-0.5 text-[8px]">
                         <FileText size={9} /> {h.linkedDocsCount || 0} Files Linked
                       </span>
@@ -2686,7 +2687,7 @@ ${notesText || 'No summary details'}
                       onClick={() => { setSelectedDetailHearing(h); setIsHearingClerkModalOpen(true); }}
                       className="text-[10px] font-black uppercase tracking-widest text-[#4F46E5] hover:underline"
                     >
-                      AI Hearing Clerk Details →
+                      AI Hearing Clerk Details â†’
                     </button>
                   </div>
 
@@ -2725,7 +2726,7 @@ ${notesText || 'No summary details'}
       const res = await legalService.extractAiParties(caseId, targetData, caseNotes);
       if (res) {
         setCaseData(res);
-        if (manual) toast.success("✓ AI extracted parties roster successfully!", { id: toastId });
+        if (manual) toast.success("âœ“ AI extracted parties roster successfully!", { id: toastId });
       }
       console.log("[Background Parties] Background parties sync complete.");
     } catch (err) {
@@ -2745,7 +2746,7 @@ ${notesText || 'No summary details'}
           <div className="p-4 bg-indigo-50 dark:bg-indigo-950/20 text-[#4F46E5] rounded-full mb-4">
             <Users size={32} />
           </div>
-          <h4 className="text-base font-black text-slate-855 dark:text-white uppercase tracking-wider mb-2">👥 No Party Information Available</h4>
+          <h4 className="text-base font-black text-slate-855 dark:text-white uppercase tracking-wider mb-2">ðŸ‘¥ No Party Information Available</h4>
           <p className="text-xs text-slate-450 dark:text-slate-400 font-semibold max-w-md mx-auto leading-relaxed mb-6">
             AI could not identify any parties from the available case data. Complete the case summary or upload documents to auto-populate.
           </p>
@@ -3055,7 +3056,7 @@ ${notesText || 'No summary details'}
             </div>
             <div>
               <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-white flex items-center gap-1.5">
-                📄 CASE DOCUMENT CENTER
+                ðŸ“„ CASE DOCUMENT CENTER
               </h3>
               <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase mt-1 leading-tight">
                 Manage all pleadings, petitions, affidavits, agreements, court filings and supporting documents.
@@ -3203,7 +3204,7 @@ ${notesText || 'No summary details'}
                 <div className="border-t border-slate-100 dark:border-zinc-850 pt-3 flex items-center justify-between">
                   <div className="flex items-center gap-3 text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">
                     <span>Uploaded {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : 'N/A'}</span>
-                    <span>•</span>
+                    <span>â€¢</span>
                     <span>{doc.size ? (doc.size / 1024).toFixed(1) + ' KB' : 'Size N/A'}</span>
                   </div>
                   <button 
@@ -3222,7 +3223,7 @@ ${notesText || 'No summary details'}
               <div className="p-4 bg-slate-50 dark:bg-zinc-850 text-slate-400 rounded-full mb-3">
                 <FileText size={28} />
               </div>
-              <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">📄 No Documents Uploaded</h4>
+              <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">ðŸ“„ No Documents Uploaded</h4>
               <p className="text-[10px] text-slate-450 dark:text-slate-400 font-semibold max-w-sm mx-auto leading-relaxed mb-5">
                 Upload pleadings, agreements, petitions, affidavits or other legal files.
               </p>
@@ -3375,7 +3376,7 @@ ${notesText || 'No summary details'}
             </div>
             <div>
               <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-white flex items-center gap-1.5">
-                🛡 EVIDENCE VAULT
+                ðŸ›¡ EVIDENCE VAULT
               </h3>
               <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase mt-1 leading-tight">
                 Securely manage all admissible evidence with AI-powered verification and legal analysis.
@@ -3448,7 +3449,7 @@ ${notesText || 'No summary details'}
                           {doc.name}
                         </p>
                         <p className="text-[8px] font-black uppercase text-slate-450 dark:text-slate-500 mt-0.5 tracking-wider">
-                          Exhibit No. {idx + 1} • {doc.category || 'Evidence'}
+                          Exhibit No. {idx + 1} â€¢ {doc.category || 'Evidence'}
                         </p>
                       </div>
                     </div>
@@ -3482,7 +3483,7 @@ ${notesText || 'No summary details'}
                 <div className="border-t border-slate-105 dark:border-zinc-850 pt-3 flex items-center justify-between">
                   <div className="flex items-center gap-3 text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">
                     <span>Uploaded {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : 'N/A'}</span>
-                    <span>•</span>
+                    <span>â€¢</span>
                     <span>{doc.admissibility || 'Verified'}</span>
                   </div>
                   <button 
@@ -3501,7 +3502,7 @@ ${notesText || 'No summary details'}
               <div className="p-4 bg-rose-55 dark:bg-rose-955 text-red-500 rounded-full mb-3">
                 <Shield size={28} />
               </div>
-              <h4 className="text-xs font-black text-slate-850 dark:text-white uppercase tracking-wider">🛡 No Evidence Uploaded</h4>
+              <h4 className="text-xs font-black text-slate-850 dark:text-white uppercase tracking-wider">ðŸ›¡ No Evidence Uploaded</h4>
               <p className="text-[10px] text-slate-455 dark:text-slate-400 font-semibold max-w-sm mx-auto leading-relaxed mb-5">
                 Upload supporting documents, images, videos, audio recordings or forensic reports.
               </p>
@@ -3619,7 +3620,7 @@ ${notesText || 'No summary details'}
       const res = await legalService.generateAiResearch(caseId, targetData, caseNotes);
       if (res) {
         setCaseData(prev => ({ ...prev, aiResearch: res }));
-        if (manual) toast.success("✓ AI Research compiled successfully!", { id: toastId });
+        if (manual) toast.success("âœ“ AI Research compiled successfully!", { id: toastId });
       }
       console.log("[Background Research] Background research sync complete.");
     } catch (err) {
@@ -3660,7 +3661,7 @@ ${notesText || 'No summary details'}
           <div className="p-4 bg-indigo-50 dark:bg-indigo-950/20 text-[#4F46E5] rounded-full mb-4">
             <BookOpen size={32} />
           </div>
-          <h4 className="text-base font-black text-slate-855 dark:text-white uppercase tracking-wider mb-2">📚 Research Not Available</h4>
+          <h4 className="text-base font-black text-slate-855 dark:text-white uppercase tracking-wider mb-2">ðŸ“š Research Not Available</h4>
           <p className="text-xs text-slate-450 dark:text-slate-400 font-semibold max-w-md mx-auto leading-relaxed mb-6">
             Generate a proper case summary or upload supporting documents before AI legal research can begin.
           </p>
@@ -3700,7 +3701,7 @@ ${notesText || 'No summary details'}
           <div className="p-4 bg-indigo-50 dark:bg-indigo-950/20 text-[#4F46E5] rounded-full mb-4">
             <Sparkles size={32} className="animate-bounce" />
           </div>
-          <h4 className="text-base font-black text-slate-855 dark:text-white uppercase tracking-wider mb-2">📚 AI Legal Research Ready</h4>
+          <h4 className="text-base font-black text-slate-855 dark:text-white uppercase tracking-wider mb-2">ðŸ“š AI Legal Research Ready</h4>
           <p className="text-xs text-slate-450 dark:text-slate-400 font-semibold max-w-md mx-auto leading-relaxed mb-6">
             Click below to compile governing laws, precedents, strategy, and risk analysis for this case.
           </p>
@@ -3750,7 +3751,7 @@ ${notesText || 'No summary details'}
             </div>
             <div>
               <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-white flex items-center gap-1.5">
-                📚 AI LEGAL RESEARCH ENGINE
+                ðŸ“š AI LEGAL RESEARCH ENGINE
               </h3>
               <p className="text-[10px] text-slate-450 dark:text-slate-400 font-bold uppercase mt-1 leading-relaxed max-w-2xl">
                 Automatically analyze the case summary, uploaded documents, evidence, and timeline to identify applicable laws, precedents, judicial principles, procedural requirements, and litigation strategy.
@@ -3772,7 +3773,7 @@ ${notesText || 'No summary details'}
                 dlAnchorElem.setAttribute("href",     dataStr);
                 dlAnchorElem.setAttribute("download", `${caseData.name || 'case'}_research.json`);
                 dlAnchorElem.click();
-                toast.success("✓ Exported research data JSON!");
+                toast.success("âœ“ Exported research data JSON!");
               }}
               className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-black text-[10px] uppercase tracking-wider rounded-full transition-all"
             >
@@ -3928,7 +3929,7 @@ ${notesText || 'No summary details'}
                       <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 leading-relaxed"><span className="text-[10px] text-slate-400 uppercase font-bold block mb-0.5">Applicability Reason</span>{st.reason}</p>
                       <div className="flex items-center gap-3 text-[9px] font-bold text-slate-450 uppercase">
                         <span>Confidence: {st.confidence}</span>
-                        <span>•</span>
+                        <span>â€¢</span>
                         <span>Related Issue: {st.issue}</span>
                       </div>
                     </div>
@@ -4133,7 +4134,7 @@ ${notesText || 'No summary details'}
       
       setCaseData(prev => ({ ...prev, drafts: updatedDrafts }));
       setDraftFormName('');
-      toast.success(aiGenerated ? "✓ AI Draft generated successfully!" : "Draft created!", { id: toastId });
+      toast.success(aiGenerated ? "âœ“ AI Draft generated successfully!" : "Draft created!", { id: toastId });
     } catch (err) {
       console.error(err);
       toast.error("Failed to save draft");
@@ -4212,7 +4213,7 @@ ${notesText || 'No summary details'}
         <div className="bg-white dark:bg-[#1A2540] border border-slate-205 dark:border-zinc-800/80 rounded-3xl p-6 shadow-sm space-y-4">
           <div>
             <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-white flex items-center gap-1.5">
-              📝 AI Draft Workspace
+              ðŸ“ AI Draft Workspace
             </h3>
             <p className="text-[10px] text-slate-450 dark:text-slate-400 font-bold uppercase mt-1 leading-relaxed">
               Create, manage, and organize legal drafts for the current case.
@@ -4408,7 +4409,7 @@ ${notesText || 'No summary details'}
         setCaseData(updatedData);
         setSelectedContractDetails(analyzed);
         setIsContractInsightsOpen(true);
-        toast.success("✓ AI contract clause review generated!", { id: toastId });
+        toast.success("âœ“ AI contract clause review generated!", { id: toastId });
       } catch (err) {
         console.error(err);
         toast.error("Failed to run contract analysis", { id: toastId });
@@ -4431,7 +4432,7 @@ ${notesText || 'No summary details'}
             Upload agreements, MoUs, lease deeds, contracts or commercial documents for AI analysis.
           </p>
           <span className="px-2 py-0.5 bg-slate-50 dark:bg-zinc-800/80 text-slate-500 dark:text-slate-400 border border-slate-200/50 dark:border-zinc-700/50 rounded text-[8px] font-black uppercase tracking-wider mt-3">
-            PDF • DOCX • Scanned Images
+            PDF â€¢ DOCX â€¢ Scanned Images
           </span>
         </div>
 
@@ -4711,7 +4712,7 @@ ${notesText || 'No summary details'}
                   dl.setAttribute("href",     dataStr);
                   dl.setAttribute("download", `${selectedContractDetails.name}_analysis.json`);
                   dl.click();
-                  toast.success("✓ Exported contract clause analysis JSON!");
+                  toast.success("âœ“ Exported contract clause analysis JSON!");
                 }}
                 className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-black text-[10px] uppercase tracking-wider rounded-xl transition-all"
               >
@@ -4746,7 +4747,7 @@ const triggerBackgroundArgumentsSync = async (targetData, manual = false) => {
       const res = await legalService.generateAiArguments(caseId, targetData, caseNotes);
       if (res) {
         setCaseData(prev => ({ ...prev, aiArguments: res }));
-        if (manual) toast.success("✓ AI Arguments compiled successfully!", { id: toastId });
+        if (manual) toast.success("âœ“ AI Arguments compiled successfully!", { id: toastId });
       } else {
         if (manual) toast.error("Failed to compile AI courtroom arguments. Check your connection or case details.", { id: toastId });
       }
@@ -4769,7 +4770,7 @@ const triggerBackgroundArgumentsSync = async (targetData, manual = false) => {
           <div className="p-4 bg-indigo-50 dark:bg-indigo-950/20 text-[#4F46E5] rounded-full mb-4">
             <Scale size={32} />
           </div>
-          <h4 className="text-base font-black text-slate-855 dark:text-white uppercase tracking-wider mb-2">⚖️ No Legal Strategy Available</h4>
+          <h4 className="text-base font-black text-slate-855 dark:text-white uppercase tracking-wider mb-2">âš–ï¸ No Legal Strategy Available</h4>
           <p className="text-xs text-slate-450 dark:text-slate-400 font-semibold max-w-md mx-auto leading-relaxed mb-6">
             Generate a complete case summary and upload supporting evidence before AI can construct courtroom arguments.
           </p>
@@ -4815,7 +4816,7 @@ const triggerBackgroundArgumentsSync = async (targetData, manual = false) => {
           <div className="p-4 bg-indigo-50 dark:bg-indigo-950/20 text-[#4F46E5] rounded-full mb-4">
             <Brain size={32} className="animate-bounce" />
           </div>
-          <h4 className="text-base font-black text-slate-855 dark:text-white uppercase tracking-wider mb-2">🧠 AI Legal Strategy Ready</h4>
+          <h4 className="text-base font-black text-slate-855 dark:text-white uppercase tracking-wider mb-2">ðŸ§  AI Legal Strategy Ready</h4>
           <p className="text-xs text-slate-450 dark:text-slate-400 font-semibold max-w-md mx-auto leading-relaxed mb-6">
             Click below to generate professional courtroom arguments, objection predictions, and litigation binders.
           </p>
@@ -4927,7 +4928,7 @@ const triggerBackgroundArgumentsSync = async (targetData, manual = false) => {
             </button>
             <button 
               onClick={() => {
-                toast.success("✓ Hallway strategy and litigation binder notes generated!");
+                toast.success("âœ“ Hallway strategy and litigation binder notes generated!");
               }}
               className="px-3.5 py-2 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center gap-1"
             >
@@ -4940,7 +4941,7 @@ const triggerBackgroundArgumentsSync = async (targetData, manual = false) => {
                 dl.setAttribute("href",     dataStr);
                 dl.setAttribute("download", `${caseData.name}_litigation_strategy.json`);
                 dl.click();
-                toast.success("✓ Exported strategy report JSON!");
+                toast.success("âœ“ Exported strategy report JSON!");
               }}
               className="px-3 py-2 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-slate-300 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
             >
@@ -5558,7 +5559,7 @@ const triggerBackgroundArgumentsSync = async (targetData, manual = false) => {
             </div>
             <p className="text-[11px] font-medium text-slate-500 leading-relaxed mb-3">Establishes the admissibility thresholds for uncertified electronic logs if original secondary source server can be examined in person.</p>
             <div className="flex gap-2">
-              <button onClick={() => { navigator.clipboard.writeText("Rajesh Sharma vs Union of India (2018 SC 45)"); toast.success("✓ Citation Copied!"); }} className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-zinc-700 text-slate-650 dark:text-slate-300">Copy Citation</button>
+              <button onClick={() => { navigator.clipboard.writeText("Rajesh Sharma vs Union of India (2018 SC 45)"); toast.success("âœ“ Citation Copied!"); }} className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-zinc-700 text-slate-650 dark:text-slate-300">Copy Citation</button>
               <button className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider bg-indigo-50 dark:bg-indigo-950/20 rounded text-[#4F46E5] border border-indigo-100 dark:border-indigo-950/40">Add to Argument</button>
             </div>
           </div>
@@ -5572,7 +5573,7 @@ const triggerBackgroundArgumentsSync = async (targetData, manual = false) => {
             </div>
             <p className="text-[11px] font-medium text-slate-500 leading-relaxed mb-3">Indicates that jurisdictional challenge cannot be used as a procedural shield when transaction execution has occurred within corporate municipal limits.</p>
             <div className="flex gap-2">
-              <button onClick={() => { navigator.clipboard.writeText("Amit Verma vs State of Maharashtra (2021 HC 112)"); toast.success("✓ Citation Copied!"); }} className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-zinc-700 text-slate-650 dark:text-slate-300">Copy Citation</button>
+              <button onClick={() => { navigator.clipboard.writeText("Amit Verma vs State of Maharashtra (2021 HC 112)"); toast.success("âœ“ Citation Copied!"); }} className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-zinc-700 text-slate-650 dark:text-slate-300">Copy Citation</button>
               <button className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider bg-indigo-50 dark:bg-indigo-950/20 rounded text-[#4F46E5] border border-indigo-100 dark:border-indigo-950/40">Add to Argument</button>
             </div>
           </div>
@@ -5683,7 +5684,7 @@ const triggerBackgroundArgumentsSync = async (targetData, manual = false) => {
                   </div>
                 </div>
                 <p className="text-[9px] text-gray-500 dark:text-gray-400 pl-10 truncate">
-                  Client: {caseData.clientName || 'Rajesh Sharma'} • Opponent: {caseData.opponentName || 'Amit Verma'} • Court: {caseData.courtName || 'District Court'}
+                  Client: {caseData.clientName || 'Rajesh Sharma'} â€¢ Opponent: {caseData.opponentName || 'Amit Verma'} â€¢ Court: {caseData.courtName || 'District Court'}
                 </p>
               </div>
 
@@ -5739,7 +5740,7 @@ const triggerBackgroundArgumentsSync = async (targetData, manual = false) => {
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#E1EFFE] text-[#1E429F] tracking-wide">MEDIUM</span>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
-                    Client: {caseData.clientName || 'Rajesh Sharma'} • Opponent: {caseData.opponentName || 'Amit Verma'} • Court: {caseData.courtName || 'District Court'}
+                    Client: {caseData.clientName || 'Rajesh Sharma'} â€¢ Opponent: {caseData.opponentName || 'Amit Verma'} â€¢ Court: {caseData.courtName || 'District Court'}
                   </p>
                 </div>
               </div>
@@ -5848,7 +5849,7 @@ const triggerBackgroundArgumentsSync = async (targetData, manual = false) => {
                   <div className="flex items-center gap-2">
                     <Scale size={15} className="text-[#4F46E5]" />
                     <div className="flex flex-col">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-white">⚖ Case Assistant</h4>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-white">âš– Case Assistant</h4>
                       <span className="flex items-center gap-1 text-[9px] text-emerald-500 font-bold uppercase tracking-wide">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                         AI Online
@@ -5884,29 +5885,29 @@ const triggerBackgroundArgumentsSync = async (targetData, manual = false) => {
                   <>
                     {!hasUserMessages && (
                       <div className="p-4 bg-indigo-50/40 dark:bg-indigo-950/15 border border-indigo-100/50 dark:border-indigo-900/30 rounded-2xl space-y-3 text-slate-700 dark:text-slate-350">
-                        <p className="font-bold text-xs text-indigo-750 dark:text-indigo-400">👋 Hello! I have loaded this case.</p>
+                        <p className="font-bold text-xs text-indigo-750 dark:text-indigo-400">ðŸ‘‹ Hello! I have loaded this case.</p>
                         <p className="text-[11px] leading-relaxed">Ask me anything about:</p>
                         <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-[10px] font-bold text-slate-650 dark:text-slate-400">
                           <div className="flex items-center gap-1">
-                            <span className="text-emerald-500 font-black">✓</span> Evidence
+                            <span className="text-emerald-500 font-black">âœ“</span> Evidence
                           </div>
                           <div className="flex items-center gap-1">
-                            <span className="text-emerald-500 font-black">✓</span> Timeline
+                            <span className="text-emerald-500 font-black">âœ“</span> Timeline
                           </div>
                           <div className="flex items-center gap-1">
-                            <span className="text-emerald-500 font-black">✓</span> Drafts
+                            <span className="text-emerald-500 font-black">âœ“</span> Drafts
                           </div>
                           <div className="flex items-center gap-1">
-                            <span className="text-emerald-500 font-black">✓</span> Arguments
+                            <span className="text-emerald-500 font-black">âœ“</span> Arguments
                           </div>
                           <div className="flex items-center gap-1">
-                            <span className="text-emerald-500 font-black">✓</span> Laws & Acts
+                            <span className="text-emerald-500 font-black">âœ“</span> Laws & Acts
                           </div>
                           <div className="flex items-center gap-1">
-                            <span className="text-emerald-500 font-black">✓</span> Research
+                            <span className="text-emerald-500 font-black">âœ“</span> Research
                           </div>
                           <div className="col-span-2 flex items-center gap-1">
-                            <span className="text-emerald-500 font-black">✓</span> Previous Orders
+                            <span className="text-emerald-500 font-black">âœ“</span> Previous Orders
                           </div>
                         </div>
                         <p className="text-[11px] pt-1">How can I help?</p>
@@ -6095,7 +6096,7 @@ const triggerBackgroundArgumentsSync = async (targetData, manual = false) => {
                       </button>
                       <Scale size={15} className="text-[#4F46E5]" />
                       <div className="flex flex-col">
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-white">⚖ Case Assistant</h4>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-white">âš– Case Assistant</h4>
                         <span className="flex items-center gap-1 text-[9px] text-emerald-500 font-bold uppercase tracking-wide">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                           AI Online
@@ -6124,29 +6125,29 @@ const triggerBackgroundArgumentsSync = async (targetData, manual = false) => {
                     <>
                       {!hasUserMessages && (
                         <div className="p-4 bg-indigo-50/40 dark:bg-indigo-950/15 border border-indigo-100/50 dark:border-indigo-900/30 rounded-2xl space-y-3 text-slate-700 dark:text-slate-350">
-                          <p className="font-bold text-xs text-indigo-750 dark:text-indigo-400">👋 Hello! I have loaded this case.</p>
+                          <p className="font-bold text-xs text-indigo-750 dark:text-indigo-400">ðŸ‘‹ Hello! I have loaded this case.</p>
                           <p className="text-[11px] leading-relaxed">Ask me anything about:</p>
                           <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-[10px] font-bold text-slate-655 dark:text-slate-400">
                             <div className="flex items-center gap-1">
-                              <span className="text-emerald-500 font-black">✓</span> Evidence
+                              <span className="text-emerald-500 font-black">âœ“</span> Evidence
                             </div>
                             <div className="flex items-center gap-1">
-                              <span className="text-emerald-500 font-black">✓</span> Timeline
+                              <span className="text-emerald-500 font-black">âœ“</span> Timeline
                             </div>
                             <div className="flex items-center gap-1">
-                              <span className="text-emerald-500 font-black">✓</span> Drafts
+                              <span className="text-emerald-500 font-black">âœ“</span> Drafts
                             </div>
                             <div className="flex items-center gap-1">
-                              <span className="text-emerald-500 font-black">✓</span> Arguments
+                              <span className="text-emerald-500 font-black">âœ“</span> Arguments
                             </div>
                             <div className="flex items-center gap-1">
-                              <span className="text-emerald-500 font-black">✓</span> Laws & Acts
+                              <span className="text-emerald-500 font-black">âœ“</span> Laws & Acts
                             </div>
                             <div className="flex items-center gap-1">
-                              <span className="text-emerald-500 font-black">✓</span> Research
+                              <span className="text-emerald-500 font-black">âœ“</span> Research
                             </div>
                             <div className="col-span-2 flex items-center gap-1">
-                              <span className="text-emerald-500 font-black">✓</span> Previous Orders
+                              <span className="text-emerald-500 font-black">âœ“</span> Previous Orders
                             </div>
                           </div>
                           <p className="text-[11px] pt-1">How can I help?</p>
@@ -6495,11 +6496,110 @@ const triggerBackgroundArgumentsSync = async (targetData, manual = false) => {
 };
 
 
-// ═══════════════════════════════════════════════════════════════════════
-// ─── Main LegalDashboard Component ───────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// â”€â”€â”€ Main LegalDashboard Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ─── SMART ACTION MENU (Portal-based, viewport-aware) ────────────────────────
+// Receives triggerRect as prop — position is calculated synchronously, no race condition.
+const SmartActionMenu = ({ triggerRect, items, onClose }) => {
+  const menuRef = useRef(null);
+
+  // Calculate position from triggerRect immediately
+  const pos = useMemo(() => {
+    if (!triggerRect) return { top: 0, left: 0, openUp: false };
+    const MENU_HEIGHT = 220;
+    const MENU_WIDTH = 160;
+    const MARGIN = 8;
+    const spaceBelow = window.innerHeight - triggerRect.bottom - MARGIN;
+    const spaceAbove = triggerRect.top - MARGIN;
+    const openUp = spaceBelow < MENU_HEIGHT && spaceAbove > spaceBelow;
+    let top = openUp ? triggerRect.top - MENU_HEIGHT - 4 : triggerRect.bottom + 4;
+    let left = triggerRect.right - MENU_WIDTH;
+    top = Math.max(MARGIN, Math.min(top, window.innerHeight - MENU_HEIGHT - MARGIN));
+    left = Math.max(MARGIN, Math.min(left, window.innerWidth - MENU_WIDTH - MARGIN));
+    return { top, left, openUp };
+  }, [triggerRect]);
+
+  // Close on scroll or resize
+  useEffect(() => {
+    const close = () => onClose();
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [onClose]);
+
+  // ESC + arrow key navigation
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') { onClose(); return; }
+      if (!menuRef.current) return;
+      const btns = Array.from(menuRef.current.querySelectorAll('button'));
+      const idx = btns.indexOf(document.activeElement);
+      if (e.key === 'ArrowDown') { e.preventDefault(); btns[(idx + 1) % btns.length]?.focus(); }
+      if (e.key === 'ArrowUp')   { e.preventDefault(); btns[(idx - 1 + btns.length) % btns.length]?.focus(); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  // Focus first item on mount
+  useEffect(() => {
+    menuRef.current?.querySelector('button')?.focus();
+  }, []);
+
+  if (!triggerRect) return null;
+
+  return createPortal(
+    <>
+      {/* Click-outside backdrop */}
+      <div className="fixed inset-0 z-[99998]" onClick={onClose} aria-hidden="true" />
+
+      {/* Menu panel */}
+      <div
+        ref={menuRef}
+        role="menu"
+        aria-label="Case actions"
+        style={{
+          position: 'fixed',
+          top: pos.top,
+          left: pos.left,
+          width: 160,
+          zIndex: 99999,
+          transformOrigin: pos.openUp ? 'bottom right' : 'top right',
+        }}
+        className="bg-white dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-700 rounded-xl shadow-2xl shadow-black/10 py-1.5 animate-in fade-in zoom-in-95 duration-150"
+        onClick={e => e.stopPropagation()}
+      >
+        {items.map((item, i) => item === 'divider'
+          ? <div key={i} className="border-t border-[#E5E7EB] dark:border-zinc-800 my-1" />
+          : (
+            <button
+              key={item.label}
+              role="menuitem"
+              onClick={() => { onClose(); item.onClick(); }}
+              className={`w-full text-left px-3.5 py-2 flex items-center gap-2 text-xs font-bold transition-colors outline-none focus:bg-indigo-50 dark:focus:bg-indigo-950/20 ${
+                item.danger
+                  ? 'text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800'
+              }`}
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          )
+        )}
+      </div>
+    </>,
+    document.body
+  );
+};
+
 const LegalDashboard = ({
   legalCases = [],
+
   currentProjectId = null,
   handleOpenCase = () => {},
   handleOpenEditModal = () => {},
@@ -6528,6 +6628,8 @@ const LegalDashboard = ({
   const [sortBy, setSortBy] = useState('Last Updated');
   const [viewMode, setViewMode] = useState('table');
   const [activeActionDropdown, setActiveActionDropdown] = useState(null);
+  const [activeDropdownRect, setActiveDropdownRect] = useState(null);
+
 
   useEffect(() => {
     console.log("Case Management Loaded");
@@ -6615,7 +6717,7 @@ const LegalDashboard = ({
     }
   };
 
-  // ─── Case Detail View ────────────────────────
+  // â”€â”€â”€ Case Detail View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (selectedCase) {
     return (
       <div className="flex-1 flex flex-col w-full min-h-0 overflow-hidden bg-transparent relative">
@@ -6660,7 +6762,7 @@ const LegalDashboard = ({
     }
   };
 
-  // ─── Case List View ──────────────────────────
+  // â”€â”€â”€ Case List View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <div className="flex-1 flex flex-col w-full min-h-0 overflow-hidden aisa-scalable-text bg-[#F9FAFB] dark:bg-[#0b0c15] relative">
       {/* Dashboard Header */}
@@ -6860,76 +6962,69 @@ const LegalDashboard = ({
                             </span>
                           </td>
                           <td className="px-6 py-4 text-center" onClick={e => e.stopPropagation()}>
-                            <div className="relative inline-block text-left">
+                            <div className="relative inline-flex items-center justify-center">
                               <button
+                                id={`action-btn-${c.id || c._id}`}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setActiveActionDropdown(activeActionDropdown === (c.id || c._id) ? null : (c.id || c._id));
+                                  const caseId = c.id || c._id;
+                                  if (activeActionDropdown === caseId) {
+                                    setActiveActionDropdown(null);
+                                    setActiveDropdownRect(null);
+                                  } else {
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    setActiveDropdownRect(rect);
+                                    setActiveActionDropdown(caseId);
+                                  }
                                 }}
-                                className="p-1.5 hover:bg-gray-155 dark:hover:bg-zinc-800 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
+                                aria-haspopup="menu"
+                                aria-expanded={activeActionDropdown === (c.id || c._id)}
+                                className="p-1.5 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
                               >
                                 <MoreVertical size={15} />
                               </button>
+
                               {activeActionDropdown === (c.id || c._id) && (
-                                <>
-                                  <div className="fixed inset-0 z-30" onClick={() => setActiveActionDropdown(null)} />
-                                  <div className="absolute right-0 mt-1 w-36 bg-white dark:bg-zinc-900 border border-[#E5E7EB] dark:border-zinc-800 rounded-xl shadow-lg py-1.5 z-45 animate-in fade-in slide-in-from-top-1 duration-150">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setActiveActionDropdown(null);
-                                        handleOpenEditModal(c);
-                                      }}
-                                      className="w-full text-left px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-zinc-850 text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2"
-                                    >
-                                      <Edit2 size={13} /> Edit
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setActiveActionDropdown(null);
+                                <SmartActionMenu
+                                  triggerRect={activeDropdownRect}
+                                  onClose={() => { setActiveActionDropdown(null); setActiveDropdownRect(null); }}
+                                  items={[
+                                    {
+                                      label: 'Edit',
+                                      icon: <Edit2 size={13} />,
+                                      onClick: () => handleOpenEditModal(c),
+                                    },
+                                    {
+                                      label: 'Rename',
+                                      icon: <Edit2 size={13} />,
+                                      onClick: () => {
                                         setIsRenamingCase(c.id || c._id);
                                         setRenameValue(c.name || c.title);
-                                      }}
-                                      className="w-full text-left px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-zinc-850 text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2"
-                                    >
-                                      <Edit2 size={13} /> Rename
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setActiveActionDropdown(null);
-                                        toast.success("Case archived");
-                                      }}
-                                      className="w-full text-left px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-zinc-855 text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2"
-                                    >
-                                      <Bookmark size={13} /> Archive
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setActiveActionDropdown(null);
-                                        toast.success("Case duplicated");
-                                      }}
-                                      className="w-full text-left px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-zinc-855 text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2"
-                                    >
-                                      <Share2 size={13} /> Duplicate
-                                    </button>
-                                    <div className="border-t border-[#E5E7EB] dark:border-zinc-800 my-1" />
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setActiveActionDropdown(null);
-                                        if (confirm("Are you sure you want to delete this case?")) {
+                                      },
+                                    },
+                                    {
+                                      label: 'Archive',
+                                      icon: <Bookmark size={13} />,
+                                      onClick: () => toast.success('Case archived'),
+                                    },
+                                    {
+                                      label: 'Duplicate',
+                                      icon: <Share2 size={13} />,
+                                      onClick: () => toast.success('Case duplicated'),
+                                    },
+                                    'divider',
+                                    {
+                                      label: 'Delete',
+                                      icon: <Trash2 size={13} />,
+                                      danger: true,
+                                      onClick: () => {
+                                        if (confirm('Are you sure you want to delete this case?')) {
                                           handleDeleteCase(c.id || c._id);
                                         }
-                                      }}
-                                      className="w-full text-left px-3.5 py-2 hover:bg-red-50 dark:hover:bg-red-950/20 text-xs font-bold text-red-650 flex items-center gap-2"
-                                    >
-                                      <Trash2 size={13} /> Delete
-                                    </button>
-                                  </div>
-                                </>
+                                      },
+                                    },
+                                  ]}
+                                />
                               )}
                             </div>
                           </td>

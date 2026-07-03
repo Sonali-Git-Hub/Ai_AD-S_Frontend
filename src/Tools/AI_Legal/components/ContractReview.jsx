@@ -291,6 +291,11 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
   const [isCreateCaseModalOpen, setIsCreateCaseModalOpen] = useState(false);
   const [isWorkspaceLoading, setIsWorkspaceLoading] = useState(false);
   const [prefillBanner, setPrefillBanner] = useState(null);
+
+  // ─── Case Context (metadata only — never used as contract text) ───────────────
+  const [caseContext, setCaseContext] = useState(null);
+  // Which staged file is selected for analysis (multi-contract support)
+  const [selectedAnalysisFileId, setSelectedAnalysisFileId] = useState(null);
   
   // Create Case Form States
   const [newCaseName, setNewCaseName] = useState('');
@@ -439,6 +444,10 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
   const scrollRef = useRef(null);
   const chatBottomRef = useRef(null);
   const contractMountedRef = useRef(true);
+  const uploadInputRef = useRef(null); // shared ref for the sidebar upload input
+  const lastHydratedCaseIdRef = useRef(null); // track last case ID that was hydrated
+  const suppressHydrationRef = useRef(false); // block re-hydration during upload/analysis
+
 
   // ─ Language Toggle ────────────────────────────────────────
   const {
@@ -496,8 +505,15 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
   // --- Initialize and Hydrate from Database ---
   useEffect(() => {
     if (currentCase) {
-      setLinkedCaseId(currentCase._id);
-      hydrateFromCase(currentCase);
+      const newCaseId = currentCase._id;
+      setLinkedCaseId(newCaseId);
+
+      // Only hydrate when the case actually changes (not on every parent re-render/update)
+      // suppressHydrationRef blocks re-hydration during active upload/analysis
+      if (newCaseId !== lastHydratedCaseIdRef.current && !suppressHydrationRef.current) {
+        lastHydratedCaseIdRef.current = newCaseId;
+        hydrateFromCase(currentCase);
+      }
       
       // Auto-filter Template Explorer category according to case matter type
       const type = currentCase.caseType || '';
@@ -513,43 +529,65 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
         setToolsCategory('All');
       }
     } else {
+      lastHydratedCaseIdRef.current = null;
       resetPlatformState();
     }
-  }, [currentCase]);
+  }, [currentCase]); // eslint-disable-line
 
-  // Handle active case auto-load and trigger auto-run
+  // ─── Load Case Context (metadata only) ────────────────────────────────────
+  // IMPORTANT: Case data is ONLY stored as context. contractText is ONLY
+  // set when a real OCR-extracted contract document exists.
   useEffect(() => {
     if (currentCase) {
-      const mapped = mapCaseToForm(currentCase);
+      // Store case metadata as context — never as contract text
+      setCaseContext({
+        title: currentCase.name || currentCase.title || '',
+        caseType: currentCase.caseType || '',
+        client: currentCase.clientName || currentCase.client || '',
+        accused: currentCase.accused || currentCase.opponent || '',
+        court: currentCase.courtName || currentCase.court || '',
+        summary: currentCase.description || currentCase.summary || '',
+        hearingDate: currentCase.nextHearingDate || '',
+      });
 
+      // Only set contractText if real OCR-extracted file content exists
+      // Do NOT use caseFacts or description as contract text
+      const mapped = mapCaseToForm(currentCase);
       if (mapped.hasContract && mapped.contractFiles?.length) {
         const contractFile = mapped.contractFiles[0];
-        setContractTitle(`${mapped.caseTitle} — ${contractFile.name}`);
-        setContractText(mapped.caseFacts || '');
-        setPrefillBanner({ type: 'success', caseTitle: mapped.caseTitle, message: `Contract found: ${contractFile.name}. Automatically staging context.` });
-      } else if (mapped.caseFacts) {
-        setContractTitle(mapped.caseTitle || '');
-        setContractText(mapped.caseFacts);
-        setPrefillBanner({ type: 'warning', caseTitle: mapped.caseTitle, message: 'No contract files found in case. Seeding facts as review context.' });
+        setPrefillBanner({
+          type: 'info',
+          caseTitle: currentCase.name,
+          message: `Case loaded as context. Upload or select a contract document to begin analysis.`
+        });
+        // contractText will be set when user uploads/selects the file
+      } else {
+        // No contract files — show empty state, do NOT seed fake text
+        setContractTitle('');
+        setContractText('');
+        setPrefillBanner(null);
       }
+    } else {
+      setCaseContext(null);
     }
   }, [currentCase]);
 
-  // Execute Auto-Run if intended by Context
+  // Execute Auto-Run only when a real contract file with OCR text is available
   useEffect(() => {
     if (triggerAutoRun && currentCase && !auditResult && !isAuditing) {
-      toast.success(`✓ Case workspace prefilled successfully`, { icon: '📄', duration: 3000 });
+      // Only auto-run if we have real contract text from an uploaded file
+      const hasRealContract = files.some(f => f.ocrText?.trim());
+      if (!hasRealContract || !contractText?.trim()) {
+        toast(`📄 Case context loaded. Upload a contract to begin AI analysis.`, { duration: 3000 });
+        return;
+      }
+      toast.success(`✓ Contract workspace ready — running analysis`, { icon: '📄', duration: 3000 });
       setTimeout(() => {
-        const mapped = mapCaseToForm(currentCase);
-        let runTitle = mapped.caseTitle || currentCase.name || '';
-        let runText = mapped.caseFacts || currentCase.description || '';
-        if (mapped.hasContract && mapped.contractFiles?.length) {
-          runTitle = `${mapped.caseTitle} — ${mapped.contractFiles[0].name}`;
-        }
-        performContractAuditInternal(runTitle, runText, files, versions, auditLogs);
+        performContractAuditInternal(contractTitle, contractText, files, versions, auditLogs);
       }, 100);
     }
-  }, [triggerAutoRun, currentCase, auditResult, isAuditing]);
+  }, [triggerAutoRun, currentCase, auditResult, isAuditing]); // eslint-disable-line
+
 
   const resetPlatformState = () => {
     setContractTitle('');
@@ -567,50 +605,56 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
   const hydrateFromCase = async (caseObj) => {
     if (!caseObj) return;
     setIsWorkspaceLoading(true);
-    
-    // Simulate high-density enterprise workspace switch loading
-    await new Promise(resolve => setTimeout(resolve, 400));
-    
-    const ci = caseObj.contractIntelligence;
-    if (ci) {
-      setFiles(ci.files || []);
-      setContractTitle(ci.contractTitle || caseObj.name || '');
-      setContractText(ci.activeContractText || caseObj.description || '');
-      setAuditResult(ci.auditResult || null);
-      setVersions(ci.versions || []);
-      setAuditLogs(ci.auditLogs || []);
-      setChatHistory(ci.chatHistory || []);
-      setComparisonResult(ci.comparisonResult || null);
-      if (ci.files?.length > 0) {
-        setActiveFileId(ci.files[0].id);
-      }
-    } else {
-      // Auto-generate mock contract intelligence for standard empty cases
-      const seededCi = generateMockContractIntelligence(caseObj);
-      
-      const payload = {
-        ...caseObj,
-        contractIntelligence: seededCi
-      };
-      
-      try {
-        const response = await apiService.updateProject(caseObj._id, payload);
-        if (onUpdateCase) onUpdateCase(response);
-      } catch (err) {
-        console.error("Auto-seeding case failed to sync", err);
-      }
 
-      setFiles(seededCi.files || []);
-      setContractTitle(seededCi.contractTitle || caseObj.name || '');
-      setContractText(seededCi.activeContractText || caseObj.description || '');
-      setAuditResult(seededCi.auditResult || null);
-      setVersions(seededCi.versions || []);
-      setAuditLogs(seededCi.auditLogs || []);
-      setChatHistory(seededCi.chatHistory || []);
-      setComparisonResult(seededCi.comparisonResult || null);
-      if (seededCi.files?.length > 0) {
-        setActiveFileId(seededCi.files[0].id);
+    await new Promise(resolve => setTimeout(resolve, 350));
+
+    const ci = caseObj.contractIntelligence;
+    
+    // Extract any existing contract-like documents from caseObj.documents to populate workspace if empty
+    const workspaceContracts = (caseObj.documents || [])
+      .filter(d => /nda|contract|agreement/i.test(d.name || '') || (d.category && /contract|agreement/i.test(d.category)))
+      .map(d => ({
+        id: d.id || `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        name: d.name,
+        size: d.size || 0,
+        type: d.type || 'application/pdf',
+        uploadDate: d.uploadedAt ? new Date(d.uploadedAt).toLocaleDateString() : new Date().toLocaleDateString(),
+        ocrText: d.ocrText || '',
+        base64: ''
+      }));
+
+    let mergedFiles = ci?.files || [];
+    // Merge any contract documents from workspace documents that aren't in contractIntelligence yet
+    workspaceContracts.forEach(wc => {
+      const exists = mergedFiles.some(f => f.name === wc.name);
+      if (!exists) {
+        mergedFiles = [...mergedFiles, wc];
       }
+    });
+
+    if (mergedFiles.length > 0) {
+      setFiles(mergedFiles);
+      const firstFileWithText = mergedFiles.find(f => f.ocrText?.trim());
+      setContractTitle(firstFileWithText ? firstFileWithText.name : mergedFiles[0].name);
+      setContractText(firstFileWithText ? firstFileWithText.ocrText : '');
+      setAuditResult(ci?.auditResult || null);
+      setVersions(ci?.versions || []);
+      setAuditLogs(ci?.auditLogs || []);
+      setChatHistory(ci?.chatHistory || []);
+      setComparisonResult(ci?.comparisonResult || null);
+      setActiveFileId(mergedFiles[0].id);
+      setSelectedAnalysisFileId(mergedFiles[0].id);
+    } else {
+      setFiles([]);
+      setContractTitle('');
+      setContractText('');
+      setAuditResult(null);
+      setVersions(ci?.versions || []);
+      setAuditLogs(ci?.auditLogs || []);
+      setChatHistory(ci?.chatHistory || []);
+      setComparisonResult(null);
+      setActiveFileId(null);
+      setSelectedAnalysisFileId(null);
     }
     setIsWorkspaceLoading(false);
   };
@@ -652,17 +696,68 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
     try {
       const activeProj = allProjects.find(p => p._id === activeId) || currentCase;
       const currentCi = activeProj?.contractIntelligence || {};
+
+      // Calculate next files list (either from updates or existing state)
+      const nextFiles = updates.files !== undefined ? updates.files : files;
+
+      // Update activeProj.documents to keep it in sync!
+      let currentDocs = activeProj.documents || [];
+      
+      // 1. Remove documents that are no longer in nextFiles (if they were contract docs)
+      currentDocs = currentDocs.filter(doc => {
+        const isContract = doc.category === 'Contract' || doc.isContract === true || /nda|contract|agreement|lease/i.test(doc.name || '');
+        if (isContract) {
+          return nextFiles.some(f => f.name === doc.name);
+        }
+        return true;
+      });
+
+      // 2. Add/Update documents from nextFiles
+      nextFiles.forEach(f => {
+        const alreadyExists = currentDocs.some(doc => doc.name === f.name);
+        if (!alreadyExists) {
+          currentDocs = [
+            {
+              id: f.id,
+              name: f.name,
+              type: f.type || 'application/pdf',
+              size: f.size,
+              uploadedAt: new Date().toISOString(),
+              ocrStatus: 'Success (OCR Done)',
+              aiProcessed: 'Extracted successfully',
+              ocrText: f.ocrText,
+              category: 'Contract',
+              isContract: true
+            },
+            ...currentDocs
+          ];
+        } else {
+          // Update the ocrText if it's updated
+          currentDocs = currentDocs.map(doc => {
+            if (doc.name === f.name) {
+              return { 
+                ...doc, 
+                ocrText: f.ocrText || doc.ocrText,
+                category: 'Contract',
+                isContract: true
+              };
+            }
+            return doc;
+          });
+        }
+      });
+
       const payload = {
         ...activeProj,
+        documents: currentDocs,
         contractIntelligence: {
           ...currentCi,
           contractTitle,
           activeContractText: contractText,
-          files,
+          files: nextFiles,
           auditResult,
           versions,
           auditLogs,
-          chatHistory,
           comparisonResult,
           ...updates
         }
@@ -935,6 +1030,9 @@ Provide a comparative analysis in JSON format:
       return;
     }
 
+    // ── Suppress hydration during upload + analysis to prevent auditResult wipeout ──
+    suppressHydrationRef.current = true;
+
     // Check if the contract is already uploaded
     const existingFile = files.find(f => f.name === uploadedFiles[0].name);
     if (existingFile) {
@@ -949,6 +1047,8 @@ Provide a comparative analysis in JSON format:
         });
       };
       reader.readAsDataURL(file);
+      // Clean up ref if conflict returns early
+      suppressHydrationRef.current = false;
       return;
     }
 
@@ -1048,8 +1148,17 @@ Provide a comparative analysis in JSON format:
       auditLogs: updatedLogs
     });
 
-    // Auto-run analysis
-    await performContractAuditInternal(newStagedFiles[0].name, newStagedFiles[0].ocrText, updatedFiles, updatedVersions, updatedLogs);
+    // Auto-run analysis — scroll live progress into view first
+    setTimeout(() => {
+      const el = document.getElementById('section-live-progress');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 400);
+    try {
+      await performContractAuditInternal(newStagedFiles[0].name, newStagedFiles[0].ocrText, updatedFiles, updatedVersions, updatedLogs);
+    } finally {
+      // Re-enable hydration after analysis pipeline completes
+      suppressHydrationRef.current = false;
+    }
   };
 
   // --- AI Contract Review Engine ---
@@ -1066,6 +1175,91 @@ Provide a comparative analysis in JSON format:
       return;
     }
     await performContractAuditInternal(contractTitle, contractText, files, versions, auditLogs);
+  };
+
+  const repairTruncatedJson = (jsonStr) => {
+    if (!jsonStr) return null;
+    jsonStr = jsonStr.trim();
+    
+    // 1. Find the first '{'
+    const firstBrace = jsonStr.indexOf('{');
+    if (firstBrace === -1) return null;
+    jsonStr = jsonStr.slice(firstBrace);
+    
+    // 2. Scan to see if the JSON is cut off inside an unclosed string
+    let inString = false;
+    let escaped = false;
+    
+    for (let i = 0; i < jsonStr.length; i++) {
+      const char = jsonStr[i];
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (char === '\\') {
+        escaped = true;
+        continue;
+      }
+      if (char === '"') {
+        inString = !inString;
+        continue;
+      }
+    }
+    
+    // If we are currently inside an unclosed string at the end of the text, append the quote
+    if (inString) {
+      jsonStr += '"';
+    }
+    
+    let cleaned = jsonStr;
+    let parsed = null;
+    
+    // Attempt to parse by rolling back the string character-by-character if needed
+    for (let rollbackLen = cleaned.length; rollbackLen > 0; rollbackLen--) {
+      let testStr = cleaned.slice(0, rollbackLen);
+      
+      // Clean trailing comma, colon, or stray chars
+      testStr = testStr.trim().replace(/[,:\s]+$/, '');
+      
+      // Count unclosed brackets/braces in testStr
+      let openBraces = 0;
+      let openBrackets = 0;
+      let insideStr = false;
+      let esc = false;
+      
+      for (let i = 0; i < testStr.length; i++) {
+        if (esc) { esc = false; continue; }
+        if (testStr[i] === '\\') { esc = true; continue; }
+        if (testStr[i] === '"') { insideStr = !insideStr; continue; }
+        if (!insideStr) {
+          if (testStr[i] === '{') openBraces++;
+          else if (testStr[i] === '}') openBraces--;
+          else if (testStr[i] === '[') openBrackets++;
+          else if (testStr[i] === ']') openBrackets--;
+        }
+      }
+      
+      // Close the string envelope if we rolled back into the middle of one
+      if (insideStr) {
+        testStr += '"';
+      }
+      
+      // Append matching closing braces/brackets
+      for (let i = 0; i < openBrackets; i++) testStr += ']';
+      for (let i = 0; i < openBraces; i++) testStr += '}';
+      
+      try {
+        parsed = JSON.parse(testStr);
+        if (parsed) {
+          console.log(`[JSON Repair] Successfully repaired JSON by rolling back ${cleaned.length - rollbackLen} characters.`);
+          return parsed;
+        }
+      } catch (e) {
+        // Keep rolling back
+      }
+    }
+    
+    return null;
   };
 
   const performContractAuditInternal = async (title, text, activeFiles, activeVersions, activeLogs, loadingMsg, action = 'all') => {
@@ -1156,10 +1350,22 @@ Provide a comparative analysis in JSON format:
         templateSpecificInstructions = `The staged template context is a Vendor Contract. Apply vendor-specific clause checklists: Net payment terms thresholds (e.g. Net 30/60/90), liquidated damages rates per day of delay, immediate IP transfer timelines, and liability limitation caps.`;
       }
 
-      const systemPrompt = `You are the AISA Enterprise Contract Intelligence Platform.
-Audit the provided contract content and output your complete legal findings as a single valid JSON object.
-Do NOT include any markdown envelope other than "json" code block. No conversation.
-Ensure all keys matches the target structure exactly.
+      const systemPrompt = `You are a Senior Corporate Advocate and Chief Legal Counsel.
+Perform a complete legal due diligence and contract audit of the provided contract content.
+Your review must read like a premium legal memorandum prepared by an experienced attorney at a top-tier law firm (equivalent to Harvey AI, Lexis+ AI, or CoCounsel).
+The analysis must be legally precise, commercially meaningful, supported by legal reasoning, and professionally drafted.
+
+STRICT TONE & LANGUAGE RULES:
+- NEVER use generic AI sentences or robotic/chatbot wording (e.g. "Standard reciprocity terms applied", "No findings available", "Potential issue").
+- INSTEAD write: "The clause appears commercially balanced and does not create disproportionate obligations upon either contracting party" or "No material legal risk has been identified under this category following clause analysis" or "This provision may expose the parties to avoidable contractual disputes due to ambiguity in drafting."
+- If the contract doesn't contain enough information for a field, output exactly: "Insufficient contractual language available to reach a reliable legal conclusion."
+- Avoid placeholders or repeating the same recommendation. Every suggestion must be highly specific to the clause context.
+- Differentiate clearly between facts, legal interpretation, risk assessment, and legal recommendation.
+- Do NOT hallucinate. Every recommendation must be traceable to the contract clauses.
+- Keep descriptions, reasons, recommendations, and explanations concise (1-2 sentences maximum) while maintaining advocate-grade precision. This prevents output token limits from truncating the JSON response.
+
+Output your complete legal findings as a single valid JSON object.
+Do NOT include any markdown envelope other than the "json" code block. No conversational preamble.
 
 Action Guidance:
 ${actionSpecificInstructions}
@@ -1170,21 +1376,21 @@ ${templateSpecificInstructions}
 JSON Schema structure:
 {
   "stats": {
-    "overallScore": <Integer 0-100>,
-    "riskScore": <Integer 0-100>,
-    "complianceScore": <Integer 0-100>,
-    "negotiationScore": <Integer 0-100>,
+    "overallScore": <Integer 0-100, representing overall contract health where 100 is excellent>,
+    "riskScore": <Integer 0-100, representing overall legal risk percentage>,
+    "complianceScore": <Integer 0-100, representing overall regulatory compliance percentage>,
+    "negotiationScore": <Integer 0-100, representing commercial balance score>,
     "missingClausesCount": <Integer>,
-    "confidenceRate": <Integer 0-100>,
+    "confidenceRate": <Integer 0-100, representing AI review confidence rate>,
     "highRiskClausesCount": <Integer>,
     "mediumRiskClausesCount": <Integer>,
     "lowRiskClausesCount": <Integer>,
     "totalClausesCount": <Integer>,
     "timeSaved": "<Estimated review time saved e.g. 4.5 Hours>",
-    "reviewStatus": "<Safe to Sign | Review Before Signing | High Risk | Needs Legal Revision | Not Recommended>"
+    "reviewStatus": "<Critical Legal Risk | High Legal Risk | Medium Legal Risk | Low Legal Risk>"
   },
   "summary": {
-    "contractType": "<Contract classification e.g. NDA, SaaS, SLA>",
+    "contractType": "<Contract classification e.g. NDA, Commercial Lease, Master Service Agreement>",
     "parties": "<Detailed list of parties and business units>",
     "effectiveDate": "<Date or 'Not Specified'>",
     "expiryDate": "<Date or 'Not Specified'>",
@@ -1198,15 +1404,15 @@ JSON Schema structure:
     "businessPurpose": "<The commercial and business objective of this contract>"
   },
   "executiveSummary": {
-    "overallAssessment": "<Overall assessment summary>",
-    "majorLegalRisks": ["<Risk 1>", "<Risk 2>"],
-    "commercialRisks": ["<Risk 1>", "<Risk 2>"],
-    "financialRisks": ["<Risk 1>", "<Risk 2>"],
-    "complianceConcerns": ["<Concern 1>", "<Concern 2>"],
+    "overallAssessment": "<Overall assessment summary. Delineate overall contract health, key legal/commercial concerns, and enforceability assessment.>",
+    "majorLegalRisks": ["<Risk 1 with legal justification>", "<Risk 2 with legal justification>"],
+    "commercialRisks": ["<Commercial Risk 1>", "<Commercial Risk 2>"],
+    "financialRisks": ["<Financial Risk 1>", "<Financial Risk 2>"],
+    "complianceConcerns": ["<Statutory Compliance Concern 1>", "<Statutory Compliance Concern 2>"],
     "urgentActionItems": ["<Action 1>", "<Action 2>"],
     "negotiationPriorities": ["<Priority 1>", "<Priority 2>"],
     "topOpportunities": ["<Opportunity 1>", "<Opportunity 2>"],
-    "finalRecommendation": "<Final recommendation statement>"
+    "finalRecommendation": "<Final execution recommendation statement prepared by counsel>"
   },
   "clauses": [
     {
@@ -1214,53 +1420,53 @@ JSON Schema structure:
       "name": "<Clause Name e.g. Confidentiality, Indemnity>",
       "text": "<The actual text corresponding from the contract>",
       "risk": "<Low | Medium | High | Critical>",
-      "explanation": "<Legal exposure and explanation of why this risk rating is assigned>",
+      "explanation": "<Advocate explanation of why this risk rating is assigned, detailing the legal and commercial exposures>",
       "unfair": <Boolean true/false if clause is one-sided or highly unfair>,
-      "suggestion": "<Suggested edits and mitigation edits>",
+      "suggestion": "<Suggested edits and mitigation strategy for counsel>",
       "legalImpact": "<High | Medium | Low>",
       "commercialImpact": "<High | Medium | Low>",
-      "industryStandard": "<Standard wording / deviation detail>",
+      "industryStandard": "<Standard wording comparison / deviation detail>",
       "confidence": <Integer 0-100>,
       "indianLawMapping": {
-        "section": "<Section e.g. Section 73>",
-        "actName": "<Act name e.g. Indian Contract Act 1872>",
-        "applicability": "<Applicability text>",
-        "interpretation": "<Legal interpretation>",
-        "practicalEffect": "<Practical effect>"
+        "section": "<Section e.g. Section 27, Section 73>",
+        "actName": "<Act name e.g. Indian Contract Act, 1872>",
+        "applicability": "<Statutory applicability details>",
+        "interpretation": "<Legal interpretation under Indian Jurisprudence>",
+        "practicalEffect": "<Practical dispute/enforcement effect>"
       },
       "caseLawMapping": [
         {
           "citation": "<Supreme Court or High Court Citation>",
           "judgmentName": "<Case Title>",
           "ratio": "<Ratio decidendi>",
-          "implication": "<Practical implication>"
+          "implication": "<Practical implication for litigation/negotiation>"
         }
       ],
       "redraftSuggestions": {
-        "lawyerVersion": "<Draft written by a senior attorney>",
-        "clientVersion": "<Client-friendly version>",
+        "lawyerVersion": "<Draft written in precise, senior attorney legal English>",
+        "clientVersion": "<Commercial client-friendly version>",
         "plainEnglish": "<Simple translation without legal jargon>"
       }
     }
   ],
   "missingClauses": [
     {
-      "name": "<Missing clause title e.g. Dispute Resolution>",
+      "name": "<Missing clause title e.g. Force Majeure>",
       "category": "<Critical Missing | Recommended | Optional>",
       "importance": "<High | Medium | Low>",
       "explanation": "<Why this clause is necessary in this contract type>",
-      "riskCreated": "<Negative impact or vulnerability created by its absence>",
-      "suggestedWording": "<Suggested wording>",
+      "riskCreated": "<Vulnerability or negative exposure created by its absence>",
+      "suggestedWording": "<Suggested draft clause wording>",
       "applicableActs": "<Acts e.g. Indian Contract Act 1872>",
-      "relatedJudgments": "<Case citations>"
+      "relatedJudgments": "<Case citations or statutory references>"
     }
   ],
   "compliance": [
     {
       "law": "<Framework name e.g. Indian Contract Act 1872, DPDP Act 2023, Companies Act, Employment Laws, MSME Act, Consumer Protection, Arbitration Act>",
       "status": "<Passed | Failed | Warning | Not Applicable>",
-      "reason": "<Specific explanation of the compliance status and details of gaps>",
-      "suggestedFix": "<Suggested amendment wording or statutory change to fix the issue, or 'N/A'>"
+      "reason": "<Specific legal explanation of the compliance status and details of gaps>",
+      "suggestedFix": "<Suggested amendment wording or statutory change to fix the compliance gap, or 'N/A'>"
     }
   ],
   "financials": {
@@ -1286,24 +1492,62 @@ JSON Schema structure:
     }
   ],
   "negotiationCenter": {
-    "sellerFriendly": ["<Point 1>"],
-    "buyerFriendly": ["<Point 1>"],
-    "oneSided": ["<Point 1>"],
-    "balanced": ["<Point 1>"],
-    "negotiationSuggestions": ["<Point 1>"],
-    "fallbackLanguage": ["<Fallback language draft>"],
-    "betterDraft": ["<Better revised wording>"]
+    "sellerFriendly": ["<Negotiation point 1>"],
+    "buyerFriendly": ["<Negotiation point 1>"],
+    "oneSided": ["<Indication of one-sided covenant 1>"],
+    "balanced": ["<Indication of balanced covenant 1>"],
+    "negotiationSuggestions": ["<Advocate negotiation advice point 1>"],
+    "fallbackLanguage": ["<Fallback language draft clause>"],
+    "betterDraft": ["<Preferred alternative draft language>"]
   },
   "finalOpinion": {
-    "status": "<Safe to Sign | Review Before Signing | High Risk | Needs Legal Revision | Not Recommended>",
-    "reasoning": "<Executive reasoning explaining the risk and suitability>"
+    "status": "<Critical Legal Risk | High Legal Risk | Medium Legal Risk | Low Legal Risk>",
+    "reasoning": "<Executive reasoning explaining overall contract health, execution suitability, and key commercial/statutory recommendations>"
   }
 }`;
+
+      // ─── Build structured prompt: Case Context + Contract Text ──────────────
+      // Case context improves understanding; Contract Text is the ONLY analysis source.
+      const caseContextBlock = caseContext
+        ? `════════════════════════════════════════
+CASE CONTEXT (legal background only — do NOT analyze this as the contract)
+════════════════════════════════════════
+Case Title   : ${caseContext.title}
+Parties      : ${caseContext.client || 'N/A'} vs. ${caseContext.accused || 'N/A'}
+Case Type    : ${caseContext.caseType || 'N/A'}
+Court        : ${caseContext.court || 'N/A'}
+Case Summary : ${caseContext.summary || 'N/A'}
+`
+        : '';
+
+      // ── Cap contract text to stay within model token limits ──────────────────
+      const MAX_CONTRACT_CHARS = 12000;
+      const contractTextForAI = text.length > MAX_CONTRACT_CHARS
+        ? text.slice(0, MAX_CONTRACT_CHARS) + `\n\n[NOTE: Contract text truncated to ${MAX_CONTRACT_CHARS} characters for AI processing. Full document is ${text.length} characters. Analysis covers the first portion of the contract.]`
+        : text;
+
+      const userMessage = `${caseContextBlock}
+════════════════════════════════════════
+CONTRACT DOCUMENT (analyze this ONLY)
+════════════════════════════════════════
+Contract Title: ${title || 'Uploaded Contract'}
+
+${contractTextForAI}
+
+════════════════════════════════════════
+TASK
+════════════════════════════════════════
+Perform complete contract analysis EXCLUSIVELY on the Contract Document above.
+Use the Case Context ONLY to improve legal understanding (parties, jurisdiction hints).
+DO NOT generate analysis from the Case Summary alone.
+DO NOT fabricate clauses that are not present in the Contract Document.`;
+
+      console.log(`[ContractAudit] Sending ${userMessage.length} chars to AI (contract: ${text.length} → ${contractTextForAI.length} chars used)`);
 
       setAuditStep('Processing compliance algorithms...');
       const response = await generateChatResponse(
         [],
-        `Contract Title: ${title || 'Custom Agreement Review'}\n\nContract Text:\n${text}`,
+        userMessage,
         systemPrompt,
         [],
         'English',
@@ -1311,23 +1555,242 @@ JSON Schema structure:
         'legal'
       );
 
-      const responseText = response.reply || response || '';
+      // ── Validate response before parsing ─────────────────────────────────
+      if (!response) {
+        throw new Error('No response received from AI service. Check your connection.');
+      }
+      // Check for API-level errors returned as objects
+      if (response.error === 'OUT_OF_CREDITS') {
+        throw new Error('AI credits exhausted. Please upgrade your plan to continue contract analysis.');
+      }
+      if (response.error === 'PREMIUM_ONLY') {
+        throw new Error('Contract AI analysis requires a Premium plan. Please upgrade to continue.');
+      }
+      if (response.error === 'LIMIT_REACHED') {
+        throw new Error('Daily usage limit reached. Please try again tomorrow or upgrade your plan.');
+      }
+      // Check if response came back as a string error message (network/server errors)
+      const rawReply = response.reply || (typeof response === 'string' ? response : null) || '';
+      if (!rawReply || rawReply.startsWith('System Message:') || rawReply.startsWith('System Error:') || rawReply.startsWith('Sorry, I am having')) {
+        throw new Error(`AI service error: ${rawReply || 'Unknown error'}. Please try again.`);
+      }
+      const responseText = rawReply;
+      console.log(`[ContractAudit] Raw AI response: ${responseText.length} chars. Preview: ${responseText.slice(0, 200)}...`);
       
       let parsedResult = null;
-      try {
-        const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/) || responseText.match(/(\{[\s\S]*\})/);
-        if (jsonMatch) {
-          parsedResult = JSON.parse(jsonMatch[1] || jsonMatch[0]);
-        } else {
-          parsedResult = JSON.parse(responseText.trim());
+
+      // ── Strategy 1: Explicit ```json ... ``` code block ──
+      const codeBlockMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/);
+      if (codeBlockMatch) {
+        try { parsedResult = JSON.parse(codeBlockMatch[1]); } catch (_) {}
+      }
+
+      // ── Strategy 2: Brace-balanced JSON extraction (handles leading/trailing text) ──
+      if (!parsedResult) {
+        const firstBrace = responseText.indexOf('{');
+        if (firstBrace !== -1) {
+          let depth = 0, endIdx = -1;
+          for (let i = firstBrace; i < responseText.length; i++) {
+            if (responseText[i] === '{') depth++;
+            else if (responseText[i] === '}') { depth--; if (depth === 0) { endIdx = i; break; } }
+          }
+          if (endIdx !== -1) {
+            try { parsedResult = JSON.parse(responseText.slice(firstBrace, endIdx + 1)); } catch (_) {}
+          }
         }
-      } catch (err) {
-        console.error("JSON parse failed, extracting via regex summary", err);
+      }
+
+      // ── Strategy 3: Advanced JSON repair and prefix rollback ──
+      if (!parsedResult) {
+        try {
+          parsedResult = repairTruncatedJson(responseText);
+        } catch (_) {}
+      }
+
+      // ── Strategy 4: Auto-retry with compact prompt if all strategies fail ──
+      if (!parsedResult || !parsedResult.stats) {
+        console.warn('[ContractAudit] All parse strategies failed, retrying with compact prompt...');
+        setAuditStep('Retrying with compact analysis format...');
+        const retrySystemPrompt = `You are a legal contract analyzer. Output ONLY a raw JSON object with NO markdown, NO explanation, just the JSON. The JSON must have a "stats" key at minimum.`;
+        const retryUserMsg = `Analyze this contract and return ONLY valid JSON with keys: stats (overallScore, riskScore, complianceScore, negotiationScore, missingClausesCount, highRiskClausesCount, mediumRiskClausesCount, lowRiskClausesCount, totalClausesCount, timeSaved, reviewStatus, confidenceRate), summary (contractType, parties, effectiveDate, expiryDate, duration, jurisdiction, governingLaw, paymentTerms, renewalStatus, businessPurpose), executiveSummary (overallAssessment, majorLegalRisks, commercialRisks, financialRisks, complianceConcerns, urgentActionItems, negotiationPriorities, topOpportunities, finalRecommendation), clauses (array), missingClauses (array), compliance (array), finalOpinion (status, reasoning).\n\nContract:\n${text.slice(0, 4000)}`;
+        try {
+          const retryResp = await generateChatResponse([], retryUserMsg, retrySystemPrompt, [], 'English', null, 'legal');
+          const retryText = retryResp.reply || retryResp || '';
+          
+          // Try Strategy 1
+          const rBlock = retryText.match(/```json\s*([\s\S]*?)\s*```/);
+          if (rBlock) { try { parsedResult = JSON.parse(rBlock[1]); } catch (_) {} }
+          
+          // Try Strategy 2
+          if (!parsedResult) {
+            const rb = retryText.indexOf('{');
+            if (rb !== -1) {
+              let d = 0, ei = -1;
+              for (let i = rb; i < retryText.length; i++) {
+                if (retryText[i] === '{') d++;
+                else if (retryText[i] === '}') { d--; if (d === 0) { ei = i; break; } }
+              }
+              if (ei !== -1) { try { parsedResult = JSON.parse(retryText.slice(rb, ei + 1)); } catch (_) {} }
+            }
+          }
+          
+          // Try Strategy 3
+          if (!parsedResult) {
+            try {
+              parsedResult = repairTruncatedJson(retryText);
+            } catch (_) {}
+          }
+        } catch (retryErr) {
+          console.error('[ContractAudit] Retry failed:', retryErr);
+        }
       }
 
       if (!parsedResult || !parsedResult.stats) {
-        throw new Error("Unable to parse structured legal parameters.");
+        throw new Error("AI returned an unstructured response. Please try again — the contract may be too large for a single analysis pass.");
       }
+
+      // ── Normalize: ensure all expected array fields are actually arrays ──────────
+      const toArr = (v) => Array.isArray(v) ? v : (v ? [v] : []);
+      // toStr: safely converts any AI value to a renderable string
+      const toStr = (v) => {
+        if (v === null || v === undefined) return '';
+        if (typeof v === 'string') return v;
+        if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+        if (Array.isArray(v)) return v.map(toStr).join(', ');
+        if (typeof v === 'object') return Object.entries(v).map(([k, val]) => `${k}: ${toStr(val)}`).join(' · ');
+        return String(v);
+      };
+
+      if (parsedResult.clauses && !Array.isArray(parsedResult.clauses)) parsedResult.clauses = toArr(parsedResult.clauses);
+      if (parsedResult.missingClauses && !Array.isArray(parsedResult.missingClauses)) parsedResult.missingClauses = toArr(parsedResult.missingClauses);
+      if (parsedResult.compliance && !Array.isArray(parsedResult.compliance)) parsedResult.compliance = toArr(parsedResult.compliance);
+      if (parsedResult.timeline && !Array.isArray(parsedResult.timeline)) parsedResult.timeline = toArr(parsedResult.timeline);
+
+      // Normalize summary string fields
+      if (parsedResult.summary) {
+        const s = parsedResult.summary;
+        s.contractType = toStr(s.contractType);
+        s.parties = toStr(s.parties);
+        s.effectiveDate = toStr(s.effectiveDate);
+        s.expiryDate = toStr(s.expiryDate);
+        s.duration = toStr(s.duration);
+        s.jurisdiction = toStr(s.jurisdiction);
+        s.governingLaw = toStr(s.governingLaw);
+        s.paymentTerms = toStr(s.paymentTerms);
+        s.terminationDate = toStr(s.terminationDate);
+        s.renewalDate = toStr(s.renewalDate);
+        s.renewalStatus = toStr(s.renewalStatus);
+        s.businessPurpose = toStr(s.businessPurpose);
+      }
+
+      // Normalize stats string/number fields
+      if (parsedResult.stats) {
+        const st = parsedResult.stats;
+        st.timeSaved = toStr(st.timeSaved);
+        st.reviewStatus = toStr(st.reviewStatus);
+      }
+
+      // Normalize financials string fields
+      if (parsedResult.financials) {
+        const f = parsedResult.financials;
+        f.paymentAmount = toStr(f.paymentAmount);
+        f.taxes = toStr(f.taxes);
+        f.deposit = toStr(f.deposit);
+        f.penalty = toStr(f.penalty);
+        f.lateFees = toStr(f.lateFees);
+        f.renewalCharges = toStr(f.renewalCharges);
+        f.interest = toStr(f.interest);
+        f.summaryText = toStr(f.summaryText);
+      }
+
+      // Normalize executiveSummary
+      if (parsedResult.executiveSummary) {
+        const es = parsedResult.executiveSummary;
+        es.overallAssessment = toStr(es.overallAssessment);
+        es.finalRecommendation = toStr(es.finalRecommendation);
+        es.majorLegalRisks = toArr(es.majorLegalRisks).map(toStr);
+        es.commercialRisks = toArr(es.commercialRisks).map(toStr);
+        es.financialRisks = toArr(es.financialRisks).map(toStr);
+        es.complianceConcerns = toArr(es.complianceConcerns).map(toStr);
+        es.urgentActionItems = toArr(es.urgentActionItems).map(toStr);
+        es.negotiationPriorities = toArr(es.negotiationPriorities).map(toStr);
+        es.topOpportunities = toArr(es.topOpportunities).map(toStr);
+      }
+
+      // Normalize finalOpinion
+      if (parsedResult.finalOpinion) {
+        parsedResult.finalOpinion.status = toStr(parsedResult.finalOpinion.status);
+        parsedResult.finalOpinion.reasoning = toStr(parsedResult.finalOpinion.reasoning);
+      }
+
+      // Normalize obligations
+      if (parsedResult.obligations) {
+        parsedResult.obligations.yours = toArr(parsedResult.obligations.yours).map(toStr);
+        parsedResult.obligations.theirs = toArr(parsedResult.obligations.theirs).map(toStr);
+        parsedResult.obligations.summaryText = toStr(parsedResult.obligations.summaryText);
+      }
+
+      // Normalize negotiationCenter
+      if (parsedResult.negotiationCenter) {
+        const nc = parsedResult.negotiationCenter;
+        nc.sellerFriendly = toArr(nc.sellerFriendly).map(toStr);
+        nc.buyerFriendly = toArr(nc.buyerFriendly).map(toStr);
+        nc.oneSided = toArr(nc.oneSided).map(toStr);
+        nc.balanced = toArr(nc.balanced).map(toStr);
+        nc.negotiationSuggestions = toArr(nc.negotiationSuggestions).map(toStr);
+        nc.fallbackLanguage = toArr(nc.fallbackLanguage).map(toStr);
+        nc.betterDraft = toArr(nc.betterDraft).map(toStr);
+      }
+
+      // Normalize individual clause fields
+      if (Array.isArray(parsedResult.clauses)) {
+        parsedResult.clauses = parsedResult.clauses.map(c => ({
+          ...c,
+          name: toStr(c.name),
+          text: toStr(c.text),
+          risk: toStr(c.risk),
+          explanation: toStr(c.explanation),
+          suggestion: toStr(c.suggestion),
+          legalImpact: toStr(c.legalImpact),
+          commercialImpact: toStr(c.commercialImpact),
+          industryStandard: toStr(c.industryStandard),
+          caseLawMapping: toArr(c.caseLawMapping),
+          indianLawMapping: c.indianLawMapping && typeof c.indianLawMapping === 'object' ? {
+            section: toStr(c.indianLawMapping.section),
+            actName: toStr(c.indianLawMapping.actName),
+            applicability: toStr(c.indianLawMapping.applicability),
+            interpretation: toStr(c.indianLawMapping.interpretation),
+            practicalEffect: toStr(c.indianLawMapping.practicalEffect)
+          } : {}
+        }));
+      }
+
+      // Normalize missingClauses fields
+      if (Array.isArray(parsedResult.missingClauses)) {
+        parsedResult.missingClauses = parsedResult.missingClauses.map(m => ({
+          ...m,
+          name: toStr(m.name),
+          category: toStr(m.category),
+          importance: toStr(m.importance),
+          explanation: toStr(m.explanation),
+          riskCreated: toStr(m.riskCreated),
+          suggestedWording: toStr(m.suggestedWording),
+          applicableActs: toStr(m.applicableActs),
+          relatedJudgments: toStr(m.relatedJudgments)
+        }));
+      }
+
+      // Normalize compliance fields
+      if (Array.isArray(parsedResult.compliance)) {
+        parsedResult.compliance = parsedResult.compliance.map(c => ({
+          ...c,
+          law: toStr(c.law),
+          status: toStr(c.status),
+          reason: toStr(c.reason),
+          suggestedFix: toStr(c.suggestedFix)
+        }));
+      }
+
 
       setAuditResult(parsedResult);
       toast.success("AI Contract intelligence report compiled!", { id: toastId });
@@ -1984,7 +2447,7 @@ SUMMARY INFO:
     const missingClauses = missing.map(m => ({ name: m.clause || m.name, desc: m.explanation, action: m.suggestedWording }));
     const unusualClauses = clauses.filter(c => c.risk === 'Medium' && c.explanation?.toLowerCase().includes('unusual')).map(c => ({ name: c.name, desc: c.explanation, action: c.suggestion }));
     const oneSided = clauses.filter(c => c.explanation?.toLowerCase().includes('one-sided') || c.explanation?.toLowerCase().includes('favor')).map(c => ({ name: c.name, desc: c.explanation, action: c.suggestion }));
-    const complianceIssues = compliance.filter(c => c.status !== 'Compliant').map(c => ({ name: c.law, desc: c.explanation, action: 'Align wording with local statutory directives.' }));
+    const complianceIssues = compliance.filter(c => c.status !== 'Compliant' && c.status !== 'Passed').map(c => ({ name: c.law, desc: c.reason || c.explanation, action: c.suggestedFix }));
 
     return [
       { title: 'Critical Risks', count: criticalRisks.length, items: criticalRisks, color: 'bg-red-500/5 border-red-500/10 text-red-500' },
@@ -2341,7 +2804,7 @@ SUMMARY INFO:
                     <FolderKanban size={11} className="text-indigo-500 shrink-0" />
                     <span className="truncate">
                       {linkedCaseId 
-                        ? (allProjects.find(p => p._id === linkedCaseId)?.name || 'Linked Case Workspace') 
+                        ? (allProjects.find(p => p._id === linkedCaseId)?.name || currentCase?.name || 'Linked Case Workspace') 
                         : 'Manual Entry (Auto-Create case)'}
                     </span>
                   </div>
@@ -2517,6 +2980,7 @@ SUMMARY INFO:
                   }}
                 >
                   <input 
+                    ref={uploadInputRef}
                     type="file" 
                     multiple
                     accept=".pdf,.docx,.doc,.txt,image/*"
@@ -2585,6 +3049,13 @@ SUMMARY INFO:
               {/* 3. QUICK ACTIONS */}
               <div className="space-y-1.5 shrink-0">
                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-550">Quick Actions</span>
+                {/* Disabled banner when no contract */}
+                {!contractText.trim() && linkedCaseId && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 text-[8.5px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wide">
+                    <Upload size={9} className="shrink-0" />
+                    Upload a contract to enable AI actions
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                   {[
                     { id: 'summary', name: 'Analyze', icon: Sparkles, runAudit: true },
@@ -2596,43 +3067,42 @@ SUMMARY INFO:
                   ].map(act => {
                     const IconComp = act.icon;
                     const isActive = activeTab === act.id;
+                    const noContract = !contractText.trim();
                     return (
-                      <button
-                        key={act.id}
-                        disabled={isAuditing}
-                        onClick={async () => {
-                          if (!contractText.trim()) {
-                            toast.error(
-                              <span>
-                                <strong>Unable to run {act.name}.</strong><br/>
-                                Reason: OCR text missing.<br/>
-                                Upload or load a template first.
-                              </span>
-                            );
-                            return;
-                          }
-                          
-                          setActiveTab(act.id);
-                          handleQuickActionClick(act.id);
-                          
-                          let customLoadingMsg = "AI Platform auditing contract parameters...";
-                          if (act.id === 'heatmap') customLoadingMsg = "AI Platform scanning risk vectors & heatmap matrix...";
-                          if (act.id === 'clauses') customLoadingMsg = "AI Platform detecting active clauses & replacement standards...";
-                          if (act.id === 'compliance') customLoadingMsg = "AI Platform checking compliance against Indian Contract Act & related statutes...";
-                          if (act.id === 'negotiation') customLoadingMsg = "AI Platform building negotiation suggestions & fallback language...";
-                          if (act.id === 'redraft') customLoadingMsg = "AI Platform generating side-by-side redrafted contract drafts...";
-                          
-                          await performContractAuditInternal(contractTitle, contractText, files, versions, auditLogs, customLoadingMsg, act.id);
-                        }}
-                        className={`flex items-center gap-1.5 px-2.5 py-2 border rounded-lg text-[9px] font-black uppercase tracking-wider transition-all min-h-[36px] ${
-                          isActive
-                            ? 'border-indigo-500/40 bg-indigo-500/10 text-indigo-500 shadow-[0_2px_8px_rgba(99,102,241,0.15)]'
-                            : 'border-slate-200/60 dark:border-zinc-800/80 bg-white/5 text-slate-600 dark:text-slate-400 hover:border-indigo-500/30 hover:bg-indigo-500/5 hover:text-indigo-500'
-                        }`}
-                      >
-                        <IconComp size={11} className={`${isActive ? 'text-indigo-500' : 'text-slate-400'} ${act.id === 'summary' && isAuditing ? 'animate-spin' : ''}`} />
-                        <span>{act.name}</span>
-                      </button>
+                      <div key={act.id} className="relative group">
+                        <button
+                          disabled={isAuditing || noContract}
+                          onClick={async () => {
+                            if (noContract) return;
+                            setActiveTab(act.id);
+                            handleQuickActionClick(act.id);
+                            let customLoadingMsg = "AI Platform auditing contract parameters...";
+                            if (act.id === 'heatmap') customLoadingMsg = "AI Platform scanning risk vectors & heatmap matrix...";
+                            if (act.id === 'clauses') customLoadingMsg = "AI Platform detecting active clauses & replacement standards...";
+                            if (act.id === 'compliance') customLoadingMsg = "AI Platform checking compliance against Indian Contract Act & related statutes...";
+                            if (act.id === 'negotiation') customLoadingMsg = "AI Platform building negotiation suggestions & fallback language...";
+                            if (act.id === 'redraft') customLoadingMsg = "AI Platform generating side-by-side redrafted contract drafts...";
+                            await performContractAuditInternal(contractTitle, contractText, files, versions, auditLogs, customLoadingMsg, act.id);
+                          }}
+                          className={`w-full flex items-center gap-1.5 px-2.5 py-2 border rounded-lg text-[9px] font-black uppercase tracking-wider transition-all min-h-[36px] ${
+                            noContract
+                              ? 'border-slate-200/40 dark:border-zinc-800/40 bg-slate-50/50 dark:bg-zinc-900/20 text-slate-300 dark:text-zinc-700 cursor-not-allowed'
+                              : isActive
+                                ? 'border-indigo-500/40 bg-indigo-500/10 text-indigo-500 shadow-[0_2px_8px_rgba(99,102,241,0.15)]'
+                                : 'border-slate-200/60 dark:border-zinc-800/80 bg-white/5 text-slate-600 dark:text-slate-400 hover:border-indigo-500/30 hover:bg-indigo-500/5 hover:text-indigo-500'
+                          }`}
+                        >
+                          <IconComp size={11} className={`${noContract ? 'text-slate-300 dark:text-zinc-700' : isActive ? 'text-indigo-500' : 'text-slate-400'} ${act.id === 'summary' && isAuditing ? 'animate-spin' : ''}`} />
+                          <span>{act.name}</span>
+                        </button>
+                        {/* Tooltip when disabled */}
+                        {noContract && (
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 bg-slate-900 dark:bg-zinc-800 text-white text-[8px] font-bold rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-lg">
+                            Upload a contract to enable this feature.
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900 dark:border-t-zinc-800" />
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -2739,54 +3209,77 @@ SUMMARY INFO:
               );
             })()}
 
-            {linkedCaseId && files.length === 0 && (
-              <div className={`border rounded-2xl p-8 shadow-sm space-y-6 text-left ${
-                isDark ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-200'
-              }`}>
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-                  <div className="space-y-4 max-w-lg">
-                    <div className="space-y-1">
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-500 text-[9px] font-black uppercase tracking-wider">
-                        Workspace Active
-                      </div>
-                      <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wide">Ready for AI Review</h3>
-                    </div>
-                    
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">
-                      Select a contract from the left workspace or upload a new contract using the left sidebar.
-                      Once a document is available, AI Legal will automatically enable review modules including:
-                    </p>
+            {/* OCR Loading State */}
+            {linkedCaseId && files.length === 0 && isOcrLoading && (
+              <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-5 px-4 py-8">
+                <div className="w-12 h-12 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin" />
+                <div className="text-center space-y-1">
+                  <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider animate-pulse">Extracting Contract Text...</h3>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Running structural OCR engine & preparing analysis workspace.</p>
+                </div>
+              </div>
+            )}
 
-                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10.5px] font-bold text-slate-650 dark:text-slate-355">
-                      {[
-                        'Executive Summary',
-                        'Risk Analysis',
-                        'Clause Intelligence',
-                        'Compliance Review',
-                        'Negotiation Suggestions',
-                        'Case Law Mapping'
-                      ].map((item, idx) => (
-                        <li key={idx} className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
+            {/* Empty State: No Contract Available */}
+            {linkedCaseId && files.length === 0 && !isOcrLoading && !isWorkspaceLoading && (
+              <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 px-4 py-8">
+                {/* Illustration */}
+                <div className="relative animate-in fade-in zoom-in-95 duration-300">
+                  <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-slate-100 to-slate-50 dark:from-zinc-800 dark:to-zinc-900 flex items-center justify-center shadow-inner border-2 border-dashed border-slate-300 dark:border-zinc-700">
+                    <FileText size={36} className="text-slate-400 dark:text-zinc-500 animate-pulse" />
                   </div>
-
-                  <div className="flex-1 flex justify-center items-center py-4">
-                    {/* Clean Illustration */}
-                    <div className="relative p-6 bg-slate-500/5 rounded-2xl border border-slate-250/20 dark:border-zinc-800/40 max-w-[200px] w-full text-center space-y-3">
-                      <div className="w-10 h-10 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center mx-auto">
-                        <Scale size={20} />
-                      </div>
-                      <div className="space-y-1">
-                        <span className="text-[9px] font-black uppercase text-slate-455 block tracking-wider">AISA AI Review</span>
-                        <span className="text-[10px] font-bold text-slate-500 block">Waiting for document...</span>
-                      </div>
-                    </div>
+                  <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg">
+                    <Upload size={14} className="text-white" />
                   </div>
                 </div>
+
+                {/* Text */}
+                <div className="text-center space-y-2 max-w-md">
+                  <h3 className="text-base font-black text-slate-800 dark:text-white uppercase tracking-wider">No Contract Uploaded</h3>
+                  <p className="text-sm text-slate-550 dark:text-slate-400 font-semibold leading-relaxed">
+                    The selected case does not contain any contract document.
+                  </p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 font-medium leading-relaxed max-w-sm mx-auto">
+                    Upload a contract to start AI-powered contract review, clause analysis, compliance verification, and legal risk assessment.
+                  </p>
+                </div>
+
+                {/* Case Context Badge */}
+                {caseContext && (
+                  <div className="w-full max-w-sm bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800/40 rounded-2xl p-4 text-left space-y-2">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-indigo-500 flex items-center gap-1.5">
+                      <CheckCircle2 size={10} /> Case Context Ready
+                    </p>
+                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">{caseContext.title}</p>
+                    <p className="text-[10px] text-slate-400 font-medium">Case details will be used as supporting context during analysis.</p>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {caseContext.caseType && <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-full text-[9px] font-bold">{caseContext.caseType}</span>}
+                      {caseContext.client && <span className="px-2 py-0.5 bg-slate-200 dark:bg-zinc-800 text-slate-600 dark:text-slate-400 rounded-full text-[9px] font-bold">{caseContext.client}</span>}
+                      {caseContext.court && <span className="px-2 py-0.5 bg-slate-200 dark:bg-zinc-800 text-slate-655 dark:text-slate-400 rounded-full text-[9px] font-bold">{caseContext.court}</span>}
+                    </div>
+                  </div>
+                )}
+
+                {/* CTAs */}
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                  <button
+                    onClick={() => uploadInputRef.current?.click()}
+                    className="px-6 py-3 bg-[#5B3DF5] hover:bg-indigo-700 active:scale-95 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/25"
+                  >
+                    <Upload size={14} /> Upload Contract
+                  </button>
+                  <button
+                    onClick={() => setIsWorkspaceDropdownOpen(true)}
+                    className="px-6 py-3 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+                  >
+                    Choose Another Case
+                  </button>
+                </div>
+
+                {/* Supported formats */}
+                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest pt-1">
+                  Supported: PDF · DOCX · TXT · DOC · Images (OCR)
+                </p>
               </div>
             )}
 
@@ -2909,6 +3402,119 @@ SUMMARY INFO:
                         </div>
                       )}
                     </div>
+
+                    {/* Active Contract Detail Card */}
+                    {(() => {
+                      const activeFile = files.find(f => f.id === activeFileId) || files[0];
+                      if (!activeFile) return null;
+                      
+                      const fileVer = versions.filter(v => v.note?.includes(activeFile.name)).length || 1;
+                      const fileSize = activeFile.size ? `${(activeFile.size / 1024).toFixed(1)} MB` : '1.2 MB';
+                      const formattedDate = activeFile.uploadDate || new Date().toLocaleDateString();
+
+                      let docSubtype = 'Employment Contract';
+                      if (activeFile.name?.toLowerCase().includes('nda') || activeFile.name?.toLowerCase().includes('disclosure')) {
+                        docSubtype = 'NDA Agreement';
+                      } else if (activeFile.name?.toLowerCase().includes('lease') || activeFile.name?.toLowerCase().includes('rent')) {
+                        docSubtype = 'Lease Deed';
+                      } else if (activeFile.name?.toLowerCase().includes('vendor')) {
+                        docSubtype = 'Vendor Agreement';
+                      } else if (activeFile.name?.toLowerCase().includes('service') || activeFile.name?.toLowerCase().includes('msa')) {
+                        docSubtype = 'Master Service Agreement';
+                      }
+
+                      return (
+                        <div className={`p-5 rounded-2xl border flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 transition-all shadow-sm ${
+                          isDark ? 'bg-indigo-950/10 border-indigo-500/20 text-white' : 'bg-indigo-50/20 border-indigo-500/20 text-slate-800'
+                        }`}>
+                          <div className="flex items-start gap-3.5 min-w-0">
+                            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 border border-indigo-500/20">
+                              <FileCheck size={24} />
+                            </div>
+                            <div className="min-w-0 space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="px-2 py-0.5 rounded bg-indigo-500 text-white text-[8px] font-black uppercase tracking-wider">Active Contract</span>
+                                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700/50 text-slate-500 dark:text-slate-400 text-[8px] font-bold">Version {fileVer}</span>
+                              </div>
+                              <h4 className="font-black text-sm truncate" title={activeFile.name}>{activeFile.name}</h4>
+                              <div className="flex flex-wrap gap-x-3 gap-y-1 text-[9.5px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">
+                                <span>Size: <strong className="text-slate-600 dark:text-slate-300 font-bold">{fileSize}</strong></span>
+                                <span>•</span>
+                                <span>Uploaded: <strong className="text-slate-600 dark:text-slate-300 font-bold">{formattedDate}</strong></span>
+                                <span>•</span>
+                                <span className="text-emerald-500 font-bold">OCR: SUCCESS (READY)</span>
+                                <span>•</span>
+                                <span className={auditResult ? "text-indigo-500 font-bold" : "text-amber-500 font-bold"}>
+                                  STATUS: {isAuditing ? "Analyzing..." : (auditResult ? "AI Reviewed" : "Ready for AI review")}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto border-t xl:border-t-0 pt-3 xl:pt-0 border-slate-100 dark:border-zinc-850">
+                            <button
+                              onClick={() => runContractAudit()}
+                              disabled={isAuditing}
+                              className="flex-1 xl:flex-initial px-4 py-2 bg-[#5B3DF5] hover:bg-indigo-700 disabled:bg-slate-450 active:scale-95 text-white rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-md shadow-indigo-500/25"
+                              title="Analyze Contract"
+                            >
+                              <Cpu size={12} className={isAuditing ? "animate-spin" : ""} />
+                              {isAuditing ? "Analyzing..." : "Analyze Contract"}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setActiveFileId(activeFile.id);
+                                setContractTitle(activeFile.name);
+                                setContractText(activeFile.ocrText);
+                                toast.success(`Loaded active contract viewer for: ${activeFile.name}`);
+                              }}
+                              className="flex-1 xl:flex-initial px-3.5 py-2 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-slate-300 rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1"
+                              title="View Contract"
+                            >
+                              <Eye size={12} />
+                              View Contract
+                            </button>
+                            <button
+                              onClick={() => {
+                                setActiveFileId(activeFile.id);
+                                const input = document.getElementById('contract-upload-input');
+                                if (input) input.click();
+                              }}
+                              className="flex-1 xl:flex-initial px-3.5 py-2 bg-amber-500/10 hover:bg-amber-500 text-amber-500 hover:text-white border border-amber-500/20 rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1"
+                              title="Replace Contract"
+                            >
+                              <UploadCloud size={12} />
+                              Replace Contract
+                            </button>
+                            <button
+                              onClick={() => {
+                                const input = document.getElementById('contract-upload-input');
+                                if (input) input.click();
+                              }}
+                              className="flex-1 xl:flex-initial px-3.5 py-2 bg-indigo-500/10 hover:bg-indigo-500 text-indigo-500 hover:text-white border border-indigo-500/20 rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1"
+                              title="Upload New Version"
+                            >
+                              <Plus size={12} />
+                              Upload New Version
+                            </button>
+                            <button
+                              onClick={() => handleDownloadFile(activeFile)}
+                              className="flex-1 xl:flex-initial p-2 bg-slate-100 dark:bg-zinc-850 hover:bg-slate-200 dark:hover:bg-zinc-800 text-slate-500 hover:text-indigo-500 rounded-xl transition-all flex items-center justify-center"
+                              title="Download Contract"
+                            >
+                              <Download size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteFile(activeFile.id)}
+                              className="flex-1 xl:flex-initial p-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl transition-all flex items-center justify-center"
+                              title="Delete Contract"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* Filter and search bar controls */}
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -3510,6 +4116,7 @@ SUMMARY INFO:
             )}
             
             {/* 4. LIVE ANALYSIS PROGRESS */}
+            <div id="section-live-progress" />
             {isAuditing && (() => {
               const modeLabels = {
                 summary: { name: 'Executive Review', color: 'text-indigo-500', bg: 'bg-indigo-500/10', pillars: ['OCR Complete', 'Clause Parse', 'Risk Analysis', 'Legal Opinion', 'AI Verdict'] },
@@ -3562,7 +4169,7 @@ SUMMARY INFO:
             })()}
 
             {/* Sticky Actions Row */}
-            {linkedCaseId && (
+            {linkedCaseId && files.length > 0 && (
               <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 sm:p-3 bg-slate-500/5 border border-slate-200/40 dark:border-zinc-800 rounded-2xl">
                 <span className="text-[10px] font-black uppercase text-indigo-500 tracking-wider hidden sm:block">Analysis Controls</span>
                 <div className="flex items-center gap-1 flex-wrap">
@@ -3608,7 +4215,7 @@ SUMMARY INFO:
             )}
 
             {/* 6. EXECUTIVE SUMMARY */}
-            {linkedCaseId && (
+            {linkedCaseId && files.length > 0 && (
               <div id="section-summary" className={`border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${
                 isDark ? 'bg-slate-900/40' : 'bg-white'
               } ${getSectionHighlightClass('summary')}`}>
@@ -3630,20 +4237,38 @@ SUMMARY INFO:
                       {/* Premium Summary Info Bar */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div className="p-2.5 bg-slate-500/5 rounded-xl border border-slate-200/40 dark:border-zinc-800/40 space-y-0.5">
-                          <span className="text-[8px] uppercase font-black text-slate-400 tracking-wider">Overall Verdict</span>
-                          <p className="text-slate-800 dark:text-slate-250 font-extrabold">{auditResult.finalOpinion?.status || auditResult.stats?.reviewStatus}</p>
+                          <span className="text-[8px] uppercase font-black text-slate-400 tracking-wider">Overall Legal Risk</span>
+                          <p className="text-slate-800 dark:text-slate-250 font-extrabold">{auditResult.stats?.reviewStatus || auditResult.finalOpinion?.status || 'Assessment Pending'}</p>
                         </div>
                         <div className="p-2.5 bg-red-500/5 rounded-xl border border-red-500/10 space-y-0.5">
                           <span className="text-[8px] uppercase font-black text-red-500 tracking-wider">Risk Score</span>
-                          <p className="text-red-500 font-extrabold text-xs">{auditResult.stats?.riskScore ?? stats.riskScore}% Risk</p>
+                          <p className="text-red-500 font-extrabold text-xs">
+                            {(() => {
+                              const score = auditResult.stats?.riskScore ?? stats.riskScore;
+                              if (score === undefined || score === null) return '--';
+                              const str = String(score).trim();
+                              return str.includes('%') || str.includes('/') ? str : `${str}%`;
+                            })()}
+                          </p>
                         </div>
                         <div className="p-2.5 bg-slate-500/5 rounded-xl border border-slate-200/40 dark:border-zinc-800/40 space-y-0.5">
-                          <span className="text-[8px] uppercase font-black text-slate-400 tracking-wider">Review Confidence</span>
+                          <span className="text-[8px] uppercase font-black text-slate-400 tracking-wider">Estimated Review Accuracy</span>
                           <p className="text-indigo-500 font-extrabold">{auditResult.stats?.confidenceRate ?? stats.confidenceRate}%</p>
                         </div>
                         <div className="p-2.5 bg-slate-500/5 rounded-xl border border-slate-200/40 dark:border-zinc-800/40 space-y-0.5">
                           <span className="text-[8px] uppercase font-black text-slate-400 tracking-wider">Est. Review Time</span>
                           <p className="text-slate-800 dark:text-slate-250 font-extrabold">{auditResult.stats?.timeSaved ?? stats.timeSaved}</p>
+                        </div>
+                      </div>
+
+                      {/* Risk Distribution Summary Row */}
+                      <div className="p-3 bg-slate-500/5 rounded-xl border border-slate-200/40 dark:border-zinc-800/40 flex flex-wrap items-center justify-between gap-3 text-[10px] font-black uppercase text-slate-400 select-none">
+                        <span className="tracking-wider">Risk Distribution:</span>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-red-650" /> Critical: {auditResult.clauses?.filter(c => c.risk === 'Critical').length || auditResult.stats?.highRiskClausesCount || 0}</span>
+                          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-red-400" /> High: {auditResult.clauses?.filter(c => c.risk === 'High').length || 0}</span>
+                          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-amber-550" /> Medium: {auditResult.clauses?.filter(c => c.risk === 'Medium').length || auditResult.stats?.mediumRiskClausesCount || 0}</span>
+                          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-indigo-500" /> Low: {auditResult.clauses?.filter(c => c.risk === 'Low').length || auditResult.stats?.lowRiskClausesCount || 0}</span>
                         </div>
                       </div>
 
@@ -3686,9 +4311,16 @@ SUMMARY INFO:
                         <div className="p-3 bg-red-500/5 rounded-xl border border-red-500/10 space-y-1.5">
                           <span className="text-[8px] uppercase tracking-wider text-red-500 font-black">Top Legal & Financial Risks</span>
                           <ul className="list-disc pl-4 space-y-1 font-semibold text-slate-655 dark:text-slate-450">
-                            {(auditResult.executiveSummary?.majorLegalRisks || []).concat(auditResult.executiveSummary?.commercialRisks || []).concat(auditResult.executiveSummary?.financialRisks || []).slice(0, 4).map((r, idx) => (
-                              <li key={idx}>{r}</li>
-                            ))}
+                            {(() => {
+                              const risks = [
+                                ...(Array.isArray(auditResult.executiveSummary?.majorLegalRisks) ? auditResult.executiveSummary.majorLegalRisks : []),
+                                ...(Array.isArray(auditResult.executiveSummary?.commercialRisks) ? auditResult.executiveSummary.commercialRisks : []),
+                                ...(Array.isArray(auditResult.executiveSummary?.financialRisks) ? auditResult.executiveSummary.financialRisks : [])
+                              ].slice(0, 4);
+                              return risks.length > 0
+                                ? risks.map((r, idx) => <li key={idx}>{r}</li>)
+                                : <li>No critical risks identified.</li>;
+                            })()}
                             {!(auditResult.executiveSummary?.majorLegalRisks || []).length && <li>No critical risks flags.</li>}
                           </ul>
                         </div>
@@ -3706,6 +4338,20 @@ SUMMARY INFO:
                         </div>
                       </div>
                     </div>
+                  ) : isAuditing ? (
+                    <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-zinc-800 animate-pulse">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {[1,2,3,4].map(i => <div key={i} className="h-14 rounded-xl bg-slate-100 dark:bg-zinc-800" />)}
+                      </div>
+                      <div className="h-20 rounded-xl bg-indigo-500/5 border border-indigo-500/10" />
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {[1,2,3].map(i => <div key={i} className="h-24 rounded-xl bg-slate-100 dark:bg-zinc-800" />)}
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {[1,2].map(i => <div key={i} className="h-28 rounded-xl bg-slate-100 dark:bg-zinc-800" />)}
+                      </div>
+                      <p className="text-center text-[9px] text-indigo-500 font-black uppercase tracking-widest">Generating Executive Legal Opinion...</p>
+                    </div>
                   ) : (
                     <div className="py-6 text-center text-slate-400 font-semibold text-[10px] uppercase tracking-wider space-y-1">
                       <Brain size={24} className="mx-auto mb-2 text-indigo-500 animate-pulse" />
@@ -3717,7 +4363,7 @@ SUMMARY INFO:
             )}
 
             {/* AI FINDINGS PANEL */}
-            {linkedCaseId && (
+            {linkedCaseId && files.length > 0 && (
               <div id="section-findings" className={`border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${
                 isDark ? 'bg-slate-900/40' : 'bg-white'
               } ${getSectionHighlightClass('heatmap')}`}>
@@ -3769,6 +4415,10 @@ SUMMARY INFO:
                                   )}
                                 </div>
                               ))
+                            ) : isAuditing ? (
+                              <div className="space-y-1.5 animate-pulse">
+                                {[1,2,3].map(i => <div key={i} className="h-10 rounded-lg bg-white/30 dark:bg-black/20" />)}
+                              </div>
                             ) : (
                               <p className="text-[9px] opacity-70 italic py-2 text-center">No AI findings available yet.</p>
                             )}
@@ -3782,7 +4432,7 @@ SUMMARY INFO:
             )}
 
             {/* 8. RISK ANALYSIS & MATRIX */}
-            {linkedCaseId && (
+            {linkedCaseId && files.length > 0 && (
               <div id="section-heatmap" className={`border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${
                 isDark ? 'bg-slate-900/40' : 'bg-white'
               } ${getSectionHighlightClass('heatmap')}`}>
@@ -3800,55 +4450,20 @@ SUMMARY INFO:
                 {!collapsedBlocks.heatmap && (
                   auditResult ? (
                     <div className="space-y-6 pt-2 border-t border-slate-100 dark:border-zinc-800">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Interactive Risk Grid Matrix</span>
-                          <div className="grid grid-cols-5 gap-1.5 bg-slate-500/5 p-4 rounded-2xl border border-slate-200/40 dark:border-zinc-800">
-                            {['Critical', 'High', 'Medium', 'Low'].map((likelihood) => (
-                              <React.Fragment key={likelihood}>
-                                <div className="text-[9px] font-black text-slate-400 uppercase flex items-center justify-end pr-2 h-10 leading-none">
-                                  {likelihood}
-                                </div>
-                                {['Low', 'Medium', 'High', 'Critical'].map((severity) => {
-                                  const matching = auditResult.clauses?.filter(c => c.risk === likelihood && (c.legalImpact || 'Medium') === severity) || [];
-                                  const hasMatches = matching.length > 0;
-                                  return (
-                                    <div
-                                      key={severity}
-                                      className={`h-10 rounded-xl flex items-center justify-center font-black text-xs border transition-all cursor-pointer ${
-                                        hasMatches
-                                          ? likelihood === 'Critical' || likelihood === 'High'
-                                            ? 'bg-red-500/20 border-red-500 text-red-500 shadow-sm shadow-red-500/10'
-                                            : 'bg-amber-500/20 border-amber-500 text-amber-500'
-                                          : 'bg-slate-500/5 border-transparent text-slate-400'
-                                      }`}
-                                    >
-                                      {matching.length || ''}
-                                    </div>
-                                  );
-                                })}
-                              </React.Fragment>
-                            ))}
-                            <div />
-                            {['Low', 'Medium', 'High', 'Critical'].map(label => (
-                              <div key={label} className="text-[9px] font-black text-slate-400 uppercase text-center mt-2 leading-none">{label}</div>
-                            ))}
+                      <div className="space-y-4">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Risk Assessment Overview</span>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[10.5px]">
+                          <div className="p-3 bg-red-500/5 rounded-xl border border-red-500/10">
+                            <h4 className="font-black text-red-500 uppercase tracking-wider text-[11px]">Financial Risks</h4>
+                            <p className="text-slate-500 mt-1 font-semibold">{auditResult.financials?.summaryText || 'Penalties, late fees, and high compound interest exposures detected.'}</p>
                           </div>
-                        </div>
-                        <div className="space-y-4">
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Risk Assessment Overview</span>
-                          <div className="space-y-3 text-[10.5px]">
-                            <div className="p-3 bg-red-500/5 rounded-xl border border-red-500/10">
-                              <h4 className="font-black text-red-500 uppercase tracking-wider text-[11px]">Financial Risks</h4>
-                              <p className="text-slate-500 mt-1 font-semibold">{auditResult.financials?.summaryText || 'Penalties, late fees, and high compound interest exposures detected.'}</p>
-                            </div>
-                            <div className="p-3 bg-amber-500/5 rounded-xl border border-amber-500/10">
-                              <h4 className="font-black text-amber-500 uppercase tracking-wider text-[11px]">Operational Risks</h4>
-                              <p className="text-slate-500 mt-1 font-semibold">{auditResult.executiveSummary?.commercialRisks?.join(', ') || 'Service uptime liabilities and intellectual property transfer rules.'}</p>
-                            </div>
+                          <div className="p-3 bg-amber-500/5 rounded-xl border border-amber-500/10">
+                            <h4 className="font-black text-amber-500 uppercase tracking-wider text-[11px]">Operational Risks</h4>
+                            <p className="text-slate-500 mt-1 font-semibold">{auditResult.executiveSummary?.commercialRisks?.join(', ') || 'Service uptime liabilities and intellectual property transfer rules.'}</p>
                           </div>
                         </div>
                       </div>
+
 
                       {/* Detailed Risk Vectors Table */}
                       <div className="border-t border-slate-100 dark:border-zinc-800 pt-4 mt-2">
@@ -3885,6 +4500,17 @@ SUMMARY INFO:
                         </div>
                       </div>
                     </div>
+                  ) : isAuditing ? (
+                    <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-zinc-800 animate-pulse">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="h-48 rounded-2xl bg-slate-100 dark:bg-zinc-800" />
+                        <div className="space-y-3">
+                          {[1,2].map(i => <div key={i} className="h-20 rounded-xl bg-slate-100 dark:bg-zinc-800" />)}
+                        </div>
+                      </div>
+                      <div className="h-32 rounded-xl bg-slate-100 dark:bg-zinc-800" />
+                      <p className="text-center text-[9px] text-red-500 font-black uppercase tracking-widest">Calculating Risk Vectors...</p>
+                    </div>
                   ) : (
                     <div className="py-6 text-center text-slate-400 font-semibold text-[10px] uppercase tracking-wider space-y-1">
                       <AlertTriangle size={24} className="mx-auto mb-2 text-amber-500 animate-pulse" />
@@ -3897,7 +4523,7 @@ SUMMARY INFO:
             )}
 
             {/* 7. CLAUSE INTELLIGENCE */}
-            {linkedCaseId && (
+            {linkedCaseId && files.length > 0 && (
               <div id="section-clauses" className={`border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${
                 isDark ? 'bg-slate-900/40' : 'bg-white'
               } ${getSectionHighlightClass('clauses')}`}>
@@ -3914,7 +4540,26 @@ SUMMARY INFO:
                 </button>
                 {!collapsedBlocks.clauses && (
                   <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-zinc-800 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
-                    {(() => {
+                    {isAuditing && !auditResult ? (
+                      <div className="space-y-3 animate-pulse">
+                        {[1,2,3,4,5,6].map(i => (
+                          <div key={i} className="p-4 rounded-xl bg-slate-500/5 border border-slate-200/55 dark:border-zinc-800/80 space-y-2.5">
+                            <div className="flex items-center justify-between">
+                              <div className="h-4 w-32 rounded bg-slate-200 dark:bg-zinc-700" />
+                              <div className="flex gap-1.5">
+                                <div className="h-4 w-20 rounded bg-slate-200 dark:bg-zinc-700" />
+                                <div className="h-4 w-16 rounded bg-slate-200 dark:bg-zinc-700" />
+                              </div>
+                            </div>
+                            <div className="h-12 rounded-lg bg-slate-100 dark:bg-zinc-800" />
+                            <div className="h-4 w-3/4 rounded bg-slate-100 dark:bg-zinc-800" />
+                            <div className="h-10 rounded-lg bg-emerald-500/5 border border-emerald-500/10" />
+                          </div>
+                        ))}
+                        <p className="text-center text-[9px] text-violet-500 font-black uppercase tracking-widest py-2">Extracting & Classifying Clauses...</p>
+                      </div>
+                    ) : null}
+                    {(!isAuditing || auditResult) && (() => {
                       const listCategories = [
                         'Payment Terms', 'Termination', 'Confidentiality', 'Indemnity', 'Force Majeure',
                         'Arbitration', 'Jurisdiction', 'Dispute Resolution', 'Notice', 'Intellectual Property',
@@ -4199,151 +4844,42 @@ SUMMARY INFO:
               </div>
             )}
 
-            {/* 11. REDRAFT & WORDING COMPARISON */}
-            {linkedCaseId && (
-              <div id="section-redraft" className={`border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${
-                isDark ? 'bg-slate-900/40' : 'bg-white'
-              } ${getSectionHighlightClass('redraft')}`}>
-                <button
-                  onClick={() => toggleBlock('redraft')}
-                  className="w-full flex items-center justify-between text-left font-black text-xs uppercase tracking-wider text-indigo-500"
-                >
-                  <div className="flex items-center gap-2">
-                    <FilePenLine size={14} />
-                    <span>Redraft Wording Comparisons & Versioning</span>
-                    {getSectionStatusBadge('redraft', 'Redraft Wording')}
-                  </div>
-                  {collapsedBlocks.redraft ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-                </button>
-                {!collapsedBlocks.redraft && (
-                  auditResult ? (
-                    <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-zinc-800 text-[10.5px]">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Wording Alternatives</span>
-                        <button
-                          onClick={handleExportDoc}
-                          className="px-2.5 py-1.5 bg-indigo-655 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow shadow-indigo-500/20"
-                        >
-                          <FileDown size={11} />
-                          Download Word Report
-                        </button>
-                      </div>
-
-                      <div className="space-y-4 max-h-96 overflow-y-auto pr-1 custom-scrollbar">
-                        {auditResult.clauses?.map((c, i) => {
-                          if (!c.redraftSuggestions) return null;
-                          const riskReducedText = c.suggestion || 'Exposed liability claims restricted to aggregate contract value.';
-                          const diffHighlightBadge = c.risk === 'Critical' || c.risk === 'High' ? 'Substantial Rewrite (+Reciprocal Liability +Notice Cures)' : 'Wording refinement applied';
-
-                          return (
-                            <div key={i} className="p-4 rounded-xl border border-slate-200/50 dark:border-zinc-800 space-y-3">
-                              <div className="flex justify-between items-center">
-                                <h4 className="font-black text-slate-805 dark:text-slate-200 uppercase tracking-wider text-[11px]">{c.name}</h4>
-                                <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-500 text-[8px] font-black uppercase tracking-wider">{diffHighlightBadge}</span>
-                              </div>
-                              
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-1 bg-red-500/5 p-3 rounded-lg border border-red-500/10">
-                                  <span className="text-[8px] font-black text-red-500 uppercase tracking-wider block">Original Wording</span>
-                                  <p className="font-mono text-[9px] leading-relaxed text-slate-655 dark:text-slate-400 whitespace-pre-wrap select-text">{c.text}</p>
-                                </div>
-                                <div className="space-y-1 bg-emerald-500/5 p-3 rounded-lg border border-emerald-500/10">
-                                  <span className="text-[8px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block">Advocate Improved Version</span>
-                                  <p className="font-mono text-[9px] leading-relaxed text-slate-655 dark:text-slate-400 whitespace-pre-wrap select-text">{c.redraftSuggestions.lawyerVersion}</p>
-                                </div>
-                              </div>
-
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[9px] bg-slate-500/5 p-2.5 rounded-xl">
-                                <div>
-                                  <span className="text-slate-400 font-black uppercase tracking-wider block">Mitigation Reason</span>
-                                  <p className="text-slate-600 dark:text-slate-300 font-semibold mt-0.5">{c.explanation}</p>
-                                </div>
-                                <div>
-                                  <span className="text-slate-450 font-black uppercase tracking-wider block">Risk Severity Reduced</span>
-                                  <p className="text-emerald-600 dark:text-emerald-400 font-extrabold mt-0.5">{riskReducedText}</p>
-                                </div>
-                              </div>
-
-                              <div className="p-3 bg-indigo-500/5 rounded-xl border border-indigo-500/10 text-indigo-500 font-extrabold text-[9.5px]">
-                                <strong>Plain English Translation:</strong> {c.redraftSuggestions.plainEnglish}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="py-6 text-center text-slate-400 font-semibold text-[10px] uppercase tracking-wider space-y-1">
-                      <FilePenLine size={24} className="mx-auto mb-2 text-indigo-500 animate-pulse" />
-                      <span>Clause redraft comparisons pending.</span>
-                      <p className="text-[9px] text-slate-400 font-medium lowercase">Trigger AI audit to construct Advocate Drafts and Layman conversions.</p>
-                    </div>
-                  )
-                )}
-              </div>
-            )}
-
-            {/* 12. CASE LAW MAPPING */}
-            {linkedCaseId && (
-              <div id="section-caseLaws" className={`border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${
-                isDark ? 'bg-slate-900/40' : 'bg-white'
-              } ${getSectionHighlightClass('caseLaws')}`}>
-                <button
-                  onClick={() => toggleBlock('caseLaws')}
-                  className="w-full flex items-center justify-between text-left font-black text-xs uppercase tracking-wider text-indigo-500"
-                >
-                  <div className="flex items-center gap-2">
-                    <BookOpen size={14} />
-                    <span>Case Law Citation Mapping</span>
-                    {getSectionStatusBadge('caseLaws', 'Case Law Search')}
-                  </div>
-                  {collapsedBlocks.caseLaws ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-                </button>
-                {!collapsedBlocks.caseLaws && (
-                  auditResult ? (
-                    <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-zinc-800 text-[10.5px]">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Supreme Court and Landmark Citations</span>
-                      <div className="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
-                        {auditResult.clauses?.flatMap(c => c.caseLawMapping || []).map((c, i) => {
-                          const isSC = c.citation?.toLowerCase().includes('sc') || c.citation?.toLowerCase().includes('scc') || c.citation?.toLowerCase().includes('scr') || c.judgmentName?.toLowerCase().includes('union') || c.ratio?.toLowerCase().includes('supreme');
-                          const courtType = isSC ? 'Supreme Court of India' : 'State High Court Precedent';
-                          const precedentStatus = isSC ? 'Binding Precedent (Article 141)' : 'Persuasive Statutory Authority';
-
-                          return (
-                            <div key={i} className="p-3.5 bg-slate-500/5 border border-slate-200/40 rounded-xl space-y-2">
-                              <div className="flex items-center justify-between flex-wrap gap-2 text-[10.5px]">
-                                <div className="space-y-0.5">
-                                  <h4 className="font-black text-slate-805 dark:text-slate-200 uppercase tracking-wider">{c.judgmentName}</h4>
-                                  <span className="text-[7.5px] uppercase tracking-wider text-indigo-500 font-extrabold block">{courtType} — {precedentStatus}</span>
-                                </div>
-                                <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-500 rounded font-black text-[9px]">{c.citation}</span>
-                              </div>
-                              <p className="text-slate-550 leading-relaxed font-semibold"><strong className="text-slate-600 dark:text-slate-350">Ratio Decidendi:</strong> {c.ratio}</p>
-                              <p className="text-indigo-500 font-extrabold text-[9.5px]"><strong className="text-indigo-600">Contractual Implication:</strong> {c.implication}</p>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="py-6 text-center text-slate-400 font-semibold text-[10px] uppercase tracking-wider space-y-1">
-                      <BookOpen size={24} className="mx-auto mb-2 text-indigo-500 animate-pulse" />
-                      <span>Landmark citations and ratios pending.</span>
-                      <p className="text-[9px] text-slate-400 font-medium lowercase">Run legal audit to retrieve precedent references.</p>
-                    </div>
-                  )
-                )}
-              </div>
-            )}
 
 
-            {!linkedCaseId && (
-              <div className="text-center py-20 space-y-3">
-                <Folder size={48} className="mx-auto text-slate-350 dark:text-zinc-700 animate-pulse" />
-                <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider">Select Case Matter</h3>
-                <p className="text-xs text-slate-400 max-w-sm mx-auto font-semibold leading-relaxed">
-                  Select an existing case matter or create a new case from the left sidebar to activate the AI LEGAL™ workspace environment.
+            {/* ── Multi-Contract Selector ───────────────────────────── */}
+            {linkedCaseId && files.length > 1 && contractText && !isAuditing && (
+              <div className="mb-4 p-4 bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800/40 rounded-2xl">
+                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-3 flex items-center gap-1.5">
+                  <FileStack size={13} /> {files.length} Contracts Found — Select One to Analyze
                 </p>
+                <div className="space-y-2">
+                  {files.map(f => (
+                    <label key={f.id} className="flex items-center gap-3 cursor-pointer group">
+                      <input
+                        type="radio"
+                        name="contract-selector"
+                        value={f.id}
+                        checked={selectedAnalysisFileId === f.id}
+                        onChange={() => {
+                          setSelectedAnalysisFileId(f.id);
+                          setActiveFileId(f.id);
+                          setContractTitle(f.name);
+                          setContractText(f.ocrText || '');
+                          setAuditResult(null);
+                        }}
+                        className="accent-indigo-600"
+                      />
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 group-hover:text-indigo-600 transition-colors truncate">{f.name}</span>
+                      <span className="text-[9px] text-slate-400 font-medium ml-auto shrink-0">{Math.round(f.size / 1024)} KB</span>
+                    </label>
+                  ))}
+                </div>
+                <button
+                  onClick={() => runContractAudit()}
+                  className="mt-3 w-full py-2 bg-[#5B3DF5] hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+                >
+                  Analyze Selected Contract
+                </button>
               </div>
             )}
 
