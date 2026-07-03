@@ -20,10 +20,20 @@ import { PayPalButtons, usePayPalScriptReducer } from '@paypal/react-paypal-js';
 
 // ─── Helper: Auth Headers ────────────────────────────────────────────────────
 function getAuthHeaders() {
-    const token = localStorage.getItem('token');
+    const userStr = localStorage.getItem("user");
+    let token = null;
+    if (userStr && userStr !== "undefined" && userStr !== "null") {
+        try {
+            const userObj = JSON.parse(userStr);
+            token = userObj?.token;
+        } catch (e) {}
+    }
+    if (!token || token === "undefined" || token === "null") {
+        token = localStorage.getItem("auth_token") || localStorage.getItem("token") || "";
+    }
     return {
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
+        'Authorization': token ? `Bearer ${token}` : ""
     };
 }
 
