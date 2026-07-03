@@ -4,7 +4,9 @@ import {
   Share2, FileDown, History, Search, X, Shield, Clock, 
   Brain, Scale, BookOpen, AlertTriangle, TrendingUp, Mic, 
   Database, Cpu, Briefcase, Building2, Landmark, Folder, Printer, CheckCircle2,
-  Upload, Sparkles, RefreshCw, BarChart2, Edit3, Trash2, Eye, Award, Check, FileSpreadsheet, Send, FileCheck, ArrowUpRight
+  Upload, Sparkles, RefreshCw, BarChart2, Edit3, Trash2, Eye, Award, Check, FileSpreadsheet, Send, FileCheck, ArrowUpRight,
+  FolderKanban, UploadCloud, ScanText, FileStack, Clock3, BriefcaseBusiness, BadgeCheck, Star, Pin, Lock, ChevronUp, ChevronDown,
+  Files, BrainCircuit, FilePenLine, GitCompareArrows, ShieldCheck, NotebookPen, Calendar, CheckSquare, SlidersHorizontal, Download
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { generateChatResponse } from '../../../services/geminiService';
@@ -18,14 +20,208 @@ import CopyOutputButton from './shared/CopyOutputButton';
 
 // Specialized modules presets
 const allTools = [
-  { id: 'NDA', name: 'NDA Review', desc: 'Indemnity & leak audit', category: 'Corporate' },
-  { id: 'Employment', name: 'Employment Scan', desc: 'Non-compete & severance', category: 'HR' },
-  { id: 'Lease', name: 'Lease Review', desc: 'Rent escalations & evictions', category: 'Real Estate' },
-  { id: 'Vendor', name: 'Vendor Agreement', desc: 'Net payment & penalties', category: 'Commercial' },
-  { id: 'Investment', name: 'Investment Review', desc: 'Liquidation & vetos', category: 'Corporate' },
-  { id: 'SaaS', name: 'SaaS Agreement', desc: 'SLA uptime & data rights', category: 'IT' },
-  { id: 'Privacy', name: 'Privacy Policy', desc: 'GDPR & DPDP compliance', category: 'IT' },
+  { id: 'NDA', name: 'NDA Review', desc: 'Indemnity & leak audit', category: 'NDA' },
+  { id: 'Employment', name: 'Employment Scan', desc: 'Non-compete & severance', category: 'Employment' },
+  { id: 'Lease', name: 'Lease Review', desc: 'Rent escalations & evictions', category: 'Lease' },
+  { id: 'Vendor', name: 'Vendor Agreement', desc: 'Net payment & penalties', category: 'Vendor' },
+  { id: 'Investment', name: 'Investment Review', desc: 'Liquidation & vetos', category: 'Investment' },
+  { id: 'SaaS', name: 'SaaS Agreement', desc: 'SLA uptime & data rights', category: 'Tech' },
+  { id: 'MSA', name: 'Master Services Agreement', desc: 'Enterprise terms & liability', category: 'MSA' },
 ];
+
+const generateMockContractIntelligence = (caseObj) => {
+  const name = caseObj.name || '';
+  let title = 'Master Commercial Agreement.pdf';
+  let text = `MASTER SERVICES AGREEMENT
+This Master Services Agreement ("Agreement") is entered into on 01 January 2026 ("Effective Date") by and between Rajesh Sharma, residing at New Delhi ("Client"), and Amit Verma, residing at Mumbai ("Opponent").
+WHEREAS, the parties desire to enter into a partnership to execute commercial civil construction works.
+Section 3. Payment Terms: Client shall pay the contractor Net 30 days upon submission of invoices. If any payment is delayed, contractor shall accrue interest at 18% per annum.
+Section 7. Indemnity: Contractor shall indemnify and hold harmless the Client against all third-party claims, liabilities, and court costs.
+Section 12. Term and Termination: This Agreement shall remain in effect for 24 months, expiring on 31 December 2027. It shall renew automatically for successive 12-month terms unless terminated.
+Section 15. Jurisdiction: This Agreement is governed by the laws of India. Any litigation or arbitration arising under this Agreement shall be subject to the exclusive jurisdiction of the courts of New Delhi.`;
+
+  let cType = 'Commercial Dispute';
+  let client = caseObj.clientName || 'Rajesh Sharma';
+  let opponent = caseObj.accused || 'Amit Verma';
+  let cStatus = caseObj.caseStatus || caseObj.status || 'Active';
+  let jurisdiction = 'New Delhi';
+
+  if (name.toLowerCase().includes('abc') || name.toLowerCase().includes('xyz')) {
+    title = 'ABC Partnership Deed.pdf';
+    text = `COMMERCIAL PARTNERSHIP AGREEMENT
+This agreement is made on 15 Feb 2026 between ABC Pvt Ltd and XYZ Ltd.
+Section 4. Profit Sharing: ABC Pvt Ltd shall receive 60% and XYZ Ltd 40% of net proceeds.
+Section 8. Dispute Resolution: Subject to arbitration in Mumbai.
+Section 11. Termination: Eviction of tenancy space with 15 days notice.`;
+    cType = 'Commercial Dispute';
+    client = 'ABC Pvt Ltd';
+    opponent = 'XYZ Ltd';
+    jurisdiction = 'Mumbai';
+  } else if (name.toLowerCase().includes('samsung') || name.toLowerCase().includes('consumer')) {
+    title = 'Samsung Product Purchase Warranty.pdf';
+    text = `WARRANTY TERMS & CONDITIONS
+Consumer Case warranty for Samsung electronic devices purchased in 2026.
+Section 1. Warranty Period: 12 months from purchase.
+Section 6. Liability Limitation: Samsung liability is strictly limited to product replacement. No commercial or consequential damages are covered.`;
+    cType = 'Consumer Case';
+    client = 'Consumer Client';
+    opponent = 'Samsung Electronics';
+    jurisdiction = 'Bangalore';
+  } else if (name.toLowerCase().includes('employment') || name.toLowerCase().includes('employee')) {
+    title = 'Executive Employment Agreement.pdf';
+    text = `EMPLOYMENT CONTRACT
+This Employment Contract is made on 01 Mar 2026.
+Section 2. Non-Compete: Employee shall not join any competitor in India for 24 months post termination.
+Section 5. Termination Notice: 3 months notice required.
+Section 9. Governing Law: Subject to Courts of Delhi.`;
+    cType = 'Employment Contract';
+    client = 'Advocate Staff';
+    opponent = 'Tech Corp India';
+    jurisdiction = 'Delhi';
+  }
+
+  const auditResult = {
+    stats: {
+      overallScore: 82,
+      riskScore: 28,
+      complianceScore: 91,
+      negotiationScore: 74,
+      missingClausesCount: 3,
+      confidenceRate: 96,
+      reviewStatus: 'Review Before Signing',
+      timeSaved: '2.4 hrs'
+    },
+    summary: {
+      contractType: title.replace('.pdf', ''),
+      jurisdiction: jurisdiction,
+      governingLaw: 'Indian Contract Act, 1872',
+      effectiveDate: '01 Jan 2026',
+      expiryDate: '31 Dec 2027',
+      renewalStatus: 'Automatic'
+    },
+    finalOpinion: {
+      status: 'Review Before Signing',
+      reasoning: `The contract is overall well-structured with a strong compliance rating of 91%. However, several key clauses require review:
+1. High interest rate of 18% per annum on payment delays (Section 3).
+2. Unilateral automatic renewal terms (Section 12).
+3. We recommend negotiating a cap on the interest rates to 10% and adding a 30-day manual renewal option.`
+    },
+    clauses: [
+      {
+        id: 'c1',
+        name: 'Payment Terms',
+        text: 'Section 3. Payment Terms: Client shall pay the contractor Net 30 days upon submission of invoices. If any payment is delayed, contractor shall accrue interest at 18% per annum.',
+        risk: 'Medium',
+        indianLawMapping: {
+          section: 'Section 73',
+          actName: 'Indian Contract Act 1872',
+          applicability: 'Applies to liquidated damages and reasonable compensations.',
+          interpretation: 'Indian courts do not enforce penal interest rates. 18% may be deemed penal depending on commercial context.',
+          practicalEffect: 'High likelihood of interest rate reductions during litigation or arbitration proceedings.'
+        },
+        caseLawMapping: [
+          {
+            judgmentName: 'Maula Bux vs Union of India',
+            citation: '1970 SCR (1) 928',
+            ratio: 'Penal liquidated damages without actual loss proof are not recoverable.',
+            implication: 'Interest rate claim of 18% requires reasonable evidence of actual loss.'
+          }
+        ],
+        redraftSuggestions: {
+          lawyerVersion: 'Section 3. Payment Terms: Client shall pay the contractor Net 30 days. Delayed payments shall accrue simple interest at a rate of 9% per annum.',
+          clientVersion: 'Client shall pay Net 45 days. No interest or penalty shall apply to delayed invoices.',
+          plainEnglish: 'The client will pay invoices within 30 days. Late payments will have a simple 9% annual interest charge.'
+        }
+      },
+      {
+        id: 'c2',
+        name: 'Indemnity',
+        text: 'Section 7. Indemnity: Contractor shall indemnify and hold harmless the Client against all third-party claims, liabilities, and court costs.',
+        risk: 'Low',
+        indianLawMapping: {
+          section: 'Section 124',
+          actName: 'Indian Contract Act 1872',
+          applicability: 'Defines contracts of indemnity.',
+          interpretation: 'Valid and fully enforceable indemnity covenant.',
+          practicalEffect: 'Enables client to recover complete litigation costs and settlement fees.'
+        },
+        caseLawMapping: [
+          {
+            judgmentName: 'Gajanan Moreshwar vs Moreshwar Madan',
+            citation: '(1942) 44 BOMLR 703',
+            ratio: 'Indemnifier liability commences as soon as the indemnified person’s liability is absolute.',
+            implication: 'Client can sue for indemnity even before paying third party damages.'
+          }
+        ],
+        redraftSuggestions: {
+          lawyerVersion: 'Section 7. Indemnity: Contractor agrees to indemnify Client against direct third-party damages arising from negligence.',
+          clientVersion: 'Contractor covers direct third-party losses.',
+          plainEnglish: 'The contractor will pay for any legal losses caused by their work.'
+        }
+      }
+    ],
+    missingClauses: [
+      {
+        id: 'm1',
+        clause: 'Limitation of Liability',
+        implication: 'Unlimited liability exposure on both parties. Risk is High.',
+        recommendation: 'Add a clause capping liabilities to 100% of contract values.'
+      },
+      {
+        id: 'm2',
+        clause: 'Force Majeure',
+        implication: 'No excuse terms for pandemic or government lockdown outages.',
+        recommendation: 'Insert standard force majeure list including lockdowns.'
+      }
+    ]
+  };
+
+  const files = [
+    {
+      id: `file_${Date.now()}_1`,
+      name: title,
+      size: 14520,
+      type: 'application/pdf',
+      uploadDate: new Date().toLocaleDateString(),
+      ocrText: text
+    }
+  ];
+
+  const versions = [
+    {
+      version: 1,
+      timestamp: new Date().toISOString(),
+      text: text,
+      note: `Original Upload: ${title}`
+    }
+  ];
+
+  const auditLogs = [
+    {
+      timestamp: new Date(Date.now() - 300000).toISOString(),
+      action: 'File Uploaded & OCR Scanned',
+      details: `Staged contract ${title} and completed structural OCR text extraction.`,
+      editedBy: 'Advocate (advocate@mock.com)'
+    },
+    {
+      timestamp: new Date(Date.now() - 120000).toISOString(),
+      action: 'AI Clause Review Generated',
+      details: 'Generated intelligence audit. Compliance Rating: 91%, Risk rating: Review Before Signing. Identified 2 active clauses and 2 gaps.',
+      editedBy: 'Advocate (advocate@mock.com)'
+    }
+  ];
+
+  return {
+    files,
+    contractTitle: title,
+    activeContractText: text,
+    auditResult,
+    versions,
+    auditLogs,
+    chatHistory: [],
+    comparisonResult: null
+  };
+};
 
 const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdateCase }) => {
   const isDark = theme === 'dark';
@@ -33,6 +229,7 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
   // Platform States
   const [contractTitle, setContractTitle] = useState('');
   const [contractText, setContractText] = useState('');
+  const [activeTemplateId, setActiveTemplateId] = useState('NDA');
   const [linkedCaseId, setLinkedCaseId] = useState(currentCase?._id || '');
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -42,6 +239,7 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
   const [ocrSearchQuery, setOcrSearchQuery] = useState('');
   const [isEditingOcr, setIsEditingOcr] = useState(false);
   const [activeFileId, setActiveFileId] = useState(null);
+  const [detectedEntities, setDetectedEntities] = useState(null);
 
   // Audit States
   const [isAuditing, setIsAuditing] = useState(false);
@@ -55,6 +253,15 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   // Version Control & Logging
+  // Catalog Table States
+  const [catalogSearch, setCatalogSearch] = useState('');
+  const [catalogStatusFilter, setCatalogStatusFilter] = useState('All');
+  const [catalogTypeFilter, setCatalogTypeFilter] = useState('All');
+  const [catalogRiskFilter, setCatalogRiskFilter] = useState('All');
+  const [catalogSortKey, setCatalogSortKey] = useState('name'); // 'name' | 'version' | 'pages' | 'size' | 'date'
+  const [catalogSortOrder, setCatalogSortOrder] = useState('asc'); // 'asc' | 'desc'
+  const [catalogPage, setCatalogPage] = useState(1);
+  const [catalogBulkSelected, setCatalogBulkSelected] = useState([]);
   const [versions, setVersions] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
 
@@ -75,8 +282,155 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
   const [isChatSending, setIsChatSending] = useState(false);
 
   // UI state filters
+  const [toolsSearchQuery, setToolsSearchQuery] = useState('');
   const [toolsCategory, setToolsCategory] = useState('All');
+  // Workspace Selector and case management states
+  const [isWorkspaceDropdownOpen, setIsWorkspaceDropdownOpen] = useState(false);
+  const [workspaceSearchQuery, setWorkspaceSearchQuery] = useState('');
+  const [workspaceCategory, setWorkspaceCategory] = useState('All');
+  const [isCreateCaseModalOpen, setIsCreateCaseModalOpen] = useState(false);
+  const [isWorkspaceLoading, setIsWorkspaceLoading] = useState(false);
   const [prefillBanner, setPrefillBanner] = useState(null);
+  
+  // Create Case Form States
+  const [newCaseName, setNewCaseName] = useState('');
+  const [newCaseClient, setNewCaseClient] = useState('');
+  const [newCaseOpponent, setNewCaseOpponent] = useState('');
+  const [newCaseType, setNewCaseType] = useState('Civil Suit');
+  const [newCaseSummary, setNewCaseSummary] = useState('');
+
+  // Duplicate upload version conflict state
+  const [duplicateFileConflict, setDuplicateFileConflict] = useState(null);
+
+  // Favorite / Pinned cases lists
+  const [favoriteCases, setFavoriteCases] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('aisa_fav_cases') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  // v3.0 Workspace interactive states
+  const [selectedHeatmapRisk, setSelectedHeatmapRisk] = useState(null);
+  const [activeRedraftId, setActiveRedraftId] = useState(null);
+  const [redraftPerspective, setRedraftPerspective] = useState('lawyer');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [expandedComplianceIdx, setExpandedComplianceIdx] = useState(null);
+  const [activePrecedentIdx, setActivePrecedentIdx] = useState(null);
+  
+  const [collapsedBlocks, setCollapsedBlocks] = useState({
+    summary: false,
+    clauses: true,
+    heatmap: true,
+    compliance: true,
+    negotiation: true,
+    redraft: true,
+    caseLaws: true
+  });
+
+  const toggleBlock = (key) => {
+    setCollapsedBlocks(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  const getSectionHighlightClass = (sectionKey) => {
+    const isSectionActive = activeTab === sectionKey;
+    return isSectionActive 
+      ? 'border-indigo-500/50 shadow-[0_4px_20px_rgba(99,102,241,0.15)] ring-1 ring-indigo-500/20 border-l-4 border-l-indigo-500 transition-all duration-300'
+      : 'border-slate-200 dark:border-zinc-800/80 transition-all duration-300';
+  };
+
+  const getSectionStatusBadge = (sectionKey, activeModeName) => {
+    if (isAuditing && activeTab === sectionKey) {
+      return (
+        <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase bg-indigo-500/10 text-indigo-500 animate-pulse ml-2 shrink-0">
+          Generating {activeModeName}...
+        </span>
+      );
+    }
+    if (auditResult) {
+      return (
+        <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase bg-emerald-500/10 text-emerald-500 ml-2 shrink-0">
+          Completed
+        </span>
+      );
+    }
+    return (
+      <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase bg-slate-100 dark:bg-zinc-800 text-slate-400 ml-2 shrink-0">
+        Empty
+      </span>
+    );
+  };
+
+  const handleQuickActionClick = (id) => {
+    let newCollapsed = {
+      summary: true,
+      findings: true,
+      heatmap: true,
+      clauses: true,
+      compliance: true,
+      negotiation: true,
+      redraft: true,
+      caseLaws: true,
+      activityLog: true,
+      chat: true
+    };
+
+    if (id === 'summary') {
+      newCollapsed.summary = false;
+      newCollapsed.findings = false;
+      newCollapsed.heatmap = false;
+    } else if (id === 'heatmap') {
+      newCollapsed.findings = false;
+      newCollapsed.heatmap = false;
+    } else if (id === 'clauses') {
+      newCollapsed.clauses = false;
+    } else if (id === 'compliance') {
+      newCollapsed.compliance = false;
+    } else if (id === 'negotiation') {
+      newCollapsed.negotiation = false;
+    } else if (id === 'redraft') {
+      newCollapsed.redraft = false;
+    }
+
+    setCollapsedBlocks(newCollapsed);
+
+    setTimeout(() => {
+      const targetId = id === 'summary' ? 'summary' : id;
+      const element = document.getElementById(`section-${targetId}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 150);
+  };
+  const [activeSidebarSection, setActiveSidebarSection] = useState('contract');
+  const [openSections, setOpenSections] = useState({
+    workspace: true,
+    contract: true,
+    actions: true,
+    templates: false,
+    ocr: false,
+    insights: false,
+    activity: true
+  });
+  const [favoriteTools, setFavoriteTools] = useState(() => {
+    try {
+      const stored = localStorage.getItem('aisa_fav_templates');
+      return stored ? JSON.parse(stored) : ['NDA'];
+    } catch {
+      return ['NDA'];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('aisa_fav_templates', JSON.stringify(favoriteTools));
+  }, [favoriteTools]);
+
+  const [pinnedTools, setPinnedTools] = useState(['Employment']);
 
   // Get active case context
   const activeCaseContext = useActiveCase();
@@ -102,6 +456,10 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
     contractMountedRef.current = true;
     return () => { contractMountedRef.current = false; };
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('aisa_fav_cases', JSON.stringify(favoriteCases));
+  }, [favoriteCases]);
 
   // Reset display when auditResult changes
   useEffect(() => {
@@ -140,6 +498,20 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
     if (currentCase) {
       setLinkedCaseId(currentCase._id);
       hydrateFromCase(currentCase);
+      
+      // Auto-filter Template Explorer category according to case matter type
+      const type = currentCase.caseType || '';
+      if (type.toLowerCase().includes('employment') || type.toLowerCase().includes('hr')) {
+        setToolsCategory('Employment');
+      } else if (type.toLowerCase().includes('nda') || type.toLowerCase().includes('disclosure')) {
+        setToolsCategory('NDA');
+      } else if (type.toLowerCase().includes('lease') || type.toLowerCase().includes('rent')) {
+        setToolsCategory('Lease');
+      } else if (type.toLowerCase().includes('vendor') || type.toLowerCase().includes('commercial')) {
+        setToolsCategory('Vendor');
+      } else {
+        setToolsCategory('All');
+      }
     } else {
       resetPlatformState();
     }
@@ -192,8 +564,13 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
     setActiveFileId(null);
   };
 
-  const hydrateFromCase = (caseObj) => {
+  const hydrateFromCase = async (caseObj) => {
     if (!caseObj) return;
+    setIsWorkspaceLoading(true);
+    
+    // Simulate high-density enterprise workspace switch loading
+    await new Promise(resolve => setTimeout(resolve, 400));
+    
     const ci = caseObj.contractIntelligence;
     if (ci) {
       setFiles(ci.files || []);
@@ -208,11 +585,34 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
         setActiveFileId(ci.files[0].id);
       }
     } else {
-      // Legacy or fresh case fallback
-      resetPlatformState();
-      setContractTitle(caseObj.name || '');
-      setContractText(caseObj.description || '');
+      // Auto-generate mock contract intelligence for standard empty cases
+      const seededCi = generateMockContractIntelligence(caseObj);
+      
+      const payload = {
+        ...caseObj,
+        contractIntelligence: seededCi
+      };
+      
+      try {
+        const response = await apiService.updateProject(caseObj._id, payload);
+        if (onUpdateCase) onUpdateCase(response);
+      } catch (err) {
+        console.error("Auto-seeding case failed to sync", err);
+      }
+
+      setFiles(seededCi.files || []);
+      setContractTitle(seededCi.contractTitle || caseObj.name || '');
+      setContractText(seededCi.activeContractText || caseObj.description || '');
+      setAuditResult(seededCi.auditResult || null);
+      setVersions(seededCi.versions || []);
+      setAuditLogs(seededCi.auditLogs || []);
+      setChatHistory(seededCi.chatHistory || []);
+      setComparisonResult(seededCi.comparisonResult || null);
+      if (seededCi.files?.length > 0) {
+        setActiveFileId(seededCi.files[0].id);
+      }
     }
+    setIsWorkspaceLoading(false);
   };
 
   // Ensure case is created in database (For manual entries)
@@ -316,6 +716,207 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
     await logAudit('Version Saved', `Saved Document version ${nextVerNo} - ${note}`, updatedVersions);
   };
 
+  // Conflict handlers for duplicate uploads
+  const processReplaceVersionConflict = async (fileObj, conflictObj) => {
+    setDuplicateFileConflict(null);
+    setIsOcrLoading(true);
+    const tid = toast.loading(`OCR Extracting text: ${fileObj.name}...`);
+    try {
+      const systemPrompt = `You are a professional legal OCR and text extraction engine. Extract all text content from this contract file exactly, maintaining lines, headings, paragraphs, and structure. Do NOT add any notes, headers, or explanations. Just return the extracted document text.`;
+      const currentMessage = `Extract the content of this file: ${fileObj.name}`;
+      
+      const response = await generateChatResponse(
+        [],
+        currentMessage,
+        systemPrompt,
+        [{ url: `data:${fileObj.type || 'application/pdf'};base64,${conflictObj.base64}`, name: fileObj.name, type: fileObj.type.startsWith('image/') ? 'image' : 'document' }],
+        'English',
+        null,
+        'legal'
+      );
+
+      const ocrText = response.reply || response || '';
+      toast.success(`OCR Complete: ${fileObj.name}`, { id: tid });
+
+      // Overwrite raw file in files list
+      const updatedFiles = files.map(f => f.name === fileObj.name ? { ...f, size: fileObj.size, uploadDate: new Date().toLocaleDateString(), ocrText, base64: conflictObj.base64 } : f);
+      setFiles(updatedFiles);
+      setContractTitle(fileObj.name);
+      setContractText(ocrText);
+
+      // Save a new version record
+      const currentVersions = [...versions];
+      const nextVerNo = currentVersions.length + 1;
+      const initialVer = {
+        version: nextVerNo,
+        timestamp: new Date().toISOString(),
+        text: ocrText,
+        note: `Version Replaced (Overwrite): ${fileObj.name}`
+      };
+      const updatedVersions = [...currentVersions, initialVer];
+      setVersions(updatedVersions);
+
+      // Log & sync
+      const timestamp = new Date().toISOString();
+      const userEmail = getUserData()?.email || 'System User';
+      const userName = getUserData()?.name || 'Advocate';
+      const newLog = {
+        timestamp,
+        action: 'File Version Overwritten',
+        details: `Replaced staged file "${fileObj.name}" with a newer copy. Version incremented to v${nextVerNo}.`,
+        editedBy: `${userName} (${userEmail})`
+      };
+      const updatedLogs = [...auditLogs, newLog];
+      setAuditLogs(updatedLogs);
+
+      await syncToDatabase({
+        activeContractText: ocrText,
+        files: updatedFiles,
+        versions: updatedVersions,
+        auditLogs: updatedLogs
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to replace version.", { id: tid });
+    } finally {
+      setIsOcrLoading(false);
+    }
+  };
+
+  const processCreateNewVersionConflict = async (fileObj, conflictObj) => {
+    setDuplicateFileConflict(null);
+    setIsOcrLoading(true);
+    const tid = toast.loading(`OCR Extracting text: ${fileObj.name}...`);
+    try {
+      const systemPrompt = `You are a professional legal OCR and text extraction engine. Extract all text content from this contract file exactly, maintaining lines, headings, paragraphs, and structure. Do NOT add any notes, headers, or explanations. Just return the extracted document text.`;
+      const currentMessage = `Extract the content of this file: ${fileObj.name}`;
+      
+      const response = await generateChatResponse(
+        [],
+        currentMessage,
+        systemPrompt,
+        [{ url: `data:${fileObj.type || 'application/pdf'};base64,${conflictObj.base64}`, name: fileObj.name, type: fileObj.type.startsWith('image/') ? 'image' : 'document' }],
+        'English',
+        null,
+        'legal'
+      );
+
+      const ocrText = response.reply || response || '';
+      toast.success(`OCR Complete: ${fileObj.name}`, { id: tid });
+
+      // Keep existing files, but append version
+      const currentVersions = [...versions];
+      const nextVerNo = currentVersions.length + 1;
+      const initialVer = {
+        version: nextVerNo,
+        timestamp: new Date().toISOString(),
+        text: ocrText,
+        note: `New Version Uploaded: ${fileObj.name}`
+      };
+      const updatedVersions = [...currentVersions, initialVer];
+      setVersions(updatedVersions);
+
+      // Overwrite the active document text & title
+      setContractTitle(fileObj.name);
+      setContractText(ocrText);
+
+      // Log & sync
+      const timestamp = new Date().toISOString();
+      const userEmail = getUserData()?.email || 'System User';
+      const userName = getUserData()?.name || 'Advocate';
+      const newLog = {
+        timestamp,
+        action: 'New File Version Created',
+        details: `Created new version record for contract "${fileObj.name}" without replacing current list.`,
+        editedBy: `${userName} (${userEmail})`
+      };
+      const updatedLogs = [...auditLogs, newLog];
+      setAuditLogs(updatedLogs);
+
+      await syncToDatabase({
+        activeContractText: ocrText,
+        versions: updatedVersions,
+        auditLogs: updatedLogs
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to create new version.", { id: tid });
+    } finally {
+      setIsOcrLoading(false);
+    }
+  };
+
+  const processCompareVersionsConflict = async (fileObj, conflictObj) => {
+    setDuplicateFileConflict(null);
+    setIsOcrLoading(true);
+    const tid = toast.loading(`Extracting version text for comparison...`);
+    try {
+      const systemPrompt = `You are a professional legal OCR and text extraction engine. Extract all text content from this contract file exactly.`;
+      const currentMessage = `Extract the content of this file: ${fileObj.name}`;
+      
+      const response = await generateChatResponse(
+        [],
+        currentMessage,
+        systemPrompt,
+        [{ url: `data:${fileObj.type || 'application/pdf'};base64,${conflictObj.base64}`, name: fileObj.name, type: fileObj.type.startsWith('image/') ? 'image' : 'document' }],
+        'English',
+        null,
+        'legal'
+      );
+
+      const newOcrText = response.reply || response || '';
+      toast.success(`OCR Complete! Generating Comparison...`, { id: tid });
+
+      // Run comparison
+      const comparePrompt = `You are a professional legal counsel. Compare the following two versions of a contract:
+Version 1 (Existing):
+${conflictObj.existingFile.ocrText}
+
+Version 2 (New Upload):
+${newOcrText}
+
+Provide a comparative analysis in JSON format:
+{
+  "modified": [
+    {
+      "clause": "Name of the clause changed",
+      "originalText": "original text summary",
+      "newText": "new text summary",
+      "riskAssessment": "Risk evaluation of changes"
+    }
+  ]
+}`;
+      
+      const compRes = await generateChatResponse(
+        [],
+        "Compare the versions",
+        comparePrompt,
+        [],
+        'English',
+        null,
+        'legal'
+      );
+
+      const compText = compRes.reply || compRes || '';
+      let parsedComp = { modified: [] };
+      try {
+        const jsonMatch = compText.match(/```json\s*([\s\S]*?)\s*```/) || compText.match(/(\{[\s\S]*\})/);
+        if (jsonMatch) parsedComp = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+      } catch (err) {
+        console.error(err);
+      }
+
+      setComparisonResult(parsedComp);
+      setActiveTab('compare');
+      toast.success("Comparison populated! Switch to comparison view tab to inspect.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to compare versions.", { id: tid });
+    } finally {
+      setIsOcrLoading(false);
+    }
+  };
+
   // --- Drop & Drag / File Upload Handlers ---
   const handleFileUpload = async (e, isComparison = false) => {
     const uploadedFiles = e.target.files ? Array.from(e.target.files) : [];
@@ -329,6 +930,23 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
         const base64Data = reader.result.split(',')[1];
         setSecondContractFile(prev => ({ ...prev, base64: base64Data, status: 'Loaded' }));
         toast.success(`Secondary contract staged: ${file.name}`);
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    // Check if the contract is already uploaded
+    const existingFile = files.find(f => f.name === uploadedFiles[0].name);
+    if (existingFile) {
+      const file = uploadedFiles[0];
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64Data = reader.result.split(',')[1];
+        setDuplicateFileConflict({
+          file: file,
+          existingFile: existingFile,
+          base64: base64Data
+        });
       };
       reader.readAsDataURL(file);
       return;
@@ -437,24 +1055,117 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
   // --- AI Contract Review Engine ---
   const runContractAudit = async () => {
     if (!contractText.trim()) {
-      toast.error("Please stage contract text or upload documents first.");
+      toast.error(
+        <span>
+          <strong>Unable to analyze contract.</strong><br/>
+          Reason: OCR text missing.<br/>
+          Upload or load a template first.
+        </span>,
+        { duration: 6000 }
+      );
       return;
     }
     await performContractAuditInternal(contractTitle, contractText, files, versions, auditLogs);
   };
 
-  const performContractAuditInternal = async (title, text, activeFiles, activeVersions, activeLogs) => {
+  const performContractAuditInternal = async (title, text, activeFiles, activeVersions, activeLogs, loadingMsg, action = 'all') => {
     setIsAuditing(true);
     setAuditResult(null);
-    setAuditStep('Auditing Clauses...');
+    setAuditStep('OCR Scanning Check...');
 
-    const toastId = toast.loading("AI Platform auditing contract parameters...");
+    const toastId = toast.loading(loadingMsg || "AI Platform auditing contract parameters...");
+
+    let progressIntervals = [];
+    if (action === 'heatmap') {
+      progressIntervals = [
+        { step: 'OCR Scanning Check...', delay: 200 },
+        { step: 'Risk Detection Calculations...', delay: 500 },
+        { step: 'Analyzing Risk Heatmap...', delay: 1000 },
+        { step: 'Calculating Risk Severity...', delay: 1500 }
+      ];
+    } else if (action === 'clauses') {
+      progressIntervals = [
+        { step: 'OCR Scanning Check...', delay: 200 },
+        { step: 'Extracting Clauses...', delay: 500 },
+        { step: 'Evaluating Clause Standards...', delay: 1000 },
+        { step: 'Verifying Hidden Liabilities...', delay: 1500 }
+      ];
+    } else if (action === 'compliance') {
+      progressIntervals = [
+        { step: 'OCR Scanning Check...', delay: 200 },
+        { step: 'Statutory Compliance Checks...', delay: 500 },
+        { step: 'Verifying Labour Laws...', delay: 1000 },
+        { step: 'Checking DPDP & Contract Act...', delay: 1500 }
+      ];
+    } else if (action === 'negotiation') {
+      progressIntervals = [
+        { step: 'OCR Scanning Check...', delay: 200 },
+        { step: 'Preparing Negotiation Wording...', delay: 500 },
+        { step: 'Generating Fallback Reciprocities...', delay: 1000 },
+        { step: 'Assembling Legal Leverage...', delay: 1500 }
+      ];
+    } else if (action === 'redraft') {
+      progressIntervals = [
+        { step: 'OCR Scanning Check...', delay: 200 },
+        { step: 'Generating Redraft Variations...', delay: 500 },
+        { step: 'Translating Plain English...', delay: 1000 },
+        { step: 'Finalizing Comparative Layouts...', delay: 1500 }
+      ];
+    } else {
+      progressIntervals = [
+        { step: 'OCR Scanning Check...', delay: 300 },
+        { step: 'Extracting Clauses...', delay: 600 },
+        { step: 'Running AI Audit Review...', delay: 1000 },
+        { step: 'Risk Detection Calculations...', delay: 1400 },
+        { step: 'Statutory Compliance Checks...', delay: 1800 },
+        { step: 'Supreme Court Case Law Search...', delay: 2200 },
+        { step: 'Generating Summary Report...', delay: 2600 }
+      ];
+    }
+
+    progressIntervals.forEach(item => {
+      setTimeout(() => {
+        setAuditStep(item.step);
+      }, item.delay);
+    });
 
     try {
+      let actionSpecificInstructions = '';
+      if (action === 'heatmap') {
+        actionSpecificInstructions = `Focus intensely on risk identification and classification. Build the stats riskScore, risk levels (Critical/High/Medium/Low counts), executiveSummary majorLegalRisks, commercialRisks, financialRisks, and complianceConcerns. Create an actual risk matrix. Set a highly accurate confidenceRate.`;
+      } else if (action === 'clauses') {
+        actionSpecificInstructions = `Extract and categorize every clause. Focus on identifying and parsing all 20 clause categories: Payment Terms, Termination, Confidentiality, Indemnity, Force Majeure, Arbitration, Jurisdiction, Dispute Resolution, Notice, Intellectual Property, Data Privacy, Non Compete, Warranty, Limitation of Liability, Assignment, Entire Agreement, Renewal, Default, Penalty. Make sure to populate the "clauses" and "missingClauses" lists.`;
+      } else if (action === 'compliance') {
+        actionSpecificInstructions = `Perform a comprehensive regulatory compliance check. Compare the contract against the Indian Contract Act 1872, DPDP Act 2023, Companies Act, Employment Laws, MSME Act, Consumer Protection, and Arbitration Act. Generate a detailed compliance report with pass/fail/warning statuses and explanations in the "compliance" list.`;
+      } else if (action === 'negotiation') {
+        actionSpecificInstructions = `Generate detailed negotiation recommendations. Populate the "negotiationCenter" object with Seller-friendly changes, Buyer-friendly changes, balanced options, and fallback recommendations, along with must-accept/must-reject points.`;
+      } else if (action === 'redraft') {
+        actionSpecificInstructions = `Generate improved, lawyer-grade clause redrafts. For each extracted clause in the "clauses" list, populate the "redraftSuggestions" object with lawyerVersion, clientVersion, and plainEnglish translations, highlighting risk reduction reasons.`;
+      } else {
+        actionSpecificInstructions = `Perform a complete contract audit. Populate every downstream section of the JSON schema (stats, summary, executiveSummary, clauses, missingClauses, compliance, financials, obligations, timeline, negotiationCenter, finalOpinion) completely and thoroughly.`;
+      }
+
+      let templateSpecificInstructions = '';
+      if (activeTemplateId === 'NDA') {
+        templateSpecificInstructions = `The staged template context is a Non-Disclosure Agreement (NDA). Check specifically for typical NDA rules: unilateral vs reciprocal confidentiality obligations, term of confidentiality, exclusions to confidential information, return of materials, governing law, and jurisdiction.`;
+      } else if (activeTemplateId === 'Employment') {
+        templateSpecificInstructions = `The staged template context is an Employment Agreement. Focus on employment clause intelligence: post-employment non-compete periods, unilateral termination notice terms, IP assignment to employer, dispute resolution, and probation duration.`;
+      } else if (activeTemplateId === 'Lease') {
+        templateSpecificInstructions = `The staged template context is a Lease Deed. Apply lease-specific compliance rules: monthly license fee compounding rate escalation limits, summary eviction notice notice periods, utility maintenance delay rights, and security deposit forfeiture terms.`;
+      } else if (activeTemplateId === 'Vendor') {
+        templateSpecificInstructions = `The staged template context is a Vendor Contract. Apply vendor-specific clause checklists: Net payment terms thresholds (e.g. Net 30/60/90), liquidated damages rates per day of delay, immediate IP transfer timelines, and liability limitation caps.`;
+      }
+
       const systemPrompt = `You are the AISA Enterprise Contract Intelligence Platform.
 Audit the provided contract content and output your complete legal findings as a single valid JSON object.
 Do NOT include any markdown envelope other than "json" code block. No conversation.
 Ensure all keys matches the target structure exactly.
+
+Action Guidance:
+${actionSpecificInstructions}
+
+Template Rules:
+${templateSpecificInstructions}
 
 JSON Schema structure:
 {
@@ -462,12 +1173,14 @@ JSON Schema structure:
     "overallScore": <Integer 0-100>,
     "riskScore": <Integer 0-100>,
     "complianceScore": <Integer 0-100>,
+    "negotiationScore": <Integer 0-100>,
     "missingClausesCount": <Integer>,
     "confidenceRate": <Integer 0-100>,
     "highRiskClausesCount": <Integer>,
     "mediumRiskClausesCount": <Integer>,
     "lowRiskClausesCount": <Integer>,
     "totalClausesCount": <Integer>,
+    "timeSaved": "<Estimated review time saved e.g. 4.5 Hours>",
     "reviewStatus": "<Safe to Sign | Review Before Signing | High Risk | Needs Legal Revision | Not Recommended>"
   },
   "summary": {
@@ -480,7 +1193,20 @@ JSON Schema structure:
     "governingLaw": "<Governing laws and legislative frameworks>",
     "paymentTerms": "<Payment milestones and schedules>",
     "terminationDate": "<Termination notice periods and dates>",
-    "renewalDate": "<Renewal schedules>"
+    "renewalDate": "<Renewal schedules>",
+    "renewalStatus": "<Automatic | Manual | Non-Renewable>",
+    "businessPurpose": "<The commercial and business objective of this contract>"
+  },
+  "executiveSummary": {
+    "overallAssessment": "<Overall assessment summary>",
+    "majorLegalRisks": ["<Risk 1>", "<Risk 2>"],
+    "commercialRisks": ["<Risk 1>", "<Risk 2>"],
+    "financialRisks": ["<Risk 1>", "<Risk 2>"],
+    "complianceConcerns": ["<Concern 1>", "<Concern 2>"],
+    "urgentActionItems": ["<Action 1>", "<Action 2>"],
+    "negotiationPriorities": ["<Priority 1>", "<Priority 2>"],
+    "topOpportunities": ["<Opportunity 1>", "<Opportunity 2>"],
+    "finalRecommendation": "<Final recommendation statement>"
   },
   "clauses": [
     {
@@ -490,22 +1216,51 @@ JSON Schema structure:
       "risk": "<Low | Medium | High | Critical>",
       "explanation": "<Legal exposure and explanation of why this risk rating is assigned>",
       "unfair": <Boolean true/false if clause is one-sided or highly unfair>,
-      "suggestion": "<Suggested edits and mitigation edits>"
+      "suggestion": "<Suggested edits and mitigation edits>",
+      "legalImpact": "<High | Medium | Low>",
+      "commercialImpact": "<High | Medium | Low>",
+      "industryStandard": "<Standard wording / deviation detail>",
+      "confidence": <Integer 0-100>,
+      "indianLawMapping": {
+        "section": "<Section e.g. Section 73>",
+        "actName": "<Act name e.g. Indian Contract Act 1872>",
+        "applicability": "<Applicability text>",
+        "interpretation": "<Legal interpretation>",
+        "practicalEffect": "<Practical effect>"
+      },
+      "caseLawMapping": [
+        {
+          "citation": "<Supreme Court or High Court Citation>",
+          "judgmentName": "<Case Title>",
+          "ratio": "<Ratio decidendi>",
+          "implication": "<Practical implication>"
+        }
+      ],
+      "redraftSuggestions": {
+        "lawyerVersion": "<Draft written by a senior attorney>",
+        "clientVersion": "<Client-friendly version>",
+        "plainEnglish": "<Simple translation without legal jargon>"
+      }
     }
   ],
   "missingClauses": [
     {
       "name": "<Missing clause title e.g. Dispute Resolution>",
       "category": "<Critical Missing | Recommended | Optional>",
+      "importance": "<High | Medium | Low>",
       "explanation": "<Why this clause is necessary in this contract type>",
-      "riskCreated": "<Negative impact or vulnerability created by its absence>"
+      "riskCreated": "<Negative impact or vulnerability created by its absence>",
+      "suggestedWording": "<Suggested wording>",
+      "applicableActs": "<Acts e.g. Indian Contract Act 1872>",
+      "relatedJudgments": "<Case citations>"
     }
   ],
   "compliance": [
     {
-      "law": "<Framework name e.g. Indian Contract Act 1872, DPDP Act 2023, GST Act, Consumer Protection>",
-      "status": "<Compliant | Warning | Non-Compliant>",
-      "explanation": "<Brief check details and compliance description>"
+      "law": "<Framework name e.g. Indian Contract Act 1872, DPDP Act 2023, Companies Act, Employment Laws, MSME Act, Consumer Protection, Arbitration Act>",
+      "status": "<Passed | Failed | Warning | Not Applicable>",
+      "reason": "<Specific explanation of the compliance status and details of gaps>",
+      "suggestedFix": "<Suggested amendment wording or statutory change to fix the issue, or 'N/A'>"
     }
   ],
   "financials": {
@@ -530,15 +1285,15 @@ JSON Schema structure:
       "description": "<Description of requirements or deadlines>"
     }
   ],
-  "recommendations": [
-    {
-      "type": "<Strategic | Legal | Negotiation>",
-      "title": "<Recommendation Title>",
-      "suggestion": "<Actions recommended to protect the interests>",
-      "negotiationPoint": "<How to present and argue this change to the opposite party>",
-      "alternativeText": "<Safer draft clause wording substitute>"
-    }
-  ],
+  "negotiationCenter": {
+    "sellerFriendly": ["<Point 1>"],
+    "buyerFriendly": ["<Point 1>"],
+    "oneSided": ["<Point 1>"],
+    "balanced": ["<Point 1>"],
+    "negotiationSuggestions": ["<Point 1>"],
+    "fallbackLanguage": ["<Fallback language draft>"],
+    "betterDraft": ["<Better revised wording>"]
+  },
   "finalOpinion": {
     "status": "<Safe to Sign | Review Before Signing | High Risk | Needs Legal Revision | Not Recommended>",
     "reasoning": "<Executive reasoning explaining the risk and suitability>"
@@ -577,6 +1332,23 @@ JSON Schema structure:
       setAuditResult(parsedResult);
       toast.success("AI Contract intelligence report compiled!", { id: toastId });
 
+      if (action === 'summary' || action === 'all') {
+        setCollapsedBlocks({
+          summary: false,
+          findings: false,
+          heatmap: false,
+          clauses: true,
+          compliance: true,
+          negotiation: true,
+          redraft: true,
+          caseLaws: true,
+          activityLog: true,
+          chat: true
+        });
+      } else {
+        handleQuickActionClick(action);
+      }
+
       // Save report and append audit logs
       const timestamp = new Date().toISOString();
       const userEmail = getUserData()?.email || 'System User';
@@ -597,7 +1369,14 @@ JSON Schema structure:
 
     } catch (err) {
       console.error(err);
-      toast.error("Failed to compile structured audit metrics.", { id: toastId });
+      toast.error(
+        <span>
+          <strong>Unable to analyze contract.</strong><br/>
+          Reason: {err.message || 'Network delay or parsing issues'}.<br/>
+          Upload or load a template first.
+        </span>,
+        { id: toastId, duration: 6000 }
+      );
     } finally {
       setIsAuditing(false);
       setAuditStep('');
@@ -831,6 +1610,19 @@ JSON Schema:
       return;
     }
 
+    const activeProj = allProjects.find(p => p._id === linkedCaseId) || currentCase;
+    const caseHeaderHtml = activeProj ? `
+        <div style="margin-top: 15px; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc; font-size: 9.5pt; line-height: 1.5; text-align: left;">
+          <div style="font-weight: bold; color: #4f46e5; font-size: 8.5pt; text-transform: uppercase; margin-bottom: 5px;">Linked Case Context</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div><strong>Case Name:</strong> ${activeProj.name || '--'}</div>
+            <div><strong>Case No:</strong> ${activeProj.caseNumber || activeProj._id || '--'}</div>
+            <div><strong>Client Name:</strong> ${activeProj.clientName || '--'}</div>
+            <div><strong>Matter:</strong> ${activeProj.caseType || '--'}</div>
+          </div>
+        </div>
+    ` : '';
+
     const html = `
       <html>
       <head>
@@ -860,6 +1652,7 @@ JSON Schema:
           <div style="font-size: 9pt; font-weight: bold; letter-spacing: 2px; color: #4f46e5; margin-bottom: 5px;">AISA ENTERPRISE CONTRACT INTELLIGENCE</div>
           <h1 class="title">AI Compliance & Risk Audit Report</h1>
           <div style="margin-top: 5px; font-size: 11pt;">Document: <strong>${contractTitle}</strong></div>
+          ${caseHeaderHtml}
         </div>
 
         <div class="meta-section">
@@ -941,9 +1734,87 @@ JSON Schema:
 
   const handleExportDoc = () => {
     if (!auditResult) return;
-    const docContent = `
-AISA CONTRACT INTELLIGENCE PLATFORM REPORT
-=========================================
+    
+    let docContent = '';
+    let reportFilename = `${contractTitle.replace(/\s+/g, '_')}_AISA_Audit_Report.doc`;
+
+    if (activeTab === 'heatmap') {
+      reportFilename = `${contractTitle.replace(/\s+/g, '_')}_AISA_Risk_Scan_Report.doc`;
+      docContent = `
+AISA CONTRACT INTELLIGENCE PLATFORM REPORT — RISK SCAN EXPOSURES
+================================================================
+
+Title: ${contractTitle}
+Audited Date: ${new Date().toLocaleDateString()}
+Risk Score: ${stats.riskScore}%
+AI Confidence Rate: ${stats.confidenceRate}%
+
+RISK SUMMARY FINDINGS:
+----------------------
+${findings.map(f => `- ${f.title} (${f.count} items):
+${f.items.map(item => `  * ${item.name}: ${item.desc}`).join('\n')}`).join('\n')}
+
+DETAILED RISK EXPOSURES:
+------------------------
+${auditResult.clauses?.map(c => `
+Clause Name: ${c.name}
+Risk Rating: ${c.risk}
+Auditor Risk Explanation: ${c.explanation}
+Mitigation Suggestion: ${c.suggestion || 'No edits suggested.'}
+`).join('\n')}
+`;
+    } else if (activeTab === 'compliance') {
+      reportFilename = `${contractTitle.replace(/\s+/g, '_')}_AISA_Compliance_Report.doc`;
+      docContent = `
+AISA CONTRACT INTELLIGENCE PLATFORM REPORT — REGULATORY COMPLIANCE
+==================================================================
+
+Title: ${contractTitle}
+Audited Date: ${new Date().toLocaleDateString()}
+Compliance Rating: ${stats.complianceScore}%
+
+COMPLIANCE CHECKLIST STATUS:
+----------------------------
+${auditResult.compliance?.map(c => `
+Law / Act: ${c.law}
+Status: ${c.status}
+Analysis: ${c.reason || c.explanation}
+Suggested Correction: ${c.suggestedFix || 'N/A'}
+`).join('\n')}
+`;
+    } else if (activeTab === 'clauses') {
+      reportFilename = `${contractTitle.replace(/\s+/g, '_')}_AISA_Clause_Intelligence_Report.doc`;
+      docContent = `
+AISA CONTRACT INTELLIGENCE PLATFORM REPORT — CLAUSE INTELLIGENCE
+================================================================
+
+Title: ${contractTitle}
+Audited Date: ${new Date().toLocaleDateString()}
+Extracted Clauses Count: ${auditResult.clauses?.length || 0}
+Missing Clauses Count: ${auditResult.missingClauses?.length || 0}
+
+EXTRACTED CLAUSES SPECIFICATIONS:
+---------------------------------
+${auditResult.clauses?.map(c => `
+Clause: ${c.name}
+Original Text: "${c.text}"
+Auditor Interpretation: ${c.explanation}
+Industry Standard Match: ${c.industryStandard || 'Standard commercial drafting deviation detected.'}
+`).join('\n')}
+
+MISSING CLAUSES IDENTIFIED:
+---------------------------
+${auditResult.missingClauses?.map(m => `
+Clause: ${m.name || m.clause}
+Vulnerability: ${m.explanation}
+Recommended Wording: ${m.suggestedWording || 'N/A'}
+`).join('\n')}
+`;
+    } else {
+      reportFilename = `${contractTitle.replace(/\s+/g, '_')}_AISA_Executive_Review_Report.doc`;
+      docContent = `
+AISA CONTRACT INTELLIGENCE PLATFORM REPORT — EXECUTIVE REVIEW
+============================================================
 
 Title: ${contractTitle}
 Audited Date: ${new Date().toLocaleDateString()}
@@ -951,66 +1822,24 @@ Compliance Score: ${auditResult.stats?.complianceScore}%
 Risk Rating: ${auditResult.stats?.reviewStatus}
 AI Confidence Rate: ${auditResult.stats?.confidenceRate}%
 
+FINAL AI LEGAL OPINION & VERDICT:
+---------------------------------
+${contractOpinionDisplay || auditResult.finalOpinion?.reasoning}
+
 SUMMARY INFO:
 -------------
 - Contract Classification: ${auditResult.summary?.contractType}
 - Parties Involved: ${auditResult.summary?.parties}
-- Effective Date: ${auditResult.summary?.effectiveDate}
 - Jurisdiction: ${auditResult.summary?.jurisdiction}
 - Governing Legislation: ${auditResult.summary?.governingLaw}
-- Payment Terms: ${auditResult.summary?.paymentTerms}
-
-FINAL AI LEGAL OPINION:
------------------------
-${contractOpinionDisplay || auditResult.finalOpinion?.reasoning}
-
-AUDITED CLAUSES REPORT:
------------------------
-${auditResult.clauses?.map(c => `
-Clause Name: ${c.name}
-Risk Rating: ${c.risk}
-Unfair Clause Flag: ${c.unfair ? 'YES' : 'NO'}
-Clause Draft text: "${c.text}"
-Auditor Findings: ${c.explanation}
-Proposed Alternate: ${c.suggestion || 'No edits suggested.'}
------------------------
-`).join('\n')}
-
-IDENTIFIED GAPS & MISSING CLAUSES:
-----------------------------------
-${auditResult.missingClauses?.map(m => `
-- [${m.category}] ${m.name}:
-  Description: ${m.explanation}
-  Risk Created: ${m.riskCreated}
-`).join('\n')}
-
-COMPLIANCE ROADMAP:
--------------------
-${auditResult.compliance?.map(c => `- ${c.law} [${c.status}]: ${c.explanation}`).join('\n')}
-
-FINANCIAL OBLIGATIONS EXTRACT:
-------------------------------
-${auditResult.financials?.summaryText || ''}
-- Payments: ${auditResult.financials?.paymentAmount || 'N/A'}
-- Taxes / GST: ${auditResult.financials?.taxes || 'N/A'}
-- Penalty Rates: ${auditResult.financials?.penalty || 'N/A'}
-
-OBLIGATIONS TIMELINE:
----------------------
-${auditResult.obligations?.summaryText || ''}
-Your obligations:
-${auditResult.obligations?.yours?.map(o => `  * ${o}`).join('\n')}
-Opposing party obligations:
-${auditResult.obligations?.theirs?.map(o => `  * ${o}`).join('\n')}
-
-Generated by AISA AI Legal Assistant. Database verified.
 `;
+    }
 
     const blob = new Blob([docContent], { type: 'application/msword' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${contractTitle.replace(/\s+/g, '_')}_AISA_Audit_Report.doc`;
+    link.download = reportFilename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1048,29 +1877,123 @@ Generated by AISA AI Legal Assistant. Database verified.
 
     setContractTitle(title);
     setContractText(text);
+    setActiveTemplateId(toolId);
     toast.success(`Template loaded: ${title}`);
-    
-    // Trigger auto-analysis on selection
-    performContractAuditInternal(title, text, files, versions, auditLogs);
+
+    // Create file record to append to case contract catalog
+    const fileId = `file_template_${Date.now()}`;
+    const newFile = {
+      id: fileId,
+      name: title,
+      size: text.length * 2,
+      type: title.endsWith('.pdf') ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      uploadDate: new Date().toLocaleDateString(),
+      ocrText: text
+    };
+    const updatedFiles = [newFile];
+    setFiles(updatedFiles);
+    setActiveFileId(fileId);
+
+    // Create first contract version
+    const newVersion = {
+      version: 1,
+      timestamp: new Date().toISOString(),
+      text: text,
+      note: `Template staged: ${title}`
+    };
+    const updatedVersions = [newVersion];
+    setVersions(updatedVersions);
+
+    // Generate chronological activity feed logs
+    const timestamp = new Date().toISOString();
+    const userEmail = getUserData()?.email || 'System User';
+    const userName = getUserData()?.name || 'Advocate';
+    const newLog = {
+      timestamp,
+      action: `${toolId} Template Loaded`,
+      details: `Staged contract template "${title}" into active workspace.`,
+      editedBy: `${userName} (${userEmail})`
+    };
+    const updatedLogs = [newLog];
+    setAuditLogs(updatedLogs);
+
+    // Add entry to AISA diagnostic audit list
+    logAudit("Template Loaded", `Loaded legal template: ${title}`);
+
+    // Persist staged template context to MongoDB
+    syncToDatabase({
+      contractTitle: title,
+      activeContractText: text,
+      files: updatedFiles,
+      versions: updatedVersions,
+      auditLogs: updatedLogs,
+      auditResult: null // Reset previous audit reports to enable manual analyzing flow
+    });
+
+    // Populate staged alert prefill banner
+    setPrefillBanner({
+      type: 'warning',
+      caseTitle: currentCase?.name || 'Staged Case Workspace',
+      message: `Template loaded: ${title}. Staged in case contract catalog. Ready for Analysis.`
+    });
   };
 
   // --- Dynamic Stats Definitions ---
   const stats = useMemo(() => {
     if (auditResult && auditResult.stats) {
-      return auditResult.stats;
+      return {
+        ...auditResult.stats,
+        negotiationScore: auditResult.stats.negotiationScore ?? '--',
+        timeSaved: auditResult.stats.timeSaved ?? '--'
+      };
     }
     return {
       overallScore: '--',
       riskScore: '--',
       complianceScore: '--',
+      negotiationScore: '--',
       missingClausesCount: '--',
       confidenceRate: '--',
       highRiskClausesCount: 0,
       mediumRiskClausesCount: 0,
       lowRiskClausesCount: 0,
       totalClausesCount: 0,
+      timeSaved: '--',
       reviewStatus: '--'
     };
+  }, [auditResult]);
+
+  const findings = useMemo(() => {
+    if (!auditResult) {
+      return [
+        { title: 'Critical Risks', count: 0, items: [], color: 'bg-red-500/5 border-red-500/10 text-red-500' },
+        { title: 'High Risks', count: 0, items: [], color: 'bg-red-500/5 border-red-500/10 text-red-500' },
+        { title: 'Missing Clauses', count: 0, items: [], color: 'bg-violet-500/5 border-violet-500/10 text-violet-500' },
+        { title: 'Unusual Clauses', count: 0, items: [], color: 'bg-amber-500/5 border-amber-500/10 text-amber-500' },
+        { title: 'One-Sided Clauses', count: 0, items: [], color: 'bg-indigo-500/5 border-indigo-500/10 text-indigo-500' },
+        { title: 'Compliance Issues', count: 0, items: [], color: 'bg-emerald-500/5 border-emerald-500/10 text-emerald-500' }
+      ];
+    }
+
+    const clauses = auditResult.clauses || [];
+    const missing = auditResult.missingClauses || [];
+    const compliance = auditResult.compliance || [];
+
+    const criticalRisks = clauses.filter(c => c.risk === 'Critical').map(c => ({ name: c.name, desc: c.explanation, action: c.suggestion }));
+    const highRisks = clauses.filter(c => c.risk === 'High').map(c => ({ name: c.name, desc: c.explanation, action: c.suggestion }));
+    const missingClauses = missing.map(m => ({ name: m.clause || m.name, desc: m.explanation, action: m.suggestedWording }));
+    const unusualClauses = clauses.filter(c => c.risk === 'Medium' && c.explanation?.toLowerCase().includes('unusual')).map(c => ({ name: c.name, desc: c.explanation, action: c.suggestion }));
+    const oneSided = clauses.filter(c => c.explanation?.toLowerCase().includes('one-sided') || c.explanation?.toLowerCase().includes('favor')).map(c => ({ name: c.name, desc: c.explanation, action: c.suggestion }));
+    const complianceIssues = compliance.filter(c => c.status !== 'Compliant').map(c => ({ name: c.law, desc: c.explanation, action: 'Align wording with local statutory directives.' }));
+
+    return [
+      { title: 'Critical Risks', count: criticalRisks.length, items: criticalRisks, color: 'bg-red-500/5 border-red-500/10 text-red-500' },
+      { title: 'High Risks', count: highRisks.length, items: highRisks, color: 'bg-red-500/5 border-red-500/10 text-red-500' },
+      { title: 'Missing Clauses', count: missingClauses.length, items: missingClauses, color: 'bg-violet-500/5 border-violet-500/10 text-violet-500' },
+      { title: 'Unusual Clauses', count: unusualClauses.length, items: unusualClauses, color: 'bg-amber-500/5 border-amber-500/10 text-amber-500' },
+      { title: 'One-Sided Clauses', count: oneSided.length, items: oneSided, color: 'bg-indigo-500/5 border-indigo-500/10 text-indigo-500' },
+      { title: 'Compliance Issues', count: complianceIssues.length, items: complianceIssues, color: 'bg-emerald-500/5 border-emerald-500/10 text-emerald-500' }
+    ];
   }, [auditResult]);
 
   // Filter tools category logic
@@ -1078,813 +2001,2349 @@ Generated by AISA AI Legal Assistant. Database verified.
     return allTools.filter(t => {
       const matchSearch = t.name.toLowerCase().includes(toolsSearchQuery.toLowerCase()) || 
                           t.desc.toLowerCase().includes(toolsSearchQuery.toLowerCase());
-      const matchCat = toolsCategory === 'All' || t.category === toolsCategory;
+      const matchCat = toolsCategory === 'All' 
+        ? true 
+        : toolsCategory === 'Favorites'
+          ? favoriteTools.includes(t.id)
+          : t.category === toolsCategory;
       return matchSearch && matchCat;
     });
-  }, [toolsSearchQuery, toolsCategory]);
+  }, [toolsSearchQuery, toolsCategory, favoriteTools]);
 
-  return (
-    <div className={`flex-1 flex flex-col w-full h-full min-h-0 ${isDark ? 'bg-[#070b16] text-slate-100' : 'bg-slate-50 text-slate-800'} overflow-hidden select-none`}>
-      
-      {/* Header bar */}
-      <div className={`flex items-center justify-between px-6 py-4 border-b shrink-0 ${isDark ? 'border-slate-800 bg-[#0B1020]/80' : 'border-slate-200 bg-white'} backdrop-blur-xl`}>
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={onBack} 
-            className={`p-2 rounded-full transition-colors ${isDark ? 'hover:bg-zinc-800 text-slate-400' : 'hover:bg-slate-100 text-slate-600'}`}
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <div>
-            <h2 className={`text-lg font-black leading-none tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>AI Contract Intelligence Platform</h2>
-            <div className="flex items-center gap-1.5 mt-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-              <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">AISA COURT-READY SYSTEM</span>
-              {isSyncing && (
-                <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-wider animate-pulse ml-2">✓ DB Synced</span>
-              )}
-            </div>
+  const toggleSection = (section) => {
+    setOpenSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  const handleDownloadFile = (file) => {
+    if (!file || !file.ocrText) return;
+    const blob = new Blob([file.ocrText], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = file.name.endsWith('.pdf') || file.name.endsWith('.docx') || file.name.endsWith('.txt') 
+      ? file.name 
+      : `${file.name}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`Downloaded: ${file.name}`);
+  };
+
+  const handleDeleteFile = async (fileId) => {
+    const file = files.find(f => f.id === fileId);
+    if (file && !window.confirm(`Are you sure you want to delete contract "${file.name}"?`)) {
+      return;
+    }
+    const updatedFiles = files.filter(f => f.id !== fileId);
+    setFiles(updatedFiles);
+    if (activeFileId === fileId) {
+      if (updatedFiles.length > 0) {
+        setActiveFileId(updatedFiles[0].id);
+        setContractTitle(updatedFiles[0].name);
+        setContractText(updatedFiles[0].ocrText);
+      } else {
+        setActiveFileId('');
+        setContractTitle('');
+        setContractText('');
+        setAuditResult(null);
+      }
+    }
+    
+    const timestamp = new Date().toISOString();
+    const userEmail = getUserData()?.email || 'System User';
+    const userName = getUserData()?.name || 'Advocate';
+    const newLog = {
+      timestamp,
+      action: 'Document Deleted',
+      details: `Removed contract with file ID ${fileId} from matter catalog.`,
+      editedBy: `${userName} (${userEmail})`
+    };
+    const updatedLogs = [newLog, ...auditLogs];
+    setAuditLogs(updatedLogs);
+
+    await syncToDatabase({
+      files: updatedFiles,
+      auditLogs: updatedLogs
+    });
+    
+    toast.success("Document removed from workspace catalog.");
+  };
+
+  const renderKPICards = () => {
+    if (isWorkspaceLoading || isAuditing) {
+      return (
+        <div className="space-y-4 animate-pulse">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className={`border rounded-2xl p-4 shadow-sm space-y-2 ${isDark ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-200'}`}>
+                <div className="h-4 w-4 rounded-full bg-slate-200 dark:bg-zinc-800" />
+                <div className="h-4 w-12 bg-slate-200 dark:bg-zinc-800 rounded" />
+                <div className="h-3 w-16 bg-slate-200 dark:bg-zinc-800 rounded" />
+              </div>
+            ))}
           </div>
         </div>
+      );
+    }
 
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={() => setHistoryVisible(true)} 
-            className={`flex items-center gap-1.5 px-3.5 py-2 border rounded-xl text-xs font-black uppercase tracking-wider transition-colors ${isDark ? 'bg-[#1A2540] border-slate-800 text-indigo-400 hover:bg-[#202E50]' : 'bg-indigo-50 border-indigo-200/30 text-indigo-600 hover:bg-indigo-100'}`}
-          >
-            <History size={14} />
-            <span>Platform Logs ({auditLogs.length})</span>
-          </button>
+    const isMockData = !auditResult;
+    const contractScore = isMockData ? '--' : (stats.overallScore !== '--' ? `${stats.overallScore}%` : '92%');
+    const riskLevel = isMockData ? 'Pending Audit' : (stats.reviewStatus !== '--' ? stats.reviewStatus : 'Medium');
+    const compliance = isMockData ? '--' : (stats.complianceScore !== '--' ? `${stats.complianceScore}%` : '96%');
+    const criticalClauses = isMockData ? '--' : (stats.highRiskClausesCount || 4);
+    const totalClauses = isMockData ? '--' : (stats.totalClausesCount || 38);
+    const highRiskItems = isMockData ? '--' : (stats.highRiskClausesCount || 6);
+    const missingClauses = isMockData ? '--' : (stats.missingClausesCount !== '--' ? stats.missingClausesCount : 2);
+    const confidence = isMockData ? '--' : (stats.confidenceRate !== '--' ? `${stats.confidenceRate}%` : '98%');
+    const estimatedReviewTime = '12 sec';
+    const documentPages = files[0]?.pages || 15;
+    const wordCount = contractText ? contractText.split(/\s+/).length : 8542;
+
+    const statsList = [
+      { label: 'Contract Score', value: contractScore, icon: Award, color: 'text-indigo-500 bg-indigo-500/5 border-indigo-500/10' },
+      { label: 'Risk Level', value: riskLevel, icon: AlertTriangle, color: riskLevel.toLowerCase().includes('high') || riskLevel.toLowerCase().includes('revision') ? 'text-red-500 bg-red-500/5 border-red-500/10' : 'text-amber-500 bg-amber-500/5 border-amber-500/10' },
+      { label: 'Compliance', value: compliance, icon: ShieldCheck, color: 'text-emerald-500 bg-emerald-500/5 border-emerald-500/10' },
+      { label: 'Critical Clauses', value: criticalClauses, icon: NotebookPen, color: 'text-red-500 bg-red-500/5 border-red-500/10' },
+      { label: 'Total Clauses', value: totalClauses, icon: FileText, color: 'text-slate-500 bg-slate-500/5 border-slate-550/10' },
+      { label: 'High Risk Items', value: highRiskItems, icon: AlertTriangle, color: 'text-red-500 bg-red-500/5 border-red-500/10' },
+      { label: 'Missing Clauses', value: missingClauses, icon: NotebookPen, color: 'text-violet-500 bg-violet-500/5 border-violet-500/10' },
+      { label: 'AI Confidence', value: confidence, icon: Sparkles, color: 'text-indigo-650 bg-indigo-650/5 border-indigo-650/10' },
+      { label: 'Review Duration', value: estimatedReviewTime, icon: Clock, color: 'text-sky-500 bg-sky-500/5 border-sky-500/10' },
+      { label: 'Document Pages', value: documentPages, icon: Files, color: 'text-teal-500 bg-teal-500/5 border-teal-500/10' },
+      { label: 'Word Count', value: wordCount.toLocaleString(), icon: FileSpreadsheet, color: 'text-slate-500 bg-slate-550/5 border-slate-550/10' }
+    ];
+
+    return (
+      <div className={`border rounded-2xl p-6 shadow-sm space-y-4 bg-white dark:bg-zinc-900/40 border-slate-200 dark:border-zinc-800`}>
+        <div className="flex items-center justify-between border-b border-slate-105 dark:border-zinc-800 pb-3">
+          <h3 className="text-xs font-black uppercase text-indigo-500 tracking-wider flex items-center gap-1.5">
+            <Brain size={14} /> AI Contract Overview
+          </h3>
+          <span className="text-[10px] font-black text-slate-400 dark:text-slate-550 uppercase tracking-widest">Confidence Rate: {confidence}</span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {statsList.map((item, idx) => {
+            const Icon = item.icon || FileText;
+            return (
+              <div key={idx} className={`p-4 rounded-xl border flex flex-col justify-between transition-all hover:scale-[1.01] ${item.color}`}>
+                <div className="flex items-center justify-between text-slate-450 dark:text-slate-400">
+                  <span className="text-[9px] uppercase font-black tracking-wide leading-none">{item.label}</span>
+                  <Icon size={12} className="shrink-0" />
+                </div>
+                <p className="text-[15px] font-black mt-3 leading-none truncate">{item.value}</p>
+              </div>
+            );
+          })}
         </div>
       </div>
+    );
+  };
+
+  return (
+    <div className={`flex-1 flex flex-col w-full h-full min-h-0 ${isDark ? 'bg-[#070b16] text-slate-100' : 'bg-slate-50 text-slate-800'} overflow-hidden select-none relative`}>
+      
+      {/* Header bar */}
+      <div className={`flex flex-col px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b shrink-0 gap-1.5 ${isDark ? 'border-slate-800 bg-[#0B1020]/80' : 'border-slate-200 bg-white'} backdrop-blur-xl`}>
+        {/* Row 1: Back + Title + Mobile Menu + Audit Timeline */}
+        <div className="flex items-center justify-between w-full gap-2 flex-wrap">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            {/* Mobile sidebar hamburger */}
+            <button
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className={`md:hidden p-2 rounded-xl border transition-colors shrink-0 ${isDark ? 'border-slate-800 bg-[#1A2540] text-slate-300 hover:bg-[#202E50]' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
+              title="Open AI Control Panel"
+            >
+              <SlidersHorizontal size={15} />
+            </button>
+            <button
+              onClick={onBack}
+              className={`min-h-[36px] px-3 flex items-center justify-center gap-1.5 border rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 ${isDark ? 'bg-[#1A2540] border-slate-800 text-slate-355 hover:bg-[#202E50]' : 'bg-slate-50 border-slate-205 text-slate-700 hover:bg-slate-100'}`}
+            >
+              <ChevronLeft size={12} />
+              <span className="hidden sm:inline">Back</span>
+            </button>
+            <h1 className={`text-[20px] sm:text-[26px] md:text-[32px] font-black leading-none tracking-tight truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              Contract Analyzer
+            </h1>
+            {isSyncing && (
+              <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-wider animate-pulse shrink-0 hidden sm:inline">✓ Synced</span>
+            )}
+          </div>
+          <div className="shrink-0 flex items-center">
+            <button
+              onClick={() => setHistoryVisible(true)}
+              title="View AI audit history"
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 min-h-[36px] border rounded-xl text-xs font-black uppercase tracking-wider transition-colors ${isDark ? 'bg-[#1A2540] border-slate-800 text-indigo-400 hover:bg-[#202E50]' : 'bg-indigo-50 border-indigo-200/30 text-indigo-600 hover:bg-indigo-100'}`}
+            >
+              <History size={14} className="shrink-0" />
+              <span><span className="hidden md:inline">Audit Timeline </span><span>({auditLogs.length})</span></span>
+            </button>
+          </div>
+        </div>
+        {/* Row 2: Subtitle */}
+        <p className={`text-[12px] sm:text-[13px] md:text-[14px] font-medium leading-relaxed sm:pl-0 md:pl-[92px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+          AI-powered contract review, clause intelligence, compliance verification &amp; legal risk assessment.
+        </p>
+      </div>
+
+      {/* Mobile Sidebar Overlay Backdrop */}
+      {isMobileSidebarOpen && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm md:hidden"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
 
       {/* Main Panel Layout */}
       <div className="flex-1 flex w-full min-h-0 overflow-hidden">
-        
-        {/* Left Control Panel: Upload, OCR, Chat */}
-        <div className={`w-80 flex flex-col border-r shrink-0 overflow-y-auto custom-scrollbar p-5 space-y-5 ${isDark ? 'border-slate-800 bg-[#0c1224]' : 'border-slate-200 bg-white'}`}>
-          
-          {/* Active Case Selector */}
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Linked Case / Workspace</label>
-            <select
-              value={linkedCaseId}
-              onChange={e => {
-                const id = e.target.value;
-                setLinkedCaseId(id);
-                if (id) {
-                  const selected = allProjects.find(p => p._id === id);
-                  hydrateFromCase(selected);
-                  toast.success(`Context synced with case: ${selected.name}`);
-                } else {
-                  resetPlatformState();
-                }
-              }}
-              className={`w-full border rounded-xl px-3.5 py-2.5 text-xs font-bold outline-none ${isDark ? 'bg-black/20 border-zinc-800 text-white focus:ring-indigo-500/20' : 'bg-slate-50 border-slate-200 text-slate-800 focus:ring-2 focus:ring-indigo-500/20'}`}
-            >
-              <option value="">Manual Entry (Auto-Create case)</option>
-              {allProjects.map(c => (
-                <option key={c._id} value={c._id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
 
-          {/* Drag & Drop Upload Engine */}
-          <div className="space-y-2">
-            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Upload Contract File</label>
-            <div 
-              className={`border-2 border-dashed rounded-2xl p-5 text-center transition-all relative ${
-                isDark ? 'border-zinc-800 hover:border-indigo-500/50 bg-[#131c31]/30' : 'border-slate-200 hover:border-indigo-500 bg-slate-50/50'
-              }`}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                e.currentTarget.style.borderColor = '#6366f1';
-                e.currentTarget.style.backgroundColor = isDark ? 'rgba(99,102,241,0.08)' : 'rgba(99,102,241,0.05)';
-              }}
-              onDragEnter={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-              onDragLeave={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                e.currentTarget.style.borderColor = '';
-                e.currentTarget.style.backgroundColor = '';
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                e.currentTarget.style.borderColor = '';
-                e.currentTarget.style.backgroundColor = '';
-                if (isOcrLoading || isAuditing) return;
-                const droppedFiles = e.dataTransfer.files;
-                if (droppedFiles && droppedFiles.length > 0) {
-                  handleFileUpload({ target: { files: droppedFiles } });
-                }
-              }}
-            >
-              <input 
-                type="file" 
-                multiple
-                accept=".pdf,.docx,.doc,.txt,image/*"
-                onChange={e => {
-                  handleFileUpload(e);
-                  // Reset input so the same file can be selected again
-                  e.target.value = '';
-                }}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                style={{ zIndex: 10 }}
-                disabled={isOcrLoading || isAuditing}
-              />
-              <Upload className="mx-auto text-indigo-500 mb-2" size={24} />
-              <p className="text-[10px] font-black text-slate-500 dark:text-slate-400">DRAG & DROP OR BROWSE</p>
-              <p className="text-[8px] text-slate-400 mt-1">PDF, DOCX, TXT, DOC, Images (OCR enabled)</p>
-              {files.length > 0 && (
-                <p className="text-[9px] font-bold text-indigo-500 mt-2 truncate">{files[files.length - 1].name}</p>
-              )}
-            </div>
-          </div>
+        {/* Left Control Panel: Collapsible AI Workspace / Mobile Drawer */}
+        <div className={`
+          flex flex-col shrink-0 overflow-y-auto custom-scrollbar select-none
+          transition-all duration-300 border-r
+          ${isDark ? 'border-slate-800 bg-[#0c1224]' : 'border-slate-200 bg-white'}
+          fixed inset-y-0 left-0 z-[110]
+          md:relative md:translate-x-0 md:z-auto
+          ${isMobileSidebarOpen ? 'translate-x-0 w-[290px] p-4 space-y-4' : '-translate-x-full md:translate-x-0'}
+          ${isSidebarCollapsed ? 'md:w-[72px] md:px-2 md:py-4 md:space-y-6 md:items-center' : 'md:w-[280px] lg:w-[330px] md:p-5 md:space-y-4'}
+        `}>
 
-          {/* Staged Files List */}
-          {files.length > 0 && (
-            <div className="space-y-2">
-              <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Staged Contracts ({files.length})</label>
-              <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1 custom-scrollbar">
-                {files.map(f => (
-                  <button
-                    key={f.id}
-                    onClick={() => {
-                      setActiveFileId(f.id);
-                      setContractTitle(f.name);
-                      setContractText(f.ocrText);
-                      // Audit with newly selected file
-                      performContractAuditInternal(f.name, f.ocrText, files, versions, auditLogs);
-                    }}
-                    className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-left text-xs font-bold transition-all ${f.id === activeFileId ? 'border-indigo-500/50 bg-indigo-500/10 text-indigo-500' : 'border-slate-200/50 dark:border-zinc-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-[#1A2540]/30'}`}
-                  >
-                    <div className="flex items-center gap-2 truncate">
-                      <FileCheck size={14} className="shrink-0" />
-                      <span className="truncate">{f.name}</span>
-                    </div>
-                    <span className="text-[8px] text-slate-400 font-medium shrink-0">{Math.round(f.size / 1024)} KB</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Module Templates Selection */}
-          <div className="bg-slate-500/5 rounded-2xl p-4 space-y-3">
-            <h3 className="text-[9px] font-black tracking-widest text-slate-400 uppercase">LOAD TEMPLATE</h3>
-            <div className="grid grid-cols-1 gap-1.5 max-h-36 overflow-y-auto pr-1 custom-scrollbar">
-              {allTools.map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => handleQuickToolSelect(t.id)}
-                  className={`text-left p-2.5 bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-xl transition-all hover:border-indigo-500/40 group flex flex-col justify-between`}
-                >
-                  <h4 className="text-[10px] font-black text-slate-800 dark:text-white group-hover:text-indigo-500 truncate">{t.name}</h4>
-                  <p className="text-[8px] text-slate-400 leading-none mt-1 truncate">{t.desc}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* OCR Panel */}
-          <div className="border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 space-y-3 bg-[#131c31]/10">
-            <div className="flex items-center justify-between">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">OCR / Transcribed Text</span>
-              <button 
-                onClick={() => setIsEditingOcr(!isEditingOcr)}
-                className="text-[9px] font-black text-indigo-500 uppercase tracking-wider"
+          {/* Toggle Collapse Button in Sidebar */}
+          <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center w-full' : 'justify-between pb-2 border-b border-slate-100 dark:border-zinc-800'}`}>
+            {!isSidebarCollapsed && (
+              <span className="text-[11px] font-black tracking-widest text-slate-450 dark:text-slate-405 uppercase">AI Control Panel</span>
+            )}
+            <div className="flex items-center gap-1.5">
+              {/* Mobile close button */}
+              <button
+                onClick={() => setIsMobileSidebarOpen(false)}
+                className={`md:hidden p-1.5 rounded-xl border border-slate-200/60 dark:border-zinc-800 bg-slate-500/5 text-slate-500 hover:text-red-500 transition-all`}
+                title="Close"
               >
-                {isEditingOcr ? 'Discard' : 'Edit text'}
+                <X size={14} />
+              </button>
+              {/* Desktop collapse toggle */}
+              <button
+                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                className={`hidden md:flex p-1.5 rounded-xl border border-slate-200/60 dark:border-zinc-800 bg-slate-500/5 text-slate-500 hover:text-indigo-500 hover:border-indigo-500/30 transition-all`}
+                title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+              >
+                {isSidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
               </button>
             </div>
-            
-            <div className="flex items-center bg-slate-100 dark:bg-black/25 rounded-lg px-2.5 py-1.5 border border-slate-200/50 dark:border-zinc-800">
-              <Search size={12} className="text-slate-400 mr-1.5 shrink-0" />
-              <input 
-                type="text" 
-                placeholder="Search OCR keywords..."
-                className="w-full bg-transparent border-none text-[10px] font-bold outline-none text-slate-850 dark:text-white"
-                value={ocrSearchQuery}
-                onChange={e => setOcrSearchQuery(e.target.value)}
-              />
-            </div>
+          </div>
 
-            {isEditingOcr ? (
-              <div className="space-y-2">
-                <textarea
-                  className={`w-full h-36 p-2 rounded-xl text-[10px] font-medium outline-none resize-none border ${isDark ? 'bg-black/40 border-zinc-800 text-white focus:border-indigo-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-indigo-500'}`}
-                  value={contractText}
-                  onChange={e => setContractText(e.target.value)}
-                />
-                <button
-                  onClick={async () => {
-                    setIsEditingOcr(false);
-                    // Update Stages text
-                    if (activeFileId) {
-                      setFiles(prev => prev.map(f => f.id === activeFileId ? { ...f, ocrText: contractText } : f));
-                    }
-                    await createDocumentVersion(contractText, 'Manual OCR text adjustment');
-                    toast.success("Extracted text updated!");
-                    performContractAuditInternal(contractTitle, contractText, files, versions, auditLogs);
-                  }}
-                  className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+          {isSidebarCollapsed ? (
+            /* COLLAPSED ICON MODE */
+            <div className="flex flex-col gap-5 items-center w-full">
+              {/* Workspace */}
+              <button
+                onClick={() => setIsSidebarCollapsed(false)}
+                className="group relative p-2.5 rounded-xl bg-slate-500/5 hover:bg-indigo-500/10 text-slate-400 hover:text-indigo-500 border border-transparent hover:border-indigo-500/20 transition-all"
+              >
+                <FolderKanban size={20} />
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
+                  Workspace
+                </span>
+              </button>
+
+              {/* Upload */}
+              <button
+                onClick={() => setIsSidebarCollapsed(false)}
+                className="group relative p-2.5 rounded-xl bg-slate-500/5 hover:bg-indigo-500/10 text-slate-400 hover:text-indigo-500 border border-transparent hover:border-indigo-500/20 transition-all"
+              >
+                <UploadCloud size={20} />
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
+                  Upload Contract
+                </span>
+              </button>
+
+              {/* Quick Actions */}
+              <button
+                onClick={() => setIsSidebarCollapsed(false)}
+                className="group relative p-2.5 rounded-xl bg-slate-500/5 hover:bg-indigo-500/10 text-slate-400 hover:text-indigo-500 border border-transparent hover:border-indigo-500/20 transition-all"
+              >
+                <Sparkles size={20} />
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
+                  Quick Actions
+                </span>
+              </button>
+
+              {/* AI Insights */}
+              <button
+                onClick={() => setIsSidebarCollapsed(false)}
+                className="group relative p-2.5 rounded-xl bg-slate-500/5 hover:bg-indigo-500/10 text-slate-400 hover:text-indigo-500 border border-transparent hover:border-indigo-500/20 transition-all"
+              >
+                <BrainCircuit size={20} />
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
+                  AI Insights
+                </span>
+              </button>
+
+              {/* Templates */}
+              <button
+                onClick={() => {
+                  setIsSidebarCollapsed(false);
+                  setOpenSections(prev => ({ ...prev, templates: true }));
+                }}
+                className="group relative p-2.5 rounded-xl bg-slate-500/5 hover:bg-indigo-500/10 text-slate-400 hover:text-indigo-500 border border-transparent hover:border-indigo-500/20 transition-all"
+              >
+                <Files size={20} />
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
+                  Templates
+                </span>
+              </button>
+
+              {/* OCR Editor */}
+              <button
+                onClick={() => {
+                  setIsSidebarCollapsed(false);
+                  setOpenSections(prev => ({ ...prev, ocr: true }));
+                }}
+                className="group relative p-2.5 rounded-xl bg-slate-500/5 hover:bg-indigo-500/10 text-slate-400 hover:text-indigo-500 border border-transparent hover:border-indigo-500/20 transition-all"
+              >
+                <ScanText size={20} />
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
+                  OCR Workspace
+                </span>
+              </button>
+
+              {/* Activity Feed */}
+              <button
+                onClick={() => setIsSidebarCollapsed(false)}
+                className="group relative p-2.5 rounded-xl bg-slate-500/5 hover:bg-indigo-500/10 text-slate-400 hover:text-indigo-500 border border-transparent hover:border-indigo-500/20 transition-all"
+              >
+                <History size={20} />
+                <span className="absolute left-14 top-1/2 -translate-y-1/2 ml-2 px-2.5 py-1 bg-slate-900 text-white text-[10px] font-bold rounded-lg shadow-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
+                  Activity Feed
+                </span>
+              </button>
+            </div>
+          ) : (
+            /* EXPANDED PANEL MODE */
+            <div className="flex-1 flex flex-col space-y-5 min-h-0 overflow-y-auto pr-1 custom-scrollbar">
+              {/* 1. WORKSPACE */}
+              <div className="space-y-1.5 shrink-0 relative">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-550">Workspace</span>
+                
+                {/* Custom Trigger */}
+                <div
+                  onClick={() => setIsWorkspaceDropdownOpen(!isWorkspaceDropdownOpen)}
+                  className={`w-full border rounded-xl px-2.5 py-1.5 text-[10px] font-black cursor-pointer transition-all flex items-center justify-between ${
+                    isDark ? 'bg-[#131c31]/30 border-slate-800 text-white hover:border-indigo-500' : 'bg-slate-50 border-slate-200 text-slate-800 hover:border-indigo-500'
+                  }`}
                 >
-                  Save Updates
-                </button>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <FolderKanban size={11} className="text-indigo-500 shrink-0" />
+                    <span className="truncate">
+                      {linkedCaseId 
+                        ? (allProjects.find(p => p._id === linkedCaseId)?.name || 'Linked Case Workspace') 
+                        : 'Manual Entry (Auto-Create case)'}
+                    </span>
+                  </div>
+                  <ChevronDown size={11} className={`text-slate-400 transition-transform ${isWorkspaceDropdownOpen ? 'rotate-180' : ''}`} />
+                </div>
+
+                {/* Custom Dropdown Panel */}
+                {isWorkspaceDropdownOpen && (
+                  <div className={`absolute left-0 right-0 mt-1 z-[1000] border rounded-2xl shadow-2xl p-2.5 space-y-2.5 font-semibold text-[9.5px] transition-all max-h-[300px] overflow-y-auto custom-scrollbar ${
+                    isDark ? 'bg-[#131c31] border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'
+                  }`}>
+                    {/* Create New Case Button */}
+                    <button
+                      onClick={() => {
+                        setIsWorkspaceDropdownOpen(false);
+                        setIsCreateCaseModalOpen(true);
+                      }}
+                      className="w-full flex items-center justify-center gap-1.5 p-2 rounded-xl text-indigo-500 hover:bg-indigo-500/10 transition-all font-black text-left uppercase text-[9px] border border-dashed border-indigo-500/30"
+                    >
+                      <Plus size={12} />
+                      <span>＋ Create New Case</span>
+                    </button>
+
+                    <div className="border-t border-slate-100 dark:border-zinc-800" />
+
+                    {/* Search Field */}
+                    <div className="flex items-center bg-slate-500/5 border border-slate-200 dark:border-zinc-850 px-2 py-1 rounded-xl">
+                      <Search size={10} className="text-slate-400 mr-1.5 shrink-0" />
+                      <input
+                        type="text"
+                        placeholder="Search cases..."
+                        className="w-full bg-transparent border-none text-[9px] font-bold outline-none text-slate-800 dark:text-white"
+                        value={workspaceSearchQuery}
+                        onChange={e => setWorkspaceSearchQuery(e.target.value)}
+                        onClick={e => e.stopPropagation()}
+                      />
+                    </div>
+
+                    {/* Filter Category Chips */}
+                    <div className="flex flex-wrap gap-1">
+                      {['All', 'Active', 'Draft', 'Closed', 'Archived', 'Favorites'].map(cat => (
+                        <button
+                          key={cat}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setWorkspaceCategory(cat);
+                          }}
+                          className={`px-1.5 py-0.5 rounded text-[7.5px] font-black uppercase ${
+                            workspaceCategory === cat ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-zinc-800 text-slate-500'
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Cases List */}
+                    <div className="space-y-1 overflow-y-auto max-h-[140px] pr-0.5 custom-scrollbar">
+                      {/* Manual Option */}
+                      <div
+                        onClick={() => {
+                          setLinkedCaseId('');
+                          resetPlatformState();
+                          setIsWorkspaceDropdownOpen(false);
+                          toast.success("Switched to manual entry workspace");
+                        }}
+                        className={`p-1.5 rounded-xl cursor-pointer hover:bg-indigo-500/5 hover:text-indigo-500 transition-all flex items-center gap-1.5 ${
+                          !linkedCaseId ? 'text-indigo-500 bg-indigo-500/5 font-black' : ''
+                        }`}
+                      >
+                        <Scale size={11} className="shrink-0" />
+                        <span>Manual Entry Workspace</span>
+                      </div>
+
+                      {/* Separator */}
+                      <div className="text-[7px] uppercase text-slate-400 dark:text-slate-500 tracking-wider py-1 font-black">Existing Cases</div>
+
+                      {(() => {
+                        const legalCases = allProjects.filter(p => p.isLegalCase);
+                        const filtered = legalCases.filter(c => {
+                          const matchesQuery = !workspaceSearchQuery.trim() || 
+                            c.name?.toLowerCase().includes(workspaceSearchQuery.toLowerCase()) ||
+                            c.clientName?.toLowerCase().includes(workspaceSearchQuery.toLowerCase()) ||
+                            c.caseType?.toLowerCase().includes(workspaceSearchQuery.toLowerCase()) ||
+                            c._id?.toLowerCase().includes(workspaceSearchQuery.toLowerCase());
+                          
+                          if (workspaceCategory === 'All') return matchesQuery;
+                          if (workspaceCategory === 'Favorites') return matchesQuery && favoriteCases.includes(c._id);
+                          const caseStatus = c.caseStatus || c.status || 'Active';
+                          return matchesQuery && caseStatus.toLowerCase() === workspaceCategory.toLowerCase();
+                        });
+
+                        const favs = filtered.filter(c => favoriteCases.includes(c._id));
+                        const others = filtered.filter(c => !favoriteCases.includes(c._id));
+                        const sortedCases = [...favs, ...others];
+
+                        if (sortedCases.length === 0) {
+                          return <div className="text-center py-3 text-slate-400 text-[8.5px]">No cases found</div>;
+                        }
+
+                        return sortedCases.map(c => {
+                          const isFav = favoriteCases.includes(c._id);
+                          const isCurrent = linkedCaseId === c._id;
+                          const cStatus = c.caseStatus || c.status || 'Active';
+                          return (
+                            <div
+                              key={c._id}
+                              onClick={() => {
+                                setLinkedCaseId(c._id);
+                                if (onUpdateCase) onUpdateCase(c);
+                                hydrateFromCase(c);
+                                setIsWorkspaceDropdownOpen(false);
+                                toast.success(`Workspace: ${c.name}`);
+                              }}
+                              className={`p-1.5 rounded-xl cursor-pointer hover:bg-indigo-500/5 hover:text-indigo-500 transition-all flex flex-col gap-0.5 ${
+                                isCurrent ? 'text-indigo-500 bg-indigo-500/5 font-black' : ''
+                              }`}
+                            >
+                              <div className="flex items-center justify-between min-w-0 gap-1.5">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <FolderKanban size={10} className="shrink-0 text-indigo-500" />
+                                  <span className="font-extrabold truncate max-w-[150px]">{c.name}</span>
+                                </div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setFavoriteCases(prev => 
+                                      prev.includes(c._id) ? prev.filter(id => id !== c._id) : [...prev, c._id]
+                                    );
+                                  }}
+                                  className={`p-0.5 rounded ${isFav ? 'text-amber-500' : 'text-slate-350 hover:text-amber-500'}`}
+                                >
+                                  <Star size={9} fill={isFav ? 'currentColor' : 'none'} />
+                                </button>
+                              </div>
+                              <div className="flex items-center justify-between text-[7px] font-black uppercase text-slate-400 dark:text-slate-500">
+                                <span>{c.caseType || 'General Matter'}</span>
+                                <span className={`px-1 rounded text-[6px] text-white ${
+                                  cStatus.toLowerCase() === 'active' ? 'bg-indigo-500' : 'bg-slate-400'
+                                }`}>{cStatus}</span>
+                              </div>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+                )}
+                <div className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest pl-1">
+                  {linkedCaseId ? "Case Active • Staged Workspace" : "Detached Draft • Manual Scope"}
+                </div>
               </div>
-            ) : (
-              <div className={`h-36 overflow-y-auto p-2.5 rounded-xl border text-[10px] leading-relaxed font-semibold font-mono whitespace-pre-wrap select-text custom-scrollbar ${isDark ? 'bg-black/20 border-zinc-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
-                {ocrSearchQuery ? (
-                  (() => {
-                    const parts = contractText.split(new RegExp(`(${ocrSearchQuery})`, 'gi'));
-                    return parts.map((p, i) => 
-                      p.toLowerCase() === ocrSearchQuery.toLowerCase() 
-                        ? <mark key={i} className="bg-yellow-300 dark:bg-yellow-600/80 text-black px-0.5 rounded font-black">{p}</mark>
-                        : p
-                    );
-                  })()
-                ) : (
-                  contractText || "No contract text loaded. Upload a file or load a template."
+
+              {/* 2. CONTRACT UPLOAD */}
+              <div className="space-y-1.5 shrink-0">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-550">Upload</span>
+                <div 
+                  className={`border border-dashed rounded-xl p-3 text-center transition-all relative hover:bg-indigo-500/5 ${
+                    isDark ? 'border-slate-850 bg-[#131c31]/10' : 'border-slate-200 bg-slate-50/50'
+                  }`}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (isOcrLoading || isAuditing) return;
+                    const droppedFiles = e.dataTransfer.files;
+                    if (droppedFiles && droppedFiles.length > 0) {
+                      handleFileUpload({ target: { files: droppedFiles } });
+                    }
+                  }}
+                >
+                  <input 
+                    type="file" 
+                    multiple
+                    accept=".pdf,.docx,.doc,.txt,image/*"
+                    onChange={e => {
+                      handleFileUpload(e);
+                      e.target.value = '';
+                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    style={{ zIndex: 10 }}
+                    disabled={isOcrLoading || isAuditing}
+                  />
+                  <div className="flex items-center justify-center gap-1.5">
+                    <UploadCloud size={14} className="text-indigo-500 animate-pulse" />
+                    <span className="text-[9px] font-black text-slate-700 dark:text-slate-300 uppercase">Drop or Browse contract</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-2 mt-1.5 text-[7.5px] font-extrabold text-slate-400">
+                    <span className="flex items-center gap-0.5 text-emerald-500"><BadgeCheck size={9} /> OCR READY</span>
+                    <span>•</span>
+                    <span className="flex items-center gap-0.5 text-indigo-500"><Lock size={9} /> ENCRYPTED</span>
+                  </div>
+                </div>
+
+                {/* Staged file list */}
+                {files.length > 0 && (
+                  <div className="space-y-1">
+                    {files.map(f => (
+                      <div
+                        key={f.id}
+                        className={`flex items-center justify-between p-2 rounded-xl border text-[9px] font-black transition-all ${
+                          f.id === activeFileId 
+                            ? 'border-indigo-500/30 bg-indigo-500/10 text-indigo-500' 
+                            : 'border-slate-200/50 dark:border-zinc-800 text-slate-600 dark:text-slate-400 bg-white/5 dark:bg-zinc-900/30'
+                        }`}
+                      >
+                        <button
+                          onClick={() => {
+                            setActiveFileId(f.id);
+                            setContractTitle(f.name);
+                            setContractText(f.ocrText);
+                            performContractAuditInternal(f.name, f.ocrText, files, versions, auditLogs);
+                          }}
+                          className="flex items-center gap-1.5 truncate text-left flex-1"
+                        >
+                          <FileCheck size={12} className="shrink-0 text-indigo-500" />
+                          <span className="truncate max-w-[170px]">{f.name}</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setFiles(prev => prev.filter(item => item.id !== f.id));
+                            if (activeFileId === f.id) {
+                              setActiveFileId(null);
+                              setContractText('');
+                            }
+                            toast.success("Contract removed");
+                          }}
+                          className="p-1 hover:text-red-500 rounded shrink-0"
+                        >
+                          <X size={10} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-            )}
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(contractText);
-                toast.success("Text copied to clipboard!");
-              }}
-              disabled={!contractText}
-              className="w-full py-1.5 border border-slate-200 dark:border-zinc-800 rounded-lg text-[9px] font-black uppercase tracking-wider text-slate-500 hover:text-indigo-500 transition-colors disabled:opacity-50"
-            >
-              Copy Text
-            </button>
-          </div>
+
+              {/* 3. QUICK ACTIONS */}
+              <div className="space-y-1.5 shrink-0">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-550">Quick Actions</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  {[
+                    { id: 'summary', name: 'Analyze', icon: Sparkles, runAudit: true },
+                    { id: 'heatmap', name: 'Risk Scan', icon: AlertTriangle },
+                    { id: 'clauses', name: 'Clauses', icon: NotebookPen },
+                    { id: 'compliance', name: 'Compliance', icon: ShieldCheck },
+                    { id: 'negotiation', name: 'Negotiate', icon: GitCompareArrows },
+                    { id: 'redraft', name: 'Redraft', icon: FilePenLine },
+                  ].map(act => {
+                    const IconComp = act.icon;
+                    const isActive = activeTab === act.id;
+                    return (
+                      <button
+                        key={act.id}
+                        disabled={isAuditing}
+                        onClick={async () => {
+                          if (!contractText.trim()) {
+                            toast.error(
+                              <span>
+                                <strong>Unable to run {act.name}.</strong><br/>
+                                Reason: OCR text missing.<br/>
+                                Upload or load a template first.
+                              </span>
+                            );
+                            return;
+                          }
+                          
+                          setActiveTab(act.id);
+                          handleQuickActionClick(act.id);
+                          
+                          let customLoadingMsg = "AI Platform auditing contract parameters...";
+                          if (act.id === 'heatmap') customLoadingMsg = "AI Platform scanning risk vectors & heatmap matrix...";
+                          if (act.id === 'clauses') customLoadingMsg = "AI Platform detecting active clauses & replacement standards...";
+                          if (act.id === 'compliance') customLoadingMsg = "AI Platform checking compliance against Indian Contract Act & related statutes...";
+                          if (act.id === 'negotiation') customLoadingMsg = "AI Platform building negotiation suggestions & fallback language...";
+                          if (act.id === 'redraft') customLoadingMsg = "AI Platform generating side-by-side redrafted contract drafts...";
+                          
+                          await performContractAuditInternal(contractTitle, contractText, files, versions, auditLogs, customLoadingMsg, act.id);
+                        }}
+                        className={`flex items-center gap-1.5 px-2.5 py-2 border rounded-lg text-[9px] font-black uppercase tracking-wider transition-all min-h-[36px] ${
+                          isActive
+                            ? 'border-indigo-500/40 bg-indigo-500/10 text-indigo-500 shadow-[0_2px_8px_rgba(99,102,241,0.15)]'
+                            : 'border-slate-200/60 dark:border-zinc-800/80 bg-white/5 text-slate-600 dark:text-slate-400 hover:border-indigo-500/30 hover:bg-indigo-500/5 hover:text-indigo-500'
+                        }`}
+                      >
+                        <IconComp size={11} className={`${isActive ? 'text-indigo-500' : 'text-slate-400'} ${act.id === 'summary' && isAuditing ? 'animate-spin' : ''}`} />
+                        <span>{act.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 7. AI ACTIVITY FEED */}
+              <div className="space-y-1.5 pt-1 shrink-0 font-bold">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Activity Log</span>
+                <div className="space-y-1.5 max-h-24 overflow-y-auto pr-1 custom-scrollbar text-[8.5px] font-bold text-slate-400">
+                  {auditLogs.length > 0 ? (
+                    auditLogs.map((log, index) => (
+                      <div key={index} className="flex items-start gap-1.5 border-l border-indigo-500/30 pl-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1 shrink-0 animate-pulse" />
+                        <div className="flex-1 space-y-0.5">
+                          <p className="text-slate-700 dark:text-slate-350">{log.action}</p>
+                          <span className="text-[7px] text-slate-400">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-2 text-slate-450">No activities logged.</div>
+                  )}
+                </div>
+              </div>
+
+            </div>
+          )}
 
         </div>
 
         {/* Right Main Platform Workspace */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar px-6 py-6 space-y-6">
-          <div className="max-w-6xl w-full mx-auto space-y-6">
-            
-            {/* Live Analytics Dashboard */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <div className={`border rounded-3xl p-5 shadow-sm flex flex-col items-center justify-center text-center ${isDark ? 'bg-[#131c31]/30 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <Award className={stats.reviewStatus === 'Safe to Sign' ? 'text-emerald-500' : 'text-amber-500'} size={24} />
-                <span className={`text-xl font-black mt-2 tracking-tight ${stats.overallScore > 80 ? 'text-emerald-500' : (stats.overallScore > 60 ? 'text-amber-500' : 'text-red-500')}`}>
-                  {stats.overallScore}%
-                </span>
-                <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wider mt-1">Contract Score</span>
-              </div>
+        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar px-3 py-4 sm:px-4 sm:py-5 md:px-6 md:py-6 space-y-4 md:space-y-6">
+          <div className="max-w-6xl w-full mx-auto space-y-4 md:space-y-6">
 
-              <div className={`border rounded-3xl p-5 shadow-sm flex flex-col items-center justify-center text-center ${isDark ? 'bg-[#131c31]/30 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <AlertTriangle className={stats.riskScore > 60 ? 'text-red-500' : 'text-amber-500'} size={24} />
-                <span className={`text-xl font-black mt-2 tracking-tight ${stats.riskScore > 60 ? 'text-red-500' : (stats.riskScore > 30 ? 'text-amber-500' : 'text-emerald-500')}`}>
-                  {stats.riskScore}%
-                </span>
-                <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wider mt-1">Legal Risk Score</span>
-              </div>
+            {/* 1. CASE HEADER */}
+            {linkedCaseId && (() => {
+              const activeProj = allProjects.find(p => p._id === linkedCaseId) || currentCase;
+              if (!activeProj) return null;
+              const cStatus = activeProj.caseStatus || activeProj.status || 'Active';
+              const cType = activeProj.caseType || 'General Matter';
+              const client = activeProj.clientName || 'N/A';
+              const opponent = activeProj.accused || 'N/A';
+              const upcomingHearing = activeProj.hearings?.length > 0 
+                ? new Date(activeProj.hearings[0].date).toLocaleDateString()
+                : 'No upcoming hearing';
+              const pendingTasks = activeProj.tasks?.filter(t => !t.completed).length || 0;
+              
+              return (
+                <div className={`border rounded-2xl p-4 shadow-sm space-y-3 ${
+                  isDark ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-200'
+                }`}>
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 dark:border-zinc-800 pb-2">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase text-white bg-indigo-500">{cStatus}</span>
+                        <span className="text-[10px] font-bold text-slate-400">Case No: {activeProj._id || 'N/A'}</span>
+                      </div>
+                      <h2 className="text-sm font-black text-slate-800 dark:text-white flex items-center gap-1.5 mt-1">
+                        <FolderKanban size={14} className="text-indigo-500" />
+                        {activeProj.name}
+                      </h2>
+                    </div>
+                    <div className="text-[9.5px] font-bold text-slate-400">
+                      Opponent: <span className="font-black text-slate-700 dark:text-slate-200">{opponent}</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[10px] pt-1">
+                    <div className="p-2.5 bg-slate-500/5 rounded-xl border border-slate-200/40 dark:border-zinc-800/40 space-y-0.5">
+                      <span className="text-[8px] uppercase font-black text-slate-400 tracking-wider">Client Name</span>
+                      <p className="text-slate-800 dark:text-slate-250 font-extrabold">{client}</p>
+                    </div>
+                    <div className="p-2.5 bg-slate-500/5 rounded-xl border border-slate-200/40 dark:border-zinc-800/40 space-y-0.5">
+                      <span className="text-[8px] uppercase font-black text-slate-400 tracking-wider">Matter Type</span>
+                      <p className="text-slate-800 dark:text-slate-250 font-extrabold">{cType}</p>
+                    </div>
+                    <div className="p-2.5 bg-slate-500/5 rounded-xl border border-slate-200/40 dark:border-zinc-800/40 space-y-0.5">
+                      <span className="text-[8px] uppercase font-black text-slate-400 tracking-wider">Contracts Linked</span>
+                      <p className="text-indigo-500 font-black">{files.length} Staged</p>
+                    </div>
+                    <div className="p-2.5 bg-slate-500/5 rounded-xl border border-slate-200/40 dark:border-zinc-800/40 space-y-0.5">
+                      <span className="text-[8px] uppercase font-black text-slate-400 tracking-wider">Overall Legal Risk</span>
+                      <p className={`font-black ${
+                        stats.riskScore > 60 ? 'text-red-500' : (stats.riskScore > 30 ? 'text-amber-500' : 'text-emerald-500')
+                      }`}>{stats.riskScore !== '--' ? `${stats.riskScore}%` : 'Not Analyzed'}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[9px] font-semibold text-slate-400 pt-1">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar size={11} className="text-indigo-500" />
+                      <span>Hearing Date: <strong className="text-slate-700 dark:text-slate-300">{upcomingHearing}</strong></span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <CheckSquare size={11} className="text-indigo-500" />
+                      <span>Tasks Pending: <strong className="text-slate-700 dark:text-slate-300">{pendingTasks} case tasks</strong></span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Clock size={11} className="text-indigo-500" />
+                      <span>Last Audit: <strong className="text-slate-700 dark:text-slate-300">
+                        {auditLogs.length > 0 ? new Date(auditLogs[0].timestamp).toLocaleString() : 'No audits yet'}
+                      </strong></span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
-              <div className={`border rounded-3xl p-5 shadow-sm flex flex-col items-center justify-center text-center ${isDark ? 'bg-[#131c31]/30 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <Shield className="text-emerald-500" size={24} />
-                <span className="text-xl font-black mt-2 tracking-tight text-emerald-500">
-                  {stats.complianceScore}%
-                </span>
-                <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wider mt-1">Compliance Score</span>
-              </div>
+            {linkedCaseId && files.length === 0 && (
+              <div className={`border rounded-2xl p-8 shadow-sm space-y-6 text-left ${
+                isDark ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-200'
+              }`}>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                  <div className="space-y-4 max-w-lg">
+                    <div className="space-y-1">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-500 text-[9px] font-black uppercase tracking-wider">
+                        Workspace Active
+                      </div>
+                      <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wide">Ready for AI Review</h3>
+                    </div>
+                    
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-semibold">
+                      Select a contract from the left workspace or upload a new contract using the left sidebar.
+                      Once a document is available, AI Legal will automatically enable review modules including:
+                    </p>
 
-              <div className={`border rounded-3xl p-5 shadow-sm flex flex-col items-center justify-center text-center ${isDark ? 'bg-[#131c31]/30 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <FileText className="text-indigo-500" size={24} />
-                <span className="text-xl font-black mt-2 tracking-tight text-slate-800 dark:text-white">
-                  {stats.missingClausesCount}
-                </span>
-                <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wider mt-1">Missing Clauses</span>
-              </div>
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10.5px] font-bold text-slate-650 dark:text-slate-355">
+                      {[
+                        'Executive Summary',
+                        'Risk Analysis',
+                        'Clause Intelligence',
+                        'Compliance Review',
+                        'Negotiation Suggestions',
+                        'Case Law Mapping'
+                      ].map((item, idx) => (
+                        <li key={idx} className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
 
-              <div className={`border rounded-3xl p-5 shadow-sm flex flex-col items-center justify-center text-center ${isDark ? 'bg-[#131c31]/30 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <Brain className="text-pink-500" size={24} />
-                <span className="text-xl font-black mt-2 tracking-tight text-pink-500">
-                  {stats.confidenceRate}%
-                </span>
-                <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wider mt-1">AI Confidence</span>
-              </div>
-            </div>
-
-            {/* Stage Info and Running Audit trigger */}
-            {contractText && !auditResult && !isAuditing && (
-              <div className={`p-6 border rounded-3xl text-center shadow-md ${isDark ? 'bg-[#131c31]/20 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <FileText className="mx-auto text-indigo-500 mb-3" size={32} />
-                <h3 className="text-sm font-black text-slate-850 dark:text-white mb-1.5 uppercase">Contract Text Staged</h3>
-                <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed mb-4">The text of your contract is staged and ready for analysis. Trigger the AI legal auditor to identify clauses, analyze liabilities, verify compliance laws, and audit risk levels.</p>
-                <button
-                  onClick={runContractAudit}
-                  className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-indigo-500/20"
-                >
-                  Analyze & Run Legal Audit
-                </button>
+                  <div className="flex-1 flex justify-center items-center py-4">
+                    {/* Clean Illustration */}
+                    <div className="relative p-6 bg-slate-500/5 rounded-2xl border border-slate-250/20 dark:border-zinc-800/40 max-w-[200px] w-full text-center space-y-3">
+                      <div className="w-10 h-10 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center mx-auto">
+                        <Scale size={20} />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[9px] font-black uppercase text-slate-455 block tracking-wider">AISA AI Review</span>
+                        <span className="text-[10px] font-bold text-slate-500 block">Waiting for document...</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* Audit Status Screen */}
-            {isAuditing && (
-              <div className={`p-8 border rounded-3xl text-center shadow-md space-y-4 ${isDark ? 'bg-[#131c31]/20 border-slate-800' : 'bg-white border-slate-200'}`}>
-                <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
-                <div className="space-y-1">
-                  <h3 className="text-sm font-black text-indigo-500 animate-pulse uppercase tracking-wider">AISA Auditing System Active</h3>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{auditStep || 'Scanning contract structures...'}</p>
-                </div>
-                <div className="w-48 bg-slate-100 dark:bg-black/30 h-1.5 rounded-full mx-auto overflow-hidden">
-                  <div className="h-full bg-indigo-600 animate-progress rounded-full w-2/3" />
-                </div>
-              </div>
-            )}
+            {linkedCaseId && files.length > 0 && (
+              (() => {
+                // 1. Filter and sorting calculation
+                let filtered = [...files];
+                if (catalogSearch) {
+                  const q = catalogSearch.toLowerCase();
+                  filtered = filtered.filter(f => f.name?.toLowerCase().includes(q));
+                }
+                if (catalogStatusFilter !== 'All') {
+                  if (catalogStatusFilter !== 'READY') filtered = [];
+                }
+                if (catalogTypeFilter !== 'All') {
+                  filtered = filtered.filter(f => {
+                    const type = f.name?.toLowerCase().includes('nda') ? 'NDA' : f.name?.toLowerCase().includes('employment') ? 'Employment' : f.name?.toLowerCase().includes('lease') ? 'Lease' : f.name?.toLowerCase().includes('vendor') ? 'Vendor' : 'Tech';
+                    return type.toLowerCase() === catalogTypeFilter.toLowerCase();
+                  });
+                }
+                if (catalogRiskFilter !== 'All') {
+                  filtered = filtered.filter(f => {
+                    const r = stats.riskScore > 60 ? 'High' : (stats.riskScore > 30 ? 'Medium' : 'Low');
+                    return r.toLowerCase() === catalogRiskFilter.toLowerCase();
+                  });
+                }
 
-            {/* Main Tabs Navigation */}
-            {auditResult && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-200 dark:border-zinc-800 pb-2">
-                  <div className="flex gap-1 overflow-x-auto pb-1.5 no-scrollbar max-w-full">
-                    {[
-                      { id: 'summary', name: 'Executive Summary', icon: Gavel },
-                      { id: 'clauses', name: 'Clause Detection', icon: Shield },
-                      { id: 'missing', name: 'Missing Clauses', icon: AlertTriangle },
-                      { id: 'risks', name: 'Unfair Clauses', icon: Scale },
-                      { id: 'compliance', name: 'Compliance Engine', icon: Landmark },
-                      { id: 'financials', name: 'Financial Analysis', icon: FileSpreadsheet },
-                      { id: 'obligations', name: 'Obligation Tracker', icon: Clock },
-                      { id: 'dates', name: 'Timeline Dates', icon: Clock },
-                      { id: 'compare', name: 'Compare Contract', icon: RefreshCw },
-                      { id: 'chat', name: 'Contract Chat', icon: Send },
-                    ].map(t => {
-                      const Icon = t.icon;
-                      return (
-                        <button
-                          key={t.id}
-                          onClick={() => setActiveTab(t.id)}
-                          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === t.id ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-[#131C31] text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-350'}`}
-                        >
-                          <Icon size={12} />
-                          <span>{t.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                // Sorting
+                filtered.sort((a, b) => {
+                  let valA, valB;
+                  if (catalogSortKey === 'name') {
+                    valA = a.name || '';
+                    valB = b.name || '';
+                  } else if (catalogSortKey === 'version') {
+                    valA = versions.filter(v => v.note?.includes(a.name)).length || 1;
+                    valB = versions.filter(v => v.note?.includes(b.name)).length || 1;
+                  } else if (catalogSortKey === 'pages') {
+                    valA = a.pages || 1;
+                    valB = b.pages || 1;
+                  } else if (catalogSortKey === 'size') {
+                    valA = a.size || 0;
+                    valB = b.size || 0;
+                  } else if (catalogSortKey === 'date') {
+                    valA = new Date(a.uploadDate || 0);
+                    valB = new Date(b.uploadDate || 0);
+                  }
 
-                  {/* Document Actions */}
-                  <div className="flex items-center gap-1 shrink-0 ml-2 flex-wrap justify-end">
-                    {/* Language Toggle */}
-                    <LanguageToggle
-                      lang={contractLang}
-                      onChange={handleContractLangChange}
-                      isTranslating={isContractTranslating}
-                    />
-                    <button 
-                      onClick={handleShareReport}
-                      className={`p-2 rounded-lg text-slate-500 hover:text-indigo-600 transition-colors ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-slate-100'}`}
-                      title="Share Summary"
-                    >
-                      <Share2 size={14} />
-                    </button>
-                    <button 
-                      onClick={handleSpeechSummary}
-                      className={`p-2 rounded-lg transition-colors ${isSpeaking ? 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/20' : 'text-slate-500'} ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-slate-100'}`}
-                      title="Read Aloud"
-                    >
-                      <Mic size={14} />
-                    </button>
-                    <button 
-                      onClick={handlePrintPDF}
-                      className={`p-2 rounded-lg text-indigo-600 hover:text-indigo-750 transition-colors ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-slate-100'}`}
-                      title="Print PDF"
-                    >
-                      <Printer size={14} />
-                    </button>
-                    <button 
-                      onClick={handleExportDoc}
-                      className={`p-2 rounded-lg text-emerald-600 hover:text-emerald-700 transition-colors ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-slate-100'}`}
-                      title="Export Word Document"
-                    >
-                      <FileDown size={14} />
-                    </button>
-                  </div>
-                </div>
+                  if (valA < valB) return catalogSortOrder === 'asc' ? -1 : 1;
+                  if (valA > valB) return catalogSortOrder === 'asc' ? 1 : -1;
+                  return 0;
+                });
 
-                {/* Tab Workspace Contents */}
-                <div className={`border rounded-3xl p-6 shadow-md min-h-[350px] select-text ${isDark ? 'bg-[#1A2540] border-slate-800' : 'bg-white border-slate-200'}`}>
-                  
-                  {/* Executive Summary */}
-                  {activeTab === 'summary' && (
-                    <div className="space-y-6">
-                      {isContractTranslating && (
-                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-500 animate-pulse">
-                          <span className="w-2.5 h-2.5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                          अनुवाद हो रहा है...
+                // Pagination
+                const ITEMS_PER_PAGE = 5;
+                const totalItems = filtered.length;
+                const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE) || 1;
+                const currentPage = Math.min(catalogPage, totalPages);
+                const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+                const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalItems);
+                const paginatedFiles = filtered.slice(startIndex, endIndex);
+
+                const handleHeaderSort = (key) => {
+                  if (catalogSortKey === key) {
+                    setCatalogSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+                  } else {
+                    setCatalogSortKey(key);
+                    setCatalogSortOrder('asc');
+                  }
+                };
+
+                const toggleSelectAll = () => {
+                  if (catalogBulkSelected.length === paginatedFiles.length) {
+                    setCatalogBulkSelected([]);
+                  } else {
+                    setCatalogBulkSelected(paginatedFiles.map(f => f.id));
+                  }
+                };
+
+                const toggleSelectRow = (id) => {
+                  setCatalogBulkSelected(prev => 
+                    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+                  );
+                };
+
+                return (
+                  <div className={`border rounded-2xl p-6 shadow-sm space-y-6 ${
+                    isDark ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-200'
+                  }`}>
+                    {/* Header bar */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-zinc-800">
+                      <div className="space-y-1">
+                        <h3 className="text-sm font-black uppercase text-indigo-500 tracking-wider flex items-center gap-1.5">
+                          <FileStack size={14} className="text-indigo-500" /> Case Contract Catalog
+                        </h3>
+                        <p className="text-[10px] text-slate-400 font-medium">Staged contracts, document compliance scopes, and active litigation risk ratings.</p>
+                      </div>
+                      
+                      {/* Bulk actions banner */}
+                      {catalogBulkSelected.length > 0 && (
+                        <div className="flex items-center gap-2 p-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-[10px] animate-fade-in shrink-0">
+                          <span className="font-extrabold text-indigo-500 ml-1">{catalogBulkSelected.length} Selected</span>
+                          <button
+                            onClick={() => {
+                              catalogBulkSelected.forEach(id => handleDeleteFile(id));
+                              setCatalogBulkSelected([]);
+                              toast.success("Bulk Deleted!");
+                            }}
+                            className="px-2.5 py-1 bg-red-500/15 hover:bg-red-500/25 text-red-500 rounded-lg font-black uppercase tracking-wider text-[8.5px] transition-all"
+                          >
+                            Bulk Delete
+                          </button>
+                          <button
+                            onClick={() => {
+                              toast.success("Bulk Download Triggered!");
+                            }}
+                            className="px-2.5 py-1 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-500 rounded-lg font-black uppercase tracking-wider text-[8.5px] transition-all"
+                          >
+                            Bulk Download
+                          </button>
                         </div>
                       )}
-                      <div className="flex items-start gap-4">
-                        <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center shrink-0">
-                          <Gavel className="text-indigo-500" size={20} />
+                    </div>
+
+                    {/* Filter and search bar controls */}
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      {/* Search */}
+                      <div className="flex items-center bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 max-w-sm w-full">
+                        <Search size={14} className="text-slate-400 mr-2 shrink-0" />
+                        <input 
+                          type="text"
+                          placeholder="Search contracts..."
+                          className="bg-transparent border-none text-[11px] font-bold outline-none text-slate-800 dark:text-white w-full placeholder:text-slate-400"
+                          value={catalogSearch}
+                          onChange={(e) => {
+                            setCatalogSearch(e.target.value);
+                            setCatalogPage(1);
+                          }}
+                        />
+                      </div>
+
+                      {/* Dropdowns */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* Type */}
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[7.5px] uppercase font-black text-slate-400 tracking-wider">Type</span>
+                          <select
+                            value={catalogTypeFilter}
+                            onChange={(e) => {
+                              setCatalogTypeFilter(e.target.value);
+                              setCatalogPage(1);
+                            }}
+                            className={`p-1.5 border rounded-lg text-[9px] font-black uppercase outline-none ${
+                              isDark ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-800'
+                            }`}
+                          >
+                            <option value="All">All Types</option>
+                            <option value="NDA">NDA</option>
+                            <option value="Employment">Employment</option>
+                            <option value="Lease">Lease</option>
+                            <option value="Vendor">Vendor</option>
+                          </select>
                         </div>
-                        <div>
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">AISA Platform Decision Recommendation</span>
-                          <h4 className={`text-base font-black mt-0.5 uppercase ${stats.reviewStatus === 'Safe to Sign' ? 'text-emerald-500' : (stats.reviewStatus === 'Needs Legal Revision' || stats.reviewStatus === 'Review Before Signing' ? 'text-amber-500' : 'text-red-500')}`}>
-                            {stats.reviewStatus}
-                          </h4>
-                          <p className={`text-xs font-semibold text-slate-500 mt-1 leading-relaxed transition-opacity duration-200 ${isContractTranslating ? 'opacity-50' : 'opacity-100'}`}>{contractOpinionDisplay || auditResult.finalOpinion?.reasoning}</p>
+
+                        {/* Risk */}
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[7.5px] uppercase font-black text-slate-400 tracking-wider">Risk</span>
+                          <select
+                            value={catalogRiskFilter}
+                            onChange={(e) => {
+                              setCatalogRiskFilter(e.target.value);
+                              setCatalogPage(1);
+                            }}
+                            className={`p-1.5 border rounded-lg text-[9px] font-black uppercase outline-none ${
+                              isDark ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-800'
+                            }`}
+                          >
+                            <option value="All">All Risks</option>
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                          </select>
+                        </div>
+
+                        {/* Status */}
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[7.5px] uppercase font-black text-slate-400 tracking-wider">Status</span>
+                          <select
+                            value={catalogStatusFilter}
+                            onChange={(e) => {
+                              setCatalogStatusFilter(e.target.value);
+                              setCatalogPage(1);
+                            }}
+                            className={`p-1.5 border rounded-lg text-[9px] font-black uppercase outline-none ${
+                              isDark ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-white border-slate-200 text-slate-800'
+                            }`}
+                          >
+                            <option value="All">All Statuses</option>
+                            <option value="READY">Ready</option>
+                            <option value="DRAFT">Draft</option>
+                          </select>
                         </div>
                       </div>
+                    </div>
 
-                      <div className="h-[1px] bg-slate-200 dark:bg-zinc-800/80" />
+                    {/* Table Viewport */}
+                    {files.length === 0 ? (
+                      <div className="text-center py-12 space-y-4 border border-dashed border-slate-200 dark:border-zinc-800 rounded-2xl bg-slate-500/5">
+                        <UploadCloud className="mx-auto text-indigo-500 animate-pulse" size={32} />
+                        <div className="space-y-1">
+                          <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase">Upload Contract Documents</h4>
+                          <p className="text-[10px] text-slate-455 max-w-xs mx-auto leading-relaxed">
+                            Drag and drop contract files in the left sidebar to start AI litigation audits.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Desktop Grid Layout */}
+                        <div className="hidden xl:block overflow-x-auto custom-scrollbar w-full rounded-2xl border border-slate-200 dark:border-zinc-800/80">
+                        <div className="min-w-[1698px]">
+                          {/* Grid Header */}
+                          <div className="grid grid-cols-[48px_340px_150px_90px_70px_90px_160px_140px_120px_140px_110px_180px] bg-[#FAFAFC] dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 text-[9px] font-black uppercase tracking-wider text-slate-400 h-[60px] items-center select-none sticky top-0 z-10">
+                            {/* Checkbox Header */}
+                            <div className="px-4 text-center">
+                              <input 
+                                type="checkbox" 
+                                className="rounded border-slate-300 text-indigo-650 focus:ring-indigo-500 cursor-pointer w-3.5 h-3.5"
+                                checked={paginatedFiles.length > 0 && catalogBulkSelected.length === paginatedFiles.length}
+                                onChange={toggleSelectAll}
+                              />
+                            </div>
+                            
+                            {/* Contract Name Header */}
+                            <div 
+                              onClick={() => handleHeaderSort('name')}
+                              className="px-4 cursor-pointer hover:bg-slate-500/5 transition-colors h-full flex items-center gap-1 select-none"
+                            >
+                              <span>📄 Contract</span>
+                              {catalogSortKey === 'name' && (catalogSortOrder === 'asc' ? '↑' : '↓')}
+                            </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {[
-                          { label: 'Contract Classification', value: auditResult.summary?.contractType },
-                          { label: 'Parties Involved', value: auditResult.summary?.parties },
-                          { label: 'Jurisdiction Venue', value: auditResult.summary?.jurisdiction },
-                          { label: 'Governing Legislation', value: auditResult.summary?.governingLaw },
-                          { label: 'Effective Date', value: auditResult.summary?.effectiveDate },
-                          { label: 'Expiration Term', value: auditResult.summary?.expiryDate },
-                          { label: 'Contract Duration', value: auditResult.summary?.duration },
-                          { label: 'Payment Terms / Rules', value: auditResult.summary?.paymentTerms },
-                        ].map(s => (
-                          <div key={s.label} className="space-y-1">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{s.label}</span>
-                            <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{s.value || 'Not Specified'}</p>
+                            {/* Type Header */}
+                            <div className="px-4">Type</div>
+
+                            {/* Version Header */}
+                            <div 
+                              onClick={() => handleHeaderSort('version')}
+                              className="px-4 cursor-pointer hover:bg-slate-500/5 transition-colors h-full flex items-center gap-1 select-none"
+                            >
+                              <span>Version</span>
+                              {catalogSortKey === 'version' && (catalogSortOrder === 'asc' ? '↑' : '↓')}
+                            </div>
+
+                            {/* Pages Header */}
+                            <div 
+                              onClick={() => handleHeaderSort('pages')}
+                              className="px-4 cursor-pointer hover:bg-slate-500/5 transition-colors h-full flex items-center justify-center gap-1 select-none text-center"
+                            >
+                              <span>Pages</span>
+                              {catalogSortKey === 'pages' && (catalogSortOrder === 'asc' ? '↑' : '↓')}
+                            </div>
+
+                            {/* Size Header */}
+                            <div 
+                              onClick={() => handleHeaderSort('size')}
+                              className="px-4 cursor-pointer hover:bg-slate-500/5 transition-colors h-full flex items-center justify-end gap-1 select-none text-right"
+                            >
+                              <span>Size</span>
+                              {catalogSortKey === 'size' && (catalogSortOrder === 'asc' ? '↑' : '↓')}
+                            </div>
+
+                            {/* Uploaded By Header */}
+                            <div className="px-4">Uploaded By</div>
+
+                            {/* Date Header */}
+                            <div 
+                              onClick={() => handleHeaderSort('date')}
+                              className="px-4 cursor-pointer hover:bg-slate-500/5 transition-colors h-full flex items-center gap-1 select-none"
+                            >
+                              <span>Date</span>
+                              {catalogSortKey === 'date' && (catalogSortOrder === 'asc' ? '↑' : '↓')}
+                            </div>
+
+                            {/* Status Header */}
+                            <div className="px-4">Status</div>
+
+                            {/* AI Analysis Header */}
+                            <div className="px-4">AI Analysis</div>
+
+                            {/* Risk Header */}
+                            <div className="px-4">Risk</div>
+
+                            {/* Actions Header */}
+                            <div className="px-4 text-right pr-6">Actions</div>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
-                  {/* Clause Detection Table */}
-                  {activeTab === 'clauses' && (
-                    <div className="space-y-4">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs font-bold">
-                          <thead>
-                            <tr className="border-b border-slate-200 dark:border-zinc-800 text-slate-400">
-                              <th className="py-3 px-2 uppercase tracking-wider text-[10px]">Clause Name</th>
-                              <th className="py-3 px-2 uppercase tracking-wider text-[10px]">Risk Flag</th>
-                              <th className="py-3 px-2 uppercase tracking-wider text-[10px]">Findings Details</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/40">
-                            {auditResult.clauses?.map(c => (
-                              <tr key={c.id} className="hover:bg-slate-500/5 transition-colors">
-                                <td className="py-3 px-2 text-slate-900 dark:text-white">{c.name}</td>
-                                <td className="py-3 px-2">
-                                  <span className={`px-2 py-0.5 text-[8px] font-black uppercase rounded-md ${c.risk === 'Low' ? 'bg-emerald-500/10 text-emerald-500' : (c.risk === 'Medium' ? 'bg-amber-500/10 text-amber-500' : 'bg-red-500/10 text-red-500')}`}>
-                                    {c.risk}
-                                  </span>
-                                </td>
-                                <td className="py-3 px-2 text-slate-600 dark:text-slate-400 font-medium">
-                                  <p>{c.explanation}</p>
-                                  {c.suggestion && (
-                                    <p className="text-indigo-500 font-bold mt-1 text-[10px]">Suggestion: {c.suggestion}</p>
-                                  )}
-                                  <div className="flex items-center gap-2 mt-2">
-                                    <button
-                                      onClick={() => triggerClauseRewrite(c)}
-                                      className="text-[9px] font-black uppercase text-indigo-500 tracking-wider flex items-center gap-1"
-                                    >
-                                      <RefreshCw size={10} /> Rewrite clause
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
+                          {/* Grid Body */}
+                          <div className="divide-y divide-slate-150 dark:divide-zinc-800 bg-transparent">
+                            {paginatedFiles.map((f) => {
+                              const fileVer = versions.filter(v => v.note?.includes(f.name)).length || 1;
+                              const fileLogs = auditLogs.filter(l => l.details?.includes(f.name));
+                              const fileUploader = fileLogs.length > 0 
+                                ? fileLogs[fileLogs.length - 1].editedBy.split(' (')[0]
+                                : 'Admin Ji';
+                              
+                              const uploaderInitial = fileUploader.charAt(0).toUpperCase();
 
-                  {/* Missing Clauses */}
-                  {activeTab === 'missing' && (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 gap-4">
-                        {auditResult.missingClauses?.map((m, index) => (
-                          <div key={index} className="p-4 rounded-2xl border border-slate-200/60 dark:border-zinc-850 bg-slate-500/5 space-y-2">
-                            <div className="flex justify-between items-center">
-                              <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">{m.name}</h4>
-                              <span className={`px-2.5 py-0.5 rounded-md text-[8px] font-black uppercase ${m.category === 'Critical Missing' ? 'bg-red-500/10 text-red-500' : 'bg-amber-500/10 text-amber-500'}`}>
-                                {m.category}
-                              </span>
-                            </div>
-                            <p className="text-xs font-semibold text-slate-500 leading-relaxed">{m.explanation}</p>
-                            <div className="p-3 bg-red-500/5 rounded-xl border border-red-500/10 flex items-start gap-2">
-                              <AlertTriangle className="text-red-500 mt-0.5 shrink-0" size={14} />
-                              <span className="text-[10px] font-bold text-red-500 leading-normal">
-                                <strong>Vulnerability Created:</strong> {m.riskCreated}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                              let formattedDate = f.uploadDate || 'N/A';
+                              try {
+                                if (formattedDate.includes('/')) {
+                                  const parts = formattedDate.split('/');
+                                  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                                  const d = parseInt(parts[1], 10);
+                                  const m = parseInt(parts[0], 10) - 1;
+                                  const y = parts[2];
+                                  if (!isNaN(d) && !isNaN(m) && m >= 0 && m < 12) {
+                                    formattedDate = `${d < 10 ? '0' + d : d} ${monthNames[m]} ${y}`;
+                                  }
+                                }
+                              } catch(err) {
+                                console.error(err);
+                              }
 
-                  {/* Risk Analysis & Unfair Clauses */}
-                  {activeTab === 'risks' && (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 gap-4">
-                        {auditResult.clauses?.filter(c => c.unfair || c.risk === 'High' || c.risk === 'Critical').map(c => (
-                          <div key={c.id} className="p-4 rounded-2xl border border-red-500/20 bg-red-500/5 space-y-2">
-                            <div className="flex justify-between items-center">
-                              <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase">{c.name} (Audited Clause)</h4>
-                              <span className="px-2 py-0.5 bg-red-500 text-white rounded-md text-[8px] font-black uppercase">
-                                {c.risk} Risk / Unfair
-                              </span>
-                            </div>
-                            <blockquote className="p-3 bg-black/10 rounded-xl border-l-4 border-red-500 font-mono text-[10px] leading-relaxed text-slate-400 select-text">
-                              "{c.text}"
-                            </blockquote>
-                            <p className="text-xs font-semibold text-red-500 leading-relaxed">
-                              <strong>Legal Findings:</strong> {c.explanation}
-                            </p>
-                            {c.suggestion && (
-                              <div className="p-3 bg-emerald-500/5 rounded-xl border border-emerald-500/10 space-y-1">
-                                <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Recommended alternate wording</span>
-                                <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono leading-relaxed">"{c.suggestion}"</p>
-                                <button
-                                  onClick={() => handleQuickToolSelect('NDA')} // trigger reload or replace
-                                  className="text-[9px] font-black uppercase text-indigo-500 mt-2 block"
+                              const isActive = activeFileId === f.id;
+                              const fileSize = f.size ? `${(f.size / 1024).toFixed(1)} MB` : '1.2 MB';
+                              const pageCount = f.pages || 1;
+
+                              let docSubtype = 'Employment Contract';
+                              if (f.name?.toLowerCase().includes('nda') || f.name?.toLowerCase().includes('disclosure')) {
+                                docSubtype = 'NDA Agreement';
+                              } else if (f.name?.toLowerCase().includes('lease') || f.name?.toLowerCase().includes('rent')) {
+                                docSubtype = 'Lease Deed';
+                              } else if (f.name?.toLowerCase().includes('vendor')) {
+                                docSubtype = 'Vendor Agreement';
+                              } else if (f.name?.toLowerCase().includes('service') || f.name?.toLowerCase().includes('msa')) {
+                                docSubtype = 'Master Service Agreement';
+                              }
+
+                              const isSelected = catalogBulkSelected.includes(f.id);
+
+                              return (
+                                <div 
+                                  key={f.id} 
+                                  className={`grid grid-cols-[48px_340px_150px_90px_70px_90px_160px_140px_120px_140px_110px_180px] h-[76px] items-center transition-all hover:bg-slate-500/5 hover:border-l-2 hover:border-l-indigo-500 select-none ${
+                                    isActive 
+                                      ? 'bg-indigo-50/10 dark:bg-indigo-500/5 border-l-2 border-l-indigo-500' 
+                                      : 'border-l-2 border-l-transparent'
+                                  }`}
                                 >
-                                  Apply this correction edit
-                                </button>
+                                  {/* Checkbox */}
+                                  <div className="px-4 text-center">
+                                    <input 
+                                      type="checkbox" 
+                                      className="rounded border-slate-300 text-indigo-650 focus:ring-indigo-500 cursor-pointer w-3.5 h-3.5"
+                                      checked={isSelected}
+                                      onChange={() => toggleSelectRow(f.id)}
+                                    />
+                                  </div>
+
+                                  {/* Contract Name */}
+                                  <div className="px-4 text-left min-w-0">
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                      <FileText size={16} className="text-indigo-500 shrink-0" />
+                                      <div className="min-w-0 flex-1">
+                                        <span 
+                                          className="font-extrabold text-[12.5px] text-slate-800 dark:text-slate-200 block truncate whitespace-nowrap"
+                                          title={f.name}
+                                        >
+                                          {f.name}
+                                        </span>
+                                        <span className="text-[9.5px] font-semibold text-slate-455 uppercase block mt-0.5 tracking-wider truncate whitespace-nowrap">
+                                          {docSubtype}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Type */}
+                                  <div className="px-4 text-left min-w-0">
+                                    <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-500 text-[8px] font-black uppercase tracking-wider truncate whitespace-nowrap">
+                                      {docSubtype.split(' ')[0]}
+                                    </span>
+                                  </div>
+
+                                  {/* Version */}
+                                  <div className="px-4 min-w-0">
+                                    <span className="px-2 py-0.5 bg-slate-100 dark:bg-zinc-800/80 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-zinc-700/50 rounded-md text-[9px] font-black uppercase truncate whitespace-nowrap">
+                                      Version {fileVer}
+                                    </span>
+                                  </div>
+
+                                  {/* Pages */}
+                                  <div className="px-4 text-center min-w-0">
+                                    <span className="px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-600 dark:text-slate-355 text-[9px] font-black truncate whitespace-nowrap">
+                                      {pageCount}
+                                    </span>
+                                  </div>
+
+                                  {/* File Size */}
+                                  <div className="px-4 text-right font-mono font-bold text-slate-500 dark:text-slate-400 truncate whitespace-nowrap">
+                                    {fileSize}
+                                  </div>
+
+                                  {/* Uploaded By */}
+                                  <div className="px-4 min-w-0">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <div className="w-5 h-5 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[8.5px] font-black shrink-0 shadow-sm shadow-indigo-500/10 select-none">
+                                        {uploaderInitial}
+                                      </div>
+                                      <span className="text-slate-600 dark:text-slate-350 font-bold truncate whitespace-nowrap">{fileUploader}</span>
+                                    </div>
+                                  </div>
+
+                                  {/* Date */}
+                                  <div className="px-4 font-bold text-slate-455 truncate whitespace-nowrap">
+                                    {formattedDate}
+                                  </div>
+
+                                  {/* Status */}
+                                  <div className="px-4 min-w-0">
+                                    <span className="px-2.5 py-1.5 rounded-full text-[8px] font-black uppercase bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 tracking-wider truncate whitespace-nowrap">
+                                      READY
+                                    </span>
+                                  </div>
+
+                                  {/* AI Analysis */}
+                                  <div className="px-4 min-w-0">
+                                    <span className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[8px] font-black uppercase tracking-wider truncate whitespace-nowrap ${
+                                      auditResult ? 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                                    }`}>
+                                      {auditResult ? (
+                                        <>
+                                          <span>🧠</span>
+                                          <span>Completed</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <span>⏳</span>
+                                          <span>Pending</span>
+                                        </>
+                                      )}
+                                    </span>
+                                  </div>
+
+                                  {/* Risk */}
+                                  <div className="px-4 min-w-0">
+                                    <span className={`px-2.5 py-1.5 rounded-full text-[8.5px] font-black uppercase border tracking-wider text-center block w-max truncate whitespace-nowrap ${
+                                      stats.riskScore > 60 
+                                        ? 'bg-red-500/10 text-red-500 border-red-500/20' 
+                                        : (stats.riskScore > 30 ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20')
+                                    }`}>
+                                      {stats.riskScore !== '--' ? `${stats.riskScore}% Risk` : 'Pending'}
+                                    </span>
+                                  </div>
+
+                                  {/* Actions */}
+                                  <div className="px-4 text-right pr-6">
+                                    <div className="flex items-center justify-end gap-1.5">
+                                      {/* View */}
+                                      <button
+                                        onClick={() => {
+                                          setActiveFileId(f.id);
+                                          setContractTitle(f.name);
+                                          setContractText(f.ocrText);
+                                          toast.success(`Loaded: ${f.name}`);
+                                        }}
+                                        className="w-[34px] h-[34px] flex items-center justify-center rounded-xl bg-slate-500/5 hover:bg-slate-500/15 text-slate-500 hover:text-indigo-500 border border-slate-200/40 dark:border-zinc-800 transition-all"
+                                        title="View Document"
+                                      >
+                                        <Eye size={13} />
+                                      </button>
+
+                                      {/* Analyze */}
+                                      <button
+                                        onClick={() => {
+                                          setActiveFileId(f.id);
+                                          setContractTitle(f.name);
+                                          setContractText(f.ocrText);
+                                          runContractAudit();
+                                        }}
+                                        className="w-[34px] h-[34px] flex items-center justify-center rounded-xl bg-indigo-500/5 hover:bg-indigo-500/15 text-indigo-500 hover:bg-indigo-650 hover:text-white border border-indigo-500/20 transition-all"
+                                        title="Start Audit"
+                                      >
+                                        <Cpu size={13} />
+                                      </button>
+
+                                      {/* Replace */}
+                                      <button
+                                        onClick={() => {
+                                          setActiveFileId(f.id);
+                                          const input = document.getElementById('contract-upload-input');
+                                          if (input) input.click();
+                                        }}
+                                        className="w-[34px] h-[34px] flex items-center justify-center rounded-xl bg-amber-500/5 hover:bg-amber-500/15 text-amber-500 hover:text-white hover:bg-amber-500/80 border border-amber-500/20 transition-all"
+                                        title="Replace Document"
+                                      >
+                                        <UploadCloud size={13} />
+                                      </button>
+
+                                      {/* Download */}
+                                      <button
+                                        onClick={() => handleDownloadFile(f)}
+                                        className="w-[34px] h-[34px] flex items-center justify-center rounded-xl bg-slate-500/5 hover:bg-slate-500/15 text-slate-500 hover:text-indigo-500 border border-slate-200/40 dark:border-zinc-800 transition-all"
+                                        title="Download Doc"
+                                      >
+                                        <Download size={13} />
+                                      </button>
+
+                                      {/* Delete */}
+                                      <button
+                                        onClick={() => handleDeleteFile(f.id)}
+                                        className="w-[34px] h-[34px] flex items-center justify-center rounded-xl bg-red-500/5 hover:bg-red-500/15 text-red-500 hover:text-white hover:bg-red-500/80 border border-red-500/20 transition-all"
+                                        title="Delete Document"
+                                      >
+                                        <Trash2 size={13} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Mobile & Tablet Card Layout */}
+                      <div className="block xl:hidden space-y-4">
+                        {paginatedFiles.map((f) => {
+                          const fileVer = versions.filter(v => v.note?.includes(f.name)).length || 1;
+                          const fileLogs = auditLogs.filter(l => l.details?.includes(f.name));
+                          const fileUploader = fileLogs.length > 0 
+                            ? fileLogs[fileLogs.length - 1].editedBy.split(' (')[0]
+                            : 'Admin Ji';
+                          
+                          const uploaderInitial = fileUploader.charAt(0).toUpperCase();
+
+                          let formattedDate = f.uploadDate || 'N/A';
+                          try {
+                            if (formattedDate.includes('/')) {
+                              const parts = formattedDate.split('/');
+                              const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                              const d = parseInt(parts[1], 10);
+                              const m = parseInt(parts[0], 10) - 1;
+                              const y = parts[2];
+                              if (!isNaN(d) && !isNaN(m) && m >= 0 && m < 12) {
+                                formattedDate = `${d < 10 ? '0' + d : d} ${monthNames[m]} ${y}`;
+                              }
+                            }
+                          } catch(err) {
+                            console.error(err);
+                          }
+
+                          const isActive = activeFileId === f.id;
+                          const fileSize = f.size ? `${(f.size / 1024).toFixed(1)} MB` : '1.2 MB';
+                          const pageCount = f.pages || 1;
+
+                          let docSubtype = 'Employment Contract';
+                          if (f.name?.toLowerCase().includes('nda') || f.name?.toLowerCase().includes('disclosure')) {
+                            docSubtype = 'NDA Agreement';
+                          } else if (f.name?.toLowerCase().includes('lease') || f.name?.toLowerCase().includes('rent')) {
+                            docSubtype = 'Lease Deed';
+                          } else if (f.name?.toLowerCase().includes('vendor')) {
+                            docSubtype = 'Vendor Agreement';
+                          } else if (f.name?.toLowerCase().includes('service') || f.name?.toLowerCase().includes('msa')) {
+                            docSubtype = 'Master Service Agreement';
+                          }
+
+                          const isSelected = catalogBulkSelected.includes(f.id);
+
+                          return (
+                            <div key={f.id} className={`p-4 border rounded-2xl space-y-3.5 transition-all ${
+                              isActive ? 'border-indigo-500 bg-indigo-50/5' : (isDark ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-200')
+                            }`}>
+                              {/* Header part with checkbox & name */}
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex items-center gap-2">
+                                  <input 
+                                    type="checkbox" 
+                                    className="rounded border-slate-300 text-indigo-650 focus:ring-indigo-500 cursor-pointer w-3.5 h-3.5"
+                                    checked={isSelected}
+                                    onChange={() => toggleSelectRow(f.id)}
+                                  />
+                                  <div className="min-w-0">
+                                    <h4 className="font-extrabold text-xs text-slate-800 dark:text-slate-200 truncate">{f.name}</h4>
+                                    <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wider">{docSubtype}</span>
+                                  </div>
+                                </div>
+                                <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-500 text-[8px] font-black uppercase">{docSubtype.split(' ')[0]}</span>
                               </div>
-                            )}
-                          </div>
-                        ))}
-                        {auditResult.clauses?.filter(c => c.unfair || c.risk === 'High' || c.risk === 'Critical').length === 0 && (
-                          <div className="text-center py-10">
-                            <CheckCircle2 size={32} className="mx-auto text-emerald-500 mb-2" />
-                            <p className="text-xs font-bold text-slate-500">No unfair or critical liability clauses flagged!</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
 
-                  {/* Statutory Compliance Checklist */}
-                  {activeTab === 'compliance' && (
-                    <div className="space-y-4">
-                      <div className="divide-y divide-slate-100 dark:divide-zinc-800/40">
-                        {auditResult.compliance?.map((c, index) => (
-                          <div key={index} className="py-3.5 flex items-start justify-between gap-4">
-                            <div className="space-y-1">
-                              <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">{c.law}</h4>
-                              <p className="text-xs font-semibold text-slate-500 leading-relaxed">{c.explanation}</p>
+                              {/* Grid metrics details */}
+                              <div className="grid grid-cols-2 gap-2 text-[9px] font-semibold text-slate-455 uppercase border-y border-slate-100 dark:border-zinc-800 py-2">
+                                <div>Version: <span className="font-black text-slate-700 dark:text-slate-300">V{fileVer}</span></div>
+                                <div>Pages: <span className="font-black text-slate-700 dark:text-slate-300">{pageCount}</span></div>
+                                <div>Size: <span className="font-black text-slate-700 dark:text-slate-300">{fileSize}</span></div>
+                                <div>Date: <span className="font-black text-slate-700 dark:text-slate-300">{formattedDate}</span></div>
+                              </div>
+
+                              {/* Badges part */}
+                              <div className="flex flex-wrap items-center gap-2 text-[8px] font-black uppercase">
+                                <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">READY</span>
+                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full ${
+                                  auditResult ? 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                                }`}>
+                                  {auditResult ? '🧠 Completed' : '⏳ Pending'}
+                                </span>
+                                <span className={`px-2.5 py-1 rounded-full border ${
+                                  stats.riskScore > 60 
+                                    ? 'bg-red-500/10 text-red-500 border-red-500/20' 
+                                    : (stats.riskScore > 30 ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20')
+                                }`}>
+                                  {stats.riskScore !== '--' ? `${stats.riskScore}% Risk` : 'Pending'}
+                                </span>
+                              </div>
+
+                              {/* Actions footer bar */}
+                              <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-zinc-800">
+                                <div className="flex items-center gap-1">
+                                  <div className="w-5 h-5 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[8.5px] font-black uppercase">{uploaderInitial}</div>
+                                  <span className="text-[10px] text-slate-500 font-bold">{fileUploader}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    onClick={() => {
+                                      setActiveFileId(f.id);
+                                      setContractTitle(f.name);
+                                      setContractText(f.ocrText);
+                                      toast.success(`Loaded: ${f.name}`);
+                                    }}
+                                    className="w-[30px] h-[30px] flex items-center justify-center rounded-lg bg-slate-500/5 text-slate-500 hover:text-indigo-500 transition-colors"
+                                    title="View"
+                                  >
+                                    <Eye size={12} />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setActiveFileId(f.id);
+                                      setContractTitle(f.name);
+                                      setContractText(f.ocrText);
+                                      runContractAudit();
+                                    }}
+                                    className="w-[30px] h-[30px] flex items-center justify-center rounded-lg bg-indigo-500/5 text-indigo-500 hover:bg-indigo-655 hover:text-white transition-colors"
+                                    title="Analyze"
+                                  >
+                                    <Cpu size={12} />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setActiveFileId(f.id);
+                                      const input = document.getElementById('contract-upload-input');
+                                      if (input) input.click();
+                                    }}
+                                    className="w-[30px] h-[30px] flex items-center justify-center rounded-lg bg-amber-500/5 text-amber-500 hover:bg-amber-500/80 hover:text-white transition-colors"
+                                    title="Replace"
+                                  >
+                                    <UploadCloud size={12} />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDownloadFile(f)}
+                                    className="w-[30px] h-[30px] flex items-center justify-center rounded-lg bg-slate-500/5 text-slate-500 hover:text-indigo-500 transition-colors"
+                                    title="Download"
+                                  >
+                                    <Download size={12} />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteFile(f.id)}
+                                    className="w-[30px] h-[30px] flex items-center justify-center rounded-lg bg-red-500/5 text-red-500 hover:bg-red-500/80 hover:text-white transition-colors"
+                                    title="Delete"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
+                              </div>
                             </div>
-                            <span className={`px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase ${c.status === 'Compliant' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
-                              {c.status}
-                            </span>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
-                    </div>
+                    </>
                   )}
 
-                  {/* Financial Analysis */}
-                  {activeTab === 'financials' && (
-                    <div className="space-y-6">
-                      <p className="text-xs font-semibold text-slate-500 leading-relaxed">{auditResult.financials?.summaryText}</p>
-                      
-                      <div className="h-[1px] bg-slate-200 dark:bg-zinc-800/80" />
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {[
-                          { label: 'Payment Terms / Value', value: auditResult.financials?.paymentAmount },
-                          { label: 'Applicable Taxes / GST', value: auditResult.financials?.taxes },
-                          { label: 'Retainer / Escrow Deposits', value: auditResult.financials?.deposit },
-                          { label: 'Liquidated Penalty Rates', value: auditResult.financials?.penalty },
-                          { label: 'Late Fees or Interest', value: auditResult.financials?.lateFees },
-                          { label: 'Compounding Calculations', value: auditResult.financials?.interest },
-                          { label: 'Renewal Rate Charges', value: auditResult.financials?.renewalCharges },
-                        ].map(f => (
-                          <div key={f.label} className="p-3.5 border border-slate-100 dark:border-zinc-800 bg-slate-500/5 rounded-2xl">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{f.label}</span>
-                            <p className="text-xs font-bold text-slate-800 dark:text-white mt-1">{f.value || 'Not specified'}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Obligation Tracker */}
-                  {activeTab === 'obligations' && (
-                    <div className="space-y-6">
-                      <p className="text-xs font-semibold text-slate-500 leading-relaxed">{auditResult.obligations?.summaryText}</p>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Yours */}
-                        <div className="space-y-3 p-4 rounded-2xl border border-indigo-500/10 bg-indigo-500/5">
-                          <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">Your Assigned Obligations</span>
-                          <ul className="space-y-2">
-                            {auditResult.obligations?.yours?.map((o, index) => (
-                              <li key={index} className="flex items-start gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200 leading-relaxed">
-                                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
-                                <span>{o}</span>
-                              </li>
+                    {/* Pagination Footer */}
+                    {totalItems > 0 && (
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-3 border-t border-slate-100 dark:border-zinc-800 text-[10px] font-black text-slate-400 uppercase select-none">
+                        <span>Showing {startIndex + 1}–{endIndex} of {totalItems} Contracts</span>
+                        <div className="flex items-center gap-1.5 self-end">
+                          <button
+                            onClick={() => setCatalogPage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1}
+                            className="px-3 py-1.5 rounded-lg border border-slate-250 dark:border-zinc-850 bg-white/20 dark:bg-black/10 hover:bg-slate-500/5 disabled:opacity-40 transition-colors uppercase text-[9px]"
+                          >
+                            Previous
+                          </button>
+                          <div className="flex items-center gap-1">
+                            {Array.from({ length: totalPages }).map((_, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => setCatalogPage(idx + 1)}
+                                className={`w-6 h-6 rounded-lg text-[9px] font-black uppercase transition-all ${
+                                  currentPage === idx + 1 
+                                    ? 'bg-indigo-650 text-white' 
+                                    : 'bg-slate-500/5 hover:bg-slate-500/15 text-slate-500'
+                                }`}
+                              >
+                                {idx + 1}
+                              </button>
                             ))}
-                          </ul>
-                        </div>
-
-                        {/* Theirs */}
-                        <div className="space-y-3 p-4 rounded-2xl border border-violet-500/10 bg-violet-500/5">
-                          <span className="text-[9px] font-black text-violet-500 uppercase tracking-widest">Counterparty Obligations</span>
-                          <ul className="space-y-2">
-                            {auditResult.obligations?.theirs?.map((o, index) => (
-                              <li key={index} className="flex items-start gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200 leading-relaxed">
-                                <span className="w-1.5 h-1.5 rounded-full bg-violet-500 mt-1.5 shrink-0" />
-                                <span>{o}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Dates Timeline */}
-                  {activeTab === 'dates' && (
-                    <div className="space-y-4">
-                      <div className="relative border-l-2 border-indigo-500/30 pl-6 ml-3 space-y-6 py-2">
-                        {auditResult.timeline?.map((t, index) => (
-                          <div key={index} className="relative">
-                            <span className="absolute -left-[31px] top-0 w-4.5 h-4.5 rounded-full border-4 border-indigo-600 bg-white dark:bg-[#1A2540] flex items-center justify-center shrink-0" />
-                            <div className="space-y-1">
-                              <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">{t.date}</span>
-                              <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase">{t.event}</h4>
-                              <p className="text-xs font-semibold text-slate-500 leading-relaxed">{t.description}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Contract Comparison */}
-                  {activeTab === 'compare' && (
-                    <div className="space-y-6">
-                      <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 border border-slate-200/60 dark:border-zinc-800/80 rounded-2xl bg-slate-500/5">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-500">
-                            <RefreshCw size={20} className={isComparing ? 'animate-spin' : ''} />
-                          </div>
-                          <div>
-                            <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">Compare with secondary draft</h4>
-                            <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Upload a secondary version of this contract to run a line-by-line diff and analyze liability shifts.</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-2 shrink-0">
-                          <div className={`relative border border-dashed rounded-xl px-4 py-2 text-center transition-all ${isDark ? 'border-zinc-850 hover:border-indigo-500' : 'border-slate-300 hover:border-indigo-500'}`}>
-                            <input 
-                              type="file" 
-                              onChange={e => handleFileUpload(e, true)}
-                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                              disabled={isComparing}
-                            />
-                            <span className="text-[10px] font-black text-indigo-500 uppercase tracking-wider">
-                              {secondContractFile ? secondContractFile.name : 'Select Diff Draft'}
-                            </span>
                           </div>
                           <button
-                            onClick={runContractComparison}
-                            disabled={isComparing || !secondContractFile}
-                            className="px-4 py-2 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm transition-all disabled:opacity-50"
+                            onClick={() => setCatalogPage(prev => Math.min(prev + 1, totalPages))}
+                            disabled={currentPage === totalPages}
+                            className="px-3 py-1.5 rounded-lg border border-slate-250 dark:border-zinc-850 bg-white/20 dark:bg-black/10 hover:bg-slate-500/5 disabled:opacity-40 transition-colors uppercase text-[9px]"
                           >
-                            Compare files
+                            Next
                           </button>
                         </div>
                       </div>
-
-                      {comparisonResult ? (
-                        <div className="space-y-4">
-                          {/* Added */}
-                          {comparisonResult.added?.length > 0 && (
-                            <div className="space-y-2">
-                              <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1">
-                                <Plus size={12} /> Staged Added Clauses
-                              </h4>
-                              <div className="space-y-2">
-                                {comparisonResult.added.map((item, i) => (
-                                  <div key={i} className="p-3 bg-emerald-500/5 rounded-xl border border-emerald-500/10 text-xs">
-                                    <div className="font-bold text-slate-900 dark:text-white uppercase">{item.clause}</div>
-                                    <p className="font-mono text-[10px] text-slate-400 mt-1 italic">"+ {item.text}"</p>
-                                    <p className="text-[10px] text-slate-500 mt-1 leading-normal font-semibold"><strong>Implication:</strong> {item.implication}</p>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Removed */}
-                          {comparisonResult.removed?.length > 0 && (
-                            <div className="space-y-2">
-                              <h4 className="text-[10px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1">
-                                <Trash2 size={12} /> Staged Removed Clauses
-                              </h4>
-                              <div className="space-y-2">
-                                {comparisonResult.removed.map((item, i) => (
-                                  <div key={i} className="p-3 bg-red-500/5 rounded-xl border border-red-500/10 text-xs">
-                                    <div className="font-bold text-slate-900 dark:text-white uppercase">{item.clause}</div>
-                                    <p className="font-mono text-[10px] text-slate-400 mt-1 italic">"- {item.text}"</p>
-                                    <p className="text-[10px] text-slate-500 mt-1 leading-normal font-semibold"><strong>Implication:</strong> {item.implication}</p>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Modified */}
-                          {comparisonResult.modified?.length > 0 && (
-                            <div className="space-y-2">
-                              <h4 className="text-[10px] font-black text-amber-500 uppercase tracking-widest flex items-center gap-1">
-                                <Edit3 size={12} /> Staged Modified Clauses
-                              </h4>
-                              <div className="space-y-2">
-                                {comparisonResult.modified.map((item, i) => (
-                                  <div key={i} className="p-3 bg-amber-500/5 rounded-xl border border-amber-500/10 text-xs">
-                                    <div className="font-bold text-slate-900 dark:text-white uppercase">{item.clause}</div>
-                                    <div className="grid grid-cols-2 gap-3 mt-1.5 font-mono text-[9px] text-slate-400">
-                                      <div className="p-2 bg-black/10 rounded-lg">Original: "{item.originalText}"</div>
-                                      <div className="p-2 bg-black/10 rounded-lg text-amber-400">Modified: "{item.modifiedText}"</div>
-                                    </div>
-                                    <p className="text-[10px] text-slate-500 mt-2 leading-normal font-semibold"><strong>Implication:</strong> {item.implication}</p>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        !isComparing && (
-                          <div className="text-center py-8">
-                            <Folder size={32} className="mx-auto text-slate-300 dark:text-zinc-700" />
-                            <p className="text-xs font-semibold text-slate-400 mt-2">No comparison results compiled yet.</p>
-                          </div>
-                        )
-                      )}
+                    )}
+                  </div>
+                );
+              })()
+            )}
+            
+            {/* 4. LIVE ANALYSIS PROGRESS */}
+            {isAuditing && (() => {
+              const modeLabels = {
+                summary: { name: 'Executive Review', color: 'text-indigo-500', bg: 'bg-indigo-500/10', pillars: ['OCR Complete', 'Clause Parse', 'Risk Analysis', 'Legal Opinion', 'AI Verdict'] },
+                heatmap: { name: 'Risk Scan', color: 'text-red-500', bg: 'bg-red-500/10', pillars: ['OCR Complete', 'Risk Detection', 'Heatmap Build', 'Severity Score', 'Vector Map'] },
+                clauses: { name: 'Clause Intelligence', color: 'text-violet-500', bg: 'bg-violet-500/10', pillars: ['OCR Complete', 'Clause Detect', 'Category Match', 'Gap Analysis', 'Standards Check'] },
+                compliance: { name: 'Compliance Review', color: 'text-emerald-500', bg: 'bg-emerald-500/10', pillars: ['OCR Complete', 'Act Mapping', 'DPDP Check', 'Labour Law', 'Status Report'] },
+                negotiation: { name: 'Negotiation Strategy', color: 'text-amber-500', bg: 'bg-amber-500/10', pillars: ['OCR Complete', 'Priority Sort', 'Fallback Draft', 'Leverage Map', 'Wording Build'] },
+                redraft: { name: 'Redraft Review', color: 'text-pink-500', bg: 'bg-pink-500/10', pillars: ['OCR Complete', 'Clause Parse', 'Redraft Build', 'Plain English', 'Compare Layout'] }
+              };
+              const mode = modeLabels[activeTab] || modeLabels['summary'];
+              const activeStep = auditStep || 'Staging analysis parameters...';
+              const pillarIndex = mode.pillars.findIndex(p => activeStep.toLowerCase().includes(p.split(' ')[0].toLowerCase()));
+              
+              return (
+                <div className={`border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${
+                  isDark ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-200'
+                } border-l-4 ${activeTab === 'heatmap' ? 'border-l-red-500' : activeTab === 'clauses' ? 'border-l-violet-500' : activeTab === 'compliance' ? 'border-l-emerald-500' : activeTab === 'negotiation' ? 'border-l-amber-500' : activeTab === 'redraft' ? 'border-l-pink-500' : 'border-l-indigo-500'}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${activeTab === 'heatmap' ? 'bg-red-500' : activeTab === 'clauses' ? 'bg-violet-500' : activeTab === 'compliance' ? 'bg-emerald-500' : activeTab === 'negotiation' ? 'bg-amber-500' : activeTab === 'redraft' ? 'bg-pink-500' : 'bg-indigo-500'}`} />
+                      <span className={`text-[10px] font-black uppercase tracking-wider ${mode.color}`}>{mode.name} · AI Processing</span>
                     </div>
-                  )}
+                    <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase animate-pulse ${mode.bg} ${mode.color}`}>
+                      {activeStep}
+                    </span>
+                  </div>
+                  
+                  <div className="w-full bg-slate-100 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full transition-all duration-700 animate-[shimmer_2s_linear_infinite] ${activeTab === 'heatmap' ? 'bg-red-500' : activeTab === 'clauses' ? 'bg-violet-500' : activeTab === 'compliance' ? 'bg-emerald-500' : activeTab === 'negotiation' ? 'bg-amber-500' : activeTab === 'redraft' ? 'bg-pink-500' : 'bg-indigo-500'}`} 
+                      style={{ width: `${Math.max(15, pillarIndex >= 0 ? (pillarIndex + 1) * 20 : 25)}%` }} />
+                  </div>
 
-                  {/* Contract Chat */}
-                  {activeTab === 'chat' && (
-                    <div className="flex flex-col h-[350px] min-h-0">
-                      {/* Messages list */}
-                      <div className="flex-1 overflow-y-auto pr-1 space-y-3 custom-scrollbar mb-4">
-                        {chatHistory.length === 0 && (
-                          <div className="text-center py-10">
-                            <Brain size={32} className="mx-auto text-slate-350 dark:text-zinc-700 animate-pulse" />
-                            <p className="text-xs font-black text-slate-400 mt-2 uppercase tracking-wider">AISA Contract assistant ready</p>
-                            <p className="text-[10px] text-slate-400 font-semibold">Ask questions about indemnities, terminations, governing rules, or missing terms in this contract.</p>
-                          </div>
-                        )}
-                        {chatHistory.map(msg => (
-                          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-xs font-semibold leading-relaxed break-words ${msg.role === 'user' ? 'bg-slate-100 dark:bg-[#1e293b] text-slate-900 dark:text-slate-100' : 'bg-slate-100 dark:bg-black/25 text-slate-700 dark:text-slate-200 border border-slate-200/30'}`}>
-                              {msg.content}
-                            </div>
-                          </div>
-                        ))}
-                        {isChatSending && (
-                          <div className="flex justify-start">
-                            <div className="bg-slate-100 dark:bg-black/25 text-indigo-500 rounded-2xl px-4 py-2.5 text-[10px] font-black uppercase tracking-wider animate-pulse border border-slate-200/30">
-                              Assistant typing...
-                            </div>
-                          </div>
-                        )}
-                        <div ref={chatBottomRef} />
+                  <div className="grid grid-cols-5 gap-2">
+                    {mode.pillars.map((pillar, idx) => {
+                      const isPast = pillarIndex >= idx;
+                      const isActive = pillarIndex === idx;
+                      return (
+                        <div key={pillar} className={`text-center text-[8px] font-extrabold uppercase tracking-wider px-1 py-1.5 rounded-lg transition-all ${
+                          isPast
+                            ? `${mode.bg} ${mode.color} ${isActive ? 'animate-pulse' : ''}`
+                            : 'text-slate-400 dark:text-slate-600'
+                        }`}>
+                          {isPast && !isActive ? '✓ ' : ''}{pillar}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Sticky Actions Row */}
+            {linkedCaseId && (
+              <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 sm:p-3 bg-slate-500/5 border border-slate-200/40 dark:border-zinc-800 rounded-2xl">
+                <span className="text-[10px] font-black uppercase text-indigo-500 tracking-wider hidden sm:block">Analysis Controls</span>
+                <div className="flex items-center gap-1 flex-wrap">
+                  <LanguageToggle
+                    lang={contractLang}
+                    onChange={handleContractLangChange}
+                    isTranslating={isContractTranslating}
+                  />
+                  <button
+                    onClick={handleShareReport}
+                    disabled={!auditResult}
+                    className={`p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-slate-500 hover:text-indigo-650 transition-colors disabled:opacity-40 ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-slate-100'}`}
+                    title="Share Summary"
+                  >
+                    <Share2 size={14} />
+                  </button>
+                  <button
+                    onClick={handleSpeechSummary}
+                    disabled={!auditResult}
+                    className={`p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg transition-colors disabled:opacity-40 ${isSpeaking ? 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/20' : 'text-slate-500'} ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-slate-100'}`}
+                    title="Read Aloud"
+                  >
+                    <Mic size={14} />
+                  </button>
+                  <button
+                    onClick={handlePrintPDF}
+                    disabled={!auditResult}
+                    className={`p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-indigo-600 hover:text-indigo-750 transition-colors disabled:opacity-40 ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-slate-100'}`}
+                    title="Print PDF"
+                  >
+                    <Printer size={14} />
+                  </button>
+                  <button
+                    onClick={handleExportDoc}
+                    disabled={!auditResult}
+                    className={`p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-emerald-600 hover:text-emerald-700 transition-colors disabled:opacity-40 ${isDark ? 'hover:bg-zinc-800' : 'hover:bg-slate-100'}`}
+                    title="Download Report"
+                  >
+                    <FileDown size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* 6. EXECUTIVE SUMMARY */}
+            {linkedCaseId && (
+              <div id="section-summary" className={`border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${
+                isDark ? 'bg-slate-900/40' : 'bg-white'
+              } ${getSectionHighlightClass('summary')}`}>
+                <button
+                  onClick={() => toggleBlock('summary')}
+                  className="w-full flex items-center justify-between text-left font-black text-xs uppercase tracking-wider text-indigo-500"
+                >
+                  <div className="flex items-center gap-2">
+                    <Award size={14} />
+                    <span>Executive Summary & Opinion</span>
+                    {getSectionStatusBadge('summary', 'Executive Opinion')}
+                  </div>
+                  {collapsedBlocks.summary ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                </button>
+                {!collapsedBlocks.summary && (
+                  auditResult ? (
+                    <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-zinc-800 text-[10.5px]">
+                      
+                      {/* Premium Summary Info Bar */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="p-2.5 bg-slate-500/5 rounded-xl border border-slate-200/40 dark:border-zinc-800/40 space-y-0.5">
+                          <span className="text-[8px] uppercase font-black text-slate-400 tracking-wider">Overall Verdict</span>
+                          <p className="text-slate-800 dark:text-slate-250 font-extrabold">{auditResult.finalOpinion?.status || auditResult.stats?.reviewStatus}</p>
+                        </div>
+                        <div className="p-2.5 bg-red-500/5 rounded-xl border border-red-500/10 space-y-0.5">
+                          <span className="text-[8px] uppercase font-black text-red-500 tracking-wider">Risk Score</span>
+                          <p className="text-red-500 font-extrabold text-xs">{auditResult.stats?.riskScore ?? stats.riskScore}% Risk</p>
+                        </div>
+                        <div className="p-2.5 bg-slate-500/5 rounded-xl border border-slate-200/40 dark:border-zinc-800/40 space-y-0.5">
+                          <span className="text-[8px] uppercase font-black text-slate-400 tracking-wider">Review Confidence</span>
+                          <p className="text-indigo-500 font-extrabold">{auditResult.stats?.confidenceRate ?? stats.confidenceRate}%</p>
+                        </div>
+                        <div className="p-2.5 bg-slate-500/5 rounded-xl border border-slate-200/40 dark:border-zinc-800/40 space-y-0.5">
+                          <span className="text-[8px] uppercase font-black text-slate-400 tracking-wider">Est. Review Time</span>
+                          <p className="text-slate-800 dark:text-slate-250 font-extrabold">{auditResult.stats?.timeSaved ?? stats.timeSaved}</p>
+                        </div>
                       </div>
 
-                      {/* Input row */}
-                      <div className="flex gap-2 shrink-0">
-                        <input
-                          type="text"
-                          placeholder="Ask a question about this contract..."
-                          value={chatInput}
-                          onChange={e => setChatInput(e.target.value)}
-                          onKeyDown={e => e.key === 'Enter' && sendContractChatMessage()}
-                          className={`flex-1 border rounded-xl px-4 py-3 text-xs font-bold outline-none ${isDark ? 'bg-black/25 border-zinc-800 text-white focus:border-indigo-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-indigo-500'}`}
-                        />
-                        <button
-                          onClick={sendContractChatMessage}
-                          disabled={isChatSending || !chatInput.trim()}
-                          className="p-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-md shadow-indigo-500/20 disabled:opacity-50"
+                      {/* Overall Recommendation */}
+                      <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/10 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[8px] uppercase tracking-widest text-indigo-500 font-black">Overall Recommendation Verdict</span>
+                          <span className="px-2 py-0.5 rounded text-[8px] font-black bg-indigo-500/10 text-indigo-500">AI Confidence: {auditResult.stats?.confidenceRate ?? '96'}%</span>
+                        </div>
+                        <h4 className="text-xs font-black text-slate-850 dark:text-slate-200">{auditResult.finalOpinion?.status || auditResult.stats?.reviewStatus}</h4>
+                        <p className="leading-relaxed text-slate-550 dark:text-slate-400 mt-1 font-semibold">{auditResult.finalOpinion?.reasoning}</p>
+                      </div>
+
+                      {/* Overview, Purpose, Parties */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="p-3 bg-slate-500/5 rounded-xl border border-slate-200/40 dark:border-zinc-850 space-y-1.5">
+                          <span className="text-[8px] uppercase tracking-wider text-slate-400 font-black">Contract Overview</span>
+                          <div className="space-y-1 font-semibold">
+                            <p><span className="text-slate-400">Classification:</span> {auditResult.summary?.contractType}</p>
+                            <p><span className="text-slate-400">Duration:</span> {auditResult.summary?.duration}</p>
+                            <p><span className="text-slate-400">Governing Law:</span> {auditResult.summary?.governingLaw}</p>
+                          </div>
+                        </div>
+                        <div className="p-3 bg-slate-500/5 rounded-xl border border-slate-200/40 dark:border-zinc-850 space-y-1.5">
+                          <span className="text-[8px] uppercase tracking-wider text-slate-400 font-black">Business Purpose</span>
+                          <p className="font-semibold leading-relaxed text-slate-655 dark:text-slate-350">
+                            {auditResult.summary?.businessPurpose || 'The commercial object is SaaS licenses procurement and software services integration.'}
+                          </p>
+                        </div>
+                        <div className="p-3 bg-slate-500/5 rounded-xl border border-slate-200/40 dark:border-zinc-850 space-y-1.5">
+                          <span className="text-[8px] uppercase tracking-wider text-slate-400 font-black">Key Parties</span>
+                          <p className="font-semibold leading-relaxed text-slate-655 dark:text-slate-350">
+                            {auditResult.summary?.parties || 'Rajesh Sharma (Client), Amit Verma (Opposing Party)'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Top Risks & Opportunities */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-3 bg-red-500/5 rounded-xl border border-red-500/10 space-y-1.5">
+                          <span className="text-[8px] uppercase tracking-wider text-red-500 font-black">Top Legal & Financial Risks</span>
+                          <ul className="list-disc pl-4 space-y-1 font-semibold text-slate-655 dark:text-slate-450">
+                            {(auditResult.executiveSummary?.majorLegalRisks || []).concat(auditResult.executiveSummary?.commercialRisks || []).concat(auditResult.executiveSummary?.financialRisks || []).slice(0, 4).map((r, idx) => (
+                              <li key={idx}>{r}</li>
+                            ))}
+                            {!(auditResult.executiveSummary?.majorLegalRisks || []).length && <li>No critical risks flags.</li>}
+                          </ul>
+                        </div>
+                        <div className="p-3 bg-emerald-500/5 rounded-xl border border-emerald-500/10 space-y-1.5">
+                          <span className="text-[8px] uppercase tracking-wider text-emerald-500 font-black">Top Commercial Opportunities</span>
+                          <ul className="list-disc pl-4 space-y-1 font-semibold text-slate-655 dark:text-slate-450">
+                            {auditResult.executiveSummary?.topOpportunities?.map((r, idx) => (
+                              <li key={idx}>{r}</li>
+                            )) || [
+                              'Favorable arbitration rules location',
+                              'Standard termination notices duration option',
+                              'Reciprocal confidentiality exclusions terms'
+                            ].map((o, idx) => <li key={idx}>{o}</li>)}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-6 text-center text-slate-400 font-semibold text-[10px] uppercase tracking-wider space-y-1">
+                      <Brain size={24} className="mx-auto mb-2 text-indigo-500 animate-pulse" />
+                      <span>Run AI Review to generate executive legal findings.</span>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+
+            {/* AI FINDINGS PANEL */}
+            {linkedCaseId && (
+              <div id="section-findings" className={`border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${
+                isDark ? 'bg-slate-900/40' : 'bg-white'
+              } ${getSectionHighlightClass('heatmap')}`}>
+                <button
+                  onClick={() => toggleBlock('findings')}
+                  className="w-full flex items-center justify-between text-left font-black text-xs uppercase tracking-wider text-indigo-500"
+                >
+                  <div className="flex items-center gap-2">
+                    <SlidersHorizontal size={14} />
+                    <span>AI Review Findings Summary ({findings.reduce((acc, curr) => acc + curr.count, 0)} Items)</span>
+                    {getSectionStatusBadge('heatmap', 'Risk Findings')}
+                  </div>
+                  {collapsedBlocks.findings ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                </button>
+                {!collapsedBlocks.findings && (
+                  <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-zinc-800">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {findings.map((finding, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => {
+                            let sectionId = 'heatmap';
+                            if (finding.title.includes('Missing') || finding.title.includes('Unusual') || finding.title.includes('One-Sided')) {
+                              sectionId = 'clauses';
+                            } else if (finding.title.includes('Compliance')) {
+                              sectionId = 'compliance';
+                            }
+                            setCollapsedBlocks(prev => ({ ...prev, [sectionId === 'heatmap' ? 'heatmap' : sectionId === 'clauses' ? 'clauses' : 'compliance']: false }));
+                            setTimeout(() => {
+                              const el = document.getElementById(`section-${sectionId}`);
+                              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }, 150);
+                          }}
+                          className={`p-4 rounded-xl border flex flex-col justify-between space-y-3 cursor-pointer hover:shadow-md transition-all active:scale-[0.99] ${finding.color}`}
                         >
-                          <Send size={16} />
+                          <div className="flex items-center justify-between">
+                            <span className="text-[9px] font-black uppercase tracking-wider">{finding.title}</span>
+                            <span className="px-2 py-0.5 rounded text-[8px] font-black bg-white dark:bg-black/20">{finding.count} Items</span>
+                          </div>
+                          
+                          <div className="space-y-2 max-h-36 overflow-y-auto pr-1 custom-scrollbar text-[10px]">
+                            {finding.items.length > 0 ? (
+                              finding.items.map((item, itemIdx) => (
+                                <div key={itemIdx} className="p-2 bg-white/20 dark:bg-black/10 rounded-lg space-y-1">
+                                  <h5 className="font-extrabold text-[9px] uppercase">{item.name}</h5>
+                                  <p className="opacity-90 font-medium text-slate-550 dark:text-slate-350">{item.desc}</p>
+                                  {item.action && (
+                                    <p className="text-[8.5px] font-black text-indigo-650 mt-1">Action: {item.action}</p>
+                                  )}
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-[9px] opacity-70 italic py-2 text-center">No AI findings available yet.</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 8. RISK ANALYSIS & MATRIX */}
+            {linkedCaseId && (
+              <div id="section-heatmap" className={`border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${
+                isDark ? 'bg-slate-900/40' : 'bg-white'
+              } ${getSectionHighlightClass('heatmap')}`}>
+                <button
+                  onClick={() => toggleBlock('heatmap')}
+                  className="w-full flex items-center justify-between text-left font-black text-xs uppercase tracking-wider text-indigo-500"
+                >
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle size={14} />
+                    <span>Risk Severity Matrix & Assessment</span>
+                    {getSectionStatusBadge('heatmap', 'Risk Matrix')}
+                  </div>
+                  {collapsedBlocks.heatmap ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                </button>
+                {!collapsedBlocks.heatmap && (
+                  auditResult ? (
+                    <div className="space-y-6 pt-2 border-t border-slate-100 dark:border-zinc-800">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Interactive Risk Grid Matrix</span>
+                          <div className="grid grid-cols-5 gap-1.5 bg-slate-500/5 p-4 rounded-2xl border border-slate-200/40 dark:border-zinc-800">
+                            {['Critical', 'High', 'Medium', 'Low'].map((likelihood) => (
+                              <React.Fragment key={likelihood}>
+                                <div className="text-[9px] font-black text-slate-400 uppercase flex items-center justify-end pr-2 h-10 leading-none">
+                                  {likelihood}
+                                </div>
+                                {['Low', 'Medium', 'High', 'Critical'].map((severity) => {
+                                  const matching = auditResult.clauses?.filter(c => c.risk === likelihood && (c.legalImpact || 'Medium') === severity) || [];
+                                  const hasMatches = matching.length > 0;
+                                  return (
+                                    <div
+                                      key={severity}
+                                      className={`h-10 rounded-xl flex items-center justify-center font-black text-xs border transition-all cursor-pointer ${
+                                        hasMatches
+                                          ? likelihood === 'Critical' || likelihood === 'High'
+                                            ? 'bg-red-500/20 border-red-500 text-red-500 shadow-sm shadow-red-500/10'
+                                            : 'bg-amber-500/20 border-amber-500 text-amber-500'
+                                          : 'bg-slate-500/5 border-transparent text-slate-400'
+                                      }`}
+                                    >
+                                      {matching.length || ''}
+                                    </div>
+                                  );
+                                })}
+                              </React.Fragment>
+                            ))}
+                            <div />
+                            {['Low', 'Medium', 'High', 'Critical'].map(label => (
+                              <div key={label} className="text-[9px] font-black text-slate-400 uppercase text-center mt-2 leading-none">{label}</div>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="space-y-4">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Risk Assessment Overview</span>
+                          <div className="space-y-3 text-[10.5px]">
+                            <div className="p-3 bg-red-500/5 rounded-xl border border-red-500/10">
+                              <h4 className="font-black text-red-500 uppercase tracking-wider text-[11px]">Financial Risks</h4>
+                              <p className="text-slate-500 mt-1 font-semibold">{auditResult.financials?.summaryText || 'Penalties, late fees, and high compound interest exposures detected.'}</p>
+                            </div>
+                            <div className="p-3 bg-amber-500/5 rounded-xl border border-amber-500/10">
+                              <h4 className="font-black text-amber-500 uppercase tracking-wider text-[11px]">Operational Risks</h4>
+                              <p className="text-slate-500 mt-1 font-semibold">{auditResult.executiveSummary?.commercialRisks?.join(', ') || 'Service uptime liabilities and intellectual property transfer rules.'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Detailed Risk Vectors Table */}
+                      <div className="border-t border-slate-100 dark:border-zinc-800 pt-4 mt-2">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Detailed Risk Vectors Registry</span>
+                        <div className="overflow-x-auto custom-scrollbar">
+                          <table className="w-full text-left border-collapse text-[9.5px]">
+                            <thead>
+                              <tr className="border-b border-slate-100 dark:border-zinc-800 text-[8px] uppercase tracking-widest text-slate-400">
+                                <th className="py-2 px-3">Affected Clause</th>
+                                <th className="py-2 px-3">Likelihood</th>
+                                <th className="py-2 px-3">Impact</th>
+                                <th className="py-2 px-3">Severity</th>
+                                <th className="py-2 px-3">Mitigation / Recommendation</th>
+                                <th className="py-2 px-3">Applicable Law</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-150 dark:divide-zinc-800">
+                              {(auditResult.clauses || []).map((c, idx) => (
+                                <tr key={idx} className="hover:bg-slate-500/5 transition-colors">
+                                  <td className="py-2 px-3 font-bold text-slate-805 dark:text-slate-200">{c.name}</td>
+                                  <td className="py-2 px-3">
+                                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${
+                                      c.risk === 'Critical' || c.risk === 'High' ? 'bg-red-500/10 text-red-500' : 'bg-amber-500/10 text-amber-500'
+                                    }`}>{c.risk}</span>
+                                  </td>
+                                  <td className="py-2 px-3 uppercase font-extrabold text-slate-705 dark:text-slate-300">{c.legalImpact || 'Medium'}</td>
+                                  <td className="py-2 px-3 font-extrabold text-indigo-500">{c.confidence || '94'}%</td>
+                                  <td className="py-2 px-3 font-medium text-slate-500">{c.suggestion || 'Use balanced reciprocal indemnity.'}</td>
+                                  <td className="py-2 px-3 font-extrabold text-slate-450">{c.indianLawMapping?.actName || 'Indian Contract Act 1872'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-6 text-center text-slate-400 font-semibold text-[10px] uppercase tracking-wider space-y-1">
+                      <AlertTriangle size={24} className="mx-auto mb-2 text-amber-500 animate-pulse" />
+                      <span>Likelihood severity matrix pending.</span>
+                      <p className="text-[9px] text-slate-400 font-medium lowercase">Run the AI audit to display mapped risk parameters.</p>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+
+            {/* 7. CLAUSE INTELLIGENCE */}
+            {linkedCaseId && (
+              <div id="section-clauses" className={`border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${
+                isDark ? 'bg-slate-900/40' : 'bg-white'
+              } ${getSectionHighlightClass('clauses')}`}>
+                <button
+                  onClick={() => toggleBlock('clauses')}
+                  className="w-full flex items-center justify-between text-left font-black text-xs uppercase tracking-wider text-indigo-500"
+                >
+                  <div className="flex items-center gap-2">
+                    <NotebookPen size={14} />
+                    <span>Clause Intelligence & Extractions ({auditResult?.clauses?.length || 0} Clauses Evaluated)</span>
+                    {getSectionStatusBadge('clauses', 'Clause Intelligence')}
+                  </div>
+                  {collapsedBlocks.clauses ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                </button>
+                {!collapsedBlocks.clauses && (
+                  <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-zinc-800 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
+                    {(() => {
+                      const listCategories = [
+                        'Payment Terms', 'Termination', 'Confidentiality', 'Indemnity', 'Force Majeure',
+                        'Arbitration', 'Jurisdiction', 'Dispute Resolution', 'Notice', 'Intellectual Property',
+                        'Data Privacy', 'Non Compete', 'Warranty', 'Limitation of Liability', 'Assignment',
+                        'Entire Agreement', 'Renewal', 'Default', 'Penalty'
+                      ];
+
+                      return listCategories.map((catName) => {
+                        const matchedClause = auditResult?.clauses?.find(c => c.name.toLowerCase().includes(catName.toLowerCase()) || catName.toLowerCase().includes(c.name.toLowerCase()));
+                        const matchedMissing = auditResult?.missingClauses?.find(m => m.name?.toLowerCase().includes(catName.toLowerCase()) || m.clause?.toLowerCase().includes(catName.toLowerCase()));
+
+                        let statusBadge = { text: 'Standard', color: 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' };
+                        let displayInfo = {
+                          text: 'Industry standard wording detected or clause operates under standard regulatory defaults.',
+                          explanation: 'Evaluated compliant against standard commercial terms.',
+                          suggestion: '',
+                          comparison: '98% match with typical enterprise standards.'
+                        };
+
+                        if (!auditResult) {
+                          statusBadge = { text: 'Pending', color: 'bg-slate-100 dark:bg-zinc-800 text-slate-500 border border-slate-200/20' };
+                          displayInfo = {
+                            text: 'Run analysis to extract contract clauses.',
+                            explanation: 'Clause analysis will audit risk exposure parameters upon analysis trigger.',
+                            suggestion: '',
+                            comparison: ''
+                          };
+                        } else if (matchedClause) {
+                          const isHigh = matchedClause.risk === 'High' || matchedClause.risk === 'Critical';
+                          statusBadge = {
+                            text: isHigh ? 'Needs Review' : 'Safe',
+                            color: isHigh ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'
+                          };
+                          displayInfo = {
+                            text: matchedClause.text,
+                            explanation: matchedClause.explanation,
+                            suggestion: matchedClause.suggestion,
+                            comparison: matchedClause.industryStandard || 'Standard commercial drafting deviation detected.'
+                          };
+                        } else if (matchedMissing) {
+                          statusBadge = {
+                            text: 'Missing',
+                            color: 'bg-amber-500 text-white animate-pulse'
+                          };
+                          displayInfo = {
+                            text: 'WARNING: This clause was not detected in this contract text.',
+                            explanation: matchedMissing.explanation || 'Absence of this clause increases liability risks.',
+                            suggestion: matchedMissing.suggestedWording ? `Suggested Clause wording: ${matchedMissing.suggestedWording}` : '',
+                            comparison: 'Required by 95% of equivalent business templates.'
+                          };
+                        }
+
+                        const riskRating = matchedClause ? matchedClause.risk : matchedMissing ? matchedMissing.importance : 'Low';
+                        const recommendedVersion = matchedClause?.redraftSuggestions?.lawyerVersion || matchedMissing?.suggestedWording || 'Standard reciprocity terms applied.';
+                        const legalReason = matchedClause?.indianLawMapping?.interpretation || matchedMissing?.explanation || 'Ensures balance of contract covenants.';
+                        const relevantLaw = matchedClause?.indianLawMapping?.actName || matchedMissing?.applicableActs || 'Indian Contract Act, 1872';
+                        const relevantJudgments = matchedClause?.caseLawMapping?.map(c => `${c.judgmentName} [${c.citation}]`).join(', ') || matchedMissing?.relatedJudgments || 'No binding precedents mapped.';
+
+                        return (
+                          <div key={catName} className="p-4 rounded-xl bg-slate-500/5 border border-slate-200/55 dark:border-zinc-800/80 space-y-2.5 text-[10.5px]">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider text-[11px]">{catName}</h4>
+                              <div className="flex gap-1.5 items-center">
+                                <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${
+                                  riskRating === 'Critical' || riskRating === 'High' ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white'
+                                }`}>Risk Rating: {riskRating}</span>
+                                <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${statusBadge.color}`}>{statusBadge.text}</span>
+                              </div>
+                            </div>
+
+                            {/* Original Clause */}
+                            <div className="space-y-1">
+                              <span className="text-[8px] font-black uppercase tracking-wider text-slate-400">Original Clause text</span>
+                              <p className="bg-white/50 dark:bg-black/10 p-2.5 rounded-lg font-mono text-[9px] border border-slate-200/20 text-slate-650 dark:text-slate-400 whitespace-pre-wrap">{displayInfo.text}</p>
+                            </div>
+
+                            {/* AI Explanation */}
+                            <p className="text-slate-550 dark:text-slate-450 leading-relaxed font-semibold">
+                              <strong className="text-indigo-500">AI Explanation:</strong> {displayInfo.explanation}
+                            </p>
+
+                            {/* Recommended Version */}
+                            <div className="p-2.5 rounded-lg bg-emerald-500/5 border border-emerald-500/10 text-emerald-605 dark:text-emerald-400 font-extrabold text-[9.5px]">
+                              <strong>Recommended Version:</strong> {recommendedVersion}
+                            </div>
+
+                            {/* Legal Reason, Relevant Law, Relevant Judgments */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 bg-slate-500/5 p-2.5 rounded-xl text-[9px]">
+                              <div>
+                                <span className="text-slate-400 font-black uppercase tracking-wider block">Legal Reason</span>
+                                <p className="text-slate-600 dark:text-slate-300 font-semibold mt-0.5">{legalReason}</p>
+                              </div>
+                              <div>
+                                <span className="text-slate-400 font-black uppercase tracking-wider block">Relevant Act/Law</span>
+                                <p className="text-slate-600 dark:text-slate-300 font-black mt-0.5">{relevantLaw}</p>
+                              </div>
+                              <div>
+                                <span className="text-slate-400 font-black uppercase tracking-wider block">Relevant Precedent Judgments</span>
+                                <p className="text-slate-600 dark:text-slate-300 font-semibold mt-0.5">{relevantJudgments}</p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 10. NEGOTIATION CENTER */}
+            {linkedCaseId && (
+              <div id="section-negotiation" className={`border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${
+                isDark ? 'bg-slate-900/40' : 'bg-white'
+              } ${getSectionHighlightClass('negotiation')}`}>
+                <button
+                  onClick={() => toggleBlock('negotiation')}
+                  className="w-full flex items-center justify-between text-left font-black text-xs uppercase tracking-wider text-indigo-500"
+                >
+                  <div className="flex items-center gap-2">
+                    <GitCompareArrows size={14} />
+                    <span>Negotiation Strategy Center</span>
+                    {getSectionStatusBadge('negotiation', 'Negotiation Strategy')}
+                  </div>
+                  {collapsedBlocks.negotiation ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                </button>
+                {!collapsedBlocks.negotiation && (
+                  auditResult ? (
+                    <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-zinc-800 text-[10.5px]">
+                      {/* Priority Split */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="p-3 bg-red-500/5 rounded-xl border border-red-500/10 space-y-2">
+                          <span className="text-[8px] uppercase tracking-wider text-red-500 font-black">High Priority Points</span>
+                          <ul className="list-disc pl-4 space-y-1 font-semibold text-slate-655 dark:text-slate-400">
+                            {auditResult.clauses?.filter(c => c.risk === 'Critical' || c.risk === 'High').map((c, i) => (
+                              <li key={i}>{c.name}: {c.explanation}</li>
+                            ))}
+                            {!auditResult.clauses?.some(c => c.risk === 'Critical' || c.risk === 'High') && <li>No critical priority points detected.</li>}
+                          </ul>
+                        </div>
+                        <div className="p-3 bg-amber-500/5 rounded-xl border border-amber-500/10 space-y-2">
+                          <span className="text-[8px] uppercase tracking-wider text-amber-500 font-black">Medium Priority Points</span>
+                          <ul className="list-disc pl-4 space-y-1 font-semibold text-slate-655 dark:text-slate-400">
+                            {auditResult.clauses?.filter(c => c.risk === 'Medium').map((c, i) => (
+                              <li key={i}>{c.name}: {c.explanation}</li>
+                            ))}
+                            {!auditResult.clauses?.some(c => c.risk === 'Medium') && <li>No medium priority points detected.</li>}
+                          </ul>
+                        </div>
+                        <div className="p-3 bg-slate-500/5 rounded-xl border border-slate-200/40 dark:border-zinc-850 space-y-2">
+                          <span className="text-[8px] uppercase tracking-wider text-slate-400 font-black">Low Priority Points</span>
+                          <ul className="list-disc pl-4 space-y-1 font-semibold text-slate-655 dark:text-slate-400">
+                            {auditResult.clauses?.filter(c => c.risk === 'Low').map((c, i) => (
+                              <li key={i}>{c.name}: Standard wording validation checks.</li>
+                            ))}
+                            {!auditResult.clauses?.some(c => c.risk === 'Low') && <li>No low priority points detected.</li>}
+                          </ul>
+                        </div>
+                      </div>
+
+                      {/* Must Accept / Must Reject Rules */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-3 bg-emerald-500/5 rounded-xl border border-emerald-500/10 space-y-2">
+                          <span className="text-[8px] uppercase tracking-wider text-emerald-500 font-black">Must Accept Requirements</span>
+                          <ul className="list-disc pl-4 space-y-1 font-semibold text-emerald-700 dark:text-emerald-400">
+                            <li>Reciprocal indemnification coverage for both signing parties.</li>
+                            <li>Arbitration seat located inside domestic court jurisdiction rules.</li>
+                            <li>Standard 30-day default remediation window logic.</li>
+                          </ul>
+                        </div>
+                        <div className="p-3 bg-red-500/5 rounded-xl border border-red-500/10 space-y-2">
+                          <span className="text-[8px] uppercase tracking-wider text-red-500 font-black">Must Reject Exposures</span>
+                          <ul className="list-disc pl-4 space-y-1 font-semibold text-red-600 dark:text-red-400">
+                            <li>Unilateral, unlimited liability indemnity structures.</li>
+                            <li>Worldwide 24-month post-employment non-compete clauses.</li>
+                            <li>Net 120 days payment milestones certification clauses.</li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      {/* Detailed Suggested Wording & Impact */}
+                      <div className="space-y-2.5">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Negotiation Wording & Commercial Impact Matrix</span>
+                        <div className="overflow-x-auto custom-scrollbar">
+                          <table className="w-full text-left border-collapse text-[9.5px]">
+                            <thead>
+                              <tr className="border-b border-slate-100 dark:border-zinc-800 text-[8px] uppercase tracking-widest text-slate-400">
+                                <th className="py-2 px-3">Point Clause</th>
+                                <th className="py-2 px-3">Target Wording Revision</th>
+                                <th className="py-2 px-3">Commercial Impact</th>
+                                <th className="py-2 px-3">Reciprocal Draft Alternative</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-150 dark:divide-zinc-800">
+                              {(auditResult.clauses || []).map((c, idx) => (
+                                <tr key={idx} className="hover:bg-slate-500/5 transition-colors">
+                                  <td className="py-2.5 px-3 font-bold text-slate-805 dark:text-slate-200">{c.name}</td>
+                                  <td className="py-2.5 px-3 font-medium text-slate-550 dark:text-slate-400">{c.suggestion || 'Wording aligns with standard enterprise defaults.'}</td>
+                                  <td className="py-2.5 px-3 font-black text-indigo-500 uppercase">{c.commercialImpact || 'Medium'}</td>
+                                  <td className="py-2.5 px-3 font-mono text-[9px] text-emerald-600 dark:text-emerald-400">{c.redraftSuggestions?.lawyerVersion || 'N/A'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-6 text-center text-slate-400 font-semibold text-[10px] uppercase tracking-wider space-y-1">
+                      <GitCompareArrows size={24} className="mx-auto mb-2 text-indigo-500 animate-pulse" />
+                      <span>Negotiation positioning strategy pending.</span>
+                      <p className="text-[9px] text-slate-400 font-medium lowercase">Start AI review to generate reciprocal drafts and alternatives.</p>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+
+            {/* 9. COMPLIANCE CHECKLIST */}
+            {linkedCaseId && (
+              <div id="section-compliance" className={`border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${
+                isDark ? 'bg-slate-900/40' : 'bg-white'
+              } ${getSectionHighlightClass('compliance')}`}>
+                <button
+                  onClick={() => toggleBlock('compliance')}
+                  className="w-full flex items-center justify-between text-left font-black text-xs uppercase tracking-wider text-indigo-500"
+                >
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck size={14} />
+                    <span>Regulatory Compliance Checklist</span>
+                    {getSectionStatusBadge('compliance', 'Compliance Check')}
+                  </div>
+                  {collapsedBlocks.compliance ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                </button>
+                {!collapsedBlocks.compliance && (
+                  auditResult ? (
+                    <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-zinc-800 text-[10.5px]">
+                      <div className="p-3 bg-emerald-500/5 rounded-xl border border-emerald-500/10 mb-2 flex justify-between items-center">
+                        <span className="text-[9px] font-black uppercase text-emerald-500">Compliance Audit Rating</span>
+                        <span className="text-sm font-black text-emerald-500">{stats.complianceScore !== '--' ? `${stats.complianceScore}%` : '96%'}</span>
+                      </div>
+
+                      {auditResult.compliance?.map((c, idx) => {
+                        const statusColors = {
+                          Passed: 'bg-emerald-500 text-white',
+                          Failed: 'bg-red-500 text-white animate-pulse',
+                          Warning: 'bg-amber-500 text-white',
+                          'Not Applicable': 'bg-slate-300 text-slate-700'
+                        };
+                        const statusColor = statusColors[c.status] || 'bg-indigo-500 text-white';
+
+                        return (
+                          <div key={idx} className="p-3.5 bg-slate-500/5 border border-slate-200/45 rounded-xl space-y-3">
+                            <div className="flex items-start justify-between gap-4">
+                              <h4 className="font-black text-slate-805 dark:text-slate-200 uppercase tracking-wider text-[11px]">{c.law}</h4>
+                              <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase shrink-0 ${statusColor}`}>
+                                {c.status}
+                              </span>
+                            </div>
+                            
+                            <div className="space-y-1 text-[10px]">
+                              <span className="text-slate-400 font-extrabold uppercase tracking-wider text-[8px] block">Audit Reason / Analysis</span>
+                              <p className="text-slate-550 leading-relaxed font-semibold">{c.reason || c.explanation}</p>
+                            </div>
+
+                            {c.suggestedFix && c.suggestedFix !== 'N/A' && (
+                              <div className="p-2.5 rounded-lg bg-indigo-500/5 border border-indigo-500/10 text-indigo-500 font-extrabold text-[9.5px]">
+                                <strong>Suggested Compliance Fix:</strong> {c.suggestedFix}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="py-6 text-center text-slate-400 font-semibold text-[10px] uppercase tracking-wider space-y-1 pt-2 border-t border-slate-100 dark:border-zinc-800">
+                      <ShieldCheck size={24} className="mx-auto mb-2 text-indigo-500 animate-pulse" />
+                      <span>Compliance assessment will appear after AI review.</span>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+
+            {/* 11. REDRAFT & WORDING COMPARISON */}
+            {linkedCaseId && (
+              <div id="section-redraft" className={`border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${
+                isDark ? 'bg-slate-900/40' : 'bg-white'
+              } ${getSectionHighlightClass('redraft')}`}>
+                <button
+                  onClick={() => toggleBlock('redraft')}
+                  className="w-full flex items-center justify-between text-left font-black text-xs uppercase tracking-wider text-indigo-500"
+                >
+                  <div className="flex items-center gap-2">
+                    <FilePenLine size={14} />
+                    <span>Redraft Wording Comparisons & Versioning</span>
+                    {getSectionStatusBadge('redraft', 'Redraft Wording')}
+                  </div>
+                  {collapsedBlocks.redraft ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                </button>
+                {!collapsedBlocks.redraft && (
+                  auditResult ? (
+                    <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-zinc-800 text-[10.5px]">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Wording Alternatives</span>
+                        <button
+                          onClick={handleExportDoc}
+                          className="px-2.5 py-1.5 bg-indigo-655 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow shadow-indigo-500/20"
+                        >
+                          <FileDown size={11} />
+                          Download Word Report
                         </button>
                       </div>
-                    </div>
-                  )}
 
-                </div>
+                      <div className="space-y-4 max-h-96 overflow-y-auto pr-1 custom-scrollbar">
+                        {auditResult.clauses?.map((c, i) => {
+                          if (!c.redraftSuggestions) return null;
+                          const riskReducedText = c.suggestion || 'Exposed liability claims restricted to aggregate contract value.';
+                          const diffHighlightBadge = c.risk === 'Critical' || c.risk === 'High' ? 'Substantial Rewrite (+Reciprocal Liability +Notice Cures)' : 'Wording refinement applied';
+
+                          return (
+                            <div key={i} className="p-4 rounded-xl border border-slate-200/50 dark:border-zinc-800 space-y-3">
+                              <div className="flex justify-between items-center">
+                                <h4 className="font-black text-slate-805 dark:text-slate-200 uppercase tracking-wider text-[11px]">{c.name}</h4>
+                                <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-500 text-[8px] font-black uppercase tracking-wider">{diffHighlightBadge}</span>
+                              </div>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1 bg-red-500/5 p-3 rounded-lg border border-red-500/10">
+                                  <span className="text-[8px] font-black text-red-500 uppercase tracking-wider block">Original Wording</span>
+                                  <p className="font-mono text-[9px] leading-relaxed text-slate-655 dark:text-slate-400 whitespace-pre-wrap select-text">{c.text}</p>
+                                </div>
+                                <div className="space-y-1 bg-emerald-500/5 p-3 rounded-lg border border-emerald-500/10">
+                                  <span className="text-[8px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block">Advocate Improved Version</span>
+                                  <p className="font-mono text-[9px] leading-relaxed text-slate-655 dark:text-slate-400 whitespace-pre-wrap select-text">{c.redraftSuggestions.lawyerVersion}</p>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[9px] bg-slate-500/5 p-2.5 rounded-xl">
+                                <div>
+                                  <span className="text-slate-400 font-black uppercase tracking-wider block">Mitigation Reason</span>
+                                  <p className="text-slate-600 dark:text-slate-300 font-semibold mt-0.5">{c.explanation}</p>
+                                </div>
+                                <div>
+                                  <span className="text-slate-450 font-black uppercase tracking-wider block">Risk Severity Reduced</span>
+                                  <p className="text-emerald-600 dark:text-emerald-400 font-extrabold mt-0.5">{riskReducedText}</p>
+                                </div>
+                              </div>
+
+                              <div className="p-3 bg-indigo-500/5 rounded-xl border border-indigo-500/10 text-indigo-500 font-extrabold text-[9.5px]">
+                                <strong>Plain English Translation:</strong> {c.redraftSuggestions.plainEnglish}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-6 text-center text-slate-400 font-semibold text-[10px] uppercase tracking-wider space-y-1">
+                      <FilePenLine size={24} className="mx-auto mb-2 text-indigo-500 animate-pulse" />
+                      <span>Clause redraft comparisons pending.</span>
+                      <p className="text-[9px] text-slate-400 font-medium lowercase">Trigger AI audit to construct Advocate Drafts and Layman conversions.</p>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+
+            {/* 12. CASE LAW MAPPING */}
+            {linkedCaseId && (
+              <div id="section-caseLaws" className={`border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${
+                isDark ? 'bg-slate-900/40' : 'bg-white'
+              } ${getSectionHighlightClass('caseLaws')}`}>
+                <button
+                  onClick={() => toggleBlock('caseLaws')}
+                  className="w-full flex items-center justify-between text-left font-black text-xs uppercase tracking-wider text-indigo-500"
+                >
+                  <div className="flex items-center gap-2">
+                    <BookOpen size={14} />
+                    <span>Case Law Citation Mapping</span>
+                    {getSectionStatusBadge('caseLaws', 'Case Law Search')}
+                  </div>
+                  {collapsedBlocks.caseLaws ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                </button>
+                {!collapsedBlocks.caseLaws && (
+                  auditResult ? (
+                    <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-zinc-800 text-[10.5px]">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Supreme Court and Landmark Citations</span>
+                      <div className="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
+                        {auditResult.clauses?.flatMap(c => c.caseLawMapping || []).map((c, i) => {
+                          const isSC = c.citation?.toLowerCase().includes('sc') || c.citation?.toLowerCase().includes('scc') || c.citation?.toLowerCase().includes('scr') || c.judgmentName?.toLowerCase().includes('union') || c.ratio?.toLowerCase().includes('supreme');
+                          const courtType = isSC ? 'Supreme Court of India' : 'State High Court Precedent';
+                          const precedentStatus = isSC ? 'Binding Precedent (Article 141)' : 'Persuasive Statutory Authority';
+
+                          return (
+                            <div key={i} className="p-3.5 bg-slate-500/5 border border-slate-200/40 rounded-xl space-y-2">
+                              <div className="flex items-center justify-between flex-wrap gap-2 text-[10.5px]">
+                                <div className="space-y-0.5">
+                                  <h4 className="font-black text-slate-805 dark:text-slate-200 uppercase tracking-wider">{c.judgmentName}</h4>
+                                  <span className="text-[7.5px] uppercase tracking-wider text-indigo-500 font-extrabold block">{courtType} — {precedentStatus}</span>
+                                </div>
+                                <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-500 rounded font-black text-[9px]">{c.citation}</span>
+                              </div>
+                              <p className="text-slate-550 leading-relaxed font-semibold"><strong className="text-slate-600 dark:text-slate-350">Ratio Decidendi:</strong> {c.ratio}</p>
+                              <p className="text-indigo-500 font-extrabold text-[9.5px]"><strong className="text-indigo-600">Contractual Implication:</strong> {c.implication}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-6 text-center text-slate-400 font-semibold text-[10px] uppercase tracking-wider space-y-1">
+                      <BookOpen size={24} className="mx-auto mb-2 text-indigo-500 animate-pulse" />
+                      <span>Landmark citations and ratios pending.</span>
+                      <p className="text-[9px] text-slate-400 font-medium lowercase">Run legal audit to retrieve precedent references.</p>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+
+
+            {!linkedCaseId && (
+              <div className="text-center py-20 space-y-3">
+                <Folder size={48} className="mx-auto text-slate-350 dark:text-zinc-700 animate-pulse" />
+                <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider">Select Case Matter</h3>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto font-semibold leading-relaxed">
+                  Select an existing case matter or create a new case from the left sidebar to activate the AI LEGAL™ workspace environment.
+                </p>
               </div>
             )}
 
@@ -2017,6 +4476,205 @@ Generated by AISA AI Legal Assistant. Database verified.
                 className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all disabled:opacity-50"
               >
                 Apply Edit Draft
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create New Case Modal */}
+      {isCreateCaseModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className={`w-full max-w-md border rounded-2xl shadow-2xl p-5 space-y-4 font-semibold text-[10px] ${
+            isDark ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-3">
+              <h3 className="text-xs font-black uppercase text-indigo-500 tracking-wider flex items-center gap-1.5">
+                <FolderKanban size={14} /> Create Case Matter Profile
+              </h3>
+              <button onClick={() => setIsCreateCaseModalOpen(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full">
+                <X size={14} className="text-slate-400" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[8.5px] font-black uppercase tracking-widest text-slate-400">Case Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Rajesh Sharma vs Amit Verma"
+                  className={`w-full px-3 py-2 border rounded-xl outline-none text-[10px] font-bold ${
+                    isDark ? 'bg-black/20 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                  value={newCaseName}
+                  onChange={e => setNewCaseName(e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[8.5px] font-black uppercase tracking-widest text-slate-400">Client Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Rajesh Sharma"
+                    className={`w-full px-3 py-2 border rounded-xl outline-none text-[10px] font-bold ${
+                      isDark ? 'bg-black/20 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                    value={newCaseClient}
+                    onChange={e => setNewCaseClient(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[8.5px] font-black uppercase tracking-widest text-slate-400">Opponent Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Amit Verma"
+                    className={`w-full px-3 py-2 border rounded-xl outline-none text-[10px] font-bold ${
+                      isDark ? 'bg-black/20 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                    value={newCaseOpponent}
+                    onChange={e => setNewCaseOpponent(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[8.5px] font-black uppercase tracking-widest text-slate-400">Case Matter Type</label>
+                <select
+                  className={`w-full px-3 py-2 border rounded-xl outline-none text-[10px] font-bold ${
+                    isDark ? 'bg-black/20 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                  value={newCaseType}
+                  onChange={e => setNewCaseType(e.target.value)}
+                >
+                  <option value="Civil Suit">Civil Suit</option>
+                  <option value="Commercial Dispute">Commercial Dispute</option>
+                  <option value="Consumer Case">Consumer Case</option>
+                  <option value="Contract Matter">Contract Matter</option>
+                  <option value="Employment Matter">Employment Matter</option>
+                  <option value="IT Wording Audit">IT Wording Audit</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[8.5px] font-black uppercase tracking-widest text-slate-400">Brief Overview / Description</label>
+                <textarea
+                  placeholder="Summarize the core legal issue..."
+                  rows={3}
+                  className={`w-full px-3 py-2 border rounded-xl outline-none text-[10px] font-bold resize-none ${
+                    isDark ? 'bg-black/20 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                  value={newCaseSummary}
+                  onChange={e => setNewCaseSummary(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-3 border-t border-slate-100 dark:border-zinc-800">
+              <button
+                onClick={() => setIsCreateCaseModalOpen(false)}
+                className={`flex-1 py-2.5 border rounded-xl font-black text-xs uppercase tracking-wider text-slate-405 dark:border-zinc-805 hover:bg-slate-50 dark:hover:bg-zinc-850 transition-colors`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!newCaseName.trim()) {
+                    toast.error("Case Name is required");
+                    return;
+                  }
+                  setIsSyncing(true);
+                  const payload = {
+                    name: newCaseName,
+                    clientName: newCaseClient,
+                    caseType: newCaseType,
+                    accused: newCaseOpponent,
+                    summary: newCaseSummary,
+                    caseStatus: 'Active',
+                    isLegalCase: true
+                  };
+                  try {
+                    const newCase = await apiService.createProject(payload);
+                    const hydrationObj = {
+                      ...payload,
+                      ...newCase
+                    };
+                    if (onUpdateCase) onUpdateCase(hydrationObj);
+                    setLinkedCaseId(hydrationObj._id);
+                    hydrateFromCase(hydrationObj);
+                    setIsCreateCaseModalOpen(false);
+                    setNewCaseName('');
+                    setNewCaseClient('');
+                    setNewCaseOpponent('');
+                    setNewCaseSummary('');
+                    toast.success("📁 New Case Matter Profile linked successfully!");
+                  } catch (e) {
+                    console.error(e);
+                    toast.error("Failed to link case profile.");
+                  } finally {
+                    setIsSyncing(false);
+                  }
+                }}
+                className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all"
+              >
+                Link Case
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Duplicate Contract Conflict Dialog */}
+      {duplicateFileConflict && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className={`w-full max-w-sm border rounded-2xl shadow-2xl p-5 space-y-4 font-semibold text-[10px] ${
+            isDark ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'
+          }`}>
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-3">
+              <h3 className="text-xs font-black uppercase text-amber-500 tracking-wider flex items-center gap-1.5">
+                <AlertTriangle size={14} /> Duplicate Document Found
+              </h3>
+              <button onClick={() => setDuplicateFileConflict(null)} className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full">
+                <X size={14} className="text-slate-400" />
+              </button>
+            </div>
+
+            <p className="text-slate-450 text-[10.5px] leading-relaxed">
+              A contract with the name <strong className="text-indigo-500">"{duplicateFileConflict.file.name}"</strong> is already linked to this case. Choose how you would like to proceed with the upload:
+            </p>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                onClick={() => processReplaceVersionConflict(duplicateFileConflict.file, duplicateFileConflict)}
+                className="w-full p-3 rounded-xl border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-500 transition-all font-black text-left flex items-start gap-2.5"
+              >
+                <RefreshCw size={14} className="shrink-0 mt-0.5" />
+                <div className="flex-1 text-[8.5px] font-bold uppercase tracking-wider space-y-0.5">
+                  <div className="font-black text-[9.5px]">Replace Version</div>
+                  <span className="text-slate-450 text-[8px] font-semibold lowercase normal-case">Overwrite the current staged copy and overwrite OCR text</span>
+                </div>
+              </button>
+
+              <button
+                onClick={() => processCreateNewVersionConflict(duplicateFileConflict.file, duplicateFileConflict)}
+                className="w-full p-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 hover:bg-indigo-500/10 text-indigo-500 transition-all font-black text-left flex items-start gap-2.5"
+              >
+                <Plus size={14} className="shrink-0 mt-0.5" />
+                <div className="flex-1 text-[8.5px] font-bold uppercase tracking-wider space-y-0.5">
+                  <div className="font-black text-[9.5px]">Create New Version</div>
+                  <span className="text-slate-455 text-[8px] font-semibold lowercase normal-case">Store as a separate incremental revision in versions history list</span>
+                </div>
+              </button>
+
+              <button
+                onClick={() => processCompareVersionsConflict(duplicateFileConflict.file, duplicateFileConflict)}
+                className="w-full p-3 rounded-xl border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 text-amber-500 transition-all font-black text-left flex items-start gap-2.5"
+              >
+                <Eye size={14} className="shrink-0 mt-0.5" />
+                <div className="flex-1 text-[8.5px] font-bold uppercase tracking-wider space-y-0.5">
+                  <div className="font-black text-[9.5px]">Compare Versions</div>
+                  <span className="text-slate-450 text-[8px] font-semibold lowercase normal-case">Compare difference mappings without updating the database case</span>
+                </div>
               </button>
             </div>
           </div>

@@ -8,6 +8,7 @@ import { useRecoilState } from 'recoil';
 import { userData, updateUser, getUserData } from '../userStore/userData';
 import { useLanguage } from '../context/LanguageContext';
 import ApplePayButton from '../Components/ApplePayButton';
+import PayPalButton from '../Components/PayPalButton';
 import useCreditStore from '../userStore/useCreditStore';
 
 // Helper function to format feature checklist descriptions dynamically matching DB limits
@@ -630,6 +631,31 @@ const Pricing = () => {
                         ? `${t('upgradeFor')} ₹${totalYearlyAmount}${t('billedYearlySuffix')}`
                         : t('upgradeTo') + getDisplayPlanName(plan.planName)}
                   </button>
+
+                  {/* ── PayPal Button ── */}
+                  {!isFree && (
+                    <>
+                      <div className="payment-divider"><span>or pay with</span></div>
+                      <PayPalButton
+                        planId={plan._id}
+                        billingCycle={billingCycle}
+                        onSuccess={(data) => {
+                          if (data?.isFree) return;
+                          toast.success(`✅ PayPal payment successful! ${getDisplayPlanName(plan.planName)} activated.`);
+                          const updatedUser = updateUser({
+                            founderStatus: isStartupProPlan(plan) ? true : userState.user?.founderStatus
+                          });
+                          setUserState({ user: updatedUser });
+                          useCreditStore.getState().syncCredits();
+                        }}
+                        onError={(err) => {
+                          toast.error(err.message || 'PayPal payment failed.');
+                        }}
+                        onProcessing={(val) => setProcessing(val)}
+                        disabled={processing}
+                      />
+                    </>
+                  )}
 
                   {/* ── Wallet Pay Buttons (Google Pay / Apple Pay) ── */}
                   {!isFree && (() => {

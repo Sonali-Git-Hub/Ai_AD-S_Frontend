@@ -22,7 +22,7 @@ const GlobalFloatingNavbar = () => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
   const currentMode = useRecoilValue(activeModeData);
-  const isLegalWorkspace = currentMode === 'LEGAL_TOOLKIT' || window.location.pathname === '/dashboard/cases';
+  const isLegalWorkspace = currentMode === 'LEGAL_TOOLKIT' || window.location.pathname.startsWith('/dashboard/legal');
 
   useEffect(() => {
     const handleResize = () => setIsDesktop(window.innerWidth >= 1024);

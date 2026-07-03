@@ -339,7 +339,20 @@
   background: hsl(var(--border));
 }
 
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @keyframes shimmer {
+
   0% {
     transform: translateX(-100%);
   }
@@ -570,8 +583,8 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -2332,4 +2345,28 @@ body.modal-open-hide-navbar {
     line-height: 23px !important;
   }
 }
+
+@utility scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes report-fade-expand {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.report-animate-fadeIn {
+  animation: report-fade-expand 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 

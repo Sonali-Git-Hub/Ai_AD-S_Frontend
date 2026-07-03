@@ -71,3 +71,21 @@ export const getCreditHistory = async () => {
   });
   return response.data;
 };
+
+export const createPaypalOrder = async (orderData) => {
+  const response = await axios.post(
+    `${API}/payment/paypal/create-order`,
+    orderData,
+    { headers: getAuthHeaders() }
+  );
+  return response.data;
+};
+
+export const capturePaypalOrder = async (orderID, planId, billingCycle) => {
+  const response = await axios.post(
+    `${API}/payment/paypal/capture`,
+    { orderID, planId, billingCycle },
+    { headers: getAuthHeaders() }
+  );
+  return response.data;
+};
