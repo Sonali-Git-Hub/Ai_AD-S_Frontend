@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, Fragment } from 'react';
 import { useParams, useNavigate, useLocation, useOutletContext, Outlet } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Send, SendHorizontal, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, AlertCircle, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe, Sliders, PlayCircle, Brain, ImagePlus, PlaySquare, RefreshCcw, TrendingUp, Zap, Gavel, Navigation, Rocket, Megaphone, Scale, ArrowLeft, ChevronRight, Briefcase, Calendar, Users, FolderOpen, Save, Sun, Moon, LayoutDashboard } from 'lucide-react';
+import { Send, SendHorizontal, Bot, User, Sparkles, Plus, Monitor, ChevronDown, History, Paperclip, X, AlertCircle, FileText, Image as ImageIcon, Cloud, HardDrive, Edit2, Download, Mic, Wand2, Eye, FileSpreadsheet, Presentation, File as FileIcon, MoreVertical, Trash2, Check, Camera, Video, Copy, ThumbsUp, ThumbsDown, Share, Search, Undo2, Menu as MenuIcon, Volume2, Pause, Headphones, MessageCircle, ExternalLink, ZoomIn, ZoomOut, RotateCcw, Minus, Code, Globe, Sliders, PlayCircle, Brain, ImagePlus, PlaySquare, RefreshCcw, TrendingUp, Zap, Gavel, Navigation, Rocket, Megaphone, Scale, ArrowLeft, ChevronRight, Briefcase, Calendar, Users, FolderOpen, Save, Sun, Moon, LayoutDashboard, Maximize2, Minimize2 } from 'lucide-react';
 import LegalLogo from '../Tools/AI_Legal/components/LegalLogo';
 import CaseIntelligencePanel from '../Tools/AI_Legal/components/CaseIntelligencePanel';
 import { logo } from '../constants';
@@ -663,6 +663,7 @@ const Chat = () => {
   const [sessions, setSessions] = useRecoilState(sessionsData);
   const [inputValue, setInputValue] = useState('');
   const [longTextPreview, setLongTextPreview] = useState(null);
+  const [isInputExpanded, setIsInputExpanded] = useState(false);
   const [isAutoPreviewDisabled, setIsAutoPreviewDisabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSessionLoading, setIsSessionLoading] = useState(false);
@@ -7234,7 +7235,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                         <Skeleton />
                                       ) : (
                                         <div className="flex flex-col">
-                                          <div className={`collapsible-container ${msg.content && msg.content.length > 350 && msg.id !== typingMessageId && !expandedMessages[msg.id] ? 'collapsed-message' : ''}`}>
+                                          <div className={`collapsible-container ${msg.content && msg.content.length > 350 && msg.id !== typingMessageId && expandedMessages[msg.id] === false ? 'collapsed-message' : ''}`}>
                                             <ReactMarkdown
                                               className="select-text"
                                               remarkPlugins={[remarkGfm]}
@@ -7478,7 +7479,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                                 onClick={(e) => {
                                                   e.stopPropagation();
                                                   setExpandedMessages(prev => {
-                                                    const next = { ...prev, [msg.id]: !prev[msg.id] };
+                                                    const next = { ...prev, [msg.id]: prev[msg.id] === false ? true : false };
                                                     if (next[msg.id]) {
                                                       setTimeout(() => {
                                                         scrollToBottom(true, 'smooth');
@@ -7488,16 +7489,16 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                                   });
                                                 }}
                                                 className="read-more-btn"
-                                                title={expandedMessages[msg.id] ? 'Show less' : 'Read full response'}
-                                                aria-expanded={!!expandedMessages[msg.id]}
+                                                title={expandedMessages[msg.id] !== false ? 'Show less' : 'Read full response'}
+                                                aria-expanded={expandedMessages[msg.id] !== false}
                                               >
                                                 <span className="read-more-btn__text">
-                                                  {expandedMessages[msg.id]
+                                                  {expandedMessages[msg.id] !== false
                                                     ? 'Show less'
                                                     : `Read Full Response ↓`}
                                                 </span>
                                                 <ChevronDown
-                                                  className={`read-more-btn__icon ${expandedMessages[msg.id] ? 'rotated' : ''}`}
+                                                  className={`read-more-btn__icon ${expandedMessages[msg.id] !== false ? 'rotated' : ''}`}
                                                 />
                                               </button>
                                             </div>
@@ -8929,7 +8930,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                       </div>
                     </div>
 
-                    <div className="flex-1 flex items-center min-w-0 bg-transparent border-0 ring-0 focus:ring-0">
+                    <div className="flex-1 flex items-start min-w-0 bg-transparent border-0 ring-0 focus:ring-0 group">
                       <AnimatePresence>
                         {(isWebSearch || isDeepSearch || isImageGeneration || isVideoGeneration || isVoiceMode || isAudioConvertMode || isDocumentConvert || isCodeWriter || isMagicEditing || isFileAnalysis || isCashFlowMode || currentMode === 'LEGAL_TOOLKIT') && (
                           <div className="absolute bottom-full left-0 mb-3.5 flex flex-row items-center justify-start pointer-events-none z-[100] w-full">
@@ -9165,7 +9166,6 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                     </span>
                                     <ChevronDown size={11} className={`transition-transform duration-300 ${isMagicSettingsOpen ? 'rotate-180' : ''}`} />
                                   </button>
-
                                   <button
                                     type="button"
                                     onClick={() => { setIsMagicEditing(false); setActiveTool(null); }}
@@ -9200,55 +9200,81 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                         )}
                       </AnimatePresence>
 
+                      <div className="relative w-full group">
+                        <textarea
+                          id="chat-input"
+                          ref={inputRef}
+                          value={inputValue}
+                          disabled={gen.isGenerating || isLimitReached}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (!val) setIsAutoPreviewDisabled(false);
+                            const lineCount = val.split('\n').length;
 
-
-                      <textarea
-                        id="chat-input"
-                        ref={inputRef}
-                        value={inputValue}
-                        disabled={gen.isGenerating || isLimitReached}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (!val) setIsAutoPreviewDisabled(false);
-                          const lineCount = val.split('\n').length;
-
-                          // Threshold: 400 chars or 9 lines (more than 8)
-                          if (!isAutoPreviewDisabled && (lineCount > 8 || val.length > 400)) {
-                            setLongTextPreview(val);
-                            setInputValue('');
-                          } else {
-                            setInputValue(val);
-                            e.target.style.height = 'auto';
-                            e.target.style.height = `${Math.min(e.target.scrollHeight, 140)}px`;
-                          }
-                        }}
-                        onPaste={(e) => {
-                          const pastedText = e.clipboardData.getData('text');
-                          const lineCount = pastedText.split('\n').length;
-
-                          // Threshold: 400 chars or 9 lines (more than 8)
-                          if (lineCount > 8 || pastedText.length > 400) {
-                            e.preventDefault();
-                            setLongTextPreview(pastedText);
-                            setInputValue('');
-                            setIsAutoPreviewDisabled(false);
-                          }
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey && window.innerWidth > 768) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (gen.isGenerating) return;
-                            if (inputValue.trim() || selectedFiles.length > 0 || longTextPreview) {
-                              handleSendMessage(e);
+                            // Threshold: 400 chars or 9 lines (more than 8)
+                            if (!isAutoPreviewDisabled && !isInputExpanded && (lineCount > 8 || val.length > 400)) {
+                              setLongTextPreview(val);
+                              setInputValue('');
+                            } else {
+                              setInputValue(val);
+                              if (!isInputExpanded) {
+                                e.target.style.height = 'auto';
+                                e.target.style.height = `${Math.min(e.target.scrollHeight, 140)}px`;
+                              }
                             }
+                          }}
+                          onPaste={(e) => {
+                            const pastedText = e.clipboardData.getData('text');
+                            const lineCount = pastedText.split('\n').length;
+
+                            // Threshold: 400 chars or 9 lines (more than 8)
+                            if (!isInputExpanded && (lineCount > 8 || pastedText.length > 400)) {
+                              e.preventDefault();
+                              setLongTextPreview(pastedText);
+                              setInputValue('');
+                              setIsAutoPreviewDisabled(false);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey && window.innerWidth > 768) {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (gen.isGenerating) return;
+                              if (inputValue.trim() || selectedFiles.length > 0 || longTextPreview) {
+                                handleSendMessage(e);
+                              }
+                            }
+                          }}
+                          placeholder={isLimitReached ? t('limitReached') || "Chat limit reached. Sign in to continue." : (window.innerWidth < 768 ? "Ask anything..." : ((activeTool && TOOL_PLACEHOLDERS[activeTool]) ? TOOL_PLACEHOLDERS[activeTool] : typedPlaceholder))}
+                          rows={1}
+                          className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none px-1 pt-2.5 pb-0 sm:px-3 sm:py-2 pr-8 text-slate-800 dark:text-zinc-100 text-left placeholder-slate-400 dark:placeholder-zinc-500 resize-none overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] font-normal leading-normal text-[15px] sm:text-[16px] transition-all duration-300 ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
+                          style={isInputExpanded
+                            ? { minHeight: '220px', height: '220px', maxHeight: '500px' }
+                            : { minHeight: '38px', height: '38px', maxHeight: '140px' }
                           }
-                        }}
-                        placeholder={isLimitReached ? t('limitReached') || "Chat limit reached. Sign in to continue." : (window.innerWidth < 768 ? "Ask anything..." : ((activeTool && TOOL_PLACEHOLDERS[activeTool]) ? TOOL_PLACEHOLDERS[activeTool] : typedPlaceholder))}
-                        rows={1}
-                        className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none px-1 pt-2.5 pb-0 sm:px-3 sm:py-2 text-slate-800 dark:text-zinc-100 text-left placeholder-slate-400 dark:placeholder-zinc-500 resize-none overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] font-normal leading-normal text-[15px] sm:text-[16px] ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
-                        style={{ minHeight: '38px', height: '38px', maxHeight: '140px' }}
-                      />
+                        />
+
+                        {/* Expand/Collapse Toggle Button (Gemini-style) */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsInputExpanded(prev => !prev);
+                            setTimeout(() => inputRef.current?.focus(), 50);
+                          }}
+                          title={isInputExpanded ? 'Collapse input' : 'Expand input'}
+                          className={`absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200
+                            text-slate-400 dark:text-zinc-500
+                            hover:text-slate-600 dark:hover:text-zinc-300
+                            hover:bg-slate-100 dark:hover:bg-zinc-800
+                            ${isInputExpanded ? 'opacity-100' : 'opacity-0 group-focus-within:opacity-100 hover:!opacity-100'}`}
+                          style={{ zIndex: 10 }}
+                        >
+                          {isInputExpanded
+                            ? <Minimize2 className="w-3.5 h-3.5" />
+                            : <Maximize2 className="w-3.5 h-3.5" />
+                          }
+                        </button>
+                      </div>
                     </div>
 
                     {/* Right Actions Group */}
