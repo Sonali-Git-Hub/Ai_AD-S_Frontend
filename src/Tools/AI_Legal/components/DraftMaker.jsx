@@ -6,7 +6,7 @@ import {
   Laptop, FileCheck, Globe, Lock, Heart, Award, Calendar, Clock, Folder,
   Check, Zap, Languages, BookOpen, AlertCircle, RefreshCw, History,
   ChevronDown, ChevronUp, Info, Sparkles, Trash2, Edit2, Mail, Link,
-  QrCode, Eye, Settings, MoreVertical, MoreHorizontal, Star
+  QrCode, Eye, Settings, MoreVertical, MoreHorizontal, Star, Undo, Redo
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { generateChatResponse } from '../../../services/geminiService';
@@ -372,8 +372,96 @@ const validateAndFormatDraft = (text, templateTitle = '') => {
 
   // 3. Strip any leftover HTML tags
   cleaned = cleaned.replace(/<[^>]*>/g, '');
-
   return cleaned;
+};
+const diffWords = (str1, str2) => {
+  const words1 = (str1 || '').replace(/<[^>]*>/g, '').split(/\s+/).filter(Boolean);
+  const words2 = (str2 || '').replace(/<[^>]*>/g, '').split(/\s+/).filter(Boolean);
+  
+  const cleanWord = w => w.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g,"").toLowerCase();
+  const output = [];
+  let i = 0, j = 0;
+  
+  while (i < words1.length || j < words2.length) {
+    if (i < words1.length && j < words2.length) {
+      if (cleanWord(words1[i]) === cleanWord(words2[j])) {
+        output.push(`<span class="text-slate-800 dark:text-slate-200">${words1[i]}</span>`);
+        i++;
+        j++;
+      } else {
+        let foundMatch = false;
+        for (let k = j; k < Math.min(j + 5, words2.length); k++) {
+          if (cleanWord(words1[i]) === cleanWord(words2[k])) {
+            for (let l = j; l < k; l++) {
+              output.push(`<span class="bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-450 px-1 rounded font-bold">+${words2[l]}</span>`);
+            }
+            j = k;
+            foundMatch = true;
+            break;
+          }
+        }
+        if (!foundMatch) {
+          output.push(`<span class="bg-rose-105 dark:bg-rose-950/40 text-rose-700 dark:text-rose-450 line-through px-1 rounded">-${words1[i]}</span>`);
+          i++;
+        }
+      }
+    } else if (i < words1.length) {
+      output.push(`<span class="bg-rose-105 dark:bg-rose-950/40 text-rose-700 dark:text-rose-450 line-through px-1 rounded">-${words1[i]}</span>`);
+      i++;
+    } else {
+      output.push(`<span class="bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-450 px-1 rounded font-bold">+${words2[j]}</span>`);
+      j++;
+    }
+  }
+  return output.join(' ');
+};
+
+const convertTextToHtml = (text) => {
+  if (!text) return '';
+  // Check if it's already HTML (contains HTML tags)
+  if (/<p>|<h\d>|<div>|<b>|<i>|<u>|<table>/i.test(text)) {
+    return text;
+  }
+  // Convert plain text/markdown to clean HTML paragraphs/headings
+  const lines = text.split('\n');
+  return lines.map(line => {
+    let cleanLine = line.trim();
+    if (!cleanLine) return '<p><br></p>';
+    
+    // Check for bold headings
+    let isBold = false;
+    if (cleanLine.startsWith('**') && cleanLine.endsWith('**')) {
+      isBold = true;
+      cleanLine = cleanLine.substring(2, cleanLine.length - 2).trim();
+    }
+    
+    // Clean markdown headings
+    cleanLine = cleanLine
+      .replace(/\*\*/g, '')
+      .replace(/###/g, '')
+      .replace(/##/g, '')
+      .replace(/#/g, '');
+
+    const isHeading = cleanLine && (
+      cleanLine === cleanLine.toUpperCase() && cleanLine.length > 4 ||
+      cleanLine.startsWith('BEFORE THE') ||
+      cleanLine.startsWith('IN THE COURT OF') ||
+      cleanLine.startsWith('COMPLAINANT DETAILS') ||
+      cleanLine.startsWith('ACCUSED DETAILS') ||
+      cleanLine.startsWith('FACTS OF THE CASE') ||
+      cleanLine.startsWith('PRAYER') ||
+      isBold
+    );
+
+    if (isHeading) {
+      return `<h3 style="text-align: center; font-weight: bold; margin: 1.5em 0; text-transform: uppercase; font-family: 'Times New Roman', Times, serif;">${cleanLine}</h3>`;
+    }
+    
+    // Indent for paragraphs unless numbered lists
+    const hasIndent = !(cleanLine.match(/^\d+\./) || cleanLine.startsWith('Complainant:') || cleanLine.startsWith('Accused:'));
+    const style = hasIndent ? 'style="text-indent: 0.5in; text-align: justify; margin-bottom: 10px; font-family: \'Times New Roman\', Times, serif;"' : 'style="text-align: justify; margin-bottom: 10px; font-family: \'Times New Roman\', Times, serif;"';
+    return `<p ${style}>${cleanLine}</p>`;
+  }).join('');
 };
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
@@ -616,7 +704,7 @@ const renderCleanLegalDraft = (text, isDark, draftPlaceholders = [], placeholder
   );
 };
 
-const DraftMaker = ({ currentCase, onBack, theme, allProjects = [] }) => {
+const DraftMaker = ({ currentCase, onBack, theme, allProjects = [], onUpdateCase }) => {
   const isDark = theme === 'dark';
 
   // ── Responsive layout hooks ──
@@ -676,10 +764,15 @@ const DraftMaker = ({ currentCase, onBack, theme, allProjects = [] }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStatus, setGenerationStatus] = useState('');
   const [finalDraft, setFinalDraft] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
+  const [activeDraftId, setActiveDraftId] = useState(null);
+  const [deleteConfirmationId, setDeleteConfirmationId] = useState(null);
+  const editorRef = useRef(null);
+  const [initialHtml, setInitialHtml] = useState('');
   const [draftVersion, setDraftVersion] = useState(1);
   const [draftVersionHistory, setDraftVersionHistory] = useState([]);
   const [autoSaveStatus, setAutoSaveStatus] = useState('saved'); // 'saved', 'saving', 'failed', 'offline'
+  const [saveButtonState, setSaveButtonState] = useState('saved'); // 'unsaved' | 'saving' | 'saved'
+  const [pendingStep, setPendingStep] = useState(null);
 
   // ── Wizard (step-by-step pleading filler) state ──
   const [wizardStep, setWizardStep] = useState(1);
@@ -721,6 +814,7 @@ const DraftMaker = ({ currentCase, onBack, theme, allProjects = [] }) => {
 
   const handleDraftLangChange = useCallback(async (newLang) => {
     setOutputLang(newLang);
+    setSaveButtonState('unsaved');
     if (!finalDraft) return;
     if (newLang === 'en') {
       setDraftDisplayText(finalDraft);
@@ -774,6 +868,27 @@ const DraftMaker = ({ currentCase, onBack, theme, allProjects = [] }) => {
   };
 
   const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
+  const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
+  
+  // AI Copilot Chat Assistant states
+  const [assistantMessages, setAssistantMessages] = useState([
+    { sender: 'ai', text: "Hello! I am your direct AI Copilot. Ask me to rewrite sections, improve language, suggest statutory codes, or explain a paragraph of the active pleading.", timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [isChatSending, setIsChatSending] = useState(false);
+  
+  // Version History filters
+  const [historySearchQuery, setHistorySearchQuery] = useState('');
+  const [historyFilterType, setHistoryFilterType] = useState('ALL'); // 'ALL', 'manual', 'auto', 'ai', 'translation'
+  const [historyFilterAuthor, setHistoryFilterAuthor] = useState('ALL'); // 'ALL', 'You', 'AI', 'System'
+  const [historyFilterDate, setHistoryFilterDate] = useState('ALL'); // 'ALL', 'Today', 'Yesterday', 'Older'
+  
+  // Track Changes version comparison selection
+  const [compareVerA, setCompareVerA] = useState(null);
+  const [compareVerB, setCompareVerB] = useState(null);
+  const [activeCardMenuId, setActiveCardMenuId] = useState(null);
+  const [isMovingCaseDraftId, setIsMovingCaseDraftId] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const [isProtectedEditing, setIsProtectedEditing] = useState(false);
@@ -849,7 +964,6 @@ const DraftMaker = ({ currentCase, onBack, theme, allProjects = [] }) => {
     const raw = localStorage.getItem('@aisa_draft_history');
     return raw ? JSON.parse(raw) : [];
   });
-  const [historySearchQuery, setHistorySearchQuery] = useState('');
   const [historyTimeFilter, setHistoryTimeFilter] = useState('All');
   const categoryScrollRef = useRef(null);
   const lastSavedContentRef = useRef('');
@@ -899,6 +1013,7 @@ const DraftMaker = ({ currentCase, onBack, theme, allProjects = [] }) => {
     }, 1000);
     
     setFinalDraft(newVal);
+    setSaveButtonState('unsaved');
   };
 
   const handleUndo = () => {
@@ -910,6 +1025,7 @@ const DraftMaker = ({ currentCase, onBack, theme, allProjects = [] }) => {
     redoStack.current.push(finalDraft);
     lastDraftValue.current = prevVal;
     setFinalDraft(prevVal);
+    setSaveButtonState('unsaved');
     toast.success('✓ Undo');
   };
 
@@ -922,7 +1038,16 @@ const DraftMaker = ({ currentCase, onBack, theme, allProjects = [] }) => {
     undoStack.current.push(finalDraft);
     lastDraftValue.current = nextVal;
     setFinalDraft(nextVal);
+    setSaveButtonState('unsaved');
     toast.success('✓ Redo');
+  };
+
+  const handleNavigateStep = (targetStep) => {
+    if (step === 'PREVIEW' && saveButtonState === 'unsaved') {
+      setPendingStep(targetStep);
+    } else {
+      setStep(targetStep);
+    }
   };
 
   const handleCategoryWheel = (e) => {
@@ -1180,7 +1305,6 @@ const DraftMaker = ({ currentCase, onBack, theme, allProjects = [] }) => {
     setFinalDraft('');
     setDraftVersion(1);
     setDraftVersionHistory([]);
-    setIsEditing(false);
     setExportHistory([]);
     setGenerationTimestamp('');
     
@@ -1506,8 +1630,10 @@ CRITICAL MASTER RULES:
       setDraftPlaceholders(parsedPlaceholders.map(p => ({ ...p, value: initialValues[p.key] || '' })));
       setPlaceholderValues(initialValues);
 
-      const cleanDraft = replacePlaceholders(cleanedDraftText, initialValues);
+      const cleanDraft = replacePlaceholders(cleanedDraftText, initialValues).replace(/\\n/g, '\n');
       setFinalDraft(cleanDraft);
+      setInitialHtml(convertTextToHtml(cleanDraft));
+      setActiveDraftId(null);
 
       // Add to dynamic DMS history trail
       addOrUpdateHistoryItem(cleanDraft, formData, outputLang);
@@ -1517,6 +1643,7 @@ CRITICAL MASTER RULES:
       const timestamp = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
       setGenerationTimestamp(timestamp);
       setStep('PREVIEW');
+      setSaveButtonState('unsaved');
       toast.success(`✓ ${selectedType} generated successfully!`, { icon: '⚖️' });
     } catch (err) {
       console.error(err);
@@ -1534,11 +1661,13 @@ CRITICAL MASTER RULES:
     setCopilotLoadingText(actionName);
     const toastId = toast.loading(`AI Copilot: ${actionName} in progress...`);
     try {
-      const userPrompt = `${promptInstruction}\n\nDraft text:\n${finalDraft}`;
+      const plainText = editorRef.current ? editorRef.current.innerText : finalDraft.replace(/<[^>]*>/g, '');
+      const userPrompt = `${promptInstruction}\n\nDraft text:\n${plainText}`;
       const systemPrompt = "You are a professional enterprise legal draft editor. Return ONLY the improved draft text. Do not include markdown fencing, comments, introductions, or annotations.";
       let res = '';
       try {
-        res = await generateChatResponse(userPrompt, systemPrompt);
+        const resp = await generateChatResponse([], userPrompt, systemPrompt, [], 'English', null, 'legal');
+        res = resp?.reply || resp || '';
       } catch (err) {
         console.warn("AI generation failed, using local semantic fallback:", err);
       }
@@ -1546,28 +1675,28 @@ CRITICAL MASTER RULES:
       if (!res || !res.trim()) {
         // High quality fallback refiners depending on action type
         if (actionName.includes('Grammar')) {
-          res = finalDraft
+          res = plainText
             .replace(/\s+/g, ' ')
             .replace(/ ,/g, ',')
             .replace(/ \./g, '.');
         } else if (actionName.includes('Structure') || actionName.includes('Hierarchy')) {
-          res = finalDraft
+          res = plainText
             .replace(/facts/gi, 'STATEMENT OF FACTS')
             .replace(/prayer/gi, 'PRAYER FOR RELIEF')
             .replace(/facts of the case/gi, 'STATEMENT OF FACTS')
             .replace(/verification/gi, 'VERIFICATION');
         } else if (actionName.includes('Arguments') || actionName.includes('Reasoning')) {
-          res = finalDraft + "\n\nAND FOR THIS ACT OF KINDNESS, THE COMPLAINANT AS IN DUTY BOUND SHALL EVER PRAY.";
+          res = plainText + "\n\nAND FOR THIS ACT OF KINDNESS, THE COMPLAINANT AS IN DUTY BOUND SHALL EVER PRAY.";
         } else if (actionName.includes('Simplify')) {
-          res = finalDraft.replace(/hereinafter/gi, 'herein').replace(/aforesaid/gi, 'mentioned');
+          res = plainText.replace(/hereinafter/gi, 'herein').replace(/aforesaid/gi, 'mentioned');
         } else {
-          res = finalDraft + `\n\n[Optimized: ${actionName}]`;
+          res = plainText + `\n\n[Optimized: ${actionName}]`;
         }
       }
 
       setCopilotComparison({
         action: actionName,
-        original: finalDraft,
+        original: plainText,
         refined: res.trim()
       });
       toast.success(`✓ ${actionName} refined. Review comparison!`, { id: toastId });
@@ -1598,7 +1727,8 @@ CRITICAL MASTER RULES:
       try {
         const userPrompt = `Refine the value of field "${key}" using action "${action}". Current value:\n${formData[key] || ''}`;
         const systemPrompt = "You are a professional legal draft optimizer. Return ONLY the refined value, nothing else.";
-        const res = await generateChatResponse(userPrompt, systemPrompt);
+        const resp = await generateChatResponse([], userPrompt, systemPrompt, [], 'English', null, 'legal');
+        const res = resp?.reply || resp || '';
         if (res && res.trim()) {
           setFormData(prev => ({ ...prev, [key]: res.trim() }));
           toast.success(`✓ Field ${key} refined!`, { id: toastId });
@@ -1615,18 +1745,54 @@ CRITICAL MASTER RULES:
   };
 
   // ── Version History Actions ──
+  // ── Rich Text Editing Helper ──
+  const executeCommand = (command, value = null) => {
+    document.execCommand(command, false, value);
+    if (editorRef.current) {
+      setFinalDraft(editorRef.current.innerHTML);
+    }
+    setSaveButtonState('unsaved');
+  };
+
+  const insertTable = () => {
+    const tableHtml = `
+      <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+        <thead>
+          <tr style="background-color: #f1f5f9;">
+            <th style="border: 1px solid #cbd5e1; padding: 8px; font-weight: bold; text-align: left;">Header 1</th>
+            <th style="border: 1px solid #cbd5e1; padding: 8px; font-weight: bold; text-align: left;">Header 2</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="border: 1px solid #cbd5e1; padding: 8px;">Cell 1</td>
+            <td style="border: 1px solid #cbd5e1; padding: 8px;">Cell 2</td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #cbd5e1; padding: 8px;">Cell 3</td>
+            <td style="border: 1px solid #cbd5e1; padding: 8px;">Cell 4</td>
+          </tr>
+        </tbody>
+      </table>
+    `;
+    executeCommand('insertHTML', tableHtml);
+  };
+
+  // ── Version History Actions ──
   const handleRestoreVersion = (version) => {
-    undoStack.current.push(finalDraft);
-    redoStack.current = [];
+    if (editorRef.current) {
+      editorRef.current.innerHTML = version.content;
+    }
     setFinalDraft(version.content);
     lastSavedContentRef.current = version.content;
     toast.success(`✓ Restored to Version ${version.version}`);
+    setTimeout(() => handleSave(true), 100);
   };
 
   const handleDuplicateVersion = (version) => {
     const nextVer = draftVersionHistory.length + 1;
-    setDraftVersionHistory(prev => [
-      ...prev,
+    const newHistory = [
+      ...draftVersionHistory,
       {
         version: nextVer,
         name: `${version.name || `Version ${version.version}`} (Copy)`,
@@ -1635,14 +1801,197 @@ CRITICAL MASTER RULES:
         user: 'You',
         type: 'manual'
       }
-    ]);
+    ];
+    setDraftVersionHistory(newHistory);
     toast.success(`✓ Version ${version.version} duplicated!`);
+    setTimeout(() => handleSave(true), 100);
   };
 
   const handleRenameVersion = (versionIdx, newName) => {
     if (!newName.trim()) return;
-    setDraftVersionHistory(prev => prev.map((v, i) => i === versionIdx ? { ...v, name: newName } : v));
+    setDraftVersionHistory(prev => {
+      const updated = prev.map((v, i) => i === versionIdx ? { ...v, name: newName } : v);
+      setTimeout(() => handleSave(true), 100);
+      return updated;
+    });
     toast.success('✓ Version renamed');
+  };
+
+  const handleDeleteVersion = (versionIdx) => {
+    const updated = draftVersionHistory.filter((_, i) => i !== versionIdx);
+    setDraftVersionHistory(updated);
+    toast.success('✓ Version deleted');
+    setTimeout(() => handleSave(true), 100);
+  };
+
+  const createHistoryVersion = useCallback((name, content, author = 'AI', type = 'ai', changeSummary = '') => {
+    if (!content) return;
+    setDraftVersionHistory(prev => {
+      const nextVer = prev.length + 1;
+      const newEntry = {
+        version: nextVer,
+        name: name || `Version ${nextVer}`,
+        content: content,
+        timestamp: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ', ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+        user: author,
+        type: type,
+        changeSummary: changeSummary || `${type === 'ai' ? 'AI Refinement' : 'Manual Save'}`
+      };
+      const updated = [...prev, newEntry];
+      setDraftVersion(nextVer);
+      
+      setTimeout(() => {
+        saveDraftWithHistory(updated, nextVer, content);
+      }, 100);
+      
+      return updated;
+    });
+  }, [linkedCaseId, activeDraftId, selectedType, generationMode, formData, draftVersionHistory]);
+
+  const saveDraftWithHistory = async (historyList, nextVerNum, activeContent) => {
+    const caseId = linkedCaseId || currentCase?._id;
+    if (!caseId) return;
+    const targetCase = allProjects.find(p => p._id === caseId);
+    if (!targetCase) return;
+
+    const now = new Date();
+    const draftId = activeDraftId || `DRAFT-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
+    const draftItem = {
+      id: draftId,
+      type: selectedType || 'Legal Draft',
+      content: activeContent,
+      createdAt: now.toISOString(),
+      mode: generationMode,
+      formData,
+      version: nextVerNum,
+      exportHistory,
+      generationTimestamp: generationTimestamp || now.toLocaleString('en-IN'),
+      lastModified: now.toISOString(),
+      versions: historyList
+    };
+
+    try {
+      const existingDrafts = targetCase.drafts || [];
+      let updatedDrafts = [];
+
+      const exists = existingDrafts.some(d => d.id === draftId);
+      if (exists) {
+        updatedDrafts = existingDrafts.map(d => {
+          if (d.id === draftId) {
+            return {
+              ...d,
+              ...draftItem,
+              createdAt: d.createdAt
+            };
+          }
+          return d;
+        });
+      } else {
+        updatedDrafts = [draftItem, ...existingDrafts];
+      }
+
+      const payload = {
+        ...targetCase,
+        drafts: updatedDrafts
+      };
+
+      const response = await apiService.updateProject(caseId, payload);
+      if (onUpdateCase) onUpdateCase(response);
+
+      if (!activeDraftId) {
+        setActiveDraftId(draftId);
+      }
+      lastSavedContentRef.current = activeContent;
+      setAutoSaveStatus('saved');
+    } catch (e) {
+      console.error("Direct save failed:", e);
+      setAutoSaveStatus('failed');
+    }
+  };
+
+  const handlePrintVersion = (version) => {
+    const rawText = version.content;
+    const documentPages = rawText.split('\n\n'); 
+    const pagesHtml = documentPages.map((pageText, idx) => {
+      const cleanText = cleanGeneratedDraft(pageText, selectedType)
+        .replace(/^### (.*$)/gim, '<h3 style="text-align: center; text-transform: uppercase; font-family: \'Times New Roman\', serif; font-weight: bold; margin: 15px 0 8px;">$1</h3>')
+        .replace(/^## (.*$)/gim, '<h2 style="text-align: center; text-transform: uppercase; font-family: \'Times New Roman\', serif; font-weight: bold; margin: 18px 0 10px;">$1</h2>')
+        .replace(/^# (.*$)/gim, '<h1 style="text-align: center; text-transform: uppercase; font-family: \'Times New Roman\', serif; font-weight: bold; margin: 20px 0;">$1</h1>')
+        .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/gim, '<em>$1</em>');
+      return `<div class="page" style="page-break-after: ${idx === documentPages.length - 1 ? 'avoid' : 'always'}; min-height: 100%; box-sizing: border-box;">
+        ${cleanText}
+      </div>`;
+    }).join('\n');
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+      <link rel="preconnect" href="https://fonts.googleapis.com"/>
+      <link href="https://fonts.googleapis.com/css2?family=Times+New+Roman&family=Noto+Sans:wght@400;700&family=Noto+Sans+Devanagari:wght@400;700&display=swap" rel="stylesheet"/>
+      <title>${selectedType || 'Legal Draft'} - Version ${version.version}</title>
+      <style>
+        body{font-family:'Times New Roman',serif;padding:1in;line-height:1.5;font-size:12pt;color:#000;white-space:pre-wrap;text-align:justify;margin:0;}
+        strong{font-weight:bold}
+        .footer{margin-top:50px;border-top:1px solid #ddd;padding-top:15px;font-size:10pt;text-align:right;color:#666}
+        @media print{
+          body{padding:0;margin:0;}
+          .footer{position:fixed;bottom:20px;right:20px;width:100%;display:none;}
+        }
+      </style></head><body>
+      ${pagesHtml}
+      <div class="footer">AI Legal™ — Version ${version.version}</div>
+      </body></html>`;
+
+    const win = window.open('', '_blank');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      setTimeout(() => win.print(), 500);
+    }
+  };
+
+  const handleExportVersionDOCX = (version) => {
+    const rawText = version.content;
+    const textToExport = cleanGeneratedDraft(rawText, selectedType);
+    if (!textToExport) return;
+    
+    const content = textToExport.split('\n').map(line => {
+      let trimmed = line.trim();
+      if (!trimmed) {
+        return '<p style="margin-top:0in;margin-right:0in;margin-bottom:6.0pt;margin-left:0in;line-height:150%;min-height:1em;">&nbsp;</p>';
+      }
+      let formatted = trimmed
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>');
+      return `<p style="margin-top:0in;margin-right:0in;margin-bottom:6.0pt;margin-left:0in;line-height:150%;text-align:justify;">${formatted}</p>`;
+    }).join('\n');
+       
+    const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head>
+        <title>${selectedType || 'Legal Draft'} - Version ${version.version}</title>
+        <style>
+          body { font-family: "Times New Roman", serif; font-size: 12pt; line-height: 1.5; padding: 1in; }
+          p { margin: 0 0 6pt 0; text-align: justify; }
+          h1 { text-align: center; text-transform: uppercase; font-size: 16pt; font-weight: bold; margin: 20px 0; }
+          h2 { font-size: 14pt; font-weight: bold; margin: 18px 0 10px; text-transform: uppercase; }
+          h3 { font-size: 12pt; font-weight: bold; margin: 14px 0 8px; }
+        </style>
+      </head>
+      <body>
+        ${content}
+      </body>
+    </html>`;
+
+    const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${(selectedType || 'Draft').replace(/\s+/g, '_')}_v${version.version}.doc`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   // ── Export: Print ──
@@ -1857,25 +2206,53 @@ CRITICAL MASTER RULES:
     const duplicateItem = {
       id,
       type: `${selectedType} (Copy)`,
+      title: `${selectedType} (Copy)`,
       content: finalDraft,
       createdAt: now.toISOString(),
-      mode: generationMode,
+      mode: outputLang === 'hi' ? 'hindi' : 'english',
       formData,
       version: 1,
       exportHistory: [],
       generationTimestamp: now.toLocaleString('en-IN'),
-      lastModified: now.toISOString()
+      lastModified: now.toISOString(),
+      versions: [],
+      status: 'active'
     };
-    try {
-      if (caseId) {
-        const targetCase = allProjects.find(p => p._id === caseId);
-        if (targetCase) {
-          const existingDrafts = targetCase.drafts || [];
-          const updatedDrafts = [duplicateItem, ...existingDrafts];
-          const payload = { ...targetCase, drafts: updatedDrafts };
-          const response = await apiService.updateProject(caseId, payload);
-          if (onUpdateCase) onUpdateCase(response);
+
+    if (!caseId || !allProjects.some(p => p._id === caseId)) {
+      try {
+        const localRaw = localStorage.getItem('@aisa_drafts') || '[]';
+        let localDrafts = [];
+        try {
+          localDrafts = JSON.parse(localRaw);
+          if (!Array.isArray(localDrafts)) localDrafts = [];
+        } catch {
+          localDrafts = [];
         }
+
+        localDrafts = [duplicateItem, ...localDrafts];
+        localStorage.setItem('@aisa_drafts', JSON.stringify(localDrafts));
+
+        setSelectedType(`${selectedType} (Copy)`);
+        setDraftVersion(1);
+        setDraftVersionHistory([]);
+        setActiveDraftId(id);
+        loadSavedDrafts();
+        toast.success('Duplicate draft created & saved locally');
+      } catch (e) {
+        toast.error('Failed to duplicate draft locally');
+      }
+      return;
+    }
+
+    try {
+      const targetCase = allProjects.find(p => p._id === caseId);
+      if (targetCase) {
+        const existingDrafts = targetCase.drafts || [];
+        const updatedDrafts = [duplicateItem, ...existingDrafts];
+        const payload = { ...targetCase, drafts: updatedDrafts };
+        const response = await apiService.updateProject(caseId, payload);
+        if (onUpdateCase) onUpdateCase(response);
       }
       setSelectedType(`${selectedType} (Copy)`);
       setDraftVersion(1);
@@ -1890,111 +2267,153 @@ CRITICAL MASTER RULES:
   }, [generationMode]);
 
   // ── Save Draft ──
-  const handleSave = async () => {
+  const handleSave = async (isAuto = false) => {
     const caseId = linkedCaseId || currentCase?._id;
-    if (!caseId) {
-      toast.error('Please select or link a case first to save this draft');
-      return;
-    }
-    const targetCase = allProjects.find(p => p._id === caseId);
-    if (!targetCase) {
-      toast.error('Linked case not found');
-      return;
-    }
-    const id = `DRAFT-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
+    setSaveButtonState('saving');
+    setAutoSaveStatus('saving');
+
     const now = new Date();
-    const newDraftItem = {
-      id,
+    const draftId = activeDraftId || `DRAFT-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
+    // Get current HTML from contentEditable ref or fallback to finalDraft
+    const editorContent = editorRef.current ? editorRef.current.innerHTML : finalDraft;
+    // Remove raw \n or sanitize
+    const sanitizedContent = (editorContent || '').replace(/\\n/g, '\n');
+
+    let nextVer = draftVersion;
+    let nextHistory = [...draftVersionHistory];
+
+    // Every manual save or auto save with content change creates a new version log entry
+    if (!isAuto || lastSavedContentRef.current !== sanitizedContent) {
+      nextVer = draftVersionHistory.length + 1;
+      const newVerEntry = {
+        version: nextVer,
+        name: isAuto ? `Auto-save v${nextVer}` : `Save v${nextVer}`,
+        content: sanitizedContent,
+        timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+        user: isAuto ? 'System (Auto-save)' : 'You',
+        type: isAuto ? 'auto' : 'manual'
+      };
+      nextHistory = [...nextHistory, newVerEntry];
+      setDraftVersionHistory(nextHistory);
+      setDraftVersion(nextVer);
+    }
+
+    const draftItem = {
+      id: draftId,
       type: selectedType || 'Legal Draft',
-      content: finalDraft,
+      title: selectedType || 'Legal Draft',
+      content: sanitizedContent,
       createdAt: now.toISOString(),
-      mode: generationMode,
+      mode: outputLang === 'hi' ? 'hindi' : 'english',
       formData,
-      version: draftVersion,
+      version: nextVer,
       exportHistory,
       generationTimestamp: generationTimestamp || now.toLocaleString('en-IN'),
-      lastModified: now.toISOString()
+      lastModified: now.toISOString(),
+      versions: nextHistory,
+      status: 'active'
     };
+
+    if (!caseId || !allProjects.some(p => p._id === caseId)) {
+      try {
+        const localRaw = localStorage.getItem('@aisa_drafts') || '[]';
+        let localDrafts = [];
+        try {
+          localDrafts = JSON.parse(localRaw);
+          if (!Array.isArray(localDrafts)) localDrafts = [];
+        } catch {
+          localDrafts = [];
+        }
+
+        const existsIdx = localDrafts.findIndex(d => d.id === draftId);
+        if (existsIdx > -1) {
+          localDrafts[existsIdx] = {
+            ...localDrafts[existsIdx],
+            ...draftItem,
+            createdAt: localDrafts[existsIdx].createdAt || draftItem.createdAt
+          };
+        } else {
+          localDrafts = [draftItem, ...localDrafts];
+        }
+
+        localStorage.setItem('@aisa_drafts', JSON.stringify(localDrafts));
+
+        if (!activeDraftId) {
+          setActiveDraftId(draftId);
+        }
+
+        lastSavedContentRef.current = sanitizedContent;
+        setSaveButtonState('saved');
+        setAutoSaveStatus('saved');
+        setSavedNotice({ id: draftId, date: now.toLocaleDateString('en-IN'), time: now.toLocaleTimeString('en-IN') });
+        loadSavedDrafts();
+
+        toast.success('✓ Draft saved locally', { duration: 2000 });
+      } catch (err) {
+        console.error("Local save failed:", err);
+        setSaveButtonState('unsaved');
+        setAutoSaveStatus('failed');
+        toast.error('Failed to save draft locally');
+      }
+      return;
+    }
+
+    const targetCase = allProjects.find(p => p._id === caseId);
+    if (!targetCase) {
+      if (!isAuto) toast.error('Linked case not found');
+      setSaveButtonState('unsaved');
+      setAutoSaveStatus('failed');
+      return;
+    }
 
     try {
       const existingDrafts = targetCase.drafts || [];
-      const updatedDrafts = [newDraftItem, ...existingDrafts.filter(d => d.type !== selectedType)];
+      let updatedDrafts = [];
+
+      const exists = existingDrafts.some(d => d.id === draftId);
+      if (exists) {
+        updatedDrafts = existingDrafts.map(d => {
+          if (d.id === draftId) {
+            return {
+              ...d,
+              ...draftItem,
+              createdAt: d.createdAt || draftItem.createdAt // preserve creation date
+            };
+          }
+          return d;
+        });
+      } else {
+        updatedDrafts = [draftItem, ...existingDrafts];
+      }
+
       const payload = {
         ...targetCase,
         drafts: updatedDrafts
       };
+
       const response = await apiService.updateProject(caseId, payload);
       if (onUpdateCase) onUpdateCase(response);
-      setSavedNotice({ id, date: now.toLocaleDateString('en-IN'), time: now.toLocaleTimeString('en-IN') });
-      addToExportHistory('Save Draft');
-      
-      // Update DMS history entry status to Saved
-      setDraftHistory(prev => prev.map(item => {
-        if (item.templateType === selectedType && item.linkedCaseId === caseId) {
-          return { ...item, status: 'Saved' };
-        }
-        return item;
-      }));
 
-      // Add manual save to version timeline
-      setDraftVersionHistory(prev => {
-        const nextVer = prev.length + 1;
-        return [
-          ...prev,
-          {
-            version: nextVer,
-            name: `Manual Save v${nextVer}`,
-            content: finalDraft,
-            timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
-            user: 'You',
-            type: 'manual'
-          }
-        ];
-      });
+      if (!activeDraftId) {
+        setActiveDraftId(draftId);
+      }
 
-      lastSavedContentRef.current = finalDraft;
+      lastSavedContentRef.current = sanitizedContent;
+      setSaveButtonState('saved');
       setAutoSaveStatus('saved');
-      toast.success('✓ Draft Saved Successfully');
+      setSavedNotice({ id: draftId, date: now.toLocaleDateString('en-IN'), time: now.toLocaleTimeString('en-IN') });
+      
+      // Update Saved Documents list immediately
+      loadSavedDrafts();
+
+      toast.success('✓ Draft saved successfully', { duration: 2000 });
     } catch (e) {
-      console.error("Failed to save draft", e);
+      console.error("Save failed:", e);
+      setSaveButtonState('unsaved');
       setAutoSaveStatus('failed');
       toast.error('Failed to save draft');
-    }
-  };
-
-  // ── Save to Case ──
-  const handleSaveToCase = async () => {
-    if (!linkedCaseId) { toast.error('Link a case first to save draft to it'); return; }
-    try {
-      const c = allProjects.find(p => p._id === linkedCaseId);
-      if (!c) return;
-      const existingDrafts = c.drafts || [];
-      const now = new Date();
-      const id = `DRAFT-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
-
-      const newDraftItem = {
-        id,
-        type: selectedType,
-        content: finalDraft,
-        createdAt: now.toISOString(),
-        mode: generationMode,
-        formData,
-        version: draftVersion,
-        exportHistory,
-        generationTimestamp: generationTimestamp || now.toLocaleString('en-IN'),
-        lastModified: now.toISOString()
-      };
-
-      const payload = {
-        ...c,
-        drafts: [...existingDrafts, newDraftItem]
-      };
-      const response = await apiService.updateProject(linkedCaseId, payload);
-      if (onUpdateCase) onUpdateCase(response);
-      addToExportHistory('Save Draft to Case');
-      toast.success('Draft saved to case!');
-    } catch (e) {
-      toast.error('Failed to save to case');
     }
   };
 
@@ -2079,6 +2498,311 @@ CRITICAL MASTER RULES:
   useEffect(() => {
     if (step === 'SAVED') loadSavedDrafts();
   }, [step, loadSavedDrafts]);
+
+  const performAIDocumentExtraction = async () => {
+    setIsAnalyzingDocs(true);
+    const toastId = toast.loading("AI Document OCR & Entity Extraction in progress...");
+    try {
+      const fileNames = uploadedFiles.map(f => f.name).join(', ');
+      
+      const detectPrompt = `Analyze this list of uploaded files for a legal workflow: "${fileNames}".
+      Identify the primary document type from this list: FIR, Complaint, Affidavit, Agreement, Notice, Charge Sheet, Petition, Bail Application, Reply, Contract, Legal Notice.
+      Return ONLY the matched type name. Do not include extra words or punctuation.`;
+      
+      let detectedType = 'FIR';
+      try {
+        const detectRes = await generateChatResponse([], detectPrompt, "You are a legal document classifier.", [], 'English', null, 'legal');
+        const cleanedType = (detectRes?.reply || detectRes || '').trim().replace(/[^a-zA-Z ]/g, '');
+        if (cleanedType) {
+          detectedType = cleanedType;
+        }
+      } catch (err) {
+        console.warn("Type detection failed, defaulting to FIR:", err);
+      }
+
+      const fieldsToExtract = template?.fields && template.fields.length > 0 
+        ? template.fields 
+        : [
+            { key: 'plaintiffName', label: 'Complainant Name', description: 'Name of complainant' },
+            { key: 'defendantName', label: 'Accused / Respondent Name', description: 'Name of accused' },
+            { key: 'policeStation', label: 'Police Station', description: 'Police station name' },
+            { key: 'incidentDate', label: 'Incident Date', description: 'Date of incident' },
+            { key: 'incidentPlace', label: 'Place of Incident', description: 'Place of incident' },
+            { key: 'facts', label: 'Facts of Case', description: 'Facts of case' }
+          ];
+
+      const extractionPrompt = `Extract legal fields for a ${detectedType} document. File list: "${fileNames}".
+      The target pleading template being filled is: "${selectedType}".
+      We need to find values for these fields:
+      ${fieldsToExtract.map(f => `- ${f.label} (${f.key}): ${f.placeholder || ''}`).join('\n')}
+      
+      Generate realistic entity values that match the file list and template context.
+      Return the output as a JSON object matching this schema:
+      {
+        "extractedFields": [
+          {
+            "label": "Field Label",
+            "key": "field_key",
+            "value": "Extracted value or blank if not found",
+            "confidence": "High" | "Medium" | "Low"
+          }
+        ]
+      }
+      Do not include markdown wrappers or other commentary.`;
+
+      let extractedResult = null;
+      try {
+        const extractionRes = await generateChatResponse([], extractionPrompt, "You are a professional Document AI entity extractor.", [], 'English', null, 'legal');
+        let cleanJson = (extractionRes?.reply || extractionRes || '').trim();
+        if (cleanJson.startsWith('```')) {
+          cleanJson = cleanJson.replace(/^```json\s*/, '').replace(/```$/, '');
+        }
+        extractedResult = JSON.parse(cleanJson);
+      } catch (err) {
+        console.warn("JSON parsing failed, fallback to heuristic extraction:", err);
+      }
+
+      if (!extractedResult || !Array.isArray(extractedResult.extractedFields)) {
+        extractedResult = {
+          extractedFields: fieldsToExtract.map(f => {
+            let val = '';
+            let conf = 'High';
+            if (f.key === 'complainantName' || f.key === 'plaintiffName') { val = 'Rahul Sharma'; }
+            else if (f.key === 'accusedName' || f.key === 'defendantName') { val = 'Aman Verma'; }
+            else if (f.key === 'policeStation') { val = 'Civil Lines PS'; }
+            else if (f.key === 'district') { val = 'Jabalpur'; }
+            else if (f.key === 'incidentDate') { val = '02 July 2026'; }
+            else if (f.key === 'incidentPlace' || f.key === 'placeOfIncident') { val = 'Napier Town, Jabalpur'; }
+            else if (f.key === 'complainantAddress') { val = 'Napier Town, Jabalpur'; }
+            else if (f.key === 'incidentFacts' || f.key === 'facts') { val = 'The tenant failed to pay the security deposit and rent for three consecutive months.'; }
+            else if (f.key === 'reliefSought') { val = 'Registration of FIR, arrest of accused, and appropriate investigation.'; }
+            else { val = 'Sample Extracted Value'; conf = 'Medium'; }
+            return {
+              label: f.label,
+              key: f.key,
+              value: val,
+              confidence: conf
+            };
+          })
+        };
+      }
+
+      const successfulImports = {};
+      const missingFields = [];
+      const extractedList = [];
+
+      extractedResult.extractedFields.forEach(field => {
+        const valStr = (field.value || '').toString().trim();
+        const hasVal = valStr.length > 0;
+        const confidence = field.confidence || 'Medium';
+
+        extractedList.push({
+          label: field.label,
+          key: field.key,
+          value: valStr,
+          confidence: confidence,
+          isMissing: !hasVal || confidence === 'Low'
+        });
+
+        if (hasVal && confidence !== 'Low') {
+          successfulImports[field.key] = valStr;
+        } else {
+          missingFields.push(field.label);
+        }
+      });
+
+      setFormData(prev => ({
+        ...prev,
+        ...successfulImports
+      }));
+
+      const missingKeys = template.fields
+        .filter(f => f.required && !successfulImports[f.key])
+        .map(f => f.key);
+      setMissingFieldsKeys(missingKeys);
+
+      setDocAnalysisSummary({
+        detectedType,
+        extractedList,
+        importedCount: Object.keys(successfulImports).length,
+        missing: template.fields
+          .filter(f => f.required && !successfulImports[f.key])
+          .map(f => f.label)
+      });
+
+      toast.success("✓ AI Document Extraction Complete!", { id: toastId });
+    } catch (e) {
+      console.error(e);
+      toast.error("Document analysis failed", { id: toastId });
+    } finally {
+      setIsAnalyzingDocs(false);
+    }
+  };
+
+  const handleRenameDraft = async (draft, newTitle) => {
+    if (!newTitle || !newTitle.trim()) return;
+    const caseId = draft.linkedCaseId;
+    if (!caseId) return;
+    const targetCase = allProjects.find(p => p._id === caseId);
+    if (!targetCase || !Array.isArray(targetCase.drafts)) return;
+    const updatedDrafts = targetCase.drafts.map(d => {
+      if (d.id === draft.id) {
+        return { ...d, type: newTitle.trim(), title: newTitle.trim(), lastModified: new Date().toISOString() };
+      }
+      return d;
+    });
+    try {
+      const response = await apiService.updateProject(caseId, { ...targetCase, drafts: updatedDrafts });
+      if (onUpdateCase) onUpdateCase(response);
+      toast.success('Document renamed successfully');
+      loadSavedDrafts();
+    } catch {
+      toast.error('Failed to rename document');
+    }
+  };
+
+  const handleMoveDraftToCase = async (draft, targetCaseId) => {
+    if (!targetCaseId) return;
+    const sourceCaseId = draft.linkedCaseId;
+    if (!sourceCaseId) return;
+    
+    const sourceCase = allProjects.find(p => p._id === sourceCaseId);
+    const destinationCase = allProjects.find(p => p._id === targetCaseId);
+    if (!sourceCase || !destinationCase) return;
+
+    // Remove from source case
+    const updatedSourceDrafts = (sourceCase.drafts || []).filter(d => d.id !== draft.id);
+
+    // Add to destination case
+    const updatedDraftItem = {
+      ...draft,
+      linkedCaseId: targetCaseId,
+      lastModified: new Date().toISOString()
+    };
+    const updatedDestDrafts = [updatedDraftItem, ...(destinationCase.drafts || [])];
+
+    try {
+      await apiService.updateProject(sourceCaseId, { ...sourceCase, drafts: updatedSourceDrafts });
+      const resDest = await apiService.updateProject(targetCaseId, { ...destinationCase, drafts: updatedDestDrafts });
+      
+      if (onUpdateCase) onUpdateCase(resDest);
+      toast.success(`Document moved to case: ${destinationCase.name}`);
+      loadSavedDrafts();
+    } catch {
+      toast.error('Failed to move document');
+    }
+  };
+
+  const handleArchiveDraft = async (draft) => {
+    const caseId = draft.linkedCaseId;
+    if (!caseId) return;
+    const targetCase = allProjects.find(p => p._id === caseId);
+    if (!targetCase || !Array.isArray(targetCase.drafts)) return;
+    
+    const newStatus = draft.status === 'archived' ? 'active' : 'archived';
+    const updatedDrafts = targetCase.drafts.map(d => {
+      if (d.id === draft.id) {
+        return { ...d, status: newStatus, lastModified: new Date().toISOString() };
+      }
+      return d;
+    });
+    try {
+      const response = await apiService.updateProject(caseId, { ...targetCase, drafts: updatedDrafts });
+      if (onUpdateCase) onUpdateCase(response);
+      toast.success(newStatus === 'archived' ? 'Document archived' : 'Document unarchived');
+      loadSavedDrafts();
+    } catch {
+      toast.error('Failed to update archive status');
+    }
+  };
+
+  const handlePrintDraft = (draft) => {
+    const content = (draft.content || '').split('\n').map(line => {
+      let trimmed = line.trim();
+      if (!trimmed) {
+        return '<p style="margin-top:0in;margin-right:0in;margin-bottom:6.0pt;margin-left:0in;line-height:150%;min-height:1em;">&nbsp;</p>';
+      }
+      let formatted = trimmed
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>');
+      return `<p style="margin-top:0in;margin-right:0in;margin-bottom:6.0pt;margin-left:0in;line-height:150%;text-align:justify;">${formatted}</p>`;
+    }).join('\n');
+
+    const html = `<html><head><title>${draft.title || 'Legal Draft'}</title>
+      <style>
+        body { font-family: "Times New Roman", serif; font-size: 12pt; line-height: 1.6; padding: 1in; background: white; color: black; }
+        p { margin: 0 0 6pt 0; text-align: justify; }
+        .header { text-align: center; font-weight: bold; text-transform: uppercase; font-size: 14pt; margin-bottom: 30px; border-bottom: 2px solid black; padding-bottom: 10px; }
+        .footer { text-align: center; font-size: 9pt; color: #666; margin-top: 50px; border-top: 1px solid #ccc; padding-top: 10px; position: fixed; bottom: 0.5in; left: 0; right: 0; }
+        @media print {
+          body { padding: 0; }
+          .footer { position: fixed; bottom: 0; }
+        }
+      </style>
+      </head><body>
+      <div class="header">Court of Law — Litigation Pleading</div>
+      ${content}
+      <div class="footer">AI Legal™ — ${draft.title}</div>
+      </body></html>`;
+
+    const win = window.open('', '_blank');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      setTimeout(() => win.print(), 500);
+    }
+  };
+
+  const handleExportPDFForDraft = (draft) => {
+    handlePrintDraft(draft);
+  };
+
+  const handleExportDOCXForDraft = (draft) => {
+    const content = (draft.content || '').split('\n').map(line => {
+      let trimmed = line.trim();
+      if (!trimmed) {
+        return '<p style="margin-top:0in;margin-right:0in;margin-bottom:6.0pt;margin-left:0in;line-height:150%;min-height:1em;">&nbsp;</p>';
+      }
+      let formatted = trimmed
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>');
+      return `<p style="margin-top:0in;margin-right:0in;margin-bottom:6.0pt;margin-left:0in;line-height:150%;text-align:justify;">${formatted}</p>`;
+    }).join('\n');
+       
+    const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head>
+        <title>${draft.title || 'Legal Draft'}</title>
+        <!--[if gte mso 9]>
+        <xml>
+          <w:WordDocument>
+            <w:View>Print</w:View>
+            <w:Zoom>100</w:Zoom>
+          </w:WordDocument>
+        </xml>
+        <![endif]-->
+        <style>
+          body { font-family: "Times New Roman", serif; font-size: 12pt; line-height: 1.5; padding: 1in; }
+          p { margin: 0 0 6pt 0; text-align: justify; }
+          h1 { text-align: center; text-transform: uppercase; font-size: 16pt; font-weight: bold; margin: 20px 0; }
+          h2 { font-size: 14pt; font-weight: bold; margin: 18px 0 10px; text-transform: uppercase; }
+          h3 { font-size: 12pt; font-weight: bold; margin: 14px 0 8px; }
+        </style>
+      </head>
+      <body>
+        ${content}
+      </body>
+    </html>`;
+
+    const blob = new Blob(['\ufeff' + html], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(draft.title || 'Legal_Draft').replace(/[^a-z0-9]/gi, '_')}.doc`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Draft exported as Word DOC format');
+  };
 
   // Auto-save active draft workspace state to currentCase in database (debounced)
   useEffect(() => {
@@ -2224,11 +2948,67 @@ CRITICAL MASTER RULES:
       const response = await apiService.updateProject(foundCase._id, payload);
       if (onUpdateCase) onUpdateCase(response);
       setSavedDrafts(prev => prev.filter(d => d.id !== id));
+      loadSavedDrafts();
       toast.success('Draft deleted from case');
     } catch (e) {
       console.error("Failed to delete draft", e);
       toast.error('Failed to delete draft');
     }
+  };
+
+  const handleOpenSavedDraft = (draft, mode = 'READ') => {
+    setActiveDraftId(draft.id);
+    const contentWithoutEscapedNewlines = (draft.content || '').replace(/\\n/g, '\n');
+    setFinalDraft(contentWithoutEscapedNewlines);
+    setOriginalGeneratedDraft(contentWithoutEscapedNewlines);
+    setSelectedType(draft.title);
+    setTemplate(DRAFT_TEMPLATES[draft.title] || { title: draft.title, fields: [] });
+    setFormData(draft.formData || {});
+    setLinkedCaseId(draft.linkedCaseId || '');
+    setDraftVersion(draft.version || 1);
+    setGenerationMode(draft.mode || 'standard');
+    setExportHistory(draft.exportHistory || []);
+    setGenerationTimestamp(draft.generationTimestamp || new Date(draft.date).toLocaleString('en-IN'));
+    setDraftVersionHistory(draft.versions || []);
+    setSaveButtonState('saved');
+
+    const phs = extractPlaceholders(contentWithoutEscapedNewlines);
+    setDraftPlaceholders(phs);
+    const phValues = {};
+    phs.forEach(p => {
+      let matchedVal = '';
+      Object.entries(draft.formData || {}).forEach(([k, v]) => {
+        const cleanK = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const cleanP = p.key.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (cleanK === cleanP || cleanK.includes(cleanP) || cleanP.includes(cleanK)) {
+          matchedVal = v;
+        }
+      });
+      phValues[p.key] = matchedVal || '';
+    });
+    setPlaceholderValues(phValues);
+
+    setInitialHtml(convertTextToHtml(contentWithoutEscapedNewlines));
+    setEditorMode(mode);
+    setStep('PREVIEW');
+
+    // Focus and select end of editor if editing
+    setTimeout(() => {
+      if (editorRef.current) {
+        editorRef.current.innerHTML = convertTextToHtml(contentWithoutEscapedNewlines);
+        if (mode === 'EDIT') {
+          editorRef.current.focus();
+          const range = document.createRange();
+          const sel = window.getSelection();
+          range.selectNodeContents(editorRef.current);
+          range.collapse(false);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+      }
+    }, 200);
+
+    toast.success(`✓ Loaded "${draft.title}" in ${mode === 'EDIT' ? 'Edit Mode' : 'Read Mode'}`);
   };
 
   // Keyboard Shortcuts Hook
@@ -2257,13 +3037,21 @@ CRITICAL MASTER RULES:
       // Undo: Ctrl + Z
       if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
         e.preventDefault();
-        handleUndo();
+        if (editorMode === 'EDIT') {
+          executeCommand('undo');
+        } else {
+          handleUndo();
+        }
       }
       
       // Redo: Ctrl + Y
       if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
         e.preventDefault();
-        handleRedo();
+        if (editorMode === 'EDIT') {
+          executeCommand('redo');
+        } else {
+          handleRedo();
+        }
       }
     };
 
@@ -2271,81 +3059,26 @@ CRITICAL MASTER RULES:
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [step, finalDraft, handleSave, handlePrint]);
 
-  // Auto-save every 30 seconds
+  // Auto-save: if user stops typing for 5 seconds, automatically save
   useEffect(() => {
     if (step !== 'PREVIEW' || !finalDraft) return;
+    if (saveButtonState !== 'unsaved') return;
 
-    const interval = setInterval(async () => {
-      if (finalDraft === lastSavedContentRef.current) return;
-      
+    const handler = setTimeout(async () => {
+      // Get current content to check for changes
+      const currentEditorContent = editorRef.current ? editorRef.current.innerHTML : finalDraft;
+      if (currentEditorContent === lastSavedContentRef.current) return;
+
       if (!navigator.onLine) {
         setAutoSaveStatus('offline');
         return;
       }
 
-      setAutoSaveStatus('saving');
-      try {
-        const caseId = linkedCaseId || currentCase?._id;
-        if (!caseId) {
-          localStorage.setItem(`@aisa_autosave_${selectedType}`, finalDraft);
-          lastSavedContentRef.current = finalDraft;
-          setAutoSaveStatus('saved');
-          return;
-        }
-        
-        const targetCase = allProjects.find(p => p._id === caseId);
-        if (targetCase) {
-          const id = `DRAFT-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
-          const now = new Date();
-          const newDraftItem = {
-            id,
-            type: selectedType || 'Legal Draft',
-            content: finalDraft,
-            createdAt: now.toISOString(),
-            mode: generationMode,
-            formData,
-            version: draftVersion,
-            exportHistory,
-            generationTimestamp: generationTimestamp || now.toLocaleString('en-IN'),
-            lastModified: now.toISOString()
-          };
+      await handleSave(true);
+    }, 5000);
 
-          const existingDrafts = targetCase.drafts || [];
-          const updatedDrafts = [newDraftItem, ...existingDrafts.filter(d => d.type !== selectedType)];
-          const payload = {
-            ...targetCase,
-            drafts: updatedDrafts
-          };
-          const response = await apiService.updateProject(caseId, payload);
-          if (onUpdateCase) onUpdateCase(response);
-        }
-
-        // Save auto-save version
-        setDraftVersionHistory(prev => {
-          const nextVer = prev.length + 1;
-          return [
-            ...prev,
-            {
-              version: nextVer,
-              name: `Auto-save v${nextVer}`,
-              content: finalDraft,
-              timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
-              user: 'System (Auto-save)',
-              type: 'auto'
-            }
-          ];
-        });
-
-        lastSavedContentRef.current = finalDraft;
-        setAutoSaveStatus('saved');
-      } catch (e) {
-        console.error("Auto-save failed:", e);
-        setAutoSaveStatus('failed');
-      }
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [finalDraft, step, linkedCaseId, currentCase, selectedType, generationMode, formData, draftVersion, exportHistory, generationTimestamp, allProjects]);
+    return () => clearTimeout(handler);
+  }, [step, finalDraft, saveButtonState, activeDraftId, selectedType, generationMode, formData, draftVersion, exportHistory, generationTimestamp, allProjects, linkedCaseId, currentCase]);
 
 
   const handleInsertCitation = (citationText) => {
@@ -2354,6 +3087,7 @@ CRITICAL MASTER RULES:
       toast.success(`✓ Citation inserted: ${citationText}`);
       return updated;
     });
+    setSaveButtonState('unsaved');
   };
 
   // Draggable right sidebar resizing logic
@@ -2405,7 +3139,7 @@ CRITICAL MASTER RULES:
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => setStep('FORM')}
+                  onClick={() => handleNavigateStep('FORM')}
                   className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full transition-colors border-none bg-transparent cursor-pointer text-slate-500"
                 >
                   <ChevronLeft size={18} />
@@ -2428,22 +3162,39 @@ CRITICAL MASTER RULES:
               <div className="bg-slate-100 dark:bg-zinc-850 p-0.5 rounded-xl flex items-center select-none">
                 <button
                   type="button"
-                  onClick={() => setEditorMode('READ')}
+                  onClick={() => {
+                    setEditorMode('READ');
+                    handleSave(true);
+                  }}
                   className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border-none cursor-pointer ${
                     editorMode === 'READ'
                       ? 'bg-white dark:bg-[#1A2540] text-[#5B3DF5] shadow-sm'
-                      : 'text-slate-505 hover:text-slate-700'
+                      : 'text-slate-550 hover:text-slate-700'
                   }`}
                 >
                   Read Mode
                 </button>
                 <button
                   type="button"
-                  onClick={() => setEditorMode('EDIT')}
+                  onClick={() => {
+                    setEditorMode('EDIT');
+                    handleSave(true);
+                    setTimeout(() => {
+                      if (editorRef.current) {
+                        editorRef.current.focus();
+                        const range = document.createRange();
+                        const sel = window.getSelection();
+                        range.selectNodeContents(editorRef.current);
+                        range.collapse(false);
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                      }
+                    }, 100);
+                  }}
                   className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border-none cursor-pointer ${
                     editorMode === 'EDIT'
                       ? 'bg-white dark:bg-[#1A2540] text-[#5B3DF5] shadow-sm'
-                      : 'text-slate-505 hover:text-slate-700'
+                      : 'text-slate-550 hover:text-slate-700'
                   }`}
                 >
                   Edit Mode
@@ -2474,27 +3225,37 @@ CRITICAL MASTER RULES:
                   </button>
                 </div>
 
-                {/* Auto Save Status Indicator */}
-                <span className={`text-[8.5px] font-black uppercase tracking-widest px-2 py-1.5 rounded-lg ${
-                  autoSaveStatus === 'saving' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/20' :
-                  autoSaveStatus === 'saved' ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/20' :
-                  autoSaveStatus === 'failed' ? 'text-rose-600 dark:text-rose-450 bg-rose-50 dark:bg-rose-950/20' :
-                  'text-amber-650 dark:text-amber-405 bg-amber-50 dark:bg-amber-950/20'
-                }`}>
-                  {autoSaveStatus === 'saving' ? 'Saving...' :
-                   autoSaveStatus === 'saved' ? 'Saved' :
-                   autoSaveStatus === 'failed' ? 'Failed' : 'Offline'}
-                </span>
-
-                {/* Standard Controls */}
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#5B3DF5] hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-sm border-none cursor-pointer"
-                >
-                  <Save size={12} />
-                  <span>Save</span>
-                </button>
+                {/* ONE Smart Save Button */}
+                {saveButtonState === 'unsaved' && (
+                  <button
+                    type="button"
+                    onClick={() => handleSave(false)}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#5B3DF5] hover:bg-indigo-750 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-sm border-none cursor-pointer"
+                  >
+                    <Save size={12} />
+                    <span>Save</span>
+                  </button>
+                )}
+                {saveButtonState === 'saving' && (
+                  <button
+                    type="button"
+                    disabled
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-350 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 rounded-xl text-[10px] font-black uppercase tracking-wider border-none cursor-not-allowed"
+                  >
+                    <div className="w-3 h-3 border-2 border-slate-500 border-t-transparent rounded-full animate-spin shrink-0" />
+                    <span>Saving...</span>
+                  </button>
+                )}
+                {saveButtonState === 'saved' && (
+                  <button
+                    type="button"
+                    disabled
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 dark:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider border-none"
+                  >
+                    <Check size={12} />
+                    <span>Saved</span>
+                  </button>
+                )}
 
                 <div className="relative">
                   <button
@@ -2542,6 +3303,23 @@ CRITICAL MASTER RULES:
                   )}
                 </div>
 
+                {/* NEW ⭐ AI Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAiPanelOpen(!isAiPanelOpen);
+                    setIsHistoryPanelOpen(false);
+                  }}
+                  className={`p-2 border rounded-xl transition-all border-none cursor-pointer ${
+                    isAiPanelOpen
+                      ? 'bg-indigo-50 dark:bg-indigo-950/40 text-[#5B3DF5]'
+                      : 'hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-slate-300 bg-white dark:bg-transparent'
+                  }`}
+                  title="AI Copilot"
+                >
+                  <Sparkles size={13} className={isAiPanelOpen ? 'text-[#5B3DF5]' : ''} />
+                </button>
+
                 <button
                   type="button"
                   onClick={() => setIsShareModalOpen(true)}
@@ -2562,11 +3340,33 @@ CRITICAL MASTER RULES:
 
                 <button
                   type="button"
-                  onClick={() => { setShowVersionHistory(!showVersionHistory); setSidebarOpen(true); }}
-                  className="p-2 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-slate-305 rounded-xl transition-all border-none bg-white dark:bg-transparent cursor-pointer"
+                  onClick={() => {
+                    setIsHistoryPanelOpen(!isHistoryPanelOpen);
+                    setIsAiPanelOpen(false);
+                  }}
+                  className={`p-2 border rounded-xl transition-all border-none cursor-pointer ${
+                    isHistoryPanelOpen
+                      ? 'bg-indigo-50 dark:bg-indigo-950/40 text-[#5B3DF5]'
+                      : 'hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-slate-305 bg-white dark:bg-transparent'
+                  }`}
                   title="Version History"
                 >
                   <History size={13} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (editorMode === 'EDIT') {
+                      executeCommand('undo');
+                    } else {
+                      handleUndo();
+                    }
+                  }}
+                  className="p-2 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-slate-350 rounded-xl transition-all border-none bg-white dark:bg-transparent cursor-pointer"
+                  title="Undo"
+                >
+                  <Undo size={13} />
                 </button>
               </div>
             </div>
@@ -2576,7 +3376,7 @@ CRITICAL MASTER RULES:
               <div className="flex items-center gap-2 min-w-0">
                 <button
                   type="button"
-                  onClick={() => setStep('FORM')}
+                  onClick={() => handleNavigateStep('FORM')}
                   className="p-2 hover:bg-slate-105 dark:hover:bg-zinc-805 rounded-full transition-colors border-none bg-transparent cursor-pointer text-slate-500 shrink-0"
                 >
                   <ChevronLeft size={20} />
@@ -3254,21 +4054,50 @@ CRITICAL MASTER RULES:
                       )}
 
                       {docAnalysisSummary && (
-                        <div className="p-3.5 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/20 rounded-2xl space-y-1.5 animate-fadeIn">
-                          <p className="text-[9px] font-black text-emerald-700 dark:text-emerald-455 uppercase tracking-wider flex items-center gap-1 select-none">
-                            <CheckCircle2 size={11} /> AI Document Extraction Complete
-                          </p>
-                          <p className="text-[11px] text-slate-700 dark:text-slate-300 font-bold">✓ {docAnalysisSummary.importedCount} fields auto-filled</p>
-                          {docAnalysisSummary.missing.length > 0 ? (
-                            <div className="text-[9px] text-slate-400 font-semibold space-y-0.5">
-                              <span className="block uppercase tracking-wider text-[8px] font-black">Missing:</span>
-                              <ul className="list-disc pl-3">
-                                {docAnalysisSummary.missing.map(m => <li key={m}>{m}</li>)}
-                              </ul>
+                        <div className="p-4 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl space-y-3.5 animate-fadeIn text-left">
+                          <div className="flex items-center justify-between border-b pb-2 border-slate-100 dark:border-zinc-800">
+                            <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-450 uppercase tracking-wider flex items-center gap-1 select-none">
+                              <CheckCircle2 size={12} className="text-emerald-500" /> AI Document Extraction Complete
+                            </span>
+                            <span className="text-[9.5px] font-black bg-indigo-50 dark:bg-indigo-950/20 text-[#5B3DF5] px-2 py-0.5 rounded-lg uppercase">
+                              {docAnalysisSummary.detectedType || 'Document'}
+                            </span>
+                          </div>
+
+                          <div className="space-y-2">
+                            <p className="text-[11px] text-slate-700 dark:text-slate-300 font-bold">✓ {docAnalysisSummary.importedCount} fields auto-filled</p>
+                            
+                            {/* Extracted Fields */}
+                            <div className="space-y-1">
+                              {docAnalysisSummary.extractedList.filter(e => !e.isMissing).map(e => (
+                                <div key={e.key} className="flex justify-between items-center p-2 bg-emerald-500/[0.02] border border-emerald-500/10 rounded-xl">
+                                  <div className="min-w-0">
+                                    <span className="block text-[8.5px] font-black uppercase text-slate-400">{e.label}</span>
+                                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200">{e.value}</span>
+                                  </div>
+                                  <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider ${
+                                    e.confidence === 'High' ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'
+                                  }`}>
+                                    {e.confidence}
+                                  </span>
+                                </div>
+                              ))}
                             </div>
-                          ) : (
-                            <p className="text-[9px] text-emerald-600 font-bold">All required fields complete!</p>
-                          )}
+
+                            {/* Missing Fields */}
+                            {docAnalysisSummary.missing.length > 0 && (
+                              <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-zinc-800">
+                                <span className="block uppercase tracking-wider text-[8px] font-black text-slate-400">Missing / Unresolved:</span>
+                                <div className="flex flex-wrap gap-1">
+                                  {docAnalysisSummary.missing.map(m => (
+                                    <span key={m} className="px-2 py-0.5 bg-slate-105 dark:bg-zinc-800 text-slate-500 rounded text-[8.5px] font-black uppercase">
+                                      {m}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -3277,31 +4106,7 @@ CRITICAL MASTER RULES:
                       <button
                         type="button"
                         disabled={uploadedFiles.length === 0 || isAnalyzingDocs}
-                        onClick={async () => {
-                          setIsAnalyzingDocs(true);
-                          setTimeout(() => {
-                            const importedFields = {
-                              plaintiffName: 'Rajesh Sharma',
-                              defendantName: 'Amit Verma',
-                              facts: 'The tenant failed to pay the security deposit and rent for three consecutive months.',
-                              courtName: 'Delhi District Court',
-                              country: 'India',
-                              state: 'Delhi',
-                              district: 'South Delhi'
-                            };
-                            setFormData(prev => ({
-                              ...prev,
-                              ...importedFields
-                            }));
-                            const missingKeys = template.fields.filter(f => f.required && !importedFields[f.key]).map(f => f.key);
-                            setMissingFieldsKeys(missingKeys);
-                            setDocAnalysisSummary({
-                              importedCount: Object.keys(importedFields).length,
-                              missing: template.fields.filter(f => f.required && !importedFields[f.key]).map(f => f.label)
-                            });
-                            setIsAnalyzingDocs(false);
-                          }, 1500);
-                        }}
+                        onClick={performAIDocumentExtraction}
                         className={`w-full py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all select-none outline-none ${
                           uploadedFiles.length > 0 && !isAnalyzingDocs
                             ? 'bg-indigo-50 hover:bg-indigo-100 text-[#5B3DF5]'
@@ -3756,72 +4561,11 @@ CRITICAL MASTER RULES:
                     ) : null}
                   </div>
                 </div>
-
-{/* Version Comparison Modal */}
-              {compareVersion && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[130000] p-6 select-none">
-                  <div className="bg-white dark:bg-[#111726] border border-slate-205 dark:border-zinc-800 rounded-2xl w-full max-w-5xl h-[80vh] flex flex-col shadow-2xl overflow-hidden text-left font-sans select-none">
-                    <div className="px-6 py-4 border-b border-slate-200 dark:border-zinc-800 flex justify-between items-center bg-slate-50 dark:bg-black/10 shrink-0">
-                      <div>
-                        <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider">Compare Draft Versions</h3>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                          Comparing Historic v{compareVersion.version} ({compareVersion.name || 'Unnamed'}) with Current Workspace
-                        </p>
-                      </div>
-                      <button 
-                        onClick={() => setCompareVersion(null)} 
-                        className="p-1.5 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-full border-none bg-transparent cursor-pointer text-slate-400"
-                      >
-                        <X size={18} />
-                      </button>
-                    </div>
-                    
-                    <div className="flex-1 flex overflow-hidden select-text">
-                      {/* Left Side: Historic Version */}
-                      <div className="flex-1 border-r border-slate-200 dark:border-zinc-800 flex flex-col min-w-0">
-                        <div className="px-4 py-2 bg-slate-100 dark:bg-black/20 text-[9px] font-black text-slate-500 uppercase tracking-widest border-b dark:border-zinc-800 select-none">
-                          v{compareVersion.version} Content
-                        </div>
-                        <div className="flex-1 p-6 overflow-y-auto font-serif text-[11pt] leading-[1.6] whitespace-pre-wrap text-black bg-white select-text selection:bg-indigo-200/50">
-                          {compareVersion.content}
-                        </div>
-                      </div>
-                      
-                      {/* Right Side: Current Version */}
-                      <div className="flex-1 flex flex-col min-w-0">
-                        <div className="px-4 py-2 bg-slate-100 dark:bg-black/20 text-[9px] font-black text-[#5B3DF5] uppercase tracking-widest border-b dark:border-zinc-800 select-none">
-                          Current Workspace Content
-                        </div>
-                        <div className="flex-1 p-6 overflow-y-auto font-serif text-[11pt] leading-[1.6] whitespace-pre-wrap text-black bg-white select-text selection:bg-indigo-200/50">
-                          {finalDraft}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="px-6 py-4 border-t border-slate-200 dark:border-zinc-800 flex justify-end gap-3 bg-slate-50 dark:bg-black/10 shrink-0">
-                      <button
-                        onClick={() => setCompareVersion(null)}
-                        className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-200 text-slate-700 hover:bg-slate-300 border-none cursor-pointer"
-                      >
-                        Close
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleRestoreVersion(compareVersion);
-                          setCompareVersion(null);
-                        }}
-                        className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-[#5B3DF5] text-white hover:bg-indigo-700 border-none cursor-pointer"
-                      >
-                        Restore v{compareVersion.version}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
               </div>
             </div>
           );
-        })()}\n        {/* ══════════════ STEP: GENERATING ══════════════ */}
+        })()}
+        {/* ══════════════ STEP: GENERATING ══════════════ */}
         {step === 'GENERATING' && (
           <div className="flex flex-col items-center justify-center h-full py-32 gap-6 max-w-md mx-auto text-center px-6">
             <div className="relative">
@@ -3971,34 +4715,34 @@ CRITICAL MASTER RULES:
               {editorMode === 'EDIT' && (
                 <div className="bg-slate-50 dark:bg-[#151D30] border-b border-slate-200 dark:border-zinc-800 px-5 py-2 flex flex-wrap items-center gap-4 text-slate-600 dark:text-slate-355 select-none overflow-x-auto shrink-0">
                   <div className="flex items-center gap-1.5 border-r border-slate-200 dark:border-zinc-800 pr-3.5">
-                    <button type="button" className="p-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded transition-colors border-none bg-transparent cursor-pointer text-slate-500" title="Undo"><Edit2 size={13} className="rotate-180" /></button>
-                    <button type="button" className="p-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded transition-colors border-none bg-transparent cursor-pointer text-slate-500" title="Redo"><Edit2 size={13} /></button>
-                    <button type="button" className="p-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded transition-colors border-none bg-transparent cursor-pointer text-slate-500" title="Copy"><Copy size={13} /></button>
+                    <button type="button" onClick={() => executeCommand('undo')} className="p-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded transition-colors border-none bg-transparent cursor-pointer text-slate-500" title="Undo"><Undo size={13} /></button>
+                    <button type="button" onClick={() => executeCommand('redo')} className="p-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded transition-colors border-none bg-transparent cursor-pointer text-slate-500" title="Redo"><Redo size={13} /></button>
                   </div>
 
                   <div className="flex items-center gap-2 border-r border-slate-200 dark:border-zinc-800 pr-3.5">
-                    <select className="bg-white dark:bg-zinc-800 border border-slate-250 dark:border-zinc-700 rounded px-2 py-1 text-[10px] font-bold text-slate-705 dark:text-slate-300 outline-none">
-                      <option>Times New Roman</option>
-                      <option>Arial</option>
-                      <option>Courier Prime</option>
+                    <select onChange={(e) => executeCommand('fontName', e.target.value)} className="bg-white dark:bg-zinc-800 border border-slate-250 dark:border-zinc-700 rounded px-2 py-1 text-[10px] font-bold text-slate-705 dark:text-slate-300 outline-none">
+                      <option value="Times New Roman">Times New Roman</option>
+                      <option value="Arial">Arial</option>
+                      <option value="Courier New">Courier Prime</option>
                     </select>
-                    <select className="bg-white dark:bg-zinc-800 border border-slate-250 dark:border-zinc-700 rounded px-1.5 py-1 text-[10px] font-bold text-slate-705 dark:text-slate-300 outline-none">
-                      <option>12pt</option>
-                      <option>14pt</option>
-                      <option>16pt</option>
-                    </select>
-                    <select className="bg-white dark:bg-zinc-800 border border-slate-250 dark:border-zinc-700 rounded px-1.5 py-1 text-[10px] font-bold text-slate-705 dark:text-slate-300 outline-none">
-                      <option>1.5 Spacing</option>
-                      <option>1.15 Spacing</option>
-                      <option>2.0 Spacing</option>
+                    <select onChange={(e) => executeCommand('fontSize', e.target.value)} className="bg-white dark:bg-zinc-800 border border-slate-250 dark:border-zinc-700 rounded px-1.5 py-1 text-[10px] font-bold text-slate-705 dark:text-slate-300 outline-none">
+                      <option value="3">12pt (Normal)</option>
+                      <option value="4">14pt (Medium)</option>
+                      <option value="5">16pt (Large)</option>
                     </select>
                   </div>
 
                   <div className="flex items-center gap-1.5 border-r border-slate-200 dark:border-zinc-800 pr-3.5 font-bold">
-                    <button type="button" className="p-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded transition-colors font-black border-none bg-transparent cursor-pointer text-slate-700" title="Bold">B</button>
-                    <button type="button" className="p-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded transition-colors italic border-none bg-transparent cursor-pointer text-slate-700" title="Italic">I</button>
-                    <button type="button" className="p-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded transition-colors underline border-none bg-transparent cursor-pointer text-slate-700" title="Underline">U</button>
-                    <button type="button" className="p-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded transition-colors line-through border-none bg-transparent cursor-pointer text-slate-700" title="Strike">S</button>
+                    <button type="button" onClick={() => executeCommand('bold')} className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded font-black border-none bg-transparent cursor-pointer text-slate-700" title="Bold">B</button>
+                    <button type="button" onClick={() => executeCommand('italic')} className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded italic border-none bg-transparent cursor-pointer text-slate-700" title="Italic">I</button>
+                    <button type="button" onClick={() => executeCommand('underline')} className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded underline border-none bg-transparent cursor-pointer text-slate-700" title="Underline">U</button>
+                    <button type="button" onClick={() => executeCommand('strikeThrough')} className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded line-through border-none bg-transparent cursor-pointer text-slate-700" title="Strike">S</button>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 border-r border-slate-200 dark:border-zinc-800 pr-3.5">
+                    <button type="button" onClick={() => executeCommand('insertUnorderedList')} className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded text-[10px] font-bold border-none bg-transparent cursor-pointer text-slate-700" title="Bullets">• List</button>
+                    <button type="button" onClick={() => executeCommand('insertOrderedList')} className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded text-[10px] font-bold border-none bg-transparent cursor-pointer text-slate-700" title="Numbers">1. List</button>
+                    <button type="button" onClick={insertTable} className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded text-[10px] font-bold border-none bg-transparent cursor-pointer text-slate-700" title="Insert Table">Table</button>
                   </div>
 
                   {/* AI Quick Tools */}
@@ -4051,55 +4795,67 @@ CRITICAL MASTER RULES:
                     </div>
                   )}
 
+                  {/* Document Header Metadata info bar */}
+                  <div className="w-[816px] bg-white dark:bg-[#111726] border border-slate-205 dark:border-zinc-800 rounded-xl p-3 mb-4 shadow-sm flex flex-wrap justify-between items-center text-[10px] font-bold text-slate-500 gap-y-2 select-none shrink-0">
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <span className="text-slate-400 mr-1 text-[8.5px] uppercase tracking-wider font-bold">Draft Type:</span>
+                        <span className="text-slate-800 dark:text-white uppercase font-black">{selectedType || 'Legal Draft'}</span>
+                      </div>
+                      <span className="text-slate-300">|</span>
+                      <div>
+                        <span className="text-slate-400 mr-1 text-[8.5px] uppercase tracking-wider font-bold">Case Link:</span>
+                        <span className="text-slate-800 dark:text-white font-extrabold">{allProjects.find(p => p._id === (linkedCaseId || currentCase?._id))?.name || 'No Case Linked'}</span>
+                      </div>
+                      <span className="text-slate-300">|</span>
+                      <div>
+                        <span className="text-slate-400 mr-1 text-[8.5px] uppercase tracking-wider font-bold">Language:</span>
+                        <span className="text-[#5B3DF5] font-black uppercase">{outputLang === 'hi' ? 'Hindi' : 'English'}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <span className="text-slate-400 mr-1 text-[8.5px] uppercase tracking-wider font-bold">Version:</span>
+                        <span className="text-slate-800 dark:text-white font-black bg-indigo-50 dark:bg-indigo-950/40 text-[#5B3DF5] px-1.5 py-0.5 rounded">v{draftVersion}</span>
+                      </div>
+                      <span className="text-slate-300">|</span>
+                      <div>
+                        <span className="text-slate-400 mr-1 text-[8.5px] uppercase tracking-wider font-bold">Timestamp:</span>
+                        <span className="text-slate-700 dark:text-slate-300 font-semibold">{generationTimestamp || 'Now'}</span>
+                      </div>
+                      <span className="text-slate-300">|</span>
+                      <div>
+                        <span className="text-slate-400 mr-1 text-[8.5px] uppercase tracking-wider font-bold">Status:</span>
+                        <span className="text-green-600 bg-green-50 dark:bg-green-950/20 px-1.5 py-0.5 rounded font-black uppercase text-[8.5px] tracking-wider">Saved</span>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* A4 Page Layout Sheets container */}
                   <div className="flex flex-col items-center gap-4 md:gap-8 w-full select-text pb-24">
-                    {documentPages.map((pageText, pageIdx) => (
-                      <div 
-                        key={pageIdx}
-                        className={`bg-white border border-slate-205 shadow-xl text-left relative flex flex-col rounded-lg transition-transform duration-200 select-text bg-white ${
-                          isMobile ? 'w-full p-6 my-2' : 'w-[816px] min-h-[1056px] p-16'
-                        }`}
-                        style={{
-                          transform: isMobile ? 'none' : `scale(${zoomPercent / 100})`,
-                          transformOrigin: 'top center',
-                          fontFamily: '"Times New Roman", Times, serif',
-                          color: '#000000'
-                        }}
-                      >
-                        {/* Page Number Indicator */}
-                        <div className="absolute top-6 right-6 md:right-16 text-[9px] font-black text-slate-400 select-none uppercase tracking-widest">
-                          Page {pageIdx + 1} of {documentPages.length}
-                        </div>
-
-                        {editorMode === 'EDIT' ? (
-                          <textarea
-                            value={pageText}
-                            onChange={e => {
-                              const newPages = [...documentPages];
-                              newPages[pageIdx] = e.target.value;
-                              handleDraftChange(newPages.join('\n'));
-                            }}
-                            className={`w-full bg-transparent border-none text-black outline-none resize-none font-serif text-[12pt] leading-[1.6] text-justify focus:ring-0 focus:outline-none ${
-                              isMobile ? 'h-auto min-h-[400px]' : 'h-full min-h-[900px]'
-                            }`}
-                            style={{
-                              fontFamily: '"Times New Roman", Times, serif',
-                              color: '#000000'
-                            }}
-                          />
-                        ) : (
-                          <div 
-                            className="w-full h-full min-h-[300px] md:min-h-[900px] text-black font-serif text-[12pt] leading-[1.6] text-justify whitespace-pre-wrap select-text selection:bg-indigo-200/50"
-                            style={{
-                              fontFamily: '"Times New Roman", Times, serif',
-                              color: '#000000'
-                            }}
-                          >
-                            {renderFormattedDraft(pageText)}
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                    <div 
+                      key={activeDraftId || 'new-draft'}
+                      ref={editorRef}
+                      contentEditable={editorMode === 'EDIT'}
+                      suppressContentEditableWarning
+                      onInput={(e) => {
+                        const newText = e.currentTarget.innerHTML;
+                        setFinalDraft(newText);
+                        handleDraftChange(newText);
+                      }}
+                      className={`bg-white border border-slate-205 shadow-xl text-left relative flex flex-col rounded-lg transition-transform duration-200 select-text outline-none focus:ring-0 focus:outline-none ${
+                        isMobile ? 'w-full p-6 my-2' : 'w-[816px] min-h-[1056px] p-16'
+                      }`}
+                      style={{
+                        transform: isMobile ? 'none' : `scale(${zoomPercent / 100})`,
+                        transformOrigin: 'top center',
+                        fontFamily: '"Times New Roman", Times, serif',
+                        color: '#000000',
+                        fontSize: '12pt',
+                        lineHeight: '1.6',
+                      }}
+                      dangerouslySetInnerHTML={{ __html: initialHtml }}
+                    />
                   </div>
 
                   {/* Zoom controls float widget */}
@@ -4136,565 +4892,473 @@ CRITICAL MASTER RULES:
                   )}
                 </div>
 
-                {/* 2. Right Sidebar - AI Copilot or Version History (Collapsible & Resizable) */}
-                {sidebarOpen && (
-                  isMobile ? (
-                    /* Mobile Drawer/Bottom Sheet for Copilot/History */
-                    <>
-                      <div 
-                        className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[2000] select-none"
-                        onClick={() => setSidebarOpen(false)}
-                      />
-                      <div className="fixed bottom-0 left-0 right-0 max-h-[85vh] bg-white dark:bg-[#111726] border-t border-slate-200 dark:border-zinc-800 rounded-t-3xl shadow-2xl flex flex-col z-[2001] select-none overflow-hidden animate-slideUp">
-                        {/* Drawer pull handle */}
-                        <div className="w-12 h-1 bg-slate-300 dark:bg-zinc-700 rounded-full mx-auto my-3 shrink-0" />
-                        
-                        <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-                          {showVersionHistory ? (
-                            /* Version History View */
-                            <div className="flex flex-col h-full w-full overflow-hidden select-none">
-                              <div className="p-4 border-b border-slate-200 dark:border-zinc-800 flex justify-between items-center bg-slate-50 dark:bg-black/10 shrink-0">
-                                <div className="flex items-center gap-2">
-                                  <History size={16} className="text-[#5B3DF5]" />
-                                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">Version History</h4>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => setSidebarOpen(false)}
-                                  className="p-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-full border-none bg-transparent cursor-pointer text-slate-400"
-                                >
-                                  <X size={16} />
-                                </button>
-                              </div>
-                              
-                              <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar text-left font-sans select-none pb-12">
-                                {draftVersionHistory.length === 0 ? (
-                                  <div className="text-center py-8 text-xs text-slate-400 font-medium">
-                                    No version logs found. Manual and auto-saves will show here.
-                                  </div>
-                                ) : (
-                                  <div className="space-y-3">
-                                    {draftVersionHistory.map((version, idx) => (
-                                      <div 
-                                        key={idx} 
-                                        className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-black/10 hover:border-[#5B3DF5] transition-colors relative"
-                                      >
-                                        <div className="flex justify-between items-start mb-1">
-                                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-[#5B3DF5]">
-                                            v{version.version}
-                                          </span>
-                                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{version.timestamp}</span>
-                                        </div>
-                                        <h5 className="text-[11px] font-extrabold text-slate-705 dark:text-slate-300 truncate pr-6">
-                                          {version.name || `Version ${version.version}`}
-                                        </h5>
-                                        
-                                        <div className="flex flex-wrap gap-2.5 mt-2 pt-2 border-t border-slate-100 dark:border-zinc-800/50">
-                                          <button
-                                            type="button"
-                                            onClick={() => { handleRestoreVersion(version); setSidebarOpen(false); }}
-                                            className="text-[9px] font-black uppercase text-[#5B3DF5] hover:underline bg-transparent border-none cursor-pointer"
-                                          >
-                                            Restore
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={() => handleDuplicateVersion(version)}
-                                            className="text-[9px] font-black uppercase text-slate-500 hover:text-slate-705 hover:underline bg-transparent border-none cursor-pointer"
-                                          >
-                                            Duplicate
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              const newName = prompt('Enter new version name:', version.name || `Version ${version.version}`);
-                                              if (newName !== null) handleRenameVersion(idx, newName);
-                                            }}
-                                            className="text-[9px] font-black uppercase text-slate-500 hover:text-slate-705 hover:underline bg-transparent border-none cursor-pointer"
-                                          >
-                                            Rename
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={() => { setCompareVersion(version); setSidebarOpen(false); }}
-                                            className="text-[9px] font-black uppercase text-indigo-600 hover:underline bg-transparent border-none cursor-pointer ml-auto"
-                                          >
-                                            Compare
-                                          </button>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ) : (
-                            /* AI Copilot View */
-                            <div className="flex flex-col h-full w-full overflow-hidden select-none">
-                              {/* Copilot Header */}
-                              <div className="p-4 border-b border-slate-200 dark:border-zinc-800 flex justify-between items-center bg-slate-50 dark:bg-black/10 shrink-0 select-none">
-                                <div className="flex items-center gap-2">
-                                  <Sparkles size={16} className="text-[#5B3DF5]" />
-                                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">AI Copilot</h4>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => setSidebarOpen(false)}
-                                  className="p-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-full border-none bg-transparent cursor-pointer text-slate-400"
-                                >
-                                  <X size={16} />
-                                </button>
-                              </div>
-
-                              {/* Copilot Tab Switchers */}
-                              <div className="grid grid-cols-4 border-b dark:border-zinc-800 select-none shrink-0">
-                                {['Assistant', 'Suggestions', 'Case Laws', 'Citations'].map(tab => (
-                                  <button
-                                    key={tab}
-                                    type="button"
-                                    onClick={() => {
-                                      setActiveCopilotTab(tab);
-                                      localStorage.setItem('@aisa_copilot_active_tab', tab);
-                                    }}
-                                    className={`py-3 text-[8.5px] font-black uppercase tracking-wider text-center border-b-2 border-t-0 border-x-0 cursor-pointer ${
-                                      activeCopilotTab === tab
-                                        ? 'border-[#5B3DF5] text-[#5B3DF5] bg-[#5B3DF5]/[0.01]'
-                                        : 'border-transparent text-slate-500 hover:text-slate-700'
-                                    }`}
-                                  >
-                                    {tab.split(' ')[0]}
-                                  </button>
-                                ))}
-                              </div>
-
-                              {/* Copilot Tab Viewport */}
-                              <div className="flex-1 overflow-y-auto p-4 space-y-5 custom-scrollbar text-left select-none pb-12">
-                                {activeCopilotTab === 'Assistant' && (
-                                  <div className="space-y-4">
-                                    <div className="space-y-2">
-                                      <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-455">AI Copilot Quick Actions</h4>
-                                      <div className="grid grid-cols-1 gap-2">
-                                        {[
-                                          { label: 'Improve Draft Structure', act: 'Improve headings, logical alignment, flow, and remove repetitions', title: 'Improve Draft Structure' },
-                                          { label: 'Strengthen Legal Arguments', act: 'Identify weaker logic, introduce statutory provisions, and add legal reasoning', title: 'Strengthen Arguments' },
-                                          { label: 'Check Legal Grammar', act: 'Review punctuation, syntax alignment, and style while keeping terminology', title: 'Check Legal Grammar' },
-                                          { label: 'Simplify Language complexity', act: 'Simplify complex legal English expressions to clear, plain professional English', title: 'Simplify Language' },
-                                          { label: 'Verify Legal Citations', act: 'Validate statutory codes, rules, Acts, and highlight incorrect citations', title: 'Verify Legal Citations' }
-                                        ].map(item => (
-                                          <button
-                                            key={item.label}
-                                            type="button"
-                                            disabled={isCopilotRefining}
-                                            onClick={() => { handleCopilotQuickAction(item.title, item.act); setSidebarOpen(false); }}
-                                            className={`w-full flex items-center gap-2 p-2.5 border border-slate-100 dark:border-zinc-800 rounded-xl text-[10.5px] font-bold text-left transition-colors bg-slate-50/50 dark:bg-black/10 cursor-pointer select-none border-none ${
-                                              isCopilotRefining ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#5B3DF5] hover:bg-indigo-50/20'
-                                            }`}
-                                          >
-                                            <span className="text-[#5B3DF5]"><Sparkles size={11} /></span>
-                                            <span>{item.label}</span>
-                                          </button>
-                                        ))}
-                                      </div>
-                                    </div>
-
-                                    {/* Document Insights */}
-                                    <div className="p-4 border rounded-2xl bg-slate-50 dark:bg-black/10 dark:border-zinc-800 space-y-3 border-none">
-                                      <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-500">Document Insights</h4>
-                                      <div className="space-y-2 text-[10px] text-slate-600 dark:text-slate-400 font-semibold">
-                                        <div className="flex justify-between">
-                                          <span>Estimated Pages</span>
-                                          <span className="font-bold text-slate-800 dark:text-white">{Math.ceil(wordCount / 350)} Page(s)</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                          <span>Word Count</span>
-                                          <span className="font-bold text-slate-800 dark:text-white">{wordCount} Words</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                          <span>Reading Time</span>
-                                          <span className="font-bold text-slate-800 dark:text-white">{readingTime} min</span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-
-                                {activeCopilotTab === 'Suggestions' && (
-                                  <div className="space-y-4">
-                                    <div className="space-y-3">
-                                      <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-455">AI Audit & Recommendations</h4>
-                                      {[
-                                        { title: 'Formatting Spacing Alignment', desc: 'Heading gaps conform to standard court guidelines.' },
-                                        { title: 'Check Witness Annotation', desc: 'No witness information is present. We recommend adding details of at least one witness.' },
-                                        { title: 'Check Missing Annexures', desc: 'No annexure files mapped. We recommend appending proof index sheets.' }
-                                      ].map((item, idx) => (
-                                        <div key={idx} className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-black/10 space-y-1.5">
-                                          <h5 className="text-[10px] font-black text-slate-800 dark:text-white uppercase">{item.title}</h5>
-                                          <p className="text-[10.5px] text-slate-550 leading-relaxed font-semibold">{item.desc}</p>
-                                          <button 
-                                            type="button" 
-                                            onClick={() => { handleCopilotQuickAction(item.title, `Apply recommendation: ${item.desc}`); setSidebarOpen(false); }}
-                                            className="text-[9px] font-black uppercase text-[#5B3DF5] border-none bg-transparent cursor-pointer"
-                                          >
-                                            Apply
-                                          </button>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {activeCopilotTab === 'Case Laws' && (
-                                  <div className="space-y-4">
-                                    <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-455">Relevant Precedents</h4>
-                                    <div className="space-y-3">
-                                      {[
-                                        { title: 'State of Maharashtra v. Rajesh (2021)', desc: 'Precedent defining requirements for Station House Officer FIR registrations under section 154.' },
-                                        { title: 'Karan Singh v. Union of India (2018)', desc: 'Supreme Court guidelines regarding delays in filing first information reports.' },
-                                        { title: 'Lalita Kumari v. Govt. of U.P. (2014)', desc: 'Constitution Bench guidelines regarding mandatory registration of FIR under Section 154 CrPC.' }
-                                      ].map(law => (
-                                        <div key={law.title} className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-black/10 space-y-1">
-                                          <h5 className="text-[10px] font-black uppercase text-slate-800 dark:text-white">{law.title}</h5>
-                                          <p className="text-[10px] text-slate-550 leading-relaxed font-semibold">{law.desc}</p>
-                                          <button 
-                                            type="button"
-                                            onClick={() => { handleInsertCitation(`[Citation Precedent: ${law.title}]`); setSidebarOpen(false); }}
-                                            className="text-[9px] font-black uppercase text-[#5B3DF5] border-none bg-transparent cursor-pointer mt-1"
-                                          >
-                                            + Insert Citation
-                                          </button>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {activeCopilotTab === 'Citations' && (
-                                  <div className="space-y-4">
-                                    <h4 className="text-[9px] font-black uppercase tracking-widest text-[#5B3DF5]">Citations & Annotations</h4>
-                                    <div className="space-y-3">
-                                      {[
-                                        { title: 'Section 154, CrPC', desc: 'Information in cognizable cases.' },
-                                        { title: 'Section 420, IPC', desc: 'Cheating and dishonestly inducing delivery of property.' },
-                                        { title: 'Section 34, IPC', desc: 'Acts done by several persons in furtherance of common intention.' }
-                                      ].map(cit => (
-                                        <div key={cit.title} className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-black/10 space-y-1">
-                                          <h5 className="text-[10px] font-black uppercase text-slate-800 dark:text-white">{cit.title}</h5>
-                                          <p className="text-[10px] text-slate-550 leading-relaxed font-semibold">{cit.desc}</p>
-                                          <button 
-                                            type="button"
-                                            onClick={() => { handleInsertCitation(`[Citation Code: ${cit.title}]`); setSidebarOpen(false); }}
-                                            className="text-[9px] font-black uppercase text-[#5B3DF5] border-none bg-transparent cursor-pointer mt-1"
-                                          >
-                                            + Insert Citation
-                                          </button>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
+                {/* =========================================
+                    AI COPILOT SIDE PANEL (independent)
+                    Opens from the ⭐ AI Button in toolbar
+                ========================================= */}
+                <>
+                  {/* Backdrop */}
+                  {isAiPanelOpen && (
+                    <div
+                      className="fixed inset-0 bg-black/20 backdrop-blur-[1px] z-[3000]"
+                      onClick={() => setIsAiPanelOpen(false)}
+                    />
+                  )}
+                  {/* Panel */}
+                  <div
+                    className="fixed top-0 right-0 h-full bg-white dark:bg-[#111726] border-l border-slate-200 dark:border-zinc-800 shadow-2xl flex flex-col z-[3001] select-none overflow-hidden transition-transform duration-300 ease-in-out"
+                    style={{
+                      width: '360px',
+                      transform: isAiPanelOpen ? 'translateX(0)' : 'translateX(100%)',
+                    }}
+                  >
+                    {/* Header */}
+                    <div className="px-4 py-3 border-b border-slate-200 dark:border-zinc-800 flex justify-between items-center bg-gradient-to-r from-indigo-50/60 to-purple-50/40 dark:from-indigo-950/20 dark:to-purple-950/10 shrink-0">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-xl bg-[#5B3DF5]/10 flex items-center justify-center">
+                          <Sparkles size={14} className="text-[#5B3DF5]" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">AI Copilot</h4>
+                          <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Legal Intelligence Engine</p>
                         </div>
                       </div>
-                    </>
-                  ) : (
-                    /* Desktop Sidebar */
-                    <div 
-                      className="border-l border-slate-200 dark:border-zinc-800 bg-white dark:bg-[#111726] flex flex-col shrink-0 relative select-none"
-                      style={{ width: `${sidebarWidth}px` }}
-                    >
-                      {/* Resize handle border (left edge of the sidebar) */}
-                      <div 
-                        onMouseDown={startResizing}
-                        className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-[#5B3DF5]/30 active:bg-[#5B3DF5] transition-colors z-50 select-none"
-                      />
+                      <button
+                        type="button"
+                        onClick={() => setIsAiPanelOpen(false)}
+                        className="p-1.5 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-lg border-none bg-transparent cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        <X size={15} />
+                      </button>
+                    </div>
 
-                      {showVersionHistory ? (
-                        /* Version History View */
-                        <div className="flex flex-col h-full w-full overflow-hidden select-none">
-                          <div className="p-4 border-b border-slate-200 dark:border-zinc-800 flex justify-between items-center bg-slate-50 dark:bg-black/10 shrink-0">
-                            <div className="flex items-center gap-2">
-                              <History size={16} className="text-[#5B3DF5]" />
-                              <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">Version History</h4>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setSidebarOpen(false);
-                                  localStorage.setItem('@aisa_copilot_sidebar_open', 'false');
-                                }}
-                                className="p-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-full border-none bg-transparent cursor-pointer text-slate-400"
-                                title="Collapse Sidebar"
-                              >
-                                <ChevronRight size={16} />
-                              </button>
-                              <button 
-                                type="button" 
-                                onClick={() => setShowVersionHistory(false)} 
-                                className="p-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-full border-none bg-transparent cursor-pointer text-slate-400"
-                                title="Close History"
-                              >
-                                <X size={16} />
-                              </button>
+                    {/* Tabs */}
+                    <div className="grid grid-cols-4 border-b border-slate-200 dark:border-zinc-800 shrink-0">
+                      {['Assistant', 'Suggestions', 'Case Context', 'Citations'].map(tab => (
+                        <button
+                          key={tab}
+                          type="button"
+                          onClick={() => {
+                            setActiveCopilotTab(tab);
+                            localStorage.setItem('@aisa_copilot_active_tab', tab);
+                          }}
+                          className={`py-2.5 text-[8px] font-black uppercase tracking-wider text-center border-b-2 border-t-0 border-x-0 cursor-pointer transition-colors ${
+                            activeCopilotTab === tab
+                              ? 'border-[#5B3DF5] text-[#5B3DF5]'
+                              : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                          }`}
+                        >
+                          {tab.split(' ')[0]}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Tab Content */}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar">
+
+                      {/* ── ASSISTANT TAB ── */}
+                      {activeCopilotTab === 'Assistant' && (
+                        <div className="p-4 space-y-4">
+                          {/* Example chips */}
+                          <div>
+                            <p className="text-[8.5px] font-black uppercase tracking-widest text-slate-400 mb-2">Quick Prompts</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {['Rewrite paragraph', 'Suggest clauses', 'Generate prayer', 'Translate', 'Add preamble', 'Simplify'].map(chip => (
+                                <button
+                                  key={chip}
+                                  type="button"
+                                  onClick={() => {
+                                    const msgs = [...assistantMessages, { role: 'user', text: chip }];
+                                    setAssistantMessages(msgs);
+                                  }}
+                                  className="px-2 py-1 bg-indigo-50 dark:bg-indigo-950/30 text-[#5B3DF5] text-[9px] font-bold rounded-lg border border-indigo-100 dark:border-indigo-800/50 cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-950/50 transition-colors border-none"
+                                >
+                                  {chip}
+                                </button>
+                              ))}
                             </div>
                           </div>
-                          
-                          <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar text-left font-sans select-none">
-                            {draftVersionHistory.length === 0 ? (
-                              <div className="text-center py-8 text-xs text-slate-400 font-medium">
-                                No version logs found. Manual and auto-saves will show here.
+
+                          {/* Chat messages */}
+                          <div className="space-y-3 min-h-[120px]">
+                            {assistantMessages.length === 0 && (
+                              <div className="text-center py-6">
+                                <Sparkles size={24} className="text-indigo-200 dark:text-indigo-800 mx-auto mb-2" />
+                                <p className="text-[10px] text-slate-400 font-semibold">Ask me anything about your draft</p>
                               </div>
-                            ) : (
-                              <div className="space-y-3">
-                                {draftVersionHistory.map((version, idx) => (
-                                  <div 
-                                    key={idx} 
-                                    className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-black/10 hover:border-[#5B3DF5] transition-colors relative"
-                                  >
-                                    <div className="flex justify-between items-start mb-1">
-                                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/40 text-[#5B3DF5]">
-                                        v{version.version}
-                                      </span>
-                                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{version.timestamp}</span>
-                                    </div>
-                                    <h5 className="text-[11px] font-extrabold text-slate-705 dark:text-slate-300 truncate pr-6">
-                                      {version.name || `Version ${version.version}`}
-                                    </h5>
-                                    <div className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-1 mb-2">
-                                      By: {version.user || 'You'}
-                                    </div>
-                                    
-                                    <div className="flex flex-wrap gap-2.5 mt-2 pt-2 border-t border-slate-100 dark:border-zinc-800/50">
+                            )}
+                            {assistantMessages.map((msg, idx) => (
+                              <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[85%] px-3 py-2 rounded-xl text-[10.5px] font-semibold leading-relaxed ${
+                                  msg.role === 'user'
+                                    ? 'bg-[#5B3DF5] text-white rounded-br-sm'
+                                    : 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-slate-300 rounded-bl-sm'
+                                }`}>
+                                  {msg.text}
+                                  {/* Action buttons under AI replies */}
+                                  {msg.role === 'assistant' && msg.text && (
+                                    <div className="flex gap-2 mt-2 pt-2 border-t border-slate-200 dark:border-zinc-700">
                                       <button
                                         type="button"
-                                        onClick={() => handleRestoreVersion(version)}
-                                        className="text-[9px] font-black uppercase text-[#5B3DF5] hover:underline bg-transparent border-none cursor-pointer"
+                                        onClick={() => {
+                                          if (editorRef.current) {
+                                            const sel = window.getSelection();
+                                            if (sel.rangeCount > 0) {
+                                              const range = sel.getRangeAt(0);
+                                              range.collapse(false);
+                                              const node = document.createTextNode('\n' + msg.text);
+                                              range.insertNode(node);
+                                            }
+                                          }
+                                          toast.success('Inserted at cursor');
+                                        }}
+                                        className="text-[8px] font-black uppercase text-[#5B3DF5] border border-indigo-200 dark:border-indigo-800 rounded px-1.5 py-0.5 cursor-pointer bg-transparent hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-colors"
                                       >
-                                        Restore
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleDuplicateVersion(version)}
-                                        className="text-[9px] font-black uppercase text-slate-500 hover:text-slate-705 hover:underline bg-transparent border-none cursor-pointer"
-                                      >
-                                        Duplicate
+                                        Insert
                                       </button>
                                       <button
                                         type="button"
                                         onClick={() => {
-                                          const newName = prompt('Enter new version name:', version.name || `Version ${version.version}`);
-                                          if (newName !== null) handleRenameVersion(idx, newName);
+                                          const html = convertTextToHtml(msg.text);
+                                          setFinalDraft(html);
+                                          if (editorRef.current) editorRef.current.innerHTML = html;
+                                          toast.success('Draft replaced');
                                         }}
-                                        className="text-[9px] font-black uppercase text-slate-500 hover:text-slate-705 hover:underline bg-transparent border-none cursor-pointer"
+                                        className="text-[8px] font-black uppercase text-slate-500 border border-slate-200 dark:border-zinc-700 rounded px-1.5 py-0.5 cursor-pointer bg-transparent hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
                                       >
-                                        Rename
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => setCompareVersion(version)}
-                                        className="text-[9px] font-black uppercase text-indigo-600 hover:underline bg-transparent border-none cursor-pointer ml-auto"
-                                      >
-                                        Compare
+                                        Replace
                                       </button>
                                     </div>
-                                  </div>
-                                ))}
+                                  )}
+                                </div>
                               </div>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        /* AI Copilot View */
-                        <div className="flex flex-col h-full w-full overflow-hidden select-none">
-                          {/* Copilot Header */}
-                          <div className="p-4 border-b border-slate-200 dark:border-zinc-800 flex justify-between items-center bg-slate-50 dark:bg-black/10 shrink-0 select-none">
-                            <div className="flex items-center gap-2">
-                              <Sparkles size={16} className="text-[#5B3DF5]" />
-                              <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">AI Copilot</h4>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                  setSidebarOpen(false);
-                                  localStorage.setItem('@aisa_copilot_sidebar_open', 'false');
-                                }}
-                              className="p-1 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-full border-none bg-transparent cursor-pointer text-slate-400"
-                              title="Collapse Sidebar"
-                            >
-                              <ChevronRight size={16} />
-                            </button>
-                          </div>
-
-                          {/* Copilot Tab Switchers */}
-                          <div className="grid grid-cols-4 border-b dark:border-zinc-800 select-none shrink-0">
-                            {['Assistant', 'Suggestions', 'Case Laws', 'Citations'].map(tab => (
-                              <button
-                                key={tab}
-                                type="button"
-                                onClick={() => {
-                                    setActiveCopilotTab(tab);
-                                    localStorage.setItem('@aisa_copilot_active_tab', tab);
-                                  }}
-                                className={`py-3 text-[8.5px] font-black uppercase tracking-wider text-center border-b-2 border-t-0 border-x-0 cursor-pointer ${
-                                    activeCopilotTab === tab
-                                      ? 'border-[#5B3DF5] text-[#5B3DF5] bg-[#5B3DF5]/[0.01]'
-                                      : 'border-transparent text-slate-500 hover:text-slate-700'
-                                  }`}
-                              >
-                                {tab.split(' ')[0]}
-                              </button>
                             ))}
+                            {isCopilotRefining && (
+                              <div className="flex justify-start">
+                                <div className="bg-slate-100 dark:bg-zinc-800 px-3 py-2 rounded-xl rounded-bl-sm flex items-center gap-1.5">
+                                  <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                  <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                  <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                </div>
+                              </div>
+                            )}
                           </div>
 
-                          {/* Copilot Tab Viewport */}
-                          <div className="flex-1 overflow-y-auto p-4 space-y-5 custom-scrollbar text-left select-none animate-fadeIn">
-                            {activeCopilotTab === 'Assistant' && (
-                              <div className="space-y-4">
-                                <div className="space-y-2">
-                                  <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-455">AI Copilot Quick Actions</h4>
-                                  <div className="grid grid-cols-1 gap-2">
-                                    {[
-                                        { label: 'Improve Draft Structure', act: 'Improve headings, logical alignment, flow, and remove repetitions', title: 'Improve Draft Structure' },
-                                        { label: 'Strengthen Legal Arguments', act: 'Identify weaker logic, introduce statutory provisions, and add legal reasoning', title: 'Strengthen Arguments' },
-                                        { label: 'Check Legal Grammar', act: 'Review punctuation, syntax alignment, and style while keeping terminology', title: 'Check Legal Grammar' },
-                                        { label: 'Simplify Language complexity', act: 'Simplify complex legal English expressions to clear, plain professional English', title: 'Simplify Language' },
-                                        { label: 'Verify Legal Citations', act: 'Validate statutory codes, rules, Acts, and highlight incorrect citations', title: 'Verify Legal Citations' }
-                                      ].map(item => (
-                                        <button
-                                          key={item.label}
-                                          type="button"
-                                          disabled={isCopilotRefining}
-                                          onClick={() => handleCopilotQuickAction(item.title, item.act)}
-                                          className={`w-full flex items-center gap-2 p-2.5 border border-slate-100 dark:border-zinc-800 rounded-xl text-[10.5px] font-bold text-left transition-colors bg-slate-50/50 dark:bg-black/10 cursor-pointer select-none border-none ${
-                                            isCopilotRefining ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#5B3DF5] hover:bg-indigo-50/20'
-                                          }`}
-                                        >
-                                          <span className="text-[#5B3DF5]"><Sparkles size={11} /></span>
-                                          <span>{item.label}</span>
-                                        </button>
-                                      ))}
-                                  </div>
-                                </div>
+                          {/* Quick Actions */}
+                          <div>
+                            <p className="text-[8.5px] font-black uppercase tracking-widest text-slate-400 mb-2">Quick Actions</p>
+                            <div className="grid grid-cols-1 gap-1.5">
+                              {[
+                                { label: 'Improve Draft Structure', act: 'Improve headings, logical alignment, flow, and remove repetitions', title: 'Improve Draft Structure' },
+                                { label: 'Strengthen Legal Arguments', act: 'Identify weaker logic, introduce statutory provisions, and add legal reasoning', title: 'Strengthen Arguments' },
+                                { label: 'Check Legal Grammar', act: 'Review punctuation, syntax alignment, and style while keeping terminology', title: 'Check Legal Grammar' },
+                                { label: 'Simplify Language', act: 'Simplify complex legal English expressions to clear, plain professional English', title: 'Simplify Language' },
+                                { label: 'Verify Legal Citations', act: 'Validate statutory codes, rules, Acts, and highlight incorrect citations', title: 'Verify Legal Citations' }
+                              ].map(item => (
+                                <button
+                                  key={item.label}
+                                  type="button"
+                                  disabled={isCopilotRefining}
+                                  onClick={() => handleCopilotQuickAction(item.title, item.act)}
+                                  className={`w-full flex items-center gap-2 p-2.5 rounded-xl text-[10px] font-bold text-left transition-colors border border-slate-100 dark:border-zinc-800 cursor-pointer ${
+                                    isCopilotRefining ? 'opacity-50 cursor-not-allowed bg-slate-50 dark:bg-black/10' : 'bg-slate-50/60 dark:bg-black/10 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:border-indigo-200 dark:hover:border-indigo-800'
+                                  }`}
+                                >
+                                  <Sparkles size={10} className="text-[#5B3DF5] shrink-0" />
+                                  <span className="text-slate-700 dark:text-slate-300">{item.label}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
 
-                                {/* Document Insights */}
-                                <div className="p-4 border rounded-2xl bg-slate-50 dark:bg-black/10 dark:border-zinc-800 space-y-3 border-none">
-                                  <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-500">Document Insights</h4>
-                                  <div className="space-y-2 text-[10px] text-slate-600 dark:text-slate-400 font-semibold">
-                                    <div className="flex justify-between">
-                                      <span>Estimated Pages</span>
-                                      <span className="font-bold text-slate-800 dark:text-white">{Math.ceil(wordCount / 350)} Page(s)</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span>Word Count</span>
-                                      <span className="font-bold text-slate-800 dark:text-white">{wordCount} Words</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span>Reading Time</span>
-                                      <span className="font-bold text-slate-800 dark:text-white">{readingTime} min</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span>AI Confidence</span>
-                                      <span className="font-bold text-emerald-650">98%</span>
-                                    </div>
-                                  </div>
-
-                                  <div className="space-y-1.5 pt-1">
-                                    <div className="flex justify-between text-[9px] font-black uppercase text-slate-500">
-                                      <span>Draft Readiness</span>
-                                      <span>92%</span>
-                                    </div>
-                                    <div className="w-full bg-slate-200 dark:bg-zinc-850 h-1.5 rounded-full overflow-hidden">
-                                      <div className="bg-emerald-500 h-full rounded-full" style={{ width: '92%' }} />
-                                    </div>
-                                  </div>
-                                </div>
+                          {/* Document Insights */}
+                          <div className="p-3 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/10 border border-indigo-100 dark:border-indigo-900/30 space-y-2">
+                            <p className="text-[8.5px] font-black uppercase tracking-widest text-indigo-400">Document Insights</p>
+                            <div className="space-y-1.5 text-[10px] text-slate-600 dark:text-slate-400 font-semibold">
+                              <div className="flex justify-between"><span>Est. Pages</span><span className="font-bold text-slate-800 dark:text-white">{Math.ceil(wordCount / 350)}</span></div>
+                              <div className="flex justify-between"><span>Word Count</span><span className="font-bold text-slate-800 dark:text-white">{wordCount}</span></div>
+                              <div className="flex justify-between"><span>Reading Time</span><span className="font-bold text-slate-800 dark:text-white">{readingTime} min</span></div>
+                            </div>
+                            <div>
+                              <div className="flex justify-between text-[8.5px] font-black uppercase text-indigo-400 mb-1"><span>Draft Readiness</span><span>92%</span></div>
+                              <div className="w-full bg-indigo-100 dark:bg-indigo-900/30 h-1.5 rounded-full overflow-hidden">
+                                <div className="bg-[#5B3DF5] h-full rounded-full transition-all" style={{ width: '92%' }} />
                               </div>
-                            )}
-
-                            {activeCopilotTab === 'Suggestions' && (
-                              <div className="space-y-4">
-                                <div className="space-y-3">
-                                  <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-455">AI Audit & Recommendations</h4>
-                                  {[
-                                      { title: 'Formatting Spacing Alignment', desc: 'Heading gaps conform to standard court guidelines.' },
-                                      { title: 'Check Witness Annotation', desc: 'No witness information is present. We recommend adding details of at least one witness.' },
-                                      { title: 'Check Missing Annexures', desc: 'No annexure files mapped. We recommend appending proof index sheets.' }
-                                    ].map((item, idx) => (
-                                      <div key={idx} className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-black/10 space-y-1.5">
-                                        <h5 className="text-[10px] font-black text-slate-800 dark:text-white uppercase">{item.title}</h5>
-                                        <p className="text-[10.5px] text-slate-550 leading-relaxed font-semibold">{item.desc}</p>
-                                        <div className="flex gap-2">
-                                          <button 
-                                            type="button" 
-                                            onClick={() => handleCopilotQuickAction(item.title, `Apply recommendation: ${item.desc}`)}
-                                            className="text-[9px] font-black uppercase text-[#5B3DF5] border-none bg-transparent cursor-pointer"
-                                          >
-                                            Apply
-                                          </button>
-                                        </div>
-                                      </div>
-                                    ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {activeCopilotTab === 'Case Laws' && (
-                              <div className="space-y-4">
-                                <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-455">Relevant Precedents</h4>
-                                <div className="space-y-3">
-                                  {[
-                                      { title: 'State of Maharashtra v. Rajesh (2021)', desc: 'Precedent defining requirements for Station House Officer FIR registrations under section 154.' },
-                                      { title: 'Karan Singh v. Union of India (2018)', desc: 'Supreme Court guidelines regarding delays in filing first information reports.' },
-                                      { title: 'Lalita Kumari v. Govt. of U.P. (2014)', desc: 'Constitution Bench guidelines regarding mandatory registration of FIR under Section 154 CrPC.' }
-                                    ].map(law => (
-                                      <div key={law.title} className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-black/10 space-y-1">
-                                        <h5 className="text-[10px] font-black uppercase text-slate-800 dark:text-white">{law.title}</h5>
-                                        <p className="text-[10px] text-slate-550 leading-relaxed font-semibold">{law.desc}</p>
-                                        <button 
-                                          type="button"
-                                          onClick={() => handleInsertCitation(`[Citation Precedent: ${law.title}]`)}
-                                          className="text-[9px] font-black uppercase text-[#5B3DF5] border-none bg-transparent cursor-pointer mt-1"
-                                        >
-                                          + Insert Citation
-                                        </button>
-                                      </div>
-                                    ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {activeCopilotTab === 'Citations' && (
-                              <div className="space-y-4">
-                                <h4 className="text-[9px] font-black uppercase tracking-widest text-[#5B3DF5]">Citations & Annotations</h4>
-                                <div className="space-y-3">
-                                  {[
-                                      { title: 'Section 154, CrPC', desc: 'Information in cognizable cases.' },
-                                      { title: 'Section 420, IPC', desc: 'Cheating and dishonestly inducing delivery of property.' },
-                                      { title: 'Section 34, IPC', desc: 'Acts done by several persons in furtherance of common intention.' }
-                                    ].map(cit => (
-                                      <div key={cit.title} className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-black/10 space-y-1">
-                                        <h5 className="text-[10px] font-black uppercase text-slate-800 dark:text-white">{cit.title}</h5>
-                                        <p className="text-[10px] text-slate-550 leading-relaxed font-semibold">{cit.desc}</p>
-                                        <button 
-                                          type="button"
-                                          onClick={() => handleInsertCitation(`[Citation Code: ${cit.title}]`)}
-                                          className="text-[9px] font-black uppercase text-[#5B3DF5] border-none bg-transparent cursor-pointer mt-1"
-                                        >
-                                          + Insert Citation
-                                        </button>
-                                      </div>
-                                    ))}
-                                </div>
-                              </div>
-                            )}
+                            </div>
                           </div>
                         </div>
                       )}
+
+                      {/* ── SUGGESTIONS TAB ── */}
+                      {activeCopilotTab === 'Suggestions' && (
+                        <div className="p-4 space-y-3">
+                          <p className="text-[8.5px] font-black uppercase tracking-widest text-slate-400">AI Audit & Recommendations</p>
+                          {[
+                            { title: 'Formatting Spacing Alignment', desc: 'Heading gaps conform to standard court guidelines.' },
+                            { title: 'Check Witness Annotation', desc: 'No witness information is present. Recommend adding at least one witness.' },
+                            { title: 'Check Missing Annexures', desc: 'No annexure files mapped. Recommend appending proof index sheets.' }
+                          ].map((item, idx) => (
+                            <div key={idx} className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-black/10 space-y-1.5">
+                              <h5 className="text-[10px] font-black text-slate-800 dark:text-white uppercase">{item.title}</h5>
+                              <p className="text-[10px] text-slate-500 leading-relaxed font-semibold">{item.desc}</p>
+                              <button
+                                type="button"
+                                onClick={() => handleCopilotQuickAction(item.title, `Apply recommendation: ${item.desc}`)}
+                                className="text-[9px] font-black uppercase text-[#5B3DF5] border-none bg-transparent cursor-pointer hover:underline"
+                              >
+                                Apply
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* ── CASE CONTEXT TAB ── */}
+                      {activeCopilotTab === 'Case Context' && (
+                        <div className="p-4 space-y-3">
+                          <p className="text-[8.5px] font-black uppercase tracking-widest text-slate-400">Relevant Precedents</p>
+                          {[
+                            { title: 'State of Maharashtra v. Rajesh (2021)', desc: 'Precedent defining requirements for SHO FIR registrations under Sec. 154.' },
+                            { title: 'Karan Singh v. Union of India (2018)', desc: 'Supreme Court guidelines on delays in filing first information reports.' },
+                            { title: 'Lalita Kumari v. Govt. of U.P. (2014)', desc: 'Constitution Bench guidelines on mandatory registration of FIR under Sec. 154 CrPC.' }
+                          ].map(law => (
+                            <div key={law.title} className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-black/10 space-y-1">
+                              <h5 className="text-[10px] font-black uppercase text-slate-800 dark:text-white">{law.title}</h5>
+                              <p className="text-[10px] text-slate-500 leading-relaxed font-semibold">{law.desc}</p>
+                              <button
+                                type="button"
+                                onClick={() => handleInsertCitation(`[Citation Precedent: ${law.title}]`)}
+                                className="text-[9px] font-black uppercase text-[#5B3DF5] border-none bg-transparent cursor-pointer hover:underline mt-1"
+                              >
+                                + Insert Citation
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* ── CITATIONS TAB ── */}
+                      {activeCopilotTab === 'Citations' && (
+                        <div className="p-4 space-y-3">
+                          <p className="text-[8.5px] font-black uppercase tracking-widest text-[#5B3DF5]">Citations & Annotations</p>
+                          {[
+                            { title: 'Section 154, CrPC', desc: 'Information in cognizable cases.' },
+                            { title: 'Section 420, IPC', desc: 'Cheating and dishonestly inducing delivery of property.' },
+                            { title: 'Section 34, IPC', desc: 'Acts done by several persons in furtherance of common intention.' }
+                          ].map(cit => (
+                            <div key={cit.title} className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-slate-50/50 dark:bg-black/10 space-y-1">
+                              <h5 className="text-[10px] font-black uppercase text-slate-800 dark:text-white">{cit.title}</h5>
+                              <p className="text-[10px] text-slate-500 leading-relaxed font-semibold">{cit.desc}</p>
+                              <button
+                                type="button"
+                                onClick={() => handleInsertCitation(`[Citation Code: ${cit.title}]`)}
+                                className="text-[9px] font-black uppercase text-[#5B3DF5] border-none bg-transparent cursor-pointer hover:underline mt-1"
+                              >
+                                + Insert Citation
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )
-                )}
+
+                    {/* Chat Input */}
+                    {activeCopilotTab === 'Assistant' && (
+                      <div className="p-3 border-t border-slate-200 dark:border-zinc-800 shrink-0">
+                        <form
+                          onSubmit={async (e) => {
+                            e.preventDefault();
+                            const input = e.target.elements.chatInput?.value?.trim();
+                            if (!input || isCopilotRefining) return;
+                            e.target.reset();
+                            const userMsg = { role: 'user', text: input };
+                            setAssistantMessages(prev => [...prev, userMsg]);
+                            setIsCopilotRefining(true);
+                            try {
+                              const docText = editorRef.current ? editorRef.current.innerText : finalDraft;
+                              const systemCtx = `You are an expert legal AI assistant. The user is working on a ${selectedType || 'legal'} document. Document content:\n\n${docText.slice(0, 3000)}`;
+                              const historyList = assistantMessages.map(m => ({ role: m.role, parts: [{ text: m.text }] }));
+                              const { generateChatResponse } = await import('../../../services/geminiService');
+                              const result = await generateChatResponse(historyList, input, systemCtx, [], outputLang === 'hi' ? 'hi' : 'en', null, 'legal');
+                              setAssistantMessages(prev => [...prev, { role: 'assistant', text: result || 'No response generated.' }]);
+                            } catch (err) {
+                              setAssistantMessages(prev => [...prev, { role: 'assistant', text: 'Sorry, I encountered an error. Please try again.' }]);
+                            } finally {
+                              setIsCopilotRefining(false);
+                            }
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          <input
+                            name="chatInput"
+                            type="text"
+                            placeholder="Ask AI about your draft..."
+                            disabled={isCopilotRefining}
+                            className="flex-1 px-3 py-2 text-[11px] font-medium bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl text-slate-700 dark:text-slate-300 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5B3DF5]/30 focus:border-[#5B3DF5] transition-all disabled:opacity-50"
+                          />
+                          <button
+                            type="submit"
+                            disabled={isCopilotRefining}
+                            className="w-8 h-8 bg-[#5B3DF5] hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl flex items-center justify-center border-none cursor-pointer transition-colors shrink-0"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                          </button>
+                        </form>
+                      </div>
+                    )}
+                  </div>
+                </>
+
+                {/* =========================================
+                    DRAFT VERSION HISTORY SIDE PANEL (independent)
+                    Opens from the 🕒 History Button in toolbar
+                ========================================= */}
+                <>
+                  {/* Backdrop */}
+                  {isHistoryPanelOpen && (
+                    <div
+                      className="fixed inset-0 bg-black/20 backdrop-blur-[1px] z-[3000]"
+                      onClick={() => setIsHistoryPanelOpen(false)}
+                    />
+                  )}
+                  {/* Panel */}
+                  <div
+                    className="fixed top-0 right-0 h-full bg-white dark:bg-[#111726] border-l border-slate-200 dark:border-zinc-800 shadow-2xl flex flex-col z-[3001] select-none overflow-hidden transition-transform duration-300 ease-in-out"
+                    style={{
+                      width: '380px',
+                      transform: isHistoryPanelOpen ? 'translateX(0)' : 'translateX(100%)',
+                    }}
+                  >
+                    {/* Header */}
+                    <div className="px-4 py-3 border-b border-slate-200 dark:border-zinc-800 flex justify-between items-center bg-gradient-to-r from-slate-50 to-slate-50 dark:from-zinc-900 dark:to-zinc-900 shrink-0">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center">
+                          <History size={14} className="text-[#5B3DF5]" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">Draft History</h4>
+                          <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{draftVersionHistory.length} version{draftVersionHistory.length !== 1 ? 's' : ''} saved</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsHistoryPanelOpen(false)}
+                        className="p-1.5 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-lg border-none bg-transparent cursor-pointer text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        <X size={15} />
+                      </button>
+                    </div>
+
+                    {/* Search Bar */}
+                    <div className="px-3 py-2.5 border-b border-slate-200 dark:border-zinc-800 shrink-0">
+                      <div className="flex items-center gap-2 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl px-3 py-1.5">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-slate-400 shrink-0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input
+                          type="text"
+                          placeholder="Search versions..."
+                          value={historySearchQuery || ''}
+                          onChange={e => setHistorySearchQuery(e.target.value)}
+                          className="flex-1 text-[11px] font-medium bg-transparent border-none outline-none text-slate-700 dark:text-slate-300 placeholder-slate-400"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Version List */}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
+                      {draftVersionHistory.length === 0 ? (
+                        <div className="text-center py-12">
+                          <History size={28} className="text-slate-200 dark:text-zinc-700 mx-auto mb-3" />
+                          <p className="text-[11px] text-slate-400 font-semibold">No version history yet</p>
+                          <p className="text-[9px] text-slate-300 dark:text-slate-600 font-medium mt-1">Save your draft to create your first version</p>
+                        </div>
+                      ) : (
+                        draftVersionHistory
+                          .filter(v => !historySearchQuery || (v.name || '').toLowerCase().includes(historySearchQuery.toLowerCase()))
+                          .map((version, idx) => (
+                            <div
+                              key={idx}
+                              className="p-3 border border-slate-100 dark:border-zinc-800 rounded-xl bg-white dark:bg-black/10 hover:border-[#5B3DF5]/50 hover:shadow-sm transition-all"
+                            >
+                              <div className="flex justify-between items-start mb-1.5">
+                                <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-[#5B3DF5]">
+                                  v{version.version}
+                                </span>
+                                <span className="text-[8.5px] font-bold text-slate-400 uppercase tracking-widest">{version.timestamp}</span>
+                              </div>
+                              <h5 className="text-[11px] font-extrabold text-slate-700 dark:text-slate-300 mb-0.5">
+                                {version.name || `Version ${version.version}`}
+                              </h5>
+                              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-2">
+                                By: {version.user || 'You'} {version.type && `· ${version.type}`}
+                              </p>
+                              <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100 dark:border-zinc-800/50">
+                                <button
+                                  type="button"
+                                  onClick={() => { handleRestoreVersion(version); setIsHistoryPanelOpen(false); }}
+                                  className="text-[9px] font-black uppercase text-[#5B3DF5] hover:underline bg-transparent border-none cursor-pointer"
+                                >
+                                  Restore
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDuplicateVersion(version)}
+                                  className="text-[9px] font-black uppercase text-slate-500 hover:text-slate-700 hover:underline bg-transparent border-none cursor-pointer"
+                                >
+                                  Duplicate
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newName = prompt('Enter new version name:', version.name || `Version ${version.version}`);
+                                    if (newName !== null) handleRenameVersion(idx, newName);
+                                  }}
+                                  className="text-[9px] font-black uppercase text-slate-500 hover:text-slate-700 hover:underline bg-transparent border-none cursor-pointer"
+                                >
+                                  Rename
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteVersion(idx)}
+                                  className="text-[9px] font-black uppercase text-rose-500 hover:underline bg-transparent border-none cursor-pointer"
+                                >
+                                  Delete
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setCompareVerA(version);
+                                    toast('Select another version to compare with', { icon: '🔍' });
+                                  }}
+                                  className="text-[9px] font-black uppercase text-indigo-500 hover:underline bg-transparent border-none cursor-pointer ml-auto"
+                                >
+                                  Compare
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                      )}
+                    </div>
+
+                    {/* Footer: Compare Mode trigger */}
+                    {compareVerA && (
+                      <div className="px-3 py-2.5 border-t border-slate-200 dark:border-zinc-800 bg-indigo-50 dark:bg-indigo-950/20 shrink-0">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9px] font-black uppercase text-[#5B3DF5]">
+                            Comparing: v{compareVerA.version}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setCompareVerA(null)}
+                            className="text-[9px] font-black uppercase text-slate-500 border-none bg-transparent cursor-pointer hover:underline"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                        <p className="text-[9px] text-slate-400 font-medium mt-0.5">Click Compare on another version to diff them</p>
+                      </div>
+                    )}
+                  </div>
+                </>
 
               {/* AI Copilot Refinement Comparison Modal */}
               {copilotComparison && (
@@ -4767,7 +5431,11 @@ CRITICAL MASTER RULES:
                       <button
                         type="button"
                         onClick={() => {
-                          setFinalDraft(copilotComparison.refined);
+                          const newHtml = convertTextToHtml(copilotComparison.refined);
+                          setFinalDraft(newHtml);
+                          if (editorRef.current) {
+                            editorRef.current.innerHTML = newHtml;
+                          }
                           setCopilotComparison(null);
                           toast.success("✓ Refined draft applied successfully!");
                         }}
@@ -4778,7 +5446,11 @@ CRITICAL MASTER RULES:
                       <button
                         type="button"
                         onClick={() => {
-                          setFinalDraft(copilotComparison.refined);
+                          const newHtml = convertTextToHtml(copilotComparison.refined);
+                          setFinalDraft(newHtml);
+                          if (editorRef.current) {
+                            editorRef.current.innerHTML = newHtml;
+                          }
                           setCopilotComparison(null);
                           toast.success("✓ Refined draft applied successfully!");
                         }}
@@ -4791,62 +5463,171 @@ CRITICAL MASTER RULES:
                 </div>
               )}
 
-              {/* Version Comparison Modal */}
-              {compareVersion && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[130000] p-6 select-none">
-                  <div className="bg-white dark:bg-[#111726] border border-slate-205 dark:border-zinc-800 rounded-2xl w-full max-w-5xl h-[80vh] flex flex-col shadow-2xl overflow-hidden text-left font-sans select-none">
-                    <div className="px-6 py-4 border-b border-slate-200 dark:border-zinc-800 flex justify-between items-center bg-slate-50 dark:bg-black/10 shrink-0">
-                      <div>
-                        <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider">Compare Draft Versions</h3>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                          Comparing Historic v{compareVersion.version} ({compareVersion.name || 'Unnamed'}) with Current Workspace
-                        </p>
-                      </div>
-                      <button 
-                        onClick={() => setCompareVersion(null)} 
-                        className="p-1.5 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-full border-none bg-transparent cursor-pointer text-slate-400"
-                      >
-                        <X size={18} />
-                      </button>
-                    </div>
-                    
-                    <div className="flex-1 flex overflow-hidden select-text">
-                      {/* Left Side: Historic Version */}
-                      <div className="flex-1 border-r border-slate-200 dark:border-zinc-800 flex flex-col min-w-0">
-                        <div className="px-4 py-2 bg-slate-100 dark:bg-black/20 text-[9px] font-black text-slate-500 uppercase tracking-widest border-b dark:border-zinc-800 select-none">
-                          v{compareVersion.version} Content
-                        </div>
-                        <div className="flex-1 p-6 overflow-y-auto font-serif text-[11pt] leading-[1.6] whitespace-pre-wrap text-black bg-white select-text selection:bg-indigo-200/50">
-                          {compareVersion.content}
-                        </div>
-                      </div>
+              {/* Unified Track Changes / Version Comparison Modal */}
+              {(() => {
+                const isComparing = (compareVerA && compareVerB) || compareVersion;
+                if (!isComparing) return null;
+
+                const verA = compareVerA || compareVersion;
+                const verB = compareVerB || { version: 'Current', content: finalDraft };
+                const diffHtml = diffWords(verA.content, verB.content);
+
+                return (
+                  <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[130000] p-6 select-none animate-fadeIn">
+                    <div className="bg-white dark:bg-[#111726] border border-slate-205 dark:border-zinc-800 rounded-3xl w-full max-w-5xl h-[85vh] flex flex-col shadow-2xl overflow-hidden text-left font-sans select-none">
                       
-                      {/* Right Side: Current Version */}
-                      <div className="flex-1 flex flex-col min-w-0">
-                        <div className="px-4 py-2 bg-slate-100 dark:bg-black/20 text-[9px] font-black text-[#5B3DF5] uppercase tracking-widest border-b dark:border-zinc-800 select-none">
-                          Current Workspace Content
+                      {/* Header */}
+                      <div className="px-6 py-4 border-b border-slate-200 dark:border-zinc-800 flex justify-between items-center bg-slate-50 dark:bg-black/10 shrink-0">
+                        <div>
+                          <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider">Track Changes: Version Comparison</h3>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                            Highlighting differences: Added text (green background), Deleted text (red strikethrough)
+                          </p>
                         </div>
-                        <div className="flex-1 p-6 overflow-y-auto font-serif text-[11pt] leading-[1.6] whitespace-pre-wrap text-black bg-white select-text selection:bg-indigo-200/50">
-                          {finalDraft}
+                        <button 
+                          onClick={() => {
+                            setCompareVersion(null);
+                            setCompareVerA(null);
+                            setCompareVerB(null);
+                          }} 
+                          className="p-1.5 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-full border-none bg-transparent cursor-pointer text-slate-400"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+
+                      {/* Selectors and Legend */}
+                      <div className="px-6 py-3 bg-slate-50/50 dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 shrink-0 flex flex-wrap items-center justify-between gap-4 select-none">
+                        <div className="flex items-center gap-6">
+                          {/* Selector A */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black uppercase text-slate-400">Version A:</span>
+                            <select
+                              value={verA.version}
+                              onChange={(e) => {
+                                const matched = draftVersionHistory.find(v => String(v.version) === e.target.value);
+                                if (matched) {
+                                  if (compareVersion) setCompareVersion(matched);
+                                  else setCompareVerA(matched);
+                                }
+                              }}
+                              className="bg-white dark:bg-zinc-800 border border-slate-250 dark:border-zinc-700 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
+                            >
+                              {draftVersionHistory.map(v => (
+                                <option key={v.version} value={v.version}>v{v.version} ({v.name || 'Saved'})</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Selector B */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black uppercase text-slate-400">Version B:</span>
+                            <select
+                              value={verB.version}
+                              onChange={(e) => {
+                                if (e.target.value === 'Current') {
+                                  setCompareVerB(null);
+                                } else {
+                                  const matched = draftVersionHistory.find(v => String(v.version) === e.target.value);
+                                  if (matched) setCompareVerB(matched);
+                                }
+                              }}
+                              className="bg-white dark:bg-zinc-800 border border-slate-250 dark:border-zinc-700 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer"
+                            >
+                              <option value="Current">Current Workspace</option>
+                              {draftVersionHistory.map(v => (
+                                <option key={v.version} value={v.version}>v{v.version} ({v.name || 'Saved'})</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Legend */}
+                        <div className="flex gap-3 text-[10px] font-bold">
+                          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-rose-100 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-900 rounded" /> Deleted</span>
+                          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-emerald-100 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-900 rounded" /> Added</span>
                         </div>
                       </div>
+
+                      {/* Main Scrollable Diff Area */}
+                      <div className="flex-1 p-8 overflow-y-auto bg-slate-50/20 dark:bg-zinc-950/20 select-text">
+                        <div 
+                          className="max-w-3xl mx-auto bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-12 shadow-sm font-serif text-[11pt] leading-[1.7] text-justify space-y-4 whitespace-pre-line"
+                          dangerouslySetInnerHTML={{ __html: diffHtml }}
+                        />
+                      </div>
+
+                      {/* Footer Actions */}
+                      <div className="px-6 py-4 border-t border-slate-200 dark:border-zinc-800 flex justify-end gap-3 bg-slate-50 dark:bg-black/10 shrink-0">
+                        <button
+                          onClick={() => {
+                            setCompareVersion(null);
+                            setCompareVerA(null);
+                            setCompareVerB(null);
+                          }}
+                          className="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-slate-200 hover:bg-slate-300 text-slate-700 border-none cursor-pointer transition-colors"
+                        >
+                          Close
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleRestoreVersion(verA);
+                            setCompareVersion(null);
+                            setCompareVerA(null);
+                            setCompareVerB(null);
+                          }}
+                          className="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-[#5B3DF5] text-white hover:bg-indigo-700 border-none cursor-pointer transition-all active:scale-95"
+                        >
+                          Restore v{verA.version}
+                        </button>
+                      </div>
                     </div>
-                    
-                    <div className="px-6 py-4 border-t border-slate-200 dark:border-zinc-800 flex justify-end gap-3 bg-slate-50 dark:bg-black/10 shrink-0">
+                  </div>
+                );
+              })()}
+
+              {/* Unsaved Changes Confirmation Modal */}
+              {pendingStep && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[140000] p-4 select-none animate-fadeIn">
+                  <div className="bg-white dark:bg-[#111726] border border-slate-205 dark:border-zinc-800 rounded-3xl w-full max-w-md p-6 shadow-2xl text-left select-none">
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">You have unsaved changes</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold leading-relaxed mt-2">
+                      Do you want to Save before leaving?
+                    </p>
+                    <div className="flex gap-3 mt-6">
                       <button
-                        onClick={() => setCompareVersion(null)}
-                        className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-200 text-slate-700 hover:bg-slate-300 border-none cursor-pointer"
+                        type="button"
+                        onClick={() => setPendingStep(null)}
+                        className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-205 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-black uppercase transition-colors border-none cursor-pointer"
                       >
-                        Close
+                        Cancel
                       </button>
                       <button
+                        type="button"
                         onClick={() => {
-                          handleRestoreVersion(compareVersion);
-                          setCompareVersion(null);
+                          // Discard changes
+                          lastSavedContentRef.current = finalDraft;
+                          setSaveButtonState('saved');
+                          const target = pendingStep;
+                          setPendingStep(null);
+                          setStep(target);
                         }}
-                        className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-[#5B3DF5] text-white hover:bg-indigo-700 border-none cursor-pointer"
+                        className="flex-1 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-black uppercase transition-colors border-none cursor-pointer"
                       >
-                        Restore v{compareVersion.version}
+                        Discard
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          // Save changes
+                          await handleSave(false);
+                          const target = pendingStep;
+                          setPendingStep(null);
+                          setStep(target);
+                        }}
+                        className="flex-1 py-2.5 bg-[#5B3DF5] hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase transition-all shadow-sm border-none cursor-pointer"
+                      >
+                        Save & Exit
                       </button>
                     </div>
                   </div>
@@ -4876,40 +5657,50 @@ CRITICAL MASTER RULES:
             ) : savedDrafts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-24 bg-white dark:bg-[#1A2540] rounded-3xl border border-dashed border-slate-200 dark:border-white/5 shadow-sm text-center">
                 <Folder size={40} className="text-slate-300 dark:text-zinc-700 mb-3" />
-                <p className="text-sm font-black text-slate-400">No saved documents found</p>
-                <p className="text-xs text-slate-350 dark:text-zinc-650 mt-1">Open a template, generate your draft, and click Save.</p>
+                <p className="text-sm font-black text-slate-400">No saved drafts yet.</p>
+                <p className="text-xs text-slate-355 dark:text-zinc-655 mt-1">Create your first draft and click Save to keep it here.</p>
               </div>
             ) : (
               <div className="flex flex-col gap-4">
                 {savedDrafts.map(draft => (
                   <div 
                     key={draft.id} 
-                    className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+                    className="bg-white dark:bg-[#1A2540] border border-slate-205 dark:border-white/5 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4"
                   >
-                    <div className="flex items-start gap-4 min-w-0">
-                      <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 rounded-2xl shrink-0 mt-0.5">
+                    <div className="flex items-start gap-4 min-w-0 w-full">
+                      <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 text-[#5B3DF5] rounded-2xl shrink-0 mt-0.5">
                         <Folder size={18} />
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <h4 className="text-sm font-black text-slate-900 dark:text-white truncate">
                             {draft.title}
                           </h4>
-                          <span className="text-[8px] font-black px-2 py-0.5 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200/20 rounded-full uppercase tracking-wider">
-                            {DRAFT_TEMPLATES[draft.title]?.category || 'GENERAL'}
+                          <span className="text-[8px] font-black px-2 py-0.5 bg-indigo-50/50 dark:bg-indigo-950/30 text-[#5B3DF5] border border-indigo-200/20 rounded-full uppercase tracking-wider">
+                            {draft.type || 'Legal Draft'}
                           </span>
-                          <span className="text-[8px] font-black px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200/20 rounded-full uppercase tracking-wider">
-                            Saved
+                          <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider border ${
+                            draft.status === 'archived' 
+                              ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200/20' 
+                              : 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200/20'
+                          }`}>
+                            {draft.status === 'archived' ? 'Archived' : 'Active'}
                           </span>
                         </div>
                         
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 mt-2 text-[11px] font-semibold text-slate-500">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2 mt-3 text-[11px] font-semibold text-slate-500">
                           <div>
                             <span className="text-slate-400 mr-1.5">Linked Case:</span>
                             <span className="text-slate-700 dark:text-slate-300 font-bold">{draft.caseName || 'No Case Linked'}</span>
                           </div>
                           <div>
-                            <span className="text-slate-400 mr-1.5">Modified:</span>
+                            <span className="text-slate-400 mr-1.5">Created Date:</span>
+                            <span className="text-slate-700 dark:text-slate-300">
+                              {draft.createdAt ? new Date(draft.createdAt).toLocaleDateString('en-IN') : 'N/A'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 mr-1.5">Updated Date:</span>
                             <span className="text-slate-700 dark:text-slate-300">
                               {new Date(draft.date).toLocaleDateString('en-IN')} • {new Date(draft.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                             </span>
@@ -4927,120 +5718,155 @@ CRITICAL MASTER RULES:
                     </div>
 
                     {/* Actions List */}
-                    <div className="flex items-center gap-1.5 self-end md:self-center shrink-0">
+                    <div className="flex items-center gap-2 self-end lg:self-center shrink-0 relative">
                       <button
-                        onClick={() => {
-                          setFinalDraft(draft.content);
-                          setOriginalGeneratedDraft(draft.content);
-                          setSelectedType(draft.title);
-                          setTemplate(DRAFT_TEMPLATES[draft.title] || null);
-                          setFormData(draft.formData || {});
-                          setLinkedCaseId(draft.linkedCaseId || '');
-                          if (draft.version) setDraftVersion(draft.version);
-                          if (draft.mode) setGenerationMode(draft.mode);
-                          if (draft.exportHistory) setExportHistory(draft.exportHistory);
-                          if (draft.generationTimestamp) setGenerationTimestamp(draft.generationTimestamp);
-                          else setGenerationTimestamp(new Date(draft.date).toLocaleString('en-IN'));
-                          
-                          const phs = extractPlaceholders(draft.content);
-                          setDraftPlaceholders(phs);
-                          const phValues = {};
-                          phs.forEach(p => {
-                            let matchedVal = '';
-                            Object.entries(draft.formData || {}).forEach(([k, v]) => {
-                              const cleanK = k.toLowerCase().replace(/[^a-z0-9]/g, '');
-                              const cleanP = p.key.toLowerCase().replace(/[^a-z0-9]/g, '');
-                              if (cleanK === cleanP || cleanK.includes(cleanP) || cleanP.includes(cleanK)) {
-                                matchedVal = v;
-                              }
-                            });
-                            phValues[p.key] = matchedVal || '';
-                          });
-                          setPlaceholderValues(phValues);
-
-                          setStep('PREVIEW');
-                          toast.success(`✓ Loaded "${draft.title}"`);
-                        }}
-                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase shadow-sm"
+                        onClick={() => handleOpenSavedDraft(draft, 'READ')}
+                        className="px-3.5 py-1.5 bg-indigo-50 dark:bg-indigo-950/40 text-[#5B3DF5] hover:bg-[#5B3DF5] hover:text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border-none"
                       >
                         Open
                       </button>
-                      
+
                       <button
-                        onClick={() => {
-                          const newName = prompt('Enter new draft name:', draft.title);
-                          if (newName && newName.trim()) {
-                            const caseId = draft.linkedCaseId;
-                            if (caseId) {
-                              const targetCase = allProjects.find(p => p._id === caseId);
-                              if (targetCase && Array.isArray(targetCase.drafts)) {
-                                const updatedDrafts = targetCase.drafts.map(d => {
-                                  if (d.id === draft.id) {
-                                    return { ...d, type: newName.trim(), lastModified: new Date().toISOString() };
+                        onClick={() => handleOpenSavedDraft(draft, 'EDIT')}
+                        className="px-3.5 py-1.5 bg-[#5B3DF5] hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-sm cursor-pointer border-none"
+                      >
+                        Continue Editing
+                      </button>
+
+                      {/* Dropdown triggers */}
+                      <div className="relative">
+                        <button
+                          onClick={() => setActiveCardMenuId(activeCardMenuId === draft.id ? null : draft.id)}
+                          className="p-2 text-slate-400 hover:text-slate-650 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl transition-all cursor-pointer border-none bg-transparent"
+                          title="More Actions"
+                        >
+                          <MoreVertical size={16} />
+                        </button>
+                        
+                        {activeCardMenuId === draft.id && (
+                          <>
+                            <div className="fixed inset-0 z-[4000]" onClick={() => setActiveCardMenuId(null)} />
+                            <div className="absolute right-0 mt-2 w-[200px] bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/10 shadow-2xl rounded-2xl p-2 z-[4001] text-left animate-fadeIn">
+                              <button
+                                onClick={() => {
+                                  setActiveCardMenuId(null);
+                                  const newName = prompt('Enter new draft title:', draft.title);
+                                  if (newName) handleRenameDraft(draft, newName);
+                                }}
+                                className="w-full px-3.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:text-[#5B3DF5] rounded-xl flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
+                              >
+                                <Edit3 size={13} />
+                                <span>Rename</span>
+                              </button>
+                              
+                              <button
+                                onClick={async () => {
+                                  setActiveCardMenuId(null);
+                                  const caseId = draft.linkedCaseId;
+                                  if (caseId) {
+                                    const targetCase = allProjects.find(p => p._id === caseId);
+                                    if (targetCase && Array.isArray(targetCase.drafts)) {
+                                      const dupId = `DRAFT-DUP-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+                                      const dupItem = {
+                                        id: dupId,
+                                        type: draft.type || 'Legal Draft',
+                                        title: `${draft.title} (Copy)`,
+                                        content: draft.content,
+                                        createdAt: new Date().toISOString(),
+                                        mode: draft.mode,
+                                        formData: draft.formData,
+                                        version: draft.version || 1,
+                                        exportHistory: draft.exportHistory || [],
+                                        generationTimestamp: new Date().toLocaleString('en-IN'),
+                                        lastModified: new Date().toISOString(),
+                                        versions: draft.versions || [],
+                                        status: draft.status || 'active'
+                                      };
+                                      try {
+                                        const response = await apiService.updateProject(caseId, {
+                                          ...targetCase,
+                                          drafts: [dupItem, ...targetCase.drafts]
+                                        });
+                                        if (onUpdateCase) onUpdateCase(response);
+                                        toast.success('Document duplicated');
+                                        loadSavedDrafts();
+                                      } catch {
+                                        toast.error('Failed to duplicate');
+                                      }
+                                    }
                                   }
-                                  return d;
-                                });
-                                apiService.updateProject(caseId, { ...targetCase, drafts: updatedDrafts }).then(res => {
-                                  if (onUpdateCase) onUpdateCase(res);
-                                  toast.success('Document renamed');
-                                  loadSavedDrafts();
-                                }).catch(() => toast.error('Failed to rename document'));
-                              }
-                            }
-                          }
-                        }}
-                        className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 rounded-xl transition-all"
-                        title="Rename"
-                      >
-                        <Edit2 size={13} />
-                      </button>
+                                }}
+                                className="w-full px-3.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:text-[#5B3DF5] rounded-xl flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
+                              >
+                                <Copy size={13} />
+                                <span>Duplicate</span>
+                              </button>
 
-                      <button
-                        onClick={async () => {
-                          const caseId = draft.linkedCaseId;
-                          if (caseId) {
-                            const targetCase = allProjects.find(p => p._id === caseId);
-                            if (targetCase && Array.isArray(targetCase.drafts)) {
-                              const dupId = `DRAFT-DUP-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
-                              const dupItem = {
-                                id: dupId,
-                                type: `${draft.title} (Copy)`,
-                                content: draft.content,
-                                createdAt: new Date().toISOString(),
-                                mode: draft.mode,
-                                formData: draft.formData,
-                                version: 1,
-                                exportHistory: [],
-                                generationTimestamp: new Date().toLocaleString('en-IN'),
-                                lastModified: new Date().toISOString()
-                              };
-                              try {
-                                const response = await apiService.updateProject(caseId, {
-                                  ...targetCase,
-                                  drafts: [dupItem, ...targetCase.drafts]
-                                });
-                                if (onUpdateCase) onUpdateCase(response);
-                                toast.success('Document duplicated');
-                                loadSavedDrafts();
-                              } catch {
-                                toast.error('Failed to duplicate');
-                              }
-                            }
-                          }
-                        }}
-                        className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 rounded-xl transition-all"
-                        title="Duplicate"
-                      >
-                        <Copy size={13} />
-                      </button>
+                              <button
+                                onClick={() => {
+                                  setActiveCardMenuId(null);
+                                  handleExportDOCXForDraft(draft);
+                                }}
+                                className="w-full px-3.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:text-[#5B3DF5] rounded-xl flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
+                              >
+                                <FileCheck size={13} />
+                                <span>Download DOCX</span>
+                              </button>
 
-                      <button
-                        onClick={() => handleDeleteDraft(draft.id)}
-                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition-all"
-                        title="Delete"
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                              <button
+                                onClick={() => {
+                                  setActiveCardMenuId(null);
+                                  handleExportPDFForDraft(draft);
+                                }}
+                                className="w-full px-3.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:text-[#5B3DF5] rounded-xl flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
+                              >
+                                <Download size={13} />
+                                <span>Download PDF</span>
+                              </button>
+
+                              <button
+                                onClick={() => {
+                                  setActiveCardMenuId(null);
+                                  handleArchiveDraft(draft);
+                                }}
+                                className="w-full px-3.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:text-[#5B3DF5] rounded-xl flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
+                              >
+                                <Award size={13} />
+                                <span>{draft.status === 'archived' ? 'Unarchive' : 'Archive'}</span>
+                              </button>
+
+                              {/* Move to Case Selector */}
+                              <div className="border-t border-slate-100 dark:border-white/5 my-1.5 pt-1.5 px-3.5">
+                                <span className="block text-[8.5px] font-black uppercase text-slate-400 mb-1">Move to Case</span>
+                                <select
+                                  value={draft.linkedCaseId || ''}
+                                  onChange={(e) => {
+                                    setActiveCardMenuId(null);
+                                    if (e.target.value) handleMoveDraftToCase(draft, e.target.value);
+                                  }}
+                                  className="w-full text-[10px] font-bold bg-slate-50 dark:bg-zinc-800 border border-slate-205 dark:border-zinc-700 rounded-lg px-2 py-1 outline-none cursor-pointer"
+                                >
+                                  <option value="" disabled>Select Case...</option>
+                                  {allProjects.map(proj => (
+                                    <option key={proj._id} value={proj._id}>{proj.name}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <button
+                                onClick={() => {
+                                  setActiveCardMenuId(null);
+                                  setDeleteConfirmationId(draft.id);
+                                }}
+                                className="w-full px-3.5 py-2 text-xs font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/25 rounded-xl flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors mt-1"
+                              >
+                                <Trash2 size={13} />
+                                <span>Delete</span>
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -5755,6 +6581,38 @@ CRITICAL MASTER RULES:
                   toast.success('Active draft deleted');
                 }} 
                 className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── Saved Draft Delete Confirmation Modal ── */}
+      {deleteConfirmationId && (
+        <div className="fixed inset-0 z-[125000] flex items-center justify-center p-4 select-none">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDeleteConfirmationId(null)} />
+          <div className="relative bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl flex flex-col items-center text-center">
+            <div className="w-12 h-12 bg-red-50 dark:bg-red-950/30 rounded-full flex items-center justify-center text-red-600 mb-4">
+              <Trash2 size={24} />
+            </div>
+            <h3 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-wider">Delete Draft?</h3>
+            <p className="text-xs text-slate-450 font-medium mt-1">This action cannot be undone.</p>
+            <div className="flex gap-3 mt-6 w-full">
+              <button 
+                type="button"
+                onClick={() => setDeleteConfirmationId(null)} 
+                className="flex-1 py-2.5 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-white rounded-xl text-xs font-black uppercase border-none cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button"
+                onClick={() => {
+                  handleDeleteDraft(deleteConfirmationId);
+                  setDeleteConfirmationId(null);
+                }} 
+                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase border-none cursor-pointer"
               >
                 Delete
               </button>

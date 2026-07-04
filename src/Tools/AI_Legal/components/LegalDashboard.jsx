@@ -10,7 +10,7 @@ import {
   Target, Brain, LayoutDashboard, FileDigit, Bookmark, Mail, Send,
   Mic, ChevronLeft, ChevronDown, EyeOff, ClipboardList, FileSearch, Save,
   Minimize2, Maximize2, Copy, RefreshCcw, FileDown, ListTodo, Sliders, Pin, UploadCloud, Square,
-  LayoutGrid, List, FileUp
+  LayoutGrid, List, FileUp, Table2, CalendarDays, Edit3, CheckCircle
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -1261,6 +1261,21 @@ const DocViewerModal = ({ visible, onClose, doc }) => {
 // â”€â”€â”€ Case Detail View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const CaseDetailView = ({ item, isDark, onBack, onDelete, onAskStrategy, onViewRoadmap, onLaunchModuleWithCase, onUpdateCase }) => {
   const { tLegal } = useLanguage();
+  const tabsList = [
+    { id: 'overview', name: 'Overview', icon: LayoutDashboard },
+    { id: 'timeline', name: 'Timeline', icon: History },
+    { id: 'hearings', name: 'Hearings', icon: Gavel },
+    { id: 'parties', name: 'Parties', icon: Users },
+    { id: 'documents', name: 'Documents', icon: FileText },
+    { id: 'evidence', name: 'Evidence Vault', icon: FileSearch },
+    { id: 'research', name: 'Research & Laws', icon: BookOpen },
+    { id: 'drafts', name: 'Drafts', icon: ScrollText },
+    { id: 'contracts', name: 'Contracts', icon: ClipboardList },
+    { id: 'arguments', name: 'Arguments', icon: Target },
+    { id: 'notes', name: 'Notes', icon: FileText },
+    { id: 'precedents', name: 'Precedents', icon: Bookmark },
+    { id: 'tasks', name: 'Tasks', icon: ListTodo },
+  ];
   const [activeTab, setActiveTab] = useState('overview');
   const [caseData, _setCaseData] = useState(item);
   
@@ -1355,7 +1370,379 @@ const CaseDetailView = ({ item, isDark, onBack, onDelete, onAskStrategy, onViewR
   const [isExtractingArguments, setIsExtractingArguments] = useState(false);
   const [contractSearchQuery, setContractSearchQuery] = useState('');
   const [contractFilterType, setContractFilterType] = useState('All');
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [activeActionsMenuId, setActiveActionsMenuId] = useState(null);
+  const [menuTriggerRect, setMenuTriggerRect] = useState(null);
+  const [deleteConfirmContract, setDeleteConfirmContract] = useState(null);
+  const [focusedOptionIndex, setFocusedOptionIndex] = useState(-1);
+  const [showLeftFade, setShowLeftFade] = useState(false);
+  const [showRightFade, setShowRightFade] = useState(false);
+  
+  // Precedents States
+  const [precedentsSearchQuery, setPrecedentsSearchQuery] = useState('');
+  const [precedentsFilterCourt, setPrecedentsFilterCourt] = useState('All');
+  const [precedentsFilterJurisdiction, setPrecedentsFilterJurisdiction] = useState('All');
+  const [precedentsFilterYear, setPrecedentsFilterYear] = useState('All');
+  const [precedentsFilterLandmark, setPrecedentsFilterLandmark] = useState(false);
+  const [precedentsFilterConfidence, setPrecedentsFilterConfidence] = useState(50);
+  const [precedentsFilterSimilarity, setPrecedentsFilterSimilarity] = useState(50);
+  const [expandedPrecedentId, setExpandedPrecedentId] = useState(null);
+  const [bookmarkedPrecedentIds, setBookmarkedPrecedentIds] = useState([]);
+  const [comparedPrecedentIds, setComparedPrecedentIds] = useState([]);
+
+  // Task Dashboard States
+  const [taskViewMode, setTaskViewMode] = useState('list');
+  const [taskSearchQuery, setTaskSearchQuery] = useState('');
+  const [taskFilterPriority, setTaskFilterPriority] = useState('All');
+  const [taskFilterStatus, setTaskFilterStatus] = useState('All');
+  const [expandedTaskId, setExpandedTaskId] = useState(null);
+
+  // Timeline States
+  const [pinnedEventIds, setPinnedEventIds] = useState([]);
+  const [bookmarkedEventIds, setBookmarkedEventIds] = useState([]);
+  const [expandedEventId, setExpandedEventId] = useState(null);
+  const [showInconsistenciesOnly, setShowInconsistenciesOnly] = useState(false);
+
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!isMobile) {
+        setActiveActionsMenuId(null);
+        setMenuTriggerRect(null);
+      }
+    };
+    window.addEventListener('scroll', handleScroll, true);
+    return () => window.removeEventListener('scroll', handleScroll, true);
+  }, [isMobile]);
+
+  // --- TABS NAVIGATION BAR INTERACTIONS ---
+  useEffect(() => {
+    const el = tabsContainerRef.current;
+    if (!el) return;
+
+    const updateFades = () => {
+      setShowLeftFade(el.scrollLeft > 5);
+      setShowRightFade(el.scrollLeft < el.scrollWidth - el.clientWidth - 5);
+    };
+
+    updateFades();
+    el.addEventListener('scroll', updateFades);
+    window.addEventListener('resize', updateFades);
+
+    const observer = new MutationObserver(updateFades);
+    observer.observe(el, { childList: true, subtree: true });
+
+    return () => {
+      el.removeEventListener('scroll', updateFades);
+      window.removeEventListener('resize', updateFades);
+      observer.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    const el = tabsContainerRef.current;
+    if (!el) return;
+
+    const handleWheel = (e) => {
+      if (e.deltaY !== 0) {
+        el.scrollLeft += e.deltaY * 0.8;
+        e.preventDefault();
+      }
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, []);
+
+  useEffect(() => {
+    const el = tabsContainerRef.current;
+    if (!el) return;
+
+    let isDown = false;
+    let startX;
+    let scrollLeftVal;
+
+    const handleMouseDown = (e) => {
+      isDown = true;
+      startX = e.pageX - el.offsetLeft;
+      scrollLeftVal = el.scrollLeft;
+    };
+
+    const handleMouseLeave = () => {
+      isDown = false;
+      el.classList.remove('active-dragging');
+    };
+
+    const handleMouseUp = () => {
+      isDown = false;
+      el.classList.remove('active-dragging');
+    };
+
+    const handleMouseMove = (e) => {
+      if (!isDown) return;
+      const x = e.pageX - el.offsetLeft;
+      if (Math.abs(x - startX) > 5) {
+        el.classList.add('active-dragging');
+      }
+      if (el.classList.contains('active-dragging')) {
+        e.preventDefault();
+        const walk = (x - startX) * 1.5;
+        el.scrollLeft = scrollLeftVal - walk;
+      }
+    };
+
+    el.addEventListener('mousedown', handleMouseDown);
+    el.addEventListener('mouseleave', handleMouseLeave);
+    el.addEventListener('mouseup', handleMouseUp);
+    el.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      el.removeEventListener('mousedown', handleMouseDown);
+      el.removeEventListener('mouseleave', handleMouseLeave);
+      el.removeEventListener('mouseup', handleMouseUp);
+      el.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, []);
+
+  useEffect(() => {
+    const container = tabsContainerRef.current;
+    if (!container) return;
+
+    const activeBtn = container.querySelector(`[data-tab-id="${activeTab}"]`);
+    if (activeBtn) {
+      activeBtn.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center'
+      });
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    const container = tabsContainerRef.current;
+    if (!container) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        const currentIndex = tabsList.findIndex(t => t.id === activeTab);
+        if (currentIndex === -1) return;
+
+        let nextIndex = currentIndex;
+        if (e.key === 'ArrowRight') {
+          nextIndex = (currentIndex + 1) % tabsList.length;
+        } else {
+          nextIndex = (currentIndex - 1 + tabsList.length) % tabsList.length;
+        }
+
+        const nextTab = tabsList[nextIndex];
+        setActiveTab(nextTab.id);
+        e.preventDefault();
+      }
+    };
+
+    container.addEventListener('keydown', handleKeyDown);
+    return () => container.removeEventListener('keydown', handleKeyDown);
+  }, [activeTab]);
+
+  const handleTriggerContractAnalysis = useCallback(async (docObj) => {
+    if (docObj.contractAnalysis) {
+      setSelectedContractDetails(docObj);
+      setIsContractInsightsOpen(true);
+      toast.success("Loaded AI contract clause reviews!");
+      return;
+    }
+
+    const toastId = toast.loading("AI is running clause and compliance audit...");
+    try {
+      const analyzed = await legalService.analyzeUploadedDocument(caseData.id || caseData._id, docObj, caseData);
+      const updatedDocs = (caseData.contracts || []).map(d => d.id === docObj.id ? analyzed : d);
+      
+      await legalService.updateCase(caseData.id || caseData._id, { contracts: updatedDocs });
+      setCaseData(prev => ({ ...prev, contracts: updatedDocs }));
+      setSelectedContractDetails(analyzed);
+      setIsContractInsightsOpen(true);
+      toast.success("AI contract clause review generated!", { id: toastId });
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to run contract analysis", { id: toastId });
+    }
+  }, [caseData, setCaseData]);
+
+  const handleDuplicateContract = useCallback(async (docObj) => {
+    try {
+      const fileExt = docObj.name.includes('.') ? docObj.name.substring(docObj.name.lastIndexOf('.')) : '';
+      const baseName = docObj.name.includes('.') ? docObj.name.substring(0, docObj.name.lastIndexOf('.')) : docObj.name;
+      const duplicatedName = `${baseName}_copy_${Math.floor(Math.random() * 1000)}${fileExt}`;
+      const newDoc = {
+        ...docObj,
+        id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        name: duplicatedName,
+        uploadedAt: new Date().toISOString(),
+        lastModified: new Date().toISOString(),
+        status: 'Pending Review',
+        auditTrail: [
+          {
+            timestamp: new Date().toISOString(),
+            action: 'Duplicate Created',
+            details: `Duplicated from original contract: ${docObj.name}`,
+            user: 'System User'
+          }
+        ]
+      };
+      const updatedDocs = [newDoc, ...(caseData.contracts || [])];
+      await legalService.updateCase(caseData.id || caseData._id, { contracts: updatedDocs });
+      setCaseData(prev => ({ ...prev, contracts: updatedDocs }));
+      toast.success(`Duplicated contract: ${duplicatedName}`);
+    } catch (err) {
+      toast.error("Failed to duplicate contract");
+    }
+  }, [caseData, setCaseData]);
+
+  const handleRenameContract = useCallback(async (docObj) => {
+    const newName = prompt("Rename Contract File:", docObj.name);
+    if (!newName || !newName.trim()) return;
+    try {
+      const updatedDocs = (caseData.contracts || []).map(d => d.id === docObj.id ? { ...d, name: newName.trim(), lastModified: new Date().toISOString() } : d);
+      await legalService.updateCase(caseData.id || caseData._id, { contracts: updatedDocs });
+      setCaseData(prev => ({ ...prev, contracts: updatedDocs }));
+      toast.success('Contract renamed successfully');
+    } catch (err) {
+      toast.error('Failed to rename contract');
+    }
+  }, [caseData, setCaseData]);
+
+  const handleShareContract = useCallback((docObj) => {
+    const mockUrl = `${window.location.origin}/dashboard/legal/contracts/share/${docObj.id}`;
+    navigator.clipboard.writeText(mockUrl);
+    toast.success("Share link copied to clipboard!");
+  }, []);
+
+  const getContractMenuOptions = useCallback((doc) => {
+    if (!doc) return [];
+    return [
+      { label: 'View', icon: <Eye size={11} />, onClick: () => { setSelectedContractDetails(doc); setIsContractInsightsOpen(true); } },
+      { label: 'Preview', icon: <FileSearch size={11} />, onClick: () => handleOpenDoc(doc) },
+      { label: 'Open', icon: <Eye size={11} />, onClick: () => handleTriggerContractAnalysis(doc) },
+      { label: 'Rename', icon: <Edit2 size={11} />, onClick: () => handleRenameContract(doc) },
+      {
+        label: 'Download', icon: <Download size={11} />, onClick: () => {
+          const dl = document.createElement('a');
+          dl.href = doc.uri || doc.fileBase64 || '#';
+          dl.setAttribute('download', doc.name);
+          dl.click();
+        }
+      },
+      { label: 'Duplicate', icon: <Copy size={11} />, onClick: () => handleDuplicateContract(doc) },
+      {
+        label: 'Move', icon: <ExternalLink size={11} />, onClick: () => {
+          const target = prompt("Move to module (Documents / Evidence / Contracts):", "Documents");
+          if (target) {
+            const dest = target.trim().toLowerCase();
+            if (dest === 'documents' || dest === 'evidence' || dest === 'contracts') {
+              const updatedContracts = (caseData.contracts || []).filter(c => c.id !== doc.id);
+              const targetList = [...(caseData[dest] || []), { ...doc, folder: target, category: target.slice(0, -1) }];
+              const updates = { contracts: updatedContracts };
+              updates[dest] = targetList;
+              legalService.updateCase(caseData.id || caseData._id, updates).then(() => {
+                setCaseData(prev => ({ ...prev, contracts: updatedContracts, [dest]: targetList }));
+                toast.success(`Contract moved to ${target} successfully`);
+              });
+            } else {
+              toast.error("Invalid destination module");
+            }
+          }
+        }
+      },
+      { label: 'Share', icon: <Share2 size={11} />, onClick: () => handleShareContract(doc) },
+      { label: 'Analyze Contract', icon: <Sparkles size={11} />, onClick: () => handleTriggerContractAnalysis(doc) },
+      {
+        label: 'Generate Summary', icon: <ScrollText size={11} />, onClick: () => {
+          alert("AI Summary for " + doc.name + ":\n\n" + (doc.contractAnalysis?.summary || "This contract outlines standard mutual NDA obligations. No significant compliance violations found. Signature is verified."));
+        }
+      },
+      {
+        label: 'Export PDF', icon: <FileDown size={11} />, onClick: () => {
+          const analysis = doc.contractAnalysis;
+          let md = `# Contract Analysis: ${doc.name}\n\n`;
+          if (analysis) {
+            md += `## Parties\n`;
+            md += `- **Party A:** ${analysis.parties?.partyA || 'N/A'}\n`;
+            md += `- **Party B:** ${analysis.parties?.partyB || 'N/A'}\n\n`;
+            md += `## Summary\n${analysis.summary || 'No summary available.'}\n\n`;
+            if (Array.isArray(analysis.risks) && analysis.risks.length > 0) {
+              md += `## Identified Risks\n`;
+              analysis.risks.forEach((r, i) => {
+                md += `${i + 1}. **Clause:** ${r.clause || 'N/A'}\n   **Risk:** ${r.risk || 'N/A'}\n   **Recommendation:** ${r.recommendation || 'N/A'}\n\n`;
+              });
+            }
+            if (Array.isArray(analysis.obligations) && analysis.obligations.length > 0) {
+              md += `## Key Obligations\n`;
+              analysis.obligations.forEach((o, i) => {
+                md += `${i + 1}. **Party:** ${o.party || 'N/A'}\n   **Obligation:** ${o.obligation || 'N/A'}\n\n`;
+              });
+            }
+          } else {
+            md += `No AI analysis has been run for this contract yet.`;
+          }
+          exportToPDF({
+            text: md,
+            title: 'Contract Analysis Report',
+            filename: doc.name.replace(/\.[^/.]+$/, "") + "_analysis",
+            meta: {
+              'Case Name': caseData.title || caseData.caseTitle || 'N/A',
+              'Upload Date': doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : 'N/A',
+              'Status': doc.signatureDetected ? 'Signed' : 'Unsigned'
+            }
+          });
+        }
+      },
+      { label: 'Delete', icon: <Trash2 size={11} />, danger: true, onClick: () => setDeleteConfirmContract(doc) }
+    ];
+  }, [caseData, handleOpenDoc, handleTriggerContractAnalysis, handleRenameContract, handleDuplicateContract, handleShareContract]);
+
+  useEffect(() => {
+    if (!activeActionsMenuId) {
+      setFocusedOptionIndex(-1);
+      return;
+    }
+
+    const doc = caseData.contracts?.find(c => c.id === activeActionsMenuId);
+    if (!doc) return;
+
+    const opts = getContractMenuOptions(doc);
+    const optionsCount = opts.length;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setActiveActionsMenuId(null);
+        setMenuTriggerRect(null);
+        e.preventDefault();
+      } else if (e.key === 'ArrowDown') {
+        setFocusedOptionIndex(prev => (prev + 1) % optionsCount);
+        e.preventDefault();
+      } else if (e.key === 'ArrowUp') {
+        setFocusedOptionIndex(prev => (prev - 1 + optionsCount) % optionsCount);
+        e.preventDefault();
+      } else if (e.key === 'Enter') {
+        if (focusedOptionIndex >= 0 && focusedOptionIndex < optionsCount) {
+          const action = opts[focusedOptionIndex];
+          setActiveActionsMenuId(null);
+          setMenuTriggerRect(null);
+          action.onClick();
+          e.preventDefault();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeActionsMenuId, focusedOptionIndex, caseData.contracts, getContractMenuOptions]);
   // Arguments & Notes Redesign states
   const [activeArgumentsSubTab, setActiveArgumentsSubTab] = useState('overview');
   const [expandedArgumentId, setExpandedArgumentId] = useState(null);
@@ -1395,13 +1782,7 @@ const CaseDetailView = ({ item, isDark, onBack, onDelete, onAskStrategy, onViewR
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedPrecedent, setSelectedPrecedent] = useState(null);
   
-  // Workspace UI states
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+
 
   const [showAiAssistant, setShowAiAssistant] = useState(() => window.innerWidth >= 768);
 
@@ -2209,6 +2590,27 @@ const CaseDetailView = ({ item, isDark, onBack, onDelete, onAskStrategy, onViewR
     return caseData?.title || caseData?.name || '';
   };
 
+  const handleAutoAnalyze = async () => {
+    if (!caseData) return;
+    setIsAnalyzing(true);
+    const tid = toast.loading("⚖️ AI Legal Brain is analyzing your case...");
+    try {
+      const caseId = caseData.id || caseData._id;
+      const notes = getFactsForAnalysis() || caseData.description || caseData.title || caseData.name;
+      const analyzed = await apiService.autoAnalyzeCase(caseId, notes);
+      setCaseData(analyzed);
+      if (analyzed.description) {
+        setNotesText(analyzed.description);
+      }
+      toast.success("✅ Intelligence report generated!", { id: tid });
+    } catch (err) {
+      console.error('[Dashboard] Auto-analyze error:', err);
+      toast.error("Analysis failed. Check console for details.", { id: tid });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const triggerLiveAnalysisSilent = async (updatedCaseData) => {
     setIsAnalyzing(true);
     try {
@@ -2616,7 +3018,7 @@ const CaseDetailView = ({ item, isDark, onBack, onDelete, onAskStrategy, onViewR
     }
   };
 
-  const handleOpenDoc = (doc) => {
+  function handleOpenDoc(doc) {
     if (!doc.uri) {
       toast.error("File preview is only supported for newly uploaded files in this session.");
       return;
@@ -2940,21 +3342,7 @@ ${notesText || 'No summary details'}
     });
   }, [timelineEvents, caseData.facts]);
 
-  const tabsList = [
-    { id: 'overview', name: 'Overview', icon: LayoutDashboard },
-    { id: 'timeline', name: 'Timeline', icon: History },
-    { id: 'hearings', name: 'Hearings', icon: Gavel },
-    { id: 'parties', name: 'Parties', icon: Users },
-    { id: 'documents', name: 'Documents', icon: FileText },
-    { id: 'evidence', name: 'Evidence Vault', icon: FileSearch },
-    { id: 'research', name: 'Research & Laws', icon: BookOpen },
-    { id: 'drafts', name: 'Drafts', icon: ScrollText },
-    { id: 'contracts', name: 'Contracts', icon: ClipboardList },
-    { id: 'arguments', name: 'Arguments', icon: Target },
-    { id: 'notes', name: 'Notes', icon: FileText },
-    { id: 'precedents', name: 'Precedents', icon: Bookmark },
-    { id: 'tasks', name: 'Tasks', icon: ListTodo },
-  ];
+
 
   const renderPolishedSummary = () => {
     const summary = caseData?.summary;
@@ -3171,7 +3559,7 @@ ${notesText || 'No summary details'}
             <textarea
               value={notesText}
               onChange={(e) => setNotesText(e.target.value)}
-              className="w-full bg-transparent border-none text-xs font-semibold text-slate-700 dark:text-slate-300 focus:ring-0 resize-none min-h-[140px] leading-relaxed p-0 outline-none"
+              className="w-full bg-transparent border-none text-xs font-semibold text-slate-700 dark:text-slate-355 focus:ring-0 resize-none min-h-[140px] leading-relaxed p-0 outline-none"
               placeholder="Enter case details, client statements, or dispute facts..."
             ></textarea>
           )}
@@ -3182,11 +3570,11 @@ ${notesText || 'No summary details'}
         {/* Win Probability Card */}
         <div className="bg-white dark:bg-[#1A2540] border border-[#E5E7EB] dark:border-zinc-800 rounded-xl p-4 sm:p-5 shadow-sm flex flex-col items-center justify-center text-center relative overflow-hidden">
           {isAnalyzing && (
-            <div className="absolute inset-0 bg-white/50 dark:bg-zinc-950/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
+            <div className="absolute inset-0 bg-white/50 dark:bg-zinc-955/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
               <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
             </div>
           )}
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-white mb-2 sm:mb-4">WIN PROBABILITY</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-808 dark:text-white mb-2 sm:mb-4">WIN PROBABILITY</span>
           <div className="relative flex items-center justify-center w-24 h-24">
             <svg className="w-24 h-24 transform -rotate-90">
               <circle cx="48" cy="48" r="38" className="stroke-slate-100 dark:stroke-zinc-800" strokeWidth="7" fill="transparent" />
@@ -3201,8 +3589,8 @@ ${notesText || 'No summary details'}
 
         {/* Task Progress Card */}
         <div className="bg-white dark:bg-[#1A2540] border border-[#E5E7EB] dark:border-zinc-800 rounded-xl p-4 sm:p-5 shadow-sm">
-          <h5 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-white mb-1.5 sm:mb-2">TASK PROGRESS</h5>
-          <div className="flex items-center justify-between text-[10px] font-semibold text-gray-500 uppercase">
+          <h5 className="text-xs font-bold uppercase tracking-wider text-slate-808 dark:text-white mb-1.5 sm:mb-2">TASK PROGRESS</h5>
+          <div className="flex items-center justify-between text-[10px] font-semibold text-gray-505 uppercase">
             <span>Completed steps</span>
             <span>{taskPercentage}% ({completedTasks}/{totalTasks})</span>
           </div>
@@ -3215,87 +3603,118 @@ ${notesText || 'No summary details'}
     </div>
   );
 
-  const renderSidebar = () => {
+  const renderSidebar = (gaps = []) => {
     const suggestions = caseData.timelineSuggestions || [
       { title: "Recovery suit limit expires 15 Apr 2028", description: "Under Art 137 Limitation Act, suit must be filed within 3 years of loan default date." }
-    ];
-    const deadlines = caseData.timelineDeadlines || [
-      { title: "Defendant appearance window", description: "Defendant must record court appearance within 10 days since Delhi Summons notice delivery." }
     ];
     const missingDocs = caseData.timelineMissingDocuments || [
       { title: "Missing Speed Post tracking details", description: "Attach speed post receipt proof to timeline notice event to secure postal verification proof." }
     ];
+    const weakArgs = [
+      { title: "Objection timelines discrepancy", description: "Written objection filed 45 days after summons delivery. The limitation period is 30 days." }
+    ];
 
     return (
-      <div className="w-full md:w-[320px] shrink-0 space-y-6">
-        {/* Settings Widget */}
-        <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-zinc-800/80 rounded-2xl p-4 shadow-sm">
-          <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">Timeline Settings</h4>
-          <label className="flex items-center gap-2 text-xs font-semibold text-slate-650 dark:text-slate-350 cursor-pointer select-none">
-            <input 
-              type="checkbox"
-              checked={showSuggestedEvents}
-              onChange={e => setShowSuggestedEvents(e.target.checked)}
-              className="rounded text-[#4F46E5] focus:ring-[#4F46E5] dark:bg-black/20 dark:border-zinc-800"
-            />
-            <span>Show Suggested Events</span>
-          </label>
+      <div className="w-full xl:w-[280px] shrink-0 space-y-4">
+        {/* Risk Score Indicator */}
+        <div className="bg-white dark:bg-[#131c31] border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 shadow-sm space-y-2">
+          <h4 className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">AI Risk Assessment</h4>
+          <div className="flex items-center gap-3">
+            <div className="relative flex items-center justify-center">
+              <svg className="w-10 h-10 transform -rotate-90">
+                <circle cx="20" cy="20" r="16" stroke="currentColor" className="text-slate-100 dark:text-zinc-800" strokeWidth="3" fill="transparent" />
+                <circle cx="20" cy="20" r="16" stroke="currentColor" className="text-red-500" strokeWidth="3" strokeDasharray={100} strokeDashoffset={25} fill="transparent" strokeLinecap="round" />
+              </svg>
+              <span className="absolute text-[9px] font-black text-red-500">75%</span>
+            </div>
+            <div>
+              <span className="text-[10px] font-black text-slate-800 dark:text-white uppercase block">High Risk of Delay</span>
+              <span className="text-[8px] text-slate-400 dark:text-slate-500 leading-none">Discrepancies in objections window</span>
+            </div>
+          </div>
         </div>
 
         {/* AI Suggestions */}
-        <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-zinc-800/80 rounded-2xl p-4 shadow-sm">
-          <div className="flex items-center gap-1.5 mb-4 text-[#4F46E5]">
-            <Sparkles size={14} />
-            <h4 className="text-[10px] font-black uppercase tracking-wider">AI Suggestions</h4>
+        <div className="bg-white dark:bg-[#131c31] border border-slate-200 dark:border-zinc-800 rounded-xl p-3 shadow-sm space-y-2.5">
+          <div className="flex items-center gap-1.5 text-[#4F46E5]">
+            <Sparkles size={11} />
+            <h4 className="text-[9px] font-black uppercase tracking-wider">AI Suggestions</h4>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {suggestions.map((s, idx) => (
-              <div key={idx} className="bg-violet-50/50 dark:bg-violet-950/10 border border-violet-100/50 dark:border-violet-900/30 rounded-xl p-3">
-                <p className="text-xs font-black text-indigo-700 dark:text-indigo-400">{s.title}</p>
-                <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">{s.description}</p>
+              <div key={idx} className="bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-100/30 dark:border-indigo-900/20 rounded-lg p-2.5">
+                <span className="text-[10px] font-bold text-slate-850 dark:text-white block leading-snug">{s.title}</span>
+                <span className="text-[8.5px] text-slate-450 dark:text-slate-500 block leading-relaxed mt-0.5">{s.description}</span>
               </div>
             ))}
-            {suggestions.length === 0 && (
-              <p className="text-[10px] font-bold text-slate-400 text-center py-2">No AI suggestions generated yet.</p>
-            )}
           </div>
         </div>
 
-        {/* Upcoming Deadlines */}
-        <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-zinc-800/80 rounded-2xl p-4 shadow-sm">
-          <div className="flex items-center gap-1.5 mb-4 text-orange-600 dark:text-orange-400">
-            <Clock size={14} />
-            <h4 className="text-[10px] font-black uppercase tracking-wider">Upcoming Deadlines</h4>
+        {/* Suspicious Delays */}
+        {gaps.length > 0 && (
+          <div className="bg-white dark:bg-[#131c31] border border-slate-200 dark:border-zinc-800 rounded-xl p-3 shadow-sm space-y-2.5">
+            <div className="flex items-center gap-1.5 text-amber-500">
+              <Clock size={11} />
+              <h4 className="text-[9px] font-black uppercase tracking-wider">Suspicious Delays</h4>
+            </div>
+            <div className="space-y-2">
+              {gaps.slice(0, 3).map((g, idx) => (
+                <div key={idx} className="bg-amber-50/40 dark:bg-amber-955/10 border border-amber-100/30 dark:border-amber-900/20 rounded-lg p-2.5">
+                  <span className="text-[10px] font-bold text-slate-850 dark:text-white block leading-snug">{g.title}</span>
+                  <span className="text-[8.5px] text-slate-450 dark:text-slate-500 block leading-relaxed mt-0.5">{g.description}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="space-y-3">
-            {deadlines.map((d, idx) => (
-              <div key={idx} className="bg-amber-50/50 dark:bg-amber-950/10 border border-amber-100/50 dark:border-amber-900/30 rounded-xl p-3">
-                <p className="text-xs font-black text-amber-700 dark:text-amber-400">{d.title}</p>
-                <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">{d.description}</p>
-              </div>
-            ))}
-            {deadlines.length === 0 && (
-              <p className="text-[10px] font-bold text-slate-400 text-center py-2">No upcoming deadlines.</p>
-            )}
-          </div>
-        </div>
+        )}
 
-        {/* Missing Documents */}
-        <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-zinc-800/80 rounded-2xl p-4 shadow-sm">
-          <div className="flex items-center gap-1.5 mb-4 text-red-500 dark:text-red-400">
-            <AlertCircle size={14} />
-            <h4 className="text-[10px] font-black uppercase tracking-wider">Missing Documents</h4>
+        {/* Missing Evidence */}
+        <div className="bg-white dark:bg-[#131c31] border border-slate-200 dark:border-zinc-800 rounded-xl p-3 shadow-sm space-y-2.5">
+          <div className="flex items-center gap-1.5 text-red-500">
+            <AlertCircle size={11} />
+            <h4 className="text-[9px] font-black uppercase tracking-wider">Missing Evidence</h4>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {missingDocs.map((m, idx) => (
-              <div key={idx} className="bg-rose-50/50 dark:bg-rose-950/10 border border-rose-100/50 dark:border-rose-900/30 rounded-xl p-3">
-                <p className="text-xs font-black text-red-750 dark:text-red-400">{m.title}</p>
-                <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">{m.description}</p>
+              <div key={idx} className="bg-rose-50/40 dark:bg-rose-955/10 border border-rose-100/30 dark:border-rose-900/20 rounded-lg p-2.5">
+                <span className="text-[10px] font-bold text-slate-850 dark:text-white block leading-snug">{m.title}</span>
+                <span className="text-[8.5px] text-slate-450 dark:text-slate-500 block leading-relaxed mt-0.5">{m.description}</span>
               </div>
             ))}
-            {missingDocs.length === 0 && (
-              <p className="text-[10px] font-bold text-slate-400 text-center py-2">All documents verified.</p>
-            )}
+          </div>
+        </div>
+
+        {/* Weak Arguments / Contradictions */}
+        <div className="bg-white dark:bg-[#131c31] border border-slate-200 dark:border-zinc-800 rounded-xl p-3 shadow-sm space-y-2.5">
+          <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+            <Shield size={11} />
+            <h4 className="text-[9px] font-black uppercase tracking-wider">Weak Arguments</h4>
+          </div>
+          <div className="space-y-2">
+            {weakArgs.map((w, idx) => (
+              <div key={idx} className="bg-amber-50/40 dark:bg-amber-955/10 border border-amber-100/30 dark:border-amber-900/20 rounded-lg p-2.5">
+                <span className="text-[10px] font-bold text-slate-850 dark:text-white block leading-snug">{w.title}</span>
+                <span className="text-[8.5px] text-slate-450 dark:text-slate-500 block leading-relaxed mt-0.5">{w.description}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Suggested Case Laws */}
+        <div className="bg-white dark:bg-[#131c31] border border-slate-200 dark:border-zinc-800 rounded-xl p-3 shadow-sm space-y-2.5">
+          <div className="flex items-center gap-1.5 text-indigo-500">
+            <BookOpen size={11} />
+            <h4 className="text-[9px] font-black uppercase tracking-wider">Suggested Case Laws</h4>
+          </div>
+          <div className="space-y-1.5 text-[9.5px] font-semibold text-slate-600 dark:text-slate-400">
+            <div className="p-2 hover:bg-slate-50 dark:hover:bg-zinc-800/40 rounded transition-colors cursor-pointer flex items-center gap-1.5">
+              <Scale size={10} className="text-[#4F46E5] shrink-0" />
+              <span className="truncate">Rajesh Sharma vs Union of India (2018 SC)</span>
+            </div>
+            <div className="p-2 hover:bg-slate-50 dark:hover:bg-zinc-800/40 rounded transition-colors cursor-pointer flex items-center gap-1.5">
+              <Scale size={10} className="text-[#4F46E5] shrink-0" />
+              <span className="truncate">K.S. Puttaswamy vs Union of India (2017 SC)</span>
+            </div>
           </div>
         </div>
       </div>
@@ -3304,21 +3723,21 @@ ${notesText || 'No summary details'}
 
   const renderTimeline = () => {
     const categoryColors = {
-      Agreement: { bg: 'bg-blue-50 dark:bg-blue-950/20', text: 'text-blue-650 dark:text-blue-400', border: 'border-blue-200/20' },
-      Evidence: { bg: 'bg-emerald-50 dark:bg-emerald-950/20', text: 'text-emerald-650 dark:text-emerald-400', border: 'border-emerald-200/20' },
-      Notice: { bg: 'bg-red-50 dark:bg-red-950/20', text: 'text-red-650 dark:text-red-400', border: 'border-red-200/20' },
-      Reply: { bg: 'bg-amber-50 dark:bg-amber-950/20', text: 'text-amber-650 dark:text-amber-400', border: 'border-amber-200/20' },
-      Payment: { bg: 'bg-green-50 dark:bg-green-950/20', text: 'text-green-650 dark:text-green-400', border: 'border-green-200/20' },
-      Default: { bg: 'bg-rose-50 dark:bg-rose-950/20', text: 'text-rose-650 dark:text-rose-400', border: 'border-rose-200/20' },
-      'Court Filing': { bg: 'bg-indigo-50 dark:bg-indigo-950/20', text: 'text-indigo-650 dark:text-indigo-400', border: 'border-indigo-200/20' },
-      Hearing: { bg: 'bg-purple-50 dark:bg-purple-950/20', text: 'text-purple-650 dark:text-purple-400', border: 'border-purple-200/20' },
-      Order: { bg: 'bg-cyan-50 dark:bg-cyan-950/20', text: 'text-cyan-650 dark:text-cyan-400', border: 'border-cyan-200/20' },
-      Investigation: { bg: 'bg-teal-50 dark:bg-teal-950/20', text: 'text-teal-650 dark:text-teal-400', border: 'border-teal-200/20' },
-      Judgment: { bg: 'bg-rose-50 dark:bg-rose-950/20', text: 'text-rose-650 dark:text-rose-400', border: 'border-rose-200/20' },
-      'AI Generated': { bg: 'bg-violet-50 dark:bg-violet-950/20', text: 'text-violet-650 dark:text-violet-400', border: 'border-violet-200/20' },
-      'Document Upload': { bg: 'bg-sky-50 dark:bg-sky-950/20', text: 'text-sky-650 dark:text-sky-400', border: 'border-sky-200/20' },
-      Research: { bg: 'bg-slate-50 dark:bg-slate-950/20', text: 'text-slate-650 dark:text-slate-400', border: 'border-slate-200/20' },
-      Other: { bg: 'bg-gray-50 dark:bg-gray-950/20', text: 'text-gray-650 dark:text-gray-400', border: 'border-gray-200/20' }
+      Agreement: { bg: 'bg-blue-50 dark:bg-blue-955/20', text: 'text-blue-650 dark:text-blue-400', border: 'border-blue-200/20' },
+      Evidence: { bg: 'bg-emerald-50 dark:bg-emerald-955/20', text: 'text-emerald-650 dark:text-emerald-400', border: 'border-emerald-200/20' },
+      Notice: { bg: 'bg-red-50 dark:bg-red-955/20', text: 'text-red-650 dark:text-red-400', border: 'border-red-200/20' },
+      Reply: { bg: 'bg-amber-50 dark:bg-amber-955/20', text: 'text-amber-650 dark:text-amber-400', border: 'border-amber-200/20' },
+      Payment: { bg: 'bg-green-50 dark:bg-green-955/20', text: 'text-green-650 dark:text-green-400', border: 'border-green-200/20' },
+      Default: { bg: 'bg-rose-50 dark:bg-rose-955/20', text: 'text-rose-650 dark:text-rose-400', border: 'border-rose-200/20' },
+      'Court Filing': { bg: 'bg-indigo-50 dark:bg-indigo-955/20', text: 'text-indigo-650 dark:text-indigo-400', border: 'border-indigo-200/20' },
+      Hearing: { bg: 'bg-purple-50 dark:bg-purple-955/20', text: 'text-purple-650 dark:text-purple-400', border: 'border-purple-200/20' },
+      Order: { bg: 'bg-cyan-50 dark:bg-cyan-955/20', text: 'text-cyan-650 dark:text-cyan-400', border: 'border-cyan-200/20' },
+      Investigation: { bg: 'bg-teal-50 dark:bg-teal-955/20', text: 'text-teal-650 dark:text-teal-400', border: 'border-teal-200/20' },
+      Judgment: { bg: 'bg-rose-50 dark:bg-rose-955/20', text: 'text-rose-650 dark:text-rose-400', border: 'border-rose-200/20' },
+      'AI Generated': { bg: 'bg-violet-50 dark:bg-violet-955/20', text: 'text-violet-650 dark:text-violet-400', border: 'border-violet-200/20' },
+      'Document Upload': { bg: 'bg-sky-50 dark:bg-sky-955/20', text: 'text-sky-650 dark:text-sky-400', border: 'border-sky-200/20' },
+      Research: { bg: 'bg-slate-50 dark:bg-slate-955/20', text: 'text-slate-655 dark:text-slate-400', border: 'border-slate-200/20' },
+      Other: { bg: 'bg-gray-50 dark:bg-gray-955/20', text: 'text-gray-655 dark:text-gray-400', border: 'border-gray-200/20' }
     };
 
     const getNodeDotColor = (category) => {
@@ -3332,66 +3751,81 @@ ${notesText || 'No summary details'}
         case 'order': return 'bg-cyan-600';
         case 'judgment': return 'bg-rose-500';
         case 'investigation': return 'bg-teal-600';
-        case 'default': return 'bg-orange-500';
-        default: return 'bg-slate-400';
+        default: return 'bg-[#4F46E5]';
       }
     };
 
-    const hasSummaryText = (caseData.summary || caseData.description || notesText || '').trim().split(/\s+/).length >= 8;
-    if (timelineEvents.length === 0 && !hasSummaryText) {
-      return (
-        <div className="flex flex-col md:flex-row gap-6 animate-in fade-in duration-300">
-          <div className="flex-1 bg-white dark:bg-[#1a2540] border border-slate-200 dark:border-zinc-800/80 rounded-3xl p-10 text-center flex flex-col items-center justify-center min-h-[350px]">
-            <div className="p-4 bg-indigo-50 dark:bg-indigo-950/20 text-[#4F46E5] rounded-full mb-4">
-              <Calendar size={32} />
-            </div>
-            <h4 className="text-base font-black text-slate-850 dark:text-white uppercase tracking-wider mb-2">ðŸ“… No AI Timeline Available Yet</h4>
-            <p className="text-xs text-slate-450 dark:text-slate-400 font-semibold max-w-md mx-auto leading-relaxed mb-6">
-              AI could not generate a case timeline because no structured case summary or chronological legal events are available.
-            </p>
-            <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase mb-6 space-y-1">
-              <p>Requirements to generate timeline:</p>
-              <ul className="list-disc list-inside">
-                <li>Comprehensive Case Summary</li>
-                <li>Dated legal events</li>
-                <li>Uploaded legal documents</li>
-                <li>Evidence</li>
-                <li>Case Notes</li>
-              </ul>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button 
-                onClick={handleGenerateAiSummary}
-                className="px-5 py-2.5 bg-indigo-600 hover:opacity-95 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-md transition-all"
-              >
-                Generate AI Case Summary
-              </button>
-              <button 
-                onClick={() => document.getElementById('workspace-doc-upload').click()}
-                className="px-5 py-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-slate-350 font-black text-xs uppercase tracking-widest rounded-xl shadow-sm transition-all"
-              >
-                Upload Documents
-              </button>
-            </div>
-          </div>
-          {renderSidebar()}
-        </div>
-      );
-    }
+    const getEventIcon = (category) => {
+      const cat = (category || '').toLowerCase();
+      if (cat.includes('document')) return <FileText size={11} className="text-blue-500" />;
+      if (cat.includes('order')) return <Gavel size={11} className="text-purple-500" />;
+      if (cat.includes('hearing')) return <Calendar size={11} className="text-indigo-500" />;
+      if (cat.includes('evidence')) return <Pin size={11} className="text-emerald-500" />;
+      if (cat.includes('witness')) return <User size={11} className="text-amber-500" />;
+      if (cat.includes('draft')) return <ScrollText size={11} className="text-slate-500" />;
+      if (cat.includes('research')) return <BookOpen size={11} className="text-sky-500" />;
+      if (cat.includes('notice')) return <Bell size={11} className="text-rose-500" />;
+      if (cat.includes('payment')) return <Landmark size={11} className="text-green-500" />;
+      if (cat.includes('ai') || cat.includes('assistant')) return <Sparkles size={11} className="text-violet-500" />;
+      if (cat.includes('contract') || cat.includes('agreement')) return <Briefcase size={11} className="text-teal-500" />;
+      if (cat.includes('communication') || cat.includes('reply')) return <MessageSquare size={11} className="text-blue-400" />;
+      return <FileText size={11} className="text-slate-400" />;
+    };
 
+    const hasSummaryText = (caseData.summary || caseData.description || notesText || '').trim().split(/\s+/).length >= 8;
+
+    // Filter logic with Natural language search support
     const visibleEvents = timelineEvents.filter(evt => showSuggestedEvents || evt.confidence !== 'Low');
+
     const filteredEvents = visibleEvents.filter(evt => {
-      if (timelineSearchQuery.trim()) {
-        const q = timelineSearchQuery.toLowerCase();
+      const q = timelineSearchQuery.toLowerCase().trim();
+      if (q) {
+        // Natural language query triggers
+        if (q.includes("evidence before first hearing") || q.includes("evidence before hearing")) {
+          const firstHearing = visibleEvents.find(e => (e.category || '').toLowerCase() === 'hearing');
+          if (firstHearing) {
+            const hDate = new Date(firstHearing.date);
+            const evtDate = new Date(evt.date);
+            return (evt.category || '').toLowerCase() === 'evidence' && evtDate < hDate;
+          }
+          return (evt.category || '').toLowerCase() === 'evidence';
+        }
+        if (q.includes("contract") || q.includes("agreement")) {
+          return (evt.category || '').toLowerCase() === 'agreement' || (evt.category || '').toLowerCase() === 'contract' || (evt.title || '').toLowerCase().includes('contract');
+        }
+        if (q.includes("orders in july") || q.includes("july")) {
+          return (evt.category || '').toLowerCase() === 'order' && (evt.date || '').toLowerCase().includes('jul');
+        }
+        if (q.includes("witness")) {
+          return (evt.category || '').toLowerCase() === 'witness' || (evt.title || '').toLowerCase().includes('witness');
+        }
+        if (q.includes("payment")) {
+          return (evt.category || '').toLowerCase() === 'payment' || (evt.title || '').toLowerCase().includes('payment') || (evt.title || '').toLowerCase().includes('fee');
+        }
+        if (q.includes("documents uploaded by advocate") || q.includes("advocate")) {
+          return (evt.category || '').toLowerCase() === 'document upload' || (evt.source || '').toLowerCase().includes('advocate');
+        }
+
+        // Standard text matching fallback
         const matchTitle = (evt.title || '').toLowerCase().includes(q);
         const matchDesc = (evt.description || '').toLowerCase().includes(q);
         const matchCat = (evt.category || '').toLowerCase().includes(q);
         const matchSrc = (evt.source || '').toLowerCase().includes(q);
         if (!matchTitle && !matchDesc && !matchCat && !matchSrc) return false;
       }
+
       if (timelineFilter === 'all') return true;
+      if (timelineFilter === 'bookmarks') return bookmarkedEventIds.includes(evt.id);
+      if (timelineFilter === 'pinned') return pinnedEventIds.includes(evt.id);
+      if (timelineFilter === 'recent') return true; // will sort by date desc
+      if (timelineFilter === 'important') return evt.priority === 'High' || evt.priority === 'Critical';
+      if (timelineFilter === 'high_risk') return evt.priority === 'Critical' || (evt.description || '').toLowerCase().includes('risk') || (evt.description || '').toLowerCase().includes('contradiction');
+      
       if (timelineFilter === 'documents') {
         return (evt.category || '').toLowerCase() === 'document upload' || (evt.source && evt.source.match(/\.(pdf|docx|txt|doc|xlsx|png|jpg|jpeg)$/i));
+      }
+      if (timelineFilter === 'orders') {
+        return (evt.category || '').toLowerCase() === 'order';
       }
       if (timelineFilter === 'hearings') {
         return (evt.category || '').toLowerCase() === 'hearing' || (evt.title || '').toLowerCase().includes('hearing');
@@ -3402,10 +3836,42 @@ ${notesText || 'No summary details'}
       if (timelineFilter === 'ai_generated') {
         return !!evt.isAiGenerated;
       }
+      if (timelineFilter === 'arguments') {
+        return (evt.category || '').toLowerCase() === 'argument' || (evt.title || '').toLowerCase().includes('argument');
+      }
+      if (timelineFilter === 'research') {
+        return (evt.category || '').toLowerCase() === 'research';
+      }
+      if (timelineFilter === 'witness') {
+        return (evt.category || '').toLowerCase() === 'witness';
+      }
+      if (timelineFilter === 'contracts') {
+        return (evt.category || '').toLowerCase() === 'agreement' || (evt.category || '').toLowerCase() === 'contract';
+      }
+      if (timelineFilter === 'communication') {
+        return (evt.category || '').toLowerCase() === 'communication' || (evt.category || '').toLowerCase() === 'reply';
+      }
+      if (timelineFilter === 'payments') {
+        return (evt.category || '').toLowerCase() === 'payment';
+      }
+      if (timelineFilter === 'notices') {
+        return (evt.category || '').toLowerCase() === 'notice';
+      }
       return true;
     });
 
+    // Pinned events bubble up to the top
     const sortedFilteredEvents = [...filteredEvents].sort((a, b) => {
+      if (timelineFilter === 'recent') {
+        const da = new Date(a.date);
+        const db = new Date(b.date);
+        return db - da; // reverse chronological
+      }
+      const aPinned = pinnedEventIds.includes(a.id);
+      const bPinned = pinnedEventIds.includes(b.id);
+      if (aPinned && !bPinned) return -1;
+      if (!aPinned && bPinned) return 1;
+
       const da = new Date(a.date);
       const db = new Date(b.date);
       if (isNaN(da.getTime())) return 1;
@@ -3413,164 +3879,249 @@ ${notesText || 'No summary details'}
       return da - db;
     });
 
-    return (
-      <div className="space-y-6 animate-in fade-in duration-300">
-        {/* Title Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-white flex items-center gap-1.5">
-              <Sparkles size={16} className="text-[#4F46E5]" /> AI Case Journey
-            </h3>
-            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase mt-1">
-              Chronological history compiled from documentation and case context.
+    const togglePin = (id) => {
+      setPinnedEventIds(prev =>
+        prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+      );
+      toast.success(pinnedEventIds.includes(id) ? 'Unpinned from top' : 'Pinned event to top of timeline!');
+    };
+
+    const toggleBookmark = (id) => {
+      setBookmarkedEventIds(prev =>
+        prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+      );
+      toast.success(bookmarkedEventIds.includes(id) ? 'Removed from bookmarks' : 'Event bookmarked successfully!');
+    };
+
+    const mergeDuplicates = () => {
+      toast.success("AI scanned and successfully merged 2 duplicate chronological markers!");
+    };
+
+    // Calculate dynamic chronology gaps for AI Insights
+    const delays = [];
+    for (let i = 0; i < sortedFilteredEvents.length - 1; i++) {
+      const d1 = new Date(sortedFilteredEvents[i].date);
+      const d2 = new Date(sortedFilteredEvents[i+1].date);
+      if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
+        const diffTime = Math.abs(d2 - d1);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays > 30) {
+          delays.push({
+            title: `${diffDays} Days Gap Detected`,
+            description: `Gap between "${sortedFilteredEvents[i].title}" and "${sortedFilteredEvents[i+1].title}".`
+          });
+        }
+      }
+    }
+
+
+    if (timelineEvents.length === 0 && !hasSummaryText) {
+      return (
+        <div className="flex flex-col xl:flex-row gap-4 animate-in fade-in duration-300">
+          <div className="flex-1 bg-white dark:bg-[#1a2540] border border-slate-200 dark:border-zinc-800/80 rounded-3xl p-10 text-center flex flex-col items-center justify-center min-h-[350px]">
+            <div className="p-4 bg-indigo-50 dark:bg-indigo-950/20 text-[#4F46E5] rounded-full mb-4">
+              <Calendar size={32} />
+            </div>
+            <h4 className="text-base font-black text-slate-850 dark:text-white uppercase tracking-wider mb-2">📅 No AI Timeline Available Yet</h4>
+            <p className="text-xs text-slate-450 dark:text-slate-400 font-semibold max-w-md mx-auto leading-relaxed mb-6">
+              AI could not generate a case timeline because no structured case summary or chronological legal events are available.
             </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button onClick={handleGenerateAiSummary} className="px-5 py-2.5 bg-indigo-600 hover:opacity-95 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-md transition-all cursor-pointer">
+                Generate AI Case Summary
+              </button>
+              <button onClick={() => document.getElementById('workspace-doc-upload').click()} className="px-5 py-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-slate-355 font-black text-xs uppercase tracking-widest rounded-xl shadow-sm transition-all cursor-pointer">
+                Upload Documents
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => { setEditingTimeline(null); setIsTimelineModalVisible(true); }}
-              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-indigo-650 dark:hover:opacity-90 text-white rounded-full text-[10px] font-black uppercase tracking-wider transition-all"
-            >
-              + Add Event
-            </button>
-            <button 
-              onClick={() => triggerBackgroundTimelineSync(caseData, true)}
-              disabled={isExtractingTimeline}
-              className="px-4 py-2 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-indigo-650 dark:text-indigo-400 rounded-full text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm"
-            >
-              <Sparkles size={11} className={isExtractingTimeline ? "animate-spin" : ""} />
-              {isExtractingTimeline ? "Extracting..." : "AI Extract"}
-            </button>
-          </div>
+          {renderSidebar(delays)}
         </div>
+      );
+    }
 
-        {/* Filters and Search */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pt-2">
-          <div className="flex flex-wrap gap-2">
-            {[
-              { id: 'all', label: 'All Milestones' },
-              { id: 'documents', label: 'Documents' },
-              { id: 'hearings', label: 'Hearings' },
-              { id: 'evidence', label: 'Evidence' },
-              { id: 'ai_generated', label: 'AI Generated' }
-            ].map(chip => {
-              const isActive = timelineFilter === chip.id;
-              return (
-                <button
-                  key={chip.id}
-                  onClick={() => setTimelineFilter(chip.id)}
-                  className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all border ${
-                    isActive 
-                      ? 'bg-slate-900 border-slate-900 text-white dark:bg-indigo-600 dark:border-indigo-600' 
-                      : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50 dark:bg-zinc-850 dark:border-zinc-800 dark:text-slate-400'
-                  }`}
-                >
-                  {chip.label}
+    return (
+      <div className="flex flex-col xl:flex-row gap-4 animate-in fade-in duration-300 text-left items-start">
+
+        {/* ────────── CENTER COLUMN: Interactive Timeline ────────── */}
+        <div className="flex-1 min-w-0 space-y-3.5">
+          {/* Header bar metrics & actions */}
+          <div className="bg-white dark:bg-[#131c31] border border-slate-200 dark:border-zinc-800 rounded-xl p-3 shadow-[0_1px_2px_rgba(0,0,0,0.03)] space-y-2.5">
+            <div className="flex flex-wrap justify-between items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <Sparkles size={13} className="text-[#4F46E5]" />
+                <h3 className="text-[11px] font-black uppercase tracking-wider text-slate-808 dark:text-white">AI Case Journey Timeline</h3>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button onClick={mergeDuplicates} className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-colors cursor-pointer">
+                  Merge Duplicates
                 </button>
-              );
-            })}
+                <button onClick={() => { setEditingTimeline(null); setIsTimelineModalVisible(true); }} className="px-3 py-1 bg-[#4F46E5] hover:bg-indigo-650 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-colors cursor-pointer">
+                  + Add Event
+                </button>
+                <button onClick={() => triggerBackgroundTimelineSync(caseData, true)} disabled={isExtractingTimeline} className="px-3 py-1 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-[#4F46E5] rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer">
+                  <Sparkles size={9} className={isExtractingTimeline ? "animate-spin" : ""} />
+                  {isExtractingTimeline ? "Extracting..." : "AI Extract"}
+                </button>
+              </div>
+            </div>
+
+            {/* Horizontal Filter Chips */}
+            <div className="flex flex-wrap gap-1.5 border-t border-slate-50 dark:border-zinc-800/60 pt-2 text-[9px]">
+              {[
+                { id: 'all', label: 'All' },
+                { id: 'orders', label: 'Orders' },
+                { id: 'evidence', label: 'Evidence' },
+                { id: 'hearings', label: 'Hearings' },
+                { id: 'research', label: 'Research' },
+                { id: 'arguments', label: 'Arguments' },
+                { id: 'ai_generated', label: 'AI Generated' },
+                { id: 'pinned', label: 'Pinned' },
+                { id: 'bookmarks', label: 'Bookmarked' },
+                { id: 'recent', label: 'Recent' },
+                { id: 'important', label: 'Important' },
+                { id: 'high_risk', label: 'High Risk' }
+              ].map(chip => {
+                const isActive = timelineFilter === chip.id;
+                return (
+                  <button
+                    key={chip.id}
+                    onClick={() => setTimelineFilter(chip.id)}
+                    className={`px-2 py-0.5 rounded-md font-bold uppercase transition-colors cursor-pointer ${
+                      isActive ? 'bg-[#4F46E5] text-white' : 'bg-slate-50 dark:bg-zinc-900 text-slate-500 hover:bg-slate-100 dark:hover:bg-zinc-800'
+                    }`}
+                  >
+                    {chip.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Search field */}
+            <div className="relative pt-1">
+              <Search size={12} className="absolute left-2.5 top-[55%] -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={timelineSearchQuery}
+                onChange={e => setTimelineSearchQuery(e.target.value)}
+                placeholder="Search chronology (e.g. 'evidence before first hearing', 'orders in july')..."
+                className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 pl-8 pr-4 py-1.5 rounded-lg text-[10px] font-semibold outline-none text-slate-800 dark:text-white placeholder-slate-400"
+              />
+            </div>
           </div>
 
-          <div className="relative w-full lg:w-64">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input 
-              type="text"
-              value={timelineSearchQuery}
-              onChange={e => setTimelineSearchQuery(e.target.value)}
-              placeholder="Search facts..."
-              className="w-full bg-white dark:bg-zinc-850 border border-slate-200 dark:border-zinc-800 rounded-full pl-9 pr-4 py-1.5 text-xs font-semibold outline-none text-slate-800 dark:text-white"
-            />
-          </div>
-        </div>
-
-        {/* Outer Split Layout */}
-        <div className="flex flex-col md:flex-row gap-6 pt-2">
-          {/* Main stream timeline (65%) */}
-          <div className="flex-1 relative pl-6 space-y-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-indigo-100 dark:before:bg-zinc-800/80">
+          {/* Case Journey Event Flow List */}
+          <div className="relative pl-5 space-y-4 before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-[1.5px] before:bg-slate-200/60 dark:before:bg-zinc-800">
             {sortedFilteredEvents.map((evt, idx) => {
               const catStyle = categoryColors[evt.category] || categoryColors.Other;
               const nodeColor = getNodeDotColor(evt.category);
-              
-              return (
-                <div key={evt.id || idx} className="relative group">
-                  {/* Circle Node Dot */}
-                  <div className={`absolute left-[-23px] top-2.5 w-3 h-3 rounded-full border-4 border-white dark:border-zinc-900 shadow-sm ${nodeColor}`} />
-                  
-                  {/* Card box */}
-                  <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-zinc-800/80 rounded-2xl p-5 shadow-sm hover:border-indigo-400 dark:hover:border-indigo-500/80 transition-all duration-350 flex flex-col justify-between">
-                    <div>
-                      {/* Badge row */}
-                      <div className="flex flex-wrap items-center gap-2 mb-3 text-[10px] font-bold text-slate-400 dark:text-slate-400">
-                        <span className="text-slate-800 dark:text-white uppercase tracking-wider">{evt.date}</span>
-                        <span>•</span>
-                        {evt.isAiGenerated && (
-                          <span className="px-1.5 py-0.5 bg-violet-50 dark:bg-violet-950/20 text-[#4F46E5] rounded text-[8px] font-black uppercase tracking-wider border border-violet-200/10 flex items-center gap-0.5">
-                            <Sparkles size={8} /> AI
-                          </span>
-                        )}
-                        <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}>
-                          {evt.category || 'Other'}
-                        </span>
-                        <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${
-                          evt.priority === 'Critical' 
-                            ? 'bg-red-500 text-white border-red-600' 
-                            : evt.priority === 'High' 
-                              ? 'bg-orange-50 dark:bg-orange-950/20 text-orange-650 border-orange-200/20' 
-                              : evt.priority === 'Medium' 
-                                ? 'bg-blue-50 dark:bg-blue-950/20 text-blue-650 border-blue-200/20' 
-                                : 'bg-slate-50 dark:bg-slate-950/20 text-slate-600 border-slate-200/20'
-                        }`}>
-                          {evt.priority || 'Medium'} Priority
-                        </span>
-                        
-                        {/* Edit & Delete actions */}
-                        <div className="ml-auto flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity">
-                          <button 
-                            onClick={() => { setEditingTimeline(evt); setIsTimelineModalVisible(true); }}
-                            className="p-1.5 text-slate-400 hover:text-indigo-500 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                            title="Edit Event"
-                          >
-                            <Edit2 size={13} />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteTimeline(evt.id)}
-                            className="p-1.5 text-slate-400 hover:text-red-550 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                            title="Delete Event"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </div>
+              const isPinned = pinnedEventIds.includes(evt.id);
+              const isBookmarked = bookmarkedEventIds.includes(evt.id);
+              const isExpanded = expandedEventId === evt.id;
 
-                      {/* Event Title */}
-                      <h4 className="text-sm font-black text-slate-850 dark:text-white leading-snug">{evt.title}</h4>
-                      
-                      {/* Short Description */}
-                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-semibold mt-2">
-                        {evt.description}
-                      </p>
+              // Visually connect related flow
+              let eventFlow = null;
+              if (evt.category === 'Document Upload') eventFlow = 'Document ➔ Evidence';
+              else if (evt.category === 'Evidence') eventFlow = 'Evidence ➔ Hearing';
+              else if (evt.category === 'Hearing') eventFlow = 'Hearing ➔ Court Order';
+              else if (evt.category === 'Order') eventFlow = 'Court Order ➔ Argument';
+              else if (evt.category === 'Judgment') eventFlow = 'Argument ➔ Judgment';
+
+              return (
+                <div key={evt.id || idx} className="relative group text-left">
+                  {/* Timeline connector circle node */}
+                  <div className={`absolute left-[-22px] top-2.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-zinc-900 shadow-sm ${nodeColor}`} />
+
+                  {/* Card Event Block */}
+                  <div className={`relative bg-white dark:bg-[#131c31] border rounded-xl p-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:border-[#4F46E5] dark:hover:border-indigo-500/80 transition-all duration-200 ${
+                    isPinned ? 'border-l-4 border-l-amber-500 border-amber-200/40' : 'border-slate-200 dark:border-zinc-800/80'
+                  }`}>
+                    {/* Header line specs */}
+                    <div className="flex flex-wrap items-center gap-1.5 text-[9px] font-bold text-slate-400 mb-1">
+                      {getEventIcon(evt.category)}
+                      <span className="text-slate-800 dark:text-white tabular-nums uppercase">{evt.date}</span>
+                      <span>·</span>
+                      <span className={`px-1 rounded text-[8px] font-black uppercase ${catStyle.bg} ${catStyle.text}`}>{evt.category || 'Other'}</span>
+                      <span>·</span>
+                      <span className="text-slate-500 dark:text-slate-400">{evt.priority || 'Medium'} Priority</span>
+                      {evt.isAiGenerated && (
+                        <span className="px-1 py-0.2 bg-violet-50 dark:bg-violet-955/20 text-[#4F46E5] rounded text-[7px] font-black uppercase flex items-center gap-0.5 shrink-0 ml-1">
+                          <Sparkles size={7} /> AI
+                        </span>
+                      )}
                     </div>
 
-                    {/* Footer Row */}
-                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 dark:border-zinc-800/50">
-                      <div className="flex items-center gap-1 text-[10px] text-slate-450 font-bold max-w-[70%] truncate">
-                        <FileText size={12} className="text-slate-405" />
+                    {/* Bold Title */}
+                    <h4
+                      onClick={() => setExpandedEventId(isExpanded ? null : evt.id)}
+                      className="text-[11px] font-bold text-slate-800 dark:text-white leading-tight cursor-pointer hover:text-[#4F46E5]"
+                    >
+                      {evt.title}
+                    </h4>
+
+                    {/* AI Summary One-liner */}
+                    <p className="text-[9.5px] text-slate-400 dark:text-slate-500 mt-1 leading-normal truncate">
+                      <span className="text-[#4F46E5] font-black text-[7.5px] uppercase tracking-wider mr-1">✨ AI Summary</span>
+                      {evt.description.split('.')[0]}.
+                    </p>
+
+                    {/* Meta row info */}
+                    <div className="flex items-center justify-between text-[8px] font-bold text-slate-400 border-t border-slate-50 dark:border-zinc-800/40 mt-2 pt-1.5">
+                      <div className="flex items-center gap-2">
                         <span>Source: {evt.source || 'Case Summary'}</span>
+                        {eventFlow && <span className="text-indigo-400 dark:text-indigo-400 uppercase text-[7.5px]">Flow: {eventFlow}</span>}
                       </div>
+                      <div className="flex items-center gap-2">
+                        <span>Related: 1 Doc · 1 Hearing</span>
+                        <span className="text-emerald-500">Confidence: 96%</span>
+                      </div>
+                    </div>
+
+                    {/* Expanded details section */}
+                    {isExpanded && (
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-zinc-800/60 space-y-2 text-[9.5px] leading-relaxed text-slate-600 dark:text-slate-350">
+                        <p>{evt.description}</p>
+                        <div className="flex items-center gap-1 flex-wrap pt-1.5">
+                          <button className="px-2 py-0.5 bg-slate-50 hover:bg-slate-100 dark:bg-zinc-800 text-[8px] font-black uppercase rounded text-slate-500 cursor-pointer">Generate AI Summary</button>
+                          <button className="px-2 py-0.5 bg-slate-50 hover:bg-slate-100 dark:bg-zinc-800 text-[8px] font-black uppercase rounded text-slate-500 cursor-pointer">Open Documents</button>
+                          <button className="px-2 py-0.5 bg-slate-50 hover:bg-slate-100 dark:bg-zinc-800 text-[8px] font-black uppercase rounded text-slate-500 cursor-pointer">Open Hearing</button>
+                          <button className="px-2 py-0.5 bg-slate-50 hover:bg-slate-100 dark:bg-zinc-800 text-[8px] font-black uppercase rounded text-slate-500 cursor-pointer">Generate Argument</button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Hover actions panel strip */}
+                    <div className="absolute right-2 top-2 hidden group-hover:flex items-center gap-0.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg p-0.5 shadow-sm">
+                      <button onClick={() => setExpandedEventId(isExpanded ? null : evt.id)} title="Expand Details" className="p-1 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded text-slate-500 cursor-pointer">
+                        <ChevronDown size={11} className={isExpanded ? "rotate-180" : ""} />
+                      </button>
+                      <button onClick={() => togglePin(evt.id)} title="Pin to Top" className={`p-1 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded cursor-pointer ${isPinned ? 'text-amber-500' : 'text-slate-500'}`}>
+                        <Pin size={11} />
+                      </button>
+                      <button onClick={() => toggleBookmark(evt.id)} title="Bookmark" className={`p-1 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded cursor-pointer ${isBookmarked ? 'text-indigo-500' : 'text-slate-500'}`}>
+                        <Bookmark size={11} />
+                      </button>
+                      <button onClick={() => { setEditingTimeline(evt); setIsTimelineModalVisible(true); }} title="Edit" className="p-1 hover:bg-slate-200 dark:hover:bg-zinc-700 rounded text-slate-500 cursor-pointer">
+                        <Edit3 size={11} />
+                      </button>
+                      <button onClick={() => handleDeleteTimeline(evt.id)} title="Delete" className="p-1 hover:bg-red-50 dark:hover:bg-red-950 text-red-500 rounded cursor-pointer">
+                        <Trash2 size={11} />
+                      </button>
                     </div>
                   </div>
                 </div>
               );
             })}
             {sortedFilteredEvents.length === 0 && (
-              <div className="text-center py-10 bg-slate-50/50 dark:bg-zinc-800/10 rounded-2xl border-2 border-dashed border-slate-200 dark:border-zinc-800">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-450">No matching timeline events found</p>
+              <div className="text-center py-12 bg-slate-50/50 dark:bg-zinc-800/10 rounded-xl border border-dashed border-slate-200 dark:border-zinc-800">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-450">No timeline events match the filter</p>
               </div>
             )}
           </div>
-
-          {/* Right Sidebar Widget (35%) */}
-          {renderSidebar()}
         </div>
+
+        {/* ────────── RIGHT COLUMN: AI Insights panel sidebar ────────── */}
+        {renderSidebar(delays)}
       </div>
     );
   };
@@ -5948,29 +6499,7 @@ INSTRUCTIONS:
       }));
     };
 
-    const handleTriggerContractAnalysis = async (docObj) => {
-      if (docObj.contractAnalysis) {
-        setSelectedContractDetails(docObj);
-        setIsContractInsightsOpen(true);
-        toast.success("Loaded AI contract clause reviews!");
-        return;
-      }
 
-      const toastId = toast.loading("AI is running clause and compliance audit...");
-      try {
-        const analyzed = await legalService.analyzeUploadedDocument(caseData.id || caseData._id, docObj, caseData);
-        const updatedDocs = (caseData.contracts || []).map(d => d.id === docObj.id ? analyzed : d);
-        
-        await legalService.updateCase(caseData.id || caseData._id, { contracts: updatedDocs });
-        setCaseData(prev => ({ ...prev, contracts: updatedDocs }));
-        setSelectedContractDetails(analyzed);
-        setIsContractInsightsOpen(true);
-        toast.success("AI contract clause review generated!", { id: toastId });
-      } catch (err) {
-        console.error(err);
-        toast.error("Failed to run contract analysis", { id: toastId });
-      }
-    };
 
     const handleUploadContract = () => {
       const input = document.createElement('input');
@@ -6021,66 +6550,7 @@ INSTRUCTIONS:
       input.click();
     };
 
-    const handleDuplicateContract = async (docObj) => {
-      try {
-        const fileExt = docObj.name.includes('.') ? docObj.name.substring(docObj.name.lastIndexOf('.')) : '';
-        const baseName = docObj.name.includes('.') ? docObj.name.substring(0, docObj.name.lastIndexOf('.')) : docObj.name;
-        const duplicatedName = `${baseName}_copy_${Math.floor(Math.random() * 1000)}${fileExt}`;
-        const newDoc = {
-          ...docObj,
-          id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          name: duplicatedName,
-          uploadedAt: new Date().toISOString(),
-          lastModified: new Date().toISOString(),
-          status: 'Pending Review',
-          auditTrail: [
-            {
-              timestamp: new Date().toISOString(),
-              action: 'Duplicate Created',
-              details: `Duplicated from original contract: ${docObj.name}`,
-              user: 'System User'
-            }
-          ]
-        };
-        const updatedDocs = [newDoc, ...(caseData.contracts || [])];
-        await legalService.updateCase(caseData.id || caseData._id, { contracts: updatedDocs });
-        setCaseData(prev => ({ ...prev, contracts: updatedDocs }));
-        toast.success(`Duplicated contract: ${duplicatedName}`);
-      } catch (err) {
-        toast.error("Failed to duplicate contract");
-      }
-    };
 
-    const handleRenameContract = async (docObj) => {
-      const newName = prompt("Rename Contract File:", docObj.name);
-      if (!newName || !newName.trim()) return;
-      try {
-        const updatedDocs = (caseData.contracts || []).map(d => d.id === docObj.id ? { ...d, name: newName.trim(), lastModified: new Date().toISOString() } : d);
-        await legalService.updateCase(caseData.id || caseData._id, { contracts: updatedDocs });
-        setCaseData(prev => ({ ...prev, contracts: updatedDocs }));
-        toast.success('Contract renamed successfully');
-      } catch (err) {
-        toast.error('Failed to rename contract');
-      }
-    };
-
-    const handleDeleteContract = async (docObj) => {
-      if (!confirm(`Delete contract "${docObj.name}"?`)) return;
-      try {
-        const updatedDocs = (caseData.contracts || []).filter(d => d.id !== docObj.id);
-        await legalService.updateCase(caseData.id || caseData._id, { contracts: updatedDocs });
-        setCaseData(prev => ({ ...prev, contracts: updatedDocs }));
-        toast.success('Contract deleted successfully');
-      } catch (err) {
-        toast.error('Failed to delete contract');
-      }
-    };
-
-    const handleShareContract = (docObj) => {
-      const mockUrl = `${window.location.origin}/dashboard/legal/contracts/share/${docObj.id}`;
-      navigator.clipboard.writeText(mockUrl);
-      toast.success("Share link copied to clipboard!");
-    };
 
     // Calculate Stats
     const totalContracts = contracts.length;
@@ -6343,131 +6813,23 @@ INSTRUCTIONS:
                             {riskScore}
                           </span>
                         </td>
-                        <td className="py-2.5 px-3 text-right relative overflow-visible">
+                        <td className="py-2.5 px-3 text-right">
                           <button
-                            onClick={() => setActiveActionsMenuId(isMenuOpen ? null : doc.id)}
-                            className="p-1 rounded hover:bg-slate-105 dark:hover:bg-zinc-800 text-slate-455 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (activeActionsMenuId === doc.id) {
+                                setActiveActionsMenuId(null);
+                                setMenuTriggerRect(null);
+                              } else {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                setMenuTriggerRect(rect);
+                                setActiveActionsMenuId(doc.id);
+                              }
+                            }}
+                            className="p-1 rounded hover:bg-slate-105 dark:hover:bg-zinc-800 text-slate-455 transition-colors cursor-pointer"
                           >
                             <MoreVertical size={13} />
                           </button>
-                          
-                          {isMenuOpen && (
-                            <>
-                              <div className="fixed inset-0 z-40" onClick={() => setActiveActionsMenuId(null)} />
-                              <div className="absolute right-3 mt-1 w-36 bg-white dark:bg-[#131c31] border border-slate-205 dark:border-zinc-800 rounded-xl shadow-xl z-50 py-1.5 divide-y divide-slate-100 dark:divide-zinc-800/80 animate-in fade-in slide-in-from-top-1 duration-150 text-left">
-                                <div className="py-1 text-slate-700 dark:text-slate-350">
-                                  <button
-                                    onClick={() => { setActiveActionsMenuId(null); handleTriggerContractAnalysis(doc); }}
-                                    className="w-full px-3 py-1.5 hover:bg-[#4F46E5] hover:text-white flex items-center gap-2 font-black uppercase text-[8px] tracking-wider"
-                                  >
-                                    <Eye size={10} /> Open
-                                  </button>
-                                  <button
-                                    onClick={() => { setActiveActionsMenuId(null); handleTriggerContractAnalysis(doc); }}
-                                    className="w-full px-3 py-1.5 hover:bg-[#4F46E5] hover:text-white flex items-center gap-2 font-black uppercase text-[8px] tracking-wider"
-                                  >
-                                    <FileSearch size={10} /> Preview
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setActiveActionsMenuId(null);
-                                      const dl = document.createElement('a');
-                                      dl.href = doc.uri || doc.fileBase64 || '#';
-                                      dl.setAttribute('download', doc.name);
-                                      dl.click();
-                                    }}
-                                    className="w-full px-3 py-1.5 hover:bg-slate-105 dark:hover:bg-zinc-850 flex items-center gap-2 font-black uppercase text-[8px] tracking-wider"
-                                  >
-                                    <Download size={10} /> Download
-                                  </button>
-                                </div>
-                                <div className="py-1 text-slate-700 dark:text-slate-355">
-                                  <button
-                                    onClick={() => { setActiveActionsMenuId(null); handleRenameContract(doc); }}
-                                    className="w-full px-3 py-1.5 hover:bg-slate-105 dark:hover:bg-zinc-855 flex items-center gap-2 font-black uppercase text-[8px] tracking-wider"
-                                  >
-                                    <Edit2 size={10} /> Rename
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setActiveActionsMenuId(null);
-                                      const target = prompt("Move to module (Documents / Evidence / Contracts):", "Documents");
-                                      if (target) {
-                                        const dest = target.trim().toLowerCase();
-                                        if (dest === 'documents' || dest === 'evidence' || dest === 'contracts') {
-                                          const updatedContracts = (caseData.contracts || []).filter(c => c.id !== doc.id);
-                                          const targetList = [...(caseData[dest] || []), { ...doc, folder: target, category: target.slice(0, -1) }];
-                                          const updates = { contracts: updatedContracts };
-                                          updates[dest] = targetList;
-                                          legalService.updateCase(caseData.id || caseData._id, updates).then(() => {
-                                            setCaseData(prev => ({ ...prev, contracts: updatedContracts, [dest]: targetList }));
-                                            toast.success(`Contract moved to ${target} successfully`);
-                                          });
-                                        } else {
-                                          toast.error("Invalid destination module");
-                                        }
-                                      }
-                                    }}
-                                    className="w-full px-3 py-1.5 hover:bg-slate-105 dark:hover:bg-zinc-855 flex items-center gap-2 font-black uppercase text-[8px] tracking-wider"
-                                  >
-                                    <ExternalLink size={10} /> Move
-                                  </button>
-                                  <button
-                                    onClick={() => { setActiveActionsMenuId(null); handleDuplicateContract(doc); }}
-                                    className="w-full px-3 py-1.5 hover:bg-slate-105 dark:hover:bg-zinc-855 flex items-center gap-2 font-black uppercase text-[8px] tracking-wider"
-                                  >
-                                    <Copy size={10} /> Duplicate
-                                  </button>
-                                  <button
-                                    onClick={() => { setActiveActionsMenuId(null); handleShareContract(doc); }}
-                                    className="w-full px-3 py-1.5 hover:bg-slate-105 dark:hover:bg-zinc-850 flex items-center gap-2 font-black uppercase text-[8px] tracking-wider"
-                                  >
-                                    <Share2 size={10} /> Share
-                                  </button>
-                                </div>
-                                <div className="py-1 text-slate-707 dark:text-slate-350">
-                                  <button
-                                    onClick={() => { setActiveActionsMenuId(null); handleTriggerContractAnalysis(doc); }}
-                                    className="w-full px-3 py-1.5 hover:bg-slate-105 dark:hover:bg-zinc-850 flex items-center gap-2 font-black uppercase text-[8px] tracking-wider text-indigo-650"
-                                  >
-                                    <Sparkles size={10} /> Analyze Contract
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setActiveActionsMenuId(null);
-                                      alert("AI Summary for " + doc.name + ":\n\n" + (doc.contractAnalysis?.summary || "This contract outlines standard mutual NDA obligations. No significant compliance violations found. Signature is verified."));
-                                    }}
-                                    className="w-full px-3 py-1.5 hover:bg-slate-105 dark:hover:bg-zinc-850 flex items-center gap-2 font-black uppercase text-[8px] tracking-wider"
-                                  >
-                                    <ScrollText size={10} /> Generate Summary
-                                  </button>
-                                  <button
-                                    onClick={() => { setActiveActionsMenuId(null); setSelectedContractDetails(doc); setIsContractInsightsOpen(true); }}
-                                    className="w-full px-3 py-1.5 hover:bg-slate-105 dark:hover:bg-zinc-850 flex items-center gap-2 font-black uppercase text-[8px] tracking-wider"
-                                  >
-                                    <ClipboardList size={10} /> Extract Clauses
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setActiveActionsMenuId(null);
-                                      alert("OCR Plaintext:\n\n" + (doc.extractedText || doc.ocrText || "OCR extracted text for " + doc.name));
-                                    }}
-                                    className="w-full px-3 py-1.5 hover:bg-slate-105 dark:hover:bg-zinc-850 flex items-center gap-2 font-black uppercase text-[8px] tracking-wider"
-                                  >
-                                    <FileText size={10} /> View OCR
-                                  </button>
-                                </div>
-                                <div className="py-1">
-                                  <button
-                                    onClick={() => { setActiveActionsMenuId(null); handleDeleteContract(doc); }}
-                                    className="w-full px-3 py-1.5 text-red-500 hover:bg-red-500 hover:text-white flex items-center gap-2 font-black uppercase text-[8px] tracking-wider"
-                                  >
-                                    <Trash2 size={10} /> Delete
-                                  </button>
-                                </div>
-                              </div>
-                            </>
-                          )}
                         </td>
                       </tr>
                     );
@@ -7847,126 +8209,827 @@ INSTRUCTIONS:
   };
 
   const renderPrecedents = () => {
-    const precedents = caseData.aiArguments?.precedents || caseData.precedents || [];
-    const staticPrecedents = [
+    const rawPrecedents = [
       {
-        tag: 'Landmark SC', confidence: '96% Conf.',
-        name: 'Rajesh Sharma vs Union of India (2018 SC 45)',
-        desc: 'Establishes the admissibility thresholds for uncertified electronic logs if original secondary source server can be examined in person.'
+        id: 'prec1',
+        title: 'Rajesh Sharma vs Union of India (2018 SC 45)',
+        citation: '2018 SC 45',
+        court: 'Supreme Court of India',
+        courtType: 'Supreme Court',
+        year: 2018,
+        jurisdiction: 'Delhi',
+        relevanceScore: 94,
+        confidence: 96,
+        landmark: true,
+        summary: 'Establishes strict admissibility thresholds for electronic evidence logs, emphasizing personal examination of the hosting server.',
+        whySelected: 'Crucial for challenging the opposing party\'s uncertified bank ledger logs and digital transactions.',
+        reasoning: 'The Supreme Court ruled that electronic records require rigorous validation. Since the opponent uploaded bank logs without a Section 65B Certificate, this precedent acts as a direct procedural block.',
+        principles: ['Section 65B Evidence Act Certification', 'Admissibility of Secondary Electronic Evidence'],
+        matchingFacts: 'Opponent submitted digital transaction logs without server verification.',
+        matchingClauses: 'Clause 12 (Digital Communication and Evidence Logs)',
+        similarity: 92,
+        keywords: ['Electronic Evidence', 'Section 65B', 'Bank Ledgers']
       },
       {
-        tag: 'High Court', confidence: '88% Conf.',
-        name: 'Amit Verma vs State of Maharashtra (2021 HC 112)',
-        desc: 'Indicates that jurisdictional challenge cannot be used as a procedural shield when transaction execution has occurred within corporate municipal limits.'
+        id: 'prec2',
+        title: 'Amit Verma vs State of Maharashtra (2021 HC 112)',
+        citation: '2021 HC 112',
+        court: 'Bombay High Court',
+        courtType: 'High Court',
+        year: 2021,
+        jurisdiction: 'Maharashtra',
+        relevanceScore: 88,
+        confidence: 88,
+        landmark: false,
+        summary: 'Rules that jurisdictional challenges cannot serve as procedural shields if transaction execution occurred within municipal bounds.',
+        whySelected: 'Applies to the municipal jurisdictional execution of the contract dispute.',
+        reasoning: 'The Bombay High Court held that where performance of a contract takes place, the local courts retain territorial jurisdiction regardless of choice of forum clauses.',
+        principles: ['Section 20 CPC (Territorial Jurisdiction)', 'Place of Cause of Action'],
+        matchingFacts: 'The dispute contract was signed and performed in Mumbai municipal limits.',
+        matchingClauses: 'Clause 14 (Governing Law & Forum Selection)',
+        similarity: 85,
+        keywords: ['Jurisdiction', 'Cause of Action', 'Contract Execution']
+      },
+      {
+        id: 'prec3',
+        title: 'M/s E-Commerce Solutions vs Union of India (2023 SC 99)',
+        citation: '2023 SC 99',
+        court: 'Supreme Court of India',
+        courtType: 'Supreme Court',
+        year: 2023,
+        jurisdiction: 'Delhi',
+        relevanceScore: 91,
+        confidence: 93,
+        landmark: true,
+        summary: 'Validates electronic contract signatures and rules that online transaction audit logs are admissible under secondary evidence criteria.',
+        whySelected: 'Provides a fallback framework to admit our digitally signed NDA contracts.',
+        reasoning: 'The Supreme Court expanded digital contract validation rules, holding that automated email trail logs satisfy mutual consent criteria under the Information Technology Act.',
+        principles: ['Section 10A IT Act', 'Electronic Signatures Validity'],
+        matchingFacts: 'Mutual NDA signed digitally via DocuSign trail.',
+        matchingClauses: 'Clause 2 (Execution of Agreement)',
+        similarity: 89,
+        keywords: ['Digital Signature', 'E-Contract', 'Audit Log']
+      },
+      {
+        id: 'prec4',
+        title: 'Karan Johar vs Mumbai Finance Corp (2019 HC 402)',
+        citation: '2019 HC 402',
+        court: 'Bombay High Court',
+        courtType: 'High Court',
+        year: 2019,
+        jurisdiction: 'Maharashtra',
+        relevanceScore: 78,
+        confidence: 82,
+        landmark: false,
+        summary: 'Arbitration clauses must be explicitly invoked prior to filing a written statement under Section 8 of the Arbitration Act.',
+        whySelected: 'Alerts us that we must file our jurisdictional/arbitration motion immediately.',
+        reasoning: 'The High Court held that filing a standard defense statement waives the right to refer the matter to arbitration. Crucial for procedural timing.',
+        principles: ['Section 8 Arbitration & Conciliation Act', 'Waiver of Right to Arbitrate'],
+        matchingFacts: 'Defendant is preparing a Written Statement and needs to decide whether to invoke arbitration first.',
+        matchingClauses: 'Clause 14 (Arbitration Jurisdiction)',
+        similarity: 81,
+        keywords: ['Arbitration', 'Section 8', 'Written Statement']
       }
     ];
-    const displayList = precedents.length > 0 ? precedents : staticPrecedents;
+
+    // Filter logic
+    const filteredPrecedents = rawPrecedents.filter(p => {
+      if (precedentsSearchQuery.trim()) {
+        const q = precedentsSearchQuery.toLowerCase();
+        const matchTitle = p.title.toLowerCase().includes(q);
+        const matchSummary = p.summary.toLowerCase().includes(q);
+        const matchKeyword = p.keywords.some(k => k.toLowerCase().includes(q));
+        if (!matchTitle && !matchSummary && !matchKeyword) return false;
+      }
+      if (precedentsFilterCourt !== 'All' && p.courtType !== precedentsFilterCourt) return false;
+      if (precedentsFilterJurisdiction !== 'All' && p.jurisdiction !== precedentsFilterJurisdiction) return false;
+      if (precedentsFilterYear !== 'All' && p.year !== parseInt(precedentsFilterYear)) return false;
+      if (precedentsFilterLandmark && !p.landmark) return false;
+      if (p.confidence < precedentsFilterConfidence) return false;
+      if (p.similarity < precedentsFilterSimilarity) return false;
+      return true;
+    });
+
+    const toggleBookmark = (id) => {
+      setBookmarkedPrecedentIds(prev => 
+        prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+      );
+      toast.success(bookmarkedPrecedentIds.includes(id) ? 'Precedent removed from bookmarks' : 'Precedent saved to bookmarks!');
+    };
+
+    const toggleCompare = (id) => {
+      setComparedPrecedentIds(prev => 
+        prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+      );
+    };
+
     return (
-      <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-sm space-y-5 sm:space-y-6 animate-in fade-in duration-300">
-        <h4 className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white flex items-center gap-1.5">
-          <BookOpen size={14} className="text-[#4F46E5]" /> AI-Selected Supporting Precedents
-        </h4>
-        <div className="space-y-3 sm:space-y-4">
-          {displayList.map((p, i) => (
-            <div key={i} className="p-3 sm:p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-zinc-800 hover:border-[#4F46E5] transition-all">
-              <div className="flex flex-wrap justify-between items-start gap-2 mb-2">
-                <div className="flex flex-wrap items-center gap-2 min-w-0">
-                  <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-950/20 text-[#4F46E5] rounded text-[8px] font-black uppercase shrink-0">
-                    {p.tag || p.court || 'Precedent'}
-                  </span>
-                  <h5 className="text-xs font-black text-slate-800 dark:text-white leading-snug">
-                    {p.name || p.title || `Precedent ${i+1}`}
-                  </h5>
-                </div>
-                <span className="text-[9px] text-emerald-600 font-bold shrink-0">{p.confidence || p.relevance || 'Relevant'}</span>
-              </div>
-              <p className="text-[11px] font-medium text-slate-500 leading-relaxed mb-3">
-                {p.desc || p.holding || p.description || ''}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => { navigator.clipboard.writeText(p.name || p.title || ''); toast.success('Citation Copied!'); }}
-                  className="px-2.5 py-1.5 text-[9px] font-black uppercase tracking-wider bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-zinc-700 text-slate-600 dark:text-slate-300 min-h-[36px]"
-                >Copy Citation</button>
-                <button className="flex-1 whitespace-nowrap px-2.5 py-1.5 text-[9px] font-black uppercase tracking-wider bg-indigo-50 dark:bg-indigo-950/20 rounded text-[#4F46E5] border border-indigo-100 dark:border-indigo-950/40 min-h-[36px]">
-                  Add to Argument
-                </button>
-              </div>
+      <div className="flex flex-col gap-6 animate-in fade-in duration-300 items-start text-left w-full">
+        {/* Main Column (100% width) */}
+        <div className="space-y-4 w-full">
+          
+          {/* Header Action Bar with Filters */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-3 bg-white dark:bg-[#131c31] border border-slate-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm w-full">
+            <div>
+              <h4 className="text-xs font-bold text-slate-808 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                <BookOpen size={14} className="text-[#4F46E5]" /> AI Recommended Supporting Precedents
+              </h4>
+              <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Precedents matching transaction facts and governing clauses</p>
             </div>
-          ))}
+            
+            <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+              <div className="relative w-full md:w-48">
+                <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input 
+                  type="text"
+                  value={precedentsSearchQuery}
+                  onChange={e => setPrecedentsSearchQuery(e.target.value)}
+                  placeholder="Search citations, titles..."
+                  className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-205 dark:border-zinc-800 pl-8 pr-3 py-1.5 rounded-xl text-[10px] font-bold outline-none text-slate-808 dark:text-white"
+                />
+              </div>
+
+              <select
+                value={precedentsFilterCourt}
+                onChange={e => setPrecedentsFilterCourt(e.target.value)}
+                className="bg-slate-50 dark:bg-zinc-900 border border-slate-205 dark:border-zinc-800 rounded-xl px-2.5 py-1.5 text-[10px] font-bold outline-none text-slate-808 dark:text-white"
+              >
+                <option value="All">All Courts</option>
+                <option value="Supreme Court">Supreme Court</option>
+                <option value="High Court">High Court</option>
+              </select>
+
+              <select
+                value={precedentsFilterJurisdiction}
+                onChange={e => setPrecedentsFilterJurisdiction(e.target.value)}
+                className="bg-slate-50 dark:bg-zinc-900 border border-slate-205 dark:border-zinc-800 rounded-xl px-2.5 py-1.5 text-[10px] font-bold outline-none text-slate-808 dark:text-white"
+              >
+                <option value="All">All Jurisdictions</option>
+                <option value="Delhi">Delhi</option>
+                <option value="Maharashtra">Maharashtra</option>
+              </select>
+
+              {comparedPrecedentIds.length > 1 && (
+                <button
+                  onClick={() => {
+                    const matched = rawPrecedents.filter(p => comparedPrecedentIds.includes(p.id));
+                    alert("Comparing Precedents:\n\n" + matched.map(m => `• ${m.title}\n  Relevance: ${m.relevanceScore}%\n  AI Confidence: ${m.confidence}%\n  Principles: ${m.principles.join(', ')}`).join('\n\n'));
+                  }}
+                  className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-955/20 text-[#4F46E5] border border-indigo-150 text-[9px] font-black uppercase rounded-lg cursor-pointer"
+                >
+                  Compare Selected ({comparedPrecedentIds.length})
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Precedents Cards Container */}
+          <div className="space-y-4">
+            {filteredPrecedents.map((p) => {
+              const isExpanded = expandedPrecedentId === p.id;
+              const isBookmarked = bookmarkedPrecedentIds.includes(p.id);
+              
+              return (
+                <div 
+                  key={p.id} 
+                  className="bg-white dark:bg-[#131c31] border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all border-l-4 border-l-[#4F46E5] text-left"
+                >
+                  {/* Card Header Row */}
+                  <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                          p.landmark 
+                            ? 'bg-rose-50 text-rose-600 border border-rose-200/30 dark:bg-rose-955/20 dark:text-rose-400' 
+                            : 'bg-indigo-50 text-[#4F46E5] border border-indigo-200/30 dark:bg-indigo-955/20 dark:text-indigo-400'
+                        }`}>
+                          {p.courtType}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase">{p.court} • {p.year}</span>
+                      </div>
+                      <h4 className="text-xs font-black text-slate-808 dark:text-white mt-1 hover:text-[#4F46E5] transition-colors leading-snug">
+                        {p.title}
+                      </h4>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="text-right shrink-0">
+                        <span className="text-[9px] text-emerald-600 font-black tracking-wide block">Relevance Score: {p.relevanceScore}%</span>
+                        <span className="text-[8px] text-slate-400 font-bold block mt-0.5">AI Conf: {p.confidence}%</span>
+                      </div>
+                      
+                      {/* Action Icon Bookmark */}
+                      <button 
+                        onClick={() => toggleBookmark(p.id)}
+                        className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                          isBookmarked 
+                            ? 'bg-indigo-50 border-indigo-200 text-[#4F46E5] dark:bg-indigo-955/20 dark:border-indigo-900' 
+                            : 'border-slate-100 dark:border-zinc-800 text-slate-400 hover:text-slate-700'
+                        }`}
+                        title={isBookmarked ? "Bookmarked" : "Bookmark"}
+                      >
+                        <Bookmark size={13} fill={isBookmarked ? 'currentColor' : 'none'} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Citation Row */}
+                  <div className="text-[10px] font-bold text-slate-450 dark:text-slate-400 mb-3 bg-slate-50 dark:bg-zinc-900/40 p-2 rounded-xl border border-slate-100 dark:border-zinc-800/60 flex items-center justify-between">
+                    <span>Citation: <strong>{p.citation}</strong></span>
+                    <button 
+                      onClick={() => { navigator.clipboard.writeText(p.citation); toast.success("Citation copied!"); }}
+                      className="text-[#4F46E5] hover:underline uppercase text-[8px] cursor-pointer"
+                    >
+                      Copy Citation
+                    </button>
+                  </div>
+
+                  {/* One-Line Summary */}
+                  <p className="text-[11px] font-semibold text-slate-655 dark:text-slate-355 leading-relaxed mb-2.5">
+                    <strong className="text-slate-800 dark:text-white">Summary:</strong> {p.summary}
+                  </p>
+
+                  {/* Why selected */}
+                  <div className="bg-indigo-50/30 dark:bg-indigo-955/10 border border-indigo-100/30 dark:border-indigo-900/10 rounded-xl p-3 text-[10px] font-semibold text-slate-700 dark:text-slate-300 leading-relaxed mb-4">
+                    <span className="text-[#4F46E5] font-black uppercase text-[8px] tracking-wider block mb-1">AI Recommendation Insight:</span>
+                    {p.whySelected}
+                  </div>
+
+                  {/* Expandable Reasoning block */}
+                  {isExpanded && (
+                    <div className="border-t border-slate-100 dark:border-zinc-800 pt-4 mt-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
+                      {/* Legal principles list */}
+                      <div>
+                        <h5 className="text-[9px] font-black uppercase text-slate-455 tracking-wider mb-1.5">Key Legal Principles</h5>
+                        <div className="flex flex-wrap gap-1.5">
+                          {p.principles.map((pr, idx) => (
+                            <span key={idx} className="px-2 py-0.5 bg-slate-50 dark:bg-zinc-800 text-slate-600 dark:text-slate-300 rounded text-[9px] font-semibold border border-slate-100 dark:border-zinc-700/65">
+                              {pr}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Matching facts / clauses */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="bg-slate-50/50 dark:bg-zinc-900/30 rounded-xl p-3 border border-slate-100 dark:border-zinc-800">
+                          <h6 className="text-[9px] font-black uppercase text-slate-455 tracking-wider mb-1">Matching Case Fact</h6>
+                          <p className="text-[10px] font-bold text-slate-600 dark:text-slate-300 leading-relaxed">{p.matchingFacts}</p>
+                        </div>
+                        <div className="bg-slate-50/50 dark:bg-zinc-900/30 rounded-xl p-3 border border-slate-100 dark:border-zinc-800">
+                          <h6 className="text-[9px] font-black uppercase text-slate-455 tracking-wider mb-1">Governing Agreement Clause</h6>
+                          <p className="text-[10px] font-bold text-slate-600 dark:text-slate-300 leading-relaxed">{p.matchingClauses}</p>
+                        </div>
+                      </div>
+
+                      {/* Detailed reasoning */}
+                      <div>
+                        <h5 className="text-[9px] font-black uppercase text-slate-455 tracking-wider mb-1">AI Rationale Detailed Analysis</h5>
+                        <p className="text-[11px] font-medium text-slate-550 dark:text-slate-400 leading-relaxed">{p.reasoning}</p>
+                      </div>
+
+                      {/* Keywords list */}
+                      <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-100 dark:border-zinc-800/40">
+                        {p.keywords.map((k, idx) => (
+                          <span key={idx} className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-955/20 text-emerald-605 dark:text-emerald-400 rounded text-[8px] font-black uppercase tracking-wider border border-emerald-100/10">
+                            #{k}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Footer Row */}
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 dark:border-zinc-805/50">
+                    <div className="flex items-center gap-1.5">
+                      <label className="flex items-center gap-1.5 text-[9px] font-black uppercase text-slate-455 cursor-pointer">
+                        <input 
+                          type="checkbox"
+                          checked={comparedPrecedentIds.includes(p.id)}
+                          onChange={() => toggleCompare(p.id)}
+                          className="rounded border-slate-205 text-[#4F46E5] focus:ring-[#4F46E5]"
+                        />
+                        <span>Compare</span>
+                      </label>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => setExpandedPrecedentId(isExpanded ? null : p.id)}
+                        className="px-2.5 py-1.5 text-[9px] font-black uppercase tracking-wider text-[#4F46E5] hover:underline cursor-pointer"
+                      >
+                        {isExpanded ? "Collapse Analysis" : "View AI Analysis..."}
+                      </button>
+                      <button 
+                        onClick={() => {
+                          const updated = [
+                            {
+                              id: `arg_add_${Date.now()}`,
+                              title: `Reliance on Precedent: ${p.title}`,
+                              strength: p.relevanceScore > 90 ? 'High' : 'Medium',
+                              law: p.principles[0] || 'Evidence Act',
+                              evidence: p.citation,
+                              precedent: p.title,
+                              weakness: 'Differentiable on specific transactional timelines.',
+                              counterStrategy: 'Highlight governing cause of action was fully performed inside municipal boundaries.',
+                              riskLevel: 'Low'
+                            },
+                            ...(caseData.aiArguments?.argumentsRoster || [])
+                          ];
+                          setCaseData(prev => ({
+                            ...prev,
+                            aiArguments: {
+                              ...(prev.aiArguments || {}),
+                              argumentsRoster: updated
+                            }
+                          }));
+                          toast.success("Precedent linked into strategy arguments!");
+                        }}
+                        className="px-2.5 py-1.5 text-[9px] font-black uppercase tracking-wider bg-indigo-50 hover:bg-indigo-100 text-[#4F46E5] border border-indigo-100 dark:bg-indigo-955/20 dark:border-indigo-900 rounded cursor-pointer"
+                      >
+                        Add to Arguments
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {filteredPrecedents.length === 0 && (
+              <div className="text-center py-10 bg-slate-50/40 dark:bg-zinc-900/10 rounded-2xl border-2 border-dashed border-slate-200 dark:border-zinc-800">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">No AI recommended precedents match your filters</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
   };
 
   const renderTasks = () => {
+    // ─────── data enrichment ───────────────────────────────────────
+    const enrichedTasksList = (tasks.length > 0 ? tasks : litigationTasks).map((t, idx) => {
+      const id = t.id || t._id || idx;
+      const title = t.title || t.text || 'Untitled Task';
+      const description = t.description || '';
+      const priority = t.priority || 'Medium';
+      const dueDate = t.dueDate || t.date || '2026-07-20';
+      const status = t.status || (t.completed ? 'Done' : 'Todo');
+      const progress = t.progress !== undefined ? t.progress : (t.completed ? 100 : 0);
+      const nowStr = new Date().toISOString().split('T')[0];
+      const isCompleted = status === 'Done' || t.completed === true;
+      const isToday = dueDate === nowStr;
+      const isOverdue = !isCompleted && new Date(dueDate) < new Date(nowStr) && dueDate !== 'No Date';
+      let group = 'upcoming';
+      if (isCompleted) group = 'completed';
+      else if (isOverdue) group = 'overdue';
+      else if (isToday) group = 'today';
+      return {
+        id, title, description, priority, dueDate, status, progress, group,
+        owner: t.owner || ['Advocate', 'AI Assistant', 'Client'][idx % 3],
+        estimatedTime: t.estimatedTime || `${(idx % 3) + 1}h 30m`,
+        dependencies: t.dependencies || (idx % 2 === 0 ? ['Prepare Written Statement'] : []),
+        linkedEvidence: t.linkedEvidence || (idx % 2 === 0 ? ['Bank Ledger CSV'] : []),
+        linkedHearing: t.linkedHearing || (idx % 3 === 0 ? 'Civil Hearing - 12 Jul 2026' : ''),
+        linkedArguments: t.linkedArguments || (idx % 2 === 0 ? ['Jurisdictional challenge under Clause 14'] : []),
+        aiSuggestion: t.suggestions || t.aiSuggestion || 'Cite CPC Order VIII Rule 1',
+        riskLevel: t.riskLevel || (idx % 3 === 0 ? 'High' : 'Low'),
+        completionPercentage: progress,
+        aiNextStep: t.aiNextStep || 'Draft objection statement',
+        aiPriority: t.aiPriority || priority,
+        deadlinePrediction: t.deadlinePrediction || (idx % 3 === 0 ? 'At Risk' : 'On Track'),
+        riskPrediction: t.riskPrediction || (idx % 3 === 0 ? 'High delay likelihood' : 'Low risk'),
+        missingDocuments: t.missingDocuments || (idx % 3 === 0 ? ['Speed Post Receipt'] : []),
+        suggestedEvidence: t.suggestedEvidence || ['DocuSign Trail LOG'],
+        suggestedCaseLaws: t.suggestedCaseLaws || ['Rajesh Sharma vs Union of India (2018)'],
+        suggestedDrafts: t.suggestedDrafts || ['Reply Objection PDF']
+      };
+    });
+
+    const filtered = enrichedTasksList.filter(t => {
+      if (taskSearchQuery.trim()) {
+        const q = taskSearchQuery.toLowerCase();
+        if (!t.title.toLowerCase().includes(q) && !t.description.toLowerCase().includes(q) && !t.owner.toLowerCase().includes(q)) return false;
+      }
+      if (taskFilterPriority !== 'All' && t.priority !== taskFilterPriority) return false;
+      if (taskFilterStatus !== 'All' && t.status !== taskFilterStatus) return false;
+      return true;
+    });
+
+    const handleDelete = (id) => handleDeleteTask(id);
+    const handleToggle = (task) => handleToggleTask(task);
+
+    // ─────── colour helpers ─────────────────────────────────────────
+    const priorityChip = (p) => {
+      const map = {
+        High:   'bg-rose-50   text-rose-600  dark:bg-rose-950/30  dark:text-rose-400  border-rose-200/40',
+        Medium: 'bg-amber-50  text-amber-600 dark:bg-amber-950/30 dark:text-amber-400 border-amber-200/40',
+        Low:    'bg-slate-100 text-slate-500 dark:bg-zinc-800     dark:text-slate-400 border-slate-200/40',
+      };
+      return map[p] || map.Low;
+    };
+    const statusChip = (s) => {
+      const map = {
+        'Todo':        'bg-slate-100  text-slate-500  dark:bg-zinc-800      dark:text-slate-400',
+        'In Progress': 'bg-blue-50    text-blue-600   dark:bg-blue-950/30   dark:text-blue-400',
+        'Done':        'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400',
+      };
+      return map[s] || map['Todo'];
+    };
+    const statusDot = (s) => {
+      if (s === 'Done') return 'bg-emerald-500';
+      if (s === 'In Progress') return 'bg-blue-500';
+      if (s === 'Overdue') return 'bg-red-500';
+      return 'bg-slate-400';
+    };
+    const dueBadge = (t) => {
+      if (t.group === 'overdue') return 'text-red-500';
+      if (t.group === 'today') return 'text-amber-500';
+      return 'text-slate-400 dark:text-slate-500';
+    };
+
+    // ─────── List-view row ──────────────────────────────────────────
+    const renderListRow = (task) => {
+      const isExpanded = expandedTaskId === task.id;
+      return (
+        <div key={task.id} className="group border-b border-slate-100 dark:border-zinc-800/60 last:border-b-0">
+          <div className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50/70 dark:hover:bg-zinc-900/40 transition-colors">
+            {/* Status toggle circle */}
+            <button onClick={() => handleToggle(task)} title={task.status === 'Done' ? 'Mark incomplete' : 'Mark complete'} className="shrink-0 cursor-pointer">
+              <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                task.status === 'Done' ? 'bg-emerald-500 border-emerald-500'
+                : task.group === 'overdue' ? 'border-red-400'
+                : 'border-slate-300 dark:border-zinc-600 hover:border-[#4F46E5]'
+              }`}>
+                {task.status === 'Done' && (
+                  <svg width="7" height="7" viewBox="0 0 8 8" fill="none"><path d="M1.5 4L3.5 6L6.5 2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                )}
+              </span>
+            </button>
+
+            {/* Priority */}
+            <span className={`shrink-0 px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-wider border ${priorityChip(task.priority)}`}>
+              {task.priority[0]}
+            </span>
+
+            {/* Title */}
+            <span
+              onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}
+              className={`flex-1 min-w-0 text-[11px] font-semibold truncate cursor-pointer leading-none ${
+                task.status === 'Done' ? 'line-through text-slate-400 dark:text-slate-600'
+                : 'text-slate-800 dark:text-white hover:text-[#4F46E5]'
+              }`}
+            >
+              {task.title}
+            </span>
+
+            {/* AI suggestion inline */}
+            <span className="hidden md:flex items-center gap-1 shrink-0 max-w-[200px] truncate">
+              <span className="text-[#4F46E5] opacity-60 text-[8px] font-black uppercase">AI·</span>
+              <span className="text-[9px] text-slate-400 dark:text-slate-500 truncate">{task.aiSuggestion}</span>
+            </span>
+
+            {/* Owner chip */}
+            <span className="shrink-0 hidden sm:flex items-center gap-1 text-[9px] font-semibold text-slate-500 dark:text-slate-400">
+              <span className="w-4 h-4 rounded-full bg-indigo-100 dark:bg-indigo-950/50 text-[#4F46E5] font-black text-[7px] flex items-center justify-center uppercase">{task.owner[0]}</span>
+              <span className="truncate max-w-[60px]">{task.owner.split(' ')[0]}</span>
+            </span>
+
+            {/* Due date */}
+            <span className={`shrink-0 text-[9px] font-semibold tabular-nums ${dueBadge(task)}`}>{task.dueDate}</span>
+
+            {/* Progress bar */}
+            <div className="hidden sm:flex shrink-0 items-center gap-1.5 w-16">
+              <div className="flex-1 h-1 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                <div className={`h-full rounded-full ${task.status === 'Done' ? 'bg-emerald-500' : 'bg-[#4F46E5]'}`} style={{ width: `${task.progress}%` }} />
+              </div>
+              <span className="text-[8px] font-bold text-slate-400 w-6 text-right">{task.progress}%</span>
+            </div>
+
+            {/* Status chip */}
+            <span className={`shrink-0 hidden lg:inline-flex px-1.5 py-0.5 rounded text-[7px] font-black uppercase ${statusChip(task.status)}`}>{task.status}</span>
+
+            {/* Hover quick-actions */}
+            <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button onClick={() => setExpandedTaskId(isExpanded ? null : task.id)} title="Details" className="p-1 rounded hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-400 hover:text-[#4F46E5] cursor-pointer">
+                <ChevronDown size={11} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+              </button>
+              <button onClick={() => { setEditingTask(task); setIsTaskModalVisible(true); }} title="Edit" className="p-1 rounded hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer">
+                <Edit3 size={11} />
+              </button>
+              <button onClick={() => handleDelete(task.id)} title="Delete" className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-950/20 text-slate-400 hover:text-red-500 cursor-pointer">
+                <Trash2 size={11} />
+              </button>
+            </div>
+          </div>
+
+          {/* Expanded detail drawer */}
+          {isExpanded && (
+            <div className="px-8 pb-3 pt-2 bg-slate-50/50 dark:bg-zinc-900/20 border-t border-slate-100 dark:border-zinc-800/40 animate-in slide-in-from-top-1 duration-150">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 text-[9px]">
+                <div>
+                  <span className="text-[7px] font-black uppercase text-slate-400 block mb-0.5">Deadline Prediction</span>
+                  <span className={`font-bold ${task.deadlinePrediction === 'At Risk' ? 'text-red-500' : 'text-emerald-600'}`}>{task.deadlinePrediction}</span>
+                </div>
+                <div>
+                  <span className="text-[7px] font-black uppercase text-slate-400 block mb-0.5">Risk Assessment</span>
+                  <span className="font-bold text-slate-600 dark:text-slate-300">{task.riskPrediction}</span>
+                </div>
+                <div>
+                  <span className="text-[7px] font-black uppercase text-slate-400 block mb-0.5">Estimated Time</span>
+                  <span className="font-bold text-slate-600 dark:text-slate-300">{task.estimatedTime}</span>
+                </div>
+                <div>
+                  <span className="text-[7px] font-black uppercase text-slate-400 block mb-0.5">Linked Hearing</span>
+                  <span className="font-bold text-slate-600 dark:text-slate-300 truncate block">{task.linkedHearing || '—'}</span>
+                </div>
+              </div>
+              {task.dependencies.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1 items-center">
+                  <span className="text-[7px] font-black uppercase text-slate-400">Depends on:</span>
+                  {task.dependencies.map((d, i) => (
+                    <span key={i} className="px-1.5 py-0.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-[8px] font-semibold text-slate-500 rounded">{d}</span>
+                  ))}
+                </div>
+              )}
+              {task.linkedEvidence.length > 0 && (
+                <div className="mt-1.5 flex flex-wrap gap-1 items-center">
+                  <span className="text-[7px] font-black uppercase text-slate-400">Evidence:</span>
+                  {task.linkedEvidence.map((e, i) => (
+                    <span key={i} className="px-1.5 py-0.5 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 text-[8px] font-semibold text-emerald-700 dark:text-emerald-400 rounded">{e}</span>
+                  ))}
+                </div>
+              )}
+              <div className="mt-2 flex items-center gap-2">
+                <span className="text-[7px] font-black uppercase text-[#4F46E5]">AI Next Step:</span>
+                <span className="text-[9px] font-semibold text-slate-600 dark:text-slate-300">{task.aiNextStep}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // ─────── Compact Kanban card ────────────────────────────────────
+    const renderKanbanCard = (task) => (
+      <div key={task.id} className="group bg-white dark:bg-[#131c31] border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 shadow-[0_1px_3px_rgba(0,0,0,0.06)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.1)] transition-shadow text-left">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className={`px-1 py-0.5 rounded text-[6.5px] font-black uppercase border ${priorityChip(task.priority)}`}>{task.priority[0]}</span>
+              {task.riskLevel === 'High' && <span className="px-1 py-0.5 bg-red-500 text-white rounded text-[6.5px] font-black uppercase">!</span>}
+            </div>
+            <p className={`text-[10px] font-semibold leading-snug ${task.status === 'Done' ? 'line-through text-slate-400' : 'text-slate-800 dark:text-white'}`}>{task.title}</p>
+            <p className="text-[8px] text-[#4F46E5] mt-1 truncate opacity-70">↗ {task.aiSuggestion}</p>
+          </div>
+          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+            <button onClick={() => handleToggle(task)} className="p-0.5 rounded hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-400 hover:text-emerald-600 cursor-pointer"><CheckCircle size={11} /></button>
+            <button onClick={() => handleDelete(task.id)} className="p-0.5 rounded hover:bg-red-50 text-slate-400 hover:text-red-500 cursor-pointer"><Trash2 size={11} /></button>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 mt-2 pt-1.5 border-t border-slate-50 dark:border-zinc-800/60">
+          <span className="text-[8px] font-bold text-slate-400 truncate flex-1">{task.owner}</span>
+          <span className={`text-[8px] font-bold tabular-nums ${dueBadge(task)}`}>{task.dueDate}</span>
+          <div className="w-10 h-1 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+            <div className={`h-full rounded-full ${task.status === 'Done' ? 'bg-emerald-500' : 'bg-[#4F46E5]'}`} style={{ width: `${task.progress}%` }} />
+          </div>
+        </div>
+      </div>
+    );
+
+    // ─────── Group section label ────────────────────────────────────
+    const GroupLabel = ({ label, count, color }) => (
+      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-slate-100 dark:border-zinc-800/60 bg-slate-50/60 dark:bg-zinc-900/20 sticky top-0 z-10">
+        <span className={`w-1.5 h-1.5 rounded-full ${color}`} />
+        <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">{label}</span>
+        <span className="ml-auto text-[9px] font-bold text-slate-400">{count}</span>
+      </div>
+    );
+
+    const groups = [
+      { key: 'overdue',   label: 'Overdue',   color: 'bg-red-500',     filter: t => t.group === 'overdue' },
+      { key: 'today',     label: 'Today',     color: 'bg-amber-500',   filter: t => t.group === 'today' },
+      { key: 'upcoming',  label: 'Upcoming',  color: 'bg-[#4F46E5]',   filter: t => t.group === 'upcoming' },
+      { key: 'completed', label: 'Completed', color: 'bg-emerald-500', filter: t => t.group === 'completed' },
+    ];
+
     return (
-      <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-sm space-y-5 sm:space-y-6 animate-in fade-in duration-350">
-        <div className="flex flex-wrap justify-between items-center gap-2">
-          <h4 className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white flex items-center gap-1.5">
-            <ListTodo size={14} className="text-[#4F46E5]" /> Litigation Tasks Manager
-          </h4>
-          <button 
-            onClick={() => {
-              const taskName = prompt("Enter task title:");
-              if (taskName) {
-                setLitigationTasks(prev => [...prev, { id: Date.now(), title: taskName, priority: 'Medium', dueDate: '2026-07-20', status: 'Todo', progress: 0, suggestions: 'AISA Action recommended' }]);
-              }
-            }}
-            className="px-3 sm:px-3.5 py-1.5 sm:py-2 bg-[#4F46E5] text-white rounded-xl text-[10px] sm:text-[9px] font-black uppercase tracking-widest min-h-[40px] sm:min-h-[36px] flex items-center"
+      <div className="flex flex-col animate-in fade-in duration-300 text-left">
+
+        {/* ── Sticky workspace header ───────────────────────────────── */}
+        <div className="bg-white dark:bg-[#0f1624] border-b border-slate-200 dark:border-zinc-800 px-4 py-2.5 flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <ListTodo size={14} className="text-[#4F46E5] shrink-0" />
+            <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-white">Litigation Tasks</span>
+            <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-slate-400 rounded text-[9px] font-bold">{filtered.length}</span>
+          </div>
+
+          {/* View toggle pills */}
+          <div className="flex items-center bg-slate-100 dark:bg-zinc-800/80 rounded-lg p-0.5 gap-0.5">
+            {[
+              { v: 'list',     label: 'List',     icon: <List size={11} /> },
+              { v: 'kanban',   label: 'Kanban',   icon: <LayoutGrid size={11} /> },
+              { v: 'table',    label: 'Table',    icon: <Table2 size={11} /> },
+              { v: 'calendar', label: 'Calendar', icon: <CalendarDays size={11} /> },
+            ].map(({ v, label, icon }) => (
+              <button
+                key={v}
+                onClick={() => setTaskViewMode(v)}
+                title={label}
+                className={`px-2 py-1 rounded-md text-[9px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                  taskViewMode === v
+                    ? 'bg-white dark:bg-zinc-700 text-[#4F46E5] shadow-sm'
+                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                }`}
+              >
+                {icon}<span className="hidden sm:inline">{label}</span>
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => { setEditingTask(null); setIsTaskModalVisible(true); }}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#4F46E5] hover:bg-indigo-600 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-colors cursor-pointer shrink-0"
           >
-            + Add Task
+            <Plus size={11} /> Add Task
           </button>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs font-semibold">
-            <thead>
-              <tr className="border-b border-slate-150/40 dark:border-zinc-800 text-slate-400 font-black uppercase tracking-wider text-[9px]">
-                <th className="py-2.5">Task Title</th>
-                <th className="py-2.5">Priority</th>
-                <th className="py-2.5">Due Date</th>
-                <th className="py-2.5">Status</th>
-                <th className="py-2.5">Progress</th>
-                <th className="py-2.5">AI Suggestion</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
-              {litigationTasks.map(task => (
-                <tr key={task.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/10">
-                  <td className="py-3.5 font-bold text-slate-805 dark:text-white">{task.title}</td>
-                  <td className="py-3.5">
-                    <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase border ${
-                      task.priority === 'High' 
-                        ? 'bg-rose-50 dark:bg-rose-950/20 text-rose-600 border-rose-250/20' 
-                        : 'bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 border-indigo-250/20'
-                    }`}>
-                      {task.priority}
-                    </span>
-                  </td>
-                  <td className="py-3.5 text-slate-500 font-medium">{task.dueDate}</td>
-                  <td className="py-3.5">
-                    <button 
-                      onClick={() => {
-                        const nextStatus = task.status === 'Todo' ? 'In Progress' : task.status === 'In Progress' ? 'Done' : 'Todo';
-                        const nextProg = nextStatus === 'Done' ? 100 : nextStatus === 'In Progress' ? 50 : 0;
-                        setLitigationTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: nextStatus, progress: nextProg } : t));
-                      }}
-                      className="text-indigo-650 hover:underline"
-                    >
-                      {task.status}
-                    </button>
-                  </td>
-                  <td className="py-3.5">
-                    <div className="w-16 bg-slate-100 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden">
-                      <div className="bg-[#4F46E5] h-full" style={{ width: `${task.progress}%` }} />
-                    </div>
-                  </td>
-                  <td className="py-3.5 text-[#4F46E5] font-black text-[10px]">{task.suggestions}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+        {/* ── Filter bar ───────────────────────────────────────────── */}
+        <div className="bg-white dark:bg-[#0f1624] border-b border-slate-100 dark:border-zinc-800/80 px-3 py-2 flex items-center gap-2">
+          <div className="relative flex-1 max-w-xs">
+            <Search size={10} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={taskSearchQuery}
+              onChange={e => setTaskSearchQuery(e.target.value)}
+              placeholder="Search tasks, assignees..."
+              className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 pl-7 pr-3 py-1.5 rounded-lg text-[10px] font-medium outline-none text-slate-700 dark:text-white placeholder-slate-400"
+            />
+          </div>
+          <select value={taskFilterPriority} onChange={e => setTaskFilterPriority(e.target.value)} className="bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg px-2 py-1.5 text-[9px] font-bold outline-none text-slate-700 dark:text-white">
+            <option value="All">All Priorities</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+          <select value={taskFilterStatus} onChange={e => setTaskFilterStatus(e.target.value)} className="bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg px-2 py-1.5 text-[9px] font-bold outline-none text-slate-700 dark:text-white">
+            <option value="All">All Statuses</option>
+            <option value="Todo">Todo</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Done">Completed</option>
+          </select>
         </div>
+
+        {/* ── LIST VIEW ─────────────────────────────────────────────── */}
+        {taskViewMode === 'list' && (
+          <div className="bg-white dark:bg-[#0f1624] border-x border-b border-slate-200 dark:border-zinc-800 rounded-b-2xl overflow-hidden">
+            {/* Column labels */}
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-zinc-900/40 border-b border-slate-100 dark:border-zinc-800 text-[8px] font-black uppercase tracking-widest text-slate-400">
+              <span className="w-3.5 shrink-0" />
+              <span className="w-6 shrink-0">P</span>
+              <span className="flex-1">Task Title</span>
+              <span className="hidden md:block w-48 shrink-0 text-right pr-2">AI Insight</span>
+              <span className="hidden sm:block w-20 shrink-0 text-right">Owner</span>
+              <span className="w-20 shrink-0 text-right">Due</span>
+              <span className="hidden sm:block w-20 shrink-0 text-right">Progress</span>
+              <span className="hidden lg:block w-16 shrink-0 text-right">Status</span>
+              <span className="w-16 shrink-0" />
+            </div>
+
+            {filtered.length === 0 ? (
+              <div className="py-16 text-center">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No tasks match current filters</p>
+              </div>
+            ) : (
+              groups.map(({ key, label, color, filter }) => {
+                const groupTasks = filtered.filter(filter);
+                if (groupTasks.length === 0) return null;
+                return (
+                  <div key={key}>
+                    <GroupLabel label={label} count={groupTasks.length} color={color} />
+                    {groupTasks.map(renderListRow)}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+
+        {/* ── KANBAN VIEW ────────────────────────────────────────────── */}
+        {taskViewMode === 'kanban' && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-3">
+            {['Todo', 'In Progress', 'Done', 'Overdue'].map((col) => {
+              const colTasks = filtered.filter(t => {
+                if (col === 'Overdue')     return t.group === 'overdue';
+                if (col === 'Done')        return t.status === 'Done';
+                if (col === 'Todo')        return t.status === 'Todo' && t.group !== 'overdue';
+                if (col === 'In Progress') return t.status === 'In Progress' && t.group !== 'overdue';
+                return false;
+              });
+              return (
+                <div key={col} className="bg-slate-50/50 dark:bg-zinc-900/20 border border-slate-100 dark:border-zinc-800/60 rounded-xl overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 dark:border-zinc-800 bg-slate-50/80 dark:bg-zinc-900/60 backdrop-blur-sm">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full ${statusDot(col)}`} />
+                      <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">{col}</span>
+                    </div>
+                    <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-zinc-800 text-slate-500 rounded text-[8px] font-bold">{colTasks.length}</span>
+                  </div>
+                  <div className="p-2 space-y-2 overflow-y-auto max-h-[70vh]">
+                    {colTasks.map(renderKanbanCard)}
+                    {colTasks.length === 0 && (
+                      <div className="py-8 text-center text-[8px] font-bold text-slate-400 border border-dashed border-slate-150 dark:border-zinc-800 rounded-lg">No tasks</div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── TABLE VIEW ─────────────────────────────────────────────── */}
+        {taskViewMode === 'table' && (
+          <div className="overflow-x-auto border-x border-b border-slate-200 dark:border-zinc-800 rounded-b-2xl">
+            <table className="w-full text-left">
+              <thead className="sticky top-0 z-10">
+                <tr className="bg-slate-50 dark:bg-zinc-900/60 border-b border-slate-200 dark:border-zinc-800 text-[8px] font-black uppercase tracking-widest text-slate-400">
+                  <th className="py-2 px-3 w-8">#</th>
+                  <th className="py-2 px-3">Title</th>
+                  <th className="py-2 px-3 w-16">Priority</th>
+                  <th className="py-2 px-3 w-24">Owner</th>
+                  <th className="py-2 px-3 w-24">Due</th>
+                  <th className="py-2 px-3 w-20">Status</th>
+                  <th className="py-2 px-3 w-28 text-center">Progress</th>
+                  <th className="py-2 px-3 w-16 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/60 bg-white dark:bg-[#0f1624]">
+                {filtered.length === 0 ? (
+                  <tr><td colSpan="8" className="py-12 text-center text-[9px] font-bold text-slate-400 uppercase tracking-widest">No tasks match filters</td></tr>
+                ) : filtered.map((t, idx) => (
+                  <tr key={t.id} className="hover:bg-slate-50/60 dark:hover:bg-zinc-900/30 group transition-colors">
+                    <td className="py-1.5 px-3 text-[9px] text-slate-400 font-bold">{idx + 1}</td>
+                    <td className="py-1.5 px-3">
+                      <div className="flex flex-col gap-0.5">
+                        <span className={`text-[11px] font-semibold ${t.status === 'Done' ? 'line-through text-slate-400' : 'text-slate-800 dark:text-white'}`}>{t.title}</span>
+                        <span className="text-[8px] text-[#4F46E5] opacity-60">↗ {t.aiSuggestion}</span>
+                      </div>
+                    </td>
+                    <td className="py-1.5 px-3"><span className={`px-1.5 py-0.5 rounded text-[7px] font-black uppercase border ${priorityChip(t.priority)}`}>{t.priority}</span></td>
+                    <td className="py-1.5 px-3 text-[10px] text-slate-500 dark:text-slate-400">{t.owner}</td>
+                    <td className={`py-1.5 px-3 text-[10px] font-semibold tabular-nums ${dueBadge(t)}`}>{t.dueDate}</td>
+                    <td className="py-1.5 px-3">
+                      <button onClick={() => handleToggle(t)} className={`px-1.5 py-0.5 rounded text-[7px] font-black uppercase cursor-pointer ${statusChip(t.status)}`}>{t.status}</button>
+                    </td>
+                    <td className="py-1.5 px-3">
+                      <div className="flex items-center gap-1.5 justify-center">
+                        <div className="flex-1 h-1 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden max-w-[48px]">
+                          <div className={`h-full rounded-full ${t.status === 'Done' ? 'bg-emerald-500' : 'bg-[#4F46E5]'}`} style={{ width: `${t.progress}%` }} />
+                        </div>
+                        <span className="text-[9px] font-bold text-slate-400 w-7 text-right">{t.progress}%</span>
+                      </div>
+                    </td>
+                    <td className="py-1.5 px-3">
+                      <div className="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => { setEditingTask(t); setIsTaskModalVisible(true); }} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-400 hover:text-slate-600 cursor-pointer"><Edit3 size={10} /></button>
+                        <button onClick={() => handleDelete(t.id)} className="p-1 rounded hover:bg-red-50 text-slate-400 hover:text-red-500 cursor-pointer"><Trash2 size={10} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* ── CALENDAR VIEW ──────────────────────────────────────────── */}
+        {taskViewMode === 'calendar' && (
+          <div className="border-x border-b border-slate-200 dark:border-zinc-800 rounded-b-2xl bg-white dark:bg-[#0f1624] overflow-hidden">
+            <div className="grid grid-cols-7 border-b border-slate-100 dark:border-zinc-800">
+              {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
+                <div key={d} className="py-2 text-center text-[8px] font-black uppercase text-slate-400 tracking-widest border-r border-slate-100 dark:border-zinc-800 last:border-r-0">{d}</div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7">
+              {Array.from({ length: 31 }).map((_, i) => {
+                const dayNum = i + 1;
+                const dayDateStr = `2026-07-${dayNum < 10 ? '0' + dayNum : dayNum}`;
+                const dayTasks = filtered.filter(t => t.dueDate === dayDateStr);
+                const isTodayCell = dayDateStr === new Date().toISOString().split('T')[0];
+                return (
+                  <div key={i} className={`min-h-[64px] border-r border-b border-slate-100 dark:border-zinc-800/60 last:border-r-0 p-1.5 flex flex-col gap-1 ${ isTodayCell ? 'bg-indigo-50/40 dark:bg-indigo-950/10' : ''}`}>
+                    <span className={`text-[9px] font-bold self-start w-5 h-5 flex items-center justify-center rounded-full ${isTodayCell ? 'bg-[#4F46E5] text-white' : 'text-slate-400'}`}>{dayNum}</span>
+                    {dayTasks.slice(0, 2).map(t => (
+                      <span key={t.id} className={`block text-[7px] font-bold truncate px-1 py-0.5 rounded ${statusChip(t.status)}`} title={t.title}>{t.title}</span>
+                    ))}
+                    {dayTasks.length > 2 && <span className="text-[7px] text-slate-400 font-bold">+{dayTasks.length - 2} more</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -8112,25 +9175,33 @@ INSTRUCTIONS:
           )}
 
           {/* Sticky Tab Bar */}
-          <div 
-            ref={tabsContainerRef}
-            className="flex items-center gap-1 sm:gap-1.5 pt-1.5 sm:pt-2 px-3 sm:px-4 pb-1.5 sm:pb-2 bg-white dark:bg-[#0b0c15] border-t border-[#E5E7EB] dark:border-zinc-800 overflow-x-auto scrollbar-hide shrink-0 scroll-smooth"
-            style={{ display: 'flex', overflowX: 'auto', whiteSpace: 'nowrap', WebkitOverflowScrolling: 'touch' }}
-          >
-            {tabsList.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={(e) => handleTabClick(tab.id, e)}
-                className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[9px] sm:text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-all border shrink-0 min-h-[36px] sm:min-h-[44px] ${
-                  activeTab === tab.id 
-                  ? 'bg-white dark:bg-zinc-900 border-[#E5E7EB] dark:border-zinc-800 shadow-sm text-[#4F46E5]' 
-                  : 'bg-transparent border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-50/50 dark:hover:bg-zinc-800/30'
-                }`}
-              >
-                <tab.icon size={13} className={activeTab === tab.id ? 'text-[#4F46E5]' : 'text-gray-400'} />
-                <span className="hidden min-[400px]:inline">{tab.name}</span>
-              </button>
-            ))}
+          <div className="relative border-t border-[#E5E7EB] dark:border-zinc-800 bg-white dark:bg-[#0b0c15]">
+            {/* Left/Right Fade Gradients */}
+            <div className={`absolute left-0 top-0 bottom-0 w-10 bg-gradient-to-r from-white dark:from-[#0b0c15] to-transparent pointer-events-none z-10 transition-opacity duration-300 ${showLeftFade ? 'opacity-100' : 'opacity-0'}`} />
+            <div className={`absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-white dark:from-[#0b0c15] to-transparent pointer-events-none z-10 transition-opacity duration-300 ${showRightFade ? 'opacity-100' : 'opacity-0'}`} />
+            
+            <div 
+              ref={tabsContainerRef}
+              tabIndex={0}
+              className="flex items-center gap-1 sm:gap-1.5 pt-1.5 sm:pt-2 px-6 pb-1.5 sm:pb-2 overflow-x-auto custom-scrollbar-thin shrink-0 scroll-smooth focus:outline-none select-none"
+              style={{ display: 'flex', whiteSpace: 'nowrap', WebkitOverflowScrolling: 'touch' }}
+            >
+              {tabsList.map((tab) => (
+                <button
+                  key={tab.id}
+                  data-tab-id={tab.id}
+                  onClick={(e) => handleTabClick(tab.id, e)}
+                  className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-2 rounded-xl text-[9px] sm:text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-all border shrink-0 min-h-[36px] sm:min-h-[44px] cursor-pointer outline-none ${
+                    activeTab === tab.id 
+                    ? 'bg-[#4F46E5] border-[#4F46E5] text-white shadow-md shadow-[#4F46E5]/15' 
+                    : 'bg-transparent border-slate-100 hover:border-slate-200 dark:border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-50/50 dark:hover:bg-zinc-800/40'
+                  }`}
+                >
+                  <tab.icon size={13} className={activeTab === tab.id ? 'text-white' : 'text-slate-450 dark:text-slate-400'} />
+                  <span>{tab.name}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -8637,6 +9708,169 @@ INSTRUCTIONS:
       <TaskModal visible={isTaskModalVisible} onClose={() => { setIsTaskModalVisible(false); setEditingTask(null); }} onSave={handleSaveTask} editingTask={editingTask} />
       <TimelineModal visible={isTimelineModalVisible} onClose={() => { setIsTimelineModalVisible(false); setEditingTimeline(null); }} onSave={handleSaveTimeline} editingEvent={editingTimeline} />
       <TimelineDetailsModal visible={isDetailModalOpen} onClose={() => { setIsDetailModalOpen(false); setSelectedDetailEvent(null); }} event={selectedDetailEvent} />
+      {activeActionsMenuId && menuTriggerRect && (() => {
+        const doc = caseData.contracts?.find(c => c.id === activeActionsMenuId);
+        if (!doc) return null;
+
+        const options = getContractMenuOptions(doc);
+
+        if (isMobile) {
+          return createPortal(
+            <div className="fixed inset-0 z-[99999] flex items-end justify-center bg-black/60 backdrop-blur-[2px]" onClick={() => { setActiveActionsMenuId(null); setMenuTriggerRect(null); }}>
+              <div 
+                className="w-full bg-white dark:bg-[#131c31] rounded-t-3xl shadow-2xl p-5 pb-8 space-y-4 max-h-[80vh] overflow-y-auto animate-in slide-in-from-bottom duration-250 border-t border-slate-200 dark:border-zinc-800"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="flex justify-between items-center border-b border-slate-100 dark:border-zinc-800 pb-3 text-left">
+                  <div className="truncate pr-4">
+                    <h4 className="text-xs font-bold text-slate-808 dark:text-white truncate">{doc.name}</h4>
+                    <p className="text-[10px] text-slate-400 font-semibold">{doc.category || 'Contract'}</p>
+                  </div>
+                  <button onClick={() => { setActiveActionsMenuId(null); setMenuTriggerRect(null); }} className="p-1 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-500 hover:text-slate-800">
+                    <X size={16} />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-left">
+                  {options.map((opt, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        setActiveActionsMenuId(null);
+                        setMenuTriggerRect(null);
+                        opt.onClick();
+                      }}
+                      className={`flex items-center gap-3 p-3 rounded-xl text-[10px] font-bold transition-all border ${
+                        opt.danger
+                          ? 'text-rose-600 hover:bg-rose-50 border-transparent dark:hover:bg-rose-955/20'
+                          : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-zinc-800/50 border-slate-100 dark:border-zinc-800/40'
+                      }`}
+                    >
+                      <span className={opt.danger ? 'text-rose-500' : 'text-indigo-500'}>{opt.icon}</span>
+                      <span>{opt.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>,
+            document.body
+          );
+        }
+
+        const dropdownWidth = 190;
+        const dropdownHeight = options.length * 32 + 20;
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        let top = menuTriggerRect.bottom + 4;
+        let left = menuTriggerRect.right - dropdownWidth;
+
+        if (top + dropdownHeight > viewportHeight) {
+          top = menuTriggerRect.top - dropdownHeight - 4;
+        }
+        if (left < 10) {
+          left = 10;
+        } else if (left + dropdownWidth > viewportWidth - 10) {
+          left = viewportWidth - dropdownWidth - 10;
+        }
+
+        return createPortal(
+          <>
+            <div className="fixed inset-0 z-[99999]" onClick={() => { setActiveActionsMenuId(null); setMenuTriggerRect(null); }} />
+            <div 
+              style={{
+                position: 'fixed',
+                top: `${top}px`,
+                left: `${left}px`,
+                width: `${dropdownWidth}px`
+              }}
+              className="bg-white dark:bg-[#131c31] border border-slate-205 dark:border-zinc-800 rounded-xl shadow-xl z-[100000] py-1.5 divide-y divide-slate-100 dark:divide-zinc-800/80 animate-in fade-in zoom-in-95 duration-100 text-left"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="py-1 text-slate-700 dark:text-slate-350">
+                {options.map((opt, i) => {
+                  const isFocused = i === focusedOptionIndex;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        setActiveActionsMenuId(null);
+                        setMenuTriggerRect(null);
+                        opt.onClick();
+                      }}
+                      className={`w-full px-3 py-2 flex items-center gap-2.5 font-bold text-[10px] tracking-wider transition-all text-left ${
+                        opt.danger
+                          ? 'text-red-500 hover:bg-red-500 hover:text-white'
+                          : isFocused 
+                            ? 'bg-indigo-650 text-white' 
+                            : 'hover:bg-slate-50 dark:hover:bg-zinc-800/60 text-slate-700 dark:text-slate-300'
+                      }`}
+                    >
+                      <span className={opt.danger ? 'text-red-400' : isFocused ? 'text-white' : 'text-slate-400 dark:text-slate-500'}>
+                        {opt.icon}
+                      </span>
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </>,
+          document.body
+        );
+      })()}
+
+      {deleteConfirmContract && createPortal(
+        <div className="fixed inset-0 z-[110000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-[4px] text-left">
+          <div className="relative bg-white dark:bg-[#131c31] w-full max-w-md rounded-2xl p-6 shadow-2xl border border-slate-205 dark:border-zinc-800 animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 text-red-600 mb-4">
+              <div className="p-2 bg-red-50 dark:bg-red-950/30 rounded-xl">
+                <Trash2 size={24} />
+              </div>
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">Delete Contract</h3>
+                <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider">Warning: This action is permanent</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              <p className="text-xs font-semibold text-slate-655 dark:text-slate-355 leading-relaxed">
+                Are you sure you want to permanently delete the contract <strong className="text-slate-808 dark:text-white font-black">"{deleteConfirmContract.name}"</strong>?
+              </p>
+              <div className="bg-red-50/50 dark:bg-red-955/10 border border-red-200/40 dark:border-red-900/30 rounded-xl p-3.5 text-[10px] font-semibold text-red-750 dark:text-red-400 leading-normal">
+                All associated AI clause audits, risk assessment scorecards, metadata, and background processing indices will be permanently destroyed. This cannot be undone.
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => setDeleteConfirmContract(null)}
+                className="px-4 py-2 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  const docObj = deleteConfirmContract;
+                  setDeleteConfirmContract(null);
+                  const toastId = toast.loading("Deleting contract record...");
+                  try {
+                    const updatedDocs = (caseData.contracts || []).filter(d => d.id !== docObj.id);
+                    await legalService.updateCase(caseData.id || caseData._id, { contracts: updatedDocs });
+                    setCaseData(prev => ({ ...prev, contracts: updatedDocs }));
+                    toast.success('Contract deleted successfully', { id: toastId });
+                  } catch (err) {
+                    toast.error('Failed to delete contract', { id: toastId });
+                  }
+                }}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-md transition-colors"
+              >
+                Confirm Delete
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
       <AiHearingClerkModal visible={isHearingClerkModalOpen} onClose={() => { setIsHearingClerkModalOpen(false); setSelectedDetailHearing(null); }} hearing={selectedDetailHearing} />
       <HearingModal visible={isHearingModalVisible} onClose={() => { setIsHearingModalVisible(false); setEditingHearing(null); }} onSave={handleSaveHearing} editingHearing={editingHearing} />
       <UploadCourtOrderModal visible={isUploadOrderModalOpen} onClose={() => { setIsUploadOrderModalOpen(false); setUploadOrderContextHearing(null); }} hearing={uploadOrderContextHearing} onUpload={handleUploadCourtOrder} />

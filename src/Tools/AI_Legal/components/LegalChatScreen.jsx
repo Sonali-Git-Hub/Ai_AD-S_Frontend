@@ -893,7 +893,17 @@ Please continue the conversation naturally using this context. Never ask the use
   const [thinkingIndex, setThinkingIndex] = useState(0);
 
   const handleTextSelection = useCallback((e) => {
-    if (e.target.closest('.smart-context-tooltip')) return;
+    if (
+      e.target.closest('.smart-context-tooltip') ||
+      e.target.closest('button') ||
+      e.target.closest('a') ||
+      e.target.closest('input') ||
+      e.target.closest('textarea') ||
+      e.target.closest('header') ||
+      e.target.closest('footer')
+    ) {
+      return;
+    }
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) {
       setSelectedTextMenu(null);
@@ -1151,7 +1161,7 @@ Please continue the conversation naturally using this context. Never ask the use
           return {
             chat_id: chatId,
             title: s.title || 'New Chat',
-            timestamp: s.lastModified || s.timestamp || Date.now(),
+            timestamp: new Date(s.lastModified || s.timestamp || Date.now()).getTime(),
             preview: preview
           };
         }));
