@@ -424,13 +424,27 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
                                 </div>
                             ) : (
                                 <div className="flex-1 overflow-y-auto px-3 sm:px-6 py-3 sm:py-4 custom-scrollbar flex flex-col gap-3 sm:gap-4 relative z-[8]">
-
-                                    <div className={`grid grid-cols-1 ${isGenerating || resultVideoUrl ? 'md:grid-cols-2' : ''} gap-3 sm:gap-4`}>
-                                        <div className={`flex flex-col gap-2 ${!isGenerating && !resultVideoUrl ? 'max-w-[260px] sm:max-w-[280px] mx-auto w-full' : ''}`}>
-                                            <span className="text-[9px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-[0.25em] self-start ml-1">Source Image</span>
-                                            {previewUrl ? (
-                                                <div className="relative group w-full aspect-square bg-slate-50 dark:bg-zinc-950 rounded-[20px] overflow-hidden border border-slate-200 dark:border-zinc-800 shadow-sm">
-                                                    <img src={previewUrl} alt="Original" className="w-full h-full object-contain" />
+                                    <div className="max-w-[320px] sm:max-w-[360px] mx-auto w-full flex flex-col gap-2">
+                                        <span className="text-[9px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-[0.25em] self-start ml-1">
+                                            {resultVideoUrl ? "Video Result" : "Source Image"}
+                                        </span>
+                                        {resultVideoUrl ? (
+                                            <div className="relative w-full aspect-square bg-black rounded-[20px] overflow-hidden border border-slate-200 dark:border-zinc-800 shadow-sm flex items-center justify-center">
+                                                <CustomVideoPlayer src={resultVideoUrl} compact={true} />
+                                            </div>
+                                        ) : previewUrl ? (
+                                            <div className="relative group w-full aspect-square bg-slate-50 dark:bg-zinc-950 rounded-[20px] overflow-hidden border border-slate-200 dark:border-zinc-800 shadow-sm">
+                                                <img 
+                                                    src={previewUrl} 
+                                                    alt="Original" 
+                                                    className={`w-full h-full object-contain transition-all duration-350 ${isGenerating ? 'blur-sm scale-[0.98]' : ''}`} 
+                                                />
+                                                {isGenerating ? (
+                                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] text-white p-4">
+                                                        <Loader2 className="w-8 h-8 animate-spin text-white mb-2" />
+                                                        <p className="text-sm font-semibold text-center">Veo is animating...<br /><span className="text-xs font-medium opacity-75">This usually takes ~30 seconds</span></p>
+                                                    </div>
+                                                ) : (
                                                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center backdrop-blur-sm opacity-0 group-hover:opacity-100">
                                                         <button
                                                             onClick={() => fileInputRef.current?.click()}
@@ -439,42 +453,24 @@ const MagicVideoGenModal = ({ isOpen, onClose, onCreditDeduction }) => {
                                                             <Upload className="w-4 h-4" /> Change Frame
                                                         </button>
                                                     </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div
+                                                onClick={() => fileInputRef.current?.click()}
+                                                onDragOver={handleDragOver}
+                                                onDragLeave={handleDragLeave}
+                                                onDrop={handleDrop}
+                                                className={`w-full aspect-video sm:aspect-square bg-slate-50 dark:bg-zinc-950 border-2 border-dashed ${isDragging ? 'border-primary bg-primary/10' : 'border-slate-200 dark:border-zinc-800 hover:border-primary/40'} rounded-[16px] sm:rounded-[20px] flex flex-col items-center justify-center gap-2 sm:gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-zinc-900 transition-all text-slate-650 dark:text-slate-400 group shadow-sm`}
+                                            >
+                                                <div className={`w-12 h-12 rounded-full ${isDragging ? 'bg-primary/20' : 'bg-white dark:bg-zinc-900'} flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm border border-slate-200 dark:border-zinc-800`}>
+                                                    <Upload className={`w-6 h-6 ${isDragging ? 'text-primary' : 'text-slate-500'}`} />
                                                 </div>
-                                            ) : (
-                                                <div
-                                                    onClick={() => fileInputRef.current?.click()}
-                                                    onDragOver={handleDragOver}
-                                                    onDragLeave={handleDragLeave}
-                                                    onDrop={handleDrop}
-                                                    className={`w-full aspect-video sm:aspect-square bg-slate-50 dark:bg-zinc-950 border-2 border-dashed ${isDragging ? 'border-primary bg-primary/10' : 'border-slate-200 dark:border-zinc-800 hover:border-primary/40'} rounded-[16px] sm:rounded-[20px] flex flex-col items-center justify-center gap-2 sm:gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-zinc-900 transition-all text-slate-650 dark:text-slate-400 group shadow-sm`}
-                                                >
-                                                    <div className={`w-12 h-12 rounded-full ${isDragging ? 'bg-primary/20' : 'bg-white dark:bg-zinc-900'} flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm border border-slate-200 dark:border-zinc-800`}>
-                                                        <Upload className={`w-6 h-6 ${isDragging ? 'text-primary' : 'text-slate-500'}`} />
-                                                    </div>
-                                                    <div className="text-center px-4">
-                                                        <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
-                                                            {isDragging ? 'Drop Image Here' : 'Click or Drag Image'}
-                                                        </p>
-                                                        <p className="text-xs mt-1 text-slate-400 dark:text-slate-500">First frame of the video</p>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {(isGenerating || resultVideoUrl) && (
-                                            <div className="flex flex-col gap-2">
-                                                <span className="text-[9px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-[0.25em] self-start ml-1">Video Result</span>
-                                                <div className={`relative w-full aspect-square rounded-[20px] overflow-hidden border ${isGenerating ? 'border-primary/40 shadow-[0_0_20px_rgba(99,102,241,0.1)]' : 'border-slate-200 dark:border-zinc-800'} flex items-center justify-center bg-slate-50 dark:bg-zinc-950 shadow-sm`}>
-                                                    {isGenerating ? (
-                                                        <div className="flex flex-col items-center gap-4 text-primary animate-in fade-in duration-500">
-                                                            <Loader2 className="w-8 h-8 animate-spin" />
-                                                            <p className="text-sm font-semibold animate-pulse text-center px-4 text-slate-700 dark:text-slate-300">Veo is animating...<br /><span className="text-xs font-medium opacity-75">This usually takes ~30 seconds</span></p>
-                                                        </div>
-                                                    ) : resultVideoUrl ? (
-                                                        <div className="w-full h-full animate-in zoom-in-95 duration-500 flex items-center justify-center bg-black">
-                                                            <CustomVideoPlayer src={resultVideoUrl} compact={true} />
-                                                        </div>
-                                                    ) : null}
+                                                <div className="text-center px-4">
+                                                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                                                        {isDragging ? 'Drop Image Here' : 'Click or Drag Image'}
+                                                    </p>
+                                                    <p className="text-xs mt-1 text-slate-400 dark:text-slate-500">First frame of the video</p>
                                                 </div>
                                             </div>
                                         )}
