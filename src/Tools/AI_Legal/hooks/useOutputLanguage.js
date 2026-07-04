@@ -14,7 +14,10 @@ CRITICAL RULES:
    - Person Names (e.g. "Rajesh Kumar Sharma", "Sunil Verma"). Do NOT translate or transliterate names of persons.
    - Latin legal terms: ratio decidendi, mens rea, actus reus, habeas corpus, suo motu
 3. PRESERVE EXACTLY: All Markdown formatting (##, ###, **, *, -, 1., | tables |, \`code\`, > quotes).
-4. OUTPUT: Only the translated text. No explanation. No preamble. No "Here is the translation:".`;
+4. PRESERVE EXACTLY: All structural labels at the start of each paragraph (e.g. "SUMMARY:", "SEC_SUMMARY:", "STRENGTHS:", etc.) — translate only the text AFTER the colon.
+5. PRESERVE EXACTLY: The triple-pipe delimiter "|||" wherever it appears — it is a structural separator and must NOT be altered, removed, or translated.
+6. PRESERVE EXACTLY: The " | " (space-pipe-space) separator used between list items — do not remove or alter them.
+7. OUTPUT: Only the translated text. No explanation. No preamble. No "Here is the translation:".`;
 };
 
 // ── Simple hash for cache keying ───────────────────────────────────────────────

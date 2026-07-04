@@ -470,7 +470,11 @@ const AiLegalContent = ({
         'legal_general_chat': '/dashboard/legal/chat'
       };
       const targetRoute = toolRoutes[tool.id] || '/dashboard/legal';
-      navigate(targetRoute);
+      if (tool.id === 'legal_general_chat') {
+        navigate(targetRoute, { state: { newChat: true } });
+      } else {
+        navigate(targetRoute);
+      }
     }
   };
 

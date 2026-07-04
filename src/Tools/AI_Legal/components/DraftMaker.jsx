@@ -4574,7 +4574,8 @@ CRITICAL MASTER RULES:
         {/* ══════════════ STEP: PREVIEW ══════════════ */}
         {step === 'PREVIEW' && (() => {
           // Merge fields and format missing placeholders
-          let mergedText = finalDraft || '';
+          // Use translated text if available (Hindi), otherwise use finalDraft
+          let mergedText = draftDisplayText || finalDraft || '';
           template?.fields?.forEach(f => {
             const val = formData[f.key] || '';
             if (val.toString().trim()) {

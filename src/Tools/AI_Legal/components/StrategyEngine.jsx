@@ -536,6 +536,20 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
     out_actions: true
   });
 
+  // ── Advocate Notes State ───────────────────────────────────────────────────────
+  const [advocateNotes, setAdvocateNotes] = useState([]);          // persisted notes array
+  const [currentNoteText, setCurrentNoteText] = useState('');      // editor textarea value
+  const [editingNoteId, setEditingNoteId] = useState(null);        // null = new note mode
+  const [notesSaveStatus, setNotesSaveStatus] = useState('idle');  // 'idle'|'saving'|'saved'|'error'
+  const [lastSavedAt, setLastSavedAt] = useState(null);            // Date obj of last save
+  const [noteSearch, setNoteSearch] = useState('');
+  const [notesSortOrder, setNotesSortOrder] = useState('newest');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // note id pending delete
+  const [pendingNotesClose, setPendingNotesClose] = useState(false);// unsaved-changes guard
+  const [expandedNoteId, setExpandedNoteId] = useState(null);      // expanded card id
+  const autosaveTimerRef = useRef(null);
+  // ──────────────────────────────────────────────────────────────────────────────
+
   const handleSpeechSummary = () => {
     if (!strategyResult) return;
 
@@ -748,10 +762,17 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
       setScenarioRelief(ls.scenarioRelief || '');
       setScenarioOrders(ls.scenarioOrders || '');
       setScenarioNotes(ls.scenarioNotes || '');
+      // Load persisted advocate notes array
+      setAdvocateNotes(Array.isArray(ls.advocateNotes) ? ls.advocateNotes : []);
 
       if (isDifferentCase) {
         console.log(`[StrategyEngine] Case ID changed from previous to ${caseObj._id}. Hydrating strategyResult from DB.`);
         setStrategyResult(ls.activeStrategy || null);
+        // Reset notes editor when switching case
+        setCurrentNoteText('');
+        setEditingNoteId(null);
+        setNotesSaveStatus('idle');
+        setLastSavedAt(null);
       } else {
         console.log(`[StrategyEngine] Same Case ID ${caseObj._id} updated. Retaining local strategyResult.`);
       }
@@ -767,6 +788,11 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
       if (isDifferentCase) {
         console.log(`[StrategyEngine] Case ID changed to ${caseObj._id} (no litigationStrategy). Resetting platform state.`);
         resetPlatformState();
+        setAdvocateNotes([]);
+        setCurrentNoteText('');
+        setEditingNoteId(null);
+        setNotesSaveStatus('idle');
+        setLastSavedAt(null);
       } else {
         console.log(`[StrategyEngine] Same Case ID ${caseObj._id} updated (no litigationStrategy). Retaining local strategyResult.`);
       }
@@ -860,6 +886,7 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
           scenarioRelief,
           scenarioOrders,
           scenarioNotes,
+          advocateNotes,
           activeStrategy: strategyResult || currentLs.activeStrategy || null,
           tasks,
           auditLogs,
@@ -894,6 +921,136 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
       await syncToDatabase({ auditLogs: updatedLogs });
     }
   };
+
+  // ── Advocate Notes Handlers ────────────────────────────────────────────────────
+
+  const handleSaveNote = async (customNotesList) => {
+    const text = currentNoteText.trim();
+    if (!text) return;
+    const userData = getUserData();
+    const author = userData?.name
+      ? `${userData.name}${userData.email ? ' (' + userData.email + ')' : ''}`
+      : 'Advocate';
+    const now = new Date().toISOString();
+
+    let updatedNotes;
+    if (editingNoteId) {
+      updatedNotes = (customNotesList || advocateNotes).map(n =>
+        n.id === editingNoteId
+          ? { ...n, text, updatedAt: now, version: (n.version || 1) + 1 }
+          : n
+      );
+    } else {
+      const newNote = {
+        id: `note_${Date.now()}`,
+        text,
+        createdAt: now,
+        updatedAt: now,
+        author,
+        version: 1
+      };
+      updatedNotes = [newNote, ...(customNotesList || advocateNotes)];
+      setEditingNoteId(newNote.id);
+    }
+
+    setAdvocateNotes(updatedNotes);
+    setNotesSaveStatus('saving');
+    try {
+      if (strategySource === 'EXISTING_CASE') {
+        const activeId = linkedCaseId || currentCase?._id;
+        if (activeId) {
+          const activeProj = allProjects.find(p => p._id === activeId) || currentCase;
+          const currentLs = activeProj?.litigationStrategy || {};
+          await apiService.updateProject(activeId, {
+            ...activeProj,
+            litigationStrategy: { ...currentLs, advocateNotes: updatedNotes }
+          });
+          if (onUpdateCase) {
+            // soft update local reference — don't refetch
+          }
+        }
+      }
+      setNotesSaveStatus('saved');
+      setLastSavedAt(new Date());
+      toast.success('Note saved successfully.');
+    } catch (e) {
+      console.error('[AdvocateNotes] Save failed:', e);
+      setNotesSaveStatus('error');
+      toast.error('Failed to save note. Please try again.');
+    }
+  };
+
+  const handleDeleteNote = async (noteId) => {
+    const updatedNotes = advocateNotes.filter(n => n.id !== noteId);
+    setAdvocateNotes(updatedNotes);
+    setShowDeleteConfirm(null);
+    if (editingNoteId === noteId) {
+      setCurrentNoteText('');
+      setEditingNoteId(null);
+      setNotesSaveStatus('idle');
+    }
+    try {
+      if (strategySource === 'EXISTING_CASE') {
+        const activeId = linkedCaseId || currentCase?._id;
+        if (activeId) {
+          const activeProj = allProjects.find(p => p._id === activeId) || currentCase;
+          const currentLs = activeProj?.litigationStrategy || {};
+          await apiService.updateProject(activeId, {
+            ...activeProj,
+            litigationStrategy: { ...currentLs, advocateNotes: updatedNotes }
+          });
+        }
+      }
+      toast.success('Note deleted.');
+    } catch (e) {
+      console.error('[AdvocateNotes] Delete failed:', e);
+      toast.error('Failed to delete note.');
+    }
+  };
+
+  const handleEditNote = (note) => {
+    setCurrentNoteText(note.text);
+    setEditingNoteId(note.id);
+    setNotesSaveStatus('idle');
+    setLastSavedAt(null);
+  };
+
+  const handleNewNote = () => {
+    setCurrentNoteText('');
+    setEditingNoteId(null);
+    setNotesSaveStatus('idle');
+    setLastSavedAt(null);
+  };
+
+  // Attempt to close the drawer — show guard if unsaved changes exist
+  const handleNotesDrawerClose = () => {
+    const savedText = editingNoteId
+      ? (advocateNotes.find(n => n.id === editingNoteId)?.text || '')
+      : '';
+    if (currentNoteText.trim() && currentNoteText.trim() !== savedText.trim()) {
+      setPendingNotesClose(true);
+    } else {
+      setIsNotesDrawerOpen(false);
+      setPendingNotesClose(false);
+    }
+  };
+
+  // Autosave: 2s after user stops typing
+  useEffect(() => {
+    if (notesSaveStatus === 'saved' || !currentNoteText.trim()) return;
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    setNotesSaveStatus('idle'); // mark as having unsaved changes
+    autosaveTimerRef.current = setTimeout(() => {
+      if (currentNoteText.trim()) {
+        handleSaveNote();
+      }
+    }, 2000);
+    return () => {
+      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    };
+  }, [currentNoteText]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ──────────────────────────────────────────────────────────────────────────────
 
   const handleSaveStrategy = async () => {
     if (!strategyResult) return;
@@ -4069,52 +4226,12 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
 
                   {/* Report footer actions */}
                   <div className="flex flex-wrap items-center justify-end gap-3 pt-6 border-t border-slate-200 dark:border-zinc-800/80 mt-8 w-full">
-                    {/* Brief Dropdown */}
-                    <div className="relative">
-                      <button
-                        onClick={() => setBriefMenuOpen(!briefMenuOpen)}
-                        className="h-10 px-[18px] py-[10px] bg-violet-600 hover:bg-violet-700 text-white rounded-[11px] text-xs font-bold transition-all flex items-center gap-2 shadow-md shadow-violet-500/10"
-                      >
-                        <FileText size={16} />
-                        <span>Brief</span>
-                      </button>
-                      {briefMenuOpen && (
-                        <div className="absolute bottom-12 right-0 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl shadow-xl p-1.5 w-40 z-50 text-xs font-bold text-slate-707 dark:text-slate-202 animate-fadeIn">
-                          <button
-                            onClick={() => {
-                              handlePrintBriefPDF();
-                              setBriefMenuOpen(false);
-                            }}
-                            className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg flex items-center gap-2"
-                          >
-                            <span>📕 Export PDF</span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              handleExportBriefDoc();
-                              setBriefMenuOpen(false);
-                            }}
-                            className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg flex items-center gap-2"
-                          >
-                            <span>📝 Export DOCX</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
                     <button
                       onClick={handlePrintPDF}
                       className="h-10 px-[18px] py-[10px] bg-indigo-600 hover:bg-indigo-700 text-white rounded-[11px] text-xs font-bold transition-all flex items-center gap-2 shadow-md shadow-indigo-500/10"
                     >
-                      <Printer size={16} />
+                      <Download size={16} />
                       <span>PDF</span>
-                    </button>
-                    <button
-                      onClick={handleExportDoc}
-                      className="h-10 px-[18px] py-[10px] bg-emerald-600 hover:bg-emerald-700 text-white rounded-[11px] text-xs font-bold transition-all flex items-center gap-2 shadow-md shadow-emerald-500/10"
-                    >
-                      <FileDown size={16} />
-                      <span>DOCX</span>
                     </button>
                     <button
                       onClick={handleSaveStrategy}
@@ -4328,55 +4445,287 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
       )}
 
       {/* Advocate Notes Drawer Overlay */}
-      {isNotesDrawerOpen && (
-        <div className="fixed inset-0 z-[150000] flex justify-end">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsNotesDrawerOpen(false)} />
-          <div className={`relative w-full max-w-[400px] h-full flex flex-col p-5 sm:p-6 shadow-2xl transition-all duration-300 ${isDark ? 'bg-[#0f172a] border-l border-slate-800 text-white' : 'bg-white border-l border-slate-200 text-slate-900'
-            }`}>
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-zinc-800/80 shrink-0">
-              <div className="flex items-center gap-2">
-                <BookOpen size={16} className="text-indigo-500" />
-                <h3 className="text-sm font-black uppercase tracking-wider">Advocate Notes</h3>
+      {isNotesDrawerOpen && (() => {
+        const fmtTime = (iso) => {
+          if (!iso) return '';
+          const d = new Date(iso);
+          return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        };
+        const fmtDate = (iso) => {
+          if (!iso) return '';
+          const d = new Date(iso);
+          return d.toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' });
+        };
+
+        const saveStatusLabel = () => {
+          if (notesSaveStatus === 'saving') return <span className="text-amber-400 animate-pulse">Saving...</span>;
+          if (notesSaveStatus === 'saved' && lastSavedAt) return <span className="text-emerald-400">✓ Saved at {fmtTime(lastSavedAt.toISOString())}</span>;
+          if (notesSaveStatus === 'error') return <span className="text-rose-400">Save failed</span>;
+          if (currentNoteText.trim()) return <span className="text-slate-400">Unsaved changes</span>;
+          return <span className="text-slate-500">No changes</span>;
+        };
+
+        const editingNote = editingNoteId ? advocateNotes.find(n => n.id === editingNoteId) : null;
+        const savedText = editingNote?.text || '';
+
+        let filtered = advocateNotes.filter(n =>
+          !noteSearch || n.text.toLowerCase().includes(noteSearch.toLowerCase())
+        );
+        filtered = notesSortOrder === 'newest'
+          ? [...filtered].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+          : [...filtered].sort((a, b) => new Date(a.updatedAt) - new Date(b.updatedAt));
+
+        return (
+          <div className="fixed inset-0 z-[150000] flex justify-end">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={handleNotesDrawerClose} />
+            <div className={`relative w-full max-w-[440px] h-full flex flex-col shadow-2xl transition-all duration-300 ${isDark ? 'bg-[#0b0f1a] border-l border-slate-800 text-white' : 'bg-white border-l border-slate-200 text-slate-900'}`}>
+
+              {/* Header */}
+              <div className={`flex items-center justify-between px-5 py-4 border-b shrink-0 ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
+                <div className="flex items-center gap-2.5">
+                  <BookOpen size={16} className="text-amber-400" />
+                  <h3 className="text-sm font-black uppercase tracking-wider">Advocate Notes</h3>
+                  {advocateNotes.length > 0 && (
+                    <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${isDark ? 'bg-amber-500/20 text-amber-300' : 'bg-amber-100 text-amber-700'}`}>
+                      {advocateNotes.length}
+                    </span>
+                  )}
+                </div>
+                <button onClick={handleNotesDrawerClose} className={`p-1.5 rounded-full transition-colors ${isDark ? 'hover:bg-slate-800' : 'hover:bg-slate-100'}`}>
+                  <X size={16} className="text-slate-400" />
+                </button>
               </div>
-              <button onClick={() => setIsNotesDrawerOpen(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full">
-                <X size={18} className="text-slate-400" />
-              </button>
-            </div>
 
-            <div className="flex-1 overflow-y-auto mt-4 space-y-4 pr-1 custom-scrollbar text-xs font-semibold">
-              <p className="text-[10px] text-slate-400 leading-normal">
-                Record your strategic thoughts, key timelines, checklists, or trial preparation reminders. Saved automatically to the case history.
-              </p>
+              {/* Scrollable body */}
+              <div className="flex-1 overflow-y-auto custom-scrollbar">
 
-              <textarea
-                rows={15}
-                value={scenarioNotes}
-                onChange={e => setScenarioNotes(e.target.value)}
-                placeholder="Type private case strategy notes, checklists..."
-                className={`w-full border rounded-xl px-3 py-2 outline-none resize-none font-bold text-xs ${isDark ? 'bg-black/25 border-zinc-800 text-white' : 'bg-slate-50 border-slate-205 text-slate-808'
-                  }`}
-              />
-            </div>
+                {/* ─── Note Editor ─────────────────────────────────── */}
+                <div className={`px-5 py-4 border-b ${isDark ? 'border-slate-800/60' : 'border-slate-100'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      {editingNoteId ? 'Editing Note' : 'New Note'}
+                    </span>
+                    <span className="text-[9px]">{saveStatusLabel()}</span>
+                  </div>
 
-            <div className="border-t border-slate-100 dark:border-zinc-800/80 pt-4 shrink-0">
-              <button
-                onClick={async () => {
-                  if (strategySource === 'EXISTING_CASE') {
-                    await syncToDatabase({ scenarioNotes });
-                    toast.success("Advocate notes updated!");
-                  } else {
-                    toast.success("Notes saved in session.");
-                  }
-                  setIsNotesDrawerOpen(false);
-                }}
-                className="w-full py-2.5 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase transition-all shadow-md"
-              >
-                Save & Close Notes
-              </button>
+                  <textarea
+                    rows={8}
+                    value={currentNoteText}
+                    onChange={e => {
+                      setCurrentNoteText(e.target.value);
+                      setNotesSaveStatus('idle');
+                    }}
+                    placeholder="Type your strategic thoughts, timelines, checklists, or trial preparation reminders..."
+                    className={`w-full border rounded-xl px-3 py-2.5 outline-none resize-none font-semibold text-xs leading-relaxed transition-colors ${isDark
+                      ? 'bg-slate-900/60 border-slate-700 text-white placeholder-slate-500 focus:border-amber-500/50'
+                      : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400 focus:border-amber-400'
+                    }`}
+                  />
+                  <div className="flex items-center justify-between mt-1 mb-3">
+                    <span className="text-[9px] text-slate-500">{currentNoteText.length} characters</span>
+                    {editingNoteId && (
+                      <span className={`text-[9px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>v{editingNote?.version || 1} · {fmtDate(editingNote?.updatedAt)}</span>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleSaveNote()}
+                      disabled={!currentNoteText.trim() || notesSaveStatus === 'saving'}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-sm ${
+                        !currentNoteText.trim() || notesSaveStatus === 'saving'
+                          ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                          : 'bg-amber-500 hover:bg-amber-600 text-white'
+                      }`}
+                    >
+                      {notesSaveStatus === 'saving' ? (
+                        <><RefreshCw size={11} className="animate-spin" /> Saving...</>
+                      ) : (
+                        <><Save size={11} /> {editingNoteId ? 'Update Note' : 'Save Note'}</>
+                      )}
+                    </button>
+                    {editingNoteId && (
+                      <button
+                        onClick={handleNewNote}
+                        className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-colors ${isDark ? 'border-slate-700 text-slate-300 hover:bg-slate-800' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                        title="New note"
+                      >
+                        <Plus size={11} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* ─── Search + Sort ───────────────────────────────── */}
+                {advocateNotes.length > 0 && (
+                  <div className={`px-5 py-3 border-b flex gap-2 items-center ${isDark ? 'border-slate-800/60' : 'border-slate-100'}`}>
+                    <div className={`flex-1 flex items-center gap-1.5 border rounded-lg px-2 py-1.5 ${isDark ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                      <Search size={11} className="text-slate-400 shrink-0" />
+                      <input
+                        type="text"
+                        value={noteSearch}
+                        onChange={e => setNoteSearch(e.target.value)}
+                        placeholder="Search notes..."
+                        className="flex-1 bg-transparent outline-none text-[11px] font-semibold text-inherit placeholder-slate-400"
+                      />
+                    </div>
+                    <button
+                      onClick={() => setNotesSortOrder(p => p === 'newest' ? 'oldest' : 'newest')}
+                      className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider border transition-colors ${isDark ? 'border-slate-700 text-slate-400 hover:bg-slate-800' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                    >
+                      {notesSortOrder === 'newest' ? '↓ Newest' : '↑ Oldest'}
+                    </button>
+                  </div>
+                )}
+
+                {/* ─── Saved Notes List ────────────────────────────── */}
+                <div className="px-5 py-4 space-y-3">
+                  {filtered.length === 0 ? (
+                    <div className={`flex flex-col items-center justify-center py-10 text-center ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                      <BookOpen size={32} className="mb-3 opacity-30" />
+                      <p className="text-[11px] font-bold">No Advocate Notes have been created for this case.</p>
+                      <p className="text-[10px] mt-1 opacity-70">Start by typing in the editor above.</p>
+                    </div>
+                  ) : (
+                    <>
+                      <p className={`text-[9px] font-black uppercase tracking-widest mb-2 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                        Saved Notes ({filtered.length})
+                      </p>
+                      {filtered.map(note => {
+                        const isExpanded = expandedNoteId === note.id;
+                        const isEditing = editingNoteId === note.id;
+                        const previewLines = note.text.split('\n').slice(0, 2).join('\n');
+                        const hasMore = note.text.split('\n').length > 2 || note.text.length > 120;
+
+                        return (
+                          <div
+                            key={note.id}
+                            className={`border rounded-xl overflow-hidden transition-all duration-200 ${
+                              isEditing
+                                ? isDark ? 'border-amber-500/40 bg-amber-950/20' : 'border-amber-400/50 bg-amber-50'
+                                : isDark ? 'border-slate-800 bg-slate-900/40' : 'border-slate-200 bg-slate-50'
+                            }`}
+                          >
+                            <div className="p-3">
+                              <div className="flex items-start justify-between gap-2 mb-1.5">
+                                <p className={`text-[10px] font-semibold leading-relaxed flex-1 whitespace-pre-wrap ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+                                  {isExpanded ? note.text : (previewLines + (hasMore ? '...' : ''))}
+                                </p>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    onClick={() => handleEditNote(note)}
+                                    className={`p-1 rounded transition-colors ${isDark ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-slate-200 text-slate-500'}`}
+                                    title="Edit note"
+                                  >
+                                    <Check size={11} />
+                                  </button>
+                                  <button
+                                    onClick={() => setShowDeleteConfirm(note.id)}
+                                    className={`p-1 rounded transition-colors ${isDark ? 'hover:bg-rose-900/40 text-rose-400' : 'hover:bg-rose-50 text-rose-500'}`}
+                                    title="Delete note"
+                                  >
+                                    <Trash2 size={11} />
+                                  </button>
+                                  {hasMore && (
+                                    <button
+                                      onClick={() => setExpandedNoteId(p => p === note.id ? null : note.id)}
+                                      className={`p-1 rounded transition-colors ${isDark ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-slate-200 text-slate-500'}`}
+                                      title={isExpanded ? 'Collapse' : 'Expand'}
+                                    >
+                                      {isExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                              <div className={`flex flex-wrap gap-x-3 gap-y-0.5 text-[9px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                <span>By {note.author}</span>
+                                <span>Created {fmtDate(note.createdAt)}</span>
+                                {note.updatedAt !== note.createdAt && (
+                                  <span>Updated {fmtDate(note.updatedAt)}</span>
+                                )}
+                                <span>v{note.version}</span>
+                                {isEditing && (
+                                  <span className="text-amber-400 font-black">● Editing</span>
+                                )}
+                              </div>
+                            </div>
+
+                            {showDeleteConfirm === note.id && (
+                              <div className={`px-3 py-2.5 border-t text-[10px] ${isDark ? 'border-rose-900/40 bg-rose-950/30' : 'border-rose-100 bg-rose-50'}`}>
+                                <p className={`font-bold mb-2 ${isDark ? 'text-rose-300' : 'text-rose-700'}`}>Delete this note?</p>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => setShowDeleteConfirm(null)}
+                                    className={`flex-1 py-1.5 rounded-lg border font-black uppercase text-[9px] ${isDark ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'}`}
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteNote(note.id)}
+                                    className="flex-1 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-black uppercase text-[9px] transition-colors"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Unsaved Changes Guard */}
+              {pendingNotesClose && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-10">
+                  <div className={`mx-5 rounded-2xl p-5 shadow-2xl border ${isDark ? 'bg-[#0f172a] border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <AlertTriangle size={14} className="text-amber-400 shrink-0" />
+                      <h4 className="text-sm font-black">Unsaved Advocate Notes</h4>
+                    </div>
+                    <p className={`text-[11px] font-semibold mb-4 leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                      You have unsaved Advocate Notes. Do you want to save before leaving?
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        onClick={async () => {
+                          await handleSaveNote();
+                          setIsNotesDrawerOpen(false);
+                          setPendingNotesClose(false);
+                        }}
+                        className="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-black uppercase transition-colors"
+                      >
+                        Save &amp; Close
+                      </button>
+                      <button
+                        onClick={() => {
+                          setCurrentNoteText('');
+                          setEditingNoteId(null);
+                          setNotesSaveStatus('idle');
+                          setIsNotesDrawerOpen(false);
+                          setPendingNotesClose(false);
+                        }}
+                        className={`w-full py-2 rounded-xl text-[10px] font-black uppercase border transition-colors ${isDark ? 'border-slate-700 text-rose-400 hover:bg-rose-900/20' : 'border-slate-200 text-rose-600 hover:bg-rose-50'}`}
+                      >
+                        Discard Changes
+                      </button>
+                      <button
+                        onClick={() => setPendingNotesClose(false)}
+                        className={`w-full py-2 rounded-xl text-[10px] font-black uppercase border transition-colors ${isDark ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'}`}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
     </div>
   );

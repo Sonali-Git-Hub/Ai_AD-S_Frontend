@@ -1176,7 +1176,7 @@ Please continue the conversation naturally using this context. Never ask the use
         const storageKey = `aisa_active_legal_chat_session_id_${caseId}`;
         const activeId = localStorage.getItem(storageKey);
 
-        const isPathNew = window.location.pathname.endsWith('/new');
+        const isPathNew = window.location.pathname.endsWith('/new') || location.state?.newChat;
 
         if (isPathNew) {
           await handleNewChat(false);
@@ -1195,6 +1195,17 @@ Please continue the conversation naturally using this context. Never ask the use
         } else {
           // Scenario 1: Fresh conversation on entering general chat
           await handleNewChat(false);
+          if (location.state?.newChat) {
+            try {
+              const stateCopy = { ...window.history.state };
+              if (stateCopy.usr) {
+                stateCopy.usr = { ...stateCopy.usr, newChat: false };
+              }
+              window.history.replaceState(stateCopy, '');
+            } catch (e) {
+              console.warn('[LegalChatScreen] Failed to clear history state:', e);
+            }
+          }
         }
       } catch (e) {
         console.error("Failed loading chat sessions", e);

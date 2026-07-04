@@ -4368,7 +4368,7 @@ SUMMARY INFO:
                           <span className="px-2 py-0.5 rounded text-[8px] font-black bg-indigo-500/10 text-indigo-500">AI Confidence: {auditResult.stats?.confidenceRate ?? '96'}%</span>
                         </div>
                         <h4 className="text-xs font-black text-slate-850 dark:text-slate-200">{auditResult.finalOpinion?.status || auditResult.stats?.reviewStatus}</h4>
-                        <p className="leading-relaxed text-slate-550 dark:text-slate-400 mt-1 font-semibold">{auditResult.finalOpinion?.reasoning}</p>
+                        <p className="leading-relaxed text-slate-550 dark:text-slate-400 mt-1 font-semibold">{contractOpinionDisplay || auditResult.finalOpinion?.reasoning}</p>
                       </div>
 
                       {/* Overview, Purpose, Parties */}

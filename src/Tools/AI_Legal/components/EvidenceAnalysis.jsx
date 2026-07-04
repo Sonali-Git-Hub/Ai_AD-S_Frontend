@@ -15,6 +15,351 @@ import useOutputLanguage from '../hooks/useOutputLanguage';
 import { useLanguage } from '../../../context/LanguageContext';
 import LanguageToggle from './shared/LanguageToggle';
 
+const UI_TRANSLATIONS = {
+  en: {
+    "Executive Summary": "Executive Summary",
+    "Current Case": "Current Case",
+    "Evidence Type": "Evidence Type",
+    "Analysis Status": "Analysis Status",
+    "Last Updated": "Last Updated",
+    "Court Readiness": "Court Readiness",
+    "No Active Forensic Scan Loaded": "No Active Forensic Scan Loaded",
+    "Upload an exhibit file or select an archive log from the Forensic Records database list to view court-ready admissibility reviews.": "Upload an exhibit file or select an archive log from the Forensic Records database list to view court-ready admissibility reviews.",
+    "SECTION 1: Evidence Overview": "SECTION 1: Evidence Overview",
+    "Evidence Name": "Evidence Name",
+    "File Size": "File Size",
+    "Manual Input": "Manual Input",
+    "Linked Case": "Linked Case",
+    "Not linked": "Not linked",
+    "Uploaded By": "Uploaded By",
+    "Prosecution / Plaintiff": "Prosecution / Plaintiff",
+    "Defense Counsel": "Defense Counsel",
+    "SECTION 1: EVIDENCE OVERVIEW": "SECTION 1: EVIDENCE OVERVIEW",
+    "SECTION 2: AI EVIDENCE SUMMARY": "SECTION 2: AI EVIDENCE SUMMARY",
+    "SECTION 3: FILE INFORMATION": "SECTION 3: FILE INFORMATION",
+    "SECTION 4: TEXT EXTRACTION QUALITY": "SECTION 4: TEXT EXTRACTION QUALITY",
+    "SECTION 5: FILE INTEGRITY VERIFIED": "SECTION 5: FILE INTEGRITY VERIFIED",
+    "SECTION 6: CHAIN OF CUSTODY": "SECTION 6: CHAIN OF CUSTODY",
+    "SECTION 7: RISK ASSESSMENT": "SECTION 7: RISK ASSESSMENT",
+    "SECTION 8: COURT ADMISSIBILITY": "SECTION 8: COURT ADMISSIBILITY",
+    "SECTION 9: LEGAL OBSERVATION": "SECTION 9: LEGAL OBSERVATION",
+    "SECTION 10: LAWYER RECOMMENDATION": "SECTION 10: LAWYER RECOMMENDATION",
+    "SECTION 11: FINAL VERDICT": "SECTION 11: FINAL VERDICT",
+    "Observation": "Observation",
+    "Reasoning": "Reasoning",
+    "Recommendation": "Recommendation",
+    "Metadata": "Metadata",
+    "Validation Confidence": "Validation Confidence",
+    "Risk Assessment Confidence Level": "Risk Assessment Confidence Level",
+    "Upload Time": "Upload Time",
+    "Evidence ID": "Evidence ID",
+    "Device Source": "Device Source",
+    "Camera Information": "Camera Information",
+    "Resolution": "Resolution",
+    "Integrity Hash": "Integrity Hash",
+    "GPS Available": "GPS Available",
+    "Location Match": "Location Match",
+    "Witness Match": "Witness Match",
+    "Timeline Consistency": "Timeline Consistency",
+    "Document Consistency": "Document Consistency",
+    "Metadata Reliability": "Metadata Reliability",
+    "Manipulation Risk": "Manipulation Risk",
+    "Unreadable Portions": "Unreadable Portions",
+    "Language Detected": "Language Detected",
+    "OCR": "OCR",
+    "Revise OCR": "Revise OCR",
+    "Expand": "Expand",
+    "Uploaded": "Uploaded",
+    "Log Event": "Log Event",
+    "No Scan": "No Scan",
+    "High Risk": "High Risk",
+    "Moderate Risk": "Moderate Risk",
+    "Low Risk": "Low Risk",
+    "Analysis Complete": "Analysis Complete",
+    "Creation Time": "Creation Time",
+    "Modified Time": "Modified Time",
+    "File Format": "File Format",
+    "Compression": "Compression",
+    "Not detected": "Not detected",
+    "Unknown model": "Unknown model",
+    "Unknown": "Unknown",
+    "Standard": "Standard",
+    "None detected": "None detected",
+    "Not generated": "Not generated",
+    "Extraction Quality": "Extraction Quality",
+    "Custodian Hash": "Custodian Hash",
+    "Storage Status": "Storage Status",
+    "Digital Signature": "Digital Signature",
+    "Securely Stored": "Securely Stored",
+    "Custody Audit Ledger Log": "Custody Audit Ledger Log",
+    "Append custom custody event...": "Append custom custody event...",
+    "Contradiction & Discrepancy Detections": "Contradiction & Discrepancy Detections",
+    "Conflict in": "Conflict in",
+    "Severity": "Severity",
+    "Impact:": "Impact:",
+    "No contradictions detected against comparative documents.": "No contradictions detected against comparative documents.",
+    "COMPARATIVE LEGAL AUDIT": "COMPARATIVE LEGAL AUDIT",
+    "Comparative Audit Summary": "Comparative Audit Summary",
+    "FIR Consistency": "FIR Consistency",
+    "Complaint Match": "Complaint Match",
+    "Witness Support": "Witness Support",
+    "Timeline": "Timeline",
+    "Contradictions": "Contradictions",
+    "None": "None",
+    "Corroboration": "Corroboration",
+    "Available": "Available",
+    "Updated Court Readiness": "Updated Court Readiness",
+    "Was": "Was",
+    "1. Comparative Legal Audit Overview": "1. Comparative Legal Audit Overview",
+    "2. FIR Comparison": "2. FIR Comparison",
+    "Match:": "Match:",
+    "Legal Impact": "Legal Impact",
+    "3. Complaint Comparison": "3. Complaint Comparison",
+    "Matched Facts": "Matched Facts",
+    "Missing Facts": "Missing Facts",
+    "Conflicting Facts": "Conflicting Facts",
+    "Legal Effect": "Legal Effect",
+    "4. Witness Statement Comparison": "4. Witness Statement Comparison",
+    "Supported Testimony": "Supported Testimony",
+    "Partially Supported": "Partially Supported",
+    "Contradicted": "Contradicted",
+    "Witness Testimony Comparison Reasoning": "Witness Testimony Comparison Reasoning",
+    "5. Previous Evidence Comparison": "5. Previous Evidence Comparison",
+    "Consistency Status": "Consistency Status",
+    "6. Timeline Validation": "6. Timeline Validation",
+    "Incident Time": "Incident Time",
+    "Capture Time": "Capture Time",
+    "Sequence of Events": "Sequence of Events",
+    "Conflicts & Gaps": "Conflicts & Gaps",
+    "Explanation": "Explanation",
+    "7. Contradiction Analysis": "7. Contradiction Analysis",
+    "Source 1:": "Source 1:",
+    "Source 2:": "Source 2:",
+    "Legal Importance": "Legal Importance",
+    "No material contradiction detected.": "No material contradiction detected.",
+    "8. Consistency Scores": "8. Consistency Scores",
+    "Complaint Consistency": "Complaint Consistency",
+    "Witness Consistency": "Witness Consistency",
+    "Overall Consistency": "Overall Consistency",
+    "9. Legal Impact Assessment": "9. Legal Impact Assessment",
+    "10. Updated Court Readiness": "10. Updated Court Readiness",
+    "Previous Court Readiness": "Previous Court Readiness",
+    "Adjustment Rationale": "Adjustment Rationale",
+    "11. Final Comparative Opinion": "11. Final Comparative Opinion",
+    "Advanced Comparison": "Advanced Comparison",
+    "Hide": "Hide",
+    "Compare with FIR": "Compare with FIR",
+    "Paste FIR facts...": "Paste FIR facts...",
+    "Compare with Complaint": "Compare with Complaint",
+    "Paste Complaint facts...": "Paste Complaint facts...",
+    "Compare with Witness": "Compare with Witness",
+    "Witness Statement": "Witness Statement",
+    "Previous Evidence logs": "Previous Evidence logs",
+    "Timeline details": "Timeline details",
+    "Execute Comparative Legal Audit": "Execute Comparative Legal Audit",
+    "Verified": "Verified",
+    "Review Required": "Review Required",
+    "Unverified": "Unverified",
+    "Partially Available": "Partially Available",
+    "Metadata not available": "Metadata not available",
+    "Suspicious": "Suspicious",
+    "Corrupted": "Corrupted",
+    "Extracted": "Extracted",
+    "Partially Extracted": "Partially Extracted",
+    "Text could not be extracted with sufficient clarity": "Text could not be extracted with sufficient clarity",
+    "Chain of custody information is incomplete": "Chain of custody information is incomplete",
+    "Verified Record": "Verified Record",
+    "Likely Admissible": "Likely Admissible",
+    "Requires Verification": "Requires Verification",
+    "Insufficient Information": "Insufficient Information",
+    "Potentially Challenging": "Potentially Challenging",
+    "Reliable": "Reliable",
+    "Review Suggested": "Review Suggested",
+    "Challenge Advised": "Challenge Advised",
+    "Action Recommended": "Action Recommended",
+    "Pending Verification": "Pending Verification",
+    "Maintain Record": "Maintain Record",
+    "Excellent": "Excellent",
+    "Strong": "Strong",
+    "Good": "Good",
+    "Weak": "Weak",
+    "Approved for Use": "Approved for Use",
+    "Caution Advised": "Caution Advised",
+    "Action Required": "Action Required",
+  },
+  hi: {
+    "Executive Summary": "कार्यकारी सारांश",
+    "Current Case": "वर्तमान मामला",
+    "Evidence Type": "साक्ष्य प्रकार",
+    "Analysis Status": "विश्लेषण की स्थिति",
+    "Last Updated": "अंतिम बार अद्यतन",
+    "Court Readiness": "न्यायालय तत्परता",
+    "No Active Forensic Scan Loaded": "कोई सक्रिय फोरेंसिक स्कैन लोड नहीं है",
+    "Upload an exhibit file or select an archive log from the Forensic Records database list to view court-ready admissibility reviews.": "अदालत के लिए तैयार स्वीकार्यता समीक्षा देखने के लिए एक प्रदर्श (exhibit) फ़ाइल अपलोड करें या फोरेंसिक रिकॉर्ड डेटाबेस सूची से एक संग्रह लॉग चुनें।",
+    "SECTION 1: Evidence Overview": "अनुभाग 1: साक्ष्य अवलोकन",
+    "Evidence Name": "साक्ष्य का नाम",
+    "File Size": "फ़ाइल का आकार",
+    "Manual Input": "मैन्युअल इनपुट",
+    "Linked Case": "लिंक्ड मामला",
+    "Not linked": "जुड़ा नहीं है",
+    "Uploaded By": "द्वारा अपलोड किया गया",
+    "Prosecution / Plaintiff": "अभियोजन पक्ष / वादी",
+    "Defense Counsel": "बचाव पक्ष के वकील",
+    "SECTION 1: EVIDENCE OVERVIEW": "अनुभाग 1: साक्ष्य अवलोकन",
+    "SECTION 2: AI EVIDENCE SUMMARY": "अनुभाग 2: एआई साक्ष्य सारांश",
+    "SECTION 3: FILE INFORMATION": "अनुभाग 3: फ़ाइल जानकारी",
+    "SECTION 4: TEXT EXTRACTION QUALITY": "अनुभाग 4: पाठ निष्कर्षण गुणवत्ता",
+    "SECTION 5: FILE INTEGRITY VERIFIED": "अनुभाग 5: फ़ाइल अखंडता सत्यापित",
+    "SECTION 6: CHAIN OF CUSTODY": "अनुभाग 6: कस्टडी की श्रृंखला",
+    "SECTION 7: RISK ASSESSMENT": "अनुभाग 7: जोखिम मूल्यांकन",
+    "SECTION 8: COURT ADMISSIBILITY": "अनुभाग 8: न्यायालय स्वीकार्यता",
+    "SECTION 9: LEGAL OBSERVATION": "अनुभाग 9: कानूनी अवलोकन",
+    "SECTION 10: LAWYER RECOMMENDATION": "अनुभाग 10: वकील की सिफारिश",
+    "SECTION 11: FINAL VERDICT": "अनुभाग 11: अंतिम निर्णय",
+    "Observation": "अवलोकन",
+    "Reasoning": "तर्क",
+    "Recommendation": "सिफारिश",
+    "Metadata": "मेटाडेटा",
+    "Validation Confidence": "सत्यापन विश्वास",
+    "Risk Assessment Confidence Level": "जोखिम मूल्यांकन विश्वास स्तर",
+    "Upload Time": "अपलोड समय",
+    "Evidence ID": "साक्ष्य आईडी",
+    "Device Source": "डिवाइस स्रोत",
+    "Camera Information": "कैमरा जानकारी",
+    "Resolution": "रिजॉल्यूशन",
+    "Integrity Hash": "अखंडता हैश",
+    "GPS Available": "जीपीएस उपलब्ध",
+    "Location Match": "स्थान मिलान",
+    "Witness Match": "गवाह मिलान",
+    "Timeline Consistency": "समयरेखा स्थिरता",
+    "Document Consistency": "दस्तावेज़ स्थिरता",
+    "Metadata Reliability": "मेटाडेटा विश्वसनीयता",
+    "Manipulation Risk": "हेरफेर जोखिम",
+    "Unreadable Portions": "अपठनीय भाग",
+    "Language Detected": "पता लगाई गई भाषा",
+    "OCR": "ओसीआर",
+    "Revise OCR": "ओसीआर संशोधित करें",
+    "Expand": "विस्तार करें",
+    "Uploaded": "अपलोड किया गया",
+    "Log Event": "इवेंट लॉग करें",
+    "No Scan": "कोई स्कैन नहीं",
+    "High Risk": "उच्च जोखिम",
+    "Moderate Risk": "मध्यम जोखिम",
+    "Low Risk": "कम जोखिम",
+    "Analysis Complete": "विश्लेषण पूर्ण",
+    "Creation Time": "निर्माण समय",
+    "Modified Time": "संशोधित समय",
+    "File Format": "फ़ाइल का प्रारूप",
+    "Compression": "संपीड़न (Compression)",
+    "Not detected": "पता नहीं चला",
+    "Unknown model": "अज्ञात मॉडल",
+    "Unknown": "अज्ञात",
+    "Standard": "मानक",
+    "None detected": "कोई पता नहीं चला",
+    "Not generated": "उत्पन्न नहीं हुआ",
+    "Extraction Quality": "निष्कर्षण गुणवत्ता",
+    "Custodian Hash": "कस्टडी हैश",
+    "Storage Status": "भंडारण स्थिति",
+    "Digital Signature": "डिजिटल हस्ताक्षर",
+    "Securely Stored": "सुरक्षित रूप से संग्रहीत",
+    "Custody Audit Ledger Log": "कस्टडी ऑडिट लेजर लॉग",
+    "Append custom custody event...": "कस्टम कस्टडी इवेंट जोड़ें...",
+    "Contradiction & Discrepancy Detections": "विरोधाभास और विसंगति का पता लगाना",
+    "Conflict in": "इसमें संघर्ष",
+    "Severity": "गंभीरता",
+    "Impact:": "प्रभाव:",
+    "No contradictions detected against comparative documents.": "तुलनात्मक दस्तावेजों के खिलाफ कोई विरोधाभास नहीं पाया गया।",
+    "COMPARATIVE LEGAL AUDIT": "तुलनात्मक कानूनी ऑडिट",
+    "Comparative Audit Summary": "तुलनात्मक ऑडिट सारांश",
+    "FIR Consistency": "प्राथमिकी स्थिरता",
+    "Complaint Match": "शिकायत मिलान",
+    "Witness Support": "गवाह समर्थन",
+    "Timeline": "समयरेखा",
+    "Contradictions": "विरोधाभास",
+    "None": "कोई नहीं",
+    "Corroboration": "पुष्टि (Corroboration)",
+    "Available": "उपलब्ध",
+    "Updated Court Readiness": "अद्यतन न्यायालय तत्परता",
+    "Was": "था",
+    "1. Comparative Legal Audit Overview": "1. तुलनात्मक कानूनी ऑडिट अवलोकन",
+    "2. FIR Comparison": "2. प्राथमिकी तुलना",
+    "Match:": "मिलान:",
+    "Legal Impact": "कानूनी प्रभाव",
+    "3. Complaint Comparison": "3. शिकायत तुलना",
+    "Matched Facts": "मिलान तथ्य",
+    "Missing Facts": "लापता तथ्य",
+    "Conflicting Facts": "विरोधाभासी तथ्य",
+    "Legal Effect": "कानूनी प्रभाव",
+    "4. Witness Statement Comparison": "4. गवाह के बयान की तुलना",
+    "Supported Testimony": "समर्थित गवाही",
+    "Partially Supported": "आंशिक रूप से समर्थित",
+    "Contradicted": "विरोधाभासी",
+    "Witness Testimony Comparison Reasoning": "गवाह की गवाही तुलना तर्क",
+    "5. Previous Evidence Comparison": "5. पिछले साक्ष्य की तुलना",
+    "Consistency Status": "निरंतरता की स्थिति",
+    "6. Timeline Validation": "6. समयरेखा सत्यापन",
+    "Incident Time": "घटना का समय",
+    "Capture Time": "कैप्चर का समय",
+    "Sequence of Events": "घटनाओं का क्रम",
+    "Conflicts & Gaps": "संघर्ष और अंतराल",
+    "Explanation": "स्पष्टीकरण",
+    "7. Contradiction Analysis": "7. विरोधाभास विश्लेषण",
+    "Source 1:": "स्रोत 1:",
+    "Source 2:": "स्रोत 2:",
+    "Legal Importance": "कानूनी महत्व",
+    "No material contradiction detected.": "कोई महत्वपूर्ण विरोधाभास नहीं पाया गया।",
+    "8. Consistency Scores": "8. संगति स्कोर",
+    "Complaint Consistency": "शिकायत संगति",
+    "Witness Consistency": "गवाह संगति",
+    "Overall Consistency": "समग्र संगति",
+    "9. Legal Impact Assessment": "9. कानूनी प्रभाव मूल्यांकन",
+    "10. Updated Court Readiness": "10. अद्यतन न्यायालय तत्परता",
+    "Previous Court Readiness": "पिछली न्यायालय तत्परता",
+    "Adjustment Rationale": "समायोजन का तर्क",
+    "11. Final Comparative Opinion": "11. अंतिम तुलनात्मक राय",
+    "Advanced Comparison": "उन्नत तुलना",
+    "Hide": "छिपाएं",
+    "Compare with FIR": "प्राथमिकी (FIR) से तुलना करें",
+    "Paste FIR facts...": "प्राथमिकी तथ्य पेस्ट करें...",
+    "Compare with Complaint": "शिकायत से तुलना करें",
+    "Paste Complaint facts...": "शिकायत तथ्य पेस्ट करें...",
+    "Compare with Witness": "गवाह से तुलना करें",
+    "Witness Statement": "गवाह का बयान",
+    "Previous Evidence logs": "पिछले साक्ष्य लॉग",
+    "Timeline details": "समयरेखा विवरण",
+    "Execute Comparative Legal Audit": "तुलनात्मक कानूनी ऑडिट निष्पादित करें",
+    "Verified": "सत्यापित",
+    "Review Required": "समीक्षा आवश्यक",
+    "Unverified": "असत्यापित",
+    "Partially Available": "आंशिक रूप से उपलब्ध",
+    "Metadata not available": "मेटाडेटा उपलब्ध नहीं",
+    "Suspicious": "संदेहास्पद",
+    "Corrupted": "दूषित",
+    "Extracted": "निष्कर्षित",
+    "Partially Extracted": "आंशिक रूप से निष्कर्षित",
+    "Text could not be extracted with sufficient clarity": "पर्याप्त स्पष्टता के साथ पाठ निष्कर्षित नहीं किया जा सका",
+    "Chain of custody information is incomplete": "कस्टडी श्रृंखला की जानकारी अधूरी है",
+    "Verified Record": "सत्यापित रिकॉर्ड",
+    "Likely Admissible": "स्वीकार्य होने की संभावना",
+    "Requires Verification": "सत्यापन की आवश्यकता है",
+    "Insufficient Information": "अपर्याप्त जानकारी",
+    "Potentially Challenging": "संभावित रूप से चुनौतीपूर्ण",
+    "Reliable": "विश्वसनीय",
+    "Review Suggested": "सुझाया गया सुझाव",
+    "Challenge Advised": "चुनौती की सलाह दी गई",
+    "Action Recommended": "कार्रवाई की सिफारिश की गई",
+    "Pending Verification": "लंबित सत्यापन",
+    "Maintain Record": "रिकॉर्ड बनाए रखें",
+    "Excellent": "उत्कृष्ट",
+    "Strong": "मजबूत",
+    "Good": "अच्छा",
+    "Weak": "कमजोर",
+    "Approved for Use": "उपयोग के लिए स्वीकृत",
+    "Caution Advised": "सावधानी की सलाह",
+    "Action Required": "कार्रवाई की आवश्यकता",
+  }
+};
+
 const cleanObjectStrings = (obj) => {
   if (!obj) return obj;
   if (typeof obj === 'string') {
@@ -33,6 +378,32 @@ const cleanObjectStrings = (obj) => {
     return cleanedObj;
   }
   return obj;
+};
+
+const formatOcrText = (text) => {
+  if (!text || typeof text !== 'string') return '';
+
+  let formatted = text;
+
+  // 1. Convert escaped newline characters (\\n, \\r\\n) into actual line breaks (\n).
+  formatted = formatted.replace(/\\r\\n/g, '\n');
+  formatted = formatted.replace(/\\n/g, '\n');
+
+  // 2. Convert escaped tabs (\\t) into tab spacing (4 spaces).
+  formatted = formatted.replace(/\\t/g, '    ');
+
+  // 3. Remove unnecessary escape characters (e.g. \" to ", \' to ', \\ to \)
+  formatted = formatted.replace(/\\"/g, '"');
+  formatted = formatted.replace(/\\'/g, "'");
+
+  // 4. Clean up presentation:
+  // - Remove duplicate blank lines (i.e. 3 or more newlines becomes 2 newlines)
+  formatted = formatted.replace(/\n{3,}/g, '\n\n');
+
+  // - Clean up excessive repeated spaces (three or more spaces replaced with two spaces)
+  formatted = formatted.replace(/ {3,}/g, '  ');
+
+  return formatted.trim();
 };
 
 // Parse JSON from code block with robust fallback parsing
@@ -238,6 +609,13 @@ const EvidenceAnalysis = ({ currentCase, onBack, theme, allProjects = [], onUpda
     getDisplayText: getForensicDisplayText,
   } = useOutputLanguage('evidence_analysis', currentCase?._id || 'global');
 
+  const t = useCallback((str) => {
+    if (!str) return '';
+    const cleanStr = String(str).trim();
+    const currentDict = UI_TRANSLATIONS[outputLang] || UI_TRANSLATIONS['en'];
+    return currentDict[cleanStr] || currentDict[str] || str;
+  }, [outputLang]);
+
   const [translatedForensicResult, setTranslatedForensicResult] = useState(null);
 
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 1200 : false);
@@ -405,6 +783,116 @@ const EvidenceAnalysis = ({ currentCase, onBack, theme, allProjects = [], onUpda
     
     return parsedResult;
   };
+  const deepTranslateForensicResult = useCallback(async (result, translateFn) => {
+    if (!result) return null;
+
+    const EXCLUDED_KEYS = new Set([
+      'ocrText',
+      'hash',
+      'custodianHash',
+      'digitalSignature',
+      'exhibitNumber',
+      'evidenceId',
+      'id',
+      '_id',
+      'userId',
+      'caseId',
+      'timestamp',
+      'time',
+      'date',
+      'fileSize',
+      'fileFormat',
+      'resolution',
+      'compression',
+      'camera',
+      'device',
+      'gps',
+      'title',
+      'filename',
+      'path',
+      'url',
+      'type',
+      'mimeType',
+      'pdfContent',
+      'rawText',
+      'evidenceNotes',
+      'witnessStatement',
+      'complaintFacts',
+      'firFacts',
+      'witnessFacts',
+      'previousEvidenceLogs',
+      'timelineDetails',
+      'uuid',
+      'signature'
+    ]);
+
+    const isBypass = (str) => {
+      if (!str || typeof str !== 'string') return true;
+      const trimmed = str.trim();
+      if (!trimmed) return true;
+      if (/^[0-9a-fA-F]{32,64}$/.test(trimmed)) return true;
+      if (/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(trimmed)) return true;
+      if (/^\d+(%|\/\d+)?$/.test(trimmed)) return true;
+      if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) return true;
+      return false;
+    };
+
+    const translatableList = [];
+
+    const traverseCollect = (val, path) => {
+      if (val === null || val === undefined) return;
+      if (typeof val === 'string') {
+        const lastKey = path.split('.').pop();
+        if (!EXCLUDED_KEYS.has(lastKey) && !isBypass(val)) {
+          translatableList.push({ path, original: val });
+        }
+      } else if (Array.isArray(val)) {
+        val.forEach((item, index) => traverseCollect(item, `${path}[${index}]`));
+      } else if (typeof val === 'object') {
+        Object.keys(val).forEach(key => {
+          traverseCollect(val[key], path ? `${path}.${key}` : key);
+        });
+      }
+    };
+
+    traverseCollect(result, '');
+
+    if (translatableList.length === 0) return result;
+
+    const delimiter = ' ||| ';
+    const joinedText = translatableList.map(item => item.original).join(delimiter);
+
+    const translatedText = await translateFn(joinedText);
+    const translatedSegments = translatedText.split('|||').map(s => s.trim());
+
+    const cloned = JSON.parse(JSON.stringify(result));
+
+    const setValueAtPath = (obj, path, value) => {
+      const parts = path.split(/\.|\[|\]/).filter(Boolean);
+      let current = obj;
+      for (let i = 0; i < parts.length - 1; i++) {
+        current = current[parts[i]];
+      }
+      const lastKey = parts[parts.length - 1];
+      if (current) {
+        current[lastKey] = value;
+      }
+    };
+
+    if (translatedSegments.length === translatableList.length) {
+      translatableList.forEach((item, idx) => {
+        setValueAtPath(cloned, item.path, translatedSegments[idx]);
+      });
+    } else {
+      console.warn(`[deepTranslate] translation segment count mismatch: got ${translatedSegments.length}, expected ${translatableList.length}. Mapping sequentially.`);
+      translatableList.forEach((item, idx) => {
+        const translatedVal = translatedSegments[idx] || item.original;
+        setValueAtPath(cloned, item.path, translatedVal);
+      });
+    }
+
+    return cloned;
+  }, []);
 
   const handleForensicLangChange = useCallback(async (newLang) => {
     setOutputLang(newLang);
@@ -413,24 +901,19 @@ const EvidenceAnalysis = ({ currentCase, onBack, theme, allProjects = [], onUpda
       setTranslatedForensicResult(null);
       return;
     }
-    const summary = buildForensicSummaryText(rawForensicResult);
-    const cached = getForensicDisplayText(summary);
-    if (cached && cached !== summary) {
-      setTranslatedForensicResult(parseTranslatedForensicSummary(cached, rawForensicResult));
-      return;
-    }
+    // Traverse and deeply translate
     setIsForensicTranslating(true);
     try {
-      const translated = await translateForensicText(summary);
+      const translated = await deepTranslateForensicResult(rawForensicResult, translateForensicText);
       if (isMountedRef.current) {
-        setTranslatedForensicResult(parseTranslatedForensicSummary(translated, rawForensicResult));
+        setTranslatedForensicResult(translated);
       }
     } catch (e) {
       console.error(e);
     } finally {
       if (isMountedRef.current) setIsForensicTranslating(false);
     }
-  }, [rawForensicResult, buildForensicSummaryText, getForensicDisplayText, setOutputLang, setIsForensicTranslating, translateForensicText]);
+  }, [rawForensicResult, deepTranslateForensicResult, setOutputLang, setIsForensicTranslating, translateForensicText]);
 
   useEffect(() => {
     if (rawForensicResult) {
@@ -2001,8 +2484,9 @@ JSON Schema:
 
   // OCR search helper highlighting
   const renderOcrHighlight = () => {
-    if (!ocrSearchQuery.trim()) return ocrText;
-    const parts = ocrText.split(new RegExp(`(${ocrSearchQuery})`, 'gi'));
+    const displayOcrText = formatOcrText(ocrText);
+    if (!ocrSearchQuery.trim()) return displayOcrText;
+    const parts = displayOcrText.split(new RegExp(`(${ocrSearchQuery})`, 'gi'));
     return (
       <>
         {parts.map((p, i) => 
@@ -2088,24 +2572,24 @@ JSON Schema:
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3.5 gap-2">
           <h5 className="text-[10px] font-black uppercase tracking-widest text-indigo-400 flex items-center gap-1.5">
             {icon}
-            <span>{title}</span>
+            <span>{t(title)}</span>
           </h5>
           <span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-md border flex items-center gap-1 ${colors.badge}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />
-            {sectionData.status || 'Unverified'}
+            {t(sectionData.status) || t('Unverified')}
           </span>
         </div>
         
         <div className="space-y-2.5">
           <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Observation</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">{t('Observation')}</p>
             <p className={`text-xs font-semibold leading-relaxed mt-0.5 ${isDark ? 'text-slate-200' : 'text-slate-850'}`}>
               {sectionData.observation}
             </p>
           </div>
           
           <div>
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Reasoning</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">{t('Reasoning')}</p>
             <p className={`text-xs font-semibold leading-relaxed mt-0.5 ${isDark ? 'text-slate-350' : 'text-slate-700'}`}>
               {sectionData.reason}
             </p>
@@ -2113,7 +2597,7 @@ JSON Schema:
           
           {sectionData.recommendation && sectionData.recommendation !== 'N/A' && (
             <div>
-              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Recommendation</p>
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">{t('Recommendation')}</p>
               <p className={`text-xs font-semibold leading-relaxed mt-0.5 italic ${isDark ? 'text-indigo-300' : 'text-indigo-700'}`}>
                 {sectionData.recommendation}
               </p>
@@ -2210,10 +2694,10 @@ JSON Schema:
         {/* Executive Summary Panel */}
         <div className={`border rounded-2xl md:rounded-3xl p-4 md:p-6 shadow-xl space-y-4 transition-all duration-500 ${isDark ? 'bg-[#0f162a] border-slate-800' : 'bg-white border-slate-200'}`}>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-3 border-slate-800/40">
-            <h4 className="text-xs font-black uppercase tracking-widest text-indigo-400">Executive Summary</h4>
+            <h4 className="text-xs font-black uppercase tracking-widest text-indigo-400">{t('Executive Summary')}</h4>
             <div className="flex flex-wrap items-center gap-1.5 justify-end shrink-0 w-full sm:w-auto">
               <LanguageToggle lang={outputLang} onChange={handleForensicLangChange} isTranslating={isForensicTranslating} />
-              <button onClick={() => handleCopyText(forensicResult.ocrText)} className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-slate-800 text-slate-400 hover:text-indigo-400' : 'hover:bg-slate-200 text-slate-500 hover:text-indigo-650'}`} title="Copy OCR">
+              <button onClick={() => handleCopyText(formatOcrText(forensicResult.ocrText))} className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-slate-800 text-slate-400 hover:text-indigo-400' : 'hover:bg-slate-200 text-slate-500 hover:text-indigo-650'}`} title="Copy OCR">
                 <Copy size={13} />
               </button>
               <button onClick={() => handleSpeechSynthesis(forensicResult.summary)} className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-slate-800 text-slate-400 hover:text-indigo-400' : 'hover:bg-slate-105 text-slate-500 hover:text-indigo-650'}`} title="Read Summary">
@@ -2242,14 +2726,14 @@ JSON Schema:
               { label: 'Court Readiness', val: `${forensicResult.comparativeAudit?.updatedCourtReadiness?.updatedScore || forensicResult.courtReadinessSection?.metrics?.courtReadinessScore || 75}/100`, color: 'text-indigo-650' }
             ].map(item => (
               <div key={item.label} className="space-y-1">
-                <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wider block">{item.label}</span>
+                <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wider block">{t(item.label)}</span>
                 {item.badge ? (
                   <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold uppercase border ${item.styleClass}`}>
-                    {item.val}
+                    {t(item.val)}
                   </span>
                 ) : (
                   <span className={`text-xs font-extrabold truncate block ${item.color || (isDark ? 'text-slate-200' : 'text-slate-800')}`}>
-                    {item.val}
+                    {t(item.val)}
                   </span>
                 )}
               </div>
@@ -2262,7 +2746,7 @@ JSON Schema:
           <div className={`border rounded-2xl p-4 md:p-5 shadow-md transition-all duration-700 text-left ${isDark ? 'bg-[#0f162a] border-slate-800' : 'bg-white border-slate-200'}`}
             style={{ animation: 'fadeSlideUp 0.4s ease forwards' }}>
             <h5 className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-3 flex items-center gap-1.5">
-              <Database size={12} /> SECTION 1: Evidence Overview
+              <Database size={12} /> {t('SECTION 1: EVIDENCE OVERVIEW')}
             </h5>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-left">
               {[
@@ -2274,8 +2758,8 @@ JSON Schema:
                 { label: 'Uploaded By', val: forensicResult.caseRole === 'Prosecution' ? 'Prosecution / Plaintiff' : 'Defense Counsel' }
               ].map(item => (
                 <div key={item.label} className={`p-3 rounded-xl border ${isDark ? 'bg-slate-900/50 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">{item.label}</p>
-                  <p className={`text-xs font-bold mt-0.5 truncate ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{item.val}</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">{t(item.label)}</p>
+                  <p className={`text-xs font-bold mt-0.5 truncate ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{t(item.val)}</p>
                 </div>
               ))}
             </div>
@@ -2300,8 +2784,8 @@ JSON Schema:
               { label: 'Integrity Hash', val: forensicResult.metadataSection?.fields?.hash || 'Not generated' }
             ].map(f => (
               <div key={f.label} className={`p-2 border rounded-xl ${isDark ? 'bg-slate-900/40 border-slate-800/60' : 'bg-slate-50/60 border-slate-200'}`}>
-                <p className="text-[8px] font-black uppercase text-slate-500">{f.label}</p>
-                <p className={`text-[10px] font-bold truncate mt-0.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{f.val}</p>
+                <p className="text-[8px] font-black uppercase text-slate-500">{t(f.label)}</p>
+                <p className={`text-[10px] font-bold truncate mt-0.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{t(f.val)}</p>
               </div>
             ))}
           </div>
@@ -2310,13 +2794,13 @@ JSON Schema:
         {/* 4. Text Extraction Quality Card */}
         {renderV2Card('ocr', 'SECTION 4: Text Extraction Quality', <FileText size={12} />, forensicResult.ocrSection, (
           <div className="space-y-3 mt-3">
-            <div className={`border rounded-xl p-4 font-mono text-xs max-h-48 overflow-y-auto custom-scrollbar text-left whitespace-pre-wrap leading-relaxed ${isDark ? 'bg-slate-950 border-slate-800/80 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-750'}`}>
+            <div className={`border rounded-2xl p-5 text-xs font-semibold leading-relaxed max-h-80 overflow-y-auto custom-scrollbar text-left whitespace-pre-wrap break-words [word-break:break-word] [overflow-wrap:anywhere] transition-all ${isDark ? 'bg-[#0f172a]/60 border-slate-800/80 text-slate-250' : 'bg-slate-50/60 border-slate-200 text-slate-800'}`}>
               {isEditingOcr ? (
                 <textarea
                   value={ocrText}
                   onChange={e => setOcrText(e.target.value)}
-                  className={`w-full bg-transparent border-none outline-none focus:ring-0 p-0 text-xs font-mono resize-none ${isDark ? 'text-slate-200' : 'text-slate-850'}`}
-                  rows={6}
+                  className={`w-full bg-transparent border-none outline-none focus:ring-0 p-0 text-xs font-semibold leading-relaxed resize-none focus:outline-none ${isDark ? 'text-slate-200' : 'text-slate-850'}`}
+                  rows={8}
                 />
               ) : (
                 renderOcrHighlight()
@@ -2326,16 +2810,16 @@ JSON Schema:
             <div className="flex items-center justify-between flex-wrap gap-2 text-left pt-1">
               <div className="flex items-center gap-3">
                 <div>
-                  <span className="text-[8px] font-black text-slate-500 uppercase block">Extraction Quality</span>
+                  <span className="text-[8px] font-black text-slate-500 uppercase block">{t('Extraction Quality')}</span>
                   <span className={`text-[10px] font-black ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{forensicResult.ocrSection?.confidence || '90%'}</span>
                 </div>
                 <div>
-                  <span className="text-[8px] font-black text-slate-500 uppercase block">Unreadable Portions</span>
-                  <span className={`text-[10px] font-bold ${isDark ? 'text-slate-350' : 'text-slate-650'}`}>{forensicResult.ocrSection?.unreadablePortions || 'None'}</span>
+                  <span className="text-[8px] font-black text-slate-500 uppercase block">{t('Unreadable Portions')}</span>
+                  <span className={`text-[10px] font-bold ${isDark ? 'text-slate-350' : 'text-slate-650'}`}>{t(forensicResult.ocrSection?.unreadablePortions) || t('None')}</span>
                 </div>
                 <div>
-                  <span className="text-[8px] font-black text-slate-500 uppercase block">Language Detected</span>
-                  <span className={`text-[10px] font-bold ${isDark ? 'text-slate-350' : 'text-slate-650'}`}>{forensicResult.ocrSection?.languageDetected || 'English'}</span>
+                  <span className="text-[8px] font-black text-slate-500 uppercase block">{t('Language Detected')}</span>
+                  <span className={`text-[10px] font-bold ${isDark ? 'text-slate-350' : 'text-slate-650'}`}>{t(forensicResult.ocrSection?.languageDetected) || t('English')}</span>
                 </div>
               </div>
               
@@ -2343,16 +2827,16 @@ JSON Schema:
                 {isEditingOcr ? (
                   <>
                     <button onClick={handleSaveOcrText} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors">
-                      Save
+                      {t('Save')}
                     </button>
                     <button onClick={() => setIsEditingOcr(false)} className="px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors">
-                      Cancel
+                      {t('Cancel')}
                     </button>
                   </>
                 ) : (
                   <button onClick={() => setIsEditingOcr(true)} className={`flex items-center gap-1 px-3 py-1.5 border rounded-lg transition-colors ${isDark ? 'hover:bg-slate-850 border-slate-700/60 text-slate-300' : 'hover:bg-slate-105 border-slate-200 text-slate-750'}`}>
                     <Edit3 size={11} />
-                    <span className="text-[9px] font-black uppercase tracking-wider">Revise OCR</span>
+                    <span className="text-[9px] font-black uppercase tracking-wider">{t('Revise OCR')}</span>
                   </button>
                 )}
               </div>
@@ -2363,7 +2847,7 @@ JSON Schema:
         {/* 5. File Integrity Verified Card */}
         {renderV2Card('integrity', 'SECTION 5: File Integrity Verified', <ShieldCheck size={12} />, forensicResult.integritySection, (
           <div className="mt-2.5 flex items-center justify-between border-t pt-2.5 border-slate-800/40">
-            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Validation Confidence</span>
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">{t('Validation Confidence')}</span>
             <span className={`text-xs font-black ${getStatusColor(forensicResult.integritySection?.status).text}`}>
               {forensicResult.integritySection?.confidence || '90%'}
             </span>
@@ -2383,22 +2867,22 @@ JSON Schema:
                 { label: 'Digital Signature', val: forensicResult.custodySection?.fields?.digitalSignature || 'ECDSA-Verified ✓' }
               ].map(item => (
                 <div key={item.label} className={`p-2.5 rounded-xl border ${isDark ? 'bg-slate-900/40 border-slate-800/60' : 'bg-slate-50 border-slate-200'}`}>
-                  <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">{item.label}</p>
-                  <p className={`text-[10px] font-bold mt-0.5 truncate ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{item.val}</p>
+                  <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">{t(item.label)}</p>
+                  <p className={`text-[10px] font-bold mt-0.5 truncate ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{t(item.val)}</p>
                 </div>
               ))}
             </div>
 
             {/* Timeline ledger of custody actions */}
             <div className="space-y-2 border-t pt-3 border-slate-800/40">
-              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">Custody Audit Ledger Log</p>
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">{t('Custody Audit Ledger Log')}</p>
               {(forensicResult.chainOfCustody || []).map((log, index) => (
                 <div key={index} className={`flex items-start gap-2.5 p-2 border rounded-xl text-xs font-semibold ${isDark ? 'bg-slate-950/40 border-slate-850' : 'bg-slate-50 border-slate-200/60'}`}>
                   <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0 mt-1.5 animate-pulse" />
                   <div className="flex-1 min-w-0">
-                    <p className={`leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-750'}`}>{log.event}</p>
+                    <p className={`leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-750'}`}>{t(log.event)}</p>
                     <p className="text-[8.5px] text-slate-500 font-bold uppercase mt-0.5">
-                      {log.time} • User: {log.user || 'Advocate'} • Location: {log.location || 'Terminal Workbench'}
+                      {log.time} • {t('Uploaded By')}: {t(log.user) || t('Advocate')} • {t('Location')}: {t(log.location) || t('Terminal Workbench')}
                     </p>
                   </div>
                 </div>
@@ -2409,13 +2893,13 @@ JSON Schema:
             <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-800/40 flex-wrap">
               <input
                 type="text"
-                placeholder="Append custom custody event..."
+                placeholder={t('Append custom custody event...')}
                 value={customEvent}
                 onChange={e => setCustomEvent(e.target.value)}
                 className={`flex-1 border rounded-xl px-2.5 py-1.5 text-[11px] outline-none focus:border-indigo-500 ${isDark ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-white border-slate-250 text-slate-700'}`}
               />
               <button onClick={handleAddCustodyEvent} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap">
-                Log Event
+                {t('Log Event')}
               </button>
             </div>
           </div>
@@ -2434,43 +2918,43 @@ JSON Schema:
                 { label: 'Document Consistency', val: forensicResult.riskAssessmentSection?.scores?.documentConsistency || 'Match' }
               ].map(item => (
                 <div key={item.label} className={`p-3 rounded-xl border text-center ${isDark ? 'bg-slate-900/40 border-slate-800/60' : 'bg-slate-50 border-slate-200'}`}>
-                  <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">{item.label}</p>
+                  <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">{t(item.label)}</p>
                   <p className={`text-[11px] font-black mt-1 ${
                     item.val.toLowerCase() === 'low' || item.val.toLowerCase() === 'match' || item.val.toLowerCase() === 'consistent' || item.val.toLowerCase() === 'high' && item.label.includes('Reliability')
                       ? 'text-emerald-500' 
                       : item.val.toLowerCase() === 'high' || item.val.toLowerCase() === 'mismatch'
                       ? 'text-rose-500'
                       : 'text-amber-500'
-                  }`}>{item.val}</p>
+                  }`}>{t(item.val)}</p>
                 </div>
               ))}
               <div className={`p-3 rounded-xl border col-span-2 sm:col-span-3 flex items-center justify-between ${isDark ? 'bg-indigo-950/20 border-indigo-500/20' : 'bg-indigo-50 border-indigo-200'}`}>
-                <span className="text-[9px] font-black uppercase tracking-widest text-indigo-400">Risk Assessment Confidence Level</span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-indigo-400">{t('Risk Assessment Confidence Level')}</span>
                 <span className="text-xs font-black text-indigo-400">{forensicResult.riskAssessmentSection?.scores?.overallConfidenceLevel || '90%'}</span>
               </div>
             </div>
 
             {/* Contradiction Analysis List embedded inside Risk Assessment */}
             <div className="space-y-2 border-t pt-3 border-slate-800/40">
-              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">Contradiction & Discrepancy Detections</p>
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">{t('Contradiction & Discrepancy Detections')}</p>
               {forensicResult.contradictionSection?.contradictionsList && forensicResult.contradictionSection.contradictionsList.length > 0 ? (
                 forensicResult.contradictionSection.contradictionsList.map((c, idx) => (
                   <div key={idx} className={`p-3 border rounded-xl ${isDark ? 'bg-rose-955/20 border-rose-500/20' : 'bg-rose-50 border-rose-250'}`}>
                     <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest">
-                      Conflict in {c.where} ({c.severity} Severity)
+                      {t('Conflict in')} {c.where} ({t(c.severity)} {t('Severity')})
                     </span>
                     <p className={`text-xs font-semibold mt-1 leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-750'}`}>
                       {c.whatConflicts}
                     </p>
                     <p className={`text-[10px] mt-1.5 italic font-semibold ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                      Impact: {c.impact}
+                      {t('Impact:')} {c.impact}
                     </p>
                   </div>
                 ))
               ) : (
                 <div className={`flex items-center gap-2 p-3 rounded-xl border ${isDark ? 'bg-[#0b1b15]/40 border-emerald-500/20 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
                   <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
-                  <span className="text-[11px] font-semibold">No contradictions detected against comparative documents.</span>
+                  <span className="text-[11px] font-semibold">{t('No contradictions detected against comparative documents.')}</span>
                 </div>
               )}
             </div>
@@ -2489,7 +2973,7 @@ JSON Schema:
             {(forensicResult.lawyerRecommendationSection?.recommendationsList || []).map((rec, idx) => (
               <div key={idx} className={`flex gap-2 text-xs font-semibold items-start ${isDark ? 'text-slate-350' : 'text-slate-700'}`}>
                 <Check size={12} className="text-indigo-400 shrink-0" />
-                <p>{rec}</p>
+                <p>{t(rec)}</p>
               </div>
             ))}
           </div>
@@ -2507,52 +2991,52 @@ JSON Schema:
               <div className="flex items-center gap-2 border-b pb-3 border-slate-800/20">
                 <Scale className="text-indigo-400" size={18} />
                 <h3 className={`text-sm font-black uppercase tracking-widest ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-                  COMPARATIVE LEGAL AUDIT
+                  {t('COMPARATIVE LEGAL AUDIT')}
                 </h3>
               </div>
 
               {/* Comparative Audit Summary Card */}
               <div className={`p-5 rounded-2xl border ${isDark ? 'bg-[#0f162a] border-slate-800' : 'bg-white border-slate-200'} shadow-sm`}>
                 <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-3 border-b pb-2 border-slate-800/20">
-                  Comparative Audit Summary
+                  {t('Comparative Audit Summary')}
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-1.5 font-bold text-slate-500">
-                        <CheckCircle2 size={12} className="text-emerald-500" /> FIR Consistency
+                        <CheckCircle2 size={12} className="text-emerald-500" /> {t('FIR Consistency')}
                       </span>
                       <span className={`font-black uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                        {forensicResult.comparativeAudit.consistencyScore?.firConsistency || 'Insufficient data'}
+                        {t(forensicResult.comparativeAudit.consistencyScore?.firConsistency) || t('Insufficient data')}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-1.5 font-bold text-slate-500">
-                        <CheckCircle2 size={12} className="text-emerald-500" /> Complaint Match
+                        <CheckCircle2 size={12} className="text-emerald-500" /> {t('Complaint Match')}
                       </span>
                       <span className={`font-black uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                        {forensicResult.comparativeAudit.consistencyScore?.complaintConsistency || 'Insufficient data'}
+                        {t(forensicResult.comparativeAudit.consistencyScore?.complaintConsistency) || t('Insufficient data')}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-1.5 font-bold text-slate-500">
-                        <CheckCircle2 size={12} className="text-emerald-500" /> Witness Support
+                        <CheckCircle2 size={12} className="text-emerald-500" /> {t('Witness Support')}
                       </span>
                       <span className={`font-black uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                        {forensicResult.comparativeAudit.consistencyScore?.witnessConsistency || 'Insufficient data'}
+                        {t(forensicResult.comparativeAudit.consistencyScore?.witnessConsistency) || t('Insufficient data')}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-1.5 font-bold text-slate-500">
-                        <CheckCircle2 size={12} className="text-emerald-500" /> Timeline
+                        <CheckCircle2 size={12} className="text-emerald-500" /> {t('Timeline')}
                       </span>
                       <span className={`font-black uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                        {forensicResult.comparativeAudit.timelineValidation?.status || 'Insufficient data'}
+                        {t(forensicResult.comparativeAudit.timelineValidation?.status) || t('Insufficient data')}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-1.5 font-bold text-slate-500">
-                        <AlertTriangle size={12} className="text-amber-500" /> Contradictions
+                        <AlertTriangle size={12} className="text-amber-500" /> {t('Contradictions')}
                       </span>
                       <span className={`font-black uppercase tracking-wider ${
                         forensicResult.comparativeAudit.contradictionAnalysis?.length > 0 && forensicResult.comparativeAudit.contradictionAnalysis[0].observation !== "No material contradiction detected."
@@ -2561,16 +3045,16 @@ JSON Schema:
                       }`}>
                         {forensicResult.comparativeAudit.contradictionAnalysis?.length > 0 && forensicResult.comparativeAudit.contradictionAnalysis[0].observation !== "No material contradiction detected."
                           ? `${forensicResult.comparativeAudit.contradictionAnalysis.length} Flagged`
-                          : 'None'
+                          : t('None')
                       }
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-1.5 font-bold text-slate-500">
-                        <CheckCircle2 size={12} className="text-emerald-500" /> Corroboration
+                        <CheckCircle2 size={12} className="text-emerald-500" /> {t('Corroboration')}
                       </span>
                       <span className={`font-black uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                        {forensicResult.comparativeAudit.witnessComparison?.supported?.length > 0 ? 'Available' : 'None'}
+                        {forensicResult.comparativeAudit.witnessComparison?.supported?.length > 0 ? t('Available') : t('None')}
                       </span>
                     </div>
                   </div>
@@ -3188,7 +3672,7 @@ JSON Schema:
             <LanguageToggle lang={outputLang} onChange={handleForensicLangChange} isTranslating={isForensicTranslating} />
           </div>
           <button 
-            onClick={() => handleCopyText(forensicResult.ocrText)} 
+            onClick={() => handleCopyText(formatOcrText(forensicResult.ocrText))} 
             className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-3 px-4 rounded-xl border text-xs font-bold transition-all min-h-[44px] ${isDark ? 'bg-slate-900 border-slate-800 hover:bg-slate-800 text-slate-350' : 'bg-slate-50 border-slate-250 hover:bg-slate-100 text-slate-700'}`}
           >
             <Copy size={14} />
@@ -3299,13 +3783,13 @@ JSON Schema:
         {/* 2. OCR Result (Text Extraction Quality Card) */}
         {renderV2Card('ocr', 'SECTION 4: Text Extraction Quality', <FileText size={12} />, forensicResult.ocrSection, (
           <div className="space-y-3 mt-3">
-            <div className={`border rounded-xl p-4 font-mono text-xs max-h-60 overflow-y-auto custom-scrollbar text-left whitespace-pre-wrap leading-relaxed ${isDark ? 'bg-slate-955 border-slate-800/80 text-slate-300' : 'bg-slate-50 border-slate-202 text-slate-750'}`}>
+            <div className={`border rounded-2xl p-5 text-xs font-semibold leading-relaxed max-h-80 overflow-y-auto custom-scrollbar text-left whitespace-pre-wrap break-words [word-break:break-word] [overflow-wrap:anywhere] transition-all ${isDark ? 'bg-[#0f172a]/60 border-slate-800/80 text-slate-250' : 'bg-slate-50/60 border-slate-200 text-slate-800'}`}>
               {isEditingOcr ? (
                 <textarea
                   value={ocrText}
                   onChange={e => setOcrText(e.target.value)}
-                  className={`w-full bg-transparent border-none outline-none focus:ring-0 p-0 text-xs font-mono resize-none ${isDark ? 'text-slate-200' : 'text-slate-850'}`}
-                  rows={6}
+                  className={`w-full bg-transparent border-none outline-none focus:ring-0 p-0 text-xs font-semibold leading-relaxed resize-none focus:outline-none ${isDark ? 'text-slate-200' : 'text-slate-850'}`}
+                  rows={8}
                 />
               ) : (
                 renderOcrHighlight()
