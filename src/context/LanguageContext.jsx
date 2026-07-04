@@ -201,10 +201,6 @@ export const LanguageProvider = ({ children }) => {
         return undefined;
     };
 
-    const tLegal = (key) => {
-        const langData = translations[toolkitLanguage] || translations['English'];
-        return langData[key] || translations['English'][key] || key;
-    };
 
     return (
         <LanguageContext.Provider value={{
