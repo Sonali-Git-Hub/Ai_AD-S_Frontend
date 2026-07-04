@@ -143,7 +143,7 @@ const FullScreenCaseAssistant = ({
     const loadSessions = async () => {
       try {
         const caseId = caseData?.id || caseData?._id;
-        const dbSessions = await chatStorageService.getSessions(caseId);
+        const dbSessions = await chatStorageService.getSessions(caseId, 'CASE', caseId);
         const mapped = dbSessions.map(s => ({
           chat_id: s.sessionId || s.chat_id,
           title: s.title || 'New Chat',
@@ -374,7 +374,16 @@ const FullScreenCaseAssistant = ({
               style={{ mixBlendMode: 'multiply' }}
               alt="AI LEGAL" 
             />
-            <h1 className="text-sm font-black text-slate-900 uppercase tracking-wider">AI LEGAL™ Chat</h1>
+            <div>
+              <h1 className="text-sm font-black text-slate-900 uppercase tracking-wider leading-tight">
+                {caseData ? (caseData.title || caseData.caseTitle || 'Case Assistant') : 'Case Assistant'}
+              </h1>
+              {caseData && (
+                <p className="text-[9px] font-bold text-[#4F46E5] uppercase tracking-widest leading-none mt-0.5">
+                  {[caseData.court, caseData.caseType, caseData.stage].filter(Boolean).join(' · ') || 'Case Workspace Assistant'}
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
@@ -444,7 +453,7 @@ const FullScreenCaseAssistant = ({
             }`}
           >
             <History size={13} />
-            <span>History</span>
+            <span>Case Conversations</span>
           </button>
 
           <button
@@ -734,9 +743,8 @@ const FullScreenCaseAssistant = ({
                         key={action.name}
                         type="button"
                         onClick={() => {
-                          setChatInput(action.prompt);
                           setShowPlusMenu(false);
-                          chatInputRef.current?.focus();
+                          handleSendAiMessage(null, action.prompt);
                         }}
                         className="flex items-center gap-2.5 p-2 bg-slate-50 hover:bg-indigo-50/30 border border-slate-100 hover:border-[#4F46E5] rounded-xl text-[11px] font-bold text-slate-750 text-left transition-all cursor-pointer border-none"
                       >

@@ -634,24 +634,55 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
 
     if (mergedFiles.length > 0) {
       setFiles(mergedFiles);
-      const firstFileWithText = mergedFiles.find(f => f.ocrText?.trim());
-      setContractTitle(firstFileWithText ? firstFileWithText.name : mergedFiles[0].name);
-      setContractText(firstFileWithText ? firstFileWithText.ocrText : '');
-      setAuditResult(ci?.auditResult || null);
-      setVersions(ci?.versions || []);
-      setAuditLogs(ci?.auditLogs || []);
-      setChatHistory(ci?.chatHistory || []);
-      setComparisonResult(ci?.comparisonResult || null);
-      setActiveFileId(mergedFiles[0].id);
-      setSelectedAnalysisFileId(mergedFiles[0].id);
+      
+      const activeContractIdFromStorage = sessionStorage.getItem('aiLegal_activeContractId');
+      sessionStorage.removeItem('aiLegal_activeContractId');
+
+      let targetFile = null;
+      if (activeContractIdFromStorage) {
+        targetFile = mergedFiles.find(f => f.id === activeContractIdFromStorage);
+      }
+      
+      if (!targetFile && mergedFiles.length === 1) {
+        targetFile = mergedFiles[0];
+      }
+
+      if (targetFile) {
+        setActiveFileId(targetFile.id);
+        setSelectedAnalysisFileId(targetFile.id);
+        setContractTitle(targetFile.name);
+        setContractText(targetFile.ocrText || '');
+        setAuditResult(targetFile.contractAnalysis || ci?.auditResult || null);
+        setVersions(targetFile.versions || ci?.versions || []);
+        setAuditLogs(targetFile.auditLogs || ci?.auditLogs || []);
+        setChatHistory(ci?.chatHistory || []);
+        setComparisonResult(ci?.comparisonResult || null);
+
+        if (targetFile.ocrText && !targetFile.contractAnalysis) {
+          setTimeout(() => {
+            performContractAuditInternal(targetFile.name, targetFile.ocrText, mergedFiles, targetFile.versions || [], targetFile.auditLogs || []);
+          }, 150);
+        }
+      } else {
+        // Multiple contracts exist and no preselected ID: show searchable selector
+        setActiveFileId(null);
+        setSelectedAnalysisFileId(null);
+        setContractTitle('');
+        setContractText('');
+        setAuditResult(null);
+        setVersions([]);
+        setAuditLogs([]);
+        setChatHistory([]);
+        setComparisonResult(null);
+      }
     } else {
       setFiles([]);
       setContractTitle('');
       setContractText('');
       setAuditResult(null);
-      setVersions(ci?.versions || []);
-      setAuditLogs(ci?.auditLogs || []);
-      setChatHistory(ci?.chatHistory || []);
+      setVersions([]);
+      setAuditLogs([]);
+      setChatHistory([]);
       setComparisonResult(null);
       setActiveFileId(null);
       setSelectedAnalysisFileId(null);
@@ -707,14 +738,20 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
       currentDocs = currentDocs.filter(doc => {
         const isContract = doc.category === 'Contract' || doc.isContract === true || /nda|contract|agreement|lease/i.test(doc.name || '');
         if (isContract) {
-          return nextFiles.some(f => f.name === doc.name);
+          return nextFiles.some(f => f.id === doc.id || f.name === doc.name);
         }
         return true;
       });
 
+      const activeTitle = updates.contractTitle !== undefined ? updates.contractTitle : contractTitle;
+      const activeText = updates.contractText !== undefined ? updates.contractText : contractText;
+      const activeAuditResult = updates.auditResult !== undefined ? updates.auditResult : auditResult;
+      const activeVersions = updates.versions !== undefined ? updates.versions : versions;
+      const activeLogs = updates.auditLogs !== undefined ? updates.auditLogs : auditLogs;
+
       // 2. Add/Update documents from nextFiles
       nextFiles.forEach(f => {
-        const alreadyExists = currentDocs.some(doc => doc.name === f.name);
+        const alreadyExists = currentDocs.some(doc => doc.id === f.id || doc.name === f.name);
         if (!alreadyExists) {
           currentDocs = [
             {
@@ -726,25 +763,43 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
               ocrStatus: 'Success (OCR Done)',
               aiProcessed: 'Extracted successfully',
               ocrText: f.ocrText,
+              contractAnalysis: f.contractAnalysis || (f.id === activeFileId ? activeAuditResult : null),
+              versionHistory: f.versions || (f.id === activeFileId ? activeVersions : []),
+              auditTrail: f.auditLogs || (f.id === activeFileId ? activeLogs : []),
               category: 'Contract',
               isContract: true
             },
             ...currentDocs
           ];
-        } else {
-          // Update the ocrText if it's updated
-          currentDocs = currentDocs.map(doc => {
-            if (doc.name === f.name) {
-              return { 
-                ...doc, 
-                ocrText: f.ocrText || doc.ocrText,
-                category: 'Contract',
-                isContract: true
-              };
-            }
-            return doc;
-          });
         }
+      });
+
+      currentDocs = currentDocs.map(doc => {
+        const isActive = doc.id === activeFileId || doc.name === activeTitle;
+        const match = nextFiles.find(f => f.id === doc.id || f.name === doc.name);
+
+        if (isActive) {
+          return {
+            ...doc,
+            ocrText: activeText || doc.ocrText,
+            contractAnalysis: activeAuditResult !== undefined ? activeAuditResult : doc.contractAnalysis,
+            versionHistory: activeVersions !== undefined ? activeVersions : doc.versionHistory,
+            auditTrail: activeLogs !== undefined ? activeLogs : doc.auditTrail,
+            category: 'Contract',
+            isContract: true
+          };
+        } else if (match) {
+          return {
+            ...doc,
+            ocrText: match.ocrText || doc.ocrText,
+            contractAnalysis: match.contractAnalysis || doc.contractAnalysis,
+            versionHistory: match.versions || match.versionHistory || doc.versionHistory,
+            auditTrail: match.auditLogs || match.auditTrail || doc.auditTrail,
+            category: 'Contract',
+            isContract: true
+          };
+        }
+        return doc;
       });
 
       const payload = {
@@ -752,13 +807,14 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
         documents: currentDocs,
         contractIntelligence: {
           ...currentCi,
-          contractTitle,
-          activeContractText: contractText,
+          contractTitle: activeTitle,
+          activeContractText: activeText,
           files: nextFiles,
-          auditResult,
-          versions,
-          auditLogs,
-          comparisonResult,
+          auditResult: activeAuditResult,
+          versions: activeVersions,
+          auditLogs: activeLogs,
+          comparisonResult: updates.comparisonResult !== undefined ? updates.comparisonResult : comparisonResult,
+          chatHistory: updates.chatHistory !== undefined ? updates.chatHistory : chatHistory,
           ...updates
         }
       };
@@ -3405,8 +3461,22 @@ SUMMARY INFO:
 
                     {/* Active Contract Detail Card */}
                     {(() => {
-                      const activeFile = files.find(f => f.id === activeFileId) || files[0];
-                      if (!activeFile) return null;
+                      const activeFile = files.find(f => f.id === activeFileId);
+                      if (!activeFile) {
+                        return (
+                          <div className="p-8 rounded-2xl border border-dashed border-indigo-500/20 bg-indigo-500/5 text-center space-y-3.5 animate-in fade-in duration-200">
+                            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center mx-auto border border-indigo-500/20">
+                              <FileStack size={18} className="animate-pulse" />
+                            </div>
+                            <div className="space-y-1">
+                              <h4 className="text-[10px] font-black uppercase text-slate-800 dark:text-white tracking-wider">No Active Contract Selected</h4>
+                              <p className="text-[9px] text-slate-500 max-w-sm mx-auto leading-relaxed">
+                                Please search or select a contract from the catalog below to launch the AI workspace.
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      }
                       
                       const fileVer = versions.filter(v => v.note?.includes(activeFile.name)).length || 1;
                       const fileSize = activeFile.size ? `${(activeFile.size / 1024).toFixed(1)} MB` : '1.2 MB';
@@ -3757,12 +3827,18 @@ SUMMARY INFO:
                                     <div className="flex items-center gap-2.5 min-w-0">
                                       <FileText size={16} className="text-indigo-500 shrink-0" />
                                       <div className="min-w-0 flex-1">
-                                        <span 
-                                          className="font-extrabold text-[12.5px] text-slate-800 dark:text-slate-200 block truncate whitespace-nowrap"
+                                        <button 
+                                          onClick={() => {
+                                            setActiveFileId(f.id);
+                                            setContractTitle(f.name);
+                                            setContractText(f.ocrText);
+                                            toast.success(`Loaded: ${f.name}`);
+                                          }}
+                                          className="font-extrabold text-[12.5px] text-slate-800 dark:text-slate-200 block truncate whitespace-nowrap hover:text-indigo-500 hover:underline text-left w-full"
                                           title={f.name}
                                         >
                                           {f.name}
-                                        </span>
+                                        </button>
                                         <span className="text-[9.5px] font-semibold text-slate-455 uppercase block mt-0.5 tracking-wider truncate whitespace-nowrap">
                                           {docSubtype}
                                         </span>
@@ -3976,7 +4052,17 @@ SUMMARY INFO:
                                     onChange={() => toggleSelectRow(f.id)}
                                   />
                                   <div className="min-w-0">
-                                    <h4 className="font-extrabold text-xs text-slate-800 dark:text-slate-200 truncate">{f.name}</h4>
+                                    <button 
+                                      onClick={() => {
+                                        setActiveFileId(f.id);
+                                        setContractTitle(f.name);
+                                        setContractText(f.ocrText);
+                                        toast.success(`Loaded: ${f.name}`);
+                                      }}
+                                      className="font-extrabold text-xs text-slate-800 dark:text-slate-200 truncate hover:text-indigo-500 hover:underline text-left block w-full"
+                                    >
+                                      {f.name}
+                                    </button>
                                     <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wider">{docSubtype}</span>
                                   </div>
                                 </div>

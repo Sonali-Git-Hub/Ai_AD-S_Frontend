@@ -78,10 +78,21 @@ const getAuthHeaders = () => {
 
 export const chatStorageService = {
 
-  async getSessions(projectId) {
+  // ─── DUAL AI ARCHITECTURE: getSessions with sessionType isolation ──────────
+  // sessionType: 'GENERAL' = General AI Legal Chat (no case)
+  //              'CASE'    = Case Assistant (tied to one caseId)
+  async getSessions(projectId, sessionType = null, caseId = null) {
     try {
       const params = {};
-      if (projectId && projectId !== 'default' && projectId !== 'all') params.projectId = projectId;
+      if (sessionType) params.sessionType = sessionType;
+      if (sessionType === 'CASE' && (caseId || projectId)) {
+        params.caseId = caseId || projectId;
+      } else if (sessionType === 'GENERAL') {
+        // no projectId for general chat
+      } else if (projectId && projectId !== 'default' && projectId !== 'all') {
+        params.projectId = projectId;
+      }
+
       const response = await axios.get(`${API_BASE_URL}/chat`, {
         params,
         headers: getAuthHeaders(),
@@ -89,18 +100,19 @@ export const chatStorageService = {
       });
       const dbSessions = Array.isArray(response.data) ? response.data : [];
 
-      // Requirement: Temporarily combine guestChats + userChats in UI to avoid flicker
-      const guestChatsRaw = localStorage.getItem("guestChats");
-      if (guestChatsRaw) {
-        try {
-          const guestChats = JSON.parse(guestChatsRaw);
-          guestChats.forEach(gc => {
-            // Only add if not already in dbSessions (to avoid double entry after sync)
-            if (!dbSessions.find(s => s.sessionId === gc.sessionId)) {
-              dbSessions.push(gc);
-            }
-          });
-        } catch (e) { console.error("[STORAGE] Failed to combine guest chats", e); }
+      // For GENERAL sessions only: combine with guest chats to avoid flicker
+      if (!sessionType || sessionType === 'GENERAL') {
+        const guestChatsRaw = localStorage.getItem("guestChats");
+        if (guestChatsRaw) {
+          try {
+            const guestChats = JSON.parse(guestChatsRaw);
+            guestChats.forEach(gc => {
+              if (!dbSessions.find(s => s.sessionId === gc.sessionId)) {
+                dbSessions.push(gc);
+              }
+            });
+          } catch (e) { console.error("[STORAGE] Failed to combine guest chats", e); }
+        }
       }
 
       return dbSessions.sort((a, b) => b.lastModified - a.lastModified);
@@ -108,32 +120,42 @@ export const chatStorageService = {
       console.warn("Backend sessions fetch failed, using local:", error);
       const sessions = [];
 
-      // 1. Check IndexedDB
+      // 1. Check IndexedDB — filter by sessionType stored in meta
       const keys = await idbGetAllKeys();
       for (const key of keys) {
         if (key.startsWith("chat_meta_")) {
           const sessionId = key.replace("chat_meta_", "");
           const meta = await idbGet(key) || {};
+          // Apply sessionType isolation in offline mode
+          if (sessionType === 'CASE' && meta.sessionType !== 'CASE') continue;
+          if (sessionType === 'GENERAL' && meta.sessionType === 'CASE') continue;
+          if (sessionType === 'CASE' && (caseId || projectId)) {
+            const resolvedCaseId = caseId || projectId;
+            if (meta.caseId && meta.caseId !== resolvedCaseId) continue;
+          }
           sessions.push({
             sessionId,
             title: meta.title || "New Chat",
             lastModified: meta.lastModified || Date.now(),
+            sessionType: meta.sessionType || 'GENERAL',
+            caseId: meta.caseId || null,
           });
         }
       }
 
-      // 2. Check localStorage for Guest Chats (Requirement)
-      const guestChatsRaw = localStorage.getItem("guestChats");
-      if (guestChatsRaw) {
-        try {
-          const guestChats = JSON.parse(guestChatsRaw);
-          guestChats.forEach(gc => {
-            // Avoid duplicates with IndexedDB if any
-            if (!sessions.find(s => s.sessionId === gc.sessionId)) {
-              sessions.push(gc);
-            }
-          });
-        } catch (e) { console.error("Failed to parse guestChats", e); }
+      // 2. Check localStorage for Guest Chats (GENERAL mode only)
+      if (!sessionType || sessionType === 'GENERAL') {
+        const guestChatsRaw = localStorage.getItem("guestChats");
+        if (guestChatsRaw) {
+          try {
+            const guestChats = JSON.parse(guestChatsRaw);
+            guestChats.forEach(gc => {
+              if (!sessions.find(s => s.sessionId === gc.sessionId)) {
+                sessions.push(gc);
+              }
+            });
+          } catch (e) { console.error("Failed to parse guestChats", e); }
+        }
       }
 
       return sessions.sort((a, b) => b.lastModified - a.lastModified);
@@ -177,7 +199,8 @@ export const chatStorageService = {
     }
   },
 
-  async saveMessage(sessionId, message, title, projectId = null) {
+  // sessionType: 'GENERAL' | 'CASE'; caseId: the case ObjectId if CASE
+  async saveMessage(sessionId, message, title, projectId = null, sessionType = 'GENERAL', caseId = null) {
     // 1. Always save to Local (IndexedDB) for instant UI updates & offline backup
     try {
       const historyKey = `chat_history_${sessionId}`;
@@ -200,7 +223,10 @@ export const chatStorageService = {
         lastModified: Date.now(),
         projectId: projectId || message.projectId || existingMeta.projectId || null,
         detectedMode: message.mode || existingMeta.detectedMode || 'NORMAL_CHAT',
-        activeTool: message.activeTool || existingMeta.activeTool || null
+        activeTool: message.activeTool || existingMeta.activeTool || null,
+        // ── Dual AI Architecture tags ───────────────────────────────────────
+        sessionType: sessionType || existingMeta.sessionType || 'GENERAL',
+        caseId: caseId || existingMeta.caseId || null,
       };
       await idbSet(metaKey, meta);
     } catch (localErr) {
@@ -212,7 +238,8 @@ export const chatStorageService = {
       const token = getUserData()?.token;
       
       // Requirement: Always maintain a local index of guest chats for merging later
-      if (!token) {
+      // (GENERAL chats only — Case chats are stored per-case)
+      if (!token && sessionType !== 'CASE') {
         const guestChatsRaw = localStorage.getItem("guestChats") || "[]";
         try {
           let guestChats = JSON.parse(guestChatsRaw);
@@ -224,7 +251,8 @@ export const chatStorageService = {
             guestChats.push({
               sessionId,
               title: title || "New Chat",
-              lastModified: Date.now()
+              lastModified: Date.now(),
+              sessionType: 'GENERAL'
             });
           }
           localStorage.setItem("guestChats", JSON.stringify(guestChats));
@@ -233,10 +261,13 @@ export const chatStorageService = {
       }
 
       const finalProjectId = (projectId === 'default' || projectId === 'all') ? null : (projectId || (message.projectId === 'default' ? null : message.projectId));
+      const finalCaseId = caseId || null;
       await axios.post(`${API_BASE_URL}/chat/${sessionId}/message`, { 
         message, 
         title, 
         projectId: finalProjectId,
+        caseId: finalCaseId,
+        sessionType: sessionType || 'GENERAL',
         mode: message.mode,
         activeTool: message.activeTool
       }, {

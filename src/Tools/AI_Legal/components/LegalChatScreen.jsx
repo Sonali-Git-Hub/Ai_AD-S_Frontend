@@ -1105,7 +1105,7 @@ Please continue the conversation naturally using this context. Never ask the use
     dbMsg.mode = 'NORMAL_CHAT';
 
     try {
-      await chatStorageService.saveMessage(chatIdRef.current, dbMsg, title, currentCase?._id);
+      await chatStorageService.saveMessage(chatIdRef.current, dbMsg, title, null, 'GENERAL', null);
       setSessions(prev => {
         const previewText = dbMsg.content || dbMsg.text || '';
         const exists = prev.some(s => s.chat_id === chatIdRef.current);
@@ -1129,7 +1129,7 @@ Please continue the conversation naturally using this context. Never ask the use
   useEffect(() => {
     const loadSessions = async () => {
       try {
-        const dbSessions = await chatStorageService.getSessions(currentCase?._id);
+        const dbSessions = await chatStorageService.getSessions(null, 'GENERAL');
         const filteredDb = dbSessions.filter(s => s.activeTool === 'General Legal Chat');
         
         // Asynchronously populate previews for each session in history
@@ -1710,7 +1710,7 @@ Please continue the conversation naturally using this context. Never ask the use
       const dbMsg = mapLocalMessageToDb(userMsg);
       dbMsg.activeTool = 'General Legal Chat';
       dbMsg.mode = 'NORMAL_CHAT';
-      await chatStorageService.saveMessage(newId, dbMsg, 'Case Analysis', currentCase?._id);
+      await chatStorageService.saveMessage(newId, dbMsg, 'Case Analysis', null, 'GENERAL', null);
 
       try {
         let systemInstruction = LEGAL_SYSTEM_INSTRUCTION;
@@ -2610,7 +2610,7 @@ Please continue the conversation naturally using this context. Never ask the use
                                     e.stopPropagation();
                                     const newName = prompt("Rename this chat:", s.title || "New Chat");
                                     if (newName) {
-                                      chatStorageService.saveMessage(s.chat_id, {}, newName, currentCase?._id);
+                                      chatStorageService.saveMessage(s.chat_id, {}, newName, null, 'GENERAL', null);
                                       setSessions(prev => prev.map(p => p.chat_id === s.chat_id ? { ...p, title: newName } : p));
                                     }
                                   }}

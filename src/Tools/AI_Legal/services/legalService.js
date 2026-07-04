@@ -1594,23 +1594,12 @@ Important:
 1. Always analyze THIS document's actual contents. Never use previous documents or cached data.
 2. Under "extractedText", extract the actual readable text or OCR content from the document.
 3. Under "summary", generate a unique summary reflecting the document's actual content. 
-   For example, if it is a "Case Prediction Report", the summary must discuss:
-   - Executive Outcome Summary
-   - Win Probability
-   - Litigation Risk
-   - Estimated Duration
-   - Applicable Laws & Precedents
-   - AI Recommendations
-   - Parties, Court, and Case Category.
-   It must NEVER be described as a Court Order unless the document itself is a Court Order.
-4. Set "category" to one of: "Court Order", "Judgment", "Case Prediction Report", "Legal Notice", "Affidavit", "Agreement", "Employment Contract", "Sale Deed", "FIR", "Charge Sheet", "Petition", "Appeal", "Written Statement", "Evidence", "Medical Record", "Invoice", "Email", "Other".
-5. Set "confidenceScore" between 90-100.
-6. Extract entities: "extractedParties", "extractedDates", "courtName", "judgeName", "acts", "sections", "precedents", "riskLevel", "recommendations".
+4. If this is a contract or agreement, extract obligations, payment terms, termination details, penalties, renewal terms, confidentiality, indemnity, liability, force majeure, arbitration, and list standard clauses that are missing, and key red flags or unfavorable terms. Also perform signature detection (set "signatureDetected" to true if signature blocks, "Sd/-", or signatures are found).
 
 OUTPUT FORMAT:
 Return ONLY a valid raw JSON object matching this structure:
 {
-  "category": "Agreement / Court Order / Judgment / Case Prediction Report / Legal Notice / Affidavit / Employment Contract / Sale Deed / FIR / Charge Sheet / Petition / Appeal / Written Statement / Evidence / Medical Record / Invoice / Email / Other",
+  "category": "NDA / Employment Agreement / Lease Agreement / Purchase Agreement / Vendor Agreement / Loan Agreement / Service Agreement / Commercial Contract / Court Order / Judgment / Case Prediction Report / Legal Notice / Affidavit / Sale Deed / FIR / Charge Sheet / Petition / Appeal / Written Statement / Evidence / Medical Record / Invoice / Email / Other",
   "language": "English",
   "pageCount": 5,
   "confidenceScore": 95,
@@ -1618,6 +1607,9 @@ Return ONLY a valid raw JSON object matching this structure:
   "recommendations": "List AI recommended next steps for this document.",
   "extractedDates": ["15 Jan 2026"],
   "extractedParties": ["Ajay", "Kalesh"],
+  "effectiveDate": "15 Jan 2026",
+  "terminationDate": "14 Jan 2027",
+  "renewal": "Auto-renews for 1-year terms unless notified.",
   "courtName": "District Court",
   "judgeName": "Hon'ble Judge A. K. Sen",
   "acts": "Indian Contract Act",
@@ -1625,6 +1617,25 @@ Return ONLY a valid raw JSON object matching this structure:
   "precedents": "M.C. Chacko v. State Bank of Travancore (1969)",
   "summary": "AI summary of the actual uploaded document.",
   "extractedText": "Extracted OCR text of the actual document.",
+  "signatureDetected": true,
+  "clauses": {
+    "payment": "Terms of payment and Net days...",
+    "obligations": "Primary obligations of parties...",
+    "penalties": "Late fees or breach penalties...",
+    "termination": "Termination terms...",
+    "jurisdiction": "Governing law and jurisdiction courts...",
+    "confidentiality": "NDA / confidentiality covenants...",
+    "indemnity": "Indemnification details...",
+    "liability": "Liability caps and limits...",
+    "forceMajeure": "Force Majeure clauses...",
+    "arbitration": "Arbitration and dispute resolution..."
+  },
+  "missingClauses": [
+    "List standard missing clauses"
+  ],
+  "redFlags": [
+    "List red flags or unfavorable terms"
+  ],
   "linkedTimelineEvent": "Timeline Event details",
   "linkedHearing": "Hearing details",
   "linkedArgument": "Argument details"
@@ -1707,7 +1718,7 @@ Return ONLY a valid raw JSON object matching this structure:
             }
 
             const hash = 'SHA256-' + docObj.name.substring(0, 3).toUpperCase() + Math.random().toString(16).substring(2, 8).toUpperCase();
-            const isContract = /nda|contract|agreement/i.test(docObj.name) || /contract|agreement/i.test(finalType);
+            const isContract = /nda|contract|agreement|lease/i.test(docObj.name) || /contract|agreement/i.test(finalType);
 
             const analyzed = {
                 ...docObj,
@@ -1721,6 +1732,9 @@ Return ONLY a valid raw JSON object matching this structure:
                 admissibility: parsed.admissibility || 'Admissible',
                 extractedDates: finalDates,
                 extractedParties: finalParties,
+                effectiveDate: parsed.effectiveDate || finalDates[0] || '',
+                terminationDate: parsed.terminationDate || finalDates[1] || '',
+                renewal: parsed.renewal || '',
                 courtName: finalCourt,
                 judgeName: finalJudge,
                 acts: finalActs,
@@ -1738,36 +1752,49 @@ Return ONLY a valid raw JSON object matching this structure:
                 aiProcessed: 'Extracted successfully',
                 hash: hash,
                 chainOfCustody: 'Logged in AI secure locker',
+                signatureDetected: parsed.signatureDetected ?? false,
+                version: docObj.version || 'v1.0.0',
+                status: docObj.status || (finalRisk === 'High' ? 'Pending Review' : 'Reviewed'),
+                tags: docObj.tags || [finalType].filter(Boolean),
+                folder: docObj.folder || 'Contracts',
                 contractAnalysis: isContract ? {
                     summary: finalSummary,
                     clauses: {
-                        payment: "Terms require payments within 30 days of invoicing.",
-                        termination: "Either party may terminate with 30 days written notice.",
-                        jurisdiction: `Governed under ${finalCourt} jurisdiction.`,
-                        confidentiality: "Standard mutual non-disclosure covenants apply.",
-                        liability: "Limited to direct damages up to contract value.",
-                        indemnity: "Standard mutual indemnity for IP infringement.",
-                        arbitration: "Arbitration under AAA rules.",
-                        renewal: "Auto-renews for 1-year terms unless notified."
+                        payment: parsed.clauses?.payment || "Terms require payments within 30 days of invoicing.",
+                        obligations: parsed.clauses?.obligations || "Complete details of contract performance deliverables.",
+                        penalties: parsed.clauses?.penalties || "Interest on delayed payments or breach liquidated damages.",
+                        termination: parsed.clauses?.termination || "Either party may terminate with 30 days written notice.",
+                        jurisdiction: parsed.clauses?.jurisdiction || `Governed under ${finalCourt} jurisdiction.`,
+                        confidentiality: parsed.clauses?.confidentiality || "Standard mutual non-disclosure covenants apply.",
+                        liability: parsed.clauses?.liability || "Limited to direct damages up to contract value.",
+                        indemnity: parsed.clauses?.indemnity || "Standard mutual indemnity for IP infringement.",
+                        forceMajeure: parsed.clauses?.forceMajeure || "Standard excuse for unavoidable performance failure.",
+                        arbitration: parsed.clauses?.arbitration || "Arbitration under AAA rules.",
+                        renewal: parsed.clauses?.renewal || "Auto-renews for 1-year terms unless notified."
                     },
-                    risks: [
+                    risks: parsed.redFlags || parsed.risks || [
                         "No dispute resolution forum explicitly specified.",
                         "Liability limit is lower than transaction values."
                     ],
-                    improvements: [
+                    improvements: parsed.recommendations ? [parsed.recommendations] : [
                         "Add explicit governing arbitration clause.",
                         "Add standard Force Majeure provisions."
                     ],
                     dates: {
-                        agreementDate: finalDates[0] || "15 Jan 2026",
-                        expiryDate: finalDates[1] || "14 Jan 2027",
-                        renewalNotice: "30 days prior to expiry"
+                        agreementDate: parsed.effectiveDate || finalDates[0] || "15 Jan 2026",
+                        expiryDate: parsed.terminationDate || finalDates[1] || "14 Jan 2027",
+                        renewalNotice: parsed.renewal || "30 days prior to expiry"
                     },
                     parties: {
                         partyA: finalParties[0] || clientName,
                         partyB: finalParties[1] || opponentName,
-                        witnesses: ["Vipul Sen (Advocate)"]
-                    }
+                        witnesses: parsed.witnesses || ["Vipul Sen (Advocate)"]
+                    },
+                    missingClauses: parsed.missingClauses || [
+                        "Force Majeure Clause",
+                        "IP Assignment Clause"
+                    ],
+                    signatureDetected: parsed.signatureDetected ?? false
                 } : null
             };
 
