@@ -603,16 +603,22 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       if (!isBackground) setLoading(true);
       // 1. Get All Workspaces
       const wsList = await apiService.getSocialAgentWorkspaces();
-      if (wsList.success) setAllWorkspaces(wsList.workspaces);
+      if (wsList.success) {
+        console.log("Fetched workspaces:", wsList.workspaces);
+        setAllWorkspaces(wsList.workspaces);
+      }
 
       // 2. Load latest or create
+      // Try to load the target workspace (or the latest one)
       let wsData = await apiService.getSocialAgentWorkspace(targetId);
-      if (!wsData || !wsData.success) {
+      // If we couldn't load a workspace and there are no workspaces at all, create a default one
+      if ((!wsData || !wsData.success) && (wsList.workspaces || []).length === 0) {
         wsData = await apiService.createSocialAgentWorkspace({
           workspaceName: `${currentUser?.name || 'My'} Brand`,
           planType: 'Low'
         });
         if (wsData.success) {
+          // Replace the empty list with the newly created workspace
           setAllWorkspaces([wsData.workspace]);
         }
       }
@@ -623,9 +629,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
         const anyOnboarded = (wsList.workspaces || []).some(w => w.onboarding?.completed);
 
-        if (!anyOnboarded && !wsData.workspace.onboarding?.completed) {
-          setShowOnboarding(true);
-        }
+        // Onboarding wizard removed
+
         setIsCheckingOnboarding(false);
 
         await fetchWorkspaceData(wsId.toString(), isBackground);
@@ -786,7 +791,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
             switchWorkspace(nextWs);
           } else {
             setWorkspace(null);
-            setShowOnboarding(true);
+            // Onboarding removed
           }
         }
 
@@ -1112,6 +1117,9 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
         // --- STEP 0: AUTOMATED AI ACTIVATION CHAIN ---
         const wsId = ensureStringId(isNew ? res.brandProfile.workspaceId : (workspace?._id || currentEditingBrandId));
 
+        // Re-fetch all immediately to show the new card in the grid/sidebar right away
+        await initWorkspace(true, wsId);
+
         let activeToast = toast.loading("⚡ Phase 1/3: Synchronizing Brand DNA...", { duration: 10000 });
 
         try {
@@ -1144,10 +1152,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
           }
         }
 
-        // Re-fetch all to show the new card in the grid
-        await initWorkspace();
-
-        // Clear inputs AFTER re-fetching to ensure the form is blank for new entry
+        // Clear inputs AFTER saving to ensure the form is blank for new entry
         setCurrentEditingBrandId(null);
         setBrandLogo(null);
         setOverviewFiles([]);
@@ -1558,11 +1563,23 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   const renderOverview = () => {
     return (
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 flex flex-col space-y-12 pb-20">
-
         {/* ── SECTION 1: Strategic Command Stats ─────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+        {/* DEBUG OVERLAY */}
+        <div className="fixed bottom-0 left-0 bg-black text-green-500 text-xs p-2 z-[9999] max-h-32 overflow-y-auto">
+          DEBUG: {allWorkspaces.length} workspaces. 
+          {allWorkspaces.map(ws => `[${ws._id}: brandProfile=${ws.brandProfile ? (ws.brandProfile.companyName || 'NO_NAME') : 'NO_BRANDPROFILE'}] `)}
+        </div>
+
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
           {[
-            { id: 'brands', label: 'Active Brands', val: allWorkspaces.length, icon: Palette, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+            {
+              id: 'brands',
+              label: 'Active Brands',
+              val: allWorkspaces.filter(ws => ws.brandProfile?.companyName).length,
+              icon: Palette,
+              color: 'text-indigo-500',
+              bg: 'bg-indigo-500/10'
+            },
             { id: 'strategy', label: 'Strategy Flow', val: calendarEntries.length, icon: CalendarRange, color: 'text-amber-500', bg: 'bg-amber-500/10' },
             { id: 'vault', label: 'Assets in Vault', val: (assets || []).filter(a => a.assetSource === 'generated').length, icon: Library, color: 'text-primary', bg: 'bg-primary/10' }
           ].map((stat, i) => (
@@ -1625,7 +1642,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
               <h3 className="text-xl font-black tracking-tight text-slate-800 dark:text-white uppercase">AGENT TASKS FOR <span className="normal-case">AI Ads™ Agent</span></h3>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
               {[
                 { title: 'Brand Setup', val: activeProfile ? '1 Optimized' : '0 Connected', desc: 'Identity Snapshot', icon: Palette, tab: 'brand', color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
                 { title: 'Content Calendar', val: `${pipelines.length} Active Plan${pipelines.length !== 1 ? 's' : ''}`, desc: 'Strategy Orchestration', icon: CalendarRange, tab: 'calendar', color: 'text-amber-500', bg: 'bg-amber-500/10' },
@@ -5496,7 +5513,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   return (
     <>
       <Transition.Root show={isOpen} as={Fragment}>
-        <Dialog as="div" className="relative z-[100]" onClose={onClose}>
+        <Dialog as="div" className="relative z-[100]" onClose={() => {}}>
           <Transition.Child
             as={Fragment}
             enter="ease-out duration-300"
@@ -5633,7 +5650,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <p className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">{companyName}</p>
-                                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{allWorkspaces.length} {allWorkspaces.length === 1 ? 'Brand' : 'Brands'}</p>
+                                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{allWorkspaces.filter(ws => ws.brandProfile?.companyName).length} {allWorkspaces.filter(ws => ws.brandProfile?.companyName).length === 1 ? 'Brand' : 'Brands'}</p>
                                     </div>
                                   </div>
                                   <div className="h-px bg-slate-100 dark:bg-white/5 mx-4 mb-2" />
