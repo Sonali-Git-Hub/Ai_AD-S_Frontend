@@ -150,9 +150,121 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     setSearchParams({ tab: tabId }, { replace: true });
   };
 
-  const [showSplash, setShowSplash] = useState(
-    () => !localStorage.getItem('aisa_aiads_splash_seen')
-  );
+  const [urlHistory, setUrlHistory] = useState(() => {
+    try {
+      const stored = localStorage.getItem('aisa_aiads_url_history');
+      return stored ? JSON.parse(stored) : [];
+    } catch (_) {
+      return [];
+    }
+  });
+  const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
+  const [dropdownSelectedIndex, setDropdownSelectedIndex] = useState(-1);
+  const dropdownRef = useRef(null);
+
+  const normalizeUrl = (url) => {
+    if (!url || typeof url !== 'string') return '';
+    let clean = url.trim().toLowerCase();
+    clean = clean.replace(/^(https?:\/\/)?(www\.)?/, '');
+    clean = clean.replace(/\/$/, '');
+    return clean;
+  };
+
+  const saveToUrlHistory = (url) => {
+    if (!url) return;
+    const cleanUrl = url.trim();
+    const now = Date.now();
+    setUrlHistory(prev => {
+      const filtered = prev.filter(item => normalizeUrl(item.url) !== normalizeUrl(cleanUrl));
+      const updated = [{ url: cleanUrl, timestamp: now }, ...filtered].slice(0, 4);
+      localStorage.setItem('aisa_aiads_url_history', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const removeFromUrlHistory = (urlToRemove) => {
+    setUrlHistory(prev => {
+      const updated = prev.filter(item => normalizeUrl(item.url) !== normalizeUrl(urlToRemove));
+      localStorage.setItem('aisa_aiads_url_history', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const clearUrlHistory = () => {
+    setUrlHistory([]);
+    localStorage.removeItem('aisa_aiads_url_history');
+  };
+
+  const formatLastUsed = (timestamp) => {
+    if (!timestamp) return '';
+    const now = Date.now();
+    const diffMs = now - timestamp;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `Last used ${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `Last used ${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays === 1) return 'Last used Yesterday';
+    return `Last used ${diffDays} days ago`;
+  };
+
+  const getFaviconUrl = (url) => {
+    try {
+      let temp = url.trim();
+      if (!temp.startsWith('http')) temp = 'https://' + temp;
+      const parsed = new URL(temp);
+      return `https://www.google.com/s2/favicons?domain=${parsed.hostname}&sz=32`;
+    } catch (_) {
+      return '';
+    }
+  };
+
+  const selectHistoryUrl = async (url) => {
+    setBrandProfile(prev => ({ ...prev, website: url }));
+    setShowHistoryDropdown(false);
+    setDropdownSelectedIndex(-1);
+
+    const cleanUrl = normalizeUrl(url);
+    const matchingWorkspace = allWorkspaces.find(ws => normalizeUrl(ws.brandProfile?.website) === cleanUrl);
+    if (matchingWorkspace) {
+      toast.success(`Restoring session for ${matchingWorkspace.brandProfile?.companyName || url}...`);
+      await initWorkspace(false, matchingWorkspace._id);
+    }
+  };
+
+  const handleInputKeyDown = (e) => {
+    if (!showHistoryDropdown || urlHistory.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setDropdownSelectedIndex(prev => (prev + 1) % urlHistory.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setDropdownSelectedIndex(prev => (prev - 1 + urlHistory.length) % urlHistory.length);
+    } else if (e.key === 'Enter') {
+      if (dropdownSelectedIndex >= 0 && dropdownSelectedIndex < urlHistory.length) {
+        e.preventDefault();
+        selectHistoryUrl(urlHistory[dropdownSelectedIndex].url);
+      }
+    } else if (e.key === 'Escape') {
+      setShowHistoryDropdown(false);
+    }
+  };
+
+  // Click outside dropdown handler
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowHistoryDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // Data State
   const [workspace, setWorkspace] = useState(null);
@@ -337,8 +449,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   const tabs = [
     { id: 'overview', name: 'Overview', icon: LayoutDashboard },
     { id: 'brand', name: 'Brand Setup', icon: Palette },
-    { id: 'calendar', name: 'Content Calendar', icon: CalendarRange },
-    { id: 'generation', name: 'Content Generation', icon: Sparkles },
+    { id: 'calendar', name: 'Content Generator', icon: CalendarRange },
+    { id: 'generation', name: 'Content Calendar', icon: Sparkles },
     { id: 'assets', name: 'Post Generation', icon: Library }
   ];
 
@@ -381,16 +493,9 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   // No auto-analysis or toast fires on file selection.
 
 
-  // --- 1. Dashboard Initialization & Splash ---
+  // --- 1. Dashboard Initialization ---
   useEffect(() => {
     if (isOpen) {
-      // Only show splash on first-ever visit; skip on re-opens / refreshes
-      const hasSeenSplash = localStorage.getItem('aisa_aiads_splash_seen');
-      if (!hasSeenSplash) {
-        setShowSplash(true);
-      } else {
-        setShowSplash(false);
-      }
       initWorkspace();
     }
   }, [isOpen]);
@@ -674,10 +779,11 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     setIsOnboardingFetching(true); // Sync both states
     const toastId = toast.loading('⚡ AI Ads™ is scanning your brand identity...');
 
+    console.log("[Magic Auto-Pilot] Request Sent: Scanning URL:", targetUrl);
 
     try {
-
       const json = await apiService.fetchBrandAssets(targetUrl, workspace?._id);
+      console.log("[Magic Auto-Pilot] Response Received:", json);
 
       // Prepare the new profile data from AI response
       const newProfile = {
@@ -701,7 +807,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
         website: targetUrl
       };
 
+      console.log("[Magic Auto-Pilot] Parsed Data Model:", newProfile);
+
       if (target === 'brandProfile') {
+        console.log("[Magic Auto-Pilot] UI State Update: Populating Brand Profile");
         setBrandProfile(prev => ({ ...prev, ...newProfile }));
         // Store for success banner
         setLastFetchedData({
@@ -715,6 +824,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
         // Also update active profile if this is the current workspace
         if (activeProfile) setActiveProfile(prev => ({ ...prev, ...newProfile }));
       } else {
+        console.log("[Magic Auto-Pilot] UI State Update: Populating Onboarding Profile");
         // Update onboarding state specifically
         setOnboardingData(prev => ({
           ...prev,
@@ -727,8 +837,9 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       }
 
       toast.success(`✅ Extracted identity for ${newProfile.companyName || 'your brand'}!`, { id: toastId });
+      saveToUrlHistory(targetUrl);
     } catch (err) {
-      console.error('AI Fetch Error:', err);
+      console.error('[Magic Auto-Pilot] AI Fetch Error:', err);
       toast.error(err.message || 'Could not fetch brand data automatically.', { id: toastId });
     } finally {
       setIsExtracting(false);
@@ -1125,7 +1236,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
             toast.loading("🚀 Phase 3/3: Finalizing Social Engine & Asset Sync...", { id: activeToast });
 
             setTimeout(async () => {
-              toast.success("✨ Content Calendar successfully generated. Check the Content Calendar tab for full view!", { id: activeToast });
+              toast.success("✨ Content Calendar successfully generated. Check the Content Generator tab for full view!", { id: activeToast });
               setCalendarEntries(genRes.calendar || []);
               await initWorkspace(false, wsId);
               setActiveTab('calendar');
@@ -1140,7 +1251,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
           if (genErr.message?.includes('unlimited strategies')) {
             toast.dismiss(activeToast);
           } else {
-            toast.error("Strategist encountered an error. Please try again in the Content Generation tab.", { id: activeToast });
+            toast.error("Strategist encountered an error. Please try again in the Content Calendar tab.", { id: activeToast });
           }
         }
 
@@ -1578,45 +1689,6 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
           ))}
         </div>
 
-        {/* ── SECTION 2: Hero & Resource Quota ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-          {/* Banner Section */}
-          <div className="lg:col-span-3 p-5 sm:p-6 md:p-8 rounded-[24px] md:rounded-[32px] bg-gradient-to-br from-[#0A2342] via-[#123C69] to-[#0A2342] text-white relative overflow-hidden shadow-xl shadow-blue-900/20 flex flex-col justify-center min-h-[180px] md:min-h-[220px] border border-white/10">
-            <div className="absolute top-0 right-0 w-1/2 h-full bg-white opacity-[0.03] rotate-12 translate-x-1/2 translate-y-1/2 pointer-events-none" />
-            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute top-8 right-8 opacity-15 transition-opacity duration-1000 pointer-events-none">
-              <Sparkles className="w-24 h-24 rotate-12" />
-            </div>
-
-            <div className="relative z-10 space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-xl border border-white/30 flex items-center justify-center shadow-lg">
-                  <Target className="w-4 h-4 text-white" />
-                </div>
-                <div className="ads-badge-small !bg-white/10 !text-white !border-white/20 tracking-[3px] text-[8px] py-1">AI Ads™ ENGINE</div>
-              </div>
-
-              <div className="max-w-xl mt-2 sm:mt-0">
-                <h2 className="text-xl sm:text-2xl md:text-3xl font-black leading-[1.15] md:leading-[1.1] tracking-[-0.02em] md:tracking-[-0.04em] mb-2 drop-shadow-sm">
-                  Struggling to come up with <br className="hidden md:block" />
-                  daily social posts? <span className="text-blue-400">Not Anymore.</span>
-                </h2>
-                <p className="text-blue-100/60 font-semibold text-[10px] sm:text-xs md:text-sm leading-relaxed max-w-lg">
-                  Introducing <span className="text-white underline decoration-blue-500/50 underline-offset-4">AI Ads™</span> Generator to Create Ready-To-Post Creatives in Seconds!
-                </p>
-              </div>
-
-              <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 pt-1">
-                <button onClick={() => setActiveTab('calendar')} className="w-full sm:w-auto px-6 h-10 sm:h-12 bg-white text-[#0A2342] rounded-xl font-black uppercase text-[9px] tracking-[2px] transition-all shadow-md active:scale-95 flex items-center justify-center gap-2">
-                  <Zap className="w-3.5 h-3.5 fill-[#0A2342]" />
-                  Ignite Content
-                </button>
-              </div>
-
-            </div>
-          </div>
-        </div>
-
         {/* ── SECTION 4: Dual Monitor (Pulse & Tasks) ─────────────────────────────────── */}
         <div className="grid grid-cols-1 gap-8">
           {/* Action Tasks (Matches Sidebar Options) */}
@@ -1628,8 +1700,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
               {[
                 { title: 'Brand Setup', val: activeProfile ? '1 Optimized' : '0 Connected', desc: 'Identity Snapshot', icon: Palette, tab: 'brand', color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
-                { title: 'Content Calendar', val: `${pipelines.length} Active Plan${pipelines.length !== 1 ? 's' : ''}`, desc: 'Strategy Orchestration', icon: CalendarRange, tab: 'calendar', color: 'text-amber-500', bg: 'bg-amber-500/10' },
-                { title: 'Content Generation', val: `${generatedPosts.length} Drafts`, desc: 'AI Creative Hub', icon: Sparkles, tab: 'generation', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+                { title: 'Content Generator', val: `${pipelines.length} Active Plan${pipelines.length !== 1 ? 's' : ''}`, desc: 'Strategy Orchestration', icon: CalendarRange, tab: 'calendar', color: 'text-amber-500', bg: 'bg-amber-500/10' },
+                { title: 'Content Calendar', val: `${generatedPosts.length} Drafts`, desc: 'AI Creative Hub', icon: Sparkles, tab: 'generation', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
                 { title: 'Post Generation', val: `${(assets || []).filter(a => a.assetSource === 'generated').length} Artifacts`, desc: 'Generated Media', icon: Library, tab: 'assets', color: 'text-primary', bg: 'bg-primary/10' },
                 { title: 'Hashtag Studio', val: 'Viral Clusters', desc: 'Trending Insights', icon: Hash, tab: 'hashtags', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
               ].map((action, i) => (
@@ -1834,7 +1906,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
               <div className="h-px w-12 bg-primary/30" />
             </div>
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-[0.9]">
-              Design Your <br /><span className="text-primary italic">Identity</span>
+              Build Your <br /><span className="text-primary">Brand</span>
             </h2>
             <p className="text-sm sm:text-base lg:text-lg text-slate-400 font-bold max-w-xl">
               Define your brand DNA, sync your digital footprint, and let AI Ads™ build your professional social presence.
@@ -1843,7 +1915,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
           <div className="w-full xl:w-[500px] group relative">
             <div className="absolute -inset-1 bg-gradient-to-r from-primary via-indigo-500 to-purple-600 rounded-3xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
-            <div className="relative bg-white dark:bg-[#1E2438] rounded-[24px] p-5 border border-slate-100 dark:border-white/5 shadow-xl overflow-hidden">
+            <div className="relative bg-white dark:bg-[#1E2438] rounded-[24px] p-5 border border-slate-100 dark:border-white/5 shadow-xl">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                   <Zap className="w-5 h-5 text-primary" />
@@ -1855,14 +1927,80 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
               </div>
 
               <div className="flex flex-col sm:flex-row gap-2">
-                <div className="relative w-full sm:flex-1">
+                <div ref={dropdownRef} className="relative w-full sm:flex-1">
                   <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     value={brandProfile.website || ''}
-                    onChange={(e) => setBrandProfile({ ...brandProfile, website: e.target.value })}
+                    onChange={(e) => {
+                      setBrandProfile({ ...brandProfile, website: e.target.value });
+                      setShowHistoryDropdown(true);
+                    }}
+                    onFocus={() => setShowHistoryDropdown(true)}
+                    onKeyDown={handleInputKeyDown}
                     placeholder="Enter Brand URL"
                     className="w-full h-11 pl-10 pr-4 bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold outline-none focus:border-primary transition-all"
                   />
+
+                  {showHistoryDropdown && urlHistory.length > 0 && (
+                    <div className="absolute left-0 right-0 mt-2 bg-white/95 dark:bg-[#1E2438]/95 backdrop-blur-xl border border-slate-150 dark:border-white/10 rounded-2xl shadow-xl z-[999] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="p-2 space-y-1 max-h-60 overflow-y-auto">
+                        {urlHistory.map((item, idx) => (
+                          <div
+                            key={item.url}
+                            onClick={() => selectHistoryUrl(item.url)}
+                            className={`w-full flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-all ${
+                              idx === dropdownSelectedIndex
+                                ? 'bg-slate-100 dark:bg-white/10'
+                                : 'hover:bg-slate-50 dark:hover:bg-white/5'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              {getFaviconUrl(item.url) && (
+                                <img
+                                  src={getFaviconUrl(item.url)}
+                                  alt=""
+                                  className="w-4 h-4 rounded-sm object-contain shrink-0 bg-white"
+                                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                />
+                              )}
+                              <div className="flex flex-col text-left min-w-0">
+                                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate max-w-[280px]">
+                                  {item.url}
+                                </span>
+                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">
+                                  {formatLastUsed(item.timestamp)}
+                                </span>
+                              </div>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeFromUrlHistory(item.url);
+                              }}
+                              className="p-1 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-500/10 transition-colors shrink-0"
+                              title="Remove from history"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="border-t border-slate-100 dark:border-white/5 p-2 flex justify-between items-center bg-slate-50/50 dark:bg-white/[0.01]">
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-2">Recent Brands</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            clearUrlHistory();
+                            setShowHistoryDropdown(false);
+                          }}
+                          className="text-[8px] font-black text-red-500 hover:text-red-600 uppercase tracking-widest px-2"
+                        >
+                          Clear History
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={() => handleAiFetch(brandProfile.website)}
@@ -2518,7 +2656,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
 
   const renderContentCalendar = () => {
-    const guard = renderModuleGuard("Content Calendar");
+    const guard = renderModuleGuard("Content Generator");
     if (guard) return guard;
     return (
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 h-full flex flex-col">
@@ -3271,7 +3409,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   };
 
   const renderContentOrchestration = () => {
-    const guard = renderModuleGuard("Content Generation");
+    const guard = renderModuleGuard("Content Calendar");
     if (guard) return guard;
     const finalRows = (pipelineRows?.length || 0) > 0 ? pipelineRows : calendarEntries;
 
@@ -5532,22 +5670,14 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                 >
 
                   <AnimatePresence mode="wait">
-                    {showSplash && (
-                      <DashboardSplash
-                        onComplete={() => {
-                          localStorage.setItem('aisa_aiads_splash_seen', 'true');
-                          setShowSplash(false);
-                        }}
-                      />
-                    )}
-                    {showOnboarding && !showSplash && renderOnboardingUI()}
+                    {showOnboarding && renderOnboardingUI()}
                   </AnimatePresence>
 
                   {/* Always allow onboarding guide to show */}
                   {showOnboardingGuide && renderOnboardingGuideModal()}
 
-                  {/* Dashboard UI - Only show if splash is gone and onboarding is not active and check is done */}
-                  {!showSplash && !showOnboarding && !isCheckingOnboarding && (
+                  {/* Dashboard UI - Only show if onboarding is not active and check is done */}
+                  {!showOnboarding && !isCheckingOnboarding && (
                     <>
                       {/* Mobile Overlay */}
                       {isMobileMenuOpen && (
@@ -5958,60 +6088,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   );
 };
 
-// --- Sub-Components for Performance ---
 
-const DashboardSplash = ({ onComplete }) => {
-  const [progress, setProgress] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(timer);
-          setTimeout(onComplete, 800);
-          return 100;
-        }
-        return prev + 2;
-      });
-    }, 40);
-    return () => clearInterval(timer);
-  }, [onComplete]);
-
-  return (
-    <motion.div
-      key="splash"
-      initial={{ opacity: 1 }}
-      exit={{ opacity: 0, scale: 1.1, pointerEvents: 'none' }}
-      transition={{ duration: 0.8, ease: "easeInOut" }}
-      className="absolute inset-0 z-[110] bg-white dark:bg-[#080808] flex flex-col items-center justify-center p-6 md:p-12 pointer-events-none select-none"
-    >
-      <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className="w-48 h-48 sm:w-64 sm:h-64 md:w-80 md:h-80 relative group mb-8 md:mb-12 rounded-full overflow-hidden border-2 border-primary/20 bg-zinc-950/20 backdrop-blur-sm shadow-[0_0_80px_rgba(var(--primary-rgb),0.1)]"
-      >
-        <img
-          src="/ai_ads_logo_circular.png"
-          alt="AI Ads™ Circular Logo"
-          className="w-full h-full object-cover animate-float"
-        />
-      </motion.div>
-
-      <div className="w-full max-w-xs sm:max-w-sm md:max-w-md space-y-4">
-        <div className="h-1.5 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden shadow-inner border border-white/5">
-          <motion.div
-            className="h-full bg-gradient-to-r from-primary via-indigo-500 to-primary bg-[length:200%_100%] shadow-[0_0_20px_rgba(var(--primary-rgb),0.5)]"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-2 text-center text-[8px] sm:text-[10px] font-black text-primary uppercase tracking-[2px] sm:tracking-[4px]">
-          <span className="normal-case">PERSONALIZING YOUR AI Ads™ EXPERIENCE</span>
-          <span>{Math.round(progress)}%</span>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
 
 
 
