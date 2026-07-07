@@ -400,6 +400,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   // Form State
   const [isSaving, setIsSaving] = useState(false);
   const [isDownloadingExcel, setIsDownloadingExcel] = useState(false);
+  const [downloadedPostsCount, setDownloadedPostsCount] = useState(() => parseInt(localStorage.getItem('downloadedPostsCount') || '0', 10));
   const [selectedBrandView, setSelectedBrandView] = useState(null);
   const [currentEditingBrandId, setCurrentEditingBrandId] = useState(null); // NULL = ADDING NEW
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -594,6 +595,11 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       document.body.removeChild(link);
       window.URL.revokeObjectURL(blobUrl);
       toast.success("Download started!", { id: downloadToast });
+      setDownloadedPostsCount(prev => {
+        const next = prev + 1;
+        localStorage.setItem('downloadedPostsCount', next.toString());
+        return next;
+      });
     } catch (error) {
       console.error('Download failed:', error);
       toast.error("Download failed. Opening in new tab...", { id: downloadToast });
@@ -1675,11 +1681,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     return (
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 flex flex-col space-y-12 pb-20">
         {/* ── SECTION 1: Strategic Command Stats ─────────────────────────────────────────── */}
-        {/* DEBUG OVERLAY */}
-        <div className="fixed bottom-0 left-0 bg-black text-green-500 text-xs p-2 z-[9999] max-h-32 overflow-y-auto">
-          DEBUG: {allWorkspaces.length} workspaces. 
-          {allWorkspaces.map(ws => `[${ws._id}: brandProfile=${ws.brandProfile ? (ws.brandProfile.companyName || 'NO_NAME') : 'NO_BRANDPROFILE'}] `)}
-        </div>
+
 
         <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
           {[
@@ -1691,8 +1693,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
               color: 'text-indigo-500',
               bg: 'bg-indigo-500/10'
             },
-            { id: 'strategy', label: 'Strategy Flow', val: calendarEntries.length, icon: CalendarRange, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-            { id: 'vault', label: 'Assets in Vault', val: (assets || []).filter(a => a.assetSource === 'generated').length, icon: Library, color: 'text-primary', bg: 'bg-primary/10' }
+            { id: 'downloaded', label: 'Downloaded Posts', val: downloadedPostsCount, icon: Download, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+            { id: 'totalposts', label: 'Total Posts', val: calendarEntries.length, icon: Library, color: 'text-primary', bg: 'bg-primary/10' }
           ].map((stat, i) => (
             <div key={stat.id} className="p-4 rounded-[20px] bg-white dark:bg-[#1E2438] border border-slate-100 dark:border-white/5 flex items-center gap-4 transition-all shadow-sm relative overflow-hidden">
               <div className={`w-10 h-10 rounded-[14px] ${stat.bg} ${stat.color} flex items-center justify-center shrink-0 transition-transform`}>
@@ -1706,96 +1708,59 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
           ))}
         </div>
 
-        {/* ── SECTION 4: Dual Monitor (Pulse & Tasks) ─────────────────────────────────── */}
-        <div className="grid grid-cols-1 gap-8">
-          {/* Action Tasks (Matches Sidebar Options) */}
-          <div className="space-y-8">
-            <div className="flex items-center justify-between px-2">
-              <h3 className="text-xl font-black tracking-tight text-slate-800 dark:text-white uppercase">AGENT TASKS FOR <span className="normal-case">AI Ads™ Agent</span></h3>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-              {[
-                { title: 'Brand Setup', val: activeProfile ? '1 Optimized' : '0 Connected', desc: 'Identity Snapshot', icon: Palette, tab: 'brand', color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
-                { title: 'Content Generator', val: `${pipelines.length} Active Plan${pipelines.length !== 1 ? 's' : ''}`, desc: 'Strategy Orchestration', icon: CalendarRange, tab: 'calendar', color: 'text-amber-500', bg: 'bg-amber-500/10' },
-                { title: 'Content Calendar', val: `${generatedPosts.length} Drafts`, desc: 'AI Creative Hub', icon: Sparkles, tab: 'generation', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-                { title: 'Post Generation', val: `${(assets || []).filter(a => a.assetSource === 'generated').length} Artifacts`, desc: 'Generated Media', icon: Library, tab: 'assets', color: 'text-primary', bg: 'bg-primary/10' },
-                { title: 'Hashtag Studio', val: 'Viral Clusters', desc: 'Trending Insights', icon: Hash, tab: 'hashtags', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-              ].map((action, i) => (
-                <button
-                  key={i}
-                  onClick={() => {
-                    setActiveTab(action.tab);
-                    document.getElementById('main-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className="p-5 md:p-6 rounded-[24px] bg-white dark:bg-[#1E2438] border border-slate-100 dark:border-white/5 transition-all text-left shadow-sm flex flex-col justify-between h-full"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={`w-10 h-10 rounded-xl ${action.bg} ${action.color} flex items-center justify-center transition-all duration-300 shadow-sm`}>
-                      <action.icon className="w-5 h-5" />
-                    </div>
-                    <div className="opacity-100 transition-opacity">
-                      <ChevronRight className={`w-4 h-4 ${action.color}`} />
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{action.title}</h4>
-                    <p className="text-sm md:text-base font-black text-slate-800 dark:text-white">{action.val}</p>
-                    <p className="text-[8px] font-black text-slate-400 mt-0.5 uppercase tracking-widest opacity-60">{action.desc}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
 
         {/* ── SECTION 6: Intelligence & Visual Vault ─────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-          {/* Hashtag Intelligence Summary */}
+          {/* AI Ads Guide Summary */}
           <div className="p-5 md:p-6 rounded-[24px] bg-white dark:bg-[#1E2438] border border-slate-100 dark:border-white/5 shadow-sm flex flex-col">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <Hash className="w-5 h-5 text-emerald-500 shrink-0" />
-                <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-white leading-tight">Hashtag Intelligence</h3>
+                <Info className="w-5 h-5 text-indigo-500 shrink-0" />
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-white leading-tight">AI Ads Guide</h3>
               </div>
-              <button onClick={() => { setActiveTab('hashtags'); document.getElementById('main-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' }); }} className="text-[9px] font-black text-primary uppercase tracking-widest text-right shrink-0">Scan topics &rarr;</button>
+              <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest text-right shrink-0">How it Works</span>
             </div>
 
-            <div className="flex-1 flex items-center justify-center">
-              {(() => {
-                let tagsToShow = [];
-                if (hashtagInsights?.brandSpecific?.length > 0) {
-                  tagsToShow = hashtagInsights.brandSpecific;
-                } else {
-                  // Fallback to real-time tags from the current calendar and drafts
-                  const recentTags = [...new Set([
-                    ...(generatedPosts || []).flatMap(p => Array.isArray(p.hashtags) ? p.hashtags : String(p.hashtags || '').split(',').map(s=>s.trim()).filter(Boolean)),
-                    ...(calendarEntries || []).flatMap(e => Array.isArray(e.hashtags) ? e.hashtags : String(e.hashtags || '').split(',').map(s=>s.trim()).filter(Boolean))
-                  ])].map(t => t.startsWith('#') ? t : `#${t}`).filter(t => t.length > 1);
-                  tagsToShow = recentTags;
-                }
+            <div className="flex-1 flex flex-col justify-center space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-indigo-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-[10px] font-black text-indigo-500">1</span>
+                </div>
+                <div>
+                  <h4 className="text-[11px] font-bold text-slate-800 dark:text-white uppercase">Brand Setup</h4>
+                  <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">Define your brand identity, tone, and target audience to anchor the AI.</p>
+                </div>
+              </div>
 
-                if (tagsToShow.length > 0) {
-                  return (
-                    <div className="flex flex-wrap gap-2">
-                      {tagsToShow.slice(0, 8).map(tag => (
-                        <span key={tag} className="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 text-[10px] font-black uppercase tracking-widest border border-emerald-500/20">{tag}</span>
-                      ))}
-                    </div>
-                  );
-                }
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-[10px] font-black text-amber-500">2</span>
+                </div>
+                <div>
+                  <h4 className="text-[11px] font-bold text-slate-800 dark:text-white uppercase">AI Generation</h4>
+                  <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">AI engine orchestrates a complete content strategy based on trends.</p>
+                </div>
+              </div>
 
-                // Ultimate fallback so the UI never looks broken/empty
-                const mockTags = ['#AI', '#Marketing', '#Growth', '#Innovation', '#SocialMedia', '#Tech'];
-                return (
-                  <div className="flex flex-wrap gap-2 opacity-50 grayscale">
-                    {mockTags.map(tag => (
-                      <span key={tag} className="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 text-[10px] font-black uppercase tracking-widest border border-emerald-500/20">{tag}</span>
-                    ))}
-                  </div>
-                );
-              })()}
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-[10px] font-black text-emerald-500">3</span>
+                </div>
+                <div>
+                  <h4 className="text-[11px] font-bold text-slate-800 dark:text-white uppercase">Content Calendar</h4>
+                  <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">Review, refine, and schedule drafted posts in your creative hub.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-[10px] font-black text-primary">4</span>
+                </div>
+                <div>
+                  <h4 className="text-[11px] font-bold text-slate-800 dark:text-white uppercase">Visual Vault</h4>
+                  <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">Export finalized artifacts and media directly to your socials.</p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -2076,17 +2041,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                       className="w-full h-8 px-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-md text-xs font-bold outline-none focus:border-indigo-500 transition-all shadow-inner"
                     />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Priority Region</label>
-                    <CustomSelect
-                      value={brandProfile.targetEthnicity || []}
-                      multiple={true}
-                      onChange={(val) => setBrandProfile({ ...brandProfile, targetEthnicity: val })}
-                      options={['Global', 'India', 'North America', 'Europe', 'Middle East', 'SE Asia', 'Latin America']}
-                      color="indigo"
-                      className="h-8 px-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-md text-xs outline-none focus:border-indigo-500"
-                    />
-                  </div>
+
                 </div>
               </div>
 
@@ -2098,7 +2053,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                       <Mic2 className="w-3.5 h-3.5 text-amber-500" />
                       <span className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 text-white text-[6px] font-bold rounded-full flex items-center justify-center shadow-md border border-white dark:border-zinc-900">2</span>
                     </div>
-                    <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Vocal Signature</h3>
+                    <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Content Preferences</h3>
                   </div>
                   {completionSteps[1].done && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
                 </div>
@@ -2148,7 +2103,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Archetype (Voice)</label>
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Brand Tone</label>
                     <div className="grid grid-cols-2 gap-1.5">
                       {['Professional', 'Casual', 'Bold', 'Friendly', 'Luxury', 'Witty', 'Empathetic', 'Minimalist'].map(tone => {
                         const isSelected = Array.isArray(brandProfile.toneOfVoice) ? brandProfile.toneOfVoice.includes(tone) : brandProfile.toneOfVoice === tone;
@@ -2168,153 +2123,11 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                       })}
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Conversion CTA Style</label>
-                    <CustomSelect
-                      value={brandProfile.ctaStyle || []}
-                      multiple={true}
-                      onChange={(val) => setBrandProfile({ ...brandProfile, ctaStyle: val })}
-                      options={[
-                        { label: 'Direct & Authoritative', value: 'Direct' },
-                        { label: 'Soft & Conversational', value: 'Casual' },
-                        { label: 'Urgency & Scarcity (FOMO)', value: 'Urgency' },
-                        { label: 'Value & Benefit Driven', value: 'Value' },
-                        { label: 'Storytelling & Narrative', value: 'Storytelling' },
-                        { label: 'Question & Curiosity', value: 'Curiosity' },
-                        { label: 'Social Proof', value: 'SocialProof' }
-                      ]}
-                      color="amber"
-                      className="h-8 px-3 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-md text-xs outline-none focus:border-amber-500"
-                    />
-                  </div>
+
                 </div>
               </div>
             </div>
 
-            {/* ROW 2: VISUAL IDENTITY (FULL WIDTH) */}
-            <div className="bg-white dark:bg-[#1E2438] rounded-[16px] p-4 border border-slate-100 dark:border-white/5 shadow-sm space-y-4 transition-all duration-500">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center transition-all duration-500 relative">
-                    <Palette className="w-4 h-4 text-primary" />
-                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-primary text-white text-[7px] font-bold rounded-full flex items-center justify-center shadow-md border border-white dark:border-zinc-900">3</span>
-                  </div>
-                  <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">Visual Artifacts</h3>
-                </div>
-                {completionSteps[2].done && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Logo Upload */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Brand Symbol (Logo)</label>
-                    <span className="text-[7px] text-slate-400 uppercase tracking-widest font-black">AI extracted prefered</span>
-                  </div>
-                  <input type="file" id="logo-upload" className="hidden" onChange={(e) => setBrandLogo(e.target.files[0])} accept="image/*" />
-                  <label
-                    htmlFor="logo-upload"
-                    className="w-full aspect-[3/1] md:h-24 rounded-[16px] bg-slate-50 dark:bg-black/20 border-2 border-dashed border-slate-200 dark:border-white/5 transition-all cursor-pointer flex flex-col items-center justify-center overflow-hidden shadow-inner relative"
-                  >
-                    <AnimatePresence>
-                      {(logoPreviewUrl || brandProfile.logoUrl) ? (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-2">
-                          <img
-                            src={logoPreviewUrl || toProxyUrl(brandProfile.logoUrl)}
-                            className="w-full h-full object-contain p-1 transition-transform duration-700"
-                          />
-                        </motion.div>
-                      ) : (
-                        <div className="flex flex-col items-center gap-2">
-                          <div className="w-10 h-10 rounded-lg bg-white dark:bg-[#161B2E] flex items-center justify-center shadow-md transition-all">
-                            <Upload className="w-4 h-4 text-slate-400" />
-                          </div>
-                          <p className="text-[8px] font-black uppercase tracking-[2px] text-slate-400">Deploy Logo</p>
-                        </div>
-                      )}
-                    </AnimatePresence>
-                  </label>
-                </div>
-
-                {/* Color Palette */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-[2px] ml-1">Master Palette</label>
-                    <button
-                      onClick={() => setBrandProfile({ ...brandProfile, brandColors: [...(brandProfile.brandColors || []), '#3B82F6'] })}
-                      className="w-5 h-5 rounded-md bg-slate-100 dark:bg-white/5 flex items-center justify-center hover:bg-primary hover:text-white transition-all shadow-sm"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-5 gap-2 p-3 bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-[16px] shadow-inner min-h-[80px] content-start">
-                    {(!brandProfile.brandColors || brandProfile.brandColors.length === 0) ? (
-                      <div className="col-span-4 flex flex-col items-center justify-center py-6 opacity-30 italic text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">
-                        Awaiting AI chromatic extraction...
-                      </div>
-                    ) : (
-                      brandProfile.brandColors.map((color, i) => (
-                        <div key={i} className="group/color relative aspect-square">
-                          <div
-                            className="w-full h-full rounded-[20px] shadow-xl border-4 border-white dark:border-zinc-800 transition-all cursor-pointer flex items-center justify-center overflow-hidden"
-                            style={{ backgroundColor: color }}
-                          >
-                            <input
-                              type="color"
-                              value={color}
-                              onChange={(e) => {
-                                const newColors = [...brandProfile.brandColors];
-                                newColors[i] = e.target.value;
-                                setBrandProfile({ ...brandProfile, brandColors: newColors });
-                              }}
-                              className="absolute inset-0 opacity-0 cursor-pointer"
-                            />
-                          </div>
-                          <button
-                            onClick={() => {
-                              const newColors = brandProfile.brandColors.filter((_, idx) => idx !== i);
-                              setBrandProfile({ ...brandProfile, brandColors: newColors });
-                            }}
-                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover/color:opacity-100 transition-all scale-75 group-hover/color:scale-100 shadow-md"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* AI SYSTEM INSIGHT */}
-            <div className="p-4 rounded-[16px] bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">
-                  <Sparkles className="w-2.5 h-2.5 text-primary" />
-                </div>
-                <h4 className="text-[9px] font-black text-slate-800 dark:text-white uppercase tracking-widest">Strategist Insights</h4>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-start gap-1.5">
-                  <div className={`w-1 h-1 rounded-full mt-1 ${completionSteps[0].done ? 'bg-emerald-500' : 'bg-slate-300 animate-pulse'}`} />
-                  <p className="text-[9px] text-slate-500 font-medium leading-relaxed">
-                    {completionSteps[0].done ? 'Brand Identity core has been established. Foundation is stable.' : 'Link your website to allow AI to analyze your competitor landscape.'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-2.5 rounded-[10px] bg-primary/5 border border-primary/10">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[7px] font-black text-primary uppercase tracking-widest">Maturity</span>
-                  <span className="text-[8px] font-black text-primary">{completionPct}%</span>
-                </div>
-                <div className="h-1 w-full bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-primary transition-all duration-1000" style={{ width: `${completionPct}%` }} />
-                </div>
-              </div>
-            </div>
 
           </div>
 
@@ -2496,7 +2309,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
         </div>
 
         {/* REDESIGNED MASTER SAVE BUTTON */}
-        <div className="pt-10 sm:pt-20 pb-16 sm:pb-32 space-y-6 max-w-5xl mx-auto w-full relative z-0">
+        <div className="pt-4 pb-16 sm:pb-32 space-y-6 max-w-5xl mx-auto w-full relative z-0">
           {calendarEntries.length === 0 && (
             <div className="group relative">
               <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-[24px] blur opacity-75"></div>
@@ -2560,10 +2373,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                       <>
                         <div className="flex items-center gap-2">
                           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-white animate-pulse" />
-                          <span className="text-sm sm:text-base font-black text-white uppercase tracking-[1px] sm:tracking-[2px]">Activate Strategy Hub</span>
+                          <span className="text-sm sm:text-base font-black text-white uppercase tracking-[1px] sm:tracking-[2px]">Setup Your Brand</span>
                           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-white animate-pulse" />
                         </div>
-                        <p className="text-[7px] sm:text-[8px] text-white/60 font-black uppercase tracking-[1px] sm:tracking-[2px] mt-0.5">Initiating AI Generation Pulse</p>
+                        <p className="text-[7px] sm:text-[8px] text-white/60 font-black uppercase tracking-[1px] sm:tracking-[2px] mt-0.5">Save & Activate Your Brand Profile</p>
                       </>
                     )}
                   </div>
@@ -2678,21 +2491,27 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     return (
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 h-full flex flex-col">
         {(() => {
-          const hasNoCalendars = calendarWorkspaces.length === 0;
-
-          if (calendarWorkspaces.length === 0) {
-            return (
-              <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-white dark:bg-[#1E2438] rounded-[40px] border border-slate-100 dark:border-white/5 border-dashed opacity-50">
-                <p className="text-xs font-black text-slate-400 uppercase tracking-[4px]">
-                  {!activeProfile && !workspace?.workspaceName ? 'Setup brand details first' : 'Pipeline Empty'}
-                </p>
-              </div>
-            );
-          }
-
           if (!showPreviewModal) {
             return (
               <div className="flex-1 overflow-y-auto w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-4 pb-24 items-start">
+                {/* Generate by AI Card */}
+                <div onClick={() => setShowWizard(true)} className="bg-gradient-to-br from-primary/10 to-transparent dark:from-primary/20 dark:to-transparent rounded-[32px] border border-primary/20 p-6 flex flex-col justify-center items-center w-full shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-500 cursor-pointer group min-h-[220px]">
+                  <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center text-primary mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 shadow-inner">
+                    <Sparkles className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-sm font-black uppercase text-slate-800 dark:text-white tracking-widest text-center">Generate Post by AI</h3>
+                  <p className="text-[10px] text-slate-500 text-center mt-2 font-black uppercase tracking-wider opacity-70">Automated Content Plan</p>
+                </div>
+
+                {/* Generate Manually Card */}
+                <div onClick={() => setGenPostModal({ open: true, entry: null, format: 'single', aspectRatio: '1:1', carouselCount: 3 })} className="bg-slate-50 dark:bg-[#1E2438] rounded-[32px] border border-slate-200 dark:border-white/10 p-6 flex flex-col justify-center items-center w-full shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-500 cursor-pointer group min-h-[220px]">
+                  <div className="w-16 h-16 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-slate-300 mb-4 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-500 shadow-sm">
+                    <Palette className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-sm font-black uppercase text-slate-800 dark:text-white tracking-widest text-center">Generate Post Manually</h3>
+                  <p className="text-[10px] text-slate-500 text-center mt-2 font-black uppercase tracking-wider opacity-70">Create from scratch</p>
+                </div>
+
                 {calendarWorkspaces.map(ws => {
                   const profile = ws.brandProfile || {};
                   const isCurrent = ws._id === workspace?._id;
@@ -4100,6 +3919,11 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                 a.click();
                                 URL.revokeObjectURL(blobUrl);
                                 toast.success(`Slide ${i + 1} downloaded!`);
+                                setDownloadedPostsCount(prev => {
+                                  const next = prev + 1;
+                                  localStorage.setItem('downloadedPostsCount', next.toString());
+                                  return next;
+                                });
                               } catch { toast.error('Download failed'); }
                             }}
                             className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 text-white flex items-center justify-center hover:bg-white hover:text-slate-800 transition-all shadow-lg"
@@ -5899,53 +5723,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                             <h2 className="text-sm sm:text-xl lg:text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter truncate max-w-[80px] xs:max-w-[100px] sm:max-w-none">
                               {tabs.find(t => t.id === activeTab)?.name}
                             </h2>
-                            <div className="block h-4 w-px bg-slate-200 dark:bg-white/10 mx-1 lg:mx-2 shrink-0" />
-                            <div className="flex flex-col items-center ml-0 lg:ml-2 shrink-0">
-                              <div className="flex -space-x-2">
-                                {[
-                                  { id: 'Instagram', Icon: Instagram, color: 'bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500' },
-                                  { id: 'LinkedIn', Icon: Linkedin, color: 'bg-blue-600' },
-                                  { id: 'X', Icon: TwitterXIcon, color: 'bg-black' },
-                                  { id: 'Facebook', Icon: Facebook, color: 'bg-blue-500' },
-                                  { id: 'YouTube', Icon: Youtube, color: 'bg-red-600' }
-                                ].map((item, idx) => {
-                                  const hasLink = item.id === 'X' 
-                                    ? (brandProfile?.socialMediaLinks?.x || brandProfile?.socialMediaLinks?.twitter)
-                                    : brandProfile?.socialMediaLinks?.[item.id.toLowerCase()];
-                                  return (
-                                    <div
-                                      key={idx}
-                                      onClick={() => {
-                                        if (hasLink) {
-                                          window.open(hasLink.startsWith('http') ? hasLink : `https://${hasLink}`, '_blank');
-                                        } else {
-                                          const url = window.prompt(`Enter your ${item.id} profile URL:`);
-                                          if (url && url.trim()) {
-                                            const key = item.id === 'X' ? 'twitter' : item.id.toLowerCase();
-                                            const updatedLinks = { ...(brandProfile?.socialMediaLinks || {}), [key]: url.trim() };
-                                            setBrandProfile(prev => ({ ...prev, socialMediaLinks: updatedLinks }));
 
-                                            const formData = new FormData();
-                                            formData.append('workspaceId', currentEditingBrandId || workspace?._id);
-                                            formData.append('socialMediaLinks', JSON.stringify(updatedLinks));
-                                            apiService.uploadSocialAgentBrand(formData)
-                                              .then(() => toast.success(`${item.id} link saved!`))
-                                              .catch(() => toast.error(`Failed to save ${item.id} link`));
-                                          }
-                                        }
-                                      }}
-                                      className={`w-6 h-6 lg:w-8 lg:h-8 rounded-full border-2 border-white dark:border-zinc-950 flex items-center justify-center text-white p-1 lg:p-1.5 shadow-sm ${item.color} hover:scale-110 hover:z-10 transition-transform cursor-pointer relative group`}
-                                    >
-                                      <item.Icon className="w-full h-full" />
-                                      <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[9px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none transition-opacity z-50">
-                                        {hasLink ? `Visit ${item.id}` : `Add ${item.id} Link`}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                              <span className="text-[7px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mt-1">Quick Access</span>
-                            </div>
                           </div>
 
                           <div className="flex items-center gap-2 lg:gap-4 shrink-0">
