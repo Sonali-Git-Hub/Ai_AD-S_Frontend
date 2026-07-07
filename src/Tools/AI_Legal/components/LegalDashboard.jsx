@@ -1844,6 +1844,7 @@ const CaseDetailView = ({ item, isDark, onBack, onDelete, onAskStrategy, onViewR
   ];
   const [activeTab, setActiveTab] = useState('overview');
   const [dbCaseData, _setCaseData] = useState(item);
+  const [evidenceList, setEvidenceList] = useState([]);
   const [dbTasks, setDbTasks] = useState([]);
   const [dbTimelineEvents, setDbTimelineEvents] = useState([]);
   const setTasks = setDbTasks;
@@ -1940,6 +1941,7 @@ const CaseDetailView = ({ item, isDark, onBack, onDelete, onAskStrategy, onViewR
   const [evidenceFilter, setEvidenceFilter] = useState('all');
   const [selectedEvidenceDetails, setSelectedEvidenceDetails] = useState(null);
   const [isEvidenceInsightsOpen, setIsEvidenceInsightsOpen] = useState(false);
+  const [selectedEvidenceIds, setSelectedEvidenceIds] = useState([]);
   const [uploadProgress, setUploadProgress] = useState(null);
   const [researchSearchQuery, setResearchSearchQuery] = useState('');
   const [isExtractingResearch, setIsExtractingResearch] = useState(false);
@@ -3210,12 +3212,13 @@ const CaseDetailView = ({ item, isDark, onBack, onDelete, onAskStrategy, onViewR
     }
   }, [item]);
 
-  // Load reminders & timeline
+  // Load reminders, timeline, and case-scoped evidence
   useEffect(() => {
     if (caseData?.id || caseData?._id) {
       const caseId = caseData.id || caseData._id;
       loadTasks(caseId);
       loadTimeline(caseId);
+      loadEvidence(caseId);
     }
   }, [caseData?.id, caseData?._id]);
 
@@ -3253,6 +3256,20 @@ const CaseDetailView = ({ item, isDark, onBack, onDelete, onAskStrategy, onViewR
       setTimelineEvents(res || []);
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const loadEvidence = async (caseId) => {
+    try {
+      const res = await apiService.getEvidence(caseId);
+      setEvidenceList(res || []);
+      setCaseData(prev => ({
+        ...prev,
+        evidence: res || []
+      }));
+      setSelectedEvidenceIds([]);
+    } catch (e) {
+      console.error("[loadEvidence] Failed to load evidence:", e);
     }
   };
 
@@ -3322,6 +3339,45 @@ const CaseDetailView = ({ item, isDark, onBack, onDelete, onAskStrategy, onViewR
       console.error("[Background Hearings] Failed background hearings sync", err);
     } finally {
       setIsExtractingHearings(false);
+    }
+  };
+
+  const triggerBackgroundResearchSync = async (targetData, manual = false) => {
+    if (!targetData) return;
+    const caseId = targetData.id || targetData._id;
+    if (!caseId) return;
+
+    if (!manual) {
+      const existingResearch = targetData.aiResearch;
+      if (existingResearch) {
+        console.log("[Background Research] Case already has aiResearch. Skipping auto-extraction.");
+        return;
+      }
+      const summary = targetData.summary || targetData.description || '';
+      if (!summary || summary.trim().split(/\s+/).length < 8) {
+        console.log("[Background Research] Case summary empty or too short. Skipping background extraction.");
+        return;
+      }
+    }
+
+    console.log("[Background Research] Triggering research background extraction...");
+    let toastId = null;
+    try {
+      setIsExtractingResearch(true);
+      if (manual) toastId = toast.loading("AI is generating legal research dossier...");
+      const res = await legalService.generateAiResearch(caseId, targetData, caseNotes);
+      if (res) {
+        setCaseData(prev => ({ ...prev, aiResearch: res }));
+        if (manual) toast.success("AI Research compiled successfully!", { id: toastId });
+      } else {
+        if (manual) toast.error("Failed to compile AI legal research. Check your connection or case details.", { id: toastId });
+      }
+      console.log("[Background Research] Background research sync complete.");
+    } catch (err) {
+      console.error("[Background Research] Failed background research sync", err);
+      if (manual) toast.error("Failed to compile AI legal research", { id: toastId });
+    } finally {
+      setIsExtractingResearch(false);
     }
   };
 
@@ -3737,10 +3793,13 @@ const CaseDetailView = ({ item, isDark, onBack, onDelete, onAskStrategy, onViewR
         const newDoc = {
           id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           name: file.name,
+          filename: file.name,
           type: file.type || 'file',
+          fileType: file.type || 'file',
           size: file.size,
           uploadedAt: new Date().toISOString(),
           uri: fileBase64,
+          fileUrl: fileBase64,
           fileBase64: fileBase64,
           ocrStatus: 'Success (OCR Done)',
           aiProcessed: 'Extracted successfully',
@@ -3752,21 +3811,28 @@ const CaseDetailView = ({ item, isDark, onBack, onDelete, onAskStrategy, onViewR
           status: activeTab === 'contracts' ? 'Pending Review' : (activeTab === 'evidence' ? 'Verified' : 'Active')
         };
 
-        updatedDocs = [newDoc, ...updatedDocs];
-
-        const updates = {};
-        updates[targetField] = updatedDocs;
-        await legalService.updateCase(caseData.id || caseData._id, updates);
-
-        setCaseData(prev => {
-          const updatedData = { ...prev };
-          updatedData[targetField] = updatedDocs;
-          return updatedData;
-        });
-        toast.success(`Uploaded successfully: ${file.name}`);
-
-        triggerDocumentAnalysis(newDoc, { ...caseData, [targetField]: updatedDocs });
-        triggerLiveAnalysisSilent({ ...caseData, [targetField]: updatedDocs });
+        if (targetField === 'evidence') {
+          const caseId = caseData.id || caseData._id;
+          const savedDoc = await apiService.uploadEvidence(caseId, newDoc);
+          updatedDocs = [savedDoc, ...evidenceList];
+          setEvidenceList(updatedDocs);
+          setCaseData(prev => ({
+            ...prev,
+            evidence: updatedDocs
+          }));
+          toast.success(`Uploaded successfully: ${file.name}`);
+          triggerDocumentAnalysis(savedDoc, { ...caseData, evidence: updatedDocs });
+          triggerLiveAnalysisSilent({ ...caseData, evidence: updatedDocs });
+        } else {
+          updatedDocs = [newDoc, ...updatedDocs];
+          const updates = {};
+          updates[targetField] = updatedDocs;
+          await legalService.updateCase(caseData.id || caseData._id, updates);
+          setCaseData(prev => ({ ...prev, [targetField]: updatedDocs }));
+          toast.success(`Uploaded successfully: ${file.name}`);
+          triggerDocumentAnalysis(newDoc, { ...caseData, [targetField]: updatedDocs });
+          triggerLiveAnalysisSilent({ ...caseData, [targetField]: updatedDocs });
+        }
       }
       setUploadProgress(null);
     } catch (err) {
@@ -3781,24 +3847,64 @@ const CaseDetailView = ({ item, isDark, onBack, onDelete, onAskStrategy, onViewR
 
     let targetField = 'documents';
     let label = 'Document';
-    if (caseData.evidence?.some(e => e.id === doc.id)) {
+    const isEvidence = evidenceList.some(e => (e.id || e._id) === (doc.id || doc._id)) || caseData.evidence?.some(e => (e.id || e._id) === (doc.id || doc._id));
+    const isContract = caseData.contracts?.some(c => (c.id || c._id) === (doc.id || doc._id));
+    if (isEvidence) {
       targetField = 'evidence';
       label = 'Evidence';
-    } else if (caseData.contracts?.some(c => c.id === doc.id)) {
+    } else if (isContract) {
       targetField = 'contracts';
       label = 'Contract';
     }
 
     try {
-      const updatedDocs = (caseData[targetField] || []).filter(d => d.id !== doc.id);
-      const updates = {};
-      updates[targetField] = updatedDocs;
-      await legalService.updateCase(caseData.id || caseData._id, updates);
-      setCaseData(prev => ({ ...prev, [targetField]: updatedDocs }));
-      toast.success(`${label} deleted successfully!`);
-      triggerLiveAnalysisSilent({ ...caseData, [targetField]: updatedDocs });
+      const caseId = caseData.id || caseData._id;
+      const docId = doc.id || doc._id;
+      if (targetField === 'evidence') {
+        await apiService.deleteEvidence(caseId, docId);
+        const updatedDocs = evidenceList.filter(d => (d.id || d._id) !== docId);
+        setEvidenceList(updatedDocs);
+        setCaseData(prev => ({ ...prev, evidence: updatedDocs }));
+        setSelectedEvidenceIds(prev => prev.filter(id => id !== docId));
+        toast.success(`${label} deleted successfully!`);
+        triggerLiveAnalysisSilent({ ...caseData, evidence: updatedDocs });
+      } else {
+        const updatedDocs = (caseData[targetField] || []).filter(d => (d.id || d._id) !== docId);
+        const updates = {};
+        updates[targetField] = updatedDocs;
+        await legalService.updateCase(caseId, updates);
+        setCaseData(prev => ({ ...prev, [targetField]: updatedDocs }));
+        toast.success(`${label} deleted successfully!`);
+        triggerLiveAnalysisSilent({ ...caseData, [targetField]: updatedDocs });
+      }
     } catch (e) {
+      console.error(e);
       toast.error(`Failed to delete ${label.toLowerCase()}`);
+    }
+  };
+
+  const handleBulkDeleteEvidence = async () => {
+    if (selectedEvidenceIds.length === 0) return;
+    if (!confirm(`Are you sure you want to delete the ${selectedEvidenceIds.length} selected evidence documents?`)) return;
+
+    const toastId = toast.loading(`Deleting ${selectedEvidenceIds.length} evidence documents...`);
+    try {
+      const caseId = caseData.id || caseData._id;
+      for (const id of selectedEvidenceIds) {
+        await apiService.deleteEvidence(caseId, id);
+      }
+      
+      const remainingDocs = evidenceList.filter(d => !selectedEvidenceIds.includes(d.id || d._id));
+      setEvidenceList(remainingDocs);
+      setCaseData(prev => ({ ...prev, evidence: remainingDocs }));
+      setSelectedEvidenceIds([]);
+      toast.success("Selected evidence documents deleted successfully!", { id: toastId });
+      triggerLiveAnalysisSilent({ ...caseData, evidence: remainingDocs });
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to delete all selected evidence documents", { id: toastId });
+      const caseId = caseData.id || caseData._id;
+      if (caseId) loadEvidence(caseId);
     }
   };
 
@@ -3807,20 +3913,32 @@ const CaseDetailView = ({ item, isDark, onBack, onDelete, onAskStrategy, onViewR
     if (!newName || newName.trim() === "" || newName === doc.name) return;
 
     let targetField = 'documents';
-    if (caseData.evidence?.some(e => e.id === doc.id)) {
+    const isEvidence = evidenceList.some(e => (e.id || e._id) === (doc.id || doc._id)) || caseData.evidence?.some(e => (e.id || e._id) === (doc.id || doc._id));
+    const isContract = caseData.contracts?.some(c => (c.id || c._id) === (doc.id || doc._id));
+    if (isEvidence) {
       targetField = 'evidence';
-    } else if (caseData.contracts?.some(c => c.id === doc.id)) {
+    } else if (isContract) {
       targetField = 'contracts';
     }
 
     try {
-      const updatedDocs = (caseData[targetField] || []).map(d => d.id === doc.id ? { ...d, name: newName.trim() } : d);
-      const updates = {};
-      updates[targetField] = updatedDocs;
-      await legalService.updateCase(caseData.id || caseData._id, updates);
-      setCaseData(prev => ({ ...prev, [targetField]: updatedDocs }));
+      const caseId = caseData.id || caseData._id;
+      const docId = doc.id || doc._id;
+      if (targetField === 'evidence') {
+        const updatedDoc = await apiService.updateEvidence(caseId, docId, { name: newName.trim(), filename: newName.trim() });
+        const updatedDocs = evidenceList.map(d => (d.id || d._id) === docId ? updatedDoc : d);
+        setEvidenceList(updatedDocs);
+        setCaseData(prev => ({ ...prev, evidence: updatedDocs }));
+      } else {
+        const updatedDocs = (caseData[targetField] || []).map(d => (d.id || d._id) === docId ? { ...d, name: newName.trim() } : d);
+        const updates = {};
+        updates[targetField] = updatedDocs;
+        await legalService.updateCase(caseId, updates);
+        setCaseData(prev => ({ ...prev, [targetField]: updatedDocs }));
+      }
       toast.success("File renamed successfully!");
     } catch (e) {
+      console.error(e);
       toast.error("Failed to rename file");
     }
   };
@@ -5996,7 +6114,34 @@ ${notesText || 'No summary details'}
       return { label: 'Verified', cls: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20' };
     };
 
-    const allDocs = caseData.evidence || [];
+    const allDocs = evidenceList || [];
+
+    if (allDocs.length === 0) {
+      return (
+        <div className="space-y-4 animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-[#1A2540] border border-slate-205 dark:border-zinc-800/80 rounded-2xl p-12 text-center flex flex-col items-center justify-center min-h-[350px]">
+            <div className="p-4 bg-rose-50 dark:bg-rose-955/20 text-[#EF4444] rounded-full mb-4">
+              <Shield size={36} className="animate-pulse" />
+            </div>
+            <h3 className="text-base font-black text-slate-808 dark:text-white uppercase tracking-wider mb-2">📁 No Evidence Uploaded Yet</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold max-w-md mx-auto leading-relaxed mb-6">
+              Upload legal documents to start AI-powered evidence analysis.
+            </p>
+            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wide mb-6">
+              Supported Formats: PDF, DOCX, Images, Audio, Video
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => document.getElementById('workspace-doc-upload').click()}
+                className="px-5 py-2.5 bg-[#EF4444] hover:opacity-90 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all flex items-center gap-1.5 shadow-md cursor-pointer"
+              >
+                <FileUp size={14} /> Upload Evidence
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     const filteredEvidence = allDocs.filter(doc => {
       if (evidenceSearchQuery) {
@@ -6030,6 +6175,20 @@ ${notesText || 'No summary details'}
       if (evidenceFilter === 'ai_flagged') return doc.riskLevel === 'High' || ['disputed', 'tampered'].includes(str);
       return true;
     });
+
+    const allFilteredIds = filteredEvidence.map(d => d.id || d._id);
+    const isAllSelected = allFilteredIds.length > 0 && allFilteredIds.every(id => selectedEvidenceIds.includes(id));
+
+    const handleSelectAll = () => {
+      if (isAllSelected) {
+        setSelectedEvidenceIds(prev => prev.filter(id => !allFilteredIds.includes(id)));
+      } else {
+        setSelectedEvidenceIds(prev => {
+          const union = new Set([...prev, ...allFilteredIds]);
+          return Array.from(union);
+        });
+      }
+    };
 
     const totalCount = allDocs.length;
     const verifiedCount = allDocs.filter(d => d.status === 'Verified' || (d.admissibility || '').toLowerCase() === 'admissible' || !d.admissibility).length;
@@ -6085,17 +6244,19 @@ ${notesText || 'No summary details'}
             </div>
           </div>
           <div className="flex items-center gap-1.5">
+            {selectedEvidenceIds.length > 0 && (
+              <button
+                onClick={handleBulkDeleteEvidence}
+                className="px-3 py-1.5 bg-red-600 hover:bg-red-750 text-white font-black text-[9px] uppercase tracking-wider rounded-lg transition-all flex items-center gap-1 shadow-sm cursor-pointer"
+              >
+                <Trash2 size={11} /> Delete Selected ({selectedEvidenceIds.length})
+              </button>
+            )}
             <button
               onClick={() => document.getElementById('workspace-doc-upload').click()}
               className="px-3 py-1.5 bg-[#EF4444] hover:opacity-90 text-white font-black text-[9px] uppercase tracking-wider rounded-lg transition-all flex items-center gap-1"
             >
               <FileUp size={11} /> Upload
-            </button>
-            <button
-              onClick={() => document.getElementById('workspace-doc-upload').click()}
-              className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-white font-black text-[9px] uppercase tracking-wider rounded-lg transition-all"
-            >
-              Bulk Upload
             </button>
           </div>
         </div>
@@ -6153,10 +6314,26 @@ ${notesText || 'No summary details'}
           ) : filteredEvidence.map((doc, idx) => {
             const badge = getAdmissibilityBadge(doc.admissibility);
             const strengthCls = getStrengthColor(doc.strength);
+            const docId = doc.id || doc._id;
+            const isSelected = selectedEvidenceIds.includes(docId);
+            const handleSelectRow = (e) => {
+              e.stopPropagation();
+              if (isSelected) {
+                setSelectedEvidenceIds(prev => prev.filter(id => id !== docId));
+              } else {
+                setSelectedEvidenceIds(prev => [...prev, docId]);
+              }
+            };
             return (
-              <div key={doc.id || idx} className="border border-slate-200 dark:border-zinc-800 rounded-xl p-3 bg-white dark:bg-[#151f32] space-y-2">
+              <div key={docId || idx} className="border border-slate-200 dark:border-zinc-800 rounded-xl p-3 bg-white dark:bg-[#151f32] space-y-2">
                 <div className="flex items-start gap-2 justify-between">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={handleSelectRow}
+                      className="rounded border-slate-300 text-[#EF4444] focus:ring-[#EF4444] cursor-pointer w-3.5 h-3.5 mr-1"
+                    />
                     <div className="p-1.5 bg-rose-50 dark:bg-rose-950/20 text-red-600 rounded flex-shrink-0">
                       {getFileIcon(doc)}
                     </div>
@@ -6184,8 +6361,16 @@ ${notesText || 'No summary details'}
             <div className="min-w-[800px] divide-y divide-slate-100 dark:divide-zinc-800/85">
 
               {/* Header */}
-              <div className="bg-slate-50/50 dark:bg-zinc-900/30 px-4 py-2.5 grid grid-cols-12 gap-3 text-[8.5px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none">
-                <div className="col-span-4">Evidence Item</div>
+              <div className="bg-slate-50/50 dark:bg-zinc-900/30 px-4 py-2.5 grid grid-cols-12 gap-3 text-[8.5px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none items-center">
+                <div className="col-span-4 flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={handleSelectAll}
+                    className="rounded border-slate-300 text-[#EF4444] focus:ring-[#EF4444] cursor-pointer w-3 h-3"
+                  />
+                  <span>Evidence Item</span>
+                </div>
                 <div className="col-span-2">Source Type</div>
                 <div className="col-span-2">Admissibility</div>
                 <div className="col-span-1">Strength</div>
@@ -6200,12 +6385,28 @@ ${notesText || 'No summary details'}
                   const badge = getAdmissibilityBadge(doc.admissibility);
                   const strengthCls = getStrengthColor(doc.strength);
                   const confidence = doc.confidenceScore ? `${doc.confidenceScore}%` : '96%';
+                  const docId = doc.id || doc._id;
+                  const isSelected = selectedEvidenceIds.includes(docId);
+                  const handleSelectRow = (e) => {
+                    e.stopPropagation();
+                    if (isSelected) {
+                      setSelectedEvidenceIds(prev => prev.filter(id => id !== docId));
+                    } else {
+                      setSelectedEvidenceIds(prev => [...prev, docId]);
+                    }
+                  };
 
                   return (
-                    <div key={doc.id || idx} className="px-4 py-2.5 grid grid-cols-12 gap-3 items-center hover:bg-slate-50/30 dark:hover:bg-zinc-800/30 transition-colors group text-[9.5px] font-bold text-slate-700 dark:text-slate-355 text-left">
+                    <div key={docId || idx} className="px-4 py-2.5 grid grid-cols-12 gap-3 items-center hover:bg-slate-50/30 dark:hover:bg-zinc-800/30 transition-colors group text-[9.5px] font-bold text-slate-700 dark:text-slate-355 text-left">
 
                       {/* Name */}
                       <div className="col-span-4 flex items-center gap-2 truncate">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={handleSelectRow}
+                          className="rounded border-slate-300 text-[#EF4444] focus:ring-[#EF4444] cursor-pointer w-3 h-3"
+                        />
                         <span className="text-base shrink-0">{getFileIcon(doc)}</span>
                         <div className="truncate">
                           <h4

@@ -1808,6 +1808,56 @@ export const apiService = {
       console.error('[Frontend] autoAnalyzeCase failed:', error?.response?.data || error.message);
       throw error;
     }
+  },
+
+  async getEvidence(caseId) {
+    try {
+      const response = await apiClient.get(`/cases/${caseId}/evidence`);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] getEvidence failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async uploadEvidence(caseId, data) {
+    try {
+      const response = await apiClient.post(`/cases/${caseId}/evidence`, data);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] uploadEvidence failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async updateEvidence(caseId, evidenceId, data) {
+    try {
+      const response = await apiClient.patch(`/cases/${caseId}/evidence/${evidenceId}`, data);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] updateEvidence failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async deleteEvidence(caseId, evidenceId) {
+    try {
+      const response = await apiClient.delete(`/cases/${caseId}/evidence/${evidenceId}`);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] deleteEvidence failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async getEvidenceStats(caseId) {
+    try {
+      const response = await apiClient.get(`/cases/${caseId}/evidence/stats`);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] getEvidenceStats failed:', error?.response?.data || error.message);
+      throw error;
+    }
   }
 };
 
