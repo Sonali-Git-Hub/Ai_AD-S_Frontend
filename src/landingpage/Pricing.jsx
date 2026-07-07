@@ -80,10 +80,17 @@ const Pricing = () => {
 
   useEffect(() => {
     if (userState?.user) {
-      setBillingForm(prev => ({
-        ...prev,
-        billingName: userState.user.name || '',
-      }));
+      const details = userState.user.billingDetails || {};
+      setBillingForm({
+        billingName: details.billingName || userState.user.name || '',
+        companyName: details.companyName || '',
+        gstin: details.gstin || '',
+        addressLine1: details.addressLine1 || '',
+        city: details.city || '',
+        state: details.state || 'Maharashtra',
+        postalCode: details.postalCode || '',
+        country: details.country || 'IN'
+      });
     }
   }, [userState]);
 
@@ -219,9 +226,9 @@ const Pricing = () => {
     try {
       setProcessing(true);
       
-      const totalAmount = billingCycle === 'yearly' ? plan.priceYearly : plan.priceMonthly;
-      const basePrice = Math.round((totalAmount / 1.18) * 100) / 100;
-      const gstAmount = Math.round((totalAmount - basePrice) * 100) / 100;
+      const basePrice = billingCycle === 'yearly' ? plan.priceYearly : plan.priceMonthly;
+      const gstAmount = Math.round(basePrice * 0.18 * 100) / 100;
+      const totalAmount = Math.round(basePrice * 1.18 * 100) / 100;
       
       // Print breakdown in console as requested
       console.log("========================================");
@@ -709,17 +716,17 @@ const Pricing = () => {
           <div className="w-full max-w-lg bg-[#0e1726] border border-white/10 rounded-2xl p-6 shadow-2xl text-white relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none" />
             <button 
-              onClick={() => { setBillingModalOpen(false); setBillingSubmitted(false); }}
+              onClick={() => setBillingModalOpen(false)}
               className="absolute top-4 right-4 text-white/50 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-all"
             >
               <X size={18} />
             </button>
 
             <h3 className="text-xl font-black text-white tracking-tight mb-2">
-              {billingSubmitted ? 'Choose Payment Method' : 'Billing Information'}
+              Choose Payment Method
             </h3>
             <p className="text-xs text-white/70 mb-4">
-              {billingSubmitted ? 'Select your preferred gateway to complete the transaction.' : 'Please verify your billing details before moving to payment checkout.'}
+              Select your preferred gateway to complete the transaction.
             </p>
 
             {/* Plan Price Summary */}
@@ -728,251 +735,107 @@ const Pricing = () => {
                 <span>Plan:</span>
                 <span className="font-bold text-white">{selectedPlanForUpgrade.planName} ({billingCycle})</span>
               </div>
+              <div className="flex justify-between text-white/60">
+                <span>Base Price:</span>
+                <span>₹{(billingCycle === 'yearly' ? selectedPlanForUpgrade.priceYearly : selectedPlanForUpgrade.priceMonthly).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-white/60">
+                <span>GST (18%):</span>
+                <span>₹{((billingCycle === 'yearly' ? selectedPlanForUpgrade.priceYearly : selectedPlanForUpgrade.priceMonthly) * 0.18).toFixed(2)}</span>
+              </div>
               <div className="flex justify-between pt-2 border-t border-white/10 text-base font-black text-primary">
                 <span>Total Amount:</span>
-                <span>₹{(billingCycle === 'yearly' ? selectedPlanForUpgrade.priceYearly : selectedPlanForUpgrade.priceMonthly).toFixed(2)}</span>
+                <span>₹{((billingCycle === 'yearly' ? selectedPlanForUpgrade.priceYearly : selectedPlanForUpgrade.priceMonthly) * 1.18).toFixed(2)}</span>
               </div>
             </div>
 
-            {!billingSubmitted ? (
-              /* Step 1: Billing Address Form Fields */
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                setBillingSubmitted(true);
-              }} className="space-y-3.5">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-white/55 mb-1">Billing Name</label>
-                    <input
-                      type="text"
-                      required
-                      value={billingForm.billingName}
-                      onChange={(e) => setBillingForm({ ...billingForm, billingName: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-primary transition-all"
-                      placeholder="John Doe"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-white/55 mb-1">Company (Optional)</label>
-                    <input
-                      type="text"
-                      value={billingForm.companyName}
-                      onChange={(e) => setBillingForm({ ...billingForm, companyName: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-primary transition-all"
-                      placeholder="AISA Inc."
-                    />
-                  </div>
-                </div>
+            {/* Payment Gateways Stack */}
+            <div className="space-y-4">
+              {/* Gateway 1: Razorpay */}
+              <button
+                type="button"
+                onClick={() => {
+                  setBillingModalOpen(false);
+                  executeUpgrade(selectedPlanForUpgrade, billingForm);
+                }}
+                className="w-full py-3 bg-primary text-white rounded-xl text-xs font-bold shadow-lg shadow-primary/20 hover:opacity-95 active:scale-[0.99] transition-all uppercase tracking-wider"
+                disabled={processing}
+              >
+                Pay with Card / UPI / NetBanking
+              </button>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-white/55 mb-1">GSTIN (Optional)</label>
-                    <input
-                      type="text"
-                      value={billingForm.gstin}
-                      onChange={(e) => setBillingForm({ ...billingForm, gstin: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-primary transition-all font-mono uppercase"
-                      placeholder="27AASCA8481G1Z3"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-white/55 mb-1">Address Line 1</label>
-                    <input
-                      type="text"
-                      required
-                      value={billingForm.addressLine1}
-                      onChange={(e) => setBillingForm({ ...billingForm, addressLine1: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-primary transition-all"
-                      placeholder="Flat/Office No., Street Name"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-white/55 mb-1">City</label>
-                    <input
-                      type="text"
-                      required
-                      value={billingForm.city}
-                      onChange={(e) => setBillingForm({ ...billingForm, city: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-primary transition-all"
-                      placeholder="Mumbai"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-white/55 mb-1">State</label>
-                    <select
-                      required
-                      value={billingForm.state}
-                      onChange={(e) => setBillingForm({ ...billingForm, state: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-2 py-2 text-sm text-white focus:outline-none focus:border-primary transition-all"
-                      style={{ colorScheme: 'dark' }}
-                    >
-                      <option value="Andhra Pradesh">Andhra Pradesh</option>
-                      <option value="Arunachal Pradesh">Arunachal Pradesh</option>
-                      <option value="Assam">Assam</option>
-                      <option value="Bihar">Bihar</option>
-                      <option value="Chhattisgarh">Chhattisgarh</option>
-                      <option value="Goa">Goa</option>
-                      <option value="Gujarat">Gujarat</option>
-                      <option value="Haryana">Haryana</option>
-                      <option value="Himachal Pradesh">Himachal Pradesh</option>
-                      <option value="Jharkhand">Jharkhand</option>
-                      <option value="Karnataka">Karnataka</option>
-                      <option value="Kerala">Kerala</option>
-                      <option value="Madhya Pradesh">Madhya Pradesh</option>
-                      <option value="Maharashtra">Maharashtra</option>
-                      <option value="Manipur">Manipur</option>
-                      <option value="Meghalaya">Meghalaya</option>
-                      <option value="Mizoram">Mizoram</option>
-                      <option value="Nagaland">Nagaland</option>
-                      <option value="Odisha">Odisha</option>
-                      <option value="Punjab">Punjab</option>
-                      <option value="Rajasthan">Rajasthan</option>
-                      <option value="Sikkim">Sikkim</option>
-                      <option value="Tamil Nadu">Tamil Nadu</option>
-                      <option value="Telangana">Telangana</option>
-                      <option value="Tripura">Tripura</option>
-                      <option value="Uttar Pradesh">Uttar Pradesh</option>
-                      <option value="Uttarakhand">Uttarakhand</option>
-                      <option value="West Bengal">West Bengal</option>
-                      <option value="Delhi">Delhi</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-white/55 mb-1">Postal Code</label>
-                    <input
-                      type="text"
-                      required
-                      value={billingForm.postalCode}
-                      onChange={(e) => setBillingForm({ ...billingForm, postalCode: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-primary transition-all"
-                      placeholder="400001"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-3 pt-3">
-                  <button
-                    type="button"
-                    onClick={() => { setBillingModalOpen(false); setBillingSubmitted(false); }}
-                    className="flex-1 py-3 border border-white/10 rounded-xl text-xs font-bold text-white/80 hover:bg-white/5 hover:text-white transition-all uppercase tracking-wider"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 py-3 bg-primary text-white rounded-xl text-xs font-bold shadow-lg shadow-primary/20 hover:opacity-95 active:scale-[0.99] transition-all uppercase tracking-wider"
-                  >
-                    Continue
-                  </button>
-                </div>
-              </form>
-            ) : (
-              /* Step 2: Payment Gateways Stack */
-              <div className="space-y-4">
-                <div className="flex justify-between items-center text-xs text-white/70 bg-white/5 px-3 py-2 rounded-lg mb-2 border border-white/5">
-                  <div>
-                    <strong>Billed to:</strong> {billingForm.billingName} ({billingForm.state})
-                  </div>
-                  <button 
-                    onClick={() => setBillingSubmitted(false)}
-                    className="text-primary hover:underline font-bold"
-                  >
-                    Edit
-                  </button>
-                </div>
-
-                {/* Gateway 1: Razorpay */}
-                <button
-                  type="button"
-                  onClick={() => {
+              {/* Gateway 2: PayPal */}
+              <div className="w-full">
+                <div className="text-[10px] text-center text-white/40 uppercase tracking-widest font-black mb-2">or pay with</div>
+                <PayPalButton
+                  planId={selectedPlanForUpgrade._id}
+                  billingCycle={billingCycle}
+                  billingDetails={billingForm}
+                  onSuccess={(data) => {
                     setBillingModalOpen(false);
-                    setBillingSubmitted(false);
-                    executeUpgrade(selectedPlanForUpgrade, billingForm);
+                    if (data?.isFree) return;
+                    toast.success(`✅ PayPal payment successful! ${selectedPlanForUpgrade.planName} activated.`);
+                    const updatedUser = updateUser({
+                      founderStatus: isStartupProPlan(selectedPlanForUpgrade) ? true : userState.user?.founderStatus
+                    });
+                    setUserState({ user: updatedUser });
+                    useCreditStore.getState().syncCredits();
                   }}
-                  className="w-full py-3 bg-primary text-white rounded-xl text-xs font-bold shadow-lg shadow-primary/20 hover:opacity-95 active:scale-[0.99] transition-all uppercase tracking-wider"
+                  onError={(err) => {
+                    toast.error(err.message || 'PayPal payment failed.');
+                  }}
+                  onProcessing={(val) => setProcessing(val)}
                   disabled={processing}
-                >
-                  Pay with Card / UPI / NetBanking
-                </button>
-
-                {/* Gateway 2: PayPal */}
-                <div className="w-full">
-                  <div className="text-[10px] text-center text-white/40 uppercase tracking-widest font-black mb-2">or pay with</div>
-                  <PayPalButton
-                    planId={selectedPlanForUpgrade._id}
-                    billingCycle={billingCycle}
-                    billingDetails={billingForm}
-                    onSuccess={(data) => {
-                      setBillingModalOpen(false);
-                      setBillingSubmitted(false);
-                      if (data?.isFree) return;
-                      toast.success(`✅ PayPal payment successful! ${selectedPlanForUpgrade.planName} activated.`);
-                      const updatedUser = updateUser({
-                        founderStatus: isStartupProPlan(selectedPlanForUpgrade) ? true : userState.user?.founderStatus
-                      });
-                      setUserState({ user: updatedUser });
-                      useCreditStore.getState().syncCredits();
-                    }}
-                    onError={(err) => {
-                      toast.error(err.message || 'PayPal payment failed.');
-                    }}
-                    onProcessing={(val) => setProcessing(val)}
-                    disabled={processing}
-                  />
-                </div>
-
-                {/* Gateway 3: Apple Pay (iOS/macOS only) */}
-                {(() => {
-                  const isIOSDevice = /iPhone|iPad|iPod/.test(navigator.userAgent);
-                  if (!isIOSDevice) return null;
-                  const basePrice = billingCycle === 'yearly' ? selectedPlanForUpgrade.priceYearly : selectedPlanForUpgrade.priceMonthly;
-                  const totalAmount = Math.round(basePrice * 1.18 * 100) / 100;
-                  return (
-                    <div className="w-full">
-                      <ApplePayButton
-                        planId={selectedPlanForUpgrade._id}
-                        billingCycle={billingCycle}
-                        amount={totalAmount}
-                        currency="INR"
-                        onSuccess={(data) => {
-                          setBillingModalOpen(false);
-                          setBillingSubmitted(false);
-                          if (data.isTest) {
-                            toast.success(data.message || "Test Payment Successful.");
-                            return;
-                          }
-                          toast.success(`✅ Apple Pay successful! ${selectedPlanForUpgrade.planName} activated.`);
-                          if (data.credits !== undefined) {
-                            const updatedUser = updateUser({
-                              credits: data.credits,
-                              founderStatus: isStartupProPlan(selectedPlanForUpgrade) ? true : userState.user?.founderStatus
-                            });
-                            setUserState({ user: updatedUser });
-                          }
-                          useCreditStore.getState().syncCredits();
-                        }}
-                        onError={(err) => {
-                          toast.error(err.message || 'Apple Pay failed.');
-                        }}
-                        onProcessing={(val) => setProcessing(val)}
-                        disabled={processing}
-                      />
-                    </div>
-                  );
-                })()}
-
-                <button
-                  type="button"
-                  onClick={() => { setBillingModalOpen(false); setBillingSubmitted(false); }}
-                  className="w-full py-2.5 border border-white/10 rounded-xl text-xs font-bold text-white/50 hover:text-white/80 hover:bg-white/5 transition-all uppercase tracking-wider"
-                >
-                  Cancel Order
-                </button>
+                />
               </div>
-            )}
+
+              {/* Gateway 3: Apple Pay (iOS/macOS only) */}
+              {(() => {
+                const isIOSDevice = /iPhone|iPad|iPod/.test(navigator.userAgent);
+                if (!isIOSDevice) return null;
+                const basePrice = billingCycle === 'yearly' ? selectedPlanForUpgrade.priceYearly : selectedPlanForUpgrade.priceMonthly;
+                const totalAmount = Math.round(basePrice * 1.18 * 100) / 100;
+                return (
+                  <div className="w-full">
+                    <ApplePayButton
+                      planId={selectedPlanForUpgrade._id}
+                      billingCycle={billingCycle}
+                      amount={totalAmount}
+                      currency="INR"
+                      onSuccess={(data) => {
+                        setBillingModalOpen(false);
+                        if (data.isTest) {
+                          toast.success(data.message || "Test Payment Successful.");
+                          return;
+                        }
+                        toast.success(`✅ Apple Pay successful! ${selectedPlanForUpgrade.planName} activated.`);
+                        if (data.credits !== undefined) {
+                          const updatedUser = updateUser({
+                            credits: data.credits,
+                            founderStatus: isStartupProPlan(selectedPlanForUpgrade) ? true : userState.user?.founderStatus
+                          });
+                          setUserState({ user: updatedUser });
+                        }
+                        useCreditStore.getState().syncCredits();
+                      }}
+                      onError={(err) => {
+                        toast.error(err.message || 'Apple Pay failed.');
+                      }}
+                      onProcessing={(val) => setProcessing(val)}
+                      disabled={processing}
+                    />
+                  </div>
+                );
+              })()}
+
+              <button
+                type="button"
+                onClick={() => setBillingModalOpen(false)}
+                className="w-full py-2.5 border border-white/10 rounded-xl text-xs font-bold text-white/50 hover:text-white/80 hover:bg-white/5 transition-all uppercase tracking-wider"
+              >
+                Cancel Order
+              </button>
+            </div>
           </div>
         </div>
       )}
