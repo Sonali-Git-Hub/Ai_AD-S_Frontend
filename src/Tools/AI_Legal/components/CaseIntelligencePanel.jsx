@@ -17,11 +17,12 @@ import {
 import toast from 'react-hot-toast';
 import { apiService } from '../../../services/apiService';
 import { useLanguage } from '../../../context/LanguageContext';
+import LanguageToggle from './shared/LanguageToggle';
 import { CaseDetailView, formatToBullets } from '../LegalPrecedents';
 import { useLegalToolCredits } from '../../../hooks/useLegalToolCredits';
 
 const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate, onUseInArgument }) => {
-  const { tLegal } = useLanguage();
+  const { toolkitLanguage, setToolkitLanguage, tLegal } = useLanguage();
   const [activeTab, setActiveTab] = useState('overview');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [caseData, setCaseData] = useState(currentCase);
@@ -1020,7 +1021,8 @@ const CaseIntelligencePanel = ({ isOpen, onClose, currentCase, onUpdate, onUseIn
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-1 sm:gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <LanguageToggle lang={toolkitLanguage === 'Hindi' ? 'hi' : 'en'} onChange={(l) => setToolkitLanguage(l === 'hi' ? 'Hindi' : 'English')} className="mr-1 sm:mr-2 border-white/20 bg-white/10" />
                 <button 
                   onClick={(e) => { e.stopPropagation(); setIsMaximized(!isMaximized); }}
                   className="p-1.5 hover:bg-white/10 rounded-full text-white/80 hover:text-white transition-colors duration-200 shrink-0 cursor-pointer"

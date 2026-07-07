@@ -37,10 +37,10 @@ function getAuthHeaders() {
     };
 }
 
-const API_BASE = window._env_?.VITE_AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || 'http://localhost:8080/api';
+const API_BASE = window._env_?.VITE_AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || 'http://127.0.0.1:8080/api';
 
 // ─── PayPalButton Component ──────────────────────────────────────────────────
-const PayPalButton = ({ planId, billingCycle, onSuccess, onError, onProcessing, disabled }) => {
+const PayPalButton = ({ planId, billingCycle, billingDetails, onSuccess, onError, onProcessing, disabled }) => {
     const [{ isPending, isResolved, isRejected }] = usePayPalScriptReducer();
     const [orderDetails, setOrderDetails] = useState(null);
 
@@ -118,6 +118,7 @@ const PayPalButton = ({ planId, billingCycle, onSuccess, onError, onProcessing, 
                             orderID: data.orderID,
                             planId,
                             billingCycle,
+                            billingDetails,
                         }),
                     });
 

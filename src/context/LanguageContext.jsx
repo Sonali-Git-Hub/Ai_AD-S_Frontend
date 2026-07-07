@@ -15,15 +15,29 @@ export const LanguageProvider = ({ children }) => {
     const region = personalizations?.general?.region || 'India';
 
     const [toolkitLanguage, setToolkitLanguageState] = React.useState(() => {
-        return localStorage.getItem('ai_legal_lang') || 'English';
+        return localStorage.getItem('ai_legal_lang') || rawLanguage || 'English';
     });
+
+    React.useEffect(() => {
+        if (rawLanguage && rawLanguage !== toolkitLanguage) {
+            localStorage.setItem('ai_legal_lang', rawLanguage);
+            setToolkitLanguageState(rawLanguage);
+        }
+    }, [rawLanguage]);
 
     const setToolkitLanguage = (lang) => {
         localStorage.setItem('ai_legal_lang', lang);
         setToolkitLanguageState(lang);
+        if (personalizations?.general?.language !== lang) {
+            updatePersonalization('general', { language: lang });
+        }
     };
 
-    const setLanguage = (lang) => updatePersonalization('general', { language: lang });
+    const setLanguage = (lang) => {
+        updatePersonalization('general', { language: lang });
+        localStorage.setItem('ai_legal_lang', lang);
+        setToolkitLanguageState(lang);
+    };
     const setRegion = (reg) => updatePersonalization('general', { region: reg });
 
     const regions = {
@@ -164,14 +178,29 @@ export const LanguageProvider = ({ children }) => {
     });
 
     const t = (key) => {
-        const langData = translations[language] || translations['English'];
-        return langData[key] || translations['English'][key] || key;
+        const langData = translations[language];
+        if (langData && langData[key] !== undefined && langData[key] !== null) {
+            return langData[key];
+        }
+        const engData = translations['English'];
+        if (engData && engData[key] !== undefined && engData[key] !== null) {
+            return engData[key];
+        }
+        return undefined;
     };
 
     const tLegal = (key) => {
-        const langData = translations[toolkitLanguage] || translations['English'];
-        return langData[key] || translations['English'][key] || key;
+        const langData = translations[toolkitLanguage];
+        if (langData && langData[key] !== undefined && langData[key] !== null) {
+            return langData[key];
+        }
+        const engData = translations['English'];
+        if (engData && engData[key] !== undefined && engData[key] !== null) {
+            return engData[key];
+        }
+        return undefined;
     };
+
 
     return (
         <LanguageContext.Provider value={{

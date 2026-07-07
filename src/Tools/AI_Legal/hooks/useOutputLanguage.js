@@ -1,20 +1,24 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { generateChatResponse } from '../../../services/geminiService';
+import { useLanguage } from '../../../context/LanguageContext';
 
-// ── Translation system prompt ──────────────────────────────────────────────────
-const TRANSLATION_SYSTEM_PROMPT = `You are a professional legal translator. Translate the following English legal text into Hindi (Devanagari script).
+// ── Translation system prompt generator ──────────────────────────────────────────
+const getTranslationPrompt = (targetLang) => {
+  return `You are a professional legal translator. Translate the following text into ${targetLang === 'Hindi' ? 'Hindi (Devanagari script)' : 'formal legal English'}.
 
 CRITICAL RULES:
 1. TRANSLATE: All headings, paragraphs, bullet points, numbered lists, table cells, legal advice, summaries, arguments, recommendations, notes, and warnings.
-2. DO NOT TRANSLATE (keep exactly as-is):
-   - Case Names (e.g. "Lalita Kumari vs State of UP", "Maneka Gandhi vs Union of India")
-   - Legal codes: IPC, BNS, CrPC, BNSS, CPC, Constitution, Supreme Court, High Court, District Court
-   - Section numbers (e.g. Section 302, Section 65B, Article 21, Section 100)
-   - Legal citations (e.g. AIR 1980 SC 898, 2014 2 SCC 1, SCR 605)
-   - Proper nouns: AISA, India, state names, district names, city names
+2. DO NOT TRANSLATE (keep exactly as-is in original English characters):
+   - Party Names, Court Names, Case Numbers, FIR Numbers, Registration Numbers, Dates, Citation Numbers, Judge Names, Section Numbers, Article Numbers, Official references.
+   - Example Official Statutes: "Indian Penal Code", "Code of Civil Procedure", "Commercial Courts Act".
+   - Person Names (e.g. "Rajesh Kumar Sharma", "Sunil Verma"). Do NOT translate or transliterate names of persons.
    - Latin legal terms: ratio decidendi, mens rea, actus reus, habeas corpus, suo motu
 3. PRESERVE EXACTLY: All Markdown formatting (##, ###, **, *, -, 1., | tables |, \`code\`, > quotes).
-4. OUTPUT: Only the translated text. No explanation. No preamble. No "Here is the translation:".`;
+4. PRESERVE EXACTLY: All structural labels at the start of each paragraph (e.g. "SUMMARY:", "SEC_SUMMARY:", "STRENGTHS:", etc.) — translate only the text AFTER the colon.
+5. PRESERVE EXACTLY: The triple-pipe delimiter "|||" wherever it appears — it is a structural separator and must NOT be altered, removed, or translated.
+6. PRESERVE EXACTLY: The " | " (space-pipe-space) separator used between list items — do not remove or alter them.
+7. OUTPUT: Only the translated text. No explanation. No preamble. No "Here is the translation:".`;
+};
 
 // ── Simple hash for cache keying ───────────────────────────────────────────────
 const simpleHash = (str) => {
@@ -45,16 +49,9 @@ const globalTranslationCache = new Map();
  * }}
  */
 const useOutputLanguage = (moduleId = 'legal', sessionId = '') => {
-  const storageKey = `aisa_output_lang_${moduleId}_${sessionId}`;
+  const { toolkitLanguage, setToolkitLanguage } = useLanguage();
 
-  const [outputLang, setOutputLangState] = useState(() => {
-    try {
-      return localStorage.getItem(storageKey) || 'en';
-    } catch {
-      return 'en';
-    }
-  });
-
+  const outputLang = toolkitLanguage === 'Hindi' ? 'hi' : 'en';
   const [isTranslating, setIsTranslating] = useState(false);
 
   // Local translation cache (Map: hash → hindiText)
@@ -63,32 +60,19 @@ const useOutputLanguage = (moduleId = 'legal', sessionId = '') => {
   // Track in-flight translation promises to avoid duplicate calls
   const inFlightRef = useRef(new Map());
 
-  // Persist language preference
   const setOutputLang = useCallback((lang) => {
-    setOutputLangState(lang);
-    try {
-      localStorage.setItem(storageKey, lang);
-    } catch { /* ignore */ }
-  }, [storageKey]);
-
-  // Restore from localStorage on session/module change
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved && saved !== outputLang) {
-        setOutputLangState(saved);
-      }
-    } catch { /* ignore */ }
-  }, [storageKey]); // eslint-disable-line
+    setToolkitLanguage(lang === 'hi' ? 'Hindi' : 'English');
+  }, [setToolkitLanguage]);
 
   /**
-   * Translate a single text block to Hindi.
+   * Translate a single text block to Hindi/English.
    * Returns cached version if available.
    */
-  const translateText = useCallback(async (text) => {
+  const translateText = useCallback(async (text, targetLanguage) => {
     if (!text || !text.trim()) return text;
 
-    const cacheKey = simpleHash(text);
+    const target = targetLanguage || (toolkitLanguage === 'Hindi' ? 'Hindi' : 'English');
+    const cacheKey = simpleHash(text) + '_' + target;
 
     // 1. Check local component cache
     if (localCache.current.has(cacheKey)) {
@@ -110,10 +94,11 @@ const useOutputLanguage = (moduleId = 'legal', sessionId = '') => {
     // 4. Call Gemini for translation
     const translationPromise = (async () => {
       try {
+        const sysPrompt = getTranslationPrompt(target);
         const response = await generateChatResponse(
           [],           // history
           text,         // message to translate
-          TRANSLATION_SYSTEM_PROMPT,
+          sysPrompt,
           [],           // attachments
           'English',    // API response language param
           null,         // abortSignal
@@ -141,7 +126,7 @@ const useOutputLanguage = (moduleId = 'legal', sessionId = '') => {
 
     inFlightRef.current.set(cacheKey, translationPromise);
     return translationPromise;
-  }, []);
+  }, [toolkitLanguage]);
 
   /**
    * Get display text synchronously.
@@ -149,7 +134,7 @@ const useOutputLanguage = (moduleId = 'legal', sessionId = '') => {
    */
   const getDisplayText = useCallback((text) => {
     if (outputLang === 'en' || !text) return text;
-    const cacheKey = simpleHash(text);
+    const cacheKey = simpleHash(text) + '_Hindi';
     return (
       localCache.current.get(cacheKey) ||
       globalTranslationCache.get(cacheKey) ||

@@ -58,7 +58,7 @@ export const AppRoute = {
 };
 
 // API Base URL - reads from VITE_AISA_BACKEND_API env variable (set in .env), falls back to production
-const API = window._env_?.VITE_AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || "http://localhost:8080/api";
+const API = window._env_?.VITE_AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || "http://127.0.0.1:8080/api";
 
 console.log("API", API);
 
