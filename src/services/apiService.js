@@ -1803,6 +1803,40 @@ export const apiService = {
       console.error('[Frontend] autoAnalyzeCase failed:', error?.response?.data || error.message);
       throw error;
     }
+  },
+
+  async getAdminBillingStats() {
+    try {
+      const response = await apiClient.get('/admin/billing/stats');
+      return response.data;
+    } catch (error) {
+      console.error('getAdminBillingStats failed:', error);
+      throw error;
+    }
+  },
+
+  async getAdminInvoices(search = '', page = 1) {
+    try {
+      const response = await apiClient.get('/admin/billing/invoices', {
+        params: { search, page, limit: 15 }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('getAdminInvoices failed:', error);
+      throw error;
+    }
+  },
+
+  async downloadInvoice(subscriptionId) {
+    try {
+      const response = await apiClient.get(`/payment/invoice/${subscriptionId}`, {
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error) {
+      console.error('downloadInvoice failed:', error);
+      throw error;
+    }
   }
 };
 
