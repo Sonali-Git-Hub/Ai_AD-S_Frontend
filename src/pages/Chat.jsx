@@ -1324,7 +1324,13 @@ const Chat = () => {
               allProjects,
               onUpdateCase: (updated) => {
                 setCurrentCase(updated);
-                setAllProjects(prev => prev.map(p => p._id === updated._id ? updated : p));
+                setAllProjects(prev => {
+                  const exists = prev.some(p => p._id === updated._id);
+                  if (exists) {
+                    return prev.map(p => p._id === updated._id ? updated : p);
+                  }
+                  return [updated, ...prev];
+                });
                 if (updated?._id) {
                   setCurrentProjectId(updated._id);
                   localStorage.setItem('aisa_active_project_id', updated._id);

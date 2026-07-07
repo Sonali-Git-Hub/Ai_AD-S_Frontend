@@ -84,6 +84,12 @@ export const useAILegalCRM = ({
     setCurrentCase(null);
     setCurrentProjectId(null);
     // setMessages([]); // REMOVED for master fix: Keep messages in state until new session loads
+    try {
+      const caseId = currentCase?._id || currentCase?.id || 'general';
+      localStorage.removeItem(`aisa_active_legal_chat_session_id_${caseId}`);
+    } catch (e) {
+      console.error(e);
+    }
     navigate('/dashboard/legal', { replace: true });
   };
 

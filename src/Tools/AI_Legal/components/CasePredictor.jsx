@@ -15,6 +15,7 @@ import { apiService } from '../../../services/apiService';
 import { mapCaseToForm } from '../services/activeModuleService';
 import { useActiveCase } from '../context/ActiveCaseContext';
 import useOutputLanguage from '../hooks/useOutputLanguage';
+import { useLanguage } from '../../../context/LanguageContext';
 import LanguageToggle from './shared/LanguageToggle';
 import { exportToPDF } from '../utils/exportToPDF';
 
@@ -1060,6 +1061,7 @@ const LegalReportViewer = ({ reportText, isDark }) => {
 };
 
 const CasePredictor = ({ currentCase, onBack, theme, allProjects = [], onUpdateCase }) => {
+  const { toolkitLanguage, setToolkitLanguage, tLegal: t } = useLanguage();
   const isDark = theme === 'dark';
 
   // Form states
@@ -1129,6 +1131,7 @@ const CasePredictor = ({ currentCase, onBack, theme, allProjects = [], onUpdateC
   // UI Flow states
   const [isGenerating, setIsGenerating] = useState(false);
   const [activePrediction, setActivePrediction] = useState(null);
+  const [rawPrediction, setRawPrediction] = useState(null);
   const [historyVisible, setHistoryVisible] = useState(false);
   const [historyData, setHistoryData] = useState([]);
   const [prefillBanner, setPrefillBanner] = useState(null);
@@ -1183,6 +1186,89 @@ const CasePredictor = ({ currentCase, onBack, theme, allProjects = [], onUpdateC
     isMountedRef.current = true;
     return () => { isMountedRef.current = false; };
   }, []);
+  const reportsMetadata = useMemo(() => [
+    {
+      id: 'predictionReport',
+      title: t('litigationForecast') || 'Litigation Forecast',
+      desc: t('litigationForecastDesc') || 'Predict win rates, statutory matches, and outcome risks.',
+      icon: 'Scale',
+      purpose: t('litigationForecastPurpose') || 'Generate primary litigant forecast outlining success probability percentages, cited laws, and precedents.',
+      expected: t('litigationForecastExpected') || 'Executive summary, probability indexes, cited sections, Supreme Court case law matches.',
+      estTime: t('litigationForecastEstTime') || '5-8 seconds'
+    },
+    {
+      id: 'clientReport',
+      title: t('clientReadiness') || 'Client Readiness',
+      desc: t('clientReadinessDesc') || 'Analyze case gaps, action points, and overall trial readiness.',
+      icon: 'Users',
+      purpose: t('clientReadinessPurpose') || 'Create client readiness index and identify deficiency checklist for trial preparation.',
+      expected: t('clientReadinessExpected') || 'Evidentiary gaps, witness deposition availability status, replication action items.',
+      estTime: t('clientReadinessEstTime') || '4-6 seconds'
+    },
+    {
+      id: 'judicialForecastReport',
+      title: t('judgeBriefing') || 'Judge Briefing',
+      desc: t('judgeBriefingDesc') || 'Pre-empt bench questions, material facts, and prayers.',
+      icon: 'Landmark',
+      purpose: t('judgeBriefingPurpose') || 'Formulate judge briefing note addressing presiding bench observations and pre-empted inquiries.',
+      expected: t('judgeBriefingExpected') || 'presiding bench tendencies, factual summary, pre-empted judicial questions and answers.',
+      estTime: t('judgeBriefingEstTime') || '6-9 seconds'
+    },
+    {
+      id: 'courtPrepReport',
+      title: t('courtPrep') || 'Court Prep',
+      desc: t('courtPrepDesc') || 'Track filing compliance, affidavits, and witness schedules.',
+      icon: 'Clock',
+      purpose: t('courtPrepPurpose') || 'Build courtroom preparation docket mapping filing matrix rules and witness schedules.',
+      expected: t('courtPrepExpected') || 'Order IV checklist status, exhibit compendium timeline, trial-day action schedule.',
+      estTime: t('courtPrepEstTime') || '5-7 seconds'
+    },
+    {
+      id: 'evidenceReport',
+      title: t('evidenceAudit') || 'Evidence Audit',
+      desc: t('evidenceAuditDesc') || 'Admissibility reviews, document strength, and missing links.',
+      icon: 'FileText',
+      purpose: t('evidenceAuditPurpose') || 'Run forensic admissibility audit evaluating exhibit quality, authenticity, and compliance.',
+      expected: t('evidenceAuditExpected') || 'Exhibit quality matrix table, Sec 65B compliance check, remediation steps.',
+      estTime: t('evidenceAuditEstTime') || '4-5 seconds'
+    },
+    {
+      id: 'settlementReport',
+      title: t('settlementAdvisory') || 'Settlement Advisory',
+      desc: t('settlementAdvisoryDesc') || 'Mediation probability, negotiation brackets, and risk comparison.',
+      icon: 'DollarSign',
+      purpose: t('settlementAdvisoryPurpose') || 'Determine settlement advisory comparing trial exposure costs with compromise values.',
+      expected: t('settlementAdvisoryExpected') || 'Mediation probability index, optimum negotiation range, trial comparison metrics.',
+      estTime: t('settlementAdvisoryEstTime') || '5-6 seconds'
+    },
+    {
+      id: 'strategyReport',
+      title: t('timelineStrategy') || 'Timeline Strategy',
+      desc: t('timelineStrategyDesc') || 'Court stages, milestones, delay assessments, and actions.',
+      icon: 'Target',
+      purpose: t('timelineStrategyPurpose') || 'Draft chronological litigation timeline outlining stages, adjournment risk, and options.',
+      expected: t('timelineStrategyExpected') || 'Procedural court stage durations, delay mitigation actions, backup options.',
+      estTime: t('timelineStrategyEstTime') || '4-6 seconds'
+    },
+    {
+      id: 'executiveSummary',
+      title: t('executiveSummary') || 'Executive Summary',
+      desc: t('executiveSummaryDesc') || 'Single-page summary of prediction snapshot and recommendations.',
+      icon: 'Sparkles',
+      purpose: t('executiveSummaryPurpose') || 'Compile 1-page high level summary briefing case probability, risks, and next steps.',
+      expected: t('executiveSummaryExpected') || 'Decision snapshot box, key probability drivers, final recommendation briefs.',
+      estTime: t('executiveSummaryEstTime') || '3-4 seconds'
+    }
+  ], [t]);
+
+  const REPORT_METADATA = reportsMetadata;
+  const getReportName = (id, fallback) => {
+    return reportsMetadata.find(r => r.id === id)?.title || fallback;
+  };
+  const getReportDesc = (id, fallback) => {
+    return reportsMetadata.find(r => r.id === id)?.desc || fallback;
+  };
+
 
   // ─── LANGUAGE TOGGLE STATE ────────────────────────────────────────
   const {
@@ -1194,7 +1280,131 @@ const CasePredictor = ({ currentCase, onBack, theme, allProjects = [], onUpdateC
     getDisplayText: getPredictorDisplayText,
   } = useOutputLanguage('case_predictor', currentCase?._id || 'global');
 
-  const [translatedReportText, setTranslatedReportText] = useState('');
+  // translatedReportText state variable removed
+
+
+  const deepTranslatePredictionData = useCallback(async (result, targetLang, translateFn) => {
+    if (!result) return null;
+
+    const EXCLUDED_KEYS = new Set([
+      'id', '_id', 'timestamp', 'successRate', 'defendantWinRate', 'litigationRisk',
+      'evidenceStrength', 'caseStrength', 'missingDocsCount', 'courtReadiness',
+      'settlementProbability', 'appealRisk', 'confidenceScore', 'estimatedDuration',
+      'expectedHearings', 'estimatedLegalCost', 'courtFees', 'advocateFees',
+      'documentationCost', 'travelCost', 'miscCost', 'totalLitigationCost',
+      'relevanceScore', 'grantRate', 'acceptanceRate', 'probability', 'recommendedValue',
+      'expectedSavings', 'riskReduction'
+    ]);
+
+    const isBypass = (str) => {
+      if (!str || typeof str !== 'string') return true;
+      const trimmed = str.trim();
+      if (!trimmed) return true;
+      if (/^[0-9a-fA-F]{32,64}$/.test(trimmed)) return true;
+      if (/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(trimmed)) return true;
+      if (/^\d+(%|\/\d+)?$/.test(trimmed)) return true;
+      if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) return true;
+      return false;
+    };
+
+    const translatableList = [];
+
+    const traverseCollect = (val, path) => {
+      if (val === null || val === undefined) return;
+      if (typeof val === 'string') {
+        const lastKey = path.split('.').pop();
+        if (!EXCLUDED_KEYS.has(lastKey) && !isBypass(val)) {
+          translatableList.push({ path, original: val });
+        }
+      } else if (Array.isArray(val)) {
+        val.forEach((item, index) => traverseCollect(item, `${path}[${index}]`));
+      } else if (typeof val === 'object') {
+        Object.keys(val).forEach(key => {
+          traverseCollect(val[key], path ? `${path}.${key}` : key);
+        });
+      }
+    };
+
+    traverseCollect(result, '');
+
+    if (translatableList.length === 0) return result;
+
+    const delimiter = ' ||| ';
+    const joinedText = translatableList.map(item => item.original).join(delimiter);
+
+    const translatedText = await translateFn(joinedText);
+    const translatedSegments = translatedText.split('|||').map(s => s.trim());
+
+    const cloned = JSON.parse(JSON.stringify(result));
+
+    const setValueAtPath = (obj, path, value) => {
+      const parts = path.split(/\.|\[|\]/).filter(Boolean);
+      let current = obj;
+      for (let i = 0; i < parts.length - 1; i++) {
+        const part = parts[i];
+        const nextPart = parts[i + 1];
+        if (/^\d+$/.test(nextPart) && !current[part]) {
+          current[part] = [];
+        } else if (!current[part]) {
+          current[part] = {};
+        }
+        current = current[part];
+      }
+      const lastKey = parts[parts.length - 1];
+      if (current) {
+        current[lastKey] = value;
+      }
+    };
+
+    if (translatedSegments.length === translatableList.length) {
+      translatableList.forEach((item, idx) => {
+        setValueAtPath(cloned, item.path, translatedSegments[idx]);
+      });
+    } else {
+      console.warn(`[deepTranslate] translation segment count mismatch: got ${translatedSegments.length}, expected ${translatableList.length}. Mapping sequentially.`);
+      translatableList.forEach((item, idx) => {
+        const translatedVal = translatedSegments[idx] || item.original;
+        setValueAtPath(cloned, item.path, translatedVal);
+      });
+    }
+
+    return cloned;
+  }, []);
+
+  // Handle live translation when rawPrediction or language changes
+  useEffect(() => {
+    if (!rawPrediction) {
+      setActivePrediction(null);
+      return;
+    }
+
+    const targetLang = toolkitLanguage === 'Hindi' ? 'Hindi' : 'English';
+    const sampleText = rawPrediction.explainPrediction?.whyPredicted || '';
+    const hasDevanagari = /[\u0900-\u097F]/.test(sampleText);
+    const rawIsHindi = hasDevanagari;
+    const targetIsHindi = (targetLang === 'Hindi');
+
+    if (rawIsHindi === targetIsHindi) {
+      setActivePrediction(rawPrediction);
+      return;
+    }
+
+    setIsPredictorTranslating(true);
+    deepTranslatePredictionData(rawPrediction, targetLang, (txt) => translatePredictorText(txt, targetLang))
+      .then((translated) => {
+        if (isMountedRef.current) {
+          setActivePrediction(translated);
+        }
+        setIsPredictorTranslating(false);
+      })
+      .catch((err) => {
+        console.error("Failed to translate prediction data:", err);
+        if (isMountedRef.current) {
+          setActivePrediction(rawPrediction);
+        }
+        setIsPredictorTranslating(false);
+      });
+  }, [rawPrediction, toolkitLanguage, translatePredictorText, deepTranslatePredictionData]);
 
   const displayPrediction = activePrediction;
 
@@ -1331,6 +1541,7 @@ const CasePredictor = ({ currentCase, onBack, theme, allProjects = [], onUpdateC
     const witnessDetails = data.witnessDetails || 'Independent witness testimonies.';
     
     const precedentsList = (data.precedentIntelligence?.supremeCourtCases || []).concat(data.precedentIntelligence?.highCourtCases || []);
+    const isHindi = toolkitLanguage === 'Hindi';
     const precedentsText = precedentsList.length > 0
       ? precedentsList.map(p => `- **${p.caseName}** (${p.citation}) - **Type:** ${p.type}\n  *Ratio:* ${p.ratio}`).join('\n')
       : `- **ONGC v. Saw Pipes Ltd** (2003) - Binding precedent regarding liquidated damages.\n- **Maula Bux v. Union of India** (1969) - Restricting forfeiture of earnest money.`;
@@ -1342,7 +1553,44 @@ const CasePredictor = ({ currentCase, onBack, theme, allProjects = [], onUpdateC
 
     switch(tabId) {
       case 'predictionReport':
-        return `# LITIGATION FORECAST REPORT & OUTCOME PROJECTION
+        return isHindi ? `# मुकदमेबाजी पूर्वानुमान रिपोर्ट और परिणाम प्रक्षेपण
+
+## 1. कार्यकारी परिणाम सारांश
+- **प्राथमिक मामला श्रेणी:** ${data.caseType || 'कॉर्पोरेट'}
+- **अदालत / अधिकार क्षेत्र:** ${courtName}
+- **वैधानिक आधार:** ${ipcSections}
+- **विपक्षी वकील / प्रतिवादी:** ${opponentDetails}
+- **साक्ष्य कवरेज रेटिंग:** ${evidenceStrength}%
+
+फोरेंसिक परिणाम भविष्यवाणी गणना के आधार पर, AISA वादी के लिए पहले चरण के मुकदमे में **${successRate}% सफलता की संभावना** का अनुमान लगाता है।
+
+---
+
+## 2. मुख्य पूर्वानुमान पैरामीटर
+| पूर्वानुमान पैरामीटर | मूल्य | फोरेंसिक आत्मविश्वास रेटिंग |
+| :--- | :--- | :--- |
+| **जीतने की संभावना** | ${successRate}% | उच्च (${confidenceScore}% मॉडल सटीकता) |
+| **मुकदमेबाजी जोखिम स्तर** | ${t(litigationRisk) || litigationRisk} | मध्यम भिन्नता (±4.2%) |
+| **अनुमानित अवधि** | ${estimatedDuration} | क्षेत्रीय बेंच निपटान गति के आधार पर |
+| **अपेक्षित सुनवाई** | ${expectedHearings} सत्र | मानक दलील और बहस चक्र |
+
+---
+
+## 3. लागू वैधानिक कानून
+मुकदमा निम्नलिखित शासी अधिनियमों पर आधारित है:
+- **${ipcSections}**: मानक उपचार, परिभाषाओं और सबूत के बोझ के मापदंडों को रेखांकित करता है।
+- **भारतीय साक्ष्य अधिनियम / भारतीय साक्ष्य अधिनियम**: मौखिक गवाही और प्रमाणित द्वितीयक दस्तावेज़ प्रिंट की स्वीकार्यता को नियंत्रित करता है।
+
+---
+
+## 4. नजीरें और सहायक निर्णय
+दलील के दावों का समर्थन करने वाली निम्नलिखित बाध्यकारी नजीरें उपलब्ध हैं:
+${precedentsText}
+
+---
+
+## 5. एआई परिणाम सिफारिश
+तथ्यों की समयरेखा का सख्ती से पालन करें। मुद्दों के शीघ्र निर्धारण का प्रयास करें और निचले अदालत के फैसलों की रक्षा के लिए अपीलीय कैविएट दायर करने की तैयारी करें।` : `# LITIGATION FORECAST REPORT & OUTCOME PROJECTION
 
 ## 1. EXECUTIVE OUTCOME SUMMARY
 - **Primary Case Category:** ${data.caseType || 'Corporate'}
@@ -1382,7 +1630,34 @@ ${precedentsText}
 Maintain strict adherence to the facts chronology. Seek early scheduling of issues and prepare to lodge appellate caveats to protect lower-court decrees.`;
 
       case 'clientReport':
-        return `# CLIENT TRIAL READINESS ASSESSMENT & DEFICIENCY BRIEF
+        return isHindi ? `# ग्राहक परीक्षण तत्परता मूल्यांकन और कमी विवरण
+
+## 1. तत्परता स्थिति स्नैपशॉट
+- **परीक्षण तत्परता स्कोर:** ${courtReadiness}% (तत्काल अपलोड की आवश्यकता है)
+- **लक्षित साक्ष्य शक्ति:** ${evidenceStrength}%
+- **अपेक्षित सुनवाई:** ${expectedHearings} सत्र
+
+---
+
+## 2. साक्ष्य संबंधी कमियां और गायब दस्तावेज
+सक्रिय केस अंतराल को ठीक करने के लिए निम्नलिखित अनिवार्य दस्तावेज अपलोड किए जाने चाहिए:
+| दस्तावेज़ का नाम | प्राथमिकता | आवश्यकता का कारण | सफलता प्रभाव |
+| :--- | :--- | :--- | :--- |
+${missingDocsRows}
+
+---
+
+## 3. गवाह और गवाही की स्थिति
+- **वादी गवाह:** परीक्षण परीक्षा के लिए सत्यापित और तैयार।
+- **स्वतंत्र गवाह विश्वसनीयता:** अनुबंध पर हस्ताक्षर करने की समयरेखा को प्रमाणित करने के लिए तैयार।
+- **विपक्षी बयान भेद्यता:** प्रतिवादी लेनदेन लॉग रिकॉर्ड में कालानुक्रमिक बेमेल।
+
+---
+
+## 4. आवश्यक वकील समयरेखा कार्रवाई
+1. **जवाब दाखिल करना:** सीमा अधिनियम बचाव के संबंध में विशिष्ट खंडन का मसौदा तैयार करें।
+2. **धारा 65बी शपथ पत्र निष्पादित करें:** अगली सुनवाई से पहले डिजिटल संचार लेखा परीक्षक द्वारा हस्ताक्षरित होना चाहिए।
+3. **बैंक बहीखाता सत्यापित करें:** बैंकर बुक साक्ष्य नियमों के तहत प्रमाणित प्रतियां प्राप्त करें।` : `# CLIENT TRIAL READINESS ASSESSMENT & DEFICIENCY BRIEF
 
 ## 1. READINESS STATUS SNAPSHOT
 - **Trial Readiness Score:** ${courtReadiness}% (Requires immediate uploads)
@@ -1412,7 +1687,36 @@ ${missingDocsRows}
 3. **Verify Bank Ledgers:** Obtain certified copies under Banker's Book Evidence regulations.`;
 
       case 'judicialForecastReport':
-        return `# JUDGE BRIEFING NOTE & TRIAL ADVISORY
+        return isHindi ? `# न्यायाधीश ब्रीफिंग नोट और सुनवाई सलाहकार
+
+## 1. पीठासीन बेंच प्रोफ़ाइल
+- **न्यायाधीश / पीठासीन बेंच:** ${data.judgeIntelligence?.profile || 'न्यायमुर्ति सुब्रमण्यम बेंच'}
+- **स्वीकृति संभावना:** ${data.judgeIntelligence?.acceptanceRate || 71}%
+- **बेंच निपटान गति:** ${data.judgeIntelligence?.averageDisposalTime || '12-16 महीने'}
+
+---
+
+## 2. भौतिक तथ्यों का संक्षिप्त सारांश
+${facts.substring(0, 300)}...
+
+---
+
+## 3. मुख्य न्यायिक पूछताछ और पूर्व-खाली जांच
+निम्नलिखित पूर्व-खाली न्यायिक पूछताछ के लिए तत्काल, संक्षिप्त मौखिक प्रतिक्रियाएं तैयार करें:
+1. **समय सीमा की देरी पर:** "कार्रवाई का कारण अंतिम उल्लंघन की तारीख को उत्पन्न हुआ था, न कि अनुबंध निष्पादन पर। इसलिए, मुकदमा 3 साल की समय सीमा के भीतर रहता है।"
+2. **फोटोकॉपी स्वीकार्यता पर:** "प्रमाणित सार्वजनिक रजिस्ट्री खाता प्रिंट द्वितीयक साक्ष्य के रूप में प्रस्तुत किए जाते हैं, जो साक्ष्य अधिनियम के मानकों को पूरा करते हैं।"
+
+---
+
+## 4. याचिका तर्क और विपक्षी खंडन
+- **वादी का दावा:** ${ipcSections} के तहत वैधानिक उल्लंघन बहाली को अनिवार्य करता है।
+- **विपक्षी खंडन:** दावा है कि देरी अपरिहार्य परिस्थितियों (force majeure) के कारण हुई थी।
+- **एआई अनुशंसित बचाव:** सरकारी अधिसूचनाओं की अनुपस्थिति में अपरिहार्य परिस्थिति धाराओं को ट्रिगर नहीं किया जाता है।
+
+---
+
+## 5. अंतिम प्रार्थना (अनुरोधित राहत)
+दावों की पूर्ण बहाली, वसीयतनामा और मुकदमेबाजी के खर्चों की कुल वसूली का अनुरोध करने वाली प्रार्थना दायर करें।` : `# JUDGE BRIEFING NOTE & TRIAL ADVISORY
 
 ## 1. PRESIDING BENCH PROFILE
 - **Judge / Presiding Bench:** ${data.judgeIntelligence?.profile || 'Justice Subramanian Bench'}
@@ -1444,7 +1748,28 @@ Prepare immediate, concise oral responses for the following pre-empted judicial 
 Lodge prayer requesting full restitution of claims, standard interest charges, and total recovery of litigation expenses.`;
 
       case 'courtPrepReport':
-        return `# COURTROOM PREPARATION & COMPLIANCE CHECKLIST
+        return isHindi ? `# कोर्टरूम तैयारी और अनुपालन चेकलिस्ट
+
+## 1. अनुपालन और फाइलिंग मैट्रिक्स
+| चेकलिस्ट आइटम | वैधानिक संदर्भ | कार्रवाई की स्थिति |
+| :--- | :--- | :--- |
+| **वकालतनामा/उपस्थिति का ज्ञापन** | सीपीसी आदेश IV नियम 1 | ✓ हस्ताक्शरित और दायर |
+| **प्रदर्श संकलन और अनुक्रमण** | सीपीसी आदेश VII नियम 14 | प्रगति पर है |
+| **धारा 65बी इलेक्ट्रॉनिक प्रमाणपत्र** | भारतीय साक्ष्य अधिनियम | लेखा परीक्षक के हस्ताक्षर लंबित |
+| **Appellate Caveat Lodging** | सीपीसी धारा 148ए | फैसले के बाद अनुशंसित |
+
+---
+
+## 2. सुनवाई के दिन की कार्रवाई समयरेखा
+- **9:30 AM**: अंतिम गवाह ब्रीफिंग का समन्वय करें। मूल दस्तावेज फ़ोल्डर की उपलब्धता सत्यापित करें।
+- **10:30 AM**: याचिकाकर्ता का अधिकार क्षेत्र स्थापित करें और अनुबंध उल्लंघन के दावों की रूपरेखा तैयार करें।
+- **12:00 PM**: विपक्षी क्रॉस एग्जामिनेशन के दौरान मौखिक अफवाहों को सीमित करें।
+- **2:30 PM**: कोर्ट का ध्यान सुप्रीम कोर्ट के बाध्यकारी फैसलों की ओर आकर्षित करें।
+
+---
+
+## 3. प्रवेश और प्रकटीकरण चरण की कार्रवाइयां
+सीपीसी आदेश XI के तहत प्रतिद्वंद्वी से प्रवेश की मांग करें। लंबी सुनवाई सत्रों को कम करता है।` : `# COURTROOM PREPARATION & COMPLIANCE CHECKLIST
 
 ## 1. COMPLIANCE & FILING MATRIX
 | CHECKLIST ITEM | STATUTORY REFERENCE | ACTION STATUS |
@@ -1468,7 +1793,32 @@ Lodge prayer requesting full restitution of claims, standard interest charges, a
 Seek formal admission of undisputed documents from opponent under CPC Order XI. Reduces prolonged trial sessions.`;
 
       case 'evidenceReport':
-        return `# FORENSIC EVIDENCE AUDIT & ADMISSIBILITY BRIEF
+        return isHindi ? `# फोरेंसिक साक्ष्य लेखापरीक्षा और स्वीकार्यता विवरण
+
+## 1. साक्ष्य कवरेज सारांश
+- **साक्ष्य स्वीकार्यता स्कोर:** ${evidenceStrength}%
+- **प्रामाणिकता रेटिंग:** ${data.evidenceIntelligence?.authenticityScore || 85}%
+- **ओसीआर पाइपलाइन मिलान:** ${data.evidenceIntelligence?.ocrConfidence || 90}%
+
+---
+
+## 2. साक्ष्य अनुक्रमणिका तालिका
+| प्रदर्श का नाम | गुणवत्ता श्रेणी | स्वीकार्यता मूल्यांकन | प्राथमिकता |
+| :--- | :--- | :--- | :--- |
+| प्राथमिक सत्यापित अनुबंध | मजबूत प्रदर्श | स्वीकार्य (मूल हस्ताक्षर अक्षुण्ण) | गंभीर |
+| पत्राचार ईमेल | कमजोर प्रदर्श | केवल धारा 65बी प्रमाण पत्र के साथ स्वीकार्य | उच्च |
+| अहस्ताक्षरित सीमा मसौदा | विरोधाभासी | अस्वीकार्य (प्रमाणीकरण प्रमाण का अभाव) | मध्यम |
+
+---
+
+## 3. वैधानिक अनुपालन लेखापरीक्षा
+इलेक्ट्रॉनिक साक्ष्य प्रिंट (एसएमएस लॉग, ईमेल प्रिंटआउट, व्हाट्सएप थ्रेड) बेंच द्वारा तब तक खारिज कर दिए जाएंगे जब तक कि उनके साथ **धारा 65बी** के तहत प्रमाणित हलफनामा न हो।
+
+---
+
+## 4. वकील के लिए उपचारात्मक निर्देश
+- सभी लेनदेन नोटिसों के लिए स्टांप प्रमाणपत्र सत्यापन प्राप्त करें।
+- द्वितीयक रेखाचित्रों को बदलने के लिए स्थानीय सर्वेक्षक सीमा लेखापरीक्षा संकलित करें।` : `# FORENSIC EVIDENCE AUDIT & ADMISSIBILITY BRIEF
 
 ## 1. EVIDENCE COVERAGE SUMMARY
 - **Admissibility Score:** ${evidenceStrength}%
@@ -1496,7 +1846,34 @@ Electronic evidence prints (SMS logs, Email printouts, WhatsApp threads) will be
 - Compile local surveyor boundary audits to replace secondary sketches.`;
 
       case 'settlementReport':
-        return `# MEDIATION & SETTLEMENT ADVISORY BRIEF
+        return isHindi ? `# मध्यस्थता और समझौता सलाहकार विवरण
+
+## 1. समझौता दृष्टिकोण
+- **मध्यस्थता सलाहकार व्यवहार्यता:** ${data.stats?.settlementProbability || 78}%
+- **अनुमानित सुनवाई लागत:** ₹${estimatedLegalCost.toLocaleString()}
+- **एआई अनुमानित बचत (पूर्व-सुनवाई समझौता):** ₹${data.settlementIntelligence?.expectedSavings ? data.settlementIntelligence.expectedSavings.toLocaleString() : (estimatedLegalCost * 0.4).toLocaleString()}
+
+---
+
+## 2. बातचीत के पैरामीटर
+- **अनुशंसित समझौता राशि:** ₹${data.settlementIntelligence?.recommendedAmount ? data.settlementIntelligence.recommendedAmount.toLocaleString() : (estimatedLegalCost * 2.5).toLocaleString()}
+- **इष्टतम समझौता सीमा:** ${data.settlementEngine?.negotiationWindow || '₹120,000 - ₹250,000'}
+- **बातचीत करने का सबसे अच्छा चरण:** मुकदमे के मुद्दों को तैयार करने से पहले।
+
+---
+
+## 3. मुकदमा बनाम समझौता विश्लेषण
+| मानदंड | मुकदमेबाजी (सुनवाई द्वारा) | मध्यस्थता समझौता |
+| :--- | :--- | :--- |
+| **अवधि** | ${estimatedDuration} | 15 - 30 दिन (तत्काल) |
+| **कानूनी शुल्क** | ₹${estimatedLegalCost.toLocaleString()} | ₹${(estimatedLegalCost * 0.25).toLocaleString()} |
+| **परिणाम निश्चितता** | ${successRate}% जीत की संभावना | 100% गारंटीकृत समझौता |
+
+---
+
+## 4. सामरिक बातचीत सिफारिशें
+- साक्ष्य शक्ति का संकेत देने के लिए जल्दी ही ठोस बैंक विवरण प्रस्तुत करें।
+- अनौपचारिक समझौता वार्ता के दौरान अदालत के बैकलॉग आंकड़ों का लाभ उठाएं।` : `# MEDIATION & SETTLEMENT ADVISORY BRIEF
 
 ## 1. SETTLEMENT OUTLOOK
 - **Mediation Advisory Viability:** ${data.stats?.settlementProbability || 78}%
@@ -1526,7 +1903,26 @@ Electronic evidence prints (SMS logs, Email printouts, WhatsApp threads) will be
 - Leverage the court backlog statistic during informal settlement talks.`;
 
       case 'strategyReport':
-        return `# PROCEDURAL TIMELINE & LITIGATION STRATEGY
+        return isHindi ? `# प्रक्रियात्मक समयरेखा और मुकदमेबाजी रणनीति
+
+## 1. अपेक्षित अदालती चरण और समयरेखा
+| प्रक्रियात्मक चरण | अवधि | मुख्य रणनीतिक कार्रवाई |
+| :--- | :--- | :--- |
+| **प्रवेश चरण** | 30 - 60 दिन | अंतरिम निषेधाज्ञा आदेशों की मांग करें |
+| **साक्ष्य चरण** | 90 - 120 दिन | प्रमाणित प्राथमिक दस्तावेज़ प्रतियां संकलित करें |
+| **क्रॉस एग्जामिनेशन** | 60 - 90 दिन | विरोधाभासों पर विपक्षी गवाह का सामना करें |
+| **अंतिम बहस** | 30 दिन | सुप्रीम कोर्ट के बाध्यकारी फैसले पेश करें |
+
+---
+
+## 2. बेंच बैकलॉग और देरी का विश्लेषण
+- **क्षेत्रीय न्यायालय स्थगन दर:** उच्च।
+- **शमन कार्रवाई:** सभी लिखित बयानों को पहले से संकलित करें और वाणिज्यिक न्यायालय विनियमों के तहत सख्त कार्यक्रम का अनुरोध करें।
+
+---
+
+## 3. वैकल्पिक केस रणनीति
+यदि शीर्षक के दावों पर 12 महीने से अधिक समय तक विवाद रहता है, तो संपत्ति सीमा समायोजन सुरक्षित करने के लिए कोर्ट से संबद्ध मध्यस्थता पैनलों की शुरुआत करें।` : `# PROCEDURAL TIMELINE & LITIGATION STRATEGY
 
 ## 1. EXPECTED COURT STAGES & TIMELINES
 | PROCEDURAL STAGES | DURATION | KEY STRATEGIC ACTIONS |
@@ -1548,7 +1944,24 @@ Electronic evidence prints (SMS logs, Email printouts, WhatsApp threads) will be
 If title claims are contested beyond 12 months, initiate court-annexed mediation panels to secure property boundary adjustments.`;
 
       case 'executiveSummary':
-        return `# EXECUTIVE LITIGATION FORECAST SUMMARY
+        return isHindi ? `# कार्यकारी मुकदमेबाजी पूर्वानुमान सारांश
+
+## 1. निर्णय स्नैपशॉट
+- **वादी सफलता दर:** **${successRate}%**
+- **एआई आत्मविश्वास स्कोर:** **${confidenceScore}%**
+- **प्रक्रियात्मक मुकदमेबाजी जोखिम:** **${t(litigationRisk) || litigationRisk}**
+- **रणनीतिक कोर्ट रूम अनुक्रम:** ${data.courtStrategy?.strategyType || 'Balanced'} याचिका
+
+---
+
+## 2. मुख्य न्यायिक संभावना कारक
+- **सकारात्मक कारक:** उच्च वैधानिक अनुपालन, बाध्यकारी मिसाल की उपलब्धता।
+- **नकारात्मक कारक:** प्रशासनिक देरी, संभावित अपील वृद्धि पाश (loop)।
+
+---
+
+## 3. मुख्य रणनीति सारांश
+अदालत का अधिकार क्षेत्र स्थापित करें और तुरंत मूल पंजीकृत विलेख प्रस्तुत करें। साक्ष्य अधिनियम के मौखिक साक्ष्य नियमों का हवाला देकर प्रतिवादी के मौखिक दावों को नकारें।` : `# EXECUTIVE LITIGATION FORECAST SUMMARY
 
 ## 1. DECISION SNAPSHOT
 - **Plaintiff Success Rate:** **${successRate}%**
@@ -1579,39 +1992,9 @@ Establish court jurisdiction and immediately present original registered deeds. 
     return compileDetailedLegalReport(selectedReportTab, displayPrediction);
   }, [displayPrediction, selectedReportTab, compileDetailedLegalReport]);
 
-  // Re-run translation whenever original report or language changes
-  useEffect(() => {
-    if (outputLang === 'en' || !originalReportText) {
-      setTranslatedReportText('');
-      return;
-    }
-    const cached = getPredictorDisplayText(originalReportText);
-    if (cached && cached !== originalReportText) {
-      setTranslatedReportText(cached);
-      return;
-    }
-    setIsPredictorTranslating(true);
-    translatePredictorText(originalReportText).then((translated) => {
-      if (isMountedRef.current) setTranslatedReportText(translated);
-      setIsPredictorTranslating(false);
-    }).catch(() => {
-      if (isMountedRef.current) setTranslatedReportText('');
-      setIsPredictorTranslating(false);
-    });
-  }, [originalReportText, outputLang, getPredictorDisplayText, translatePredictorText, setIsPredictorTranslating]);
-
-  // Reset output language when prediction changes
-  useEffect(() => {
-    if (displayPrediction) {
-      setOutputLang('en');
-      setTranslatedReportText('');
-    }
-  }, [displayPrediction]); // eslint-disable-line
-
   const displayReportText = useMemo(() => {
-    if (outputLang === 'hi' && translatedReportText) return translatedReportText;
     return editedReportText || originalReportText;
-  }, [outputLang, translatedReportText, editedReportText, originalReportText]);
+  }, [editedReportText, originalReportText]);
 
   // Clean JSON block string helper
   const cleanJsonString = (str) => {
@@ -1789,6 +2172,7 @@ Establish court jurisdiction and immediately present original registered deeds. 
   const handleBackNavigation = () => {
     if (activePrediction) {
       setActivePrediction(null);
+      setRawPrediction(null);
     } else if (inputWorkflowMode !== null) {
       setInputWorkflowMode(null);
     } else {
@@ -1798,6 +2182,7 @@ Establish court jurisdiction and immediately present original registered deeds. 
 
   const handleResetAndConfigureNewCase = () => {
     setActivePrediction(null);
+    setRawPrediction(null);
     setInputWorkflowMode(null);
     setSelectedCaseId('');
     setIsCaseLoaded(false);
@@ -1952,9 +2337,12 @@ Establish court jurisdiction and immediately present original registered deeds. 
     setActivePrediction(null);
 
     try {
+      const targetLanguageDirective = toolkitLanguage === 'Hindi'         ? '\nCRITICAL REQUIREMENT: You MUST generate all user-facing narrative text, explanation fields, reasoning, strategy points, and reports directly in natural legal Hindi (Devanagari script) using formal Indian legal terms. DO NOT return English text for these fields. All JSON keys must remain exactly in English as specified in the schema.'         : '\nCRITICAL REQUIREMENT: You MUST generate all text and reports in formal legal English.';
+
       const systemPrompt = `You are the AISA AI Judicial Intelligence & Case Forecasting System.
 Analyze the provided legal case facts, evidence, witnesses, statutes, and jurisdiction.
 Your analysis must be court-ready, forensic-grade, and highly detailed.
+${targetLanguageDirective}
 
 You MUST return your response as a single valid JSON object enclosed in a markdown code block starting with \`\`\`json and ending with \`\`\`. Do not include any text outside the code block.
 
@@ -2130,7 +2518,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
       Witness Details: ${fData.witnessDetails}
       `;
 
-      const response = await generateChatResponse([], query, systemPrompt, evidenceFiles, 'English', null, 'legal');
+      const response = await generateChatResponse([], query, systemPrompt, evidenceFiles, toolkitLanguage || 'English', null, 'legal');
       const reply = response?.reply || response || '';
 
       let parsedJson = null;
@@ -2230,6 +2618,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
         lockedReports: {}
       };
 
+      setRawPrediction(prediction);
       setActivePrediction(prediction);
       setEditedReportText(prediction.reports.predictionReport);
       setSelectedReportTab('predictionReport');
@@ -2262,8 +2651,6 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
   // Switch between report tabs
   const handleReportTabChange = (tabId) => {
     setSelectedReportTab(tabId);
-    setOutputLang('en');
-    setTranslatedReportText('');
     setCompareVersionId('');
     
     const isGenerated = activePrediction?.generatedReports?.[tabId];
@@ -2305,6 +2692,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
         }
       };
 
+      setRawPrediction(updatedPrediction);
       setActivePrediction(updatedPrediction);
       await savePredictionToHistory(updatedPrediction);
       setIsEditingReport(false);
@@ -2326,6 +2714,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
           [tabId]: isLockedNow
         }
       };
+      setRawPrediction(updatedPrediction);
       setActivePrediction(updatedPrediction);
       await savePredictionToHistory(updatedPrediction);
       if (isLockedNow) {
@@ -2378,6 +2767,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
         }
       };
 
+      setRawPrediction(updatedPrediction);
       setActivePrediction(updatedPrediction);
       await savePredictionToHistory(updatedPrediction);
       setEditedReportText(freshText);
@@ -2724,7 +3114,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className={`text-sm sm:text-base font-black uppercase tracking-tight ${
                 isDark ? 'text-white' : 'text-slate-900'
-              }`}>Case Predictor™</h1>
+              }`}>{t('casePredictorTitle') || "Case Predictor"}</h1>
               <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full shrink-0 ${
                 isDark ? 'bg-indigo-950/50 text-indigo-400 border border-indigo-900/30' : 'bg-indigo-550/10 text-indigo-700'
               }`}>
@@ -2732,15 +3122,15 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
               </span>
             </div>
             <p className={`text-[9px] font-semibold mt-0.5 hidden sm:block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              AI-powered litigation outcome prediction and legal risk assessment.
+              {t('casePredictorSubtitle') || "AI-powered litigation outcome prediction and legal risk assessment."}
             </p>
             <div className="hidden sm:flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[9px] font-bold text-slate-400/80">
               <span className="flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                AI Analysis Ready
+                {t('aiAnalysisReady') || "AI Analysis Ready"}
               </span>
               <span>•</span>
-              <span>Court Database Connected</span>
+              <span>{t('courtDatabaseConnected') || "Court Database Connected"}</span>
               <span>•</span>
               <span className="text-indigo-400">{new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
             </div>
@@ -2748,6 +3138,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0">
+          <LanguageToggle lang={toolkitLanguage === 'Hindi' ? 'hi' : 'en'} onChange={(l) => setToolkitLanguage(l === 'hi' ? 'Hindi' : 'English')} />
           {currentCase && (
             <button 
               onClick={handlePrefillFromActiveCase}
@@ -2758,7 +3149,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
               }`}
             >
               <RefreshCw size={12} className="animate-spin-slow shrink-0" />
-              <span className="truncate max-w-[120px] sm:max-w-none">Sync with {currentCase.name}</span>
+              <span className="truncate max-w-[120px] sm:max-w-none">{t('syncWith') || "Sync with"} {currentCase.name}</span>
             </button>
           )}
           <button 
@@ -2784,7 +3175,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
             }`}
           >
             <History size={14} />
-            <span>History ({historyData.length})</span>
+            <span>{t('history') || "History"} ({historyData.length})</span>
           </button>
         </div>
       </div>
@@ -2836,9 +3227,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                       !activePrediction && !isGenerating
                         ? (isDark ? 'text-indigo-400 font-extrabold' : 'text-indigo-650 font-extrabold')
                         : 'text-slate-400 dark:text-slate-500'
-                    }`}>
-                      Choose Source
-                    </span>
+                    }`}>{t('chooseSource') || "Choose Source"}</span>
                   </div>
 
                   {/* Step 2 */}
@@ -2856,9 +3245,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                       isGenerating
                         ? (isDark ? 'text-indigo-400 font-extrabold' : 'text-indigo-650 font-extrabold')
                         : 'text-slate-400 dark:text-slate-500'
-                    }`}>
-                      AI Analysis
-                    </span>
+                    }`}>{t('aiAnalysis') || "AI Analysis"}</span>
                   </div>
 
                   {/* Step 3 */}
@@ -2874,9 +3261,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                       activePrediction && !isGenerating
                         ? (isDark ? 'text-indigo-400 font-extrabold' : 'text-indigo-650 font-extrabold')
                         : 'text-slate-400 dark:text-slate-500'
-                    }`}>
-                      Forecast Dashboard
-                    </span>
+                    }`}>{t('forecastDashboard') || "Forecast Dashboard"}</span>
                   </div>
 
                 </div>
@@ -2886,47 +3271,47 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
               {inputWorkflowMode === null ? (
                 <div className="space-y-4 sm:space-y-6">
                   <div className="text-center max-w-xl mx-auto mb-2 sm:mb-4">
-                    <h2 className="text-sm font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">Select Forecast Input Source</h2>
-                    <p className="text-[10px] text-slate-450 mt-1 font-semibold">Verify the source of legal directives to configure the litigation predictive engine.</p>
+                    <h2 className="text-sm font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">{t('selectForecastInputSource') || "Select Forecast Input Source"}</h2>
+                    <p className="text-[10px] text-slate-450 mt-1 font-semibold">{t('selectForecastInputSourceDesc') || "Verify the source of legal directives to configure the litigation predictive engine."}</p>
                   </div>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
                     {[
                       {
                         id: 'existing',
-                        title: 'EXISTING CASE WORKSPACE',
-                        desc: 'Predict litigation outcome using an existing case already stored in My Cases.',
+                        title: t('existingCaseWorkspaceTitle') || 'EXISTING CASE WORKSPACE',
+                        desc: t('existingCaseWorkspaceDesc') || 'Predict litigation outcome using an existing case already stored in My Cases.',
                         features: [
-                          'Auto-load parties',
-                          'Auto-load facts',
-                          'Auto-load evidence',
-                          'Auto-load timeline',
-                          'Auto-load pleadings',
-                          'Auto-load previous AI analysis'
+                          t('featAutoLoadParties') || 'Auto-load parties',
+                          t('featAutoLoadFacts') || 'Auto-load facts',
+                          t('featAutoLoadEvidence') || 'Auto-load evidence',
+                          t('featAutoLoadTimeline') || 'Auto-load timeline',
+                          t('featAutoLoadPleadings') || 'Auto-load pleadings',
+                          t('featAutoLoadAIAnalysis') || 'Auto-load previous AI analysis'
                         ],
                         icon: <Briefcase size={22} className="text-indigo-400" />
                       },
                       {
                         id: 'upload',
-                        title: 'UPLOAD LEGAL DOCUMENTS',
-                        desc: 'Upload petition, written statement, FIR, evidence, contracts or supporting documents.',
+                        title: t('uploadLegalDocumentsTitle') || 'UPLOAD LEGAL DOCUMENTS',
+                        desc: t('uploadLegalDocumentsDescShort') || 'Upload petition, written statement, FIR, evidence, contracts or supporting documents.',
                         features: [
-                          'Support PDF, DOCX, Images, ZIP',
-                          'OCR timeline extraction',
-                          'Evidence extraction',
-                          'Auto fact extraction'
+                          t('featSupportFormats') || 'Support PDF, DOCX, Images, ZIP',
+                          t('featOcrExtraction') || 'OCR timeline extraction',
+                          t('featEvidenceExtraction') || 'Evidence extraction',
+                          t('featAutoFactExtraction') || 'Auto fact extraction'
                         ],
                         icon: <Upload size={22} className="text-sky-400" />
                       },
                       {
                         id: 'manual',
-                        title: 'MANUAL CASE FACTS',
-                        desc: 'Create a prediction manually by entering facts.',
+                        title: t('manualCaseFactsTitle') || 'MANUAL CASE FACTS',
+                        desc: t('manualCaseFactsDesc') || 'Create a prediction manually by entering facts.',
                         features: [
-                          'Case Title & Parties details',
-                          'Court & Case Category selection',
-                          'Claims & Defence outlines',
-                          'Evidence & Relief requested summaries'
+                          t('featCaseTitleParties') || 'Case Title & Parties details',
+                          t('featCourtCategory') || 'Court & Case Category selection',
+                          t('featClaimsDefence') || 'Claims & Defence outlines',
+                          t('featEvidenceRelief') || 'Evidence & Relief requested summaries'
                         ],
                         icon: <Edit3 size={22} className="text-emerald-400" />
                       }
@@ -2981,7 +3366,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                       <div className="flex items-center justify-between border-b pb-3 border-slate-205/50 dark:border-white/5">
                         <div className="flex items-center gap-2">
                           <Briefcase size={16} className="text-indigo-400" />
-                          <h4 className="text-xs font-black uppercase tracking-widest text-indigo-400">Source: Existing Case Workspace</h4>
+                          <h4 className="text-xs font-black uppercase tracking-widest text-indigo-400">{t('existingCaseWorkspace') || "Source: Existing Case Workspace"}</h4>
                         </div>
                         <button 
                           onClick={() => {
@@ -2993,13 +3378,13 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                             isDark ? 'border-zinc-700 text-slate-350 hover:bg-zinc-800' : 'border-slate-200 text-slate-600 hover:bg-slate-100'
                           }`}
                         >
-                          Change Source
+                          {t('changeSource') || "Change Source"}
                         </button>
                       </div>
 
                       <div className="space-y-4">
                         <div className="relative space-y-2">
-                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block">Select Case Workspace</label>
+                          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block">{t('selectCaseWorkspace') || "Select Case Workspace"}</label>
                           <div 
                             onClick={() => setIsCaseDropdownOpen(!isCaseDropdownOpen)}
                             className={`w-full border rounded-2xl px-4 py-3 text-xs font-extrabold flex items-center justify-between cursor-pointer transition-all duration-200 hover:border-indigo-400 dark:hover:border-indigo-500 ${
@@ -3012,7 +3397,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                             <div className="flex items-center gap-2.5 min-w-0">
                               <Search size={14} className={selectedCaseId ? "text-indigo-500 shrink-0" : "text-slate-450 shrink-0"} />
                               <span className={`truncate ${selectedCaseId ? 'text-indigo-500 font-extrabold' : 'text-slate-400 font-semibold'}`}>
-                                {selectedCaseId ? (allProjects.find(p => p._id === selectedCaseId)?.name || 'Case Selected') : 'Search or Select Case Workspace...'}
+                                {selectedCaseId ? (allProjects.find(p => p._id === selectedCaseId)?.name || 'Case Selected') : (t('searchExistingCases') || 'Search or Select Case Workspace...')}
                               </span>
                             </div>
                             <ChevronDown size={14} className={`text-slate-455 transition-transform duration-200 shrink-0 ${isCaseDropdownOpen ? 'rotate-180 text-indigo-500' : ''}`} />
@@ -3026,7 +3411,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                                 <Search size={12} className="text-slate-450 shrink-0" />
                                 <input 
                                   type="text"
-                                  placeholder="Search workspace..."
+                                  placeholder={t('searchExistingCases') || "Search workspace..."}
                                   value={caseSearchQuery}
                                   onChange={e => setCaseSearchQuery(e.target.value)}
                                   onClick={e => e.stopPropagation()}
@@ -3080,30 +3465,30 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                             return (
                               <div className={`p-5 border rounded-2xl space-y-3 ${isDark ? 'bg-zinc-900/40 border-zinc-800' : 'bg-slate-50 border-slate-200'}`}>
                                 <div className="flex items-center justify-between border-b pb-2.5 border-slate-205/50 dark:border-white/5">
-                                  <h5 className="text-xs font-black uppercase text-indigo-400">⋄ Loaded Case Workspace Parameters</h5>
+                                  <h5 className="text-xs font-black uppercase text-indigo-400">⋄ {t('loadedCaseWorkspaceParams') || "Loaded Case Workspace Parameters"}</h5>
                                   <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 rounded-full text-[9px] font-black uppercase tracking-wider animate-pulse">
-                                    ✓ Prediction Ready
+                                    ✓ {t('ready') || "Prediction Ready"}
                                   </span>
                                 </div>
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-y-3 gap-x-4">
                                   <div className="space-y-0.5">
-                                    <span className="text-[8px] text-slate-400 uppercase font-black tracking-wider block">Case Name</span>
+                                    <span className="text-[8px] text-slate-400 uppercase font-black tracking-wider block">{t('caseName') || "Case Name"}</span>
                                     <span className="text-xs font-extrabold text-slate-750 dark:text-slate-200 block truncate">{p.name || 'Untitled Case'}</span>
                                   </div>
                                   <div className="space-y-0.5">
-                                    <span className="text-[8px] text-slate-400 uppercase font-black tracking-wider block">Case Type</span>
+                                    <span className="text-[8px] text-slate-400 uppercase font-black tracking-wider block">{t('caseType') || "Case Type"}</span>
                                     <span className="text-xs font-extrabold text-indigo-400 block">{p.caseType || 'Civil'}</span>
                                   </div>
                                   <div className="space-y-0.5">
-                                    <span className="text-[8px] text-slate-400 uppercase font-black tracking-wider block">Court</span>
+                                    <span className="text-[8px] text-slate-400 uppercase font-black tracking-wider block">{t('courtLabel') || "Court"}</span>
                                     <span className="text-xs font-extrabold text-slate-750 dark:text-slate-200 block truncate">{p.courtName || 'Supreme Court of India'}</span>
                                   </div>
                                   <div className="space-y-0.5">
-                                    <span className="text-[8px] text-slate-400 uppercase font-black tracking-wider block">Status</span>
+                                    <span className="text-[8px] text-slate-400 uppercase font-black tracking-wider block">{t('status') || "Status"}</span>
                                     <span className="text-xs font-extrabold text-emerald-500 block uppercase tracking-wider">{p.status || 'Active'}</span>
                                   </div>
                                   <div className="space-y-0.5">
-                                    <span className="text-[8px] text-slate-400 uppercase font-black tracking-wider block">Last Updated</span>
+                                    <span className="text-[8px] text-slate-400 uppercase font-black tracking-wider block">{t('lastUpdated') || "Last Updated"}</span>
                                     <span className="text-xs font-extrabold text-slate-750 dark:text-slate-200 block truncate">{p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : 'Today'}</span>
                                   </div>
                                 </div>
@@ -3121,7 +3506,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                       <div className="flex items-center justify-between border-b pb-3 border-slate-205/50 dark:border-white/5">
                         <div className="flex items-center gap-2">
                           <Upload size={16} className="text-indigo-400" />
-                          <h4 className="text-xs font-black uppercase tracking-widest text-indigo-400">Source: Upload Legal Documents</h4>
+                          <h4 className="text-xs font-black uppercase tracking-widest text-indigo-400">{t('uploadLegalDocuments') || "Source: Upload Legal Documents"}</h4>
                         </div>
                         <button 
                           onClick={() => {
@@ -3132,13 +3517,13 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                             isDark ? 'border-zinc-700 text-slate-350 hover:bg-zinc-800' : 'border-slate-200 text-slate-600 hover:bg-slate-100'
                           }`}
                         >
-                          Change Source
+                          {t('changeSource') || "Change Source"}
                         </button>
                       </div>
 
                       <div className="space-y-4">
                         <div className="flex flex-col gap-1.5">
-                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Upload Documents (PDF, DOCX, ZIP, IMAGES)</label>
+                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t('uploadLegalPleadingDocs') || "Upload Documents (PDF, DOCX, ZIP, IMAGES)"}</label>
                           <div className={`border-2 border-dashed rounded-3xl p-8 text-center transition-all ${
                             isDark ? 'border-zinc-800 bg-zinc-900/20 hover:border-indigo-500/40' : 'border-slate-200 bg-slate-50/50 hover:border-indigo-400/50'
                           }`}>
@@ -3184,14 +3569,14 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                         {isOcrProcessing && (
                           <div className="p-4 bg-indigo-550/5 rounded-2xl border border-indigo-500/10 flex items-center gap-3">
                             <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin shrink-0" />
-                            <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400">Running AI OCR Document pipeline (Extracting Parties, Timeline, Facts)...</span>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400">{t('ocrAnalysisProcessing') || "Running AI OCR Document pipeline (Extracting Parties, Timeline, Facts)..."}</span>
                           </div>
                         )}
 
                         {/* Uploaded Files grid */}
                         {uploadedFiles.length > 0 && (
                           <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block">Uploaded Documents ({uploadedFiles.length})</label>
+                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block">{t('uploadedDocuments') || "Uploaded Documents"} ({uploadedFiles.length})</label>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               {uploadedFiles.map((file, idx) => (
                                 <div key={idx} className={`p-3 border rounded-xl flex items-center justify-between gap-3 ${
@@ -3220,8 +3605,8 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                         {ocrGeneratedSummary && (
                           <div className={`p-4 border rounded-2xl space-y-2 ${isDark ? 'bg-zinc-900/40 border-zinc-800' : 'bg-slate-50 border-slate-200'}`}>
                             <div className="flex items-center justify-between">
-                              <span className="text-[9px] font-black uppercase text-indigo-400">⋄ Auto Extracted Content Profile</span>
-                              <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">✓ Extracted</span>
+                              <span className="text-[9px] font-black uppercase text-indigo-400">⋄ {t('autoExtractedContentProfile') || "Auto Extracted Content Profile"}</span>
+                              <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">✓ {t('extracted') || "Extracted"}</span>
                             </div>
                             <p className="text-[10px] leading-relaxed text-slate-500 dark:text-slate-400 font-semibold">{ocrGeneratedSummary}</p>
                           </div>
@@ -3236,7 +3621,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-3 border-slate-205/50 dark:border-white/5 gap-2">
                         <div className="flex items-center gap-2">
                           <Edit3 size={16} className="text-indigo-400 shrink-0" />
-                          <h4 className="text-xs font-black uppercase tracking-widest text-indigo-400">Source: Manual Case Facts Builder</h4>
+                          <h4 className="text-xs font-black uppercase tracking-widest text-indigo-400">{t('manualCaseFacts') || "Source: Manual Case Facts Builder"}</h4>
                         </div>
                         <button 
                           onClick={() => {
@@ -3246,13 +3631,13 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                             isDark ? 'border-zinc-700 text-slate-350 hover:bg-zinc-800' : 'border-slate-200 text-slate-600 hover:bg-slate-100'
                           }`}
                         >
-                          Change Source
+                          {t('changeSource') || "Change Source"}
                         </button>
                       </div>
 
                       {/* Manual Quick Fill Preset Banner inside panel */}
                       <div className="p-4 border rounded-2xl bg-indigo-500/5 dark:bg-zinc-900/40 border-indigo-500/10">
-                        <span className="text-[8px] font-black uppercase tracking-widest text-indigo-400 block mb-2">⋄ Pre-fill Manual Case Templates</span>
+                        <span className="text-[8px] font-black uppercase tracking-widest text-indigo-400 block mb-2">⋄ {t('prefillManualTemplates') || "Pre-fill Manual Case Templates"}</span>
                         <div className="flex flex-wrap gap-2">
                           {QUICK_PRESETS.map(preset => (
                             <button
@@ -3323,7 +3708,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                       {/* 11 Legal Manual Input Fields */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
                         <div className="flex flex-col gap-1.5 col-span-2">
-                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Case Title *</label>
+                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t('caseTitle') || "Case Title"} *</label>
                           <input 
                             type="text" 
                             placeholder="e.g. ABC Corp v. XYZ Services" 
@@ -3336,7 +3721,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                         </div>
 
                         <div className="flex flex-col gap-1.5">
-                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Petitioner / Plaintiff *</label>
+                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t('petitionerPlaintiff') || "Petitioner / Plaintiff"} *</label>
                           <input 
                             type="text" 
                             placeholder="e.g. ABC Corp" 
@@ -3349,7 +3734,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                         </div>
 
                         <div className="flex flex-col gap-1.5">
-                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-550'}`}>Respondent / Defendant *</label>
+                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t('opponentRespondentDetails') || "Respondent / Defendant"} *</label>
                           <input 
                             type="text" 
                             placeholder="e.g. XYZ Services" 
@@ -3362,7 +3747,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                         </div>
 
                         <div className="flex flex-col gap-1.5">
-                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Court & Jurisdiction *</label>
+                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t('courtAndJurisdiction') || "Court & Jurisdiction"} *</label>
                           <input 
                             type="text" 
                             placeholder="e.g. Delhi High Court" 
@@ -3375,7 +3760,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                         </div>
 
                         <div className="flex flex-col gap-1.5">
-                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Case Category</label>
+                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t('caseMatterType') || "Case Category"}</label>
                           <select 
                             value={manualType} 
                             onChange={e => setManualType(e.target.value)}
@@ -3395,7 +3780,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                         </div>
 
                         <div className="flex flex-col gap-1.5 col-span-2">
-                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Applicable Statutes & Sections</label>
+                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t('specificStatutorySections') || "Applicable Statutes & Sections"}</label>
                           <input 
                             type="text" 
                             placeholder="e.g. Section 73 & 74 of Indian Contract Act" 
@@ -3408,7 +3793,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                         </div>
 
                         <div className="flex flex-col gap-1.5 col-span-2">
-                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Facts Chronology & Timeline</label>
+                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t('factsChronologyTimeline') || "Facts Chronology & Timeline"}</label>
                           <textarea 
                             rows={2} 
                             placeholder="e.g. 2025-01-10: Contract Signed, 2025-04-12: Breach Occurred..."
@@ -3421,7 +3806,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                         </div>
 
                         <div className="flex flex-col gap-1.5 col-span-2">
-                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-505'}`}>Detailed Case Claims (Plaintiff Facts) *</label>
+                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t('detailedCaseClaims') || "Detailed Case Claims (Plaintiff Facts)"} *</label>
                           <textarea 
                             rows={3} 
                             placeholder="State the core claims, transaction facts, and legal arguments..."
@@ -3434,7 +3819,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                         </div>
 
                         <div className="flex flex-col gap-1.5 col-span-2">
-                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Defence Positions (Opposing Counsel Arguments)</label>
+                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t('defencePositions') || "Defence Positions (Opposing Counsel Arguments)"}</label>
                           <textarea 
                             rows={2} 
                             placeholder="State the defense, exceptions, and counter assertions..."
@@ -3447,7 +3832,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                         </div>
 
                         <div className="flex flex-col gap-1.5 col-span-2">
-                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Evidence & Documents Summary</label>
+                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t('evidenceAndDocumentsSummary') || "Evidence & Documents Summary"}</label>
                           <textarea 
                             rows={2} 
                             placeholder="List exhibits, agreements, emails, and witness records..."
@@ -3460,7 +3845,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                         </div>
 
                         <div className="flex flex-col gap-1.5 col-span-2">
-                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Relief Requested *</label>
+                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t('reliefRequested') || "Relief Requested"} *</label>
                           <input 
                             type="text" 
                             placeholder="e.g. Damages of $150,000 and interest" 
@@ -3510,9 +3895,9 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
             }`}>
               <div className="w-14 h-14 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
               <div className="space-y-2">
-                <h4 className={`text-sm sm:text-base font-black uppercase tracking-wider ${isDark ? 'text-white' : 'text-slate-900'}`}>Processing Legal Directives...</h4>
+                <h4 className={`text-sm sm:text-base font-black uppercase tracking-wider ${isDark ? 'text-white' : 'text-slate-900'}`}>{t('processingLegalDirectives') || "Processing Legal Directives..."}</h4>
                 <p className={`text-xs font-bold leading-relaxed max-w-md px-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                  AISA is indexing matching High & Supreme court precedents, auditing document timelines, evaluating procedural risks, and compiling the Judicial Forecast.
+                  {t('processingLegalDirectivesDesc') || "AISA is indexing matching High & Supreme court precedents, auditing document timelines, evaluating procedural risks, and compiling the Judicial Forecast."}
                 </p>
               </div>
             </div>
@@ -3531,7 +3916,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                   }`}
                 >
                   <ChevronLeft size={14} />
-                  <span>Configure New Case</span>
+                  <span>{t('configureManualForecast') || "Configure New Case"}</span>
                 </button>
                 <div className="flex gap-2">
                 </div>
@@ -3543,10 +3928,10 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
               }`}>
                 <div className="flex items-start sm:items-center justify-between mb-4 sm:mb-6 gap-2">
                   <h3 className="text-xs font-black uppercase tracking-wider text-indigo-400">
-                    ⋄ Executive Forecasting Summary
+                    ⋄ {t('executiveForecastingSummary') || "Executive Forecasting Summary"}
                   </h3>
                   <span className="text-[9px] font-semibold text-slate-400 text-right shrink-0">
-                    Courtroom jurisdiction: <span className="text-indigo-400 font-extrabold">{simulatedCourtLevel} Court</span>
+                    {t('courtroomJurisdiction') || "Courtroom jurisdiction:"} <span className="text-indigo-400 font-extrabold">{simulatedCourtLevel} Court</span>
                   </span>
                 </div>
 
@@ -3581,7 +3966,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                           {simulatedStats.successRate}%
                         </span>
                         <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 mt-0.5">
-                          Win Probability
+                          {t('winningProbability') || "Win Probability"}
                         </span>
                       </div>
                     </div>
@@ -3591,58 +3976,58 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                   <div className="sm:col-span-1 md:col-span-4 grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
                     {/* AI Confidence */}
                     <div className="p-4 bg-slate-500/5 rounded-2xl border border-slate-250/20 dark:border-white/5 flex flex-col justify-between text-left">
-                      <span className="text-[8px] text-slate-400 uppercase font-black tracking-wider block">AI Confidence</span>
+                      <span className="text-[8px] text-slate-400 uppercase font-black tracking-wider block">{t('aiConfidence') || "AI Confidence"}</span>
                       <div className="mt-2">
                         <span className="text-xl font-black text-indigo-400">{simulatedStats.confidenceScore}%</span>
-                        <span className="block text-[8px] text-slate-500 mt-0.5">Statistical accuracy rate</span>
+                        <span className="block text-[8px] text-slate-500 mt-0.5">{t('statisticalAccuracyRate') || "Statistical accuracy rate"}</span>
                       </div>
                     </div>
 
                     {/* Overall Risk */}
                     <div className="p-4 bg-slate-500/5 rounded-2xl border border-slate-250/20 dark:border-white/5 flex flex-col justify-between text-left">
-                      <span className="text-[8px] text-slate-400 uppercase font-black tracking-wider block">Overall Risk</span>
+                      <span className="text-[8px] text-slate-400 uppercase font-black tracking-wider block">{t('overallRisk') || "Overall Risk"}</span>
                       <div className="mt-2">
                         <span className={`text-xl font-black uppercase ${
                           simulatedStats.litigationRisk === 'High' ? 'text-red-500' :
                           simulatedStats.litigationRisk === 'Moderate' ? 'text-amber-500' : 'text-emerald-500'
-                        }`}>{simulatedStats.litigationRisk}</span>
-                        <span className="block text-[8px] text-slate-500 mt-0.5">Litigation level threshold</span>
+                        }`}>{t(simulatedStats.litigationRisk) || simulatedStats.litigationRisk}</span>
+                        <span className="block text-[8px] text-slate-500 mt-0.5">{t('litigationLevelThreshold') || "Litigation level threshold"}</span>
                       </div>
                     </div>
 
                     {/* Recommended Strategy */}
                     <div className="p-4 bg-slate-500/5 rounded-2xl border border-slate-250/20 dark:border-white/5 flex flex-col justify-between text-left">
-                      <span className="text-[8px] text-slate-400 uppercase font-black tracking-wider block">Strategy Tactic</span>
+                      <span className="text-[8px] text-slate-400 uppercase font-black tracking-wider block">{t('strategyTactic') || "Strategy Tactic"}</span>
                       <div className="mt-2">
-                        <span className="text-xs font-black text-indigo-400 uppercase">{displayPrediction.courtStrategy?.strategyType || 'Balanced'} Strategy</span>
-                        <span className="block text-[8px] text-slate-500 mt-0.5">Emphasize documentary records</span>
+                        <span className="text-xs font-black text-indigo-400 uppercase">{t(displayPrediction.courtStrategy?.strategyType) || displayPrediction.courtStrategy?.strategyType || 'Balanced'} {t('strategy') || 'Strategy'}</span>
+                        <span className="block text-[8px] text-slate-500 mt-0.5">{t('emphasizeDocumentaryRecords') || "Emphasize documentary records"}</span>
                       </div>
                     </div>
 
                     {/* Settlement Probability */}
                     <div className="p-4 bg-slate-500/5 rounded-2xl border border-slate-250/20 dark:border-white/5 flex flex-col justify-between text-left">
-                      <span className="text-[8px] text-slate-400 uppercase font-black tracking-wider block">Settlement Probability</span>
+                      <span className="text-[8px] text-slate-400 uppercase font-black tracking-wider block">{t('settlementProbability') || "Settlement Probability"}</span>
                       <div className="mt-2">
                         <span className="text-xl font-black text-sky-500">{displayPrediction.stats.settlementProbability}%</span>
-                        <span className="block text-[8px] text-slate-500 mt-0.5">Mediation advisory viability</span>
+                        <span className="block text-[8px] text-slate-500 mt-0.5">{t('mediationAdvisoryViability') || "Mediation advisory viability"}</span>
                       </div>
                     </div>
 
                     {/* Estimated Litigation Cost */}
                     <div className="p-4 bg-slate-500/5 rounded-2xl border border-slate-250/20 dark:border-white/5 flex flex-col justify-between text-left">
-                      <span className="text-[8px] text-slate-400 uppercase font-black tracking-wider block">Litigation Cost</span>
+                      <span className="text-[8px] text-slate-400 uppercase font-black tracking-wider block">{t('litigationCost') || "Litigation Cost"}</span>
                       <div className="mt-2">
                         <span className="text-base font-black text-yellow-500">₹{(simulatedCourtLevel === 'Supreme' ? displayPrediction.stats.estimatedLegalCost * 2 : simulatedCourtLevel === 'High' ? displayPrediction.stats.estimatedLegalCost * 1.4 : displayPrediction.stats.estimatedLegalCost).toLocaleString()}</span>
-                        <span className="block text-[8px] text-slate-500 mt-0.5">Estimated budget (district fees)</span>
+                        <span className="block text-[8px] text-slate-500 mt-0.5">{t('estimatedBudgetDistrictFees') || "Estimated budget (district fees)"}</span>
                       </div>
                     </div>
 
                     {/* Timeline */}
                     <div className="p-4 bg-slate-500/5 rounded-2xl border border-slate-250/20 dark:border-white/5 flex flex-col justify-between text-left">
-                      <span className="text-[8px] text-slate-400 uppercase font-black tracking-wider block">Estimated Duration</span>
+                      <span className="text-[8px] text-slate-400 uppercase font-black tracking-wider block">{t('estimatedDuration') || "Estimated Duration"}</span>
                       <div className="mt-2">
                         <span className="text-xs font-black text-slate-700 dark:text-slate-200">{displayPrediction.stats.estimatedDuration || "12-15 Months"}</span>
-                        <span className="block text-[8px] text-slate-500 mt-0.5">Expected trial duration</span>
+                        <span className="block text-[8px] text-slate-500 mt-0.5">{t('expectedTrialDuration') || "Expected trial duration"}</span>
                       </div>
                     </div>
                   </div>
@@ -3659,11 +4044,11 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                   isDark ? 'border-white/5 bg-[#1B2644]' : 'border-slate-200 bg-slate-50/50'
                 }`}>
                   {[
-                    { id: 'overview', label: 'Overview', icon: Brain },
-                    { id: 'risks', label: 'Risk', icon: AlertTriangle },
-                    { id: 'strategy', label: 'Strategy', icon: Target },
-                    { id: 'precedents', label: 'Precedents', icon: BookOpen },
-                    { id: 'reports', label: 'Reports', icon: FileDown }
+                    { id: 'overview', label: t('overview') || 'Overview', icon: Brain },
+                    { id: 'risks', label: t('risk') || 'Risk', icon: AlertTriangle },
+                    { id: 'strategy', label: t('strategy') || 'Strategy', icon: Target },
+                    { id: 'precedents', label: t('precedents') || 'Precedents', icon: BookOpen },
+                    { id: 'reports', label: t('reports') || 'Reports', icon: FileDown }
                   ].map(t => {
                     const Icon = t.icon;
                     const isSelected = activeTab === t.id;
@@ -3695,14 +4080,14 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                       <div className={`p-5 rounded-2xl border ${
                         isDark ? 'bg-zinc-950/20 border-white/5' : 'bg-slate-50 border-slate-200/60 shadow-inner'
                       }`}>
-                        <span className="text-[10px] font-black uppercase text-indigo-400 tracking-wider block mb-2">⋄ Judicial Forecasting Reasoning & Decisional Basis</span>
+                        <span className="text-[10px] font-black uppercase text-indigo-400 tracking-wider block mb-2">⋄ {t('judicialForecastingReasoning') || "Judicial Forecasting Reasoning & Decisional Basis"}</span>
                         <p className="text-xs font-semibold leading-relaxed text-slate-350 dark:text-slate-300">
                           {displayPrediction.explainPrediction.whyPredicted}
                         </p>
                       </div>
 
                       <div className="space-y-4">
-                        <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">⋄ WHY AI PREDICTED THIS (Top 5 Strongest Reasons)</span>
+                        <span className="text-[9px] font-black uppercase text-slate-400 block mb-1">⋄ {t('whyAiPredictedThis') || "WHY AI PREDICTED THIS (Top 5 Strongest Reasons)"}</span>
                         <div className="grid grid-cols-1 gap-4">
                           {(displayPrediction.explainPrediction.explainReasons || [
                             { reason: "Strong documentary evidence", evidence: "Purchase agreement & registered notice acknowledgment card", law: "Indian Evidence Act Section 91/92", judgment: "ONGC v. Saw Pipes Ltd (2003)" },
@@ -3716,15 +4101,15 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                               </div>
                               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-[10.5px] font-semibold text-slate-655 dark:text-slate-400 mt-2">
                                 <div>
-                                  <span className="text-slate-400 block text-[7.5px] uppercase font-black mb-0.5">Evidence Basis</span>
+                                  <span className="text-slate-400 block text-[7.5px] uppercase font-black mb-0.5">{t('evidenceBasis') || "Evidence Basis"}</span>
                                   <span>{pt.evidence}</span>
                                 </div>
                                 <div>
-                                  <span className="text-slate-400 block text-[7.5px] uppercase font-black mb-0.5">Statutory Law</span>
+                                  <span className="text-slate-400 block text-[7.5px] uppercase font-black mb-0.5">{t('statutoryLaw') || "Statutory Law"}</span>
                                   <span className="font-extrabold text-slate-700 dark:text-slate-300">{pt.law}</span>
                                 </div>
                                 <div>
-                                  <span className="text-slate-400 block text-[7.5px] uppercase font-black mb-0.5">Supporting Judgment</span>
+                                  <span className="text-slate-400 block text-[7.5px] uppercase font-black mb-0.5">{t('supportingJudgment') || "Supporting Judgment"}</span>
                                   <span className="font-extrabold text-indigo-500">{pt.judgment}</span>
                                 </div>
                               </div>
@@ -3745,8 +4130,8 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                           const color = val === 'Critical' || val === 'High' ? 'text-red-500 bg-red-500/10 border-red-500/20' : val === 'Medium' ? 'text-amber-500 bg-amber-500/10 border-amber-500/20' : 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
                           return (
                             <div key={riskType} className={`p-4 rounded-3xl border ${color} space-y-1`}>
-                              <span className="text-slate-400 uppercase text-[8px] tracking-wider block">{riskType.replace('Risk', ' Risk')}</span>
-                              <span className="text-xs font-black uppercase block">{val} Severity</span>
+                              <span className="text-slate-400 uppercase text-[8px] tracking-wider block">{t(riskType) || riskType.replace('Risk', ' Risk')}</span>
+                              <span className="text-xs font-black uppercase block">{t(val) || val} {t('severity') || "Severity"}</span>
                             </div>
                           );
                         })}
@@ -3755,7 +4140,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-slate-205/20 dark:border-white/5 pt-4">
                         {/* Critical Risks */}
                         <div className={`p-5 rounded-3xl border ${isDark ? 'bg-[#12192D] border-white/5' : 'bg-white border-slate-200'} space-y-2`}>
-                          <span className="text-[9px] font-black uppercase text-red-500 block">Critical Risks</span>
+                          <span className="text-[9px] font-black uppercase text-red-500 block">{t('criticalRisks') || "Critical Risks"}</span>
                           <ul className="list-disc pl-4 space-y-1.5 text-xs text-slate-700 dark:text-slate-350">
                             {(displayPrediction.riskDetection || []).filter(r => r.severity === 'High').map((r, i) => (
                               <li key={i}><strong>{r.type}:</strong> {r.description}</li>
@@ -3766,7 +4151,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
 
                         {/* Medium Risks */}
                         <div className={`p-5 rounded-3xl border ${isDark ? 'bg-[#12192D] border-white/5' : 'bg-white border-slate-200'} space-y-2`}>
-                          <span className="text-[9px] font-black uppercase text-amber-500 block">Medium Risks</span>
+                          <span className="text-[9px] font-black uppercase text-amber-500 block">{t('mediumRisks') || "Medium Risks"}</span>
                           <ul className="list-disc pl-4 space-y-1.5 text-xs text-slate-700 dark:text-slate-350">
                             {(displayPrediction.riskDetection || []).filter(r => r.severity === 'Medium').map((r, i) => (
                               <li key={i}><strong>{r.type}:</strong> {r.description}</li>
@@ -3777,7 +4162,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
 
                         {/* Procedural & Compliance Risks */}
                         <div className={`p-5 rounded-3xl border ${isDark ? 'bg-[#12192D] border-white/5' : 'bg-white border-slate-200'} space-y-2`}>
-                          <span className="text-[9px] font-black uppercase text-rose-500 block">Procedural Vulnerabilities</span>
+                          <span className="text-[9px] font-black uppercase text-rose-500 block">{t('proceduralVulnerabilities') || "Procedural Vulnerabilities"}</span>
                           <ul className="list-disc pl-4 space-y-1.5 text-xs text-slate-700 dark:text-slate-350">
                             <li>Registry copying backlog in local jurisdiction court.</li>
                             <li>Stamp certificate timeline mismatch triggers Section 35 compliance checks.</li>
@@ -3794,7 +4179,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                         {/* Court Strategy */}
                         <div className={`p-5 rounded-3xl border ${isDark ? 'bg-[#12192D] border-white/5' : 'bg-white border-slate-200'} space-y-3`}>
-                          <span className="text-[9px] font-black uppercase text-indigo-400 block">Courtroom Tactics</span>
+                          <span className="text-[9px] font-black uppercase text-indigo-400 block">{t('courtroomSequence') || "Courtroom Tactics"}</span>
                           <p className="text-xs font-semibold text-slate-750 dark:text-slate-300 leading-relaxed">
                             {displayPrediction.winningStrategy?.courtroomSequence}
                           </p>
@@ -3803,7 +4188,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
 
                         {/* Settlement Advice */}
                         <div className={`p-5 rounded-3xl border ${isDark ? 'bg-[#12192D] border-white/5' : 'bg-white border-slate-200'} space-y-3`}>
-                          <span className="text-[9px] font-black uppercase text-sky-500 block">Settlement Strategy</span>
+                          <span className="text-[9px] font-black uppercase text-sky-500 block">{t('settlementStrategy') || "Settlement Strategy"}</span>
                           <p className="text-xs font-semibold text-slate-750 dark:text-slate-300 leading-relaxed">
                             {displayPrediction.settlementIntelligence?.recommendation}
                           </p>
@@ -3814,7 +4199,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-slate-205/20 dark:border-white/5 pt-4">
                         {/* Cross Examination Focus */}
                         <div className={`p-5 rounded-3xl border ${isDark ? 'bg-[#12192D] border-white/5' : 'bg-white border-slate-200'} space-y-2`}>
-                          <span className="text-[9px] font-black uppercase text-indigo-400 block">Cross Examination Focus</span>
+                          <span className="text-[9px] font-black uppercase text-indigo-400 block">{t('crossExaminationFocus') || "Cross Examination Focus"}</span>
                           <ul className="space-y-2 text-xs font-semibold">
                             {(displayPrediction.crossExamination || []).map((x, i) => (
                               <li key={i} className="text-slate-700 dark:text-slate-300">
@@ -3828,7 +4213,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
 
                         {/* Arguments to Emphasize */}
                         <div className={`p-5 rounded-3xl border ${isDark ? 'bg-[#12192D] border-white/5' : 'bg-white border-slate-200'} space-y-2`}>
-                          <span className="text-[9px] font-black uppercase text-emerald-500 block">Arguments to Emphasize</span>
+                          <span className="text-[9px] font-black uppercase text-emerald-500 block">{t('argumentsToEmphasize') || "Arguments to Emphasize"}</span>
                           <ul className="list-disc pl-4 space-y-1 text-xs text-slate-700 dark:text-slate-300">
                             <li>Continuous possessory assertions since contract execution.</li>
                             <li>Registered postal receipts as implied acknowledgement.</li>
@@ -3838,7 +4223,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
 
                         {/* Arguments to Avoid */}
                         <div className={`p-5 rounded-3xl border ${isDark ? 'bg-[#12192D] border-white/5' : 'bg-white border-slate-200'} space-y-2`}>
-                          <span className="text-[9px] font-black uppercase text-red-500 block">Arguments to Avoid</span>
+                          <span className="text-[9px] font-black uppercase text-red-500 block">{t('argumentsToAvoid') || "Arguments to Avoid"}</span>
                           <ul className="list-disc pl-4 space-y-1 text-xs text-slate-700 dark:text-slate-300">
                             <li>Extending performance claims without written board records.</li>
                             <li>Oral performance waivers of delay damages.</li>
@@ -3854,7 +4239,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                     <div className="space-y-6 text-left">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                         <div className="space-y-3">
-                          <span className="text-slate-400 uppercase text-[8px] font-black tracking-wider block">Supreme Court Judicial Precedents</span>
+                          <span className="text-slate-400 uppercase text-[8px] font-black tracking-wider block">{t('supremeCourtBindingPrecedents') || "Supreme Court Judicial Precedents"}</span>
                           {(displayPrediction.precedentIntelligence?.supremeCourtCases || []).map((prec, i) => (
                             <div key={i} className={`p-4 border rounded-2xl ${isDark ? 'bg-[#12192D] border-white/5' : 'bg-white border-slate-200'} space-y-1`}>
                               <div className="flex justify-between items-center">
@@ -3869,7 +4254,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                         </div>
 
                         <div className="space-y-3">
-                          <span className="text-slate-400 uppercase text-[8px] font-black tracking-wider block">State High Court Judicial Precedents</span>
+                          <span className="text-slate-400 uppercase text-[8px] font-black tracking-wider block">{t('highCourtPersuasivePrecedents') || "State High Court Judicial Precedents"}</span>
                           {(displayPrediction.precedentIntelligence?.highCourtCases || []).map((prec, i) => (
                             <div key={i} className={`p-4 border rounded-2xl ${isDark ? 'bg-[#12192D] border-white/5' : 'bg-white border-slate-200'} space-y-1`}>
                               <div className="flex justify-between items-center">
@@ -3934,9 +4319,9 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                                     isSel
                                       ? 'text-indigo-500'
                                       : isDark ? 'text-slate-200' : 'text-slate-800'
-                                  }`}>{rep.title}</h4>
+                                  }`}>{getReportName(rep.id, rep.title)}</h4>
                                   <p className="text-[10px] text-slate-450 mt-0.5 line-clamp-2 leading-relaxed font-semibold">
-                                    {rep.desc}
+                                    {getReportDesc(rep.id, rep.desc)}
                                   </p>
                                 </div>
                               </div>
@@ -3946,16 +4331,16 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                                   {isLocked ? (
                                     <span className="flex items-center gap-0.5 text-emerald-500 font-extrabold uppercase">
                                       <Lock size={9} />
-                                      Locked
+                                      {t('locked') || "Locked"}
                                     </span>
                                   ) : isGenerated ? (
-                                    <span className="text-indigo-400 font-extrabold uppercase">Generated</span>
+                                    <span className="text-indigo-400 font-extrabold uppercase">{t('generated') || "Generated"}</span>
                                   ) : (
-                                    <span className="text-slate-400 uppercase font-semibold">Not Generated</span>
+                                    <span className="text-slate-400 uppercase font-semibold">{t('notGenerated') || "Not Generated"}</span>
                                   )}
                                 </div>
                                 <span className="text-slate-400/70">
-                                  {isGenerated ? 'Active Brief' : 'Needs Compile'}
+                                  {isGenerated ? (t('activeBrief') || 'Active Brief') : (t('needsCompile') || 'Needs Compile')}
                                 </span>
                               </div>
                             </div>
@@ -3979,7 +4364,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                             </span>
                             {activePrediction?.lockedReports?.[selectedReportTab] && (
                               <span className="flex items-center gap-0.5 px-2 py-0.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-full text-[8px] font-black uppercase">
-                                <Lock size={9} /> Approved & Locked
+                                <Lock size={9} /> {t('approvedAndLocked') || "Approved & Locked"}
                               </span>
                             )}
                           </div>
@@ -4044,14 +4429,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                               </button>
                             )}
 
-                            {/* Language Switch */}
-                            {activePrediction?.generatedReports?.[selectedReportTab] && !isEditingReport && (
-                              <LanguageToggle
-                                lang={outputLang}
-                                onChange={setOutputLang}
-                                isTranslating={isPredictorTranslating}
-                              />
-                            )}
+                            {/* Language Switch removed for single source of truth */}
 
                             {/* Version history drop-down */}
                             {activePrediction?.generatedReports?.[selectedReportTab] && (activePrediction.reportVersions?.[selectedReportTab]?.length > 0) && (
@@ -4178,7 +4556,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                               </div>
                               <div className="space-y-2">
                                 <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                                  {REPORT_METADATA.find(m => m.id === selectedReportTab)?.title || selectedReportTab} Pleading Pending
+                                  {getReportName(selectedReportTab, selectedReportTab)} {t('pleadingPending') || "Pleading Pending"}
                                 </h4>
                                 <p className="text-[10px] text-slate-550 dark:text-slate-400 font-semibold leading-relaxed">
                                   {REPORT_METADATA.find(m => m.id === selectedReportTab)?.purpose}
@@ -4186,11 +4564,11 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                                 <div className={`p-3 rounded-xl border text-[9px] text-left space-y-1 ${
                                   isDark ? 'bg-zinc-950/20 border-white/5 text-slate-400' : 'bg-slate-50 border-slate-150 text-slate-600'
                                 }`}>
-                                  <span className="block font-black uppercase text-indigo-400 tracking-wider">Expected Brief Content:</span>
+                                  <span className="block font-black uppercase text-indigo-400 tracking-wider">{t('expectedBriefContent') || "Expected Brief Content:"}</span>
                                   <span>{REPORT_METADATA.find(m => m.id === selectedReportTab)?.expected}</span>
                                 </div>
                                 <span className="block text-[8px] text-slate-455 font-black uppercase pt-1">
-                                  Estimated time: {REPORT_METADATA.find(m => m.id === selectedReportTab)?.estTime}
+                                  {t('estimatedTime') || "Estimated time"}: {REPORT_METADATA.find(m => m.id === selectedReportTab)?.estTime}
                                 </span>
                               </div>
                               <button
@@ -4221,6 +4599,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                                       [selectedReportTab]: [initialVer]
                                     }
                                   };
+                                  setRawPrediction(updated);
                                   setActivePrediction(updated);
                                   await savePredictionToHistory(updated);
                                   setEditedReportText(textContent);
@@ -4255,11 +4634,11 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                               <div className="p-4 rounded-2xl border border-slate-200/60 dark:border-white/5 bg-slate-50/50 dark:bg-black/10 text-left">
                                 <div className="flex items-center gap-2 mb-2">
                                   <Edit3 size={12} className="text-slate-450" />
-                                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Private Case Annotations</span>
+                                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">{t('privateCaseAnnotations') || "Private Case Annotations"}</span>
                                 </div>
                                 <textarea
                                   rows={2}
-                                  placeholder="Write private strategic annotations or attorney notes here... (Automatically saved case-by-case)"
+                                  placeholder={t('privateCaseAnnotationsPlaceholder') || "Write private strategic annotations or attorney notes here... (Automatically saved case-by-case)"}
                                   value={activePrediction?.reportNotes?.[selectedReportTab] || ''}
                                   onChange={async (e) => {
                                     const noteVal = e.target.value;
@@ -4288,7 +4667,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                                   }`}
                                 >
                                   <RefreshCw size={11} className={isPredictorTranslating ? 'animate-spin' : ''} />
-                                  <span>Generate Again</span>
+                                  <span>{t('generateAgain') || "Generate Again"}</span>
                                 </button>
                                 
                                 <div className="flex items-center gap-2">
@@ -4303,12 +4682,12 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                                     {activePrediction.lockedReports?.[selectedReportTab] ? (
                                       <>
                                         <Lock size={11} />
-                                        <span>Unlock Document</span>
+                                        <span>{t('unlockDocument') || "Unlock Document"}</span>
                                       </>
                                     ) : (
                                       <>
                                         <Check size={11} />
-                                        <span>Approve & Lock Brief</span>
+                                        <span>{t('approveAndLockBrief') || "Approve & Lock Brief"}</span>
                                       </>
                                     )}
                                   </button>
@@ -4557,6 +4936,7 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                             setManualReliefSought(item.manualFacts.manualReliefSought || '');
                             setManualWitnesses(item.manualFacts.manualWitnesses || '');
                           }
+                          setRawPrediction(item);
                           setActivePrediction(item);
                           setEditedReportText(item.reports?.[selectedReportTab] || item.report || '');
                           setHistoryVisible(false);

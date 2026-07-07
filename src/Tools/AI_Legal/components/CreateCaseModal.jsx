@@ -5,6 +5,7 @@ import {
   List, ChevronDown, Phone, Globe, Search, Hash, AlertTriangle, Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { apiService } from '../../../services/apiService';
 
 // --- Full Country Dataset ---
 const COUNTRIES = [
@@ -68,98 +69,103 @@ const OPPONENT_ROLES = ['Respondent', 'Non-Applicant', 'Opposite Party'];
 const CreateCaseModal = ({ isDark, isVisible, onClose, onSave, editingCase }) => {
   const [caseData, setCaseData] = useState({
     title: '',
-    regdNo: '',
     clientRole: '',
     clientName: '',
-    clientPhone: '',
-    countryCode: '+91',
     opponentRole: '',
     opponentName: '',
-    caseReceivedOn: '',
     courtName: '',
-    caseType: '',
+    courtType: '',
     caseCategories: [],
-    hearingDate: '',
-    priority: 'Medium',
-    description: '',
-    documents: []
+    priority: 'Standard',
+    state: '',
+    district: '',
+    city: '',
+    filingDate: '',
+    incidentDate: '',
+    status: 'Active',
+    caseSummary: ''
   });
 
-  const [countrySearch, setCountrySearch] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingError, setLoadingError] = useState(null);
+
   const [categorySearch, setCategorySearch] = useState('');
-  const [selectedCountry, setSelectedCountry] = useState(
-    COUNTRIES.find(c => c.dial === '+91') || COUNTRIES[0]
-  );
 
   // Sub-picker toggles
-  const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showClientRolePicker, setShowClientRolePicker] = useState(false);
   const [showOpponentRolePicker, setShowOpponentRolePicker] = useState(false);
 
-  useEffect(() => {
-    if (editingCase) {
-      console.log("Fetching Existing Case Data");
-      console.log("Case Data Loaded:", editingCase);
-      const categories = editingCase.caseCategories || (editingCase.caseType ? editingCase.caseType.split(', ') : []);
-      setCaseData({
-        id: editingCase.id || editingCase._id || '',
-        title: editingCase.title || editingCase.name || '',
-        regdNo: editingCase.regdNo || '',
-        clientRole: editingCase.clientRole || '',
-        clientName: editingCase.clientName || '',
-        clientPhone: editingCase.clientPhone || '',
-        countryCode: editingCase.countryCode || '+91',
-        opponentRole: editingCase.opponentRole || '',
-        opponentName: editingCase.opponentName || '',
-        caseReceivedOn: editingCase.caseReceivedOn || '',
-        courtName: editingCase.courtName || '',
-        caseType: editingCase.caseType || '',
-        caseCategories: categories,
-        hearingDate: editingCase.hearingDate || '',
-        priority: editingCase.priority || 'Medium',
-        description: editingCase.description || editingCase.summary || '',
-        documents: editingCase.documents || [],
-        advocateName: editingCase.advocateName || ''
+  const loadCaseFromApi = (caseId, active) => {
+    setIsLoading(true);
+    setLoadingError(null);
+    apiService.getProject(caseId)
+      .then(fullCase => {
+        if (!active) return;
+        console.log("Loaded Full Case Details:", fullCase);
+        const categories = fullCase.caseCategories || (fullCase.caseType ? (Array.isArray(fullCase.caseType) ? fullCase.caseType : fullCase.caseType.split(', ')) : []);
+        setCaseData({
+          id: fullCase._id || fullCase.id || '',
+          title: fullCase.title || fullCase.name || '',
+          clientRole: fullCase.clientRole || '',
+          clientName: fullCase.clientName || '',
+          opponentRole: fullCase.opponentRole || '',
+          opponentName: fullCase.opponentName || '',
+          courtName: fullCase.courtName || fullCase.court || '',
+          caseCategories: categories,
+          priority: fullCase.priority || 'Standard',
+          courtType: fullCase.courtType || '',
+          state: fullCase.state || '',
+          district: fullCase.district || '',
+          city: fullCase.city || '',
+          filingDate: fullCase.filingDate || '',
+          incidentDate: fullCase.incidentDate || '',
+          status: fullCase.status || 'Active',
+          caseSummary: fullCase.caseSummary || fullCase.summary || ''
+        });
+        setIsLoading(false);
+      })
+      .catch(err => {
+        if (!active) return;
+        console.error("Failed to fetch case details:", err);
+        setLoadingError("Unable to load case details.");
+        setIsLoading(false);
       });
-      if (editingCase.countryCode) {
-        const foundCountry = COUNTRIES.find(c => c.dial === editingCase.countryCode);
-        if (foundCountry) setSelectedCountry(foundCountry);
+  };
+
+  useEffect(() => {
+    let active = true;
+    if (editingCase && isVisible) {
+      const caseId = editingCase._id || editingCase.id || (typeof editingCase === 'string' ? editingCase : '');
+      if (caseId) {
+        loadCaseFromApi(caseId, active);
       }
-      console.log("Form Prefilled Successfully");
     } else {
+      setIsLoading(false);
+      setLoadingError(null);
       setCaseData({
         title: '',
-        regdNo: '',
         clientRole: '',
         clientName: '',
-        clientPhone: '',
-        countryCode: '+91',
         opponentRole: '',
         opponentName: '',
-        caseReceivedOn: '',
         courtName: '',
-        caseType: '',
+        courtType: '',
         caseCategories: [],
-        hearingDate: '',
-        priority: 'Medium',
-        description: '',
-        documents: [],
-        advocateName: ''
+        priority: 'Standard',
+        state: '',
+        district: '',
+        city: '',
+        filingDate: '',
+        incidentDate: '',
+        status: 'Active',
+        caseSummary: ''
       });
-      setSelectedCountry(COUNTRIES.find(c => c.dial === '+91') || COUNTRIES[0]);
     }
+    return () => {
+      active = false;
+    };
   }, [editingCase, isVisible]);
-
-  const filteredCountries = useMemo(() => {
-    const q = countrySearch.toLowerCase().trim();
-    if (!q) return COUNTRIES;
-    return COUNTRIES.filter(c =>
-      c.name.toLowerCase().includes(q) ||
-      c.dial.includes(q) ||
-      c.iso.toLowerCase().includes(q)
-    );
-  }, [countrySearch]);
 
   const filteredCategories = useMemo(() => {
     const q = categorySearch.toLowerCase().trim();
@@ -181,26 +187,13 @@ const CreateCaseModal = ({ isDark, isVisible, onClose, onSave, editingCase }) =>
     });
   };
 
-  const handleFileUpload = (e) => {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
-    const newDocs = files.map(file => ({
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      name: file.name,
-      type: file.type || 'file',
-      size: file.size,
-      uploadedAt: new Date().toISOString(),
-      uri: URL.createObjectURL(file)
-    }));
-    setCaseData(prev => ({
-      ...prev,
-      documents: [...(prev.documents || []), ...newDocs]
-    }));
-  };
-
   const handleSave = () => {
     if (!caseData.title.trim()) {
       alert('Please enter a Case Title before saving.');
+      return;
+    }
+    if (!caseData.caseCategories || caseData.caseCategories.length === 0) {
+      alert('Please select at least 1 case category.');
       return;
     }
     if (!caseData.clientRole) {
@@ -211,17 +204,14 @@ const CreateCaseModal = ({ isDark, isVisible, onClose, onSave, editingCase }) =>
       alert(`Please enter the ${caseData.clientRole} Name.`);
       return;
     }
-    if (caseData.opponentRole && !caseData.opponentName.trim()) {
-      alert(`Please enter the ${caseData.opponentRole} Name.`);
-      return;
-    }
-    if (!caseData.caseCategories || caseData.caseCategories.length === 0) {
-      alert('Please select at least 1 case category.');
+    if (!caseData.caseSummary.trim()) {
+      alert('Please enter a Case Summary.');
       return;
     }
 
     const savedPayload = {
       ...caseData,
+      name: caseData.title,
       caseType: caseData.caseCategories.join(', ')
     };
     onSave(savedPayload);
@@ -229,21 +219,21 @@ const CreateCaseModal = ({ isDark, isVisible, onClose, onSave, editingCase }) =>
     // Reset form
     setCaseData({
       title: '',
-      regdNo: '',
       clientRole: '',
       clientName: '',
-      clientPhone: '',
-      countryCode: '+91',
       opponentRole: '',
       opponentName: '',
-      caseReceivedOn: '',
       courtName: '',
-      caseType: '',
+      courtType: '',
       caseCategories: [],
-      hearingDate: '',
-      priority: 'Medium',
-      description: '',
-      documents: []
+      priority: 'Standard',
+      state: '',
+      district: '',
+      city: '',
+      filingDate: '',
+      incidentDate: '',
+      status: 'Active',
+      caseSummary: ''
     });
   };
 
@@ -292,303 +282,340 @@ const CreateCaseModal = ({ isDark, isVisible, onClose, onSave, editingCase }) =>
 
                 {/* Form fields */}
                 <div className="space-y-5 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-                  {/* Case Title */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Case Title *</label>
-                    <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                      <FileText size={18} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0" />
-                      <input
-                        type="text"
-                        placeholder="e.g. Smith vs Matrix Corp"
-                        value={caseData.title}
-                        onChange={e => setCaseData({ ...caseData, title: e.target.value })}
-                        className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
-                      />
+                  {isLoading ? (
+                    <div className="flex flex-col items-center justify-center py-16 space-y-4">
+                      <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                      <p className="text-xs font-black text-indigo-650 dark:text-indigo-400 uppercase tracking-widest animate-pulse">Loading case data...</p>
                     </div>
-                  </div>
-
-                  {/* REGD NO */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Registration Number</label>
-                    <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                      <Hash size={18} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0" />
-                      <input
-                        type="text"
-                        placeholder="Enter Registration Number"
-                        value={caseData.regdNo}
-                        onChange={e => setCaseData({ ...caseData, regdNo: e.target.value.replace(/[^a-zA-Z0-9\-]/g, '').toUpperCase() })}
-                        className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Client Role & Objector Pickers */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Client Role *</label>
+                  ) : loadingError ? (
+                    <div className="flex flex-col items-center justify-center py-12 space-y-4 text-center">
+                      <AlertTriangle size={40} className="text-rose-500 animate-bounce" />
+                      <p className="text-sm font-bold text-rose-600 dark:text-rose-400">{loadingError}</p>
                       <button
                         type="button"
-                        onClick={() => setShowClientRolePicker(true)}
-                        className="w-full flex items-center justify-between bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3.5 text-left"
+                        onClick={() => {
+                          const caseId = editingCase._id || editingCase.id || (typeof editingCase === 'string' ? editingCase : '');
+                          if (caseId) {
+                            loadCaseFromApi(caseId, true);
+                          }
+                        }}
+                        className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-750 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-md active:scale-95"
                       >
-                        <div className="flex items-center gap-2">
-                          <User size={18} className="text-indigo-600 dark:text-indigo-400" />
-                          <span className={`text-sm font-bold ${caseData.clientRole ? 'text-slate-850 dark:text-white' : 'text-slate-400'}`}>
-                            {caseData.clientRole || 'Select Client Role'}
-                          </span>
-                        </div>
-                        <ChevronDown size={16} className="text-slate-400" />
+                        Retry
                       </button>
                     </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Objector Type</label>
-                      <button
-                        type="button"
-                        onClick={() => setShowOpponentRolePicker(true)}
-                        className="w-full flex items-center justify-between bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3.5 text-left"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Users size={18} className="text-indigo-600 dark:text-indigo-400" />
-                          <span className={`text-sm font-bold ${caseData.opponentRole ? 'text-slate-850 dark:text-white' : 'text-slate-400'}`}>
-                            {caseData.opponentRole || 'Select Object Type'}
-                          </span>
-                        </div>
-                        <ChevronDown size={16} className="text-slate-400" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Client Name Input */}
-                  {caseData.clientRole && (
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">{caseData.clientRole} Name *</label>
-                      <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                        <User size={18} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0" />
-                        <input
-                          type="text"
-                          placeholder={`Enter ${caseData.clientRole} Name`}
-                          value={caseData.clientName}
-                          onChange={e => setCaseData({ ...caseData, clientName: e.target.value })}
-                          className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Opponent Name Input */}
-                  {caseData.opponentRole && (
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">{caseData.opponentRole} Name *</label>
-                      <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                        <Users size={18} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0" />
-                        <input
-                          type="text"
-                          placeholder={`Enter ${caseData.opponentRole} Name`}
-                          value={caseData.opponentName}
-                          onChange={e => setCaseData({ ...caseData, opponentName: e.target.value })}
-                          className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Case Received On */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Case Received On</label>
-                    <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                      <Calendar size={18} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0" />
-                      <input
-                        type="date"
-                        max={new Date().toISOString().split('T')[0]}
-                        value={caseData.caseReceivedOn}
-                        onChange={e => setCaseData({ ...caseData, caseReceivedOn: e.target.value })}
-                        className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-850 dark:text-white cursor-pointer"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Phone + Country Selector */}
-                  <div className="flex gap-4">
-                    <div className="w-28 space-y-1.5 shrink-0">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Country</label>
-                      <button
-                        type="button"
-                        onClick={() => setShowCountryPicker(true)}
-                        className="w-full flex items-center justify-between bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-3 py-3 text-left"
-                      >
-                        <span className="text-lg mr-1 shrink-0">{selectedCountry.flag}</span>
-                        <span className="text-xs font-bold text-slate-800 dark:text-white truncate">{selectedCountry.dial}</span>
-                        <ChevronDown size={12} className="text-slate-400 shrink-0 ml-1" />
-                      </button>
-                    </div>
-
-                    <div className="flex-1 space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Client Contact Number *</label>
-                      <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                        <Phone size={18} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0" />
-                        <input
-                          type="tel"
-                          placeholder="9876543210"
-                          value={caseData.clientPhone}
-                          onChange={e => setCaseData({ ...caseData, clientPhone: e.target.value.replace(/[^0-9]/g, '') })}
-                          className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Advocate & Categories */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Advocate / Counsel</label>
-                      <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                        <Shield size={18} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0" />
-                        <input
-                          type="text"
-                          placeholder="Assigned Lawyer"
-                          value={caseData.advocateName || ''}
-                          onChange={e => setCaseData({ ...caseData, advocateName: e.target.value })}
-                          className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Case Category *</label>
-                      <button
-                        type="button"
-                        onClick={() => setShowCategoryPicker(true)}
-                        className="w-full flex items-center justify-between bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-2.5 text-left min-h-[52px]"
-                      >
-                        <div className="flex items-center gap-2 flex-wrap max-w-[85%]">
-                          <List size={18} className="text-indigo-600 dark:text-indigo-400 mr-1 shrink-0" />
-                          {caseData.caseCategories && caseData.caseCategories.length > 0 ? (
-                            <div className="flex flex-wrap gap-1">
-                              {caseData.caseCategories.slice(0, 2).map(cat => (
-                                <span key={cat} className="bg-indigo-600 text-white rounded-md text-[9px] font-black uppercase px-2 py-0.5 shrink-0">
-                                  {cat}
-                                </span>
-                              ))}
-                              {caseData.caseCategories.length > 2 && (
-                                <span className="bg-slate-200 dark:bg-zinc-800 text-slate-800 dark:text-slate-200 rounded-md text-[9px] font-black px-1.5 py-0.5">
-                                  +{caseData.caseCategories.length - 2}
-                                </span>
-                              )}
+                  ) : (
+                    <>
+                      {/* SECTION 1: Case Identity */}
+                      <div className="border-b border-slate-100 dark:border-zinc-800/80 pb-5">
+                        <h4 className="text-xs font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-4 flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full" />
+                          SECTION 1 — Case Identity
+                        </h4>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {/* Case Title */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Case Title *</label>
+                            <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
+                              <FileText size={18} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0" />
+                              <input
+                                type="text"
+                                placeholder="e.g. Smith vs Matrix Corp"
+                                value={caseData.title}
+                                onChange={e => setCaseData({ ...caseData, title: e.target.value })}
+                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
+                              />
                             </div>
-                          ) : (
-                            <span className="text-sm font-bold text-slate-400">Select categories...</span>
-                          )}
-                        </div>
-                        <ChevronDown size={16} className="text-slate-400 shrink-0" />
-                      </button>
-                    </div>
-                  </div>
+                          </div>
 
-                  {/* Priority */}
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Case Priority</label>
-                    <div className="flex gap-2 flex-wrap">
-                      {['Standard', 'High', 'Critical'].map(p => (
-                        <button
-                          key={p}
-                          type="button"
-                          onClick={() => setCaseData({ ...caseData, priority: p })}
-                          className={`flex-1 min-w-[80px] py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest border transition-all ${
-                            caseData.priority === p 
-                              ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-500/20' 
-                              : 'bg-slate-50 dark:bg-black/20 border-slate-200 dark:border-zinc-800 text-slate-500 dark:text-slate-400 hover:border-indigo-500'
-                          }`}
-                        >
-                          {p}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                          {/* Case Status */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Case Status</label>
+                            <div className="relative">
+                              <select
+                                value={caseData.status}
+                                onChange={e => setCaseData({ ...caseData, status: e.target.value })}
+                                className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-800 dark:text-white outline-none cursor-pointer appearance-none pr-10"
+                              >
+                                <option value="Active">Active</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Closed">Closed</option>
+                                <option value="Archived">Archived</option>
+                              </select>
+                              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                            </div>
+                          </div>
 
-                  {/* Court / Jurisdiction */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Court / Jurisdiction</label>
-                    <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                      <Gavel size={18} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0" />
-                      <input
-                        type="text"
-                        placeholder="Supreme Court, High Court, etc."
-                        value={caseData.courtName || ''}
-                        onChange={e => setCaseData({ ...caseData, courtName: e.target.value })}
-                        className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
-                      />
-                    </div>
-                  </div>
+                          {/* Priority */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Priority</label>
+                            <div className="relative">
+                              <select
+                                value={caseData.priority}
+                                onChange={e => setCaseData({ ...caseData, priority: e.target.value })}
+                                className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-800 dark:text-white outline-none cursor-pointer appearance-none pr-10"
+                              >
+                                <option value="Standard">Standard</option>
+                                <option value="High">High</option>
+                                <option value="Critical">Critical</option>
+                              </select>
+                              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                            </div>
+                          </div>
 
-                  {/* Hearing Date */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Hearing Date</label>
-                    <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                      <Calendar size={18} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0" />
-                      <input
-                        type="date"
-                        min={new Date().toISOString().split('T')[0]}
-                        value={caseData.hearingDate || ''}
-                        onChange={e => setCaseData({ ...caseData, hearingDate: e.target.value })}
-                        className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-850 dark:text-white cursor-pointer"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Documents & File upload */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Evidence & Documents</label>
-                    <div className="flex gap-4">
-                      <label className="flex-1 flex items-center justify-center gap-2 border-2 border-dashed border-indigo-600/30 rounded-2xl py-4 cursor-pointer hover:border-indigo-600 transition-colors">
-                        <Upload size={18} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
-                        <span className="text-xs font-bold text-indigo-650 dark:text-indigo-400">Upload PDF, Word or Image</span>
-                        <input
-                          type="file"
-                          multiple
-                          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                          onChange={handleFileUpload}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-
-                    {/* Doc list */}
-                    {caseData.documents && caseData.documents.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        {caseData.documents.map((doc, idx) => (
-                          <div 
-                            key={doc.id || idx} 
-                            className="flex items-center gap-2 bg-indigo-55/10 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-950/30 px-3 py-1.5 rounded-xl max-w-xs shrink-0"
-                          >
-                            <span className="text-[11px] font-bold truncate max-w-[150px]">{doc.name}</span>
+                          {/* Case Category Selection */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Case Category *</label>
                             <button
-                              type="button"
-                              onClick={() => setCaseData(prev => ({ ...prev, documents: prev.documents.filter(d => d.id !== doc.id) }))}
-                              className="text-indigo-600 dark:text-indigo-400 hover:text-red-500 rounded-full"
+                               type="button"
+                               onClick={() => setShowCategoryPicker(true)}
+                               className="w-full flex items-center justify-between bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-2.5 text-left min-h-[52px]"
                             >
-                              <X size={12} />
+                              <div className="flex items-center gap-2 flex-wrap max-w-[85%]">
+                                <List size={18} className="text-indigo-600 dark:text-indigo-400 mr-1 shrink-0" />
+                                {caseData.caseCategories && caseData.caseCategories.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {caseData.caseCategories.slice(0, 2).map(cat => (
+                                      <span key={cat} className="bg-indigo-600 text-white rounded-md text-[9px] font-black uppercase px-2 py-0.5 shrink-0">
+                                        {cat}
+                                      </span>
+                                    ))}
+                                    {caseData.caseCategories.length > 2 && (
+                                      <span className="bg-slate-200 dark:bg-zinc-800 text-slate-800 dark:text-slate-200 rounded-md text-[9px] font-black px-1.5 py-0.5">
+                                        +{caseData.caseCategories.length - 2}
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-sm font-bold text-slate-400">Select categories...</span>
+                                )}
+                              </div>
+                              <ChevronDown size={16} className="text-slate-400 shrink-0" />
                             </button>
                           </div>
-                        ))}
+                        </div>
                       </div>
-                    )}
-                  </div>
 
-                  {/* Description / Notes */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Case Description / Notes</label>
-                    <div className="flex items-start bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                      <Plus size={18} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0 mt-0.5" />
-                      <textarea
-                        rows={3}
-                        placeholder="Brief summary for AI context..."
-                        value={caseData.description}
-                        onChange={e => setCaseData({ ...caseData, description: e.target.value })}
-                        className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-medium text-slate-800 dark:text-white resize-none"
-                      />
-                    </div>
-                  </div>
+                      {/* SECTION 2: Participants */}
+                      <div className="border-b border-slate-100 dark:border-zinc-800/80 pb-5">
+                        <h4 className="text-xs font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-4 flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full" />
+                          SECTION 2 — Participants
+                        </h4>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {/* Client Role */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Client Role *</label>
+                            <button
+                              type="button"
+                              onClick={() => setShowClientRolePicker(true)}
+                              className="w-full flex items-center justify-between bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3.5 text-left"
+                            >
+                              <div className="flex items-center gap-2">
+                                <User size={18} className="text-indigo-600 dark:text-indigo-400" />
+                                <span className={`text-sm font-bold ${caseData.clientRole ? 'text-slate-850 dark:text-white' : 'text-slate-400'}`}>
+                                  {caseData.clientRole || 'Select Client Role'}
+                                </span>
+                              </div>
+                              <ChevronDown size={16} className="text-slate-400" />
+                            </button>
+                          </div>
+
+                          {/* Opponent Role */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Opponent Role</label>
+                            <button
+                              type="button"
+                              onClick={() => setShowOpponentRolePicker(true)}
+                              className="w-full flex items-center justify-between bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3.5 text-left"
+                            >
+                              <div className="flex items-center gap-2">
+                                <Users size={18} className="text-indigo-600 dark:text-indigo-400" />
+                                <span className={`text-sm font-bold ${caseData.opponentRole ? 'text-slate-850 dark:text-white' : 'text-slate-400'}`}>
+                                  {caseData.opponentRole || 'Select Opponent Role'}
+                                </span>
+                              </div>
+                              <ChevronDown size={16} className="text-slate-400" />
+                            </button>
+                          </div>
+
+                          {/* Client Name */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Client Name *</label>
+                            <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
+                              <User size={18} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0" />
+                              <input
+                                type="text"
+                                placeholder="Enter Client Name"
+                                value={caseData.clientName}
+                                onChange={e => setCaseData({ ...caseData, clientName: e.target.value })}
+                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Opponent Name */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Opponent Name</label>
+                            <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
+                              <Users size={18} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0" />
+                              <input
+                                type="text"
+                                placeholder="Enter Opponent Name"
+                                value={caseData.opponentName}
+                                onChange={e => setCaseData({ ...caseData, opponentName: e.target.value })}
+                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* SECTION 3: Court Details */}
+                      <div className="border-b border-slate-100 dark:border-zinc-800/80 pb-5">
+                        <h4 className="text-xs font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-4 flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full" />
+                          SECTION 3 — Court Details
+                        </h4>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {/* Court */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Court</label>
+                            <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
+                              <Gavel size={18} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0" />
+                              <input
+                                type="text"
+                                placeholder="Supreme Court, etc."
+                                value={caseData.courtName}
+                                onChange={e => setCaseData({ ...caseData, courtName: e.target.value })}
+                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Court Type */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Court Type</label>
+                            <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
+                              <input
+                                type="text"
+                                placeholder="e.g. High Court, District Court"
+                                value={caseData.courtType}
+                                onChange={e => setCaseData({ ...caseData, courtType: e.target.value })}
+                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
+                              />
+                            </div>
+                          </div>
+
+                          {/* State */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">State</label>
+                            <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
+                              <input
+                                type="text"
+                                placeholder="e.g. Delhi, Maharashtra"
+                                value={caseData.state}
+                                onChange={e => setCaseData({ ...caseData, state: e.target.value })}
+                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
+                              />
+                            </div>
+                          </div>
+
+                          {/* District */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">District</label>
+                            <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
+                              <input
+                                type="text"
+                                placeholder="e.g. Central Delhi"
+                                value={caseData.district}
+                                onChange={e => setCaseData({ ...caseData, district: e.target.value })}
+                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
+                              />
+                            </div>
+                          </div>
+
+                          {/* City */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">City</label>
+                            <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
+                              <input
+                                type="text"
+                                placeholder="e.g. New Delhi"
+                                value={caseData.city}
+                                onChange={e => setCaseData({ ...caseData, city: e.target.value })}
+                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* SECTION 4: Important Dates */}
+                      <div className="border-b border-slate-100 dark:border-zinc-800/80 pb-5">
+                        <h4 className="text-xs font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-4 flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full" />
+                          SECTION 4 — Important Dates
+                        </h4>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {/* Filing Date */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Filing Date</label>
+                            <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
+                              <Calendar size={18} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0" />
+                              <input
+                                type="date"
+                                value={caseData.filingDate}
+                                onChange={e => setCaseData({ ...caseData, filingDate: e.target.value })}
+                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-855 dark:text-white cursor-pointer"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Incident Date */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Incident Date</label>
+                            <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
+                              <Calendar size={18} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0" />
+                              <input
+                                type="date"
+                                max={new Date().toISOString().split('T')[0]}
+                                value={caseData.incidentDate}
+                                onChange={e => setCaseData({ ...caseData, incidentDate: e.target.value })}
+                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-855 dark:text-white cursor-pointer"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* SECTION 5: Case Summary */}
+                      <div className="pb-2">
+                        <h4 className="text-xs font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-4 flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full" />
+                          SECTION 5 — Case Summary
+                        </h4>
+                        
+                        {/* Case Summary */}
+                        <div className="space-y-1.5 mb-4">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Case Summary *</label>
+                          <div className="flex items-start bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
+                            <textarea
+                              rows={5}
+                              placeholder="Describe the timeline, facts, claims, important events, and relief sought..."
+                              value={caseData.caseSummary}
+                              onChange={e => setCaseData({ ...caseData, caseSummary: e.target.value })}
+                              className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-850 dark:text-white resize-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Footer Save Button */}
@@ -607,62 +634,6 @@ const CreateCaseModal = ({ isDark, isVisible, onClose, onSave, editingCase }) =>
         </div>
 
         {/* --- Sub-picker Modals --- */}
-        {/* Country Picker Modal */}
-        <Transition.Root show={showCountryPicker} as={Fragment}>
-          <Dialog as="div" className="relative z-[130000]" onClose={() => setShowCountryPicker(false)}>
-            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" />
-            <div className="fixed inset-0 overflow-y-auto flex items-end justify-center p-4">
-              <Transition.Child
-                as={Fragment}
-                enter="transition ease-out duration-300 transform"
-                enterFrom="translate-y-full"
-                enterTo="translate-y-0"
-                leave="transition ease-in duration-200 transform"
-                leaveFrom="translate-y-0"
-                leaveTo="translate-y-full"
-              >
-                <Dialog.Panel className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-t-3xl p-6 text-left shadow-2xl border-t border-slate-100 dark:border-zinc-800">
-                  <div className="flex justify-between items-center mb-4">
-                    <Dialog.Title className="text-md font-extrabold text-slate-900 dark:text-white">Select Country</Dialog.Title>
-                    <button onClick={() => setShowCountryPicker(false)} className="p-1"><X size={18} className="text-slate-400" /></button>
-                  </div>
-                  <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 mb-4">
-                    <Search size={14} className="text-slate-400 mr-2" />
-                    <input
-                      type="text"
-                      placeholder="Search country or code..."
-                      value={countrySearch}
-                      onChange={e => setCountrySearch(e.target.value)}
-                      className="bg-transparent border-none outline-none focus:ring-0 text-xs w-full text-slate-800 dark:text-white"
-                    />
-                  </div>
-                  <div className="max-h-60 overflow-y-auto custom-scrollbar space-y-1">
-                    {filteredCountries.map(c => (
-                      <button
-                        key={c.iso}
-                        onClick={() => {
-                          setSelectedCountry(c);
-                          setCaseData(prev => ({ ...prev, countryCode: c.dial }));
-                          setShowCountryPicker(false);
-                        }}
-                        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-xs font-bold transition-all ${
-                          selectedCountry.iso === c.iso ? 'bg-indigo-50 dark:bg-indigo-950/20 text-indigo-650' : 'hover:bg-slate-50 dark:hover:bg-white/5 text-slate-800 dark:text-slate-200'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">{c.flag}</span>
-                          <span>{c.name}</span>
-                          <span className="text-[10px] text-slate-400">{c.iso}</span>
-                        </div>
-                        <span className="text-indigo-600 dark:text-indigo-400">{c.dial}</span>
-                      </button>
-                    ))}
-                  </div>
-                </Dialog.Panel>
-              </Transition.Child>
-            </div>
-          </Dialog>
-        </Transition.Root>
 
         {/* Category Picker Modal */}
         <Transition.Root show={showCategoryPicker} as={Fragment}>

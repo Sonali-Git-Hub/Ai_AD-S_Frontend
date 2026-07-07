@@ -19,6 +19,7 @@ import { useSetRecoilState } from 'recoil';
 import { toggleState } from '../../userStore/userData';
 import { apis } from '../../types';
 import { useLanguage } from '../../context/LanguageContext';
+import LanguageToggle from './components/shared/LanguageToggle';
 import { useLegalToolCredits } from '../../hooks/useLegalToolCredits';
 
 export const truncateText = (text, maxLength = 120) => {
@@ -28,7 +29,7 @@ export const truncateText = (text, maxLength = 120) => {
 };
 
 const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSelectCase, onCreateCase, onUseInArgument, onUpdateCase }) => {
-    const { toolkitLanguage, tLegal: t } = useLanguage();
+    const { toolkitLanguage, setToolkitLanguage, tLegal: t } = useLanguage();
     const currentLang = toolkitLanguage;
     const [mode, setMode] = useState('CURRENT'); // 'CURRENT' or 'MANUAL'
     const [selectedProjectId, setSelectedProjectId] = useState(initialProjectId || null); // Use initialProjectId if provided
@@ -85,11 +86,11 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
             });
 
             if (response.data.precedents?.length === 0) {
-                toast.error("No relevant precedents found for this case context.");
+                toast.error(t('noPrecedentsFound'));
             }
         } catch (error) {
             console.error("Search failed:", error);
-            toast.error("Failed to fetch precedents. Please try again.");
+            toast.error(t('failedToSave'));
         } finally {
             setIsLoading(false);
         }
@@ -133,10 +134,10 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
                     [reanalyzed._id || reanalyzed.case_identity?.case_name]: {}
                 }));
 
-                toast.success(`Analysis updated for: ${newCase.name}`);
+                toast.success(`${t('analyzingCase')}: ${newCase.name}`);
             } catch (error) {
                 console.error("Re-analysis failed:", error);
-                toast.error("Failed to re-analyze precedent for the new case context.");
+                toast.error(t('failedToGenerateSummary'));
             } finally {
                 setIsReanalyzing(false);
             }
@@ -177,7 +178,7 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
         if (citation && citation !== "Citation unavailable") textToCopy += `, ${citation}`;
 
         navigator.clipboard.writeText(textToCopy);
-        toast.success("✅ Citation copied", {
+        toast.success(`✅ ${t('citationCopied')}`, {
             style: {
                 borderRadius: '12px',
                 background: 'var(--color-card)',
@@ -205,7 +206,7 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
         const alreadySaved = targetCase.savedPrecedents?.some(p => (p._id || p.case_identity?.case_name) === id);
 
         if (alreadySaved) {
-            toast.error("Already saved to this case");
+            toast.error(t('alreadySaved'));
             return;
         }
 
@@ -222,7 +223,7 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
                 icon: '💾'
             });
         } catch (error) {
-            toast.error("Failed to save. Try again");
+            toast.error(t('failedToSave'));
             console.error("Save error:", error);
         } finally {
             setIsActionLoading(prev => ({ ...prev, [id]: { ...prev[id], save: false } }));
@@ -258,7 +259,7 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
         });
 
         try {
-            const blob = await apiService.generatePrecedentPDF(precedentData);
+            const blob = await apiService.generatePrecedentPDF(precedentData, toolkitLanguage);
 
             // Create download link
             const url = window.URL.createObjectURL(new Blob([blob]));
@@ -276,10 +277,10 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
             link.parentNode.removeChild(link);
             window.URL.revokeObjectURL(url);
 
-            toast.success("PDF Downloaded Successfully", { id: loadingToast });
+            toast.success(t('pdfDownloadedSuccessfully'), { id: loadingToast });
         } catch (error) {
             console.error("PDF generation error:", error);
-            toast.error("Failed to generate PDF. Please try again.", { id: loadingToast });
+            toast.error(t('failedToGeneratePdf'), { id: loadingToast });
         } finally {
             setIsPdfLoading(false);
         }
@@ -302,9 +303,9 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
             }));
 
             // Auto scroll will be handled by a ref or effect in the component
-            toast.success("Summary generated successfully");
+            toast.success(t('summaryGeneratedSuccessfully'));
         } catch (error) {
-            toast.error("Failed to generate summary. Try again.");
+            toast.error(t('failedToGenerateSummary'));
         } finally {
             setIsActionLoading(prev => ({ ...prev, [id]: { ...prev[id], summary: false } }));
         }
@@ -326,9 +327,9 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
                 [id]: { ...prev[id], compare: result.analysis }
             }));
 
-            toast.success("Comparison insights generated");
+            toast.success(t('comparisonInsightsGenerated'));
         } catch (error) {
-            toast.error("Failed to generate comparison. Try again.");
+            toast.error(t('failedToGenerateComparison'));
         } finally {
             setIsActionLoading(prev => ({ ...prev, [id]: { ...prev[id], compare: false } }));
         }
@@ -381,7 +382,7 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
                                     {new Date(c.updatedAt).toLocaleDateString()}
                                 </span>
                                 <button className="analyze-btn flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-600 bg-indigo-500/5 hover:bg-indigo-500/10 px-3 py-1.5 rounded-full border border-indigo-500/10 transition-all shrink-0">
-                                    Analyze Precedents <ArrowRight size={12} />
+                                    {t('analyzePrecedents')} <ArrowRight size={12} />
                                 </button>
                             </div>
                         </motion.div>
@@ -395,7 +396,7 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
                         <div className="w-10 h-10 rounded-full bg-card flex items-center justify-center">
                             <Plus size={20} className="text-subtext" />
                         </div>
-                        <span className="text-[10px] font-black text-subtext uppercase tracking-widest">New Case</span>
+                        <span className="text-[10px] font-black text-subtext uppercase tracking-widest">{t('newCase')}</span>
                     </motion.div>
                 </div>
             </div>
@@ -407,15 +408,15 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
             <div className="w-24 h-24 bg-card rounded-full flex items-center justify-center mb-6">
                 <Briefcase size={48} className="text-subtext" />
             </div>
-            <h3 className="text-2xl font-black text-maintext mb-2">No Cases Found</h3>
+            <h3 className="text-2xl font-black text-maintext mb-2">{t('noCasesFound')}</h3>
             <p className="text-subtext max-w-sm mb-8 font-medium">
-                You haven't created any case workspaces yet. Create your first case to start using AI Legal Precedents.
+                {t('noCasesDescription')}
             </p>
             <button
                 onClick={onCreateCase}
                 className="flex items-center gap-2 bg-indigo-600 text-white px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-indigo-700 shadow-xl shadow-indigo-500/20 transition-all"
             >
-                <Plus size={18} /> Create New Case
+                <Plus size={18} /> {t('createNewCase')}
             </button>
         </div>
     );
@@ -473,7 +474,7 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
                                         onClick={() => setIsCaseListOpen(true)}
                                         className="text-[9px] sm:text-[10px] font-bold text-indigo-500 hover:text-indigo-600 ml-2 transition-colors underline underline-offset-4 decoration-indigo-500/20 hover:decoration-indigo-500 shrink-0"
                                     >
-                                        Change
+                                        {t('changeCase')}
                                     </button>
                                 </div>
                             )}
@@ -484,25 +485,28 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
                     </div>
                 </div>
 
-                <div className="mode-toggle flex bg-slate-50 dark:bg-[#131C31] p-1 rounded-xl border border-slate-200 dark:border-white/5 w-full sm:w-fit overflow-x-auto no-scrollbar">
-                    <button
-                        onClick={() => { setMode('CURRENT'); if (!selectedProjectId) resetSelection(); }}
-                        className={`px-3 sm:px-4 py-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2 flex-1 sm:flex-none whitespace-nowrap ${mode === 'CURRENT'
-                            ? 'bg-white dark:bg-[#0B1020] text-indigo-600 dark:text-indigo-400 shadow-sm'
-                            : 'text-slate-500 dark:text-[#94A3B8] hover:text-indigo-600 dark:hover:text-[#F8FAFC]'
-                            }`}
-                    >
-                        {mode === 'CURRENT' && <CheckCircle2 size={12} />} {t('currentCaseMode')}
-                    </button>
-                    <button
-                        onClick={() => setMode('MANUAL')}
-                        className={`px-3 sm:px-4 py-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2 flex-1 sm:flex-none whitespace-nowrap ${mode === 'MANUAL'
-                            ? 'bg-white dark:bg-[#0B1020] text-indigo-600 dark:text-indigo-400 shadow-sm'
-                            : 'text-slate-500 dark:text-[#94A3B8] hover:text-indigo-600 dark:hover:text-[#F8FAFC]'
-                            }`}
-                    >
-                        {mode === 'MANUAL' && <CheckCircle2 size={12} />} {t('manualSearchMode')}
-                    </button>
+                <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap sm:flex-nowrap select-none">
+                    <LanguageToggle lang={toolkitLanguage === 'Hindi' ? 'hi' : 'en'} onChange={(l) => setToolkitLanguage(l === 'hi' ? 'Hindi' : 'English')} />
+                    <div className="mode-toggle flex bg-slate-50 dark:bg-[#131C31] p-1 rounded-xl border border-slate-200 dark:border-white/5 w-full sm:w-fit overflow-x-auto no-scrollbar">
+                        <button
+                            onClick={() => { setMode('CURRENT'); if (!selectedProjectId) resetSelection(); }}
+                            className={`px-3 sm:px-4 py-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2 flex-1 sm:flex-none whitespace-nowrap ${mode === 'CURRENT'
+                                ? 'bg-white dark:bg-[#0B1020] text-indigo-600 dark:text-indigo-400 shadow-sm'
+                                : 'text-slate-500 dark:text-[#94A3B8] hover:text-indigo-600 dark:hover:text-[#F8FAFC]'
+                                }`}
+                        >
+                            {mode === 'CURRENT' && <CheckCircle2 size={12} />} {t('currentCaseMode')}
+                        </button>
+                        <button
+                            onClick={() => setMode('MANUAL')}
+                            className={`px-3 sm:px-4 py-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2 flex-1 sm:flex-none whitespace-nowrap ${mode === 'MANUAL'
+                                ? 'bg-white dark:bg-[#0B1020] text-indigo-600 dark:text-indigo-400 shadow-sm'
+                                : 'text-slate-500 dark:text-[#94A3B8] hover:text-indigo-600 dark:hover:text-[#F8FAFC]'
+                                }`}
+                        >
+                            {mode === 'MANUAL' && <CheckCircle2 size={12} />} {t('manualSearchMode')}
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -521,7 +525,7 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
                                                 value={query}
                                                 onChange={(e) => setQuery(e.target.value)}
                                                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                                                placeholder="Search case law by topic, section, issue, judge, Act, article, citation, or keyword..."
+                                                placeholder={toolkitLanguage === 'Hindi' ? t('searchHintManual') : "Search case law by topic, section, issue, judge, Act, article, citation, or keyword..."}
                                                 className="w-full relative z-10 bg-white dark:bg-[#1A2540] border-2 border-slate-100 dark:border-white/5 focus:border-indigo-500 rounded-2xl px-4 sm:px-6 py-4 sm:py-5 pl-12 sm:pl-14 pr-24 sm:pr-32 text-xs sm:text-sm font-medium text-slate-700 dark:text-[#F8FAFC] shadow-sm transition-all outline-none"
                                             />
                                             <Search className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 text-subtext group-focus-within:text-indigo-500 transition-colors z-20" size={18} />
@@ -543,13 +547,13 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
                                                 disabled={isLoading || !query}
                                                 className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:opacity-90 disabled:opacity-50 transition-all z-20"
                                             >
-                                                {isLoading ? '...' : 'Search'}
+                                                {isLoading ? '...' : t('searchBtn')}
                                             </button>
                                         </div>
                                         
                                         {!searchMetadata && (
                                             <div className="mt-4">
-                                                <SuggestedSearches onSelect={(s) => { setQuery(s); handleSearch(s); }} />
+                                                <SuggestedSearches onSelect={(s) => { setQuery(s); handleSearch(s); }} t={t} />
                                             </div>
                                         )}
                                     </div>
@@ -559,7 +563,7 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
                                 {mode === 'MANUAL' ? (
                                     !searchMetadata ? (
                                         <div>
-                                            <LegalResearchDirectory onSelectCategory={(cat) => { setQuery(cat); handleSearch(cat); }} />
+                                            <LegalResearchDirectory onSelectCategory={(cat) => { setQuery(cat); handleSearch(cat); }} t={t} />
                                         </div>
                                     ) : (
                                         results.length > 0 ? (
@@ -602,9 +606,9 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
                                         !isLoading && (
                                             <div className="flex flex-col items-center justify-center py-20 text-center opacity-50 animate-fade-in">
                                                 <BookOpen size={48} className="text-subtext mb-4" />
-                                                <h3 className="text-lg font-bold text-maintext">No Precedents Found</h3>
+                                                <h3 className="text-lg font-bold text-maintext">{t('noPrecedentsFound')}</h3>
                                                 <p className="text-xs text-subtext max-w-xs mt-2 font-medium">
-                                                    We couldn't find relevant precedents based on this case's facts. Try refining the case documents or use manual search.
+                                                    {t('noPrecedentsFoundDesc')}
                                                 </p>
                                             </div>
                                         )
@@ -620,6 +624,7 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
             <AnimatePresence>
                 {selectedCaseDetail && (
                     <CaseDetailView
+                        key="case-detail-view"
                         caseItem={selectedCaseDetail}
                         onClose={() => setSelectedCaseDetail(null)}
                         onCopyCitation={() => copyCitation(selectedCaseDetail)}
@@ -642,6 +647,7 @@ const LegalPrecedents = ({ projectId: initialProjectId, onBack, cases = [], onSe
             <AnimatePresence>
                 {(isSavingToCaseOpen || isCaseListOpen) && (
                     <CaseSelectionModal
+                        key="case-selection-modal"
                         isOpen={true}
                         onClose={() => {
                             setIsSavingToCaseOpen(false);
@@ -839,6 +845,7 @@ export const CaseDetailView = ({
                 <AnimatePresence>
                     {isReanalyzing && (
                         <motion.div
+                            key="reanalyzing-loader"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
@@ -848,9 +855,9 @@ export const CaseDetailView = ({
                                 <div className="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-600 rounded-full animate-spin" />
                                 <Brain className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-600 animate-pulse" size={24} />
                             </div>
-                            <h3 className="text-lg font-black text-maintext uppercase tracking-tight mb-2">Analyzing New Case Context</h3>
+                            <h3 className="text-lg font-black text-maintext uppercase tracking-tight mb-2">{t('analyzingCase')}</h3>
                             <p className="text-xs text-subtext font-medium max-w-xs">
-                                Recalculating relevance, reasoning match, and strategic alignment for your newly selected case...
+                                {t('loadingPrecedents')}
                             </p>
                         </motion.div>
                     )}
@@ -863,7 +870,7 @@ export const CaseDetailView = ({
                         {/* Relevance Score (Mobile Only: Top Summary Card) */}
                         <div className="block md:hidden bg-card p-5 rounded-[20px] border border-border shadow-sm space-y-4 mb-4">
                             <div className="flex items-center justify-between">
-                                <span className="text-[11px] font-black text-maintext uppercase tracking-widest">Relevance Match</span>
+                                <span className="text-[11px] font-black text-maintext uppercase tracking-widest">{t('matchScore')}</span>
                                 <div className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-[11px] font-bold">
                                     {similarity.relevance_score || caseItem.relevance_score || 0}% {t('relevance')}
                                 </div>
@@ -936,7 +943,7 @@ export const CaseDetailView = ({
 
                         {/* SMART ACTIONS */}
                         <div className="space-y-4">
-                            <h4 className="text-[11px] font-black text-maintext uppercase tracking-[0.2em]">Smart Assistant Actions</h4>
+                            <h4 className="text-[11px] font-black text-maintext uppercase tracking-[0.2em]">{t('smartActions')}</h4>
                             <div className="flex flex-col gap-2">
                                 <button
                                     onClick={onSummarize}
@@ -944,7 +951,7 @@ export const CaseDetailView = ({
                                     className={`smart-action-btn ${loadingStates.summary ? 'btn-loading' : ''}`}
                                 >
                                     <Sparkles size={14} className="text-amber-500" />
-                                    <span>Summarize Judgment</span>
+                                    <span>{t('summarizeJudgment')}</span>
                                     <ChevronRight size={14} className="ml-auto opacity-40" />
                                 </button>
                                 <button
@@ -953,7 +960,7 @@ export const CaseDetailView = ({
                                     className={`smart-action-btn ${loadingStates.compare ? 'btn-loading' : ''}`}
                                 >
                                     <FileSearch size={14} className="text-indigo-500" />
-                                    <span>Compare with My Case</span>
+                                    <span>{t('compareWithCase')}</span>
                                     <ChevronRight size={14} className="ml-auto opacity-40" />
                                 </button>
                                 <button
@@ -962,7 +969,7 @@ export const CaseDetailView = ({
                                     className={`smart-action-btn ${loadingStates.cite ? 'btn-loading' : ''}`}
                                 >
                                     <MessageSquare size={14} className="text-emerald-500" />
-                                    <span>Cite in Argument</span>
+                                    <span>{t('citeInArgument')}</span>
                                     <ChevronRight size={14} className="ml-auto opacity-40" />
                                 </button>
                             </div>
@@ -972,6 +979,7 @@ export const CaseDetailView = ({
                         <AnimatePresence mode="wait">
                             {(loadingStates.summary || loadingStates.compare) ? (
                                 <motion.div
+                                    key="loading-response"
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0 }}
@@ -979,15 +987,17 @@ export const CaseDetailView = ({
                                 >
                                     <div className="w-8 h-8 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
                                     <div className="space-y-1">
-                                        <p className="text-[11px] font-black text-indigo-400 uppercase tracking-widest">Generating AI response...</p>
-                                        <p className="text-[10px] text-subtext">Our senior legal brain is analyzing the judgment</p>
+                                        <p className="text-[11px] font-black text-indigo-400 uppercase tracking-widest">{t('aisaAiGenerating')}</p>
+                                        <p className="text-[10px] text-subtext">{t('loadingAIResponse')}</p>
                                     </div>
                                 </motion.div>
-                            ) : (aiResponses.summarize || aiResponses.compare) && (
+                            ) : (aiResponses.summarize || aiResponses.compare) ? (
                                 <motion.div
+                                    key="ai-response"
                                     ref={responseRef}
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0 }}
                                     className="ai-response-container space-y-6 animate-glow"
                                 >
                                     {aiResponses.summarize && (
@@ -995,7 +1005,7 @@ export const CaseDetailView = ({
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2 text-amber-400">
                                                     <Sparkles size={16} />
-                                                    <span className="text-[11px] font-black uppercase tracking-[0.2em]">AI Summary</span>
+                                                    <span className="text-[11px] font-black uppercase tracking-[0.2em]">{t('aiResponse')}</span>
                                                 </div>
                                                 <button
                                                     onClick={() => onSummarize()}
@@ -1016,7 +1026,7 @@ export const CaseDetailView = ({
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2 text-indigo-400">
                                                     <FileSearch size={16} />
-                                                    <span className="text-[11px] font-black uppercase tracking-[0.2em]">Case Comparison</span>
+                                                    <span className="text-[11px] font-black uppercase tracking-[0.2em]">{t('aiInsights')}</span>
                                                 </div>
                                                 <button
                                                     onClick={() => onCompare()}
@@ -1032,13 +1042,13 @@ export const CaseDetailView = ({
                                         </div>
                                     )}
                                 </motion.div>
-                            )}
+                            ) : null}
                         </AnimatePresence>
 
                         {/* Relevance Score (Desktop / Tablet) */}
                         <div className="hidden md:block bg-card p-6 rounded-[20px] border border-border shadow-sm space-y-4">
                             <div className="flex items-center justify-between">
-                                <span className="text-[11px] font-black text-maintext uppercase tracking-widest">Relevance Match</span>
+                                <span className="text-[11px] font-black text-maintext uppercase tracking-widest">{t('matchScore')}</span>
                                 <div className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-[11px] font-bold">
                                     {similarity.relevance_score || caseItem.relevance_score || 0}% {t('relevance')}
                                 </div>
@@ -1077,7 +1087,7 @@ export const CaseDetailView = ({
                                     </div>
 
                                     <div className="space-y-3 pt-4 border-t border-border">
-                                        <div className="text-[10px] font-black text-maintext uppercase tracking-widest mb-2">Court Held</div>
+                                        <div className="text-[10px] font-black text-maintext uppercase tracking-widest mb-2">{t('outcomeVerdict')}</div>
                                         {formatToBullets(judgment_outcome.court_held || judgment_outcome.final_decision).slice(0, 2).map((point, i) => (
                                             <div key={i} className="flex gap-2 text-[12px] text-maintext font-medium leading-relaxed">
                                                 <div className="text-emerald-400">•</div>
@@ -1152,11 +1162,11 @@ export const CaseDetailView = ({
                         className={`md:order-3 order-1 btn-secondary-cta flex items-center justify-center gap-2 px-8 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest ${loadingStates.save ? 'btn-loading' : ''} ${isSaved ? 'btn-success' : ''} ${isSaved ? 'cursor-not-allowed' : ''} w-full md:w-auto min-h-[48px]`}
                     >
                         {loadingStates.save ? (
-                            <span>Saving...</span>
+                            <span>{t('analyzingCase')}...</span>
                         ) : isSaved ? (
                             <>
                                 <CheckCircle2 size={16} />
-                                <span>Saved ✓</span>
+                                <span>{t('aiResultConfirmed')} ✓</span>
                             </>
                         ) : (
                             <>
@@ -1306,23 +1316,23 @@ export const CaseSelectionModal = ({ isOpen, onClose, onSelect, cases, currentPr
     );
 };
 
-export const ResearchStats = () => {
+export const ResearchStats = ({ t = (x) => x }) => {
     return (
         <div className="research-stats-grid">
             <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-3xl p-5 shadow-sm flex flex-col items-center justify-center text-center">
                 <Landmark className="text-indigo-500 dark:text-indigo-400" size={20} />
                 <span className="text-base sm:text-lg font-black text-indigo-500 mt-2">14,230+</span>
-                <span className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider mt-1">Precedents Found</span>
+                <span className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider mt-1">{t('precedentsFound')}</span>
             </div>
             <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-3xl p-5 shadow-sm flex flex-col items-center justify-center text-center">
                 <Gavel className="text-emerald-500 dark:text-emerald-400" size={20} />
                 <span className="text-base sm:text-lg font-black text-emerald-500 mt-2">BNS / IPC</span>
-                <span className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider mt-1">Primary Law Act</span>
+                <span className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider mt-1">{t('primaryLawAct')}</span>
             </div>
             <div className="bg-white dark:bg-[#1A2540] border border-slate-200 dark:border-white/5 rounded-3xl p-5 shadow-sm flex flex-col items-center justify-center text-center">
                 <Brain className="text-pink-500 dark:text-pink-400" size={20} />
                 <span className="text-base sm:text-lg font-black text-pink-500 mt-2">98.5%</span>
-                <span className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider mt-1">AI Accuracy</span>
+                <span className="text-[10px] text-[#94A3B8] font-bold uppercase tracking-wider mt-1">{t('aiAccuracy')}</span>
             </div>
         </div>
     );
@@ -1346,44 +1356,44 @@ export const CategoryCard = ({ title, count, icon: IconComp, onClick }) => {
     );
 };
 
-export const ResearchCategoryGrid = ({ onSelect }) => {
+export const ResearchCategoryGrid = ({ onSelect, t = (x) => x }) => {
     const categories = [
-        { id: 'SC', title: 'Supreme Court Research', icon: Landmark, count: '14,230 cases' },
-        { id: 'HC', title: 'High Court Judgments', icon: Building2, count: '84,150 cases' },
-        { id: 'Const', title: 'Constitutional Law', icon: Scale, count: '1,890 articles' },
-        { id: 'Crim', title: 'Criminal Law', icon: Gavel, count: '24,600 files' },
-        { id: 'Civ', title: 'Civil Law', icon: FileText, count: '32,110 files' },
-        { id: 'Corp', title: 'Corporate Law', icon: Building2, count: '8,420 files' },
-        { id: 'Cyber', title: 'Cyber Law', icon: Shield, count: '1,120 files' },
-        { id: 'Fam', title: 'Family Law', icon: Library, count: '9,450 files' },
-        { id: 'Prop', title: 'Property Law', icon: Landmark, count: '18,300 files' },
-        { id: 'Tax', title: 'Taxation Law', icon: FileText, count: '4,520 files' },
-        { id: 'Cons', title: 'Consumer Protection', icon: Library, count: '3,110 files' },
-        { id: 'Arb', title: 'Arbitration & Mediation', icon: Scale, count: '6,450 files' },
-        { id: 'Lab', title: 'Labour Law', icon: Briefcase, count: '12,400 files' },
-        { id: 'Bank', title: 'Banking Law', icon: Building2, count: '9,120 files' },
-        { id: 'Env', title: 'Environmental Law', icon: Folder, count: '2,300 files' },
-        { id: 'IP', title: 'Intellectual Property', icon: Shield, count: '5,840 files' },
-        { id: 'MAC', title: 'Motor Accident Claims', icon: Gavel, count: '14,210 files' },
-        { id: 'Comp', title: 'Company Law', icon: Building2, count: '7,150 files' },
-        { id: 'Serv', title: 'Service Law', icon: Briefcase, count: '11,400 files' },
-        { id: 'Elec', title: 'Election Law', icon: Scale, count: '1,560 files' },
-        { id: 'HR', title: 'Human Rights', icon: Library, count: '4,890 files' },
+        { id: 'SC', titleKey: 'supremeCourtResearch', searchTitle: 'Supreme Court Research', icon: Landmark, countKey: 'casesCount_SC', fallbackCount: '14,230 cases' },
+        { id: 'HC', titleKey: 'highCourtJudgments', searchTitle: 'High Court Judgments', icon: Building2, countKey: 'casesCount_HC', fallbackCount: '84,150 cases' },
+        { id: 'Const', titleKey: 'constitutionalLaw', searchTitle: 'Constitutional Law', icon: Scale, countKey: 'casesCount_Const', fallbackCount: '1,890 articles' },
+        { id: 'Crim', titleKey: 'criminalLaw', searchTitle: 'Criminal Law', icon: Gavel, countKey: 'casesCount_Crim', fallbackCount: '24,600 files' },
+        { id: 'Civ', titleKey: 'civilLaw', searchTitle: 'Civil Law', icon: FileText, countKey: 'casesCount_Civ', fallbackCount: '32,110 files' },
+        { id: 'Corp', titleKey: 'corporateLaw', searchTitle: 'Corporate Law', icon: Building2, countKey: 'casesCount_Corp', fallbackCount: '8,420 files' },
+        { id: 'Cyber', titleKey: 'cyberLaw', searchTitle: 'Cyber Law', icon: Shield, countKey: 'casesCount_Cyber', fallbackCount: '1,120 files' },
+        { id: 'Fam', titleKey: 'familyLaw', searchTitle: 'Family Law', icon: Library, countKey: 'casesCount_Fam', fallbackCount: '9,450 files' },
+        { id: 'Prop', titleKey: 'propertyLaw', searchTitle: 'Property Law', icon: Landmark, countKey: 'casesCount_Prop', fallbackCount: '18,300 files' },
+        { id: 'Tax', titleKey: 'taxationLaw', searchTitle: 'Taxation Law', icon: FileText, countKey: 'casesCount_Tax', fallbackCount: '4,520 files' },
+        { id: 'Cons', titleKey: 'consumerProtection', searchTitle: 'Consumer Protection', icon: Library, countKey: 'casesCount_Cons', fallbackCount: '3,110 files' },
+        { id: 'Arb', titleKey: 'arbitrationMediation', searchTitle: 'Arbitration & Mediation', icon: Scale, countKey: 'casesCount_Arb', fallbackCount: '6,450 files' },
+        { id: 'Lab', titleKey: 'labourLaw', searchTitle: 'Labour Law', icon: Briefcase, countKey: 'casesCount_Lab', fallbackCount: '12,400 files' },
+        { id: 'Bank', titleKey: 'bankingLaw', searchTitle: 'Banking Law', icon: Building2, countKey: 'casesCount_Bank', fallbackCount: '9,120 files' },
+        { id: 'Env', titleKey: 'environmentalLaw', searchTitle: 'Environmental Law', icon: Folder, countKey: 'casesCount_Env', fallbackCount: '2,300 files' },
+        { id: 'IP', titleKey: 'intellectualProperty', searchTitle: 'Intellectual Property', icon: Shield, countKey: 'casesCount_IP', fallbackCount: '5,840 files' },
+        { id: 'MAC', titleKey: 'motorAccidentClaims', searchTitle: 'Motor Accident Claims', icon: Gavel, countKey: 'casesCount_MAC', fallbackCount: '14,210 files' },
+        { id: 'Comp', titleKey: 'companyLaw', searchTitle: 'Company Law', icon: Building2, countKey: 'casesCount_Comp', fallbackCount: '7,150 files' },
+        { id: 'Serv', titleKey: 'serviceLaw', searchTitle: 'Service Law', icon: Briefcase, countKey: 'casesCount_Serv', fallbackCount: '11,400 files' },
+        { id: 'Elec', titleKey: 'electionLaw', searchTitle: 'Election Law', icon: Scale, countKey: 'casesCount_Elec', fallbackCount: '1,560 files' },
+        { id: 'HR', titleKey: 'humanRights', searchTitle: 'Human Rights', icon: Library, countKey: 'casesCount_HR', fallbackCount: '4,890 files' },
     ];
 
     return (
         <div className="space-y-4">
             <h3 className="text-[11px] font-black text-subtext uppercase tracking-[0.2em] flex items-center gap-2">
-                <Layout size={14} className="text-indigo-500 animate-pulse" /> Research Directory Classifications
+                <Layout size={14} className="text-indigo-500 animate-pulse" /> {t('researchDirectoryClassifications')}
             </h3>
             <div className="research-category-grid">
                 {categories.map(c => (
                     <CategoryCard
                         key={c.id}
-                        title={c.title}
-                        count={c.count}
+                        title={t(c.titleKey)}
+                        count={t(c.countKey) !== c.countKey ? t(c.countKey) : c.fallbackCount}
                         icon={c.icon}
-                        onClick={() => onSelect(c.title)}
+                        onClick={() => onSelect(c.searchTitle)}
                     />
                 ))}
             </div>
@@ -1391,26 +1401,26 @@ export const ResearchCategoryGrid = ({ onSelect }) => {
     );
 };
 
-export const FeaturedActs = ({ onSelect }) => {
+export const FeaturedActs = ({ onSelect, t = (x) => x }) => {
     const acts = [
-        { name: "Constitution of India", desc: "Supreme lex of India" },
-        { name: "Bharatiya Nyaya Sanhita (BNS)", desc: "Substantive criminal law code" },
-        { name: "Bharatiya Nagarik Suraksha Sanhita (BNSS)", desc: "Procedural criminal law framework" },
-        { name: "Bharatiya Sakshya Adhiniyam (BSA)", desc: "Rules of evidence admissibility" },
-        { name: "Code of Civil Procedure (CPC)", desc: "Civil litigation procedures" },
-        { name: "Indian Evidence Act", desc: "Legacy code of evidence" },
-        { name: "Indian Contract Act", desc: "Law of agreements and commercial deals" },
-        { name: "Transfer of Property Act", desc: "Immovable asset sale & mortgage laws" },
-        { name: "Companies Act", desc: "Corporate governance guidelines" },
-        { name: "Information Technology (IT) Act", desc: "Cyber offences and digital signatures" },
-        { name: "Consumer Protection Act", desc: "Product liability and buyer rights" },
-        { name: "Income Tax Act", desc: "Direct tax laws and regulations" }
+        { name: "Constitution of India", nameKey: 'act_constitution', descKey: 'desc_constitution' },
+        { name: "Bharatiya Nyaya Sanhita (BNS)", nameKey: 'act_bns', descKey: 'desc_bns' },
+        { name: "Bharatiya Nagarik Suraksha Sanhita (BNSS)", nameKey: 'act_bnss', descKey: 'desc_bnss' },
+        { name: "Bharatiya Sakshya Adhiniyam (BSA)", nameKey: 'act_bsa', descKey: 'desc_bsa' },
+        { name: "Code of Civil Procedure (CPC)", nameKey: 'act_cpc', descKey: 'desc_cpc' },
+        { name: "Indian Evidence Act", nameKey: 'act_evidence', descKey: 'desc_evidence' },
+        { name: "Indian Contract Act", nameKey: 'act_contract', descKey: 'desc_contract' },
+        { name: "Transfer of Property Act", nameKey: 'act_property', descKey: 'desc_property' },
+        { name: "Companies Act", nameKey: 'act_companies', descKey: 'desc_companies' },
+        { name: "Information Technology (IT) Act", nameKey: 'act_it', descKey: 'desc_it' },
+        { name: "Consumer Protection Act", nameKey: 'act_consumer', descKey: 'desc_consumer' },
+        { name: "Income Tax Act", nameKey: 'act_income_tax', descKey: 'desc_income_tax' }
     ];
 
     return (
         <div className="space-y-4">
             <h3 className="text-[11px] font-black text-[#94A3B8] uppercase tracking-[0.2em] flex items-center gap-2">
-                <BookOpen size={14} className="text-indigo-500" /> Featured Acts & Statutes
+                <BookOpen size={14} className="text-indigo-500" /> {t('featuredActsStatutes')}
             </h3>
             <div className="featured-acts-grid">
                 {acts.map((act, idx) => (
@@ -1421,7 +1431,7 @@ export const FeaturedActs = ({ onSelect }) => {
                         className="p-4 bg-slate-50/50 dark:bg-[#131C31]/50 border border-slate-200 dark:border-white/5 rounded-2xl cursor-pointer hover:border-indigo-500/20 hover:bg-indigo-500/5 dark:hover:bg-indigo-500/5 transition-all text-left"
                     >
                         <h4 className="text-xs font-bold text-maintext line-clamp-1">{act.name}</h4>
-                        <p className="text-[9px] text-[#94A3B8] font-medium mt-1 line-clamp-1">{act.desc}</p>
+                        <p className="text-[9px] text-[#94A3B8] font-medium mt-1 line-clamp-1">{t(act.descKey)}</p>
                     </motion.div>
                 ))}
             </div>
@@ -1429,21 +1439,21 @@ export const FeaturedActs = ({ onSelect }) => {
     );
 };
 
-export const PopularCases = ({ onSelect }) => {
+export const PopularCases = ({ onSelect, t = (x) => x }) => {
     const casesList = [
-        { name: "Kesavananda Bharati v. State of Kerala (1973)", topic: "Basic Structure Doctrine" },
-        { name: "Maneka Gandhi v. Union of India (1978)", topic: "Personal Liberty & Due Process" },
-        { name: "Vishaka v. State of Rajasthan (1997)", topic: "Sexual Harassment Guidelines" },
-        { name: "Shayara Bano v. Union of India (2017)", topic: "Triple Talaq Unconstitutional" },
-        { name: "Navtej Singh Johar v. Union of India (2018)", topic: "Decriminalization of Section 377" },
-        { name: "K.S. Puttaswamy v. Union of India (2017)", topic: "Fundamental Right to Privacy" },
-        { name: "Olga Tellis v. Bombay Municipal Corporation (1985)", topic: "Right to Livelihood" }
+        { name: "Kesavananda Bharati v. State of Kerala (1973)", topicKey: 'topic_basic_structure' },
+        { name: "Maneka Gandhi v. Union of India (1978)", topicKey: 'topic_personal_liberty' },
+        { name: "Vishaka v. State of Rajasthan (1997)", topicKey: 'topic_sexual_harassment' },
+        { name: "Shayara Bano v. Union of India (2017)", topicKey: 'topic_triple_talaq' },
+        { name: "Navtej Singh Johar v. Union of India (2018)", topicKey: 'topic_section_377' },
+        { name: "K.S. Puttaswamy v. Union of India (2017)", topicKey: 'topic_privacy' },
+        { name: "Olga Tellis v. Bombay Municipal Corporation (1985)", topicKey: 'topic_livelihood' }
     ];
 
     return (
         <div className="space-y-4">
             <h3 className="text-[11px] font-black text-[#94A3B8] uppercase tracking-[0.2em] flex items-center gap-2">
-                <Gavel size={14} className="text-indigo-500" /> Popular Landmark Case Laws
+                <Gavel size={14} className="text-indigo-500" /> {t('popularLandmarkCases')}
             </h3>
             <div className="popular-cases-grid">
                 {casesList.map((c, idx) => (
@@ -1458,7 +1468,7 @@ export const PopularCases = ({ onSelect }) => {
                         </div>
                         <div>
                             <h4 className="text-xs font-bold text-maintext line-clamp-1">{c.name}</h4>
-                            <p className="text-[9px] text-indigo-500 font-bold uppercase tracking-wider mt-0.5">{c.topic}</p>
+                            <p className="text-[9px] text-indigo-500 font-bold uppercase tracking-wider mt-0.5">{t(c.topicKey)}</p>
                         </div>
                     </motion.div>
                 ))}
@@ -1467,29 +1477,29 @@ export const PopularCases = ({ onSelect }) => {
     );
 };
 
-export const RecentJudgments = ({ onSelect }) => {
+export const RecentJudgments = ({ onSelect, t = (x) => x }) => {
     const judgments = [
-        { title: "Latest Supreme Court Judgments (2024)", court: "Supreme Court of India" },
-        { title: "Latest High Court Rulings on Civil Disputes", court: "Delhi High Court" },
-        { title: "Recent NCLAT Company Law Decisions", court: "NCLT / NCLAT" },
-        { title: "Newest Arbitral Award Precedents", court: "Arbitration Tribunals" }
+        { titleKey: 'latestSCJudgments', searchTitle: 'Latest Supreme Court Judgments (2024)', courtKey: 'supremeCourtOfIndia' },
+        { titleKey: 'latestHCRulings', searchTitle: 'Latest High Court Rulings on Civil Disputes', courtKey: 'delhiHighCourt' },
+        { titleKey: 'recentNCLATDecisions', searchTitle: 'Recent NCLAT Company Law Decisions', courtKey: 'ncltNclat' },
+        { titleKey: 'newestArbitralPrecedents', searchTitle: 'Newest Arbitral Award Precedents', courtKey: 'arbitrationTribunals' }
     ];
 
     return (
         <div className="space-y-4">
             <h3 className="text-[11px] font-black text-[#94A3B8] uppercase tracking-[0.2em] flex items-center gap-2">
-                <History size={14} className="text-indigo-500" /> Recent Judgments & Decisions
+                <History size={14} className="text-indigo-500" /> {t('recentJudgmentsDecisions')}
             </h3>
             <div className="recent-judgments-grid">
                 {judgments.map((j, idx) => (
                     <motion.div
                         key={idx}
                         whileHover={{ scale: 1.02 }}
-                        onClick={() => onSelect(j.title)}
+                        onClick={() => onSelect(j.searchTitle)}
                         className="p-4 bg-slate-50/50 dark:bg-[#131C31]/50 border border-slate-200 dark:border-white/5 rounded-2xl cursor-pointer hover:border-indigo-500/20 hover:bg-indigo-500/5 dark:hover:bg-indigo-500/5 transition-all text-left flex flex-col justify-between min-h-[90px]"
                     >
-                        <h4 className="text-xs font-bold text-maintext line-clamp-2 leading-relaxed">{j.title}</h4>
-                        <span className="text-[8px] font-black uppercase tracking-wider text-subtext mt-2 block">{j.court}</span>
+                        <h4 className="text-xs font-bold text-maintext line-clamp-2 leading-relaxed">{t(j.titleKey)}</h4>
+                        <span className="text-[8px] font-black uppercase tracking-wider text-subtext mt-2 block">{t(j.courtKey)}</span>
                     </motion.div>
                 ))}
             </div>
@@ -1497,58 +1507,59 @@ export const RecentJudgments = ({ onSelect }) => {
     );
 };
 
-export const SuggestedSearches = ({ onSelect }) => {
+export const SuggestedSearches = ({ onSelect, t = (x) => x }) => {
+    // Always use English strings for search queries, only the label is translated
     const suggestions = [
-        "Section 482 CrPC quashing petition",
-        "Dishonour of cheque Section 138 NI Act",
-        "Admissibility of electronic evidence Section 65B",
-        "Writ of Habeas Corpus personal liberty"
+        { labelKey: 'suggestedSearch1', query: 'Section 482 CrPC quashing petition' },
+        { labelKey: 'suggestedSearch2', query: 'Dishonour of cheque Section 138 NI Act' },
+        { labelKey: 'suggestedSearch3', query: 'Admissibility of electronic evidence Section 65B' },
+        { labelKey: 'suggestedSearch4', query: 'Writ of Habeas Corpus personal liberty' },
     ];
 
     return (
         <div className="flex flex-wrap items-center gap-2 justify-center">
-            <span className="text-[9px] font-black uppercase tracking-widest text-[#94A3B8] mr-1">Suggested:</span>
+            <span className="text-[9px] font-black uppercase tracking-widest text-[#94A3B8] mr-1">{t('suggestedLabel')}</span>
             {suggestions.map((s, idx) => (
                 <button
                     key={idx}
-                    onClick={() => onSelect(s)}
+                    onClick={() => onSelect(s.query)}
                     className="text-[9px] font-bold text-indigo-500 bg-indigo-500/5 hover:bg-indigo-500/10 px-2.5 py-1 rounded-full border border-indigo-500/10 transition-colors"
                 >
-                    {s}
+                    {t(s.labelKey)}
                 </button>
             ))}
         </div>
     );
 };
 
-export const EmptySearchState = ({ query, onClear }) => {
+export const EmptySearchState = ({ query, onClear, t = (x) => x }) => {
     return (
         <div className="flex flex-col items-center justify-center py-20 text-center bg-card/25 border border-border rounded-3xl p-8 max-w-lg mx-auto shadow-sm">
             <div className="w-16 h-16 bg-red-500/5 dark:bg-red-500/10 border border-red-500/10 rounded-2xl flex items-center justify-center mb-6">
                 <AlertCircle size={28} className="text-red-500 animate-bounce" />
             </div>
-            <h3 className="text-lg font-black text-maintext uppercase tracking-tight">No Precedents Found</h3>
+            <h3 className="text-lg font-black text-maintext uppercase tracking-tight">{t('noPrecedentsFound')}</h3>
             <p className="text-xs text-subtext max-w-sm mt-2 font-medium leading-relaxed">
-                We couldn't find any relevant judgments matching <span className="font-bold text-indigo-500">"{query}"</span>. Please try refining your query topic or search criteria.
+                {t('noPrecedentsFoundDesc')} <span className="font-bold text-indigo-500">"{query}"</span>
             </p>
             <button
                 onClick={onClear}
                 className="mt-6 text-[10px] font-black uppercase tracking-widest text-indigo-500 hover:text-indigo-600 bg-indigo-500/5 px-6 py-3 rounded-full border border-indigo-500/10 transition-colors"
             >
-                Clear Search
+                {t('clearSearch')}
             </button>
         </div>
     );
 };
 
-export const LegalResearchDirectory = ({ onSelectCategory }) => {
+export const LegalResearchDirectory = ({ onSelectCategory, t = (x) => x }) => {
     return (
         <div className="space-y-10 max-w-6xl mx-auto text-left mt-8">
-            <ResearchStats />
-            <ResearchCategoryGrid onSelect={onSelectCategory} />
-            <FeaturedActs onSelect={onSelectCategory} />
-            <PopularCases onSelect={onSelectCategory} />
-            <RecentJudgments onSelect={onSelectCategory} />
+            <ResearchStats t={t} />
+            <ResearchCategoryGrid onSelect={onSelectCategory} t={t} />
+            <FeaturedActs onSelect={onSelectCategory} t={t} />
+            <PopularCases onSelect={onSelectCategory} t={t} />
+            <RecentJudgments onSelect={onSelectCategory} t={t} />
         </div>
     );
 };

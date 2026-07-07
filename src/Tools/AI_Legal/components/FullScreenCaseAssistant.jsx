@@ -139,15 +139,21 @@ const FullScreenCaseAssistant = ({
   const hasUserMessages = useMemo(() => aiMessages.some(m => m.role === 'user'), [aiMessages]);
   const visibleMessages = aiMessages;
 
+  const lastCaseIdRef = useRef(null);
+
   useEffect(() => {
+    const currentId = caseData?.id || caseData?._id;
+    if (!currentId) return;
+    if (lastCaseIdRef.current === currentId) return;
+    lastCaseIdRef.current = currentId;
+
     const loadSessions = async () => {
       try {
-        const caseId = caseData?.id || caseData?._id;
-        const dbSessions = await chatStorageService.getSessions(caseId);
+        const dbSessions = await chatStorageService.getSessions(currentId, 'CASE', currentId);
         const mapped = dbSessions.map(s => ({
           chat_id: s.sessionId || s.chat_id,
           title: s.title || 'New Chat',
-          timestamp: s.lastModified || s.timestamp || Date.now(),
+          timestamp: new Date(s.lastModified || s.timestamp || Date.now()).getTime(),
         }));
         mapped.sort((a, b) => b.timestamp - a.timestamp);
         setSessions(mapped);
@@ -213,7 +219,17 @@ const FullScreenCaseAssistant = ({
   };
 
   const handleTextSelection = useCallback((e) => {
-    if (e.target.closest('.smart-context-tooltip')) return;
+    if (
+      e.target.closest('.smart-context-tooltip') ||
+      e.target.closest('button') ||
+      e.target.closest('a') ||
+      e.target.closest('input') ||
+      e.target.closest('textarea') ||
+      e.target.closest('header') ||
+      e.target.closest('footer')
+    ) {
+      return;
+    }
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) {
       setSelectedTextMenu(null);
@@ -262,13 +278,14 @@ const FullScreenCaseAssistant = ({
   const scrollContainerRef = useRef(null);
   const [showScrollBottomBtn, setShowScrollBottomBtn] = useState(false);
   const prevUserMsgCountRef = useRef(0);
+  const shouldForceScrollRef = useRef(false);
 
   const checkScrollBottom = useCallback(() => {
     if (!scrollContainerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
     const isGenerating = isChatSending;
     const isScrollable = scrollHeight > clientHeight;
-    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
     setShowScrollBottomBtn(!!(isGenerating && isScrollable && !isNearBottom));
   }, [isChatSending]);
 
@@ -286,17 +303,63 @@ const FullScreenCaseAssistant = ({
     setShowScrollBottomBtn(false);
   };
 
+  // Set force scroll on user message and when sending status starts
   const userMsgCount = useMemo(() => aiMessages.filter(m => m.role === 'user').length, [aiMessages]);
   useEffect(() => {
     if (userMsgCount > prevUserMsgCountRef.current) {
-      scrollToLatest();
+      shouldForceScrollRef.current = true;
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      }
     }
     prevUserMsgCountRef.current = userMsgCount;
   }, [userMsgCount]);
 
   useEffect(() => {
+    if (isChatSending) {
+      shouldForceScrollRef.current = true;
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      }
+    }
+  }, [isChatSending]);
+
+  // Observe inner scroll container content resize and adjust scroll height layout
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const innerDiv = container.firstElementChild;
+    if (!innerDiv) return;
+
+    let isObserving = true;
+    let lastScrollHeight = container.scrollHeight;
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (!isObserving) return;
+      const currentScrollHeight = container.scrollHeight;
+      if (currentScrollHeight === lastScrollHeight) return;
+      lastScrollHeight = currentScrollHeight;
+
+      if (shouldForceScrollRef.current) {
+        requestAnimationFrame(() => {
+          if (container) {
+            container.scrollTop = container.scrollHeight;
+          }
+        });
+        shouldForceScrollRef.current = false;
+      }
+      checkScrollBottom();
+    });
+
+    resizeObserver.observe(innerDiv);
     checkScrollBottom();
-  }, [aiMessages, isChatSending, checkScrollBottom]);
+
+    return () => {
+      isObserving = false;
+      resizeObserver.disconnect();
+    };
+  }, [isChatSending, checkScrollBottom]);
 
   // Copy text helper
   const handleCopyText = (text) => {
@@ -374,7 +437,16 @@ const FullScreenCaseAssistant = ({
               style={{ mixBlendMode: 'multiply' }}
               alt="AI LEGAL" 
             />
-            <h1 className="text-sm font-black text-slate-900 uppercase tracking-wider">AI LEGAL™ Chat</h1>
+            <div>
+              <h1 className="text-sm font-black text-slate-900 uppercase tracking-wider leading-tight">
+                {caseData ? (caseData.title || caseData.name || caseData.caseTitle || 'Case Assistant') : 'Case Assistant'}
+              </h1>
+              {caseData && (
+                <p className="text-[9px] font-bold text-[#4F46E5] uppercase tracking-widest leading-none mt-0.5">
+                  {[caseData.courtName || caseData.court, caseData.caseType || caseData.category, caseData.stage].filter(Boolean).join(' · ') || 'Case Workspace Assistant'}
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
@@ -444,7 +516,7 @@ const FullScreenCaseAssistant = ({
             }`}
           >
             <History size={13} />
-            <span>History</span>
+            <span>Case Conversations</span>
           </button>
 
           <button
@@ -734,9 +806,8 @@ const FullScreenCaseAssistant = ({
                         key={action.name}
                         type="button"
                         onClick={() => {
-                          setChatInput(action.prompt);
                           setShowPlusMenu(false);
-                          chatInputRef.current?.focus();
+                          handleSendAiMessage(null, action.prompt);
                         }}
                         className="flex items-center gap-2.5 p-2 bg-slate-50 hover:bg-indigo-50/30 border border-slate-100 hover:border-[#4F46E5] rounded-xl text-[11px] font-bold text-slate-750 text-left transition-all cursor-pointer border-none"
                       >
@@ -826,261 +897,261 @@ const FullScreenCaseAssistant = ({
       {/* ─── HISTORY DRAWER ──────────────────────────────────────────────── */}
       <AnimatePresence>
         {showHistoryPanel && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.4 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowHistoryPanel(false)}
-              className="fixed inset-0 bg-black z-[100000]"
-            />
-            {/* Sliding Panel */}
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'tween', duration: 0.25 }}
-              className="fixed right-0 top-0 bottom-0 w-80 bg-white border-l border-slate-200 z-[100001] shadow-2xl flex flex-col font-sans select-none"
-            >
-              <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <History size={16} className="text-[#4F46E5]" />
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-800">Chat History</h4>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowHistoryPanel(false)}
-                  className="p-1 hover:bg-slate-200 rounded-full border-none bg-transparent cursor-pointer text-slate-400"
-                >
-                  <X size={16} />
-                </button>
+          <motion.div
+            key="history-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.4 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowHistoryPanel(false)}
+            className="fixed inset-0 bg-black z-[100000]"
+          />
+        )}
+        {showHistoryPanel && (
+          <motion.div
+            key="history-panel"
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'tween', duration: 0.25 }}
+            className="fixed right-0 top-0 bottom-0 w-80 bg-white border-l border-slate-200 z-[100001] shadow-2xl flex flex-col font-sans select-none"
+          >
+            <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <History size={16} className="text-[#4F46E5]" />
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-800">Chat History</h4>
               </div>
+              <button
+                type="button"
+                onClick={() => setShowHistoryPanel(false)}
+                className="p-1 hover:bg-slate-200 rounded-full border-none bg-transparent cursor-pointer text-slate-400"
+              >
+                <X size={16} />
+              </button>
+            </div>
 
-              {/* Search within history */}
-              <div className="p-3 border-b border-slate-100 bg-white">
-                <div className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 flex items-center gap-2">
-                  <Search size={13} className="text-slate-400" />
-                  <input
-                    type="text"
-                    value={chatSearchQuery}
-                    onChange={(e) => setChatSearchQuery(e.target.value)}
-                    placeholder="Search conversations..."
-                    className="flex-1 bg-transparent border-none text-xs focus:ring-0 p-0 text-slate-700 outline-none"
-                  />
-                </div>
+            {/* Search within history */}
+            <div className="p-3 border-b border-slate-100 bg-white">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 flex items-center gap-2">
+                <Search size={13} className="text-slate-400" />
+                <input
+                  type="text"
+                  value={chatSearchQuery}
+                  onChange={(e) => setChatSearchQuery(e.target.value)}
+                  placeholder="Search conversations..."
+                  className="flex-1 bg-transparent border-none text-xs focus:ring-0 p-0 text-slate-700 outline-none"
+                />
               </div>
+            </div>
 
-              <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scrollbar text-xs">
-                {/* Pinned & Chats Groups */}
-                {['Pinned Chats', "Today's Chats", 'Yesterday', 'Older Chats'].map((groupName) => {
-                  let filtered = sessions;
-                  if (chatSearchQuery) {
-                    filtered = sessions.filter(s => s.title?.toLowerCase().includes(chatSearchQuery.toLowerCase()));
-                  }
+            <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scrollbar text-xs">
+              {/* Pinned & Chats Groups */}
+              {['Pinned Chats', "Today's Chats", 'Yesterday', 'Older Chats'].map((groupName) => {
+                let filtered = sessions;
+                if (chatSearchQuery) {
+                  filtered = sessions.filter(s => s.title?.toLowerCase().includes(chatSearchQuery.toLowerCase()));
+                }
 
-                  const nowTime = Date.now();
-                  const oneDay = 24 * 60 * 60 * 1000;
-                  
-                  let groupSessions = [];
-                  if (groupName === 'Pinned Chats') {
-                    groupSessions = filtered.filter(s => pinnedSessions.includes(s.chat_id));
-                  } else if (groupName === "Today's Chats") {
-                    groupSessions = filtered.filter(s => !pinnedSessions.includes(s.chat_id) && (nowTime - s.timestamp < oneDay));
-                  } else if (groupName === 'Yesterday') {
-                    groupSessions = filtered.filter(s => !pinnedSessions.includes(s.chat_id) && (nowTime - s.timestamp >= oneDay && nowTime - s.timestamp < 2 * oneDay));
-                  } else {
-                    groupSessions = filtered.filter(s => !pinnedSessions.includes(s.chat_id) && (nowTime - s.timestamp >= 2 * oneDay));
-                  }
+                const nowTime = Date.now();
+                const oneDay = 24 * 60 * 60 * 1000;
+                
+                let groupSessions = [];
+                if (groupName === 'Pinned Chats') {
+                  groupSessions = filtered.filter(s => pinnedSessions.includes(s.chat_id));
+                } else if (groupName === "Today's Chats") {
+                  groupSessions = filtered.filter(s => !pinnedSessions.includes(s.chat_id) && (nowTime - s.timestamp < oneDay));
+                } else if (groupName === 'Yesterday') {
+                  groupSessions = filtered.filter(s => !pinnedSessions.includes(s.chat_id) && (nowTime - s.timestamp >= oneDay && nowTime - s.timestamp < 2 * oneDay));
+                } else {
+                  groupSessions = filtered.filter(s => !pinnedSessions.includes(s.chat_id) && (nowTime - s.timestamp >= 2 * oneDay));
+                }
 
-                  if (groupSessions.length === 0) return null;
+                if (groupSessions.length === 0) return null;
 
-                  return (
-                    <div key={groupName} className="space-y-1.5">
-                      <div className="text-[9px] font-black uppercase text-slate-400 tracking-wider pl-1 mb-1">{groupName}</div>
-                      <div className="space-y-1">
-                        {groupSessions.map(s => {
-                          const isPinned = pinnedSessions.includes(s.chat_id);
-                          return (
-                            <div 
-                              key={s.chat_id}
-                              className={`group flex items-center justify-between p-2 rounded-xl transition-all ${
-                                s.chat_id === activeSessionId 
-                                  ? 'bg-[#4F46E5]/5 text-[#4F46E5] border border-indigo-100/50' 
-                                  : 'hover:bg-slate-50 text-slate-700'
-                              }`}
+                return (
+                  <div key={groupName} className="space-y-1.5">
+                    <div className="text-[9px] font-black uppercase text-slate-400 tracking-wider pl-1 mb-1">{groupName}</div>
+                    <div className="space-y-1">
+                      {groupSessions.map(s => {
+                        const isPinned = pinnedSessions.includes(s.chat_id);
+                        return (
+                          <div 
+                            key={s.chat_id}
+                            className={`group flex items-center justify-between p-2 rounded-xl transition-all ${
+                              s.chat_id === activeSessionId 
+                                ? 'bg-[#4F46E5]/5 text-[#4F46E5] border border-indigo-100/50' 
+                                : 'hover:bg-slate-50 text-slate-700'
+                            }`}
+                          >
+                            <button
+                              onClick={() => { switchSession(s.chat_id); setShowHistoryPanel(false); }}
+                              className="flex-1 text-left font-bold truncate flex flex-col gap-0.5 pl-1 border-none bg-transparent cursor-pointer"
                             >
+                              <span className="truncate">{s.title || 'New Chat'}</span>
+                              <span className="text-[9px] text-slate-400 font-medium font-mono">
+                                {new Date(s.timestamp).toLocaleDateString()} • Template: Copilot
+                              </span>
+                            </button>
+
+                            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button
-                                onClick={() => { switchSession(s.chat_id); setShowHistoryPanel(false); }}
-                                className="flex-1 text-left font-bold truncate flex flex-col gap-0.5 pl-1 border-none bg-transparent cursor-pointer"
+                                onClick={(e) => handleTogglePin(s.chat_id, e)}
+                                className={`p-1 rounded hover:bg-slate-200 transition-colors ${isPinned ? 'text-amber-500' : 'text-slate-400'} border-none bg-transparent cursor-pointer`}
+                                title={isPinned ? "Unpin" : "Pin"}
                               >
-                                <span className="truncate">{s.title || 'New Chat'}</span>
-                                <span className="text-[9px] text-slate-400 font-medium font-mono">
-                                  {new Date(s.timestamp).toLocaleDateString()} • Template: Copilot
-                                </span>
+                                {isPinned ? <PinOff size={11} /> : <Pin size={11} />}
                               </button>
-
-                              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
-                                  onClick={(e) => handleTogglePin(s.chat_id, e)}
-                                  className={`p-1 rounded hover:bg-slate-200 transition-colors ${isPinned ? 'text-amber-500' : 'text-slate-400'} border-none bg-transparent cursor-pointer`}
-                                  title={isPinned ? "Unpin" : "Pin"}
-                                >
-                                  {isPinned ? <PinOff size={11} /> : <Pin size={11} />}
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    const newName = prompt("Rename this chat:", s.title || "New Chat");
-                                    if (newName) {
-                                      chatStorageService.saveMessage(s.chat_id, {}, newName, caseData?._id);
-                                      setSessions(prev => prev.map(p => p.chat_id === s.chat_id ? { ...p, title: newName } : p));
-                                    }
-                                  }}
-                                  className="p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-750 border-none bg-transparent cursor-pointer"
-                                  title="Rename"
-                                >
-                                  <SlidersHorizontal size={11} />
-                                </button>
-                                <button
-                                  onClick={(e) => handleDeleteSession(s.chat_id, e)}
-                                  className="p-1 rounded hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors border-none bg-transparent cursor-pointer"
-                                  title="Delete"
-                                >
-                                  <Trash2 size={11} />
-                                </button>
-                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const newName = prompt("Rename this chat:", s.title || "New Chat");
+                                  if (newName) {
+                                    chatStorageService.saveMessage(s.chat_id, {}, newName, caseData?._id);
+                                    setSessions(prev => prev.map(p => p.chat_id === s.chat_id ? { ...p, title: newName } : p));
+                                  }
+                                }}
+                                className="p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-750 border-none bg-transparent cursor-pointer"
+                                title="Rename"
+                              >
+                                <SlidersHorizontal size={11} />
+                              </button>
+                              <button
+                                onClick={(e) => handleDeleteSession(s.chat_id, e)}
+                                className="p-1 rounded hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors border-none bg-transparent cursor-pointer"
+                                title="Delete"
+                              >
+                                <Trash2 size={11} />
+                              </button>
                             </div>
-                          );
-                        })}
-                      </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-
-                {sessions.length === 0 && (
-                  <div className="p-8 text-center text-slate-400">
-                    <MessageSquare size={20} className="mx-auto mb-2 opacity-50" />
-                    <span>No previous chats found</span>
                   </div>
-                )}
-              </div>
-            </motion.div>
-          </>
+                );
+              })}
+
+              {sessions.length === 0 && (
+                <div className="p-8 text-center text-slate-400">
+                  <MessageSquare size={20} className="mx-auto mb-2 opacity-50" />
+                  <span>No previous chats found</span>
+                </div>
+              )}
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
       {/* ─── CASE SUMMARY DRAWER ─────────────────────────────────────────── */}
       <AnimatePresence>
         {showSummaryDrawer && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.4 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowSummaryDrawer(false)}
-              className="fixed inset-0 bg-black z-[100000]"
-            />
-            {/* Sliding Panel */}
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'tween', duration: 0.25 }}
-              className="fixed right-0 top-0 bottom-0 w-96 bg-white border-l border-slate-200 z-[100001] shadow-2xl flex flex-col font-sans select-none text-left"
-            >
-              <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Scale size={16} className="text-[#4F46E5]" />
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-800">Case Summary Profile</h4>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowSummaryDrawer(false)}
-                  className="p-1 hover:bg-slate-200 rounded-full border-none bg-transparent cursor-pointer text-slate-400"
-                >
-                  <X size={16} />
-                </button>
+          <motion.div
+            key="summary-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.4 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowSummaryDrawer(false)}
+            className="fixed inset-0 bg-black z-[100000]"
+          />
+        )}
+        {showSummaryDrawer && (
+          <motion.div
+            key="summary-panel"
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'tween', duration: 0.25 }}
+            className="fixed right-0 top-0 bottom-0 w-96 bg-white border-l border-slate-200 z-[100001] shadow-2xl flex flex-col font-sans select-none text-left"
+          >
+            <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Scale size={16} className="text-[#4F46E5]" />
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-800">Case Summary Profile</h4>
               </div>
+              <button
+                type="button"
+                onClick={() => setShowSummaryDrawer(false)}
+                className="p-1 hover:bg-slate-200 rounded-full border-none bg-transparent cursor-pointer text-slate-400"
+              >
+                <X size={16} />
+              </button>
+            </div>
 
-              <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar text-xs">
-                {/* Meta details */}
-                <div className="space-y-4">
-                  <div className="p-4 border border-slate-100 bg-slate-50/50 rounded-2xl space-y-3">
-                    <span className="text-[10px] font-black uppercase text-[#4F46E5] tracking-widest block">Active Workspace</span>
-                    <h5 className="text-sm font-black text-slate-850 uppercase tracking-tight leading-none">{caseData?.title || caseData?.name || 'Rajesh Sharma vs Amit Verma'}</h5>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Status: Memory Active</p>
+            <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar text-xs">
+              {/* Meta details */}
+              <div className="space-y-4">
+                <div className="p-4 border border-slate-100 bg-slate-50/50 rounded-2xl space-y-3">
+                  <span className="text-[10px] font-black uppercase text-[#4F46E5] tracking-widest block">Active Workspace</span>
+                  <h5 className="text-sm font-black text-slate-850 uppercase tracking-tight leading-none">{caseData?.title || caseData?.name || 'Rajesh Sharma vs Amit Verma'}</h5>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Status: Memory Active</p>
+                </div>
+
+                {/* 11 AI Context Panel Variables Grid */}
+                <div className="grid grid-cols-2 gap-3.5">
+                  <div className="p-3 border border-slate-100 bg-white rounded-xl">
+                    <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Client</span>
+                    <span className="text-xs font-bold text-slate-700 block mt-1">{caseData?.clientName || 'Rajesh Sharma'}</span>
+                  </div>
+                  <div className="p-3 border border-slate-100 bg-white rounded-xl">
+                    <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Opponent</span>
+                    <span className="text-xs font-bold text-slate-700 block mt-1">{caseData?.opponentName || 'Amit Verma'}</span>
                   </div>
 
-                  {/* 11 AI Context Panel Variables Grid */}
-                  <div className="grid grid-cols-2 gap-3.5">
-                    <div className="p-3 border border-slate-100 bg-white rounded-xl">
-                      <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Client</span>
-                      <span className="text-xs font-bold text-slate-700 block mt-1">{caseData?.clientName || 'Rajesh Sharma'}</span>
-                    </div>
-                    <div className="p-3 border border-slate-100 bg-white rounded-xl">
-                      <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Opponent</span>
-                      <span className="text-xs font-bold text-slate-700 block mt-1">{caseData?.opponentName || 'Amit Verma'}</span>
-                    </div>
-
-                    <div className="p-3 border border-slate-100 bg-white rounded-xl">
-                      <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Case Type</span>
-                      <span className="text-xs font-bold text-slate-700 block mt-1">{caseData?.caseType || 'Civil Property Dispute'}</span>
-                    </div>
-                    <div className="p-3 border border-slate-100 bg-white rounded-xl">
-                      <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Current Stage</span>
-                      <span className="text-xs font-bold text-slate-700 block mt-1">{caseData?.stage || 'Evidence Stage'}</span>
-                    </div>
-
-                    <div className="p-3 border border-slate-100 bg-white rounded-xl col-span-2">
-                      <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Court Name</span>
-                      <span className="text-xs font-bold text-slate-700 block mt-1">{caseData?.courtName || 'District Court Jabalpur'}</span>
-                    </div>
-
-                    <div className="p-3 border border-slate-100 bg-white rounded-xl">
-                      <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Next Hearing</span>
-                      <span className="text-xs font-bold text-[#4F46E5] block mt-1">{caseData?.nextHearingDate || '15 Jul 2026'}</span>
-                    </div>
-                    <div className="p-3 border border-slate-100 bg-white rounded-xl">
-                      <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Deadlines</span>
-                      <span className="text-xs font-bold text-[#EF4444] block mt-1 truncate" title={caseData?.deadlines || 'CPC Order 37 Reply'}>{caseData?.deadlines || '12 Jul 2026'}</span>
-                    </div>
-
-                    <div className="p-3 border border-slate-100 bg-white rounded-xl flex items-center justify-between col-span-2">
-                      <div>
-                        <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Open Tasks</span>
-                        <span className="text-xs font-bold text-slate-750 block mt-0.5">{caseData?.tasks?.filter(t => t.status !== 'Done').length || 3} items</span>
-                      </div>
-                      <div className="flex gap-1.5 text-[9px] font-black text-slate-400">
-                        <span className="px-2 py-0.5 bg-slate-100 rounded">Evidence: {caseData?.documents?.length || 4}</span>
-                        <span className="px-2 py-0.5 bg-slate-100 rounded">Drafts: {caseData?.drafts?.length || 2}</span>
-                        <span className="px-2 py-0.5 bg-slate-100 rounded">Research: {caseData?.research?.length || 3}</span>
-                      </div>
-                    </div>
+                  <div className="p-3 border border-slate-100 bg-white rounded-xl">
+                    <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Case Type</span>
+                    <span className="text-xs font-bold text-slate-700 block mt-1">{caseData?.caseType || 'Civil Property Dispute'}</span>
+                  </div>
+                  <div className="p-3 border border-slate-100 bg-white rounded-xl">
+                    <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Current Stage</span>
+                    <span className="text-xs font-bold text-slate-700 block mt-1">{caseData?.stage || 'Evidence Stage'}</span>
                   </div>
 
-                  <div className="p-4 border border-[#4F46E5]/10 bg-indigo-50/30 rounded-2xl space-y-2">
-                    <div className="flex justify-between items-center text-[10px] font-black uppercase text-[#4F46E5]">
-                      <span>AI Win Probability</span>
-                      <span>{caseData?.probability || 60}%</span>
-                    </div>
-                    <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                      <div className="bg-[#4F46E5] h-full rounded-full" style={{ width: `${caseData?.probability || 60}%` }} />
-                    </div>
+                  <div className="p-3 border border-slate-100 bg-white rounded-xl col-span-2">
+                    <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Court Name</span>
+                    <span className="text-xs font-bold text-slate-700 block mt-1">{caseData?.courtName || 'District Court Jabalpur'}</span>
                   </div>
 
-                  {/* AI Recommendations */}
-                  <div className="p-4 bg-emerald-50/30 border border-emerald-500/10 rounded-2xl space-y-2.5">
-                    <span className="text-[10px] font-black uppercase text-emerald-600 tracking-widest block">AI Pleading Strategy</span>
-                    <p className="text-slate-600 font-semibold leading-relaxed">
-                      Verify witness statements against timelines to highlight early trial delay defenses. Prepare anticipatory bail if counter complaints arise.
-                    </p>
+                  <div className="p-3 border border-slate-100 bg-white rounded-xl">
+                    <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Next Hearing</span>
+                    <span className="text-xs font-bold text-[#4F46E5] block mt-1">{caseData?.nextHearingDate || '15 Jul 2026'}</span>
+                  </div>
+                  <div className="p-3 border border-slate-100 bg-white rounded-xl">
+                    <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Deadlines</span>
+                    <span className="text-xs font-bold text-[#EF4444] block mt-1 truncate" title={caseData?.deadlines || 'CPC Order 37 Reply'}>{caseData?.deadlines || '12 Jul 2026'}</span>
+                  </div>
+
+                  <div className="p-3 border border-slate-100 bg-white rounded-xl flex items-center justify-between col-span-2">
+                    <div>
+                      <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Open Tasks</span>
+                      <span className="text-xs font-bold text-slate-750 block mt-0.5">{caseData?.tasks?.filter(t => t.status !== 'Done').length || 3} items</span>
+                    </div>
+                    <div className="flex gap-1.5 text-[9px] font-black text-slate-400">
+                      <span className="px-2 py-0.5 bg-slate-100 rounded">Evidence: {caseData?.documents?.length || 4}</span>
+                      <span className="px-2 py-0.5 bg-slate-100 rounded">Drafts: {caseData?.drafts?.length || 2}</span>
+                      <span className="px-2 py-0.5 bg-slate-100 rounded">Research: {caseData?.research?.length || 3}</span>
+                    </div>
                   </div>
                 </div>
+
+                <div className="p-4 border border-[#4F46E5]/10 bg-indigo-50/30 rounded-2xl space-y-2">
+                  <div className="flex justify-between items-center text-[10px] font-black uppercase text-[#4F46E5]">
+                    <span>AI Win Probability</span>
+                    <span>{caseData?.probability || 60}%</span>
+                  </div>
+                  <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-[#4F46E5] h-full rounded-full" style={{ width: `${caseData?.probability || 60}%` }} />
+                  </div>
+                </div>
+
+                {/* AI Recommendations */}
+                <div className="p-4 bg-emerald-50/30 border border-emerald-500/10 rounded-2xl space-y-2.5">
+                  <span className="text-[10px] font-black uppercase text-emerald-600 tracking-widest block">AI Pleading Strategy</span>
+                  <p className="text-slate-600 font-semibold leading-relaxed">
+                    Verify witness statements against timelines to highlight early trial delay defenses. Prepare anticipatory bail if counter complaints arise.
+                  </p>
+                </div>
               </div>
-            </motion.div>
-          </>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 

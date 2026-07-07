@@ -18,27 +18,97 @@ import { legalService } from '../services/legalService';
 import { apiService } from '../../../services/apiService';
 import { chatStorageService } from '../../../services/chatStorageService';
 import LanguageToggle from './shared/LanguageToggle';
+import { useLanguage } from '../../../context/LanguageContext';
 import useOutputLanguage from '../hooks/useOutputLanguage';
 import { exportToPDF } from '../utils/exportToPDF';
 
-// ─── LEGAL SYSTEM INSTRUCTION ────────────────────────────────────────────────
 const LEGAL_SYSTEM_INSTRUCTION = `You are the AISA AI General Legal Chat Assistant. You are an expert in law.
-Provide comprehensive, structured legal analysis. Always format your responses using these structural blocks:
-1. SUMMARY: A brief 2-3 sentence overview.
-2. DEFINITION: Precise legal definition.
-3. RELEVANT STATUTES / LAW: Highlight the specific acts/sections using "> [!STATUTE] Section Name: Text".
-4. DETAILED EXPLANATION: Broken down into logical sub-headings.
-5. IMPORTANT POINTS: Numbered list.
-6. EXCEPTIONS / CLAUSES: Bulleted list of exceptions or qualifications. Use "> [!WARNING] Warning Info" if there is an important caution.
-7. RELEVANT CASE LAWS: Important Supreme Court/High Court precedents. Use "> [!CASE] Case Name: Holding".
-8. PRACTICAL EXAMPLE / SCENARIO: A realistic hypothetical scenario explaining how this law applies in practice.
-9. CONCLUSION: Professional closing note.
+Respond like a natural, professional conversational AI assistant (e.g. ChatGPT, Gemini, Claude) to provide precise, direct legal analysis and guidance.
+
+STRICT CONVERSATIONAL RULES:
+- DO NOT start your response with headers like "AI CASE REPORT", "[ACTIVE TOOL: ...]", "CURRENT DATE & TIME", "USER IDENTIFICATION", "Hello Admin", or any system/prompts metadata.
+- DO NOT force structured report blocks (such as "SUMMARY", "DEFINITION", etc.) unless the user explicitly requested a structured report. Respond in clean, readable prose paragraphs.
+- Begin your answer directly.
+- Maintain conversation context across follow-up queries naturally.
 
 STRICT RULES:
 - Never fabricate citations or statutes. If no citation is found, write Citation Not Available.
 - Respond in the same language as the user's prompt (e.g. Hindi, English).
 - Always use the legal styling callouts: [!IMPORTANT], [!WARNING], [!CASE], and [!STATUTE] inside markdown blockquotes to structure critical callouts.
 `;
+
+const detectPreferredLanguage = (query, history, uiLanguage) => {
+  const lowerQuery = query.toLowerCase();
+  const hindiExplicit = /\b(in\s+)?hindi\b|hindi\s+me|हिंदी|हिन्दी/i;
+  const englishExplicit = /\b(in\s+)?english\b|english\s+me|अंग्रेजी|अंग्रेज़ी/i;
+
+  if (hindiExplicit.test(lowerQuery)) {
+    return 'Hindi';
+  }
+  if (englishExplicit.test(lowerQuery)) {
+    return 'English';
+  }
+
+  const devanagariPattern = /[\u0900-\u097F]/;
+  const hinglishKeywords = /\b(batao|bataiye|samjhao|samjhaao|samjhaiye|kya\s+hai|kaise|saza|saja|kanoon|kanun|nayan|nyaya|faisla|nirnay|tarikh|tareekh|yachika|mota|moti)\b/i;
+  
+  if (devanagariPattern.test(query) || hinglishKeywords.test(lowerQuery)) {
+    return 'Hindi';
+  }
+
+  if (Array.isArray(history) && history.length > 0) {
+    for (let i = history.length - 1; i >= 0; i--) {
+      const msg = history[i];
+      const text = msg.text || msg.content || '';
+      if (!text) continue;
+      
+      if (hindiExplicit.test(text.toLowerCase())) return 'Hindi';
+      if (englishExplicit.test(text.toLowerCase())) return 'English';
+      
+      if (devanagariPattern.test(text)) return 'Hindi';
+    }
+  }
+
+  return uiLanguage === 'Hindi' ? 'Hindi' : 'English';
+};
+
+const isLanguageSwitchQuery = (query) => {
+  if (!query) return false;
+  const q = query.trim().toLowerCase().replace(/[?.!,]/g, '');
+  const switchPhrases = [
+    'hindi me samjhao',
+    'हिंदी में समझाओ',
+    'explain in hindi',
+    'अब हिंदी में बताओ',
+    'english me batao',
+    'translate to hindi',
+    'translate to english',
+    'hindi me',
+    'english me',
+    'translate',
+    'हिंदी में बताओ',
+    'hindi',
+    'हिंदी',
+    'हिन्दी',
+    'english',
+    'translate to hindi',
+    'translate to english',
+    'translate in hindi',
+    'translate in english',
+    'now in hindi',
+    'now in english'
+  ];
+
+  if (switchPhrases.includes(q)) {
+    return true;
+  }
+
+  if (/^(hindi|hindi\s+me|translate|english|english\s+me|हिन्दी|हिंदी)$/i.test(q)) {
+    return true;
+  }
+  
+  return false;
+};
 
 const safeFormatTime = (ts) => {
   if (!ts) return '';
@@ -267,15 +337,6 @@ const AiResponseCard = ({ msg, currentCase, chatIdRef, handleRegenerateMessage, 
     <div className="w-full flex flex-col">
       {/* Dynamic Translated Content Wrapper */}
       <div className="legal-msg-ai-text relative flex-1 text-slate-800 text-[14px]">
-        {/* Language selector block inside card */}
-        <div className="flex items-center justify-between gap-1.5 mb-4 border-b border-slate-100 pb-2">
-          <span className="text-[10px] font-black uppercase text-[#4F46E5] tracking-wider">AI Case Report</span>
-          <LanguageToggle
-            lang={outputLang}
-            onChange={setOutputLang}
-          />
-        </div>
-
         {/* Real Document Content body */}
         <div 
           id={`msg-content-${msg.id}`} 
@@ -833,15 +894,12 @@ Please continue the conversation naturally using this context. Never ask the use
     recognition.start();
   };
 
-  const [messages, setMessages] = useState([
-    {
-      id: '1',
-      text: `Hello! I am your AI ${toolName}. ${toolDesc} How can I assist you today?`,
-      sender: 'ai',
-      timestamp: new Date(),
-      isIntro: true,
-    }
-  ]);
+  const { toolkitLanguage, setToolkitLanguage } = useLanguage();
+  const [messages, setMessages] = useState([]);
+  const messagesRef = useRef([]);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState('');
   const [inputValue, setInputValue] = useState('');
@@ -901,7 +959,17 @@ Please continue the conversation naturally using this context. Never ask the use
   const [thinkingIndex, setThinkingIndex] = useState(0);
 
   const handleTextSelection = useCallback((e) => {
-    if (e.target.closest('.smart-context-tooltip')) return;
+    if (
+      e.target.closest('.smart-context-tooltip') ||
+      e.target.closest('button') ||
+      e.target.closest('a') ||
+      e.target.closest('input') ||
+      e.target.closest('textarea') ||
+      e.target.closest('header') ||
+      e.target.closest('footer')
+    ) {
+      return;
+    }
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) {
       setSelectedTextMenu(null);
@@ -1061,9 +1129,12 @@ Please continue the conversation naturally using this context. Never ask the use
     checkScrollBottom();
   }, [messages, isTyping, generationState, checkScrollBottom]);
 
-  // ─── FOCUS INPUT ON MOUNT ──────────────────────────────────────────────────
   useEffect(() => {
+    console.log("[LegalChatScreen] Component MOUNTED");
     setTimeout(() => inputRef.current?.focus(), 300);
+    return () => {
+      console.log("[LegalChatScreen] Component UNMOUNTED");
+    };
   }, []);
 
   // ─── CHAT SESSIONS & HISTORY ────────────────────────────────────────────────
@@ -1090,10 +1161,11 @@ Please continue the conversation naturally using this context. Never ask the use
   const loadSessionHistory = async (sessionId) => {
     try {
       const history = await chatStorageService.getHistory(sessionId);
-      if (history && Array.isArray(history.messages)) {
-        const parsedMsgs = history.messages.map(mapDbMessageToLocal);
-        setMessages(parsedMsgs);
-      }
+      const messagesList = history && Array.isArray(history.messages) 
+        ? history.messages 
+        : (Array.isArray(history) ? history : []);
+      const parsedMsgs = messagesList.map(mapDbMessageToLocal);
+      setMessages(parsedMsgs);
     } catch (e) {
       console.error("Failed to load session history", e);
     }
@@ -1112,13 +1184,21 @@ Please continue the conversation naturally using this context. Never ask the use
     dbMsg.mode = 'NORMAL_CHAT';
 
     try {
-      await chatStorageService.saveMessage(chatIdRef.current, dbMsg, title, currentCase?._id);
-      setSessions(prev => prev.map(s => {
-        if (s.chat_id === chatIdRef.current) {
-          return { ...s, title, timestamp: Date.now() };
+      await chatStorageService.saveMessage(chatIdRef.current, dbMsg, title, null, 'GENERAL', null);
+      setSessions(prev => {
+        const previewText = dbMsg.content || dbMsg.text || '';
+        const exists = prev.some(s => s.chat_id === chatIdRef.current);
+        if (exists) {
+          return prev.map(s => {
+            if (s.chat_id === chatIdRef.current) {
+              return { ...s, title, timestamp: Date.now(), preview: previewText };
+            }
+            return s;
+          });
+        } else {
+          return [{ chat_id: chatIdRef.current, title, timestamp: Date.now(), preview: previewText }, ...prev];
         }
-        return s;
-      }));
+      });
     } catch (e) {
       console.error('[LegalChatScreen] saveChatHistory failed', e);
     }
@@ -1127,26 +1207,79 @@ Please continue the conversation naturally using this context. Never ask the use
   // Load sessions on mount
   useEffect(() => {
     const loadSessions = async () => {
+      console.log("[LegalChatScreen] loadSessions triggered. currentCase?._id:", currentCase?._id);
       try {
-        const dbSessions = await chatStorageService.getSessions(currentCase?._id);
-        const filteredDb = dbSessions.filter(s => s.activeTool === 'General Legal Chat');
-        const mapped = filteredDb.map(s => ({
-          chat_id: s.sessionId || s.chat_id,
-          title: s.title || 'New Chat',
-          timestamp: s.lastModified || s.timestamp || Date.now(),
+        const dbSessions = await chatStorageService.getSessions(null, 'GENERAL');
+        const filteredDb = dbSessions.filter(s => 
+          s.activeTool === 'General Legal Chat' || 
+          !s.activeTool || 
+          s.activeTool === 'General Chat' || 
+          s.activeTool === 'NORMAL_CHAT'
+        );
+        
+        // Asynchronously populate previews for each session in history
+        const mapped = await Promise.all(filteredDb.map(async s => {
+          const chatId = s.sessionId || s.chat_id;
+          let preview = '';
+          try {
+            const history = await chatStorageService.getHistory(chatId);
+            if (history && Array.isArray(history.messages) && history.messages.length > 0) {
+              const lastMsg = history.messages[history.messages.length - 1];
+              preview = lastMsg.content || lastMsg.text || '';
+            } else if (Array.isArray(history) && history.length > 0) {
+              const lastMsg = history[history.length - 1];
+              preview = lastMsg.content || lastMsg.text || '';
+            }
+          } catch (e) {
+            console.warn("Failed to load preview for", chatId, e);
+          }
+          return {
+            chat_id: chatId,
+            title: s.title || 'New Chat',
+            timestamp: new Date(s.lastModified || s.timestamp || Date.now()).getTime(),
+            preview: preview
+          };
         }));
+
         mapped.sort((a, b) => b.timestamp - a.timestamp);
         setSessions(mapped);
 
-        const isPathNew = window.location.pathname.endsWith('/new');
+        // Check if there is an active session ID in localStorage to restore
+        const caseId = currentCase?._id || currentCase?.id || 'general';
+        const storageKey = `aisa_active_legal_chat_session_id_${caseId}`;
+        const activeId = localStorage.getItem(storageKey);
 
-        if (!isPathNew) {
-          if (mapped.length > 0) {
-            chatIdRef.current = mapped[0].chat_id;
-            setActiveSessionId(mapped[0].chat_id);
-            await loadSessionHistory(mapped[0].chat_id);
+        const isPathNew = window.location.pathname.endsWith('/new') || location.state?.newChat;
+
+        if (isPathNew) {
+          await handleNewChat(false);
+        } else if (activeId) {
+          const exists = mapped.some(s => s.chat_id === activeId);
+          if (exists) {
+            chatIdRef.current = activeId;
+            setActiveSessionId(activeId);
+            await loadSessionHistory(activeId);
           } else {
-            await handleNewChat(false);
+            // Unsaved new session
+            chatIdRef.current = activeId;
+            setActiveSessionId(activeId);
+            if (messagesRef.current.length === 0) {
+              setMessages([]);
+            }
+          }
+        } else {
+          // Scenario 1: Fresh conversation on entering general chat
+          await handleNewChat(false);
+          if (location.state?.newChat) {
+            try {
+              const stateCopy = { ...window.history.state };
+              if (stateCopy.usr) {
+                stateCopy.usr = { ...stateCopy.usr, newChat: false };
+              }
+              window.history.replaceState(stateCopy, '');
+            } catch (e) {
+              console.warn('[LegalChatScreen] Failed to clear history state:', e);
+            }
           }
         }
       } catch (e) {
@@ -1163,11 +1296,7 @@ Please continue the conversation naturally using this context. Never ask the use
     }
   }, [location.pathname]);
 
-  useEffect(() => {
-    if (messages.length > 1) {
-      saveChatHistory(messages);
-    }
-  }, [messages, saveChatHistory]);
+
 
   // ─── STOP WORKFLOW ─────────────────────────────────────────────────────────
   const handleStop = () => {
@@ -1213,7 +1342,9 @@ Please continue the conversation naturally using this context. Never ask the use
       fullPromptText: hiddenContextText || text,
     };
 
-    setMessages(prev => [...prev, userMsg]);
+    const updatedUserMsgs = [...messages, userMsg];
+    setMessages(updatedUserMsgs);
+    saveChatHistory(updatedUserMsgs);
     setInputValue('');
     setIsTyping(true);
     setGenerationState('streaming');
@@ -1250,17 +1381,60 @@ Please continue the conversation naturally using this context. Never ask the use
         systemInstruction += `- Case Name: ${currentCase.title || currentCase.name || 'N/A'}\n`;
         systemInstruction += `- Case Description: ${currentCase.summary || currentCase.description || 'N/A'}\n`;
       }
+      const detectedLanguage = detectPreferredLanguage(promptText, messages, toolkitLanguage);
+      const isSwitch = isLanguageSwitchQuery(promptText) ? 'Yes' : 'No';
+      systemInstruction += `
+\n\n### DYNAMIC LANGUAGE SWITCH & CONTEXT CONTINUITY:
+- Current UI Language: ${toolkitLanguage === 'Hindi' ? 'Hindi' : 'English'}
+- Conversation Preferred Language: ${detectedLanguage}
+- Is User Query a Language/Translation Switch: ${isSwitch}
+
+STRICT RULE FOR LANGUAGE SWITCH (IF YES):
+- DO NOT answer the language switch request message directly (e.g. do not say "Sure, I can translate", do not show greetings/intro, do not show current date/time, and do not show legal disclaimers).
+- Instead, take the IMMEDIATELY PREVIOUS assistant response or the active legal topic, and REGENERATE it entirely in the Conversation Preferred Language.
+- Maintain the exact same formatting, same headings, same citations, same analysis structure, and same reasoning. Only the language is changed.
+
+GREETINGS & DISCLAIMER ONCE RULE (STRICT):
+- Display greetings (e.g., "Hello Admin"), current date/time, legal disclaimer, and assistant introduction ONLY ONCE at the absolute beginning of the conversation.
+- NEVER repeat or print them on follow-up messages, language-switch requests, or context continuation requests. Keep follow-up responses direct, focused, and starting immediately with the content.
+
+LEGAL TERMINOLOGY IN HINDI:
+- When responding in Hindi, use professional Indian legal terms:
+  - Evidence -> साक्ष्य
+  - Court -> न्यायालय
+  - Judgment -> निर्णय
+  - Petitioner -> याचिकाकर्ता
+  - Respondent -> प्रतिवादी
+  - Appeal -> अपील
+  - Legal Notice -> कानूनी नोटिस
+  - Contract -> अनुबंध
+  - Clause -> धारा
+  - Agreement -> समझौता
+  - Relief -> राहत
+  - Jurisdiction -> अधिकार क्षेत्र
+  - Proceedings -> कार्यवाही
+  - Affidavit -> शपथपत्र
+  - Witness -> गवाह
+  - Cross Examination -> जिरह
+  - Supreme Court -> उच्चतम न्यायालय
+  - High Court -> उच्च न्यायालय
+  - District Court -> जिला न्यायालय
+
+THINK IN TARGET LANGUAGE:
+- Generate directly in the target language (Hindi or English). Do not translate post-hoc.
+- Do not mix Hindi and English in the same sentence.
+`;
 
       const response = await generateChatResponse(
         apiHistory,
         promptText,
         systemInstruction,
         apiAttachments,
-        'English',
+        detectedLanguage,
         abortControllerRef.current.signal,
         'LEGAL_TOOLKIT',
-        null,
-        null
+        chatIdRef.current,
+        currentCase?._id || null
       );
 
       let responseText = '';
@@ -1304,17 +1478,27 @@ Please continue the conversation naturally using this context. Never ask the use
       }
 
       const wasStopped = !isStreamingRef.current;
-      setMessages(prev => prev.map(m => {
+      const finalText = wasStopped ? currentText : responseText;
+      const finalAiMsg = {
+        id: aiMsgId,
+        text: finalText,
+        sender: 'ai',
+        timestamp: new Date(),
+        isStreaming: false,
+        isStopped: wasStopped,
+        fullPromptText: responseText
+      };
+      const finalMsgs = messagesRef.current.map(m => {
         if (m.id === aiMsgId) {
-          return { 
-            ...m, 
-            isStreaming: false, 
-            isStopped: wasStopped,
-            text: wasStopped ? currentText : responseText
-          };
+          return finalAiMsg;
         }
         return m;
-      }));
+      });
+      const exists = finalMsgs.some(m => m.id === aiMsgId);
+      const safeFinalMsgs = exists ? finalMsgs : [...finalMsgs, finalAiMsg];
+
+      setMessages(safeFinalMsgs);
+      saveChatHistory(safeFinalMsgs);
 
       setGenerationState(wasStopped ? 'stopped' : 'completed');
     } catch (error) {
@@ -1412,17 +1596,60 @@ Please continue the conversation naturally using this context. Never ask the use
         systemInstruction += `- Case Name: ${currentCase.title || currentCase.name || 'N/A'}\n`;
         systemInstruction += `- Case Description: ${currentCase.summary || currentCase.description || 'N/A'}\n`;
       }
+      const detectedLanguage = detectPreferredLanguage(promptText, messages, toolkitLanguage);
+      const isSwitch = isLanguageSwitchQuery(promptText) ? 'Yes' : 'No';
+      systemInstruction += `
+\n\n### DYNAMIC LANGUAGE SWITCH & CONTEXT CONTINUITY:
+- Current UI Language: ${toolkitLanguage === 'Hindi' ? 'Hindi' : 'English'}
+- Conversation Preferred Language: ${detectedLanguage}
+- Is User Query a Language/Translation Switch: ${isSwitch}
+
+STRICT RULE FOR LANGUAGE SWITCH (IF YES):
+- DO NOT answer the language switch request message directly (e.g. do not say "Sure, I can translate", do not show greetings/intro, do not show current date/time, and do not show legal disclaimers).
+- Instead, take the IMMEDIATELY PREVIOUS assistant response or the active legal topic, and REGENERATE it entirely in the Conversation Preferred Language.
+- Maintain the exact same formatting, same headings, same citations, same analysis structure, and same reasoning. Only the language is changed.
+
+GREETINGS & DISCLAIMER ONCE RULE (STRICT):
+- Display greetings (e.g., "Hello Admin"), current date/time, legal disclaimer, and assistant introduction ONLY ONCE at the absolute beginning of the conversation.
+- NEVER repeat or print them on follow-up messages, language-switch requests, or context continuation requests. Keep follow-up responses direct, focused, and starting immediately with the content.
+
+LEGAL TERMINOLOGY IN HINDI:
+- When responding in Hindi, use professional Indian legal terms:
+  - Evidence -> साक्ष्य
+  - Court -> न्यायालय
+  - Judgment -> निर्णय
+  - Petitioner -> याचिकाकर्ता
+  - Respondent -> प्रतिवादी
+  - Appeal -> अपील
+  - Legal Notice -> कानूनी नोटिस
+  - Contract -> अनुबंध
+  - Clause -> धारा
+  - Agreement -> समझौता
+  - Relief -> राहत
+  - Jurisdiction -> अधिकार क्षेत्र
+  - Proceedings -> कार्यवाही
+  - Affidavit -> शपथपत्र
+  - Witness -> गवाह
+  - Cross Examination -> जिरह
+  - Supreme Court -> उच्चतम न्यायालय
+  - High Court -> उच्च न्यायालय
+  - District Court -> जिला न्यायालय
+
+THINK IN TARGET LANGUAGE:
+- Generate directly in the target language (Hindi or English). Do not translate post-hoc.
+- Do not mix Hindi and English in the same sentence.
+`;
 
       const response = await generateChatResponse(
         precedingHistory,
         promptText,
         systemInstruction,
         [],
-        'English',
+        detectedLanguage,
         abortControllerRef.current.signal,
         'LEGAL_TOOLKIT',
-        null,
-        null
+        chatIdRef.current,
+        currentCase?._id || null
       );
 
       let responseText = '';
@@ -1472,17 +1699,40 @@ Please continue the conversation naturally using this context. Never ask the use
       }
 
       const wasStopped = !isStreamingRef.current;
-      setMessages(prev => prev.map(m => {
+      const finalText = wasStopped ? currentText : responseText;
+      
+      const finalAiMsg = {
+        id: newAiMsgId,
+        sender: 'ai',
+        text: finalText,
+        timestamp: new Date(),
+        isStreaming: false,
+        isStopped: wasStopped,
+        fullPromptText: responseText
+      };
+      
+      const successStatusMsg = {
+        id: statusCardId,
+        sender: 'system_regenerating',
+        originalPrompt: promptText.length > 120 ? promptText.slice(0, 120) + '...' : promptText,
+        status: 'success',
+        timestamp: new Date()
+      };
+
+      const finalMsgs = messagesRef.current.map(m => {
         if (m.id === newAiMsgId) {
-          return { 
-            ...m, 
-            isStreaming: false, 
-            isStopped: wasStopped,
-            text: wasStopped ? currentText : responseText
-          };
+          return finalAiMsg;
         }
         return m;
-      }));
+      });
+      const hasStatusCard = finalMsgs.some(m => m.id === statusCardId);
+      const withStatus = hasStatusCard ? finalMsgs : [...finalMsgs, successStatusMsg];
+      
+      const exists = withStatus.some(m => m.id === newAiMsgId);
+      const safeFinalMsgs = exists ? withStatus : [...withStatus, finalAiMsg];
+
+      setMessages(safeFinalMsgs);
+      saveChatHistory(safeFinalMsgs);
 
       setGenerationState(wasStopped ? 'stopped' : 'completed');
       toast.success("Response regenerated successfully!");
@@ -1650,7 +1900,16 @@ Please continue the conversation naturally using this context. Never ask the use
     setActiveSessionId(newId);
     setAttachments([]);
     setInputValue('');
+    setIsTyping(false);
+    setGenerationState('idle');
     setTimeout(() => inputRef.current?.focus(), 150);
+
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+
+    const caseId = currentCase?._id || currentCase?.id || 'general';
+    localStorage.setItem(`aisa_active_legal_chat_session_id_${caseId}`, newId);
 
     if (currentCase && isAutoAnalysis) {
       const promptText = `Provide a comprehensive legal analysis and strategy advice for the case: ${currentCase.title || currentCase.name}`;
@@ -1658,18 +1917,61 @@ Please continue the conversation naturally using this context. Never ask the use
       setMessages([userMsg]);
       setIsTyping(true);
 
-      const newSessionItem = { chat_id: newId, title: 'Case Analysis', timestamp: Date.now() };
+      const newSessionItem = { chat_id: newId, title: 'Case Analysis', timestamp: Date.now(), preview: promptText };
       setSessions(prev => [newSessionItem, ...prev]);
 
       const dbMsg = mapLocalMessageToDb(userMsg);
       dbMsg.activeTool = 'General Legal Chat';
       dbMsg.mode = 'NORMAL_CHAT';
-      await chatStorageService.saveMessage(newId, dbMsg, 'Case Analysis', currentCase?._id);
+      await chatStorageService.saveMessage(newId, dbMsg, 'Case Analysis', null, 'GENERAL', null);
 
       try {
         let systemInstruction = LEGAL_SYSTEM_INSTRUCTION;
         systemInstruction += `\n\nCase Context:\n- Title: ${currentCase.title || currentCase.name}\n- Summary: ${currentCase.summary || currentCase.description}\n`;
-        const response = await generateChatResponse([], promptText, systemInstruction, [], 'English', null, 'LEGAL_TOOLKIT', null, null);
+        const detectedLanguage = detectPreferredLanguage(promptText, [], toolkitLanguage);
+        const isSwitch = isLanguageSwitchQuery(promptText) ? 'Yes' : 'No';
+        systemInstruction += `
+\n\n### DYNAMIC LANGUAGE SWITCH & CONTEXT CONTINUITY:
+- Current UI Language: ${toolkitLanguage === 'Hindi' ? 'Hindi' : 'English'}
+- Conversation Preferred Language: ${detectedLanguage}
+- Is User Query a Language/Translation Switch: ${isSwitch}
+
+STRICT RULE FOR LANGUAGE SWITCH (IF YES):
+- DO NOT answer the language switch request message directly (e.g. do not say "Sure, I can translate", do not show greetings/intro, do not show current date/time, and do not show legal disclaimers).
+- Instead, take the IMMEDIATELY PREVIOUS assistant response or the active legal topic, and REGENERATE it entirely in the Conversation Preferred Language.
+- Maintain the exact same formatting, same headings, same citations, same analysis structure, and same reasoning. Only the language is changed.
+
+GREETINGS & DISCLAIMER ONCE RULE (STRICT):
+- Display greetings (e.g., "Hello Admin"), current date/time, legal disclaimer, and assistant introduction ONLY ONCE at the absolute beginning of the conversation.
+- NEVER repeat or print them on follow-up messages, language-switch requests, or context continuation requests. Keep follow-up responses direct, focused, and starting immediately with the content.
+
+LEGAL TERMINOLOGY IN HINDI:
+- When responding in Hindi, use professional Indian legal terms:
+  - Evidence -> साक्ष्य
+  - Court -> न्यायालय
+  - Judgment -> निर्णय
+  - Petitioner -> याचिकाकर्ता
+  - Respondent -> प्रतिवादी
+  - Appeal -> अपील
+  - Legal Notice -> कानूनी नोटिस
+  - Contract -> अनुबंध
+  - Clause -> धारा
+  - Agreement -> समझौता
+  - Relief -> राहत
+  - Jurisdiction -> अधिकार क्षेत्र
+  - Proceedings -> कार्यवाही
+  - Affidavit -> शपथपत्र
+  - Witness -> गवाह
+  - Cross Examination -> जिरह
+  - Supreme Court -> उच्चतम न्यायालय
+  - High Court -> उच्च न्यायालय
+  - District Court -> जिला न्यायालय
+
+THINK IN TARGET LANGUAGE:
+- Generate directly in the target language (Hindi or English). Do not translate post-hoc.
+- Do not mix Hindi and English in the same sentence.
+`;
+        const response = await generateChatResponse([], promptText, systemInstruction, [], detectedLanguage, null, 'LEGAL_TOOLKIT', newId, currentCase?._id || null);
         
         let responseText = typeof response === 'string' ? response : (response?.reply || response?.text || 'Analysis complete.');
         const aiMsg = { id: (Date.now() + 1).toString(), text: responseText, sender: 'ai', timestamp: new Date() };
@@ -1684,26 +1986,15 @@ Please continue the conversation naturally using this context. Never ask the use
         setIsTyping(false);
       }
     } else {
-      const newMsgs = [{
-        id: '1',
-        text: `Hello! I am your AI ${toolName}. Ask me anything about statutes, bare acts, case research, or litigation strategy.`,
-        sender: 'ai',
-        timestamp: new Date(),
-        isIntro: true,
-      }];
-      setMessages(newMsgs);
-      const newSessionItem = { chat_id: newId, title: 'New Chat', timestamp: Date.now() };
-      setSessions(prev => [newSessionItem, ...prev]);
-      const dbMsg = mapLocalMessageToDb(newMsgs[0]);
-      dbMsg.activeTool = 'General Legal Chat';
-      dbMsg.mode = 'NORMAL_CHAT';
-      await chatStorageService.saveMessage(newId, dbMsg, 'New Chat', currentCase?._id);
+      setMessages([]);
     }
   };
 
   const switchSession = async (sessionId) => {
     chatIdRef.current = sessionId;
     setActiveSessionId(sessionId);
+    const caseId = currentCase?._id || currentCase?.id || 'general';
+    localStorage.setItem(`aisa_active_legal_chat_session_id_${caseId}`, sessionId);
     await loadSessionHistory(sessionId);
   };
 
@@ -1860,21 +2151,12 @@ Please continue the conversation naturally using this context. Never ask the use
                 <div className="w-16 h-16 md:w-20 md:h-20 bg-indigo-50 dark:bg-indigo-950/20 text-[#4F46E5] rounded-3xl flex items-center justify-center mb-1 md:mb-2 shadow-lg shadow-indigo-500/5">
                   <Scale className="w-8 h-8 md:w-10 md:h-10 text-[#4F46E5]" />
                 </div>
-                <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-wider">AI LEGAL CHAT</h1>
-                <p className="text-[11px] md:text-sm font-semibold text-slate-500 dark:text-slate-400 max-w-sm md:max-w-md leading-relaxed hidden md:block">
-                  Professional legal research and assistance.
+                <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                  <span>⚖️</span> AI Legal Assistant
+                </h1>
+                <p className="text-xs sm:text-sm font-bold text-[#4F46E5] uppercase tracking-[0.2em] mt-1">
+                  Start a new legal conversation
                 </p>
-                <div className="block md:hidden space-y-2 mt-1 px-4">
-                  <p className="text-[12px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-widest">
-                    Professional Legal Research Assistant
-                  </p>
-                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 max-w-[280px] mx-auto leading-relaxed">
-                    Ask any legal question, upload evidence, draft legal documents, analyze judgments, or search case law.
-                  </p>
-                  <p className="text-sm font-black text-indigo-600 dark:text-indigo-400 mt-6 tracking-wide">
-                    How can I help you today?
-                  </p>
-                </div>
               </div>
 
               {/* Suggestions Grid (Desktop/Tablet Only) */}
@@ -2239,7 +2521,7 @@ Please continue the conversation naturally using this context. Never ask the use
           )}
 
           {/* ChatGPT-style Round Input Bar */}
-          <div className="bg-white border border-[#E5E7EB] rounded-full p-1.5 md:p-2 flex items-center gap-1 sm:gap-2 shadow-md hover:shadow-lg transition-shadow relative w-full overflow-hidden">
+          <div className="bg-white border border-[#E5E7EB] rounded-full p-1.5 md:p-2 flex items-center gap-1 sm:gap-2 shadow-md hover:shadow-lg transition-shadow relative w-full">
             
             {/* Plus button popup Actions Grid */}
             {showPlusMenu && (
@@ -2262,12 +2544,12 @@ Please continue the conversation naturally using this context. Never ask the use
                       <button
                         key={action.name}
                         type="button"
+                        disabled={isTyping || generationState === 'streaming'}
                         onClick={() => {
-                          setInputValue(action.prompt);
                           setShowPlusMenu(false);
-                          inputRef.current?.focus();
+                          sendMessage(action.prompt);
                         }}
-                        className="flex items-center gap-2.5 p-2 bg-slate-50 hover:bg-indigo-50/30 border border-slate-100 hover:border-[#4F46E5] rounded-xl text-[11px] font-bold text-slate-750 text-left transition-all cursor-pointer border-none"
+                        className="flex items-center gap-2.5 p-2 bg-slate-50 hover:bg-indigo-50/30 border border-slate-100 hover:border-[#4F46E5] rounded-xl text-[11px] font-bold text-slate-750 text-left transition-all cursor-pointer border-none disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <span className="p-1.5 bg-white rounded-lg shadow-sm">{getActionIcon(action.icon)}</span>
                         <span>{action.name}</span>
@@ -2560,9 +2842,14 @@ Please continue the conversation naturally using this context. Never ask the use
                                 onClick={() => { switchSession(s.chat_id); setShowHistoryPanel(false); }}
                                 className="flex-1 text-left font-bold truncate flex flex-col gap-0.5 pl-1 border-none bg-transparent cursor-pointer"
                               >
-                                <span className="truncate">{s.title || 'New Chat'}</span>
-                                <span className="text-[9px] text-slate-400 font-medium font-mono">
-                                  {new Date(s.timestamp).toLocaleDateString()} • Template: Copilot
+                                <span className="truncate text-xs text-slate-800 dark:text-white font-bold">{s.title || 'New Chat'}</span>
+                                {s.preview && (
+                                  <span className="text-[10px] text-slate-450 dark:text-slate-500 font-medium truncate max-w-[200px] block">
+                                    {s.preview}
+                                  </span>
+                                )}
+                                <span className="text-[9px] text-slate-400 font-medium font-mono block">
+                                  Last Updated: {new Date(s.timestamp).toLocaleDateString()} at {new Date(s.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                               </button>
 
@@ -2579,7 +2866,7 @@ Please continue the conversation naturally using this context. Never ask the use
                                     e.stopPropagation();
                                     const newName = prompt("Rename this chat:", s.title || "New Chat");
                                     if (newName) {
-                                      chatStorageService.saveMessage(s.chat_id, {}, newName, currentCase?._id);
+                                      chatStorageService.saveMessage(s.chat_id, {}, newName, null, 'GENERAL', null);
                                       setSessions(prev => prev.map(p => p.chat_id === s.chat_id ? { ...p, title: newName } : p));
                                     }
                                   }}

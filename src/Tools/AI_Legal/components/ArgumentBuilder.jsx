@@ -16,6 +16,7 @@ import { apiService } from '../../../services/apiService';
 import { useActiveCase } from '../context/ActiveCaseContext';
 import BuildArgumentModal from './BuildArgumentModal';
 import useOutputLanguage from '../hooks/useOutputLanguage';
+import { useLanguage } from '../../../context/LanguageContext';
 import LanguageToggle from './shared/LanguageToggle';
 import CopyOutputButton from './shared/CopyOutputButton';
 import { getUserData } from '../../../userStore/userData';
@@ -273,7 +274,241 @@ const REASONING_DATA = {
   }
 };
 
+const HINDI_DICT = {
+  // Navigation
+  "Choose Source": "स्रोत चुनें",
+  "Source": "स्रोत",
+  "AI Analysis": "एआई विश्लेषण",
+  "Court Draft": "न्यायालय हेतु मसौदा",
+  "Back": "पीछे",
+  "Cancel": "रद्द करें",
+  "Selected": "चयनित",
+  "Pinned": "पिन किया गया",
+
+  // Choose Source Cards
+  "Existing Case Workspace": "मौजूदा केस वर्कस्पेस",
+  "Auto populate facts, parties, documents, evidence, timeline from chosen case.": "चुने गए मामले से तथ्यों, पक्षों, दस्तावेजों, साक्ष्यों और समयरेखा को स्वचालित रूप से स्वतः भरें।",
+  "Upload Legal Documents": "कानूनी दस्तावेज अपलोड करें",
+  "AI OCR extracts timelines, parties, laws, facts from uploaded files.": "एआई ओसीआर अपलोड की गई फाइलों से समयरेखा, पक्षों, कानूनों और तथ्यों को निकालता है।",
+  "Manual Facts Outline": "मैनुअल तथ्य रूपरेखा",
+  "Advocate details case facts manually. AI will analyze facts and build strategy.": "अधिवक्ता मामले के तथ्यों को मैन्युअल रूप से दर्ज करता है। एआई तथ्यों का विश्लेषण करेगा और रणनीति बनाएगा।",
+
+  // Choose Case inputs
+  "Choose Case Workspace": "केस वर्कस्पेस चुनें",
+  "Search or Select Case Workspace": "केस वर्कस्पेस खोजें या चुनें",
+  "Search workspace...": "वर्कस्पेस खोजें...",
+  "No cases found": "कोई मामला नहीं मिला",
+  "Case Matter Summary": "केस मामले का सारांश",
+  "AI Ready": "एआई तैयार",
+  "Case Name": "केस का नाम",
+  "Case Type": "केस का प्रकार",
+  "Parties": "पक्ष",
+  "Court": "न्यायालय",
+
+  // OCR upload
+  "Staged files for OCR extraction": "ओसीआर निष्कर्षण के लिए चुनी गई फाइलें",
+  "FIRs, petitions, contracts, PDFs": "प्राथमिकी, याचिकाएं, अनुबंध, पीडीएफ",
+
+  // Manual inputs
+  "Litigation Goal *": "मुकदमेबाजी का उद्देश्य *",
+  "Select Litigation Goal": "मुकदमेबाजी का उद्देश्य चुनें",
+  "Practice Area *": "अभ्यास क्षेत्र *",
+  "Select Practice Area": "अभ्यास क्षेत्र चुनें",
+  "Relief Required": "आवश्यक राहत",
+  "Select Relief (Optional)": "राहत चुनें (वैकल्पिक)",
+  "Legal Issue / Case Facts *": "कानूनी मुद्दा / मामले के तथ्य *",
+  "Editor text copied!": "संपादक का पाठ कॉपी किया गया!",
+  "Text pasted into editor": "पाठ संपादक में पेस्ट किया गया",
+  "Please paste manually using Ctrl+V": "कृपया Ctrl+V का उपयोग करके मैन्युअल रूप से पेस्ट करें",
+  "Imported text file:": "आयातित पाठ फाइल:",
+  "Please drag a plain text file (.txt)": "कृपया एक सादा पाठ फ़ाइल (.txt) खींचें",
+  "Dropped text segment": "छोड़ा गया पाठ खंड",
+  "Workspace Hints:": "वर्कस्पेस संकेत:",
+  "Mention important dates.": "महत्वपूर्ण तिथियों का उल्लेख करें।",
+  "Describe agreements.": "समझौतों का वर्णन करें।",
+  "Mention available evidence.": "उपलब्ध साक्ष्य का उल्लेख करें।",
+  "Mention opponent's actions.": "विरोधी के कृत्यों का उल्लेख करें।",
+  "Mention desired court outcome.": "वांछित अदालती परिणाम का उल्लेख करें।",
+  "Describe the legal issue in detail. Include facts, timeline, agreements, transactions, disputes, evidence, important dates, parties involved, objectives, and any information that may help AI prepare strong courtroom arguments. You do not need to use legal language.": "विस्तार से कानूनी मुद्दे का वर्णन करें। तथ्य, समयरेखा, समझौते, लेनदेन, विवाद, साक्ष्य, महत्वपूर्ण तिथियां, शामिल पक्ष, उद्देश्य, और कोई भी जानकारी शामिल करें जो एआई को मजबूत अदालती तर्क तैयार करने में मदद कर सकती है। आपको कानूनी भाषा का उपयोग करने की आवश्यकता नहीं है।",
+  "Drag txt file or drop text here": "यहाँ txt फ़ाइल खींचें या पाठ छोड़ें",
+  "chars": "वर्ण",
+  "Generate AI Argument": "एआई तर्क उत्पन्न करें",
+
+  // Results screen topbar
+  "Argument Builder": "आर्ग्युमेंट बिल्डर",
+  "Outline": "रूपरेखा",
+  "History": "इतिहास",
+  "Adjust Inputs": "इनपुट बदलें",
+  "Adjust": "बदलें",
+  "PDF": "पीडीएफ",
+  "DOCX": "डॉक्स",
+  "Copy": "कॉपी",
+  "More": "अधिक",
+
+  // Outline sidebar
+  "Filter sections...": "अनुभागों को छानें...",
+  "Executive Summary": "कार्यकारी सारांश",
+  "Case Overview": "वाद का संक्षिप्त विवरण",
+  "Material Facts": "महत्वपूर्ण तथ्य",
+  "Chronology of Events": "घटनाक्रम की समयरेखा",
+  "Legal Issues": "विधिक प्रश्न",
+  "Applicable Acts": "लागू अधिनियम",
+  "Applicable Sections": "लागू धाराएँ",
+  "Relevant Rules": "प्रासंगिक नियम",
+  "Relevant Regulations": "संबंधित विनियम",
+  "Binding Supreme Court Judgments": "सर्वोच्च न्यायालय के बाध्यकारी निर्णय",
+  "Relevant High Court Judgments": "उच्च न्यायालय के प्रासंगिक निर्णय",
+  "Persuasive Authorities": "प्रेरक न्यायिक निर्णय",
+  "Plaintiff Arguments": "वादी के तर्क",
+  "Defendant Arguments": "प्रतिवादी के तर्क",
+  "Counter Arguments": "प्रतिवाद",
+  "Rebuttal Strategy": "खंडन रणनीति",
+  "Evidence Mapping": "साक्ष्य मिलान",
+  "Witness Strategy": "गवाह रणनीति",
+  "Cross Examination Questions": "जिरह के प्रश्न",
+  "Possible Objections": "संभावित आपत्तियां",
+  "Interim Relief": "अंतरिम राहत",
+  "Prayer Clause": "प्रार्थना खंड",
+  "Alternative Arguments": "वैकल्पिक तर्क",
+  "Settlement Possibilities": "समझौते की संभावनाएं",
+  "Litigation Risks": "मुकदमेबाजी के जोखिम",
+  "Winning Probability": "जीतने की संभावना",
+  "Final Court Draft": "न्यायालय हेतु मसौदा",
+
+  // Central Central docs
+  "Explain Why": "स्पष्ट करें क्यों",
+  "AI Explain Why": "एआई व्याख्या",
+  "AI Reasoning Explanation": "एआई तर्क स्पष्टीकरण",
+  "Confidence": "विश्वास स्तर",
+  "Legal Strategy Objective": "कानूनी रणनीति का उद्देश्य",
+  "Applicable Law / Provision": "लागू कानून / प्रावधान",
+  "Relevant Case Facts": "प्रासंगिक मामले के तथ्य",
+  "Supporting Case Law / Precedent": "सहायक केस लॉ / नज़ीर",
+  "No details generated for this section.": "इस अनुभाग के लिए कोई विवरण उत्पन्न नहीं किया गया है।",
+
+  // Right refinements panel
+  "AI Refinements": "एआई सुधार",
+  "Language": "भाषा",
+  "Logic": "तर्क",
+  "Precedents": "नज़ीरें",
+  "Rebuttal": "खंडन",
+  "Evidence": "साक्ष्य",
+  "Formal": "औपचारिक",
+  "Courtroom": "न्यायालय शैली",
+  "Aggressive": "आक्रामक",
+  "Neutral": "तटस्थ",
+  "Judge Friendly": "न्यायाधीश-अनुकूल",
+  "Senior Counsel Style": "वरिष्ठ अधिवक्ता शैली",
+  "Strict professional legal tone standard.": "सख्त पेशेवर कानूनी मानक शैली।",
+  "Standard courtroom advocacy vocabulary.": "मानक अदालती शब्दावली।",
+  "Assertive pressure litigation stance.": "आक्रामक मुकदमेबाजी दृष्टिकोण।",
+  "Objective analytical voice.": "तटस्थ विश्लेषणात्मक शैली।",
+  "Clear, concise presentation style.": "स्पष्ट एवं संक्षिप्त प्रस्तुतीकरण शैली।",
+  "Elegant authoritative advocacy.": "शिष्ट अधिकारपूर्ण वकालत शैली।",
+  "Increase Reasoning": "तर्क गहरा करें",
+  "Deepen step-by-step logic chains.": "चरण-दर-चरण तार्किक श्रृंखला को गहरा करें।",
+  "Increase Citations": "उद्धरण बढ़ाएं",
+  "Add relevant provisions / acts.": "प्रासंगिक प्रावधान / अधिनियम जोड़ें।",
+  "Strengthen Arguments": "तर्क मजबूत करें",
+  "Highlight liabilities & breaches.": "दायित्वों और उल्लोंघनों को रेखांकित करें।",
+  "Reduce Assumptions": "अनुमान कम करें",
+  "Keep grounded in strict facts.": "कड़े तथ्यों और साक्ष्यों पर टिके रहें।",
+  "Improve Burden of Proof": "सबूत का भार सुधारें",
+  "Refine proof standards checks.": "सबूत के मानक स्तर की जाँच को परिष्कृत करें।",
+  "Binding Only": "केवल बाध्यकारी",
+  "Rely strictly on Article 141.": "अनुच्छेद 141 पर सख्ती से भरोसा करें।",
+  "Supreme Court": "सर्वोच्च न्यायालय",
+  "Prioritize apex court judgments.": "शीर्ष अदालत के फैसलों को प्राथमिकता दें।",
+  "High Court": "उच्च न्यायालय",
+  "Prioritize relevant jurisdiction.": "प्रासंगिक क्षेत्राधिकार उच्च न्यायालय को प्राथमिकता दें।",
+  "Recent": "हाल ही के निर्णय",
+  "Cite recent 2023-2026 rulings.": "हाल ही के 2023-2026 के निर्णयों को उद्धृत करें।",
+  "Constitution Bench": "संविधान पीठ",
+  "Incorporate larger bench rulings.": "बड़ी पीठ के निर्णयों को शामिल करें।",
+  "Stronger Counter Arguments": "मजबूत प्रतिवाद",
+  "Anticipate & defeat defenses.": "विरोधी की संभावित बचाव स्थितियों को हराएं।",
+  "Attack Weak Evidence": "कमजोर सबूत पर प्रहार",
+  "Expose opponent evidence flaws.": "विरोधी के साक्ष्य की कमियों को उजागर करें।",
+  "Alternative Interpretation": "वैकल्पिक व्याख्या",
+  "Compelling factual reinterpretations.": "तथ्यों की प्रेरक कानूनी व्याख्या का प्रस्ताव करें।",
+  "Contradictions": "विरोधाभास",
+  "Highlight records inconsistencies.": "दस्तावेजों और दावों के बीच विरोधाभासों को उजागर करें।",
+  "Primary Only": "केवल प्राथमिक",
+  "Rely strictly on direct files.": "रिकॉर्ड पर मौजूद केवल प्राथमिक साक्ष्य पर भरोसा करें।",
+  "Certified Only": "केवल प्रमाणित प्रति",
+  "Certified copies focus & weights.": "प्रमाणित प्रतियों की प्रामाणिकता और स्वीकार्यता पर जोर दें।",
+  "Increase Weight": "वजन बढ़ाएं",
+  "Cumulative evidentiary force.": "साक्ष्यों के संचयी प्रभाव को अधिकतम करें।",
+  "Ignore Weak Evidence": "कमजोर सबूत छोड़ें",
+  "Prune circumstantial links.": "कमजोर या परिस्थितिजन्य साक्ष्यों को छाँटें।",
+
+  // Dropdown list select options
+  "Civil": "दीवानी",
+  "Criminal": "आपराधिक",
+  "Property": "संपत्ति",
+  "Family": "पारिवारिक",
+  "Consumer": "उपभोक्ता",
+  "Corporate": "कॉर्पोरेट",
+  "Commercial": "व्यावसायिक",
+  "Cyber Crime": "साइबर अपराध",
+  "Labour": "श्रम",
+  "Tax": "कर",
+  "Constitutional": "संवैधानिक",
+  "Arbitration": "मध्यस्थता",
+  "Service Matter": "सेवा मामले",
+  "Other": "अन्य",
+  "Draft Plaintiff Arguments": "वादी के तर्क तैयार करें",
+  "Draft Defence Arguments": "प्रतिवाद के तर्क तैयार करें",
+  "Draft Written Statement": "लिखित बयान तैयार करें",
+  "Draft Bail Application": "जमानत आवेदन तैयार करें",
+  "Draft Injunction Application": "निषेधाज्ञा आवेदन तैयार करें",
+  "Draft Appeal": "अपील तैयार करें",
+  "Draft Consumer Complaint": "उपभोक्ता शिकायत तैयार करें",
+  "Draft Criminal Defence": "आपराधिक प्रतिवाद तैयार करें",
+  "Draft Cross Examination": "जिरह का मसौदा तैयार करें",
+  "Draft Rejoinder": "प्रत्युत्तर तैयार करें",
+  "Draft Reply Notice": "उत्तर नोटिस तैयार करें",
+  "Draft Final Oral Arguments": "अंतिम मौखिक तर्क तैयार करें",
+  "Draft Complete Court Pleading": "पूर्ण न्यायालय दलील तैयार करें",
+  "Recovery": "वसूली",
+  "Compensation": "मुआवजा",
+  "Possession": "कब्जा",
+  "Permanent Injunction": "स्थाई निषेधाज्ञा",
+  "Temporary Injunction": "अस्थाई निषेधाज्ञा",
+  "Specific Performance": "विशिष्ट अनुपालन",
+  "Bail": "जमानत",
+  "Acquittal": "दोषमुक्ति",
+  "Divorce": "तलाक",
+  "Custody": "कस्टडी",
+  "Appeal": "अपील",
+  "Stay Order": "स्थगन आदेश (Stay)",
+  "Damages": "हर्जाना / नुकसान",
+  "Any Other": "कोई अन्य",
+
+  // PDF/Word Export
+  "AI LEGAL™ LITIGATION BRIEF": "एआई लीगल™ वाद पत्र संक्षेप",
+  "AI LEGAL™ LITIGATION WORKSPACE": "एआई लीगल™ मुकदमेबाजी कार्यक्षेत्र",
+  "COURTROOM ARGUMENT BRIEF & PLEADING BRIEF": "अदालती तर्क संक्षेप एवं दलील मसौदा",
+  "FILING COURT:": "दायर करने वाला न्यायालय:",
+  "MATTER TYPE:": "मामले का प्रकार:",
+  "DATE OF ANALYSIS:": "विश्लेषण की तिथि:",
+  "INTELLECTUAL WORKSPACE:": "बौद्धिक कार्यक्षेत्र:",
+  "TABLE OF CONTENTS": "विषय-सूची",
+  "PETITIONER/PLAINTIFF:": "याचिकाकर्ता/वादी:",
+  "RESPONDENT/DEFENDANT:": "प्रतिवादी:",
+  "CASE TYPE:": "केस का प्रकार:",
+  "Word document brief downloaded successfully!": "वर्ड दस्तावेज़ संक्षेप सफलतापूर्वक डाउनलोड हो गया!",
+};
+
 const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdateCase }) => {
+  const { toolkitLanguage, setToolkitLanguage } = useLanguage();
+  const t = useCallback((text) => {
+    if (toolkitLanguage === 'Hindi') {
+      return HINDI_DICT[text] || text;
+    }
+    return text;
+  }, [toolkitLanguage]);
+
   const isDark = theme === 'dark';
 
   // Navigation Stages: 'DASHBOARD' | 'INPUT' | 'RESULTS'
@@ -356,7 +591,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
   const [advancedSpecialInstructions, setAdvancedSpecialInstructions] = useState('');
   const [isAdvancedOptionsOpen, setIsAdvancedOptionsOpen] = useState(false);
 
-  // AI Refinements live tracking states
+  // {t("AI Refinements")} live tracking states
   const [refinementHistory, setRefinementHistory] = useState({});
   const [refiningSectionId, setRefiningSectionId] = useState(null);
 
@@ -378,6 +613,60 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
 
   // Stage 3: Results Dashboard states
   const [draftResults, setDraftResults] = useState(null);
+  const [isTranslatingDraft, setIsTranslatingDraft] = useState(false);
+  const prevLangRef = useRef(toolkitLanguage);
+
+  useEffect(() => {
+    const translateWholeDraft = async () => {
+      if (!draftResults) return;
+      setIsTranslatingDraft(true);
+      try {
+        const response = await generateChatResponse(
+          [],
+          JSON.stringify(draftResults),
+          `You are an Elite Litigation Pleading Translator AI. You are given a JSON object representing legal arguments/pleadings. Translate all text values inside this JSON object into ${toolkitLanguage === 'Hindi' ? 'Hindi (Devanagari script)' : 'formal legal English'}.
+
+CRITICAL RULES:
+1. Translating values: Translate all sentences, explanations, descriptions, summaries, legal reasoning, ratio, prayer clause, and ready-to-submit paragraphs into proper, professional legal ${toolkitLanguage === 'Hindi' ? 'Hindi' : 'English'}.
+2. DO NOT TRANSLATE:
+   - Case Names / Parties (e.g. "Aditya & Co. v. State Trading Corp", "Sanjay Kumar v. Union of India")
+   - Official Statute/Act names (e.g., "Indian Penal Code", "Code of Civil Procedure", "Negotiable Instruments Act", "Constitution of India", "Indian Evidence Act", "Specific Relief Act", "Commercial Courts Act"). Only translate the explanatory text around them.
+   - Case Numbers, Dates, Citation Numbers (e.g. "(2022) SC 881"), phone numbers, emails, addresses, court file numbers, document numbers, evidence IDs, and registration numbers.
+   - Names of persons (e.g. "Mahesh", "Ramesh"). Keep them exactly as-is in original English characters.
+3. OUTPUT: Return ONLY the translated JSON object. Do not output any chat narrative, preamble, or markdown code fences outside the JSON. Ensure it is valid JSON.`,
+          [],
+          toolkitLanguage || 'English',
+          null,
+          'legal'
+        );
+
+        const responseText = typeof response === 'string' ? response : (response?.reply || '');
+        const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/) || responseText.match(/(\{[\s\S]*\})/);
+        let parsed = null;
+        if (jsonMatch) {
+          parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+        } else {
+          parsed = JSON.parse(responseText.trim());
+        }
+        if (parsed) {
+          setDraftResults(parsed);
+          toast.success(toolkitLanguage === 'Hindi' ? 'तर्क सफलतापूर्वक अनुवादित किया गया' : 'Arguments translated successfully');
+        }
+      } catch (err) {
+        console.error("Translation of draftResults failed:", err);
+        toast.error(toolkitLanguage === 'Hindi' ? 'अनुवाद विफल रहा' : 'Translation failed');
+      } finally {
+        setIsTranslatingDraft(false);
+      }
+    };
+
+    if (prevLangRef.current !== toolkitLanguage) {
+      prevLangRef.current = toolkitLanguage;
+      if (draftResults) {
+        translateWholeDraft();
+      }
+    }
+  }, [toolkitLanguage, draftResults]);
   const [recentDrafts, setRecentDrafts] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('aisa_recent_arguments_drafts')) || [];
@@ -760,14 +1049,24 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
         "courtReadyDraft": "A complete court ready pleading draft formatted in beautiful Markdown (using #, ##, ### headers, bullet points). Make it professional and ready for print."
       }`;
 
+      const langInstruct = toolkitLanguage === 'Hindi'
+        ? `\n\nCRITICAL LANGUAGE REQUIREMENT:
+You MUST generate all text fields and descriptions in the JSON response entirely in formal, professional legal Hindi (Devanagari script) using proper Indian legal terminology.
+DO NOT TRANSLATE (keep exactly as-is in original English characters):
+- Party Names, Court Names, Case Numbers, FIR Numbers, Registration Numbers, Dates, Citation Numbers, Judge Names, Section Numbers, Article Numbers, Official references.
+- Official Statute names like "Indian Penal Code", "Code of Civil Procedure", "Commercial Courts Act".
+- Person Names (e.g. "Rajesh Kumar Sharma", "Sunil Verma"). Do NOT translate or transliterate names of persons.
+- Latin legal terms: ratio decidendi, mens rea, actus reus, habeas corpus, suo motu`
+        : '';
+
       let parsed = null;
       try {
         const response = await generateChatResponse(
           [],
-          prompt,
+          prompt + langInstruct,
           "You are an Elite Litigation Pleading Generator AI. Return ONLY valid JSON matching the schema.",
           [],
-          'English',
+          toolkitLanguage || 'English',
           null,
           'legal'
         );
@@ -1130,7 +1429,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
   // Filtered outline based on search input
   const filteredOutline = useMemo(() => {
     return OUTLINE_ITEMS.filter(item => 
-      item.label.toLowerCase().includes(outlineSearchQuery.toLowerCase())
+      (t(item.label).toLowerCase().includes(outlineSearchQuery.toLowerCase()) || item.label.toLowerCase().includes(outlineSearchQuery.toLowerCase()))
     );
   }, [OUTLINE_ITEMS, outlineSearchQuery]);
 
@@ -1319,16 +1618,16 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
     // Cover Page
     htmlContent += `
       <div class="cover-page">
-        <div class="branding">AI LEGAL™ LITIGATION WORKSPACE</div>
+        <div class="branding">${t("AI LEGAL™ LITIGATION WORKSPACE")}</div>
         <div class="title-container">
-          <h1 class="case-title">COURTROOM ARGUMENT BRIEF & PLEADING BRIEF</h1>
+          <h1 class="case-title">${t("COURTROOM ARGUMENT BRIEF & PLEADING BRIEF")}</h1>
           <p class="case-vs">${selectedCaseObject?.clientName || 'PETITIONER'} <span class="vs-text">v.</span> ${selectedCaseObject?.opponentName || 'RESPONDENT'}</p>
         </div>
         <div class="meta-box">
-          <p><strong>FILING COURT:</strong> ${selectedCaseObject?.courtName || 'HIGH COURT'}</p>
-          <p><strong>MATTER TYPE:</strong> ${selectedCaseObject?.caseType || 'COMMERCIAL/CIVIL MATTER'}</p>
-          <p><strong>DATE OF ANALYSIS:</strong> ${new Date().toLocaleDateString('en-IN')}</p>
-          <p><strong>INTELLECTUAL WORKSPACE:</strong> ENTERPRISE LITIGATION ENGINE</p>
+          <p><strong>${t("FILING COURT:")}</strong> ${selectedCaseObject?.courtName || 'HIGH COURT'}</p>
+          <p><strong>${t("MATTER TYPE:")}</strong> ${selectedCaseObject?.caseType || 'COMMERCIAL/CIVIL MATTER'}</p>
+          <p><strong>${t("DATE OF ANALYSIS:")}</strong> ${new Date().toLocaleDateString('en-IN')}</p>
+          <p><strong>${t("INTELLECTUAL WORKSPACE:")}</strong> ENTERPRISE LITIGATION ENGINE</p>
         </div>
       </div>
       <div class="page-break"></div>
@@ -1337,14 +1636,14 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
     // Table of Contents
     htmlContent += `
       <div class="toc-page">
-        <h2 class="section-heading">TABLE OF CONTENTS</h2>
+        <h2 class="section-heading">${t("TABLE OF CONTENTS")}</h2>
         <div class="toc-divider"></div>
         <ul class="toc-list">
     `;
     OUTLINE_ITEMS.forEach((item, idx) => {
       htmlContent += `
         <li class="toc-item">
-          <span class="toc-label">${idx + 1}. ${item.label.toUpperCase()}</span>
+          <span class="toc-label">${idx + 1}. ${t(item.label).toUpperCase()}</span>
           <span class="toc-dot"></span>
           <span class="toc-page-num">${idx + 2}</span>
         </li>
@@ -1361,12 +1660,12 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
       const content = draftResults[item.id];
       htmlContent += `
         <div class="document-section">
-          <h2 class="section-heading">${idx + 1}. ${item.label.toUpperCase()}</h2>
+          <h2 class="section-heading">${idx + 1}. ${t(item.label).toUpperCase()}</h2>
           <div class="section-divider"></div>
       `;
 
       if (!content || (Array.isArray(content) && content.length === 0)) {
-        htmlContent += `<p class="empty-text">No details generated for this section.</p>`;
+        htmlContent += `<p class="empty-text">{t("No details generated for this section.")}</p>`;
       } else if (typeof content === 'string') {
         htmlContent += `<p class="paragraph-text">${content.replace(/\n/g, '<br/>')}</p>`;
       } else if (Array.isArray(content)) {
@@ -1377,18 +1676,18 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
               htmlContent += `
                 <div class="brief-card">
                   <div class="card-header">
-                    <span class="card-title">ARGUMENT ${aidx + 1}: ${arg.title || 'Untitled'}</span>
-                    <span class="badge badge-indigo">Strength: ${arg.argumentStrength || 'Strong'}</span>
+                    <span class="card-title">${t("ARGUMENT")} ${aidx + 1}: ${arg.title || 'Untitled'}</span>
+                    <span class="badge badge-indigo">${t("Strength")}: ${arg.argumentStrength || 'Strong'}</span>
                   </div>
                   <div class="card-grid">
-                    <div><strong>Legal Reasoning:</strong> ${arg.legalReasoning || ''}</div>
-                    <div><strong>Supporting Facts:</strong> ${arg.supportingFacts || ''}</div>
-                    <div><strong>Supporting Evidence:</strong> ${arg.supportingEvidence || ''}</div>
-                    <div><strong>Statutory Basis:</strong> ${arg.applicableSections || ''} | ${arg.applicableJudgments || ''}</div>
-                    <div><strong>Expected Defence:</strong> ${arg.expectedDefence || ''}</div>
-                    <div><strong>Counter Strategy:</strong> ${arg.counterResponse || ''}</div>
+                    <div><strong>${t("Legal Reasoning")}:</strong> ${arg.legalReasoning || ''}</div>
+                    <div><strong>${t("Supporting Facts")}:</strong> ${arg.supportingFacts || ''}</div>
+                    <div><strong>${t("Supporting Evidence")}:</strong> ${arg.supportingEvidence || ''}</div>
+                    <div><strong>${t("Statutory Basis")}:</strong> ${arg.applicableSections || ''} | ${arg.applicableJudgments || ''}</div>
+                    <div><strong>${t("Expected Defence")}:</strong> ${arg.expectedDefence || ''}</div>
+                    <div><strong>${t("Counter Strategy")}:</strong> ${arg.counterResponse || ''}</div>
                   </div>
-                  ${arg.suggestedCourtSubmission ? `<div class="court-submission-quote"><strong>Suggested Court Submission:</strong><br/>"${arg.suggestedCourtSubmission}"</div>` : ''}
+                  ${arg.suggestedCourtSubmission ? `<div class="court-submission-quote"><strong>${t("Suggested Court Submission")}:</strong><br/>"${arg.suggestedCourtSubmission}"</div>` : ''}
                 </div>
               `;
             });
@@ -1397,12 +1696,12 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
               htmlContent += `
                 <div class="brief-card">
                   <div class="card-header">
-                    <span class="card-title">DEFENSE ARGUMENT ${aidx + 1}: ${arg.legalBasis || 'Untitled'}</span>
-                    <span class="badge badge-rose">Probability: ${arg.probability || 'Medium'}</span>
+                    <span class="card-title">${t("DEFENSE ARGUMENT")} ${aidx + 1}: ${arg.legalBasis || 'Untitled'}</span>
+                    <span class="badge badge-rose">${t("Probability")}: ${arg.probability || 'Medium'}</span>
                   </div>
                   <div class="card-body">
-                    <p><strong>Strength:</strong> ${arg.strength || ''} | <strong>Weakness:</strong> ${arg.weakness || ''}</p>
-                    <p><strong>Counter-Strategy:</strong> ${arg.counterStrategy || ''}</p>
+                    <p><strong>${t("Strength")}:</strong> ${arg.strength || ''} | <strong>${t("Weakness")}:</strong> ${arg.weakness || ''}</p>
+                    <p><strong>${t("Counter-Strategy")}:</strong> ${arg.counterStrategy || ''}</p>
                   </div>
                 </div>
               `;
@@ -1412,13 +1711,13 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
               htmlContent += `
                 <div class="brief-card">
                   <div class="card-header">
-                    <span class="card-title">REBUTTAL ${aidx + 1}</span>
+                    <span class="card-title">${t("REBUTTAL")} ${aidx + 1}</span>
                     <span class="badge badge-indigo">${reb.applicableLaw || ''}</span>
                   </div>
                   <div class="card-body">
-                    <p><strong>Rebuttal:</strong> ${reb.rebuttal || ''}</p>
-                    <p><strong>Evidence Link:</strong> ${reb.applicableEvidence || ''} | <strong>Precedent:</strong> ${reb.supportingJudgment || ''}</p>
-                    ${reb.suggestedCourtSubmission ? `<div class="court-submission-quote"><strong>Court Submission Template:</strong><br/>"${reb.suggestedCourtSubmission}"</div>` : ''}
+                    <p><strong>${t("REBUTTAL")}:</strong> ${reb.rebuttal || ''}</p>
+                    <p><strong>${t("Evidence Link")}:</strong> ${reb.applicableEvidence || ''} | <strong>${t("Precedent")}:</strong> ${reb.supportingJudgment || ''}</p>
+                    ${reb.suggestedCourtSubmission ? `<div class="court-submission-quote"><strong>${t("Court Submission Template")}:</strong><br/>"${reb.suggestedCourtSubmission}"</div>` : ''}
                   </div>
                 </div>
               `;
@@ -1428,13 +1727,13 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
               htmlContent += `
                 <div class="brief-card">
                   <div class="card-header">
-                    <span class="card-title">${ev.evidence || 'Evidence'}</span>
-                    <span class="badge badge-indigo">${ev.evidenceWeight || 'Primary'} Weight</span>
+                    <span class="card-title">${ev.evidence || t('Evidence')}</span>
+                    <span class="badge badge-indigo">${ev.evidenceWeight || 'Primary'} ${t("Weight")}</span>
                   </div>
                   <div class="card-body">
-                    <p><strong>Type:</strong> ${ev.evidenceType || ''} | <strong>Admissibility:</strong> ${ev.admissibility || ''}</p>
-                    <p><strong>Confidence Level:</strong> ${ev.evidenceConfidence || ''}</p>
-                    ${ev.missingEvidence ? `<p class="alert-text"><strong>Missing elements:</strong> ${ev.missingEvidence}</p>` : ''}
+                    <p><strong>${t("Type")}:</strong> ${ev.evidenceType || ''} | <strong>${t("Admissibility")}:</strong> ${ev.admissibility || ''}</p>
+                    <p><strong>${t("Confidence Level")}:</strong> ${ev.evidenceConfidence || ''}</p>
+                    ${ev.missingEvidence ? `<p class="alert-text"><strong>${t("Missing elements")}:</strong> ${ev.missingEvidence}</p>` : ''}
                   </div>
                 </div>
               `;
@@ -1445,7 +1744,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
               htmlContent += `
                 <div class="chronology-row">
                   <div class="chrono-date"><strong>${ev.date || ''}</strong></div>
-                  <div class="chrono-event">${ev.event || ''} ${ev.evidenceLink ? `<br/><span class="chrono-ref">Ref: ${ev.evidenceLink}</span>` : ''}</div>
+                  <div class="chrono-event">${ev.event || ''} ${ev.evidenceLink ? `<br/><span class="chrono-ref">${t("Ref")}: ${ev.evidenceLink}</span>` : ''}</div>
                 </div>
               `;
             });
@@ -1455,14 +1754,14 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
               htmlContent += `
                 <div class="brief-card">
                   <div class="card-header">
-                    <span class="card-title">${pre.citation || 'Case precedent'}</span>
+                    <span class="card-title">${pre.citation || t('Case precedent')}</span>
                     <span class="badge badge-indigo">${pre.court || ''} (${pre.year || ''})</span>
                   </div>
                   <div class="card-body">
-                    <p><strong>Legal Principle:</strong> ${pre.legalPrinciple || ''}</p>
-                    <p><strong>Ratio Decidendi:</strong> ${pre.ratioDecidendi || ''}</p>
-                    <p><strong>Relevance:</strong> ${pre.whyRelevant || ''}</p>
-                    ${pre.howToCite ? `<div class="citation-code"><strong>Citation Format:</strong> <code>${pre.howToCite}</code></div>` : ''}
+                    <p><strong>${t("Legal Principle")}:</strong> ${pre.legalPrinciple || ''}</p>
+                    <p><strong>${t("Ratio Decidendi")}:</strong> ${pre.ratioDecidendi || ''}</p>
+                    <p><strong>${t("Relevance")}:</strong> ${pre.whyRelevant || ''}</p>
+                    ${pre.howToCite ? `<div class="citation-code"><strong>${t("Citation Format")}:</strong> <code>${pre.howToCite}</code></div>` : ''}
                   </div>
                 </div>
               `;
@@ -1472,15 +1771,15 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
               htmlContent += `
                 <div class="brief-card">
                   <div class="card-header">
-                    <span class="card-title">WITNESS: ${wit.witness || 'Untitled'}</span>
+                    <span class="card-title">${t("WITNESS")}: ${wit.witness || 'Untitled'}</span>
                   </div>
                   <div class="card-body">
-                    ${wit.primaryQuestions ? `<p><strong>Direct Primary Questions:</strong><br/>${wit.primaryQuestions}</p>` : ''}
-                    ${wit.leadingQuestions ? `<p><strong>Leading Questions:</strong><br/>${wit.leadingQuestions}</p>` : ''}
-                    ${wit.trapQuestions ? `<p><strong>Trap Questions:</strong><br/>${wit.trapQuestions}</p>` : ''}
-                    ${wit.contradictionQuestions ? `<p><strong>Contradiction Questions:</strong><br/>${wit.contradictionQuestions}</p>` : ''}
-                    ${wit.admissionQuestions ? `<p><strong>Admission Questions:</strong><br/>${wit.admissionQuestions}</p>` : ''}
-                    ${wit.followUpQuestions ? `<p><strong>Follow-Up Inquiries:</strong><br/>${wit.followUpQuestions}</p>` : ''}
+                    ${wit.primaryQuestions ? `<p><strong>${t("Direct Primary Questions")}:</strong><br/>${wit.primaryQuestions}</p>` : ''}
+                    ${wit.leadingQuestions ? `<p><strong>${t("Leading Questions")}:</strong><br/>${wit.leadingQuestions}</p>` : ''}
+                    ${wit.trapQuestions ? `<p><strong>${t("Trap Questions")}:</strong><br/>${wit.trapQuestions}</p>` : ''}
+                    ${wit.contradictionQuestions ? `<p><strong>${t("Contradiction Questions")}:</strong><br/>${wit.contradictionQuestions}</p>` : ''}
+                    ${wit.admissionQuestions ? `<p><strong>${t("Admission Questions")}:</strong><br/>${wit.admissionQuestions}</p>` : ''}
+                    ${wit.followUpQuestions ? `<p><strong>${t("Follow-Up Inquiries")}:</strong><br/>${wit.followUpQuestions}</p>` : ''}
                   </div>
                 </div>
               `;
@@ -1490,11 +1789,11 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
               htmlContent += `
                 <div class="brief-card">
                   <div class="card-header">
-                    <span class="card-title">Objection: ${obj.category || 'General'}</span>
+                    <span class="card-title">${t("Objection")}: ${obj.category || 'General'}</span>
                   </div>
                   <div class="card-body">
-                    <p><strong>Objection Details:</strong> ${obj.description || ''}</p>
-                    <p><strong>Legal/Statutory Rule:</strong> ${obj.legalBasis || ''}</p>
+                    <p><strong>${t("Objection Details")}:</strong> ${obj.description || ''}</p>
+                    <p><strong>${t("Legal/Statutory Rule")}:</strong> ${obj.legalBasis || ''}</p>
                   </div>
                 </div>
               `;
@@ -1521,115 +1820,115 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
   const compileBriefToDocText = () => {
     let docContent = '';
     docContent += `=========================================================\n`;
-    docContent += `               AI LEGAL™ LITIGATION BRIEF\n`;
+    docContent += `               ${t("AI LEGAL™ LITIGATION BRIEF")}\n`;
     docContent += `=========================================================\n\n`;
-    docContent += `PETITIONER/PLAINTIFF: ${selectedCaseObject?.clientName || 'Petitioner'}\n`;
-    docContent += `RESPONDENT/DEFENDANT: ${selectedCaseObject?.opponentName || 'Respondent'}\n`;
-    docContent += `FILING COURT: ${selectedCaseObject?.courtName || 'High Court'}\n`;
-    docContent += `CASE TYPE: ${selectedCaseObject?.caseType || 'Civil/Commercial'}\n`;
-    docContent += `DATE OF ANALYSIS: ${new Date().toLocaleDateString('en-IN')}\n\n`;
+    docContent += `${t("PETITIONER/PLAINTIFF:")} ${selectedCaseObject?.clientName || 'Petitioner'}\n`;
+    docContent += `${t("RESPONDENT/DEFENDANT:")} ${selectedCaseObject?.opponentName || 'Respondent'}\n`;
+    docContent += `${t("FILING COURT:")} ${selectedCaseObject?.courtName || 'High Court'}\n`;
+    docContent += `${t("CASE TYPE:")} ${selectedCaseObject?.caseType || 'Civil/Commercial'}\n`;
+    docContent += `${t("DATE OF ANALYSIS:")} ${new Date().toLocaleDateString('en-IN')}\n\n`;
     
     docContent += `---------------------------------------------------------\n`;
-    docContent += `                    TABLE OF CONTENTS\n`;
+    docContent += `                    ${t("TABLE OF CONTENTS")}\n`;
     docContent += `---------------------------------------------------------\n`;
     OUTLINE_ITEMS.forEach((item, idx) => {
-      docContent += `${idx + 1}. ${item.label.toUpperCase()}\n`;
+      docContent += `${idx + 1}. ${t(item.label).toUpperCase()}\n`;
     });
     docContent += `\n\n`;
 
     OUTLINE_ITEMS.forEach((item, idx) => {
       const content = draftResults[item.id];
       docContent += `=========================================================\n`;
-      docContent += `${idx + 1}. ${item.label.toUpperCase()}\n`;
+      docContent += `${idx + 1}. ${t(item.label).toUpperCase()}\n`;
       docContent += `=========================================================\n\n`;
 
       if (!content || (Array.isArray(content) && content.length === 0)) {
-        docContent += `No details generated for this section.\n\n`;
+        docContent += `{t("No details generated for this section.")}\n\n`;
       } else if (typeof content === 'string') {
         docContent += `${content}\n\n`;
       } else if (Array.isArray(content)) {
         if (typeof content[0] === 'object') {
           if (item.id === 'plaintiffArguments') {
             content.forEach((arg, aidx) => {
-              docContent += `Argument ${aidx + 1}: ${arg.title || 'Untitled'}\n`;
-              docContent += ` - Legal Reasoning: ${arg.legalReasoning || ''}\n`;
-              docContent += ` - Supporting Facts: ${arg.supportingFacts || ''}\n`;
-              docContent += ` - Supporting Evidence: ${arg.supportingEvidence || ''}\n`;
-              docContent += ` - Statutory Basis: ${arg.applicableSections || ''} | ${arg.applicableJudgments || ''}\n`;
-              docContent += ` - Expected Defence: ${arg.expectedDefence || ''}\n`;
-              docContent += ` - Counter Response: ${arg.counterResponse || ''}\n`;
-              docContent += ` - Strength: ${arg.argumentStrength || 'Strong'} | Risk: ${arg.riskLevel || 'Low'}\n`;
+              docContent += `${t("ARGUMENT")} ${aidx + 1}: ${arg.title || 'Untitled'}\n`;
+              docContent += ` - ${t("Legal Reasoning")}: ${arg.legalReasoning || ''}\n`;
+              docContent += ` - ${t("Supporting Facts")}: ${arg.supportingFacts || ''}\n`;
+              docContent += ` - ${t("Supporting Evidence")}: ${arg.supportingEvidence || ''}\n`;
+              docContent += ` - ${t("Statutory Basis")}: ${arg.applicableSections || ''} | ${arg.applicableJudgments || ''}\n`;
+              docContent += ` - ${t("Expected Defence")}: ${arg.expectedDefence || ''}\n`;
+              docContent += ` - ${t("Counter Response")}: ${arg.counterResponse || ''}\n`;
+              docContent += ` - ${t("Strength")}: ${arg.argumentStrength || 'Strong'} | Risk: ${arg.riskLevel || 'Low'}\n`;
               if (arg.suggestedCourtSubmission) {
-                docContent += ` - Court Submission:\n   "${arg.suggestedCourtSubmission}"\n`;
+                docContent += ` - ${t("Suggested Court Submission")}:\n   "${arg.suggestedCourtSubmission}"\n`;
               }
               docContent += `\n`;
             });
           } else if (['defendantArguments', 'counterArguments'].includes(item.id)) {
             content.forEach((arg, aidx) => {
-              docContent += `Defense Basis ${aidx + 1}: ${arg.legalBasis || 'Untitled'}\n`;
-              docContent += ` - Strength: ${arg.strength || ''} | Weakness: ${arg.weakness || ''}\n`;
-              docContent += ` - Probability: ${arg.probability || 'Medium'}\n`;
-              docContent += ` - Our Counter-Strategy: ${arg.counterStrategy || ''}\n\n`;
+              docContent += `${t("DEFENSE ARGUMENT")} ${aidx + 1}: ${arg.legalBasis || 'Untitled'}\n`;
+              docContent += ` - ${t("Strength")}: ${arg.strength || ''} | ${t("Weakness")}: ${arg.weakness || ''}\n`;
+              docContent += ` - ${t("Probability")}: ${arg.probability || 'Medium'}\n`;
+              docContent += ` - ${t("Counter-Strategy")}: ${arg.counterStrategy || ''}\n\n`;
             });
           } else if (item.id === 'rebuttalStrategy') {
             content.forEach((reb, aidx) => {
-              docContent += `Rebuttal Argument ${aidx + 1}: ${reb.rebuttal || ''}\n`;
-              docContent += ` - Governing Provisions: ${reb.applicableLaw || ''}\n`;
-              docContent += ` - Linked Proof: ${reb.applicableEvidence || ''}\n`;
-              docContent += ` - Supporting Judgment: ${reb.supportingJudgment || ''}\n`;
+              docContent += `${t("Rebuttal Argument")} ${aidx + 1}: ${reb.rebuttal || ''}\n`;
+              docContent += ` - ${t("Governing Provisions:")} ${reb.applicableLaw || ''}\n`;
+              docContent += ` - ${t("Linked Proof:")} ${reb.applicableEvidence || ''}\n`;
+              docContent += ` - ${t("Supporting Judgment:")} ${reb.supportingJudgment || ''}\n`;
               if (reb.suggestedCourtSubmission) {
-                docContent += ` - Court Submission:\n   "${reb.suggestedCourtSubmission}"\n`;
+                docContent += ` - ${t("Suggested Court Submission")}:\n   "${reb.suggestedCourtSubmission}"\n`;
               }
               docContent += `\n`;
             });
           } else if (item.id === 'evidenceMapping') {
             content.forEach((ev, aidx) => {
-              docContent += `Evidence: ${ev.evidence || ''}\n`;
-              docContent += ` - Type: ${ev.evidenceType || ''} | Weight: ${ev.evidenceWeight || 'Primary'}\n`;
-              docContent += ` - Admissibility: ${ev.admissibility || ''}\n`;
-              docContent += ` - Confidence Level: ${ev.evidenceConfidence || ''}\n`;
+              docContent += `${t("Evidence:")} ${ev.evidence || ''}\n`;
+              docContent += ` - ${t("Type:")} ${ev.evidenceType || ''} | ${t("Weight:")} ${ev.evidenceWeight || 'Primary'}\n`;
+              docContent += ` - ${t("Admissibility:")} ${ev.admissibility || ''}\n`;
+              docContent += ` - ${t("Confidence Level")}: ${ev.evidenceConfidence || ''}\n`;
               if (ev.missingEvidence) {
-                docContent += ` - Missing Elements Checklist: ${ev.missingEvidence}\n`;
+                docContent += ` - ${t("Missing Elements Checklist:")} ${ev.missingEvidence}\n`;
               }
               docContent += `\n`;
             });
           } else if (item.id === 'chronologyOfEvents') {
             content.forEach((ev, aidx) => {
-              docContent += `Date/Milestone: ${ev.date || ''}\n`;
-              docContent += `Event: ${ev.event || ''}\n`;
+              docContent += `${t("Date/Milestone:")} ${ev.date || ''}\n`;
+              docContent += `${t("Event:")} ${ev.event || ''}\n`;
               if (ev.evidenceLink) {
-                docContent += `Linked Reference: ${ev.evidenceLink}\n`;
+                docContent += `${t("Linked Reference:")} ${ev.evidenceLink}\n`;
               }
               docContent += `\n`;
             });
           } else if (['supremeCourtPrecedents', 'highCourtJudgments', 'persuasiveAuthorities'].includes(item.id)) {
             content.forEach((pre, aidx) => {
-              docContent += `Citation: ${pre.citation || ''}\n`;
-              docContent += ` - Court: ${pre.court || ''} | Year: ${pre.year || ''}\n`;
-              docContent += ` - Legal Principle: ${pre.legalPrinciple || ''}\n`;
-              docContent += ` - Ratio Decidendi: ${pre.ratioDecidendi || ''}\n`;
-              docContent += ` - Why Relevant: ${pre.whyRelevant || ''} | Authority: ${pre.bindingValue || ''}\n`;
+              docContent += `${t("Citation:")} ${pre.citation || ''}\n`;
+              docContent += ` - ${t("Court:")} ${pre.court || ''} | ${t("Year:")} ${pre.year || ''}\n`;
+              docContent += ` - ${t("Legal Principle")}: ${pre.legalPrinciple || ''}\n`;
+              docContent += ` - ${t("Ratio Decidendi")}: ${pre.ratioDecidendi || ''}\n`;
+              docContent += ` - ${t("Why Relevant:")} ${pre.whyRelevant || ''} | ${t("Authority:")} ${pre.bindingValue || ''}\n`;
               if (pre.howToCite) {
-                docContent += ` - How to cite script: ${pre.howToCite}\n`;
+                docContent += ` - ${t("How to cite script:")} ${pre.howToCite}\n`;
               }
               docContent += `\n`;
             });
           } else if (item.id === 'crossExamQuestions') {
             content.forEach((wit, aidx) => {
-              docContent += `Target Witness: ${wit.witness || ''}\n`;
-              if (wit.primaryQuestions) docContent += ` - Primary direct: ${wit.primaryQuestions}\n`;
-              if (wit.leadingQuestions) docContent += ` - Leading questions: ${wit.leadingQuestions}\n`;
-              if (wit.trapQuestions) docContent += ` - Trap questions: ${wit.trapQuestions}\n`;
-              if (wit.contradictionQuestions) docContent += ` - Contradictions: ${wit.contradictionQuestions}\n`;
-              if (wit.admissionQuestions) docContent += ` - Admissions: ${wit.admissionQuestions}\n`;
-              if (wit.followUpQuestions) docContent += ` - Follow-ups: ${wit.followUpQuestions}\n`;
+              docContent += `${t("Target Witness:")} ${wit.witness || ''}\n`;
+              if (wit.primaryQuestions) docContent += ` - ${t("Primary direct:")} ${wit.primaryQuestions}\n`;
+              if (wit.leadingQuestions) docContent += ` - ${t("Leading questions:")} ${wit.leadingQuestions}\n`;
+              if (wit.trapQuestions) docContent += ` - ${t("Trap Questions:")} ${wit.trapQuestions}\n`;
+              if (wit.contradictionQuestions) docContent += ` - ${t("Contradictions:")} ${wit.contradictionQuestions}\n`;
+              if (wit.admissionQuestions) docContent += ` - ${t("Admissions:")} ${wit.admissionQuestions}\n`;
+              if (wit.followUpQuestions) docContent += ` - ${t("Follow-ups:")} ${wit.followUpQuestions}\n`;
               docContent += `\n`;
             });
           } else if (item.id === 'objections') {
             content.forEach((obj, aidx) => {
-              docContent += `Objection Category: ${obj.category || ''}\n`;
-              docContent += ` - Description: ${obj.description || ''}\n`;
-              docContent += ` - Statutory Rule Basis: ${obj.legalBasis || ''}\n\n`;
+              docContent += `${t("Objection Category:")} ${obj.category || ''}\n`;
+              docContent += ` - ${t("Description:")} ${obj.description || ''}\n`;
+              docContent += ` - ${t("Statutory Rule Basis:")} ${obj.legalBasis || ''}\n\n`;
             });
           } else {
             content.forEach(li => {
@@ -1935,7 +2234,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
             style={{ minHeight: '44px' }}
           >
             <ChevronLeft size={14} />
-            <span>Back</span>
+            <span>{t("Back")}</span>
           </button>
           
           <div className="hidden sm:block h-4 w-px bg-slate-300 dark:bg-slate-800 mx-1 shrink-0" />
@@ -1943,7 +2242,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
               <h1 className={`text-[15px] sm:text-[18px] font-black leading-none tracking-tight truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                Argument Builder
+                {t("Argument Builder")}
               </h1>
               {workspaceStage === 'RESULTS' && (
                 <button
@@ -1951,7 +2250,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                   className="md:hidden px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/30 hover:bg-indigo-100 text-indigo-650 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-850 rounded text-[9px] font-black uppercase"
                   style={{ minHeight: '44px' }}
                 >
-                  Outline
+                  {t("Outline")}
                 </button>
               )}
             </div>
@@ -1962,6 +2261,8 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
         </div>
 
         <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap shrink-0">
+          <LanguageToggle lang={toolkitLanguage === 'Hindi' ? 'hi' : 'en'} onChange={(l) => setToolkitLanguage(l === 'hi' ? 'Hindi' : 'English')} className="mr-1" />
+          
           {workspaceStage === 'RESULTS' && (
             <>
               {/* History Button */}
@@ -1973,7 +2274,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                 style={{ height: '34px' }}
               >
                 <History size={13} />
-                <span className="hidden sm:inline">History</span>
+                <span className="hidden sm:inline">{t("History")}</span>
               </button>
 
               {/* Adjust Inputs Button */}
@@ -1988,8 +2289,8 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                 style={{ height: '34px' }}
               >
                 <Edit2 size={13} />
-                <span className="hidden sm:inline">Adjust Inputs</span>
-                <span className="sm:hidden">Adjust</span>
+                <span className="hidden sm:inline">{t("Adjust Inputs")}</span>
+                <span className="sm:hidden">{t("Adjust")}</span>
               </button>
 
               {/* Desktop/Tablet Document Actions */}
@@ -2002,7 +2303,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                   style={{ height: '34px' }}
                 >
                   <Printer size={13} />
-                  <span>PDF</span>
+                  <span>{t("PDF")}</span>
                 </button>
 
                 <button
@@ -2013,7 +2314,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                   style={{ height: '34px' }}
                 >
                   <FileDown size={13} />
-                  <span>DOCX</span>
+                  <span>{t("DOCX")}</span>
                 </button>
 
                 <button
@@ -2024,7 +2325,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                   style={{ height: '34px' }}
                 >
                   <Copy size={13} />
-                  <span>Copy</span>
+                  <span>{t("Copy")}</span>
                 </button>
               </div>
 
@@ -2037,7 +2338,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                   }`}
                   style={{ height: '34px' }}
                 >
-                  <span>More</span>
+                  <span>{t("More")}</span>
                   <ChevronDown size={12} />
                 </button>
                 {isMoreMenuOpen && (
@@ -2051,7 +2352,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                       }}
                       className="w-full text-left px-3 py-2 text-[10px] font-black uppercase text-slate-400 hover:text-white hover:bg-indigo-600 flex items-center gap-2"
                     >
-                      <Printer size={12} /> PDF
+                      <Printer size={12} /> {t("PDF")}
                     </button>
                     <button
                       onClick={() => {
@@ -2060,7 +2361,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                       }}
                       className="w-full text-left px-3 py-2 text-[10px] font-black uppercase text-slate-400 hover:text-white hover:bg-indigo-600 flex items-center gap-2"
                     >
-                      <FileDown size={12} /> DOCX
+                      <FileDown size={12} /> {t("DOCX")}
                     </button>
                     <button
                       onClick={() => {
@@ -2069,7 +2370,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                       }}
                       className="w-full text-left px-3 py-2 text-[10px] font-black uppercase text-slate-400 hover:text-white hover:bg-indigo-600 flex items-center gap-2"
                     >
-                      <Copy size={12} /> Copy
+                      <Copy size={12} /> {t("Copy")}
                     </button>
                   </div>
                 )}
@@ -2105,7 +2406,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                       s.active ? 'text-indigo-600 dark:text-indigo-400' :
                       completed ? 'text-emerald-500' : 'text-slate-400'
                     }`}>
-                      {s.label}
+                      {t(s.label)}
                     </span>
                   </div>
                 );
@@ -2133,7 +2434,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                         s.active ? 'text-indigo-600 dark:text-indigo-400' :
                         completed ? 'text-emerald-500' : 'text-slate-400'
                       }`}>
-                        {s.label}
+                        {t(s.label)}
                       </span>
                     </div>
                     {idx < 2 && <span className="text-slate-300 dark:text-slate-700 text-[10px] select-none mx-0.5">➔</span>}
@@ -2178,15 +2479,15 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                         <span className={active ? 'text-indigo-650 dark:text-indigo-400' : 'text-slate-400'}>{src.icon}</span>
                         {active && (
                           <div className="flex items-center gap-1 bg-indigo-500/10 px-2 py-0.5 rounded-full">
-                            <span className="text-[8px] font-black uppercase text-indigo-600 dark:text-indigo-400">Selected</span>
+                            <span className="text-[8px] font-black uppercase text-indigo-600 dark:text-indigo-400">{t("Selected")}</span>
                             <CheckCircle2 size={10} className="text-indigo-600 dark:text-indigo-400" />
                           </div>
                         )}
                       </div>
                       
                       <div className="mt-4">
-                        <h4 className="text-[12px] font-black leading-tight">{src.name}</h4>
-                        <p className="text-[10px] text-slate-400 font-semibold mt-1.5 leading-relaxed">{src.desc}</p>
+                        <h4 className="text-[12px] font-black leading-tight">{t(src.name)}</h4>
+                        <p className="text-[10px] text-slate-400 font-semibold mt-1.5 leading-relaxed">{t(src.desc)}</p>
                       </div>
                     </div>
                   );
@@ -2199,7 +2500,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                   <div className="space-y-4">
                     {/* Custom Searchable Case Dropdown */}
                     <div className="relative space-y-2">
-                      <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block">Choose Case Workspace</label>
+                      <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 block">{t("Choose Case Workspace")}</label>
                       <div 
                         onClick={() => setIsCaseDropdownOpen(!isCaseDropdownOpen)}
                         className={`w-full border-2 rounded-xl px-4 py-3.5 text-[13px] font-extrabold flex items-center justify-between cursor-pointer transition-all duration-200 hover:border-indigo-400 dark:hover:border-indigo-500 ${
@@ -2212,7 +2513,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                         <div className="flex items-center gap-2.5 min-w-0">
                           <Search size={16} className={selectedCaseObject ? "text-indigo-500 shrink-0" : "text-slate-400 shrink-0"} />
                           <span className={`truncate ${selectedCaseObject ? 'text-indigo-650 dark:text-indigo-400' : 'text-slate-450'}`}>
-                            {selectedCaseObject ? selectedCaseObject.name : 'Search or Select Case Workspace'}
+                            {selectedCaseObject ? selectedCaseObject.name : t('Search or Select Case Workspace')}
                           </span>
                         </div>
                         <ChevronDown size={16} className={`text-slate-400 transition-transform duration-200 shrink-0 ${isCaseDropdownOpen ? 'rotate-180 text-indigo-500' : ''}`} />
@@ -2233,7 +2534,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                               <Search size={14} className="text-slate-400 shrink-0" />
                               <input 
                                 type="text"
-                                placeholder="Search workspace..."
+                                placeholder={t("Search workspace...")}
                                 value={caseSearchQuery}
                                 onChange={e => setCaseSearchQuery(e.target.value)}
                                 className={`w-full bg-transparent border-none text-xs outline-none py-1.5 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}
@@ -2260,7 +2561,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                                 );
                               })}
                               {filteredCases.length === 0 && (
-                                <div className="p-4 text-center text-xs text-slate-400">No cases found</div>
+                                <div className="p-4 text-center text-xs text-slate-400">{t("No cases found")}</div>
                               )}
                             </div>
                           </motion.div>
@@ -2275,33 +2576,33 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                       }`}>
                         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
                           <h4 className="text-xs font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider">
-                            Case Matter Summary
+                            {t("Case Matter Summary")}
                           </h4>
                           <span className="px-3 py-1 rounded-full bg-emerald-550/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-wider border border-emerald-500/20">
-                            AI Ready
+                            {t("AI Ready")}
                           </span>
                         </div>
                         <div className="grid grid-cols-1 gap-4">
                           <div className={`p-4 rounded-xl border ${isDark ? 'bg-[#0E1528] border-slate-800' : 'bg-slate-50/50 border-slate-150'}`}>
-                            <span className="text-[12px] uppercase font-medium text-slate-500 dark:text-slate-400 block mb-1">Case Name</span>
+                            <span className="text-[12px] uppercase font-medium text-slate-500 dark:text-slate-400 block mb-1">{t("Case Name")}</span>
                             <span className="text-[16px] font-semibold text-slate-900 dark:text-white block truncate" title={selectedCaseObject.name}>
                               {selectedCaseObject.name}
                             </span>
                           </div>
                           <div className={`p-4 rounded-xl border ${isDark ? 'bg-[#0E1528] border-slate-800' : 'bg-slate-50/50 border-slate-150'}`}>
-                            <span className="text-[12px] uppercase font-medium text-slate-500 dark:text-slate-400 block mb-1">Case Type</span>
+                            <span className="text-[12px] uppercase font-medium text-slate-500 dark:text-slate-400 block mb-1">{t("Case Type")}</span>
                             <span className="text-[16px] font-semibold text-slate-900 dark:text-white block truncate" title={selectedCaseObject.caseType || 'Property Dispute'}>
                               {selectedCaseObject.caseType || 'Property Dispute'}
                             </span>
                           </div>
                           <div className={`p-4 rounded-xl border ${isDark ? 'bg-[#0E1528] border-slate-800' : 'bg-slate-50/50 border-slate-150'}`}>
-                            <span className="text-[12px] uppercase font-medium text-slate-500 dark:text-slate-400 block mb-1">Parties</span>
+                            <span className="text-[12px] uppercase font-medium text-slate-500 dark:text-slate-400 block mb-1">{t("Parties")}</span>
                             <span className="text-[16px] font-semibold text-slate-900 dark:text-white block truncate">
                               {selectedCaseObject.clientName || 'Petitioner'} vs {selectedCaseObject.opponentName || 'Respondent'}
                             </span>
                           </div>
                           <div className={`p-4 rounded-xl border ${isDark ? 'bg-[#0E1528] border-slate-800' : 'bg-slate-50/50 border-slate-150'}`}>
-                            <span className="text-[12px] uppercase font-medium text-slate-500 dark:text-slate-400 block mb-1">Court</span>
+                            <span className="text-[12px] uppercase font-medium text-slate-500 dark:text-slate-400 block mb-1">{t("Court")}</span>
                             <span className="text-[16px] font-semibold text-slate-900 dark:text-white block truncate" title={selectedCaseObject.courtName || 'District Court Jabalpur'}>
                               {selectedCaseObject.courtName || 'District Court Jabal Jabalpur'}
                             </span>
@@ -2319,8 +2620,8 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                       className="border-2 border-dashed border-slate-350 dark:border-slate-800 hover:border-indigo-500 rounded-2xl p-8 text-center cursor-pointer transition-all flex flex-col items-center gap-2 bg-slate-500/5"
                     >
                       <FileUp className="text-slate-400" size={32} />
-                      <span className="text-[12px] text-slate-700 dark:text-slate-300 font-bold">Staged files for OCR extraction</span>
-                      <span className="text-[9px] text-slate-450 uppercase font-semibold">FIRs, petitions, contracts, PDFs</span>
+                      <span className="text-[12px] text-slate-700 dark:text-slate-300 font-bold">{t("Staged files for OCR extraction")}</span>
+                      <span className="text-[9px] text-slate-450 uppercase font-semibold">{t("FIRs, petitions, contracts, PDFs")}</span>
                       <input 
                         id="wizard-files-selector"
                         type="file"
@@ -2357,7 +2658,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Litigation Goal Dropdown */}
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] font-black uppercase text-indigo-500 tracking-wider">Litigation Goal *</label>
+                        <label className="text-[10px] font-black uppercase text-indigo-500 tracking-wider">{t("Litigation Goal *")}</label>
                         <select
                           value={litigationGoal}
                           onChange={e => setLitigationGoal(e.target.value)}
@@ -2365,7 +2666,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                             isDark ? 'bg-[#131c31] border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                           } focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-all`}
                         >
-                          <option value="">Select Litigation Goal</option>
+                          <option value="">{t("Select Litigation Goal")}</option>
                           {[
                             'Draft Plaintiff Arguments',
                             'Draft Defence Arguments',
@@ -2388,7 +2689,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
 
                       {/* Practice Area Dropdown */}
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] font-black uppercase text-indigo-500 tracking-wider">Practice Area *</label>
+                        <label className="text-[10px] font-black uppercase text-indigo-500 tracking-wider">{t("Practice Area *")}</label>
                         <select
                           value={practiceArea}
                           onChange={e => setPracticeArea(e.target.value)}
@@ -2396,7 +2697,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                             isDark ? 'bg-[#131c31] border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                           } focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-all`}
                         >
-                          <option value="">Select Practice Area</option>
+                          <option value="">{t("Select Practice Area")}</option>
                           {[
                             'Civil',
                             'Criminal',
@@ -2420,7 +2721,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
 
                       {/* Relief Required Dropdown */}
                       <div className="flex flex-col gap-1.5 md:col-span-2">
-                        <label className="text-[10px] font-black uppercase text-indigo-500 tracking-wider">Relief Required</label>
+                        <label className="text-[10px] font-black uppercase text-indigo-500 tracking-wider">{t("Relief Required")}</label>
                         <select
                           value={reliefRequired}
                           onChange={e => setReliefRequired(e.target.value)}
@@ -2428,7 +2729,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                             isDark ? 'bg-[#131c31] border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
                           } focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-all`}
                         >
-                          <option value="">Select Relief (Optional)</option>
+                          <option value="">{t("Select Relief (Optional)")}</option>
                           {[
                             'Recovery',
                             'Compensation',
@@ -2454,13 +2755,13 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                     {/* Primary Legal Issue / Case Facts Editor */}
                     <div className="flex flex-col gap-2">
                       <div className="flex justify-between items-center">
-                        <label className="text-[10px] font-black uppercase text-indigo-500 tracking-wider">Legal Issue / Case Facts *</label>
+                        <label className="text-[10px] font-black uppercase text-indigo-500 tracking-wider">{t("Legal Issue / Case Facts *")}</label>
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
                             onClick={() => {
                               navigator.clipboard.writeText(caseFacts);
-                              toast.success("Editor text copied!");
+                              toast.success(t("Editor text copied!"));
                             }}
                             disabled={!caseFacts}
                             className={`p-1 px-2.5 rounded border text-[9px] font-bold uppercase transition-all flex items-center gap-1 ${
@@ -2477,9 +2778,9 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                               try {
                                 const text = await navigator.clipboard.readText();
                                 setCaseFacts(prev => prev ? `${prev}\n${text}` : text);
-                                toast.success("Text pasted into editor");
+                                toast.success(t("Text pasted into editor"));
                               } catch(err) {
-                                toast.error("Please paste manually using Ctrl+V");
+                                toast.error(t("Please paste manually using Ctrl+V"));
                               }
                             }}
                             className="p-1 px-2.5 rounded border border-indigo-500/30 hover:bg-indigo-500/10 text-indigo-500 text-[9px] font-bold uppercase transition-all flex items-center gap-1"
@@ -2498,15 +2799,15 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                             if (file.type === "text/plain" || file.name.endsWith('.txt')) {
                               const text = await file.text();
                               setCaseFacts(prev => prev ? `${prev}\n${text}` : text);
-                              toast.success(`Imported text file: ${file.name}`);
+                              toast.success(`t("Imported text file:") + " " + file.name`);
                             } else {
-                              toast.error("Please drag a plain text file (.txt)");
+                              toast.error(t("Please drag a plain text file (.txt)"));
                             }
                           } else {
                             const text = e.dataTransfer.getData("text");
                             if (text) {
                               setCaseFacts(prev => prev ? `${prev}\n${text}` : text);
-                              toast.success("Dropped text segment");
+                              toast.success(t("Dropped text segment"));
                             }
                           }
                         }}
@@ -2517,7 +2818,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                         <textarea
                           rows={12}
                           spellCheck={true}
-                          placeholder="Describe the legal issue in detail. Include facts, timeline, agreements, transactions, disputes, evidence, important dates, parties involved, objectives, and any information that may help AI prepare strong courtroom arguments. You do not need to use legal language."
+                          placeholder={t("Describe the legal issue in detail. Include facts, timeline, agreements, transactions, disputes, evidence, important dates, parties involved, objectives, and any information that may help AI prepare strong courtroom arguments. You do not need to use legal language.")}
                           value={caseFacts}
                           onChange={e => setCaseFacts(e.target.value)}
                           className="w-full bg-transparent px-4 py-3 text-xs font-semibold leading-relaxed outline-none resize-y min-h-[250px] max-h-[350px] text-slate-800 dark:text-slate-100 placeholder-slate-400"
@@ -2525,22 +2826,22 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                         
                         {/* Drag and drop overlay hint */}
                         <div className="absolute right-3 bottom-3 flex items-center gap-2 pointer-events-none text-[8.5px] font-black uppercase tracking-wider text-slate-450">
-                          <span>Drag txt file or drop text here</span>
+                          <span>{t("Drag txt file or drop text here")}</span>
                           <span>|</span>
-                          <span>{caseFacts.length} chars</span>
+                          <span>{caseFacts.length} {t("chars")}</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Helper suggestions */}
                     <div className="flex flex-wrap items-center gap-2.5 py-1">
-                      <span className="text-[9px] font-black text-slate-450 uppercase tracking-widest">Workspace Hints:</span>
+                      <span className="text-[9px] font-black text-slate-450 uppercase tracking-widest">{t("Workspace Hints:")}</span>
                       {[
-                        'Mention important dates.',
-                        'Describe agreements.',
-                        'Mention available evidence.',
-                        'Mention opponent\'s actions.',
-                        'Mention desired court outcome.'
+                        t("Mention important dates."),
+                        t("Describe agreements."),
+                        t("Mention available evidence."),
+                        t("Mention opponent's actions."),
+                        t("Mention desired court outcome.")
                       ].map((hint, hidx) => (
                         <button
                           key={hidx}
@@ -2755,7 +3056,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                       minHeight: '44px'
                     }}
                   >
-                    Generate AI Argument
+                    {t("Generate AI Argument")}
                   </button>
                 </div>
               </div>
@@ -2895,7 +3196,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                           <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-455" />
                           <input 
                             type="text"
-                            placeholder="Filter sections..."
+                            placeholder={t("Filter sections...")}
                             value={outlineSearchQuery}
                             onChange={e => setOutlineSearchQuery(e.target.value)}
                             className={`w-full border rounded-lg pl-7 pr-2 py-1 text-[10px] font-semibold outline-none ${
@@ -2928,7 +3229,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                                 {active && (
                                   <span className="absolute left-1 top-2 bottom-2 w-0.5 rounded bg-indigo-600 dark:bg-indigo-400" />
                                 )}
-                                <span>{item.label}</span>
+                                <span>{t(item.label)}</span>
                                 {isPinned && <Pin size={8} className="text-indigo-500 shrink-0 fill-indigo-500" />}
                               </button>
                             );
@@ -2991,7 +3292,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                         // Check if text matches active search query
                         if (editorSearchQuery) {
                           const query = editorSearchQuery.toLowerCase();
-                          const sectionMatch = item.label.toLowerCase().includes(query);
+                          const sectionMatch = (t(item.label).toLowerCase().includes(query) || item.label.toLowerCase().includes(query));
                           const contentMatch = typeof content === 'string' 
                             ? content.toLowerCase().includes(query)
                             : JSON.stringify(content).toLowerCase().includes(query);
@@ -3015,9 +3316,9 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                               <div className="flex items-center gap-2">
                                 {isFocused && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />}
                                 <h3 className="text-[11px] font-black uppercase text-slate-800 dark:text-white flex items-center gap-1.5">
-                                  {item.label}
+                                  {t(item.label)}
                                 </h3>
-                                {isPinned && <span className="px-1.5 py-0.2 bg-indigo-500/10 text-indigo-500 rounded text-[7.5px] font-black uppercase">Pinned</span>}
+                                {isPinned && <span className="px-1.5 py-0.2 bg-indigo-500/10 text-indigo-500 rounded text-[7.5px] font-black uppercase">{t("Pinned")}</span>}
                               </div>
 
                               <div className="flex items-center gap-1">
@@ -3030,7 +3331,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                                   className="px-2 py-1 hover:bg-slate-800/30 text-indigo-500 rounded-lg text-[9px] font-black uppercase flex items-center gap-0.5 whitespace-nowrap"
                                 >
                                   <Brain size={10} />
-                                  <span>Explain Why</span>
+                                  <span>{t("Explain Why")}</span>
                                 </button>
 
                                 <div className="h-3 w-px bg-slate-800 mx-1" />
@@ -3138,7 +3439,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                                                     Strength: {arg.argumentStrength || 'Strong'}
                                                   </span>
                                                   <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-500">
-                                                    Confidence: {arg.evidenceConfidence || '95%'}
+                                                    {t("Confidence")}: {arg.evidenceConfidence || '95%'}
                                                   </span>
                                                 </div>
                                               </div>
@@ -3258,7 +3559,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                                                 <p className="text-[10.5px] text-slate-750 dark:text-slate-300 mt-1"><strong className="text-slate-400">Admissibility:</strong> {ev.admissibility}</p>
                                               </div>
                                               <div className="pt-2 border-t border-slate-800/5 dark:border-slate-100/5 text-[10px] flex items-center justify-between">
-                                                <span className="text-slate-455 font-bold">Confidence: <span className="text-indigo-500">{ev.evidenceConfidence || '95%'}</span></span>
+                                                <span className="text-slate-455 font-bold">{t("Confidence")}: <span className="text-indigo-500">{ev.evidenceConfidence || '95%'}</span></span>
                                                 {ev.missingEvidence && (
                                                   <span className="px-1.5 py-0.2 bg-rose-500/10 text-rose-500 rounded text-[7.5px] font-black uppercase" title={ev.missingEvidence}>Missing Elements</span>
                                                 )}
@@ -3469,16 +3770,16 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                                   <div className="flex items-center justify-between pb-2 border-b border-indigo-550/10">
                                     <span className="font-bold text-indigo-650 dark:text-indigo-400 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
                                       <Brain size={12} className="text-indigo-500" />
-                                      AI Reasoning Explanation
+                                      {t("AI Reasoning Explanation")}
                                     </span>
                                     <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9.5px] font-bold border border-emerald-500/20">
-                                      Confidence: {REASONING_DATA[item.id]?.confidence || 95}%
+                                      {t("Confidence")}: {REASONING_DATA[item.id]?.confidence || 95}%
                                     </span>
                                   </div>
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="space-y-1 text-left">
                                       <span className="font-semibold text-[#6B7280] dark:text-slate-400 block uppercase text-[10px] tracking-wide">
-                                        Legal Strategy Objective
+                                        {t("Legal Strategy Objective")}
                                       </span>
                                       <p className="text-[#374151] dark:text-slate-200 text-xs leading-relaxed font-medium">
                                         {REASONING_DATA[item.id]?.reason || 'Structured according to High Court pleading rules.'}
@@ -3486,7 +3787,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                                     </div>
                                     <div className="space-y-1 text-left">
                                       <span className="font-semibold text-[#6B7280] dark:text-slate-400 block uppercase text-[10px] tracking-wide">
-                                        Applicable Law / Provision
+                                        {t("Applicable Law / Provision")}
                                       </span>
                                       <p className="text-[#374151] dark:text-slate-200 text-xs leading-relaxed font-medium">
                                         {REASONING_DATA[item.id]?.law || 'Order VI Rule 1 CPC Pleading Standards.'}
@@ -3494,7 +3795,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                                     </div>
                                     <div className="space-y-1 text-left">
                                       <span className="font-semibold text-[#6B7280] dark:text-slate-400 block uppercase text-[10px] tracking-wide">
-                                        Relevant Case Facts
+                                        {t("Relevant Case Facts")}
                                       </span>
                                       <p className="text-[#374151] dark:text-slate-200 text-xs leading-relaxed font-medium">
                                         {REASONING_DATA[item.id]?.facts || 'milestone contract breach notifications.'}
@@ -3502,7 +3803,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                                     </div>
                                     <div className="space-y-1 text-left">
                                       <span className="font-semibold text-[#6B7280] dark:text-slate-400 block uppercase text-[10px] tracking-wide">
-                                        Supporting Case Law / Precedent
+                                        {t("Supporting Case Law / Precedent")}
                                       </span>
                                       <p className="text-[#374151] dark:text-slate-200 text-xs leading-relaxed font-medium">
                                         {REASONING_DATA[item.id]?.precedent || 'ONGC Ltd. v. Saw Pipes Ltd.'}
@@ -3518,10 +3819,10 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                       });
                     })()}
 
-                    {/* Mobile-only inline AI Refinements Panel */}
+                    {/* Mobile-only inline {t("AI Refinements")} Panel */}
                     <div className="md:hidden mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 space-y-4 text-left">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-black uppercase tracking-widest text-indigo-500">AI Refinements</span>
+                        <span className="text-xs font-black uppercase tracking-widest text-indigo-500">{t("AI Refinements")}</span>
                       </div>
                       
                       {/* Category filter tabs */}
@@ -3531,14 +3832,14 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                             const isActive = activeCopilotTab === tab;
                             return (
                               <button
-                                key={tab}
+                                key={t(tab)}
                                 onClick={() => setActiveCopilotTab(tab)}
                                 className={`text-center py-2 px-3 text-[10px] font-black uppercase tracking-wider relative transition-all duration-200 shrink-0 select-none ${
                                   isActive ? 'text-[#5B3DF5] dark:text-[#8b79ff] font-black' : 'text-slate-450 hover:text-slate-700 dark:hover:text-slate-200'
                                 }`}
                                 style={{ minWidth: '95px', whiteSpace: 'nowrap', flexShrink: 0 }}
                               >
-                                <span>{tab}</span>
+                                <span>{t(tab)}</span>
                                 {isActive && (
                                   <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#5B3DF5] dark:bg-indigo-500 rounded-full" />
                                 )}
@@ -3554,7 +3855,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                           const isApplied = refinementHistory[focusedSection] === btn.action;
                           return (
                             <button
-                              key={btn.name}
+                              key={t(btn.name)}
                               onClick={() => handleAIAction(btn.action, btn.prompt)}
                               className={`w-full px-5 py-4 border rounded-2xl transition-all text-left flex items-start justify-between gap-3 ${
                                 isApplied 
@@ -3567,11 +3868,11 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2">
                                   <h4 className={`text-[11px] font-black uppercase tracking-wide leading-none ${isApplied ? 'text-indigo-650 dark:text-indigo-400' : 'text-slate-800 dark:text-white'}`}>
-                                    {btn.name}
+                                    {t(btn.name)}
                                   </h4>
                                   {isApplied && <span className="w-1.5 h-1.5 rounded-full bg-[#5B3DF5] shrink-0" />}
                                 </div>
-                                <p className="text-[10px] text-slate-450 dark:text-slate-400 font-medium mt-2 leading-relaxed">{btn.desc}</p>
+                                <p className="text-[10px] text-slate-450 dark:text-slate-400 font-medium mt-2 leading-relaxed">{t(btn.desc)}</p>
                               </div>
                               <ChevronRight size={12} className={`${isApplied ? 'text-[#5B3DF5]' : 'text-slate-400'} mt-0.5 shrink-0`} />
                             </button>
@@ -3584,13 +3885,13 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                         <div className={`p-4 border rounded-xl flex flex-col min-h-[220px] max-h-[300px] shrink-0 mt-4 ${
                           isDark ? 'bg-[#0E1528] border-slate-800' : 'bg-white border-slate-200'
                         }`}>
-                          <span className="text-[9px] font-black uppercase text-indigo-500 mb-2 block">Precedents Engine</span>
+                          <span className="text-[9px] font-black uppercase text-indigo-500 mb-2 block">{t("Precedents Engine")}</span>
                           
                           <div className="relative mb-2">
                             <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-455" />
                             <input 
                               type="text"
-                              placeholder="Search legal precedents database..."
+                              placeholder={t("Search legal precedents database...")}
                               value={precedentSearch}
                               onChange={e => setPrecedentSearch(e.target.value)}
                               className={`w-full border rounded-lg pl-7 pr-2 py-1 text-[9.5px] font-semibold outline-none ${
@@ -3645,7 +3946,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                       
                       {/* Title header */}
                       <div className="flex items-center justify-between shrink-0">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500">AI Refinements</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500">{t("AI Refinements")}</span>
                         <button 
                           onClick={() => setIsRightSidebarOpen(false)}
                           className="p-1 rounded hover:bg-slate-805 text-slate-500"
@@ -3661,7 +3962,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                             const isActive = activeCopilotTab === tab;
                             return (
                               <button
-                                key={tab}
+                                key={t(tab)}
                                 onClick={() => setActiveCopilotTab(tab)}
                                 className={`text-center py-2 px-3 text-[10px] font-black uppercase tracking-wider relative transition-all duration-200 shrink-0 select-none ${
                                   isActive
@@ -3674,7 +3975,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                                   flexShrink: 0
                                 }}
                               >
-                                <span>{tab}</span>
+                                <span>{t(tab)}</span>
                                 {isActive && (
                                   <motion.div
                                     layoutId="activeRefinementTabUnderlineDesktop"
@@ -3694,7 +3995,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                           const isApplied = refinementHistory[focusedSection] === btn.action;
                           return (
                             <button
-                              key={btn.name}
+                              key={t(btn.name)}
                               onClick={() => handleAIAction(btn.action, btn.prompt)}
                               className={`w-full px-5 py-4 border rounded-2xl transition-all text-left flex items-start justify-between gap-3 ${
                                 isApplied 
@@ -3707,11 +4008,11 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2">
                                   <h4 className={`text-[11px] font-black uppercase tracking-wide leading-none ${isApplied ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-800 dark:text-white'}`}>
-                                    {btn.name}
+                                    {t(btn.name)}
                                   </h4>
                                   {isApplied && <span className="w-1.5 h-1.5 rounded-full bg-[#5B3DF5] shrink-0" />}
                                 </div>
-                                <p className="text-[10px] text-slate-450 dark:text-slate-400 font-medium mt-2 leading-relaxed">{btn.desc}</p>
+                                <p className="text-[10px] text-slate-450 dark:text-slate-400 font-medium mt-2 leading-relaxed">{t(btn.desc)}</p>
                               </div>
                               <ChevronRight size={12} className={`${isApplied ? 'text-[#5B3DF5]' : 'text-slate-400'} mt-0.5 shrink-0`} />
                             </button>
@@ -3724,14 +4025,14 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                         <div className={`p-4 border rounded-xl flex flex-col min-h-[220px] max-h-[300px] shrink-0 mt-4 ${
                           isDark ? 'bg-slate-950/40 border-slate-805' : 'bg-white border-slate-200'
                         }`}>
-                          <span className="text-[9px] font-black uppercase text-indigo-500 mb-2 block">Precedents Engine</span>
+                          <span className="text-[9px] font-black uppercase text-indigo-500 mb-2 block">{t("Precedents Engine")}</span>
                           
                           {/* Search cases */}
                           <div className="relative mb-2">
                             <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-455" />
                             <input 
                               type="text"
-                              placeholder="Search legal precedents database..."
+                              placeholder={t("Search legal precedents database...")}
                               value={precedentSearch}
                               onChange={e => setPrecedentSearch(e.target.value)}
                               className={`w-full border rounded-lg pl-7 pr-2 py-1 text-[9.5px] font-semibold outline-none ${
@@ -3777,7 +4078,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                     <button
                       onClick={() => setIsRightSidebarOpen(true)}
                       className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-4 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 transition-all text-[#5B3DF5] cursor-pointer"
-                      title="Expand AI Refinements"
+                      title={`Expand ${t("AI Refinements")}`}
                     >
                       <ChevronLeft size={16} className="animate-pulse" />
                       <span className="text-[9px] font-black uppercase tracking-widest text-center whitespace-nowrap" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
@@ -3854,7 +4155,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                             }`}
                             style={{ minHeight: '44px' }}
                           >
-                            <span>{item.label}</span>
+                            <span>{t(item.label)}</span>
                             {isPinned && <Pin size={8} className="text-indigo-500 shrink-0 fill-indigo-500" />}
                           </button>
                         );
@@ -3878,7 +4179,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                     <div className="w-12 h-1.5 bg-slate-700 rounded-full mx-auto mb-4 shrink-0" />
                     
                     <div className="flex justify-between items-center pb-3 border-b border-slate-250 dark:border-slate-805 mb-4 shrink-0">
-                      <span className="text-xs font-black uppercase text-indigo-500">AI Refinements Copilot</span>
+                      <span className="text-xs font-black uppercase text-indigo-500">{t("AI Refinements")} Copilot</span>
                       <button 
                         onClick={() => setMobileAiCopilotDrawer(false)} 
                         className="p-1.5 hover:bg-slate-800/10 dark:hover:bg-zinc-800 rounded-full text-slate-400"
@@ -3895,7 +4196,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                           const isActive = activeCopilotTab === tab;
                           return (
                             <button
-                              key={tab}
+                              key={t(tab)}
                               onClick={() => setActiveCopilotTab(tab)}
                               className={`text-center py-2 px-3 text-[10px] font-black uppercase tracking-wider relative transition-all duration-200 shrink-0 select-none ${
                                 isActive
@@ -3908,7 +4209,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                                 flexShrink: 0
                               }}
                             >
-                              <span>{tab}</span>
+                              <span>{t(tab)}</span>
                               {isActive && (
                                 <motion.div
                                   layoutId="activeRefinementTabUnderlineMobile"
@@ -3927,7 +4228,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                         const isApplied = refinementHistory[focusedSection] === btn.action;
                         return (
                           <button
-                            key={btn.name}
+                            key={t(btn.name)}
                             onClick={() => {
                               setMobileAiCopilotDrawer(false);
                               handleAIAction(btn.action, btn.prompt);
@@ -3942,10 +4243,10 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                           >
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
-                                <h4 className={`text-[11px] font-black uppercase tracking-wide leading-none ${isApplied ? 'text-indigo-650 dark:text-indigo-400' : 'text-slate-800 dark:text-white'}`}>{btn.name}</h4>
+                                <h4 className={`text-[11px] font-black uppercase tracking-wide leading-none ${isApplied ? 'text-indigo-650 dark:text-indigo-400' : 'text-slate-800 dark:text-white'}`}>{t(btn.name)}</h4>
                                 {isApplied && <span className="w-1.5 h-1.5 rounded-full bg-[#5B3DF5] shrink-0" />}
                               </div>
-                              <p className="text-[10px] text-slate-450 dark:text-slate-400 font-medium mt-2 leading-relaxed">{btn.desc}</p>
+                              <p className="text-[10px] text-slate-450 dark:text-slate-400 font-medium mt-2 leading-relaxed">{t(btn.desc)}</p>
                             </div>
                             <ChevronRight size={12} className={`${isApplied ? 'text-[#5B3DF5]' : 'text-slate-400'} mt-0.5 shrink-0`} />
                           </button>
@@ -4072,7 +4373,7 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
                           {/* Main grid fields */}
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="md:col-span-2 space-y-0.5">
-                              <span className="text-[9px] uppercase font-black tracking-wider text-slate-400 block">Case Name</span>
+                              <span className="text-[9px] uppercase font-black tracking-wider text-slate-400 block">{t("Case Name")}</span>
                               <h4 className="text-sm font-black text-indigo-650 dark:text-indigo-400 tracking-wide truncate">
                                 {getHistoryItemCaseName(item)}
                               </h4>
@@ -4222,6 +4523,22 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
         }
       `}</style>
 
+
+{isTranslatingDraft && (
+        <div className="fixed inset-0 z-[125000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm select-none">
+          <div className="bg-white dark:bg-zinc-900 border border-slate-202 dark:border-zinc-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl flex flex-col items-center text-center font-sans">
+            <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-950/30 rounded-full flex items-center justify-center text-[#5B3DF5] mb-4 animate-spin">
+              <RefreshCw size={24} />
+            </div>
+            <h3 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-wider">
+              {toolkitLanguage === 'Hindi' ? 'पाठ का अनुवाद किया जा रहा है...' : 'Translating Argument Builder...'}
+            </h3>
+            <p className="text-xs text-slate-450 dark:text-slate-400 font-medium mt-2 leading-relaxed">
+              {toolkitLanguage === 'Hindi' ? 'कृपया प्रतीक्षा करें, हम आपके कानूनी तर्कों का अनुवाद कर रहे हैं।' : 'Please wait while we translate your legal arguments.'}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -121,7 +121,7 @@ export const apiService = {
         formData.append('image', imageFileOrBlob);
       }
       const response = await apiClient.post('/edit-image', formData, {
-        timeout: 90000 
+        timeout: 90000
       });
       console.log("[Frontend] Image editing success:", response.data);
       return response.data;
@@ -241,7 +241,7 @@ export const apiService = {
       } else {
         formData.append('files', files);
       }
-      
+
       if (workspaceId) formData.append('workspaceId', workspaceId);
 
       const response = await apiClient.post('/brand/quick-analysis', formData, {
@@ -1438,7 +1438,7 @@ export const apiService = {
     if (window.__projectsPromise) {
       return window.__projectsPromise;
     }
-    
+
     const fetchPromise = (async () => {
       const isMock = localStorage.getItem('token') === 'mock_token';
       if (isMock) {
@@ -1469,7 +1469,7 @@ export const apiService = {
         window.__projectsPromise = null;
       }
     })();
-    
+
     window.__projectsPromise = fetchPromise;
     return fetchPromise;
   },
@@ -1504,7 +1504,7 @@ export const apiService = {
     // Invalidate Cache
     window.__projectsCache = null;
     window.__projectsPromise = null;
-    
+
     const isMock = localStorage.getItem('token') === 'mock_token';
     const payload = typeof data === 'string' ? { name: data } : data;
     if (isMock) {
@@ -1537,7 +1537,7 @@ export const apiService = {
     window.__projectsCache = null;
     window.__projectsPromise = null;
     if (window.__singleProjectCache) delete window.__singleProjectCache[projectId];
-    
+
     const isMock = localStorage.getItem('token') === 'mock_token';
     if (isMock) {
       const stored = JSON.parse(localStorage.getItem('mock_projects') || '[]');
@@ -1566,7 +1566,7 @@ export const apiService = {
     window.__projectsCache = null;
     window.__projectsPromise = null;
     if (window.__singleProjectCache) delete window.__singleProjectCache[projectId];
-    
+
     const isMock = localStorage.getItem('token') === 'mock_token';
     if (isMock) {
       const stored = JSON.parse(localStorage.getItem('mock_projects') || '[]');
@@ -1588,7 +1588,7 @@ export const apiService = {
     window.__projectsCache = null;
     window.__projectsPromise = null;
     if (window.__singleProjectCache) delete window.__singleProjectCache[id];
-    
+
     const isMock = localStorage.getItem('token') === 'mock_token';
     if (isMock) {
       const stored = JSON.parse(localStorage.getItem('mock_projects') || '[]');
@@ -1744,9 +1744,9 @@ export const apiService = {
     }
   },
 
-  async generatePrecedentPDF(precedentData) {
+  async generatePrecedentPDF(precedentData, language = 'English') {
     try {
-      const response = await apiClient.post('/precedents/generate-pdf', { precedentData }, {
+      const response = await apiClient.post('/precedents/generate-pdf', { precedentData, language }, {
         responseType: 'blob'
       });
       return response.data;
@@ -1769,7 +1769,7 @@ export const apiService = {
     }
   },
 
-  async autoAnalyzeCase(caseId, rawText = null) {
+  async autoAnalyzeCase(caseId, rawText = null, language = 'English') {
     const isMock = localStorage.getItem('token') === 'mock_token';
     if (isMock) {
       return {
@@ -1791,7 +1791,12 @@ export const apiService = {
     }
     try {
       console.log(`[Frontend] POST /api/projects/${caseId}/analyze`);
-      const response = await apiClient.post(`/projects/${caseId}/analyze`, { rawText });
+      const response = await apiClient.post(`/projects/${caseId}/analyze`, { rawText, language });
+
+      // Invalidate the cache after successful analysis
+      window.__projectsCache = null;
+      window.__projectsPromise = null;
+
       console.log(`[Frontend] Auto-analyze success:`, {
         strength: response.data?.intelligence?.strengthScore,
         win: response.data?.intelligence?.winProbability,
@@ -1835,6 +1840,56 @@ export const apiService = {
       return response.data;
     } catch (error) {
       console.error('downloadInvoice failed:', error);
+      throw error;
+    }
+  },
+
+  async getEvidence(caseId) {
+    try {
+      const response = await apiClient.get(`/cases/${caseId}/evidence`);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] getEvidence failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async uploadEvidence(caseId, data) {
+    try {
+      const response = await apiClient.post(`/cases/${caseId}/evidence`, data);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] uploadEvidence failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async updateEvidence(caseId, evidenceId, data) {
+    try {
+      const response = await apiClient.patch(`/cases/${caseId}/evidence/${evidenceId}`, data);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] updateEvidence failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async deleteEvidence(caseId, evidenceId) {
+    try {
+      const response = await apiClient.delete(`/cases/${caseId}/evidence/${evidenceId}`);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] deleteEvidence failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async getEvidenceStats(caseId) {
+    try {
+      const response = await apiClient.get(`/cases/${caseId}/evidence/stats`);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] getEvidenceStats failed:', error?.response?.data || error.message);
       throw error;
     }
   }
