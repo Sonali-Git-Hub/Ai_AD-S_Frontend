@@ -8098,7 +8098,9 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                   )}
                 </motion.div>
               ) : (
-                <Outlet context={outletProps} />
+                <React.Suspense fallback={<div className="flex h-full items-center justify-center"><Loader /></div>}>
+                  <Outlet context={outletProps} />
+                </React.Suspense>
               );
             })()}
           </AnimatePresence>
