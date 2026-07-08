@@ -2008,7 +2008,37 @@ export const apiService = {
       console.error('[Frontend] getEvidenceStats failed:', error?.response?.data || error.message);
       throw error;
     }
-  }
+  },
+
+  async sendDeleteAccountOtp() {
+    try {
+      const response = await apiClient.post('/user/delete-otp/send');
+      return response.data;
+    } catch (error) {
+      console.error('sendDeleteAccountOtp failed:', error);
+      throw error;
+    }
+  },
+
+  async verifyDeleteAccountOtp(otp) {
+    try {
+      const response = await apiClient.post('/user/delete-otp/verify', { otp });
+      return response.data;
+    } catch (error) {
+      console.error('verifyDeleteAccountOtp failed:', error);
+      throw error;
+    }
+  },
+
+  async deleteAccountSecure() {
+    try {
+      const response = await apiClient.delete('/user');
+      return response.data;
+    } catch (error) {
+      console.error('deleteAccountSecure failed:', error);
+      throw error;
+    }
+  },
 };
 
 export default apiService;
