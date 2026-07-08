@@ -3,11 +3,15 @@ import { useLanguage } from '../context/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    BarChart3, Users, MessageSquare, PieChart, CreditCard, Shield, FileText, Headphones, BookOpen, Settings, ArrowLeft
+    BarChart3, Users, MessageSquare, PieChart, CreditCard, Shield, FileText, Headphones, BookOpen, Settings, ArrowLeft,
+    DollarSign, TrendingUp, Activity, Search
 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { apiService } from '../services/apiService';
 import { getUserData } from '../userStore/userData';
 import { logo } from '../constants.js';
-import { ADMIN_EMAIL, LoadingSpinner, TabButton } from './Admin/AdminCommon';
+import { ADMIN_EMAIL, LoadingSpinner, TabButton, StatCard, SectionCard } from './Admin/AdminCommon';
+
 
 // Lazy load Tab Components
 const OverviewTab = React.lazy(() => import('./Admin/OverviewTab'));
