@@ -10,7 +10,7 @@ import AISnapshot from '../../landingpage/AISnapshot';
 import { io } from 'socket.io-client';
 import apiService from '../../services/apiService';
 
-const baseURL = window._env_?.VITE_AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || "http://localhost:8080/api";
+const baseURL = window._env_?.VITE_AISA_BACKEND_API || import.meta.env.VITE_AISA_BACKEND_API || "http://127.0.0.1:8080/api";
 
 const PRESET_STOCKS = [
    { symbol: 'TCS.BSE', name: 'Tata Consultancy', region: 'IN' },
@@ -372,12 +372,8 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
             })
             .catch((err) => {
                setIsLoadingTab(false);
-               if (err.response?.status === 403 && err.response?.data?.code === 'OUT_OF_CREDITS') {
-                  setTabError(`Insufficient Credits (Required: ${cashflowCost})`);
-               } else {
-                  const errMsg = err.response?.data?.error || `Failed to load intraday data.`;
-                  setTabError(errMsg);
-               }
+               const errMsg = err.response?.data?.error || err.response?.data?.message || `Failed to load intraday data.`;
+               setTabError(errMsg);
             });
 
          if (socket) {
@@ -406,11 +402,7 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
             const handleHistorical = (data) => {
                setIsLoadingTab(false);
                if (data.error) {
-                  if (data.code === 'OUT_OF_CREDITS') {
-                     setTabError(`Insufficient Credits (Required: ${cashflowCost})`);
-                  } else {
-                     setTabError(data.error);
-                  }
+                  setTabError(data.error);
                } else {
                   setTabData(prev => ({ ...prev, 'Historical chart': { historical: data.historical } }));
                   setUnlockedTabs(prev => prev.includes('historical') ? prev : [...prev, 'historical']);
@@ -437,12 +429,8 @@ const CashFlowStockModal = ({ isOpen, onClose, onSelect, isDarkMode, initialStoc
                const mappedTab = activeTab === 'News' ? 'news' : activeTab === 'Advisory' ? 'advisory' : 'research';
                setUnlockedTabs(prev => prev.includes(mappedTab) ? prev : [...prev, mappedTab]);
             }).catch(err => {
-               if (err.response?.status === 403 && err.response?.data?.code === 'OUT_OF_CREDITS') {
-                  setTabError(`Insufficient Credits (Required: ${cashflowCost})`);
-               } else {
-                  const errMsg = err.response?.data?.error || `Failed to load ${activeTab}.`;
-                  setTabError(errMsg);
-               }
+               const errMsg = err.response?.data?.error || err.response?.data?.message || `Failed to load ${activeTab}.`;
+               setTabError(errMsg);
             }).finally(() => setIsLoadingTab(false));
          }
       }

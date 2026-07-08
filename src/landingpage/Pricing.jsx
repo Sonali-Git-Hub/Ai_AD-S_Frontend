@@ -64,6 +64,35 @@ const Pricing = () => {
   const gridRef = useRef(null);
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' && window.innerWidth <= 1024);
   const [isTabletCarousel, setIsTabletCarousel] = useState(typeof window !== 'undefined' && window.innerWidth > 768 && window.innerWidth <= 1024);
+  const [billingModalOpen, setBillingModalOpen] = useState(false);
+  const [billingSubmitted, setBillingSubmitted] = useState(false);
+  const [selectedPlanForUpgrade, setSelectedPlanForUpgrade] = useState(null);
+  const [billingForm, setBillingForm] = useState({
+    billingName: '',
+    companyName: '',
+    gstin: '',
+    addressLine1: '',
+    city: '',
+    state: 'Maharashtra',
+    postalCode: '',
+    country: 'IN'
+  });
+
+  useEffect(() => {
+    if (userState?.user) {
+      const details = userState.user.billingDetails || {};
+      setBillingForm({
+        billingName: details.billingName || userState.user.name || '',
+        companyName: details.companyName || '',
+        gstin: details.gstin || '',
+        addressLine1: details.addressLine1 || '',
+        city: details.city || '',
+        state: details.state || 'Maharashtra',
+        postalCode: details.postalCode || '',
+        country: details.country || 'IN'
+      });
+    }
+  }, [userState]);
 
   useEffect(() => {
     fetchPricingData();
@@ -193,17 +222,28 @@ const Pricing = () => {
     return summary;
   };
 
-  const handleUpgrade = async (plan) => {
-    const token = getActiveToken();
-    if (!token) {
-      toast.error(t('pleaseLoginToUpgrade') || 'Please login to upgrade your plan');
-      navigate('/login');
-      return;
-    }
+  const executeUpgrade = async (plan, billingDetails) => {
     try {
       setProcessing(true);
+      
+      const basePrice = billingCycle === 'yearly' ? plan.priceYearly : plan.priceMonthly;
+      const gstAmount = Math.round(basePrice * 0.18 * 100) / 100;
+      const totalAmount = Math.round(basePrice * 1.18 * 100) / 100;
+      
+      // Print breakdown in console as requested
+      console.log("========================================");
+      console.log("[CHECKOUT] GST INVOICE CALCULATION");
+      console.log(`Plan Name:   ${plan.planName}`);
+      console.log(`Base Price:  ₹${basePrice}`);
+      console.log(`GST (18%):   ₹${gstAmount}`);
+      console.log(`Total:       ₹${totalAmount}`);
+      console.log("Billing Details:", billingDetails);
+      console.log("========================================");
+
       const orderRes = await createSubscriptionOrder({ planId: plan._id, billingCycle });
       if (orderRes.isFree) {
+        const res = await purchasePlan(plan._id, billingCycle, null, billingDetails);
+        toast.success(`Successfully upgraded to ${plan.planName}!`);
         const updatedUser = updateUser({
           credits: res.credits,
           founderStatus: plan.planName.toLowerCase() === 'founder plan' ? true : userState.user.founderStatus
@@ -223,7 +263,7 @@ const Pricing = () => {
         order_id: orderRes.order.id,
         handler: async function (response) {
           try {
-            const res = await purchasePlan(plan._id, billingCycle);
+            const res = await purchasePlan(plan._id, billingCycle, response.razorpay_payment_id, billingDetails);
             toast.success(`Successfully upgraded to ${plan.planName}!`);
             const updatedUser = updateUser({
               credits: res.credits,
@@ -236,7 +276,7 @@ const Pricing = () => {
           }
         },
         prefill: {
-          name: userState?.user?.name || "User",
+          name: billingDetails?.billingName || userState?.user?.name || "User",
           email: userState?.user?.email || ""
         },
         theme: { color: "var(--color-primary)" }
@@ -252,6 +292,23 @@ const Pricing = () => {
       toast.error(err.response?.data?.message || 'Upgrade failed. Please try again.');
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const handleUpgrade = async (plan) => {
+    const token = getActiveToken();
+    if (!token) {
+      toast.error(t('pleaseLoginToUpgrade') || 'Please login to upgrade your plan');
+      navigate('/login');
+      return;
+    }
+    
+    const price = billingCycle === 'yearly' ? plan.priceYearly : plan.priceMonthly;
+    if (price === 0) {
+      executeUpgrade(plan, null);
+    } else {
+      setSelectedPlanForUpgrade(plan);
+      setBillingModalOpen(true);
     }
   };
 
@@ -618,89 +675,17 @@ const Pricing = () => {
                   ✓ {t('currentPlan')}
                 </button>
               ) : (
-                <div className="payment-buttons-stack">
-                  {/* ── Razorpay Button ── */}
-                  <button
-                    className="cta-button"
-                    onClick={() => handleUpgrade(plan)}
-                    disabled={processing}
-                  >
-                    {displayPrice === 0
-                      ? t('startForFree')
-                      : (billingCycle === 'yearly')
-                        ? `${t('upgradeFor')} ₹${totalYearlyAmount}${t('billedYearlySuffix')}`
-                        : t('upgradeTo') + getDisplayPlanName(plan.planName)}
-                  </button>
-
-                  {/* ── PayPal Button ── */}
-                  {!isFree && (
-                    <>
-                      <div className="payment-divider"><span>or pay with</span></div>
-                      <PayPalButton
-                        planId={plan._id}
-                        billingCycle={billingCycle}
-                        onSuccess={(data) => {
-                          if (data?.isFree) return;
-                          toast.success(`✅ PayPal payment successful! ${getDisplayPlanName(plan.planName)} activated.`);
-                          const updatedUser = updateUser({
-                            founderStatus: isStartupProPlan(plan) ? true : userState.user?.founderStatus
-                          });
-                          setUserState({ user: updatedUser });
-                          useCreditStore.getState().syncCredits();
-                        }}
-                        onError={(err) => {
-                          toast.error(err.message || 'PayPal payment failed.');
-                        }}
-                        onProcessing={(val) => setProcessing(val)}
-                        disabled={processing}
-                      />
-                    </>
-                  )}
-
-                  {/* ── Wallet Pay Buttons (Google Pay / Apple Pay) ── */}
-                  {!isFree && (() => {
-                    const isIOSDevice = /iPhone|iPad|iPod/.test(navigator.userAgent);
-                    return (
-                      <>
-                        {/* Apple Pay — shown on iOS/macOS devices */}
-                        {isIOSDevice && (
-                          <>
-                            <div className="payment-divider">
-                              <span>or pay with</span>
-                            </div>
-                            <ApplePayButton
-                              planId={plan._id}
-                              billingCycle={billingCycle}
-                              amount={billingCycle === 'yearly' ? totalYearlyAmount : displayPrice}
-                              currency="INR"
-                              onSuccess={(data) => {
-                                if (data.isTest) {
-                                  toast.success(data.message || "Test Payment Successful – No credits or subscription have been applied because the system is running in test mode.");
-                                  return;
-                                }
-                                toast.success(`✅ Apple Pay successful! ${getDisplayPlanName(plan.planName)} activated.`);
-                                if (data.credits !== undefined) {
-                                  const updatedUser = updateUser({
-                                    credits: data.credits,
-                                    founderStatus: isStartupProPlan(plan) ? true : userState.user?.founderStatus
-                                  });
-                                  setUserState({ user: updatedUser });
-                                }
-                                useCreditStore.getState().syncCredits();
-                              }}
-                              onError={(err) => {
-                                toast.error(err.message || 'Apple Pay failed.');
-                              }}
-                              onProcessing={(val) => setProcessing(val)}
-                              disabled={processing}
-                            />
-                          </>
-                        )}
-                      </>
-                    );
-                  })()}
-
-                </div>
+                <button
+                  className="cta-button"
+                  onClick={() => handleUpgrade(plan)}
+                  disabled={processing}
+                >
+                  {displayPrice === 0
+                    ? t('startForFree')
+                    : (billingCycle === 'yearly')
+                      ? `${t('upgradeFor')} ₹${totalYearlyAmount}${t('billedYearlySuffix')}`
+                      : t('upgradeTo') + getDisplayPlanName(plan.planName)}
+                </button>
               )}
             </div>
           );
@@ -724,6 +709,136 @@ const Pricing = () => {
       )}
 
       {renderComparisonTable()}
+
+      {/* ── Billing Information Modal ── */}
+      {billingModalOpen && selectedPlanForUpgrade && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+          <div className="w-full max-w-lg bg-[#0e1726] border border-white/10 rounded-2xl p-6 shadow-2xl text-white relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent pointer-events-none" />
+            <button 
+              onClick={() => setBillingModalOpen(false)}
+              className="absolute top-4 right-4 text-white/50 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-all"
+            >
+              <X size={18} />
+            </button>
+
+            <h3 className="text-xl font-black text-white tracking-tight mb-2">
+              Choose Payment Method
+            </h3>
+            <p className="text-xs text-white/70 mb-4">
+              Select your preferred gateway to complete the transaction.
+            </p>
+
+            {/* Plan Price Summary */}
+            <div className="bg-white/5 border border-white/5 rounded-xl p-4 mb-4 font-medium text-sm space-y-2">
+              <div className="flex justify-between text-white/60">
+                <span>Plan:</span>
+                <span className="font-bold text-white">{selectedPlanForUpgrade.planName} ({billingCycle})</span>
+              </div>
+              <div className="flex justify-between text-white/60">
+                <span>Base Price:</span>
+                <span>₹{(billingCycle === 'yearly' ? selectedPlanForUpgrade.priceYearly : selectedPlanForUpgrade.priceMonthly).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-white/60">
+                <span>GST (18%):</span>
+                <span>₹{((billingCycle === 'yearly' ? selectedPlanForUpgrade.priceYearly : selectedPlanForUpgrade.priceMonthly) * 0.18).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between pt-2 border-t border-white/10 text-base font-black text-primary">
+                <span>Total Amount:</span>
+                <span>₹{((billingCycle === 'yearly' ? selectedPlanForUpgrade.priceYearly : selectedPlanForUpgrade.priceMonthly) * 1.18).toFixed(2)}</span>
+              </div>
+            </div>
+
+            {/* Payment Gateways Stack */}
+            <div className="space-y-4">
+              {/* Gateway 1: Razorpay */}
+              <button
+                type="button"
+                onClick={() => {
+                  setBillingModalOpen(false);
+                  executeUpgrade(selectedPlanForUpgrade, billingForm);
+                }}
+                className="w-full py-3 bg-primary text-white rounded-xl text-xs font-bold shadow-lg shadow-primary/20 hover:opacity-95 active:scale-[0.99] transition-all uppercase tracking-wider"
+                disabled={processing}
+              >
+                Pay with Card / UPI / NetBanking
+              </button>
+
+              {/* Gateway 2: PayPal */}
+              <div className="w-full">
+                <div className="text-[10px] text-center text-white/40 uppercase tracking-widest font-black mb-2">or pay with</div>
+                <PayPalButton
+                  planId={selectedPlanForUpgrade._id}
+                  billingCycle={billingCycle}
+                  billingDetails={billingForm}
+                  onSuccess={(data) => {
+                    setBillingModalOpen(false);
+                    if (data?.isFree) return;
+                    toast.success(`✅ PayPal payment successful! ${selectedPlanForUpgrade.planName} activated.`);
+                    const updatedUser = updateUser({
+                      founderStatus: isStartupProPlan(selectedPlanForUpgrade) ? true : userState.user?.founderStatus
+                    });
+                    setUserState({ user: updatedUser });
+                    useCreditStore.getState().syncCredits();
+                  }}
+                  onError={(err) => {
+                    toast.error(err.message || 'PayPal payment failed.');
+                  }}
+                  onProcessing={(val) => setProcessing(val)}
+                  disabled={processing}
+                />
+              </div>
+
+              {/* Gateway 3: Apple Pay (iOS/macOS only) */}
+              {(() => {
+                const isIOSDevice = /iPhone|iPad|iPod/.test(navigator.userAgent);
+                if (!isIOSDevice) return null;
+                const basePrice = billingCycle === 'yearly' ? selectedPlanForUpgrade.priceYearly : selectedPlanForUpgrade.priceMonthly;
+                const totalAmount = Math.round(basePrice * 1.18 * 100) / 100;
+                return (
+                  <div className="w-full">
+                    <ApplePayButton
+                      planId={selectedPlanForUpgrade._id}
+                      billingCycle={billingCycle}
+                      amount={totalAmount}
+                      currency="INR"
+                      onSuccess={(data) => {
+                        setBillingModalOpen(false);
+                        if (data.isTest) {
+                          toast.success(data.message || "Test Payment Successful.");
+                          return;
+                        }
+                        toast.success(`✅ Apple Pay successful! ${selectedPlanForUpgrade.planName} activated.`);
+                        if (data.credits !== undefined) {
+                          const updatedUser = updateUser({
+                            credits: data.credits,
+                            founderStatus: isStartupProPlan(selectedPlanForUpgrade) ? true : userState.user?.founderStatus
+                          });
+                          setUserState({ user: updatedUser });
+                        }
+                        useCreditStore.getState().syncCredits();
+                      }}
+                      onError={(err) => {
+                        toast.error(err.message || 'Apple Pay failed.');
+                      }}
+                      onProcessing={(val) => setProcessing(val)}
+                      disabled={processing}
+                    />
+                  </div>
+                );
+              })()}
+
+              <button
+                type="button"
+                onClick={() => setBillingModalOpen(false)}
+                className="w-full py-2.5 border border-white/10 rounded-xl text-xs font-bold text-white/50 hover:text-white/80 hover:bg-white/5 transition-all uppercase tracking-wider"
+              >
+                Cancel Order
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Upsell modal removed since credits packages are deprecated */}
     </div>
