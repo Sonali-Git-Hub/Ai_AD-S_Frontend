@@ -1328,14 +1328,14 @@ DO NOT TRANSLATE (keep exactly as-is in original English characters):
           uploadedFiles,
           litigationGoal,
           practiceArea,
-          reliefSeeked,
+          reliefRequired,
           caseFacts,
-          selectedJurisdiction,
-          preferredLanguage,
-          courtWritingStyle,
-          relevantCitations,
-          witnessDetails,
-          specialInstructions,
+          advancedJurisdiction,
+          advancedLanguage,
+          advancedWritingStyle,
+          advancedJudgments,
+          advancedWitnessInfo,
+          advancedSpecialInstructions,
         }
       };
 
