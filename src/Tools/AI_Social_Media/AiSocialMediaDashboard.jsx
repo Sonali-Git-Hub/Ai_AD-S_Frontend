@@ -39,6 +39,24 @@ const TwitterXIcon = ({ className }) => (
   </svg>
 );
 
+const ThreadsIcon = ({ className }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm2.5 13.5c-.8 0-1.5-.3-2-1-.4-.6-.5-1.4-.5-2.2v-.1c0-.8.1-1.6.5-2.2.5-.7 1.2-1 2-1s1.5.3 2 1c.4.6.5 1.4.5 2.2v.1c0 .8-.1 1.6-.5 2.2-.5.7-1.2 1-2 1zm-5-3.5c0-.8.1-1.6.5-2.2.5-.7 1.2-1 2-1s1.5.3 2 1c.4.6.5 1.4.5 2.2v.1c0 .8-.1 1.6-.5 2.2-.5.7-1.2 1-2 1s-1.5-.3-2-1c-.4-.6-.5-1.4-.5-2.2v-.1z" />
+  </svg>
+);
+
+const TikTokIcon = ({ className }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.29-1.25 4.87 4.87 0 0 1-1.3-3.25h-3.41v13.59a3.22 3.22 0 1 1-3.22-3.22c.2 0 .39.02.58.05V9.16a6.6 6.6 0 1 0 6.05 6.55V6.69a8.21 8.21 0 0 0 4.59 1.4V4.71a4.82 4.82 0 0 1-3-1.02z" />
+  </svg>
+);
+
+const PinterestIcon = ({ className }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M12 2C6.48 2 2 6.48 2 12c0 4.27 2.68 7.91 6.46 9.38-.09-.8-.17-2.02.03-2.89.19-.83 1.25-5.3 1.25-5.3s-.32-.64-.32-1.59c0-1.49.86-2.6 1.94-2.6.91 0 1.36.69 1.36 1.51 0 .92-.58 2.3-.89 3.57-.25 1.07.54 1.93 1.59 1.93 1.91 0 3.38-2.01 3.38-4.92 0-2.57-1.85-4.37-4.49-4.37-3.06 0-4.86 2.3-4.86 4.67 0 .93.36 1.92.8 2.46.09.1.1.19.07.31l-.3 1.2c-.05.21-.16.25-.37.15-1.41-.65-2.29-2.7-2.29-4.35 0-3.54 2.57-6.79 7.42-6.79 3.9 0 6.93 2.78 6.93 6.49 0 3.88-2.45 7-5.84 7-1.14 0-2.21-.59-2.58-1.29l-.7 2.68c-.25.97-.94 2.19-1.4 2.94 1.12.33 2.3.51 3.52.51 6.52 0 11.8-5.28 11.8-11.8S18.52 2 12 2z" />
+  </svg>
+);
+
 const ensureStringId = (id) => {
   if (!id) return id;
   if (typeof id === 'object') return id._id || id.id || String(id);
@@ -330,6 +348,239 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
   // Gen Post Format Modal
   const [genPostModal, setGenPostModal] = useState({ open: false, entry: null, format: 'single', aspectRatio: '1:1', carouselCount: 3 });
+
+  // Generate Post Manually State
+  const [showManualGenModal, setShowManualGenModal] = useState(false);
+  const [manualPlatform, setManualPlatform] = useState('');
+  const [manualContentType, setManualContentType] = useState('');
+  const [manualCustomContentType, setManualCustomContentType] = useState('');
+  const [manualTargetAudience, setManualTargetAudience] = useState('General Audience');
+  const [manualCustomTargetAudience, setManualCustomTargetAudience] = useState('');
+  const [manualTone, setManualTone] = useState([]);
+  const [manualDescription, setManualDescription] = useState('');
+  const [manualUploadedFiles, setManualUploadedFiles] = useState([]);
+  const [manualLanguage, setManualLanguage] = useState('English');
+  const [manualCta, setManualCta] = useState('Learn More');
+  const [manualContentLength, setManualContentLength] = useState('Medium');
+  const [manualEnhancements, setManualEnhancements] = useState({
+    generateCaption: true,
+    generateHashtags: true,
+    generateCTA: true,
+    generateEmojiSuggestions: true,
+    generateSEOKeywords: true,
+    generateImagePrompt: true,
+    generateAltText: true,
+    suggestBestPostingTime: true,
+    generateMultipleVariations: true,
+    repurposeForOtherPlatforms: true,
+  });
+  const [isGeneratingManual, setIsGeneratingManual] = useState(false);
+  const [manualValidationErrors, setManualValidationErrors] = useState({});
+
+  // Escape key listener to close manual post modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && showManualGenModal && !isGeneratingManual) {
+        setShowManualGenModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showManualGenModal, isGeneratingManual]);
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    if (isGeneratingManual) return;
+    const files = Array.from(e.dataTransfer.files);
+    handleFileSelection(files);
+  };
+
+  const handleFileChange = (e) => {
+    if (isGeneratingManual) return;
+    const files = Array.from(e.target.files);
+    handleFileSelection(files);
+  };
+
+  const handleFileSelection = async (files) => {
+    if (manualUploadedFiles.length + files.length > 10) {
+      toast.error("Maximum 10 files allowed");
+      return;
+    }
+
+    const validFiles = files.filter(file => {
+      const isImage = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'].includes(file.type);
+      const isVideo = ['video/mp4', 'video/quicktime', 'video/webm'].includes(file.type);
+      if (!isImage && !isVideo) {
+        toast.error(`Invalid file type: ${file.name}`);
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    // Add files to local state first as uploading status
+    const newUploads = validFiles.map(file => ({
+      id: Math.random().toString(36).substring(7),
+      name: file.name,
+      size: file.size,
+      uploading: true,
+      url: null,
+      mimetype: file.type
+    }));
+
+    setManualUploadedFiles(prev => [...prev, ...newUploads]);
+
+    for (const localFile of newUploads) {
+      const actualFile = validFiles.find(f => f.name === localFile.name && f.size === localFile.size);
+      if (!actualFile) continue;
+
+      try {
+        const res = await apiService.uploadMediaFile(actualFile);
+        if (res.success) {
+          setManualUploadedFiles(prev => prev.map(item => 
+            item.id === localFile.id 
+              ? { ...item, uploading: false, url: res.data.url }
+              : item
+          ));
+        } else {
+          toast.error(`Failed to upload ${localFile.name}`);
+          setManualUploadedFiles(prev => prev.filter(item => item.id !== localFile.id));
+        }
+      } catch (err) {
+        toast.error(`Upload error for ${localFile.name}`);
+        setManualUploadedFiles(prev => prev.filter(item => item.id !== localFile.id));
+      }
+    }
+  };
+
+  const handleReplaceFile = (id) => {
+    if (isGeneratingManual) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*,video/*';
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const isImage = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'].includes(file.type);
+      const isVideo = ['video/mp4', 'video/quicktime', 'video/webm'].includes(file.type);
+      if (!isImage && !isVideo) {
+        toast.error("Invalid file type");
+        return;
+      }
+
+      setManualUploadedFiles(prev => prev.map(item => 
+        item.id === id ? { ...item, uploading: true, url: null, name: file.name, size: file.size, mimetype: file.type } : item
+      ));
+
+      try {
+        const res = await apiService.uploadMediaFile(file);
+        if (res.success) {
+          setManualUploadedFiles(prev => prev.map(item => 
+            item.id === id ? { ...item, uploading: false, url: res.data.url } : item
+          ));
+        } else {
+          toast.error("Replace failed");
+          setManualUploadedFiles(prev => prev.filter(item => item.id !== id));
+        }
+      } catch (err) {
+        toast.error("Replace failed");
+        setManualUploadedFiles(prev => prev.filter(item => item.id !== id));
+      }
+    };
+    input.click();
+  };
+
+  const handleDeleteUploadedFile = (id) => {
+    if (isGeneratingManual) return;
+    setManualUploadedFiles(prev => prev.filter(item => item.id !== id));
+  };
+
+  const handleGenerateManualContent = async () => {
+    const errors = {};
+    if (!manualPlatform) {
+      errors.platform = "Please select a platform";
+    }
+    if (!manualContentType) {
+      errors.contentType = "Please select a content type";
+    } else if (manualContentType === 'Custom' && !manualCustomContentType.trim()) {
+      errors.contentType = "Please enter your custom content type";
+    }
+    if (!manualDescription.trim()) {
+      errors.description = "Description is required";
+    } else if (manualDescription.trim().length < 20) {
+      errors.description = `Description must be at least 20 characters (current: ${manualDescription.trim().length})`;
+    } else if (manualDescription.trim().length > 3000) {
+      errors.description = `Description must not exceed 3000 characters (current: ${manualDescription.trim().length})`;
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setManualValidationErrors(errors);
+      toast.error("Please fix the validation errors before generating");
+      return;
+    }
+
+    setManualValidationErrors({});
+    setIsGeneratingManual(true);
+
+    try {
+      const payload = {
+        workspaceId: workspace._id,
+        platform: manualPlatform,
+        contentType: manualContentType === 'Custom' ? manualCustomContentType : manualContentType,
+        targetAudience: manualTargetAudience === 'Custom' ? manualCustomTargetAudience : manualTargetAudience,
+        tone: manualTone,
+        description: manualDescription,
+        uploadedFiles: manualUploadedFiles.filter(f => !f.uploading && f.url).map(f => ({
+          url: f.url,
+          mimetype: f.mimetype,
+          filename: f.name,
+          size: f.size
+        })),
+        language: manualLanguage,
+        contentLength: manualContentLength,
+        cta: manualCta,
+        enhancements: manualEnhancements
+      };
+
+      const res = await apiService.generateManualSocialPost(payload);
+      if (res.success) {
+        toast.success("Manual post generated!");
+        setShowManualGenModal(false);
+        // Reset states
+        setManualPlatform('');
+        setManualContentType('');
+        setManualCustomContentType('');
+        setManualTargetAudience('General Audience');
+        setManualCustomTargetAudience('');
+        setManualTone([]);
+        setManualDescription('');
+        setManualUploadedFiles([]);
+        setManualLanguage('English');
+        setManualCta('Learn More');
+        setManualContentLength('Medium');
+        // Refresh posts list
+        const postData = await apiService.getSocialAgentPosts(workspace._id);
+        if (postData.success) setGeneratedPosts(postData.posts);
+        // Refresh assets list
+        const assetData = await apiService.getSocialAgentAssets(workspace._id);
+        if (assetData.success) setAssets(assetData.assets);
+        // Switch tab to assets (Post Generation)
+        setActiveTab('assets');
+      } else {
+        toast.error(`Generation failed: ${res.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      toast.error(`Generation failed: ${err.response?.data?.error || err.message}`);
+    } finally {
+      setIsGeneratingManual(false);
+    }
+  };
 
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState(null);
@@ -2474,7 +2725,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                 </div>
 
                 {/* Generate Manually Card */}
-                <div onClick={() => setGenPostModal({ open: true, entry: null, format: 'single', aspectRatio: '1:1', carouselCount: 3 })} className="bg-slate-50 dark:bg-[#1E2438] rounded-[32px] border border-slate-200 dark:border-white/10 p-6 flex flex-col justify-center items-center w-full shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-500 cursor-pointer group min-h-[220px]">
+                <div onClick={() => setShowManualGenModal(true)} className="bg-slate-50 dark:bg-[#1E2438] rounded-[32px] border border-slate-200 dark:border-white/10 p-6 flex flex-col justify-center items-center w-full shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-500 cursor-pointer group min-h-[220px]">
                   <div className="w-16 h-16 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-slate-300 mb-4 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-500 shadow-sm">
                     <Palette className="w-8 h-8" />
                   </div>
@@ -4439,6 +4690,605 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     );
   };
 
+  const renderManualGenModal = () => {
+    if (!showManualGenModal) return null;
+
+    const PLATFORMS = [
+      { id: 'Instagram', name: 'Instagram', icon: <Instagram className="w-5 h-5" /> },
+      { id: 'Facebook', name: 'Facebook', icon: <Facebook className="w-5 h-5" /> },
+      { id: 'LinkedIn', name: 'LinkedIn', icon: <Linkedin className="w-5 h-5" /> },
+      { id: 'Twitter', name: 'Twitter (X)', icon: <TwitterXIcon className="w-5 h-5" /> },
+      { id: 'Threads', name: 'Threads', icon: <ThreadsIcon className="w-5 h-5" /> },
+      { id: 'TikTok', name: 'TikTok', icon: <TikTokIcon className="w-5 h-5" /> },
+      { id: 'Pinterest', name: 'Pinterest', icon: <PinterestIcon className="w-5 h-5" /> },
+      { id: 'YouTube', name: 'YouTube Community', icon: <Youtube className="w-5 h-5" /> }
+    ];
+
+    const CONTENT_TYPES = [
+      'Professional', 'Marketing', 'Educational', 'Product Promotion', 'Sales',
+      'Announcement', 'Launch', 'Brand Awareness', 'Customer Story', 'Case Study',
+      'Fun / Humorous', 'Inspirational', 'Motivational', 'Trending', 'Festival',
+      'Event Promotion', 'Behind The Scenes', 'Tips & Tricks', 'FAQ', 'Poll',
+      'Question', 'Testimonial', 'Success Story', 'News Update', 'Offer / Discount',
+      'Giveaway', 'Recruitment', 'Custom'
+    ];
+
+    const AUDIENCES = [
+      'General Audience', 'Students', 'Professionals', 'Business Owners', 'Startups',
+      'Developers', 'Designers', 'Creators', 'Marketing Teams', 'Investors',
+      'Customers', 'Healthcare', 'Finance', 'Real Estate', 'E-commerce', 'Custom'
+    ];
+
+    const TONES = [
+      'Professional', 'Friendly', 'Corporate', 'Luxury', 'Minimal', 'Creative',
+      'Bold', 'Confident', 'Funny', 'Playful', 'Casual', 'Formal', 'Persuasive',
+      'Emotional', 'Storytelling', 'Modern', 'Gen-Z', 'Premium', 'Trustworthy'
+    ];
+
+    const ENHANCEMENTS_LIST = [
+      { id: 'generateCaption', label: 'Generate Caption' },
+      { id: 'generateHashtags', label: 'Generate Hashtags' },
+      { id: 'generateCTA', label: 'Generate CTA' },
+      { id: 'generateEmojiSuggestions', label: 'Generate Emoji Suggestions' },
+      { id: 'generateSEOKeywords', label: 'Generate SEO Keywords' },
+      { id: 'generateImagePrompt', label: 'Generate Image Prompt' },
+      { id: 'generateAltText', label: 'Generate Alt Text' },
+      { id: 'suggestBestPostingTime', label: 'Suggest Best Posting Time' },
+      { id: 'generateMultipleVariations', label: 'Generate Multiple Variations' },
+      { id: 'repurposeForOtherPlatforms', label: 'Repurpose For Other Platforms' }
+    ];
+
+    const toggleEnhancement = (id) => {
+      setManualEnhancements(prev => ({
+        ...prev,
+        [id]: !prev[id]
+      }));
+    };
+
+    const handleDragStart = (e, index) => {
+      if (isGeneratingManual) return;
+      e.dataTransfer.setData('text/plain', index);
+    };
+
+    const handleDragDrop = (e, targetIndex) => {
+      if (isGeneratingManual) return;
+      e.preventDefault();
+      const sourceIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
+      if (sourceIndex === targetIndex) return;
+
+      const list = [...manualUploadedFiles];
+      const [removed] = list.splice(sourceIndex, 1);
+      list.splice(targetIndex, 0, removed);
+
+      setManualUploadedFiles(list);
+    };
+
+    const formatBytes = (bytes, decimals = 2) => {
+      if (!bytes) return '0 Bytes';
+      const k = 1024;
+      const dm = decimals < 0 ? 0 : decimals;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    };
+
+    return (
+      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+        {/* Backdrop */}
+        <div
+          className="absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity duration-300"
+          onClick={() => !isGeneratingManual && setShowManualGenModal(false)}
+        />
+
+        {/* Modal Card */}
+        <div className="relative w-full max-w-6xl bg-white dark:bg-[#0c0c12] rounded-[40px] border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[92vh]">
+          {/* Header */}
+          <div className="px-8 py-6 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50 dark:bg-white/[0.02]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                <Palette className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black text-primary uppercase tracking-[3px] block">Premium Creator Suite</span>
+                <h3 className="text-lg font-black text-slate-800 dark:text-white tracking-tight">Generate Post Manually</h3>
+              </div>
+            </div>
+            <button
+              onClick={() => !isGeneratingManual && setShowManualGenModal(false)}
+              disabled={isGeneratingManual}
+              className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white transition-all hover:scale-110 disabled:opacity-40"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Body Content */}
+          <div className="flex-1 overflow-y-auto p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Input Form Column */}
+            <div className="lg:col-span-2 space-y-8 pr-2">
+              
+              {/* SECTION 1 — SOCIAL MEDIA PLATFORM */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[3px]">Section 1 &mdash; Social Media Platform</h4>
+                  {manualValidationErrors.platform && (
+                    <span className="text-[10px] font-black text-red-500 uppercase tracking-widest">{manualValidationErrors.platform}</span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {PLATFORMS.map(p => {
+                    const isSelected = manualPlatform === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        disabled={isGeneratingManual}
+                        onClick={() => {
+                          setManualPlatform(p.id);
+                          setManualValidationErrors(prev => ({ ...prev, platform: null }));
+                        }}
+                        className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all duration-300 relative group ${
+                          isSelected
+                            ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-lg shadow-primary/10'
+                            : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] hover:border-primary/40'
+                        }`}
+                      >
+                        <div className={`mb-2 transition-transform duration-300 group-hover:scale-115 ${isSelected ? 'text-primary' : 'text-slate-600 dark:text-slate-300'}`}>
+                          {p.icon}
+                        </div>
+                        <span className={`text-[10px] font-black tracking-wider uppercase ${isSelected ? 'text-primary' : 'text-slate-700 dark:text-slate-300'}`}>
+                          {p.name}
+                        </span>
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-primary flex items-center justify-center text-white shadow-sm">
+                            <Check className="w-2.5 h-2.5" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <hr className="border-slate-100 dark:border-white/5" />
+
+              {/* SECTION 2 — CONTENT TYPE */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[3px]">Section 2 &mdash; Content Type</h4>
+                  {manualValidationErrors.contentType && (
+                    <span className="text-[10px] font-black text-red-500 uppercase tracking-widest">{manualValidationErrors.contentType}</span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1 border border-slate-100 dark:border-white/5 rounded-2xl bg-slate-50/50 dark:bg-white/[0.01]">
+                  {CONTENT_TYPES.map(t => {
+                    const isSelected = manualContentType === t;
+                    return (
+                      <button
+                        key={t}
+                        disabled={isGeneratingManual}
+                        onClick={() => {
+                          setManualContentType(t);
+                          setManualValidationErrors(prev => ({ ...prev, contentType: null }));
+                        }}
+                        className={`py-2.5 px-3 text-left rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all truncate ${
+                          isSelected
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-white/10'
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    );
+                  })}
+                </div>
+                {manualContentType === 'Custom' && (
+                  <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Custom Content Type</label>
+                    <input
+                      type="text"
+                      disabled={isGeneratingManual}
+                      value={manualCustomContentType}
+                      onChange={(e) => {
+                        setManualCustomContentType(e.target.value);
+                        setManualValidationErrors(prev => ({ ...prev, contentType: null }));
+                      }}
+                      placeholder="e.g. Meme, Quote, Announcement Story..."
+                      className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 text-xs font-bold focus:ring-4 focus:ring-primary/10 outline-none transition-all text-slate-800 dark:text-white"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <hr className="border-slate-100 dark:border-white/5" />
+
+              {/* SECTION 3 — TARGET AUDIENCE */}
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[3px]">Section 3 &mdash; Target Audience</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Select Audience</label>
+                    <CustomSelect
+                      value={manualTargetAudience}
+                      disabled={isGeneratingManual}
+                      onChange={(val) => setManualTargetAudience(val)}
+                      options={AUDIENCES.map(a => ({ value: a, label: a }))}
+                      color="primary"
+                      className="rounded-xl h-12"
+                    />
+                  </div>
+                  {manualTargetAudience === 'Custom' && (
+                    <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Custom Audience Description</label>
+                      <input
+                        type="text"
+                        disabled={isGeneratingManual}
+                        value={manualCustomTargetAudience}
+                        onChange={(e) => setManualCustomTargetAudience(e.target.value)}
+                        placeholder="e.g. Remote Product Managers in Tech startups..."
+                        className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 text-xs font-bold focus:ring-4 focus:ring-primary/10 outline-none transition-all text-slate-800 dark:text-white"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <hr className="border-slate-100 dark:border-white/5" />
+
+              {/* SECTION 4 — TONE OF VOICE */}
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[3px]">Section 4 &mdash; Tone Of Voice</h4>
+                <div className="flex flex-wrap gap-2">
+                  {TONES.map(toneName => {
+                    const isSelected = manualTone.includes(toneName);
+                    return (
+                      <button
+                        key={toneName}
+                        disabled={isGeneratingManual}
+                        onClick={() => {
+                          if (isSelected) {
+                            setManualTone(prev => prev.filter(t => t !== toneName));
+                          } else {
+                            setManualTone(prev => [...prev, toneName]);
+                          }
+                        }}
+                        className={`px-3 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest transition-all ${
+                          isSelected
+                            ? 'bg-primary border-primary text-white shadow-md shadow-primary/20 scale-[1.05]'
+                            : 'border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02] text-slate-600 dark:text-slate-400 hover:border-primary/40'
+                        }`}
+                      >
+                        {toneName}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <hr className="border-slate-100 dark:border-white/5" />
+
+              {/* SECTION 5 — DESCRIPTION */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[3px]">Section 5 &mdash; Describe Your Post</h4>
+                  {manualValidationErrors.description && (
+                    <span className="text-[10px] font-black text-red-500 uppercase tracking-widest">{manualValidationErrors.description}</span>
+                  )}
+                </div>
+                <div className="relative">
+                  <textarea
+                    disabled={isGeneratingManual}
+                    value={manualDescription}
+                    onChange={(e) => {
+                      setManualDescription(e.target.value);
+                      setManualValidationErrors(prev => ({ ...prev, description: null }));
+                      // Auto-expand logic
+                      e.target.style.height = 'auto';
+                      e.target.style.height = e.target.scrollHeight + 'px';
+                    }}
+                    placeholder="Describe exactly what you want AI to generate. e.g. Create an Instagram promotional post announcing our new AI-powered CRM software for startups. Highlight automation, productivity and ease of use with an engaging CTA."
+                    className="w-full min-h-[120px] max-h-[300px] px-4 py-3 rounded-2xl bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 text-xs font-bold focus:ring-4 focus:ring-primary/10 outline-none transition-all text-slate-800 dark:text-white placeholder-slate-400 resize-y overflow-y-auto"
+                    style={{ height: 'auto' }}
+                  />
+                  <div className="flex justify-between items-center mt-2 px-1">
+                    <span className="text-[8px] font-black uppercase text-slate-400">Min 20 | Max 3000 chars</span>
+                    <span className={`text-[10px] font-black uppercase tracking-wider ${
+                      manualDescription.length < 20 || manualDescription.length > 3000 ? 'text-red-500' : 'text-primary'
+                    }`}>
+                      {manualDescription.length} / 3000
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <hr className="border-slate-100 dark:border-white/5" />
+
+              {/* SECTION 6 — MEDIA UPLOAD */}
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[3px]">Section 6 &mdash; Reference Images / Videos</h4>
+                <div
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  className="border-2 border-dashed border-slate-200 dark:border-white/10 hover:border-primary/50 dark:hover:border-primary/50 rounded-2xl p-6 flex flex-col items-center justify-center bg-slate-50 dark:bg-white/[0.01] hover:bg-slate-100/50 dark:hover:bg-white/[0.02] cursor-pointer transition-all relative group"
+                  onClick={() => {
+                    if (isGeneratingManual) return;
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.multiple = true;
+                    input.accept = 'image/*,video/*';
+                    input.onchange = handleFileChange;
+                    input.click();
+                  }}
+                >
+                  <Upload className="w-8 h-8 text-slate-400 mb-2 group-hover:scale-110 transition-transform text-primary/70" />
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Drag & drop files here, or <span className="text-primary hover:underline">browse</span></span>
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider mt-1">PNG, JPG, JPEG, WEBP, GIF, MP4, MOV, WEBM (Max 10 files)</span>
+                </div>
+
+                {manualUploadedFiles.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-[2px] mb-1">Drag files to reorder priority:</p>
+                    <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
+                      {manualUploadedFiles.map((file, idx) => (
+                        <div
+                          key={file.id}
+                          draggable={!isGeneratingManual}
+                          onDragStart={(e) => handleDragStart(e, idx)}
+                          onDragOver={handleDragOver}
+                          onDrop={(e) => handleDragDrop(e, idx)}
+                          className="flex items-center gap-3 p-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm relative group cursor-move hover:border-primary/30 transition-all select-none"
+                        >
+                          {/* File Preview */}
+                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex-shrink-0 flex items-center justify-center relative">
+                            {file.uploading ? (
+                              <RefreshCw className="w-4 h-4 text-primary animate-spin" />
+                            ) : file.mimetype?.startsWith('video/') ? (
+                              <Video className="w-6 h-6 text-slate-400" />
+                            ) : (
+                              <img src={file.url} className="w-full h-full object-cover" alt="Preview" />
+                            )}
+                          </div>
+
+                          {/* Details */}
+                          <div className="flex-1 min-w-0 pr-12">
+                            <p className="text-[10px] font-black text-slate-800 dark:text-white truncate uppercase tracking-tight">{file.name}</p>
+                            <p className="text-[8px] font-bold text-slate-400 uppercase">{formatBytes(file.size)}</p>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              type="button"
+                              disabled={isGeneratingManual}
+                              onClick={(e) => { e.stopPropagation(); handleReplaceFile(file.id); }}
+                              className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 hover:bg-primary/10 hover:text-primary transition-all flex items-center justify-center active:scale-90"
+                              title="Replace file"
+                            >
+                              <RefreshCw className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isGeneratingManual}
+                              onClick={(e) => { e.stopPropagation(); handleDeleteUploadedFile(file.id); }}
+                              className="w-6 h-6 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center active:scale-90"
+                              title="Delete file"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <hr className="border-slate-100 dark:border-white/5" />
+
+              {/* SECTION 7 — AI ENHANCEMENT OPTIONS */}
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[3px]">Section 7 &mdash; AI Enhancement Options</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {ENHANCEMENTS_LIST.map(opt => {
+                    const isEnabled = manualEnhancements[opt.id];
+                    return (
+                      <button
+                        key={opt.id}
+                        disabled={isGeneratingManual}
+                        onClick={() => toggleEnhancement(opt.id)}
+                        className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all text-left ${
+                          isEnabled
+                            ? 'border-primary/40 bg-primary/5 dark:bg-primary/10'
+                            : 'border-slate-200 dark:border-white/10 hover:border-primary/20 bg-slate-50/50 dark:bg-white/[0.01]'
+                        }`}
+                      >
+                        <span className={`text-[10px] font-black uppercase tracking-wider ${isEnabled ? 'text-slate-800 dark:text-white' : 'text-slate-400'}`}>
+                          {opt.label}
+                        </span>
+                        <div className={`w-5 h-5 rounded-md flex items-center justify-center transition-all ${
+                          isEnabled ? 'bg-primary text-white' : 'border border-slate-300 dark:border-white/10 bg-white dark:bg-transparent'
+                        }`}>
+                          {isEnabled && <Check className="w-3 h-3" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <hr className="border-slate-100 dark:border-white/5" />
+
+              {/* SECTION 8 — CONTENT LENGTH */}
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[3px]">Section 8 &mdash; Content Length</h4>
+                <div className="flex gap-4">
+                  {['Short', 'Medium', 'Long', 'Carousel', 'Thread'].map(len => {
+                    const isSelected = manualContentLength === len;
+                    return (
+                      <button
+                        key={len}
+                        disabled={isGeneratingManual}
+                        onClick={() => setManualContentLength(len)}
+                        className="flex items-center gap-2 group cursor-pointer"
+                      >
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${
+                          isSelected ? 'border-primary' : 'border-slate-300 dark:border-white/10'
+                        }`}>
+                          {isSelected && <div className="w-2 h-2 rounded-full bg-primary" />}
+                        </div>
+                        <span className={`text-[10px] font-black uppercase tracking-wider ${
+                          isSelected ? 'text-slate-800 dark:text-white' : 'text-slate-400 group-hover:text-slate-600'
+                        }`}>
+                          {len}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <hr className="border-slate-100 dark:border-white/5" />
+
+              {/* SECTION 9 — LANGUAGE */}
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[3px]">Section 9 &mdash; Language</h4>
+                <div className="max-w-xs">
+                  <CustomSelect
+                    value={manualLanguage}
+                    disabled={isGeneratingManual}
+                    onChange={(val) => setManualLanguage(val)}
+                    options={['English', 'Hindi', 'Hinglish', 'Spanish', 'French', 'German', 'Arabic', 'Japanese', 'Auto Detect'].map(l => ({ value: l, label: l }))}
+                    color="primary"
+                    className="rounded-xl h-12"
+                  />
+                </div>
+              </div>
+
+              <hr className="border-slate-100 dark:border-white/5" />
+
+              {/* SECTION 10 — CTA STYLE */}
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[3px]">Section 10 &mdash; CTA Style</h4>
+                <div className="max-w-xs">
+                  <CustomSelect
+                    value={manualCta}
+                    disabled={isGeneratingManual}
+                    onChange={(val) => setManualCta(val)}
+                    options={[
+                      'Shop Now', 'Learn More', 'Visit Website', 'Book Demo', 'Register',
+                      'Contact Us', 'Read More', 'Download', 'Apply Now', 'Follow Us',
+                      'Comment Below', 'Share This', 'No CTA'
+                    ].map(c => ({ value: c, label: c }))}
+                    color="primary"
+                    className="rounded-xl h-12"
+                  />
+                </div>
+              </div>
+
+            </div>
+
+            {/* SECTION 11 — LIVE PREVIEW PANEL */}
+            <div className="lg:col-span-1">
+              <div className="sticky top-0 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-[32px] p-6 shadow-sm space-y-6">
+                <div>
+                  <h4 className="text-[10px] font-black text-primary uppercase tracking-[3px]">Section 11 &mdash; Live Preview</h4>
+                  <span className="text-[8px] font-bold text-slate-400 uppercase mt-0.5 block">Summary updating in real-time</span>
+                </div>
+
+                <div className="space-y-3.5 border-t border-slate-200 dark:border-white/5 pt-4 text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                  <div className="flex justify-between">
+                    <span className="opacity-60">Platform:</span>
+                    <span className="text-slate-800 dark:text-white font-black">{manualPlatform || 'Not Selected'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="opacity-60">Content Type:</span>
+                    <span className="text-slate-800 dark:text-white font-black truncate max-w-[140px] text-right">
+                      {manualContentType === 'Custom' ? (manualCustomContentType || 'Custom') : (manualContentType || 'Not Selected')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="opacity-60">Audience:</span>
+                    <span className="text-slate-800 dark:text-white font-black truncate max-w-[140px] text-right">
+                      {manualTargetAudience === 'Custom' ? (manualCustomTargetAudience || 'Custom') : manualTargetAudience}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="opacity-60">Tones ({manualTone.length}):</span>
+                    <span className="text-slate-800 dark:text-white font-black truncate max-w-[140px] text-right">
+                      {manualTone.length > 0 ? manualTone.join(', ') : 'None'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="opacity-60">Language:</span>
+                    <span className="text-slate-800 dark:text-white font-black">{manualLanguage}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="opacity-60">CTA Style:</span>
+                    <span className="text-slate-800 dark:text-white font-black">{manualCta}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="opacity-60">Length:</span>
+                    <span className="text-slate-800 dark:text-white font-black">{manualContentLength}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="opacity-60">Uploads:</span>
+                    <span className="text-slate-800 dark:text-white font-black">{manualUploadedFiles.filter(f => !f.uploading).length} files</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="opacity-60">Prompt characters:</span>
+                    <span className="text-slate-800 dark:text-white font-black">{manualDescription.length} / 3000</span>
+                  </div>
+                </div>
+
+                {/* Estimated AI Output */}
+                <div className="p-4 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/5 rounded-2xl space-y-3">
+                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block border-b border-slate-100 dark:border-white/5 pb-2">Estimated AI Output</span>
+                  <div className="space-y-2 text-[9px] font-medium leading-relaxed text-slate-500">
+                    <div className="font-bold text-slate-800 dark:text-slate-300">
+                      {`[AI will generate a punchy ${manualTone.slice(0, 2).join('/') || 'engaging'} hook for ${manualPlatform || 'social media'} here]`}
+                    </div>
+                    <div>
+                      {`[AI will generate a ${manualContentLength} length caption targeting ${manualTargetAudience} in ${manualLanguage}. It will highlight: "${manualDescription.slice(0, 50) || 'your description'}..." and include strategic emoji suggestions]` }
+                    </div>
+                    {manualCta !== 'No CTA' && (
+                      <div className="text-primary font-black uppercase tracking-widest">
+                        {`[CTA: ${manualCta}]`}
+                      </div>
+                    )}
+                    <div className="text-indigo-500 font-bold">
+                      {`[Hashtags: AI will generate custom viral tags for ${manualPlatform || 'your platform'}]`}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer Actions */}
+          <div className="px-8 py-6 border-t border-slate-100 dark:border-white/5 flex gap-4 bg-slate-50 dark:bg-white/[0.02]">
+            <button
+              onClick={() => !isGeneratingManual && setShowManualGenModal(false)}
+              disabled={isGeneratingManual}
+              className="flex-1 h-12 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-all disabled:opacity-40"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleGenerateManualContent}
+              disabled={isGeneratingManual || !manualPlatform || !manualContentType || manualDescription.length < 20 || manualDescription.length > 3000}
+              className="flex-1 h-12 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-98 transition-all disabled:opacity-50"
+            >
+              {isGeneratingManual ? (
+                <><RefreshCw className="w-4 h-4 animate-spin" /> Generating...</>
+              ) : (
+                <><Sparkles className="w-4 h-4" /> Generate Content</>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderOneOffAssetModal = () => {
     return (
       <Dialog open={showOneOffModal} onClose={() => setShowOneOffModal(false)} className="relative z-[160]">
@@ -5649,6 +6499,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                       {renderPostHistoryDrawer()}
                       {renderOneOffAssetModal()}
                       {renderGenPostModal()}
+                      {renderManualGenModal()}
 
 
 

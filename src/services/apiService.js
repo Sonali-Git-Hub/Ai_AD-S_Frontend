@@ -1808,6 +1808,32 @@ export const apiService = {
       console.error('[Frontend] autoAnalyzeCase failed:', error?.response?.data || error.message);
       throw error;
     }
+  },
+
+  async generateManualSocialPost(payload) {
+    try {
+      const response = await apiClient.post('/social-agent/generate/manual', payload);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to generate manual post:", error);
+      throw error;
+    }
+  },
+
+  async uploadMediaFile(file) {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await apiClient.post('/aibase/chat/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to upload media file:", error);
+      throw error;
+    }
   }
 };
 
