@@ -17,6 +17,7 @@ import toast from 'react-hot-toast';
 import { apiService } from '../../services/apiService';
 import { API } from '../../types.js';
 import { getUserData, updateUser } from '../../userStore/userData';
+import GeneratePostModal from './GeneratePostModal';
 
 /**
  * Safely wraps a URL through the backend media proxy.
@@ -321,7 +322,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPipelineLoading, setIsPipelineLoading] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
-  const [wizardConfig, setWizardConfig] = useState({ mode: 'today', count: 1 });
+  const [wizardConfig, setWizardConfig] = useState({ mode: 'today', count: 1, platform: ['Instagram'], contentType: ['Professional'], schedule: 'Daily' });
   const [stagedCalendarCount, setStagedCalendarCount] = useState(0);
 
   // AI Ads™ Agent — Visual Post Generation state
@@ -1397,8 +1398,17 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     }
   };
 
-  const handleGenerateContent = async (customMode = null, customCount = null, entryIds = null) => {
-    if (!workspace) return;
+  const handleGenerateContent = async (customMode = null, customCount = null, entryIds = null, customConfig = null) => {
+    if (!workspace || !workspace._id) {
+      toast.error('Select a brand workspace before generating content.');
+      return;
+    }
+
+    // If the selected brand workspace has no current company name, warn the user.
+    if (!brandProfile?.companyName && !workspace?.workspaceName) {
+      toast.error('Brand profile is missing. Please complete the brand setup first.');
+      return;
+    }
 
     // Check if we should use the Direct Synthesis flow for single rows
     if (entryIds && entryIds.length === 1 && activeTab === 'generation') {
@@ -1414,7 +1424,19 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
         workspaceId: workspace._id,
         mode,
         count,
-        entryIds: entryIds || []
+        platform: customConfig ? [customConfig.platform] : wizardConfig.platform,
+        contentType: customConfig ? [customConfig.contentType] : wizardConfig.contentType,
+        schedule: wizardConfig.schedule,
+        entryIds: entryIds || [],
+        brandMetadata: {
+          companyName: brandProfile?.companyName || workspace?.workspaceName || '',
+          overview: customConfig?.postTopic ? `${customConfig.postTopic}. ${customConfig.keyMessage || ''}` : (brandProfile?.extractedBrandSummary || brandProfile?.companyOverviewText || ''),
+          toneOfVoice: customConfig?.tones?.length ? customConfig.tones.join(', ') : (brandProfile?.toneOfVoice || ''),
+          targetIndustry: brandProfile?.targetIndustry || '',
+          targetAudience: brandProfile?.targetAudience || '',
+          contentObjective: brandProfile?.contentObjective || '',
+          website: brandProfile?.website || ''
+        }
       });
 
       if (res.success) {
@@ -1429,6 +1451,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
         }
         setActiveJob(res.job || { _id: res.jobId });
         setShowWizard(false);
+        setActiveTab('generation');
         toast.success(entryIds ? "Generation Pipeline Triggered!" : "AI Generation Pipeline Started!");
       }
     } catch (err) {
@@ -1688,7 +1711,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
             {
               id: 'brands',
               label: 'Active Brands',
-              val: allWorkspaces.filter(ws => ws.brandProfile?.companyName).length,
+              val: allWorkspaces.filter(ws => !ws.isPersonalProfile && ws.brandProfile?.companyName && (ws.brandProfile?.website || ws.brandProfile?.logoUrl || ws.brandProfile?.extractedBrandSummary)).length,
               icon: Palette,
               color: 'text-indigo-500',
               bg: 'bg-indigo-500/10'
@@ -1710,60 +1733,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
 
         {/* ── SECTION 6: Intelligence & Visual Vault ─────────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-          {/* AI Ads Guide Summary */}
-          <div className="p-5 md:p-6 rounded-[24px] bg-white dark:bg-[#1E2438] border border-slate-100 dark:border-white/5 shadow-sm flex flex-col">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <Info className="w-5 h-5 text-indigo-500 shrink-0" />
-                <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-white leading-tight">AI Ads Guide</h3>
-              </div>
-              <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest text-right shrink-0">How it Works</span>
-            </div>
-
-            <div className="flex-1 flex flex-col justify-center space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-indigo-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                  <span className="text-[10px] font-black text-indigo-500">1</span>
-                </div>
-                <div>
-                  <h4 className="text-[11px] font-bold text-slate-800 dark:text-white uppercase">Brand Setup</h4>
-                  <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">Define your brand identity, tone, and target audience to anchor the AI.</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                  <span className="text-[10px] font-black text-amber-500">2</span>
-                </div>
-                <div>
-                  <h4 className="text-[11px] font-bold text-slate-800 dark:text-white uppercase">AI Generation</h4>
-                  <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">AI engine orchestrates a complete content strategy based on trends.</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                  <span className="text-[10px] font-black text-emerald-500">3</span>
-                </div>
-                <div>
-                  <h4 className="text-[11px] font-bold text-slate-800 dark:text-white uppercase">Content Calendar</h4>
-                  <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">Review, refine, and schedule drafted posts in your creative hub.</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                  <span className="text-[10px] font-black text-primary">4</span>
-                </div>
-                <div>
-                  <h4 className="text-[11px] font-bold text-slate-800 dark:text-white uppercase">Visual Vault</h4>
-                  <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">Export finalized artifacts and media directly to your socials.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
           {/* Content Pipeline Status */}
           <div className="p-5 md:p-6 rounded-[24px] bg-white dark:bg-[#1E2438] border border-slate-100 dark:border-white/5 shadow-sm flex flex-col">
             <div className="flex items-center justify-between mb-6">
@@ -4178,78 +4148,13 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
   const renderGenerationWizard = () => {
     return (
-      <Dialog open={showWizard} onClose={() => setShowWizard(false)} className="relative z-[150]">
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md" />
-        <div className="fixed inset-0 flex items-center justify-center p-8">
-          <Dialog.Panel className="w-full max-w-xl bg-white dark:bg-[#1E2438] rounded-[40px] border border-slate-100 dark:border-white/5 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="p-10 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
-              <div>
-                <h3 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter mb-1">Create My Content Plan</h3>
-                <p className="text-[10px] font-black text-primary uppercase tracking-widest">Orchestrate your next move</p>
-              </div>
-              <button onClick={() => setShowWizard(false)} className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-400 hover:text-red-500 transition-all"><X className="w-5 h-5" /></button>
-            </div>
-
-            <div className="p-10 space-y-8">
-              <div className="space-y-4">
-                <label className="text-xs font-black uppercase tracking-widest text-slate-400">Select Mode</label>
-                <div className="grid grid-cols-2 gap-4">
-                  {[
-                    { id: 'today', name: "Today's Post", desc: 'Generate 1 daily entry' },
-                    { id: 'bulk', name: 'Bulk Batch', desc: 'Generate next N days' },
-                  ].map(m => (
-                    <button
-                      key={m.id}
-                      onClick={() => setWizardConfig({ ...wizardConfig, mode: m.id })}
-                      className={`p-6 rounded-3xl border-2 text-left transition-all ${wizardConfig.mode === m.id ? 'border-primary bg-primary/5' : 'border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]'
-                        }`}
-                    >
-                      <h4 className="font-black text-xs uppercase tracking-widest mb-1">{m.name}</h4>
-                      <p className="text-[10px] font-medium text-slate-400">{m.desc}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {wizardConfig.mode === 'bulk' && (
-                <div className="animate-in slide-in-from-top-2 duration-300">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-4">Number of days</label>
-                  <input
-                    type="range" min="1" max="14"
-                    value={wizardConfig.count}
-                    onChange={(e) => setWizardConfig({ ...wizardConfig, count: parseInt(e.target.value) })}
-                    className="w-full h-1.5 bg-slate-100 dark:bg-white/5 rounded-full appearance-none accent-primary mb-2"
-                  />
-                  <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase">
-                    <span>1 Day</span>
-                    <span className="text-primary">{wizardConfig.count} DAYS SELECTED</span>
-                    <span>14 Days</span>
-                  </div>
-                </div>
-              )}
-
-              <div className="p-6 bg-slate-50 dark:bg-white/[0.02] rounded-3xl border border-slate-100 dark:border-white/5 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-green-500/10 flex items-center justify-center"><Check className="w-4 h-4 text-green-500" /></div>
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Quota Validated</span>
-                </div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Plan: {workspace?.planType}</span>
-              </div>
-            </div>
-
-            <div className="p-10 bg-slate-50/50 dark:bg-white/[0.01] border-t border-slate-100 dark:border-white/5">
-              <button
-                onClick={() => handleGenerateContent()}
-                disabled={isGenerating}
-                className="w-full h-16 bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-              >
-                {isGenerating ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5 fill-current" />}
-                Confirm & Deploy Pipeline
-              </button>
-            </div>
-          </Dialog.Panel>
-        </div>
-      </Dialog>
+      <GeneratePostModal
+        isOpen={showWizard}
+        onClose={() => setShowWizard(false)}
+        onGenerate={async (config) => {
+          handleGenerateContent(null, null, null, config);
+        }}
+      />
     );
   };
 
@@ -5604,7 +5509,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                     </div>
                                     <div className="flex-1 min-w-0">
                                       <p className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">{companyName}</p>
-                                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{allWorkspaces.filter(ws => ws.brandProfile?.companyName).length} {allWorkspaces.filter(ws => ws.brandProfile?.companyName).length === 1 ? 'Brand' : 'Brands'}</p>
+                                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{allWorkspaces.filter(ws => !ws.isPersonalProfile && ws.brandProfile?.companyName && (ws.brandProfile?.website || ws.brandProfile?.logoUrl || ws.brandProfile?.extractedBrandSummary)).length} {allWorkspaces.filter(ws => !ws.isPersonalProfile && ws.brandProfile?.companyName && (ws.brandProfile?.website || ws.brandProfile?.logoUrl || ws.brandProfile?.extractedBrandSummary)).length === 1 ? 'Brand' : 'Brands'}</p>
                                     </div>
                                   </div>
                                   <div className="h-px bg-slate-100 dark:bg-white/5 mx-4 mb-2" />
