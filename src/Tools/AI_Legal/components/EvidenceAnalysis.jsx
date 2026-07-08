@@ -14,6 +14,8 @@ import { consumePrefillIntent, mapCaseToForm } from '../services/activeModuleSer
 import useOutputLanguage from '../hooks/useOutputLanguage';
 import { useLanguage } from '../../../context/LanguageContext';
 import LanguageToggle from './shared/LanguageToggle';
+import { UniversalMultimodalInput } from './shared/UniversalMultimodalInput';
+
 
 const UI_TRANSLATIONS = {
   en: {
@@ -816,6 +818,8 @@ const EvidenceAnalysis = ({ currentCase, onBack, theme, allProjects = [], onUpda
 
   // Active Prefill Context Banner
   const [prefillBanner, setPrefillBanner] = useState(null);
+  const [multimodalContext, setMultimodalContext] = useState(null);
+
 
   // Forensic Analysis States
   const [isAuditing, setIsAuditing] = useState(false);
@@ -1678,9 +1682,14 @@ JSON Schema:
     "recommendation": "<Forensic lab verification warning if authenticity is disputed>"
   }
 }
-`;
 
-      const promptQuery = `
+CRITICAL PROMPT DIRECTIVE:
+1. You MUST construct your response based primarily on the uploaded documents, OCR text details, voice transcripts, and manual notes provided in the Case Facts / Staged Context. 
+2. Under no circumstances are you allowed to return a generic template case description.
+3. You MUST quote the actual uploaded facts, party names (e.g. "Rajesh Kumar Sharma", "Sunil Verma"), specific dates (e.g. 15/09/2025, 05/02/2026), exact clauses (e.g. Clause 8), witness details, and sections mentioned in the context.
+4. If multiple sources conflict, resolve them using the priority rules: Voice Instructions ➔ Manual Notes ➔ Uploaded Document Facts.`;
+
+      let promptQuery = `
         ${caseContext}
         ${comparisonFacts}
 
@@ -1694,6 +1703,20 @@ JSON Schema:
 
         Please extract the text (OCR / Transcription) and run the forensic engine.
       `;
+
+      if (multimodalContext && multimodalContext.promptString) {
+        promptQuery += `\n${multimodalContext.promptString}`;
+      }
+
+      if (multimodalContext && multimodalContext.cameraImages) {
+        multimodalContext.cameraImages.forEach(img => {
+          attachments.push({
+            url: `data:image/png;base64,${img.base64}`,
+            name: img.name,
+            type: 'image'
+          });
+        });
+      }
 
       setScanPhase('generating');
       let textResponse = '';
@@ -3821,33 +3844,35 @@ JSON Schema:
           </div>
         </div>
 
-        {/* File Dropzone */}
+        {/* 3. Upload Evidence & Multimodal Context */}
         <div className="flex flex-col gap-1.5">
-          <label className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-505'}`}>{t('3. Upload Evidence')}</label>
-          <label className={`flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-6 cursor-pointer transition-all min-h-[110px] ${isDark ? 'border-slate-800 hover:border-slate-700 bg-slate-900/50 hover:bg-slate-900' : 'border-slate-202 hover:border-slate-300 bg-slate-50 hover:bg-slate-100/60'}`}>
-            <input 
-              type="file" 
-              className="hidden" 
-              onChange={handleFileUpload}
-            />
-            <Fingerprint className="text-slate-700 mb-2 group-hover:text-indigo-400" size={32} />
-            <span className={`text-[11px] font-black uppercase tracking-wider text-center ${isDark ? 'text-slate-300' : 'text-slate-750'}`}>{t('Choose Court Exhibit File')}</span>
-            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1 text-center">{t('Images, Videos, Audio, PDF, Chats (Max 15MB)')}</span>
-          </label>
+          <label className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-505'}`}>{t('3. Upload Evidence & Multimodal Context')}</label>
+          <UniversalMultimodalInput
+            caseId={linkedCaseId || 'global'}
+            workspaceName="EvidenceAnalysis"
+            onContextChange={(ctx) => {
+              setMultimodalContext(ctx);
+              if (ctx && ctx.stagedFiles && ctx.stagedFiles.length > 0) {
+                const firstFile = ctx.stagedFiles[0];
+                if (firstFile) {
+                  setSelectedFile({
+                    name: firstFile.name,
+                    size: firstFile.size || 1024,
+                    mimeType: firstFile.type || 'application/pdf',
+                    base64: firstFile.base64
+                  });
+                  setEvidenceTitle(firstFile.name);
+                  setOcrText(firstFile.text || '');
+                }
+              } else {
+                setSelectedFile(null);
+                setEvidenceTitle('');
+                setOcrText('');
+              }
+            }}
+            theme={isDark ? 'dark' : 'light'}
+          />
         </div>
-
-        {selectedFile && (
-          <div className={`flex items-center gap-3 p-3 rounded-xl border ${isDark ? 'bg-indigo-500/5 border-indigo-500/20' : 'bg-indigo-50/50 border-indigo-202'}`}>
-            <FileText size={18} className="text-indigo-400 shrink-0" />
-            <div className="flex-1 min-w-0 text-left">
-              <p className={`text-xs font-bold truncate ${isDark ? 'text-slate-200' : 'text-slate-855'}`}>{selectedFile.name}</p>
-              <p className="text-[9px] text-slate-500 uppercase font-black mt-0.5">{Math.round(selectedFile.size / 1024)} KB • {selectedFile.mimeType}</p>
-            </div>
-            <button onClick={() => setSelectedFile(null)} className="p-1 hover:bg-slate-800 rounded-full min-w-[28px] min-h-[28px] flex items-center justify-center">
-              <X size={14} className="text-slate-400" />
-            </button>
-          </div>
-        )}
 
         {/* Evidence Name */}
         <div className="flex flex-col gap-1.5">

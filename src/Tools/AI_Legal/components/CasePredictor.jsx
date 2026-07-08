@@ -18,6 +18,7 @@ import useOutputLanguage from '../hooks/useOutputLanguage';
 import { useLanguage } from '../../../context/LanguageContext';
 import LanguageToggle from './shared/LanguageToggle';
 import { exportToPDF } from '../utils/exportToPDF';
+import { UniversalMultimodalInput } from './shared/UniversalMultimodalInput';
 
 const QUICK_PRESETS = [
   { name: 'Bail Forecast', desc: 'Predict bail approval chances for financial disputes.' },
@@ -1130,6 +1131,7 @@ const CasePredictor = ({ currentCase, onBack, theme, allProjects = [], onUpdateC
 
   // UI Flow states
   const [isGenerating, setIsGenerating] = useState(false);
+  const [multimodalContext, setMultimodalContext] = useState(null);
   const [activePrediction, setActivePrediction] = useState(null);
   const [rawPrediction, setRawPrediction] = useState(null);
   const [historyVisible, setHistoryVisible] = useState(false);
@@ -2506,9 +2508,15 @@ The JSON structure must match this schema:
   }
 }
 
-Ensure all report narrative text in "reports" are long, detailed, professional legal briefs. DO NOT use generic placeholders.`;
+Ensure all report narrative text in "reports" are long, detailed, professional legal briefs. DO NOT use generic placeholders.
 
-      const query = `
+CRITICAL PROMPT DIRECTIVE:
+1. You MUST construct your response based primarily on the uploaded documents, OCR text details, voice transcripts, and manual notes provided in the Case Facts / Staged Context. 
+2. Under no circumstances are you allowed to return a generic template case description.
+3. You MUST quote the actual uploaded facts, party names (e.g. "Rajesh Kumar Sharma", "Sunil Verma"), specific dates (e.g. 15/09/2025, 05/02/2026), exact clauses (e.g. Clause 8), witness details, and sections mentioned in the context.
+4. If multiple sources conflict, resolve them using the priority rules: Voice Instructions ➔ Manual Notes ➔ Uploaded Document Facts.`;
+
+      let query = `
       Case Type: ${fData.caseType}
       IPC/Statutes/BNS: ${fData.ipcSections}
       Court / Jurisdiction: ${fData.courtName}
@@ -2518,7 +2526,22 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
       Witness Details: ${fData.witnessDetails}
       `;
 
-      const response = await generateChatResponse([], query, systemPrompt, evidenceFiles, toolkitLanguage || 'English', null, 'legal');
+      if (multimodalContext && multimodalContext.promptString) {
+        query += `\n${multimodalContext.promptString}`;
+      }
+
+      const attachments = [...evidenceFiles];
+      if (multimodalContext && multimodalContext.cameraImages) {
+        multimodalContext.cameraImages.forEach(img => {
+          attachments.push({
+            url: `data:image/png;base64,${img.base64}`,
+            name: img.name,
+            type: 'image'
+          });
+        });
+      }
+
+      const response = await generateChatResponse([], query, systemPrompt, attachments, toolkitLanguage || 'English', null, 'legal');
       const reply = response?.reply || response || '';
 
       let parsedJson = null;
@@ -3496,6 +3519,15 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                             );
                           })()
                         )}
+                        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-zinc-800/80">
+                          <UniversalMultimodalInput
+                            caseId={selectedCaseId || 'global'}
+                            workspaceName="CasePredictor"
+                            onContextChange={(ctx) => setMultimodalContext(ctx)}
+                            theme={isDark ? 'dark' : 'light'}
+                            layout="case"
+                          />
+                        </div>
                       </div>
                     </div>
                   )}
@@ -3523,46 +3555,14 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
 
                       <div className="space-y-4">
                         <div className="flex flex-col gap-1.5">
-                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t('uploadLegalPleadingDocs') || "Upload Documents (PDF, DOCX, ZIP, IMAGES)"}</label>
-                          <div className={`border-2 border-dashed rounded-3xl p-8 text-center transition-all ${
-                            isDark ? 'border-zinc-800 bg-zinc-900/20 hover:border-indigo-500/40' : 'border-slate-200 bg-slate-50/50 hover:border-indigo-400/50'
-                          }`}>
-                            <input 
-                              type="file" 
-                              multiple
-                              accept=".pdf,.docx,.zip,image/*"
-                              onChange={(e) => {
-                                const files = Array.from(e.target.files).map(f => ({
-                                  name: f.name,
-                                  size: (f.size / 1024 / 1024).toFixed(2) + ' MB',
-                                  type: f.type || 'application/pdf'
-                                }));
-                                setUploadedFiles(prev => [...prev, ...files]);
-                                
-                                // OCR Extract trigger
-                                setIsOcrProcessing(true);
-                                setTimeout(() => {
-                                  setIsOcrProcessing(false);
-                                  setOcrGeneratedSummary('OCR pipeline completed. Extracted case summary: Contract dispute between Plaintiff and Defendant regarding delayed digital delivery of software code. Timeline indicates breach occurred on April 12, 2025.');
-                                  setFacts('Plaintiff claims damages of $150,000 for delayed delivery of software code. Defendant asserts delayed payment of mandatory mobilization fee.');
-                                  setCaseType('Corporate');
-                                  setCourtName('High Court of Judicature');
-                                  setIpcSections('Indian Contract Act Section 73/74');
-                                }, 1200);
-                              }}
-                              className="hidden"
-                              id="file-predictor-uploader"
-                            />
-                            <label htmlFor="file-predictor-uploader" className="cursor-pointer flex flex-col items-center justify-center gap-3">
-                              <div className="w-12 h-12 rounded-2xl bg-indigo-550/10 flex items-center justify-center text-indigo-500 animate-bounce">
-                                <Upload size={22} />
-                              </div>
-                              <div>
-                                <p className="text-xs font-black uppercase tracking-wide text-indigo-400">Click to upload files</p>
-                                <p className="text-[10px] text-slate-450 mt-1 font-semibold">Drag and drop ZIP, PDF, DOCX, or scanned images here (max 25MB)</p>
-                              </div>
-                            </label>
-                          </div>
+                          <label className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t('uploadLegalPleadingDocs') || "Upload Documents & Multimodal Context"}</label>
+                          <UniversalMultimodalInput
+                            caseId={selectedCaseId || 'global'}
+                            workspaceName="CasePredictor"
+                            onContextChange={(ctx) => setMultimodalContext(ctx)}
+                            theme={isDark ? 'dark' : 'light'}
+                            layout="upload"
+                          />
                         </div>
 
                         {/* OCR processing message */}
@@ -3857,6 +3857,16 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                           />
                         </div>
                       </div>
+
+                      <div className="mt-4 pt-4 border-t border-slate-100 dark:border-zinc-800/80">
+                        <UniversalMultimodalInput
+                          caseId={selectedCaseId || 'global'}
+                          workspaceName="CasePredictor"
+                          onContextChange={(ctx) => setMultimodalContext(ctx)}
+                          theme={isDark ? 'dark' : 'light'}
+                          layout="manual"
+                        />
+                      </div>
                     </div>
                   )}
 
@@ -3867,13 +3877,13 @@ Ensure all report narrative text in "reports" are long, detailed, professional l
                       disabled={
                         isGenerating ||
                         (inputWorkflowMode === 'existing' && !selectedCaseId) ||
-                        (inputWorkflowMode === 'upload' && uploadedFiles.length === 0) ||
+                        (inputWorkflowMode === 'upload' && !multimodalContext?.hasStagedContext) ||
                         (inputWorkflowMode === 'manual' && (!manualTitle.trim() || !manualPetitioner.trim() || !manualRespondent.trim() || !manualFacts.trim()))
                       }
                       className={`w-full sm:w-auto px-6 sm:px-8 py-3.5 text-white rounded-2xl font-black text-xs uppercase tracking-wider transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-xl min-h-[48px] ${
                         isGenerating ||
                         (inputWorkflowMode === 'existing' && !selectedCaseId) ||
-                        (inputWorkflowMode === 'upload' && uploadedFiles.length === 0) ||
+                        (inputWorkflowMode === 'upload' && !multimodalContext?.hasStagedContext) ||
                         (inputWorkflowMode === 'manual' && (!manualTitle.trim() || !manualPetitioner.trim() || !manualRespondent.trim() || !manualFacts.trim()))
                           ? 'bg-slate-200 dark:bg-zinc-800 text-slate-400 dark:text-zinc-600 cursor-not-allowed shadow-none'
                           : 'bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 shadow-indigo-500/20 cursor-pointer'

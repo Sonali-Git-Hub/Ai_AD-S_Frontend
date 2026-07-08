@@ -900,6 +900,18 @@ export const apiService = {
     }
   },
 
+  async transcribeAudio(audioBase64, mimeType = 'audio/webm') {
+    try {
+      const response = await apiClient.post('/voice/transcribe', { audio: audioBase64, mimeType });
+      return response.data;
+    } catch (error) {
+      console.error("Audio transcription failed:", error);
+      throw error;
+    }
+  },
+
+
+
   // --- Notifications ---
   async getNotifications() {
     try {

@@ -22,6 +22,8 @@ import { CRIMINAL_SECTIONS, getSuggestionKeywords } from '../data/criminalLawDat
 import useOutputLanguage from '../hooks/useOutputLanguage';
 import LanguageToggle from './shared/LanguageToggle';
 import CopyOutputButton from './shared/CopyOutputButton';
+import { UniversalMultimodalInput } from './shared/UniversalMultimodalInput';
+
 
 // ── Country field definition (injected after every *address field) ────────────
 const COUNTRY_FIELD = {
@@ -726,6 +728,8 @@ const DraftMaker = ({ currentCase, onBack, theme, allProjects = [], onUpdateCase
   const [selectedType, setSelectedType] = useState(null);
   const [template, setTemplate] = useState(null);
   const [inputSource, setInputSource] = useState(null); // null, 'CASE', 'UPLOAD', 'MANUAL'
+  const [multimodalContext, setMultimodalContext] = useState(null);
+
   const [selectedCaseForImport, setSelectedCaseForImport] = useState('');
   const [isAnalyzingDocs, setIsAnalyzingDocs] = useState(false);
   const [caseImportSummary, setCaseImportSummary] = useState(null);
@@ -1523,10 +1527,32 @@ CRITICAL MASTER RULES:
         if (c) caseCtx = `Case: ${c.name} | Client: ${c.clientName || 'N/A'} | Court: ${c.courtName || 'N/A'}`;
       }
 
-      const systemPrompt = `${template.systemPrompt}\nAlways generate the complete document — never truncate. Use formal legal language. Include all sections.`;
+      const systemPrompt = `${template.systemPrompt}\nAlways generate the complete document — never truncate. Use formal legal language. Include all sections.
+
+CRITICAL PROMPT DIRECTIVE:
+1. You MUST construct your response based primarily on the uploaded documents, OCR text details, voice transcripts, and manual notes provided in the Case Facts / Staged Context. 
+2. Under no circumstances are you allowed to return a generic template case description.
+3. You MUST quote the actual uploaded facts, party names (e.g. "Rajesh Kumar Sharma", "Sunil Verma"), specific dates (e.g. 15/09/2025, 05/02/2026), exact clauses (e.g. Clause 8), witness details, and sections mentioned in the context.
+4. If multiple sources conflict, resolve them using the priority rules: Voice Instructions ➔ Manual Notes ➔ Uploaded Document Facts.`;
       const prompt = buildPrompt(mode, template, formData, selectedType, caseCtx);
 
-      const resp = await generateChatResponse([], prompt, systemPrompt, [], 'English', null, 'legal');
+      let finalPrompt = prompt;
+      if (multimodalContext && multimodalContext.promptString) {
+        finalPrompt += `\n${multimodalContext.promptString}`;
+      }
+
+      const attachments = [];
+      if (multimodalContext && multimodalContext.cameraImages) {
+        multimodalContext.cameraImages.forEach(img => {
+          attachments.push({
+            url: `data:image/png;base64,${img.base64}`,
+            name: img.name,
+            type: 'image'
+          });
+        });
+      }
+
+      const resp = await generateChatResponse([], finalPrompt, systemPrompt, attachments, 'English', null, 'legal');
 
       // Detect error responses (string error messages from the service)
       if (typeof resp === 'string') {
@@ -4235,6 +4261,17 @@ CRITICAL MASTER RULES:
                   </div>
                 </div>
 
+                <div className="mt-4">
+                  <UniversalMultimodalInput
+                    caseId={linkedCaseId || 'global'}
+                    workspaceName="DraftMaker"
+                    onContextChange={(ctx) => setMultimodalContext(ctx)}
+                    theme={isDark ? 'dark' : 'light'}
+                    layout="case"
+                  />
+                </div>
+
+
                 {/* Editable Missing Fields Viewport */}
                 <div className="space-y-4">
                   <h3 className="text-xs font-black uppercase tracking-widest text-slate-550 select-none">Required Missing Fields</h3>
@@ -4409,6 +4446,15 @@ CRITICAL MASTER RULES:
                         </div>
                         <div className="grid grid-cols-1 gap-4">
                           {factFields.map(field => renderWizardField(field))}
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-zinc-805/80">
+                          <UniversalMultimodalInput
+                            caseId={linkedCaseId || 'global'}
+                            workspaceName="DraftMaker"
+                            onContextChange={(ctx) => setMultimodalContext(ctx)}
+                            theme={isDark ? 'dark' : 'light'}
+                            layout="manual"
+                          />
                         </div>
                       </div>
                     )}

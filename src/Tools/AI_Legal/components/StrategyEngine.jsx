@@ -17,6 +17,8 @@ import { getUserData } from '../../../userStore/userData';
 import useOutputLanguage from '../hooks/useOutputLanguage';
 import { useLanguage } from '../../../context/LanguageContext';
 import LanguageToggle from './shared/LanguageToggle';
+import { UniversalMultimodalInput } from './shared/UniversalMultimodalInput';
+
 import CopyOutputButton from './shared/CopyOutputButton';
 
 // Specialized litigation roadmap templates
@@ -170,7 +172,13 @@ JSON Schema:
     "criticalIssues": ["Critical issue identified"],
     "priorityImprovements": ["Priority improvement needed"]
   }
-}`;
+}
+
+CRITICAL PROMPT DIRECTIVE:
+1. You MUST construct your response based primarily on the uploaded documents, OCR text details, voice transcripts, and manual notes provided in the Case Facts / Staged Context. 
+2. Under no circumstances are you allowed to return a generic template case description.
+3. You MUST quote the actual uploaded facts, party names (e.g. "Rajesh Kumar Sharma", "Sunil Verma"), specific dates (e.g. 15/09/2025, 05/02/2026), exact clauses (e.g. Clause 8), witness details, and sections mentioned in the context.
+4. If multiple sources conflict, resolve them using the priority rules: Voice Instructions ➔ Manual Notes ➔ Uploaded Document Facts.`;
 
 const TEMPLATE_SEED_DATA = {
   Bail: {
@@ -426,6 +434,8 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
 
   // Platform States
   const [strategySource, setStrategySource] = useState('EXISTING_CASE');
+  const [multimodalContext, setMultimodalContext] = useState(null);
+
   const [caseTitle, setCaseTitle] = useState('');
   const [caseFacts, setCaseFacts] = useState('');
   const [linkedCaseId, setLinkedCaseId] = useState(currentCase?._id || '');
@@ -503,6 +513,10 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
 
   const loadingRef = useRef(null);
   const reportRef = useRef(null);
+  const contextChangeRef = useRef(null);
+  const stableContextChange = useCallback((ctx) => {
+    contextChangeRef.current?.(ctx);
+  }, []);
 
   // Automatic scrolling effects
   useEffect(() => {
@@ -1292,13 +1306,20 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
 
   // Dynamic AI Strategy Completion Check metrics
   const strategyReadinessCalculated = useMemo(() => {
+    // Defensive coercions — state may be set to non-string by OCR extraction
+    const safeClientName = typeof clientName === 'string' ? clientName : String(clientName || '');
+    const safeOpponentName = typeof opponentName === 'string' ? opponentName : String(opponentName || '');
+    const safeCaseFacts = typeof caseFacts === 'string' ? caseFacts : String(caseFacts || '');
+    const safeCaseTitle = typeof caseTitle === 'string' ? caseTitle : String(caseTitle || '');
+
     const isManual = strategySource === 'MANUAL_SCENARIO';
-    const infoOk = isManual ? (caseTitle.trim() ? 1 : 0) : (clientName.trim() && opponentName.trim() ? 1 : 0);
-    const factsOk = caseFacts.trim().length > 15 ? 1 : 0;
+    const infoOk = isManual ? (safeCaseTitle.trim() ? 1 : 0) : (safeClientName.trim() && safeOpponentName.trim() ? 1 : 0);
+    const factsOk = safeCaseFacts.trim().length > 15 ? 1 : 0;
     const timelineOk = timelineList.length > 0 ? 1 : 0;
     const evidenceOk = evidenceList.length > 0 ? 1 : 0;
     const witnessesOk = witnessList.length > 0 ? 1 : 0;
-    const opponentOk = scenarioOpponent.trim().length > 10 ? 1 : 0;
+    const safeOpponent = typeof scenarioOpponent === 'string' ? scenarioOpponent : String(scenarioOpponent || '');
+    const opponentOk = safeOpponent.trim().length > 10 ? 1 : 0;
 
     const score = Math.round(((infoOk * 15) + (factsOk * 25) + (timelineOk * 15) + (evidenceOk * 15) + (witnessesOk * 15) + (opponentOk * 15)));
 
@@ -1311,7 +1332,7 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
       opponent: opponentOk === 1,
       overall: score
     };
-  }, [clientName, opponentName, caseFacts, timelineList, evidenceList, witnessList, scenarioOpponent]);
+  }, [clientName, opponentName, caseFacts, caseTitle, timelineList, evidenceList, witnessList, scenarioOpponent, strategySource]);
 
   // --- Dynamic workflow bar status indicators ---
   const getWorkflowStepStatus = (stepKey) => {
@@ -1392,12 +1413,27 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
       customizedPrompt += `\n\n[INSTRUCTION: Formulate trial arguments. Structure "finalArguments" (opening, core arguments, rebuttal, closing prayer) and "crossExamPlanner".]`;
     }
 
+    if (multimodalContext && multimodalContext.promptString) {
+      customizedPrompt += `\n${multimodalContext.promptString}`;
+    }
+
+    const attachments = [];
+    if (multimodalContext && multimodalContext.cameraImages) {
+      multimodalContext.cameraImages.forEach(img => {
+        attachments.push({
+          url: `data:image/png;base64,${img.base64}`,
+          name: img.name,
+          type: 'image'
+        });
+      });
+    }
+
     try {
       const response = await generateChatResponse(
         [],
         customizedPrompt,
         LITIGATION_SYSTEM_PROMPT,
-        [],
+        attachments,
         toolkitLanguage || 'English',
         null,
         'legal'
@@ -2908,68 +2944,10 @@ Schema: [{"name": "{t('witnessNameLabel') || 'Witness Name'}", "role": "Role des
               </div>
             </div>
           ) : strategySource === 'UPLOAD_DOCUMENTS' ? (
-            <div className="space-y-3">
-              <label className="text-[9px] font-black uppercase tracking-widest text-indigo-500">{t('documentUploadWorkspace') || "Document Upload Workspace"}</label>
-
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={() => document.getElementById('strategy-doc-uploader').click()}
-                className="border-2 border-dashed border-slate-300 dark:border-zinc-800 hover:border-indigo-500 rounded-2xl p-5 text-center cursor-pointer transition-all flex flex-col items-center gap-2 bg-slate-500/3"
-              >
-                <Upload className="text-slate-400" size={24} />
-                <span className="text-[10.5px] text-slate-500 dark:text-slate-400 font-bold">{t('dragAndDropBrowse') || "Drag & drop files or click to browse"}</span>
-                <span className="text-[8px] text-slate-404 uppercase font-semibold">{t('supportsPdfPlaintsFirs') || "Supports PDFs, Plaints, Agreements, FIRs"}</span>
-                <input
-                  id="strategy-doc-uploader"
-                  type="file"
-                  multiple
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
-              </div>
-
-              {/* Uploaded File List */}
-              {uploadedFiles.length > 0 && (
-                <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
-                  {uploadedFiles.map(file => (
-                    <div key={file.id} className="p-2.5 border rounded-xl bg-slate-500/5 flex items-center justify-between text-xs font-semibold gap-2">
-                      <div className="min-w-0 flex items-center gap-1.5">
-                        <FileText size={14} className="text-slate-405 shrink-0" />
-                        <span className="truncate text-slate-800 dark:text-slate-300">{file.name}</span>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${file.status === 'OCR Running' ? 'bg-amber-500/10 text-amber-500 animate-pulse' :
-                            file.status === 'OCR Complete' ? 'bg-emerald-500/10 text-emerald-500' :
-                              file.status === 'Extracting' ? 'bg-violet-500/10 text-violet-500 animate-pulse' :
-                                file.status === 'Extracted' ? 'bg-green-500/10 text-green-500 font-black' :
-                                  'bg-slate-205 text-slate-450'
-                          }`}>{file.status}</span>
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setUploadedFiles(prev => prev.filter(f => f.id !== file.id));
-                          }}
-                          className="p-0.5 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded text-red-500 font-bold"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-
-                  <button
-                    onClick={runDocumentAnalysis}
-                    disabled={isExtractingDocs}
-                    className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-indigo-650 hover:bg-indigo-705 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-50"
-                  >
-                    {isExtractingDocs ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Sparkles size={12} />}
-                    <span>{t('aiParseDocuments') || "AI Parse Uploaded Documents"}</span>
-                  </button>
-                </div>
-              )}
+            <div className="p-6 text-center border rounded-2xl bg-indigo-500/[0.01] border-indigo-500/10 space-y-2">
+              <p className="text-xs font-bold text-slate-705 dark:text-slate-355">
+                Use the Multimodal Legal Workspace below to upload documents, record voice notes, or import WhatsApp backups.
+              </p>
             </div>
           ) : (
             /* Manual Mode intent-driven input fields directly in sidebar */
@@ -3189,6 +3167,17 @@ Schema: [{"name": "{t('witnessNameLabel') || 'Witness Name'}", "role": "Role des
           )}
         </div>
 
+        {/* Multimodal input staging workspace */}
+        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-zinc-800/80">
+          <UniversalMultimodalInput
+            caseId={linkedCaseId || 'global'}
+            workspaceName="StrategyEngine"
+            onContextChange={stableContextChange}
+            theme={isDark ? 'dark' : 'light'}
+            layout={strategySource === 'EXISTING_CASE' ? 'case' : strategySource === 'UPLOAD_DOCUMENTS' ? 'upload' : 'manual'}
+          />
+        </div>
+
         {/* Search Strategy Templates Select Box */}
         <div className="space-y-1.5 pt-3 border-t border-slate-100 dark:border-zinc-800/80">
           <label className="text-[9px] font-black uppercase tracking-widest text-indigo-500">{t('searchStrategyTemplates') || "Search Strategy Templates"}</label>
@@ -3211,6 +3200,93 @@ Schema: [{"name": "{t('witnessNameLabel') || 'Witness Name'}", "role": "Role des
         </div>
       </>
     );
+  };
+
+  // Stable ref callback assignment to prevent rendering infinite loops
+  contextChangeRef.current = (ctx) => {
+    setMultimodalContext(ctx);
+
+    if (ctx && ctx.stagedFiles && ctx.stagedFiles.length > 0) {
+      const ocrText = ctx.stagedFiles
+        .map(f => f.content || '')
+        .filter(Boolean)
+        .join('\n\n');
+
+      if (ocrText.trim()) {
+        // Guard state update to prevent rendering loop if text is identical
+        const trimmedOcr = ocrText.trim();
+        if (caseFacts !== trimmedOcr) {
+          setCaseFacts(prev => prev.trim() ? prev : trimmedOcr);
+
+          // Auto-extract timeline/evidence/witnesses from OCR if lists are empty
+          // Use a short debounced AI extraction call
+          setTimeout(async () => {
+            if (trimmedOcr.length > 100) {
+              try {
+                const { generateChatResponse } = await import('../../../services/geminiService');
+                const extractPrompt = `From this document text, extract and return a JSON object with:
+1. "timeline": array of objects {date, event, description} (max 8 items)  
+2. "evidence": array of objects {title, type, description} (max 6 items)
+3. "witnesses": array of objects {name, role, testimony} (max 4 items)
+4. "parties": {plaintiff, defendant, others}
+5. "sections": array of applicable IPC/BNS/legal sections mentioned
+
+Document Text:
+${trimmedOcr.slice(0, 6000)}
+
+Return ONLY valid JSON. No markdown wrapper.`;
+                const resp = await generateChatResponse([], extractPrompt, 
+                  'You are a legal document analyzer. Extract structured case data from documents. Return ONLY valid JSON.',
+                  [], 'English', null, 'legal');
+                const rawText = resp?.reply || (typeof resp === 'string' ? resp : '');
+                // Parse JSON from response
+                let extracted = null;
+                try {
+                  const jMatch = rawText.match(/```json\s*([\s\S]*?)\s*```/) || rawText.match(/(\{[\s\S]*\})/);
+                  if (jMatch) extracted = JSON.parse(jMatch[1] || jMatch[0]);
+                  else extracted = JSON.parse(rawText.trim());
+                } catch (_) {}
+                if (extracted) {
+                  if (Array.isArray(extracted.timeline) && extracted.timeline.length > 0) {
+                    setTimelineList(prev => prev.length > 0 ? prev : extracted.timeline.map((t, i) => ({
+                      id: `ocr_tl_${i}`, date: t.date || '', event: t.event || '', description: t.description || ''
+                    })));
+                  }
+                  if (Array.isArray(extracted.evidence) && extracted.evidence.length > 0) {
+                    setEvidenceList(prev => prev.length > 0 ? prev : extracted.evidence.map((e, i) => ({
+                      id: `ocr_ev_${i}`, title: e.title || e.name || '', type: e.type || 'Document', description: e.description || ''
+                    })));
+                  }
+                  if (Array.isArray(extracted.witnesses) && extracted.witnesses.length > 0) {
+                    setWitnessList(prev => prev.length > 0 ? prev : extracted.witnesses.map((w, i) => ({
+                      id: `ocr_wit_${i}`, name: w.name || '', role: w.role || '', testimony: w.testimony || ''
+                    })));
+                  }
+                  if (extracted.parties) {
+                    const plaintiff = extracted.parties.plaintiff;
+                    const defendant = extracted.parties.defendant;
+                    // Guard: AI may return object/array — always coerce to string
+                    const plaintiffStr = plaintiff ? (typeof plaintiff === 'string' ? plaintiff : String(plaintiff)).trim() : '';
+                    const defendantStr = defendant ? (typeof defendant === 'string' ? defendant : String(defendant)).trim() : '';
+                    if (plaintiffStr && !clientName.trim()) setClientName(plaintiffStr);
+                    if (defendantStr && !opponentName.trim()) setOpponentName(defendantStr);
+                  }
+                }
+              } catch (extractErr) {
+                console.warn('[StrategyEngine] Auto-extract from OCR failed:', extractErr);
+              }
+            }
+          }, 1500);
+        }
+      }
+    }
+
+    if (ctx && ctx.manualNotes && ctx.manualNotes.trim()) {
+      const trimmedNotes = ctx.manualNotes.trim();
+      if (caseFacts !== trimmedNotes) {
+        setCaseFacts(prev => prev.trim() ? prev : trimmedNotes);
+      }
+    }
   };
 
   return (
@@ -3477,7 +3553,7 @@ Schema: [{"name": "{t('witnessNameLabel') || 'Witness Name'}", "role": "Role des
                         rows={5}
                         value={caseFacts}
                         onChange={e => setCaseFacts(e.target.value)}
-                        placeholder="{t('factsStatementBriefPlaceholder') || 'Enter detailed facts of the case, breach details, transaction issues...'}"
+                        placeholder={t('factsStatementBriefPlaceholder') || 'Enter detailed facts of the case, breach details, transaction issues...'}
                         className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none resize-none ${isDark ? 'bg-black/25 border-zinc-800 text-white' : 'bg-slate-50 border-slate-200'
                           }`}
                       />
@@ -3562,7 +3638,7 @@ Schema: [{"name": "{t('witnessNameLabel') || 'Witness Name'}", "role": "Role des
                               type="text"
                               value={newEv.name}
                               onChange={e => setNewEv({ ...newEv, name: e.target.value })}
-                              placeholder="{t('evidenceTitlePlaceholder') || 'e.g. Agreement sheet copy'}"
+                              placeholder={t('evidenceTitlePlaceholder') || 'e.g. Agreement sheet copy'}
                               className={`w-full border rounded-lg px-2.5 py-1.5 text-xs font-semibold outline-none ${isDark ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-white border-slate-205'}`}
                             />
                           </div>
@@ -3844,7 +3920,7 @@ Schema: [{"name": "{t('witnessNameLabel') || 'Witness Name'}", "role": "Role des
                             <span className="text-[8px] font-black text-slate-400 uppercase">{t('reliefSoughtDetailsSuggested') || 'Relief Sought Details (AI suggested / editable)'}</span>
                             <input
                               type="text"
-                              placeholder="{t('aiWillSuggestRelief') || 'AI will suggest relief details, or you can edit...'}"
+                              placeholder={t('aiWillSuggestRelief') || 'AI will suggest relief details, or you can edit...'}
                               value={scenarioRelief}
                               onChange={e => setScenarioRelief(e.target.value)}
                               className={`w-full border rounded-xl px-3 py-2 outline-none font-bold ${isDark ? 'bg-black/25 border-zinc-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-808'}`}
@@ -3858,7 +3934,7 @@ Schema: [{"name": "{t('witnessNameLabel') || 'Witness Name'}", "role": "Role des
                               rows={3}
                               value={scenarioOrders}
                               onChange={e => setScenarioOrders(e.target.value)}
-                              placeholder="{t('enterPreviousStaysPlaceholder') || 'Enter previous stays, notices, or caveat decrees details...'}"
+                              placeholder={t('enterPreviousStaysPlaceholder') || 'Enter previous stays, notices, or caveat decrees details...'}
                               className={`w-full border rounded-xl px-3 py-2 outline-none resize-none font-bold ${isDark ? 'bg-black/25 border-zinc-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
                             />
                           </div>
@@ -4407,7 +4483,7 @@ Schema: [{"name": "{t('witnessNameLabel') || 'Witness Name'}", "role": "Role des
               <Search size={14} className="text-slate-400 mr-2" />
               <input
                 type="text"
-                placeholder="{t('searchPastSimulationStrategies') || 'Search past simulation strategies...'}"
+                placeholder={t('searchPastSimulationStrategies') || 'Search past simulation strategies...'}
                 className="w-full bg-transparent border-none text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-0"
                 value={historySearch}
                 onChange={e => setHistorySearch(e.target.value)}

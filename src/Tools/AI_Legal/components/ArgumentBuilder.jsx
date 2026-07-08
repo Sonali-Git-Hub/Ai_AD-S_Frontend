@@ -19,6 +19,8 @@ import useOutputLanguage from '../hooks/useOutputLanguage';
 import { useLanguage } from '../../../context/LanguageContext';
 import LanguageToggle from './shared/LanguageToggle';
 import CopyOutputButton from './shared/CopyOutputButton';
+import { UniversalMultimodalInput } from './shared/UniversalMultimodalInput';
+
 import { getUserData } from '../../../userStore/userData';
 
 // specialized default recommendation items
@@ -562,6 +564,8 @@ const ArgumentBuilder = ({ currentCase, onBack, theme, allProjects = [], onUpdat
 
   // Step 1: Choose Source states
   const [argumentSource, setArgumentSource] = useState('EXISTING_CASE'); // 'EXISTING_CASE' | 'UPLOAD_DOCUMENTS' | 'MANUAL_FACTS'
+  const [multimodalContext, setMultimodalContext] = useState(null);
+
   const [linkedCaseId, setLinkedCaseId] = useState(currentCase?._id || '');
   const [manualDescription, setManualDescription] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -869,13 +873,18 @@ CRITICAL RULES:
       return !!linkedCaseId;
     }
     if (argumentSource === 'UPLOAD_DOCUMENTS') {
-      return uploadedFiles.length > 0;
+      const hasStagedFiles = (multimodalContext?.stagedFiles?.length > 0) || 
+                             (multimodalContext?.driveFiles?.length > 0) || 
+                             (multimodalContext?.cameraImages?.length > 0);
+      const hasVoiceOrChat = (multimodalContext?.voiceRecordings?.length > 0) || 
+                             (multimodalContext?.whatsappChats?.length > 0);
+      return hasStagedFiles || hasVoiceOrChat;
     }
     if (argumentSource === 'MANUAL_FACTS') {
       return !!litigationGoal && !!practiceArea && !!caseFacts.trim();
     }
     return false;
-  }, [argumentSource, linkedCaseId, uploadedFiles, litigationGoal, practiceArea, caseFacts]);
+  }, [argumentSource, linkedCaseId, multimodalContext, litigationGoal, practiceArea, caseFacts]);
 
   // Dynamic back navigation that overrides standard window pop state
   const handleCustomBack = () => {
@@ -1007,14 +1016,23 @@ CRITICAL RULES:
     } else {
       // Document Upload
       contextText = `
-        Uploaded Legal Files: ${uploadedFiles.map(f => f.name).join(', ')}
-        Summary Synopses of cases: ${manualDescription}
+        Source Mode: Multimodal Staging Workspace
       `;
+    }
+
+    if (multimodalContext && multimodalContext.promptString) {
+      contextText += `\n${multimodalContext.promptString}`;
     }
 
     try {
       const prompt = `You are a high-level Litigation Strategy Architect. Build a complete litigation brief from the following source parameters:
       Source Details: "${contextText}"
+      
+      CRITICAL PROMPT DIRECTIVE:
+      1. You MUST construct your response based primarily on the uploaded documents, OCR text details, voice transcripts, and manual notes provided in the Source Details. 
+      2. Under no circumstances are you allowed to return a generic template case description.
+      3. You MUST quote the actual uploaded facts, party names (e.g. "Rajesh Kumar Sharma", "Sunil Verma"), specific dates (e.g. 15/09/2025, 05/02/2026), exact clauses (e.g. Clause 8), witness details, and sections mentioned in the context.
+      4. If multiple sources conflict, resolve them using the priority rules: Voice Instructions ➔ Manual Notes ➔ Uploaded Document Facts.
       
       You MUST generate all fields in the JSON response exactly matching the schema. Format your output as a single valid JSON object. Do not output any chat narrative outside the JSON.
       
@@ -1059,13 +1077,24 @@ DO NOT TRANSLATE (keep exactly as-is in original English characters):
 - Latin legal terms: ratio decidendi, mens rea, actus reus, habeas corpus, suo motu`
         : '';
 
+      const attachments = [];
+      if (multimodalContext && multimodalContext.cameraImages) {
+        multimodalContext.cameraImages.forEach(img => {
+          attachments.push({
+            url: `data:image/png;base64,${img.base64}`,
+            name: img.name,
+            type: 'image'
+          });
+        });
+      }
+
       let parsed = null;
       try {
         const response = await generateChatResponse(
           [],
           prompt + langInstruct,
           "You are an Elite Litigation Pleading Generator AI. Return ONLY valid JSON matching the schema.",
-          [],
+          attachments,
           toolkitLanguage || 'English',
           null,
           'legal'
@@ -2608,50 +2637,27 @@ DO NOT TRANSLATE (keep exactly as-is in original English characters):
                             </span>
                           </div>
                         </div>
+                        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-zinc-800/80">
+                          <UniversalMultimodalInput
+                            caseId={linkedCaseId || 'global'}
+                            workspaceName="ArgumentBuilder"
+                            onContextChange={(ctx) => setMultimodalContext(ctx)}
+                            theme={isDark ? 'dark' : 'light'}
+                            layout="case"
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
                 ) : argumentSource === 'UPLOAD_DOCUMENTS' ? (
                   <div className="space-y-4">
-                    <div 
-                      onDragOver={e => e.preventDefault()}
-                      onDrop={handleDropDocs}
-                      onClick={() => document.getElementById('wizard-files-selector').click()}
-                      className="border-2 border-dashed border-slate-350 dark:border-slate-800 hover:border-indigo-500 rounded-2xl p-8 text-center cursor-pointer transition-all flex flex-col items-center gap-2 bg-slate-500/5"
-                    >
-                      <FileUp className="text-slate-400" size={32} />
-                      <span className="text-[12px] text-slate-700 dark:text-slate-300 font-bold">{t("Staged files for OCR extraction")}</span>
-                      <span className="text-[9px] text-slate-450 uppercase font-semibold">{t("FIRs, petitions, contracts, PDFs")}</span>
-                      <input 
-                        id="wizard-files-selector"
-                        type="file"
-                        multiple
-                        onChange={e => {
-                          const files = Array.from(e.target.files);
-                          setUploadedFiles(prev => [...prev, ...files.map(f => ({ name: f.name, size: Math.round(f.size / 1024) + ' KB' }))]);
-                        }}
-                        className="hidden"
-                      />
-                    </div>
-
-                    {uploadedFiles.length > 0 && (
-                      <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
-                        {uploadedFiles.map((file, idx) => (
-                          <div key={idx} className="p-3 border rounded-xl bg-slate-100 dark:bg-black/20 flex items-center justify-between text-xs font-semibold">
-                            <span className="truncate text-slate-800 dark:text-slate-300">{file.name} ({file.size})</span>
-                            <button 
-                              onClick={e => {
-                                e.stopPropagation();
-                                setUploadedFiles(prev => prev.filter((_, i) => i !== idx));
-                              }} 
-                              className="text-red-500 hover:text-red-400"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <UniversalMultimodalInput
+                      caseId={linkedCaseId || 'global'}
+                      workspaceName="ArgumentBuilder"
+                      onContextChange={(ctx) => setMultimodalContext(ctx)}
+                      theme={isDark ? 'dark' : 'light'}
+                      layout="upload"
+                    />
                   </div>
                 ) : (
                   <div className="space-y-5 text-left">
@@ -3027,6 +3033,16 @@ DO NOT TRANSLATE (keep exactly as-is in original English characters):
                           </motion.div>
                         )}
                       </AnimatePresence>
+                      
+                      <div className="mt-4 pt-4 border-t border-slate-100 dark:border-zinc-800/80">
+                        <UniversalMultimodalInput
+                          caseId={linkedCaseId || 'global'}
+                          workspaceName="ArgumentBuilder"
+                          onContextChange={(ctx) => setMultimodalContext(ctx)}
+                          theme={isDark ? 'dark' : 'light'}
+                          layout="manual"
+                        />
+                      </div>
                     </div>
                   </div>
                 )}

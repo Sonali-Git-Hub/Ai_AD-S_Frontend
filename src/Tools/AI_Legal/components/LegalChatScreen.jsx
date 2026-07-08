@@ -6,7 +6,7 @@ import {
   Sparkles, FileText, Image as ImageIcon, RotateCcw, Check,
   SlidersHorizontal, ChevronLeft, ChevronUp, Landmark, ShieldAlert, Calendar,
   Download, Printer, Briefcase, History, MessageSquare, Pin, PinOff, Trash2,
-  ThumbsUp, ThumbsDown, Volume2, Settings, ExternalLink, HelpCircle, Mic, Square
+  ThumbsUp, ThumbsDown, Volume2, Settings, ExternalLink, HelpCircle, Mic, Square, MicOff
 } from 'lucide-react';
 import { generateChatResponse } from '../../../services/geminiService';
 import ReactMarkdown from 'react-markdown';
@@ -36,6 +36,15 @@ STRICT RULES:
 - Respond in the same language as the user's prompt (e.g. Hindi, English).
 - Always use the legal styling callouts: [!IMPORTANT], [!WARNING], [!CASE], and [!STATUTE] inside markdown blockquotes to structure critical callouts.
 `;
+
+const formatMarkdownForParsing = (text) => {
+  if (!text) return '';
+  // Normalize carriage returns
+  let clean = text.replace(/\r\n/g, '\n');
+  // Ensure that any line starting with headings (#) has a blank line before it
+  clean = clean.replace(/([^\n])\n(#{1,6}\s)/g, '$1\n\n$2');
+  return clean;
+};
 
 const detectPreferredLanguage = (query, history, uiLanguage) => {
   const lowerQuery = query.toLowerCase();
@@ -367,7 +376,7 @@ const AiResponseCard = ({ msg, currentCase, chatIdRef, handleRegenerateMessage, 
               }
             }}
           >
-            {getDisplayText(msg.text)}
+            {formatMarkdownForParsing(getDisplayText(msg.text))}
           </ReactMarkdown>
         </div>
       </div>
@@ -854,44 +863,230 @@ Please continue the conversation naturally using this context. Never ask the use
 
   const abortControllerRef = useRef(null);
   const isStreamingRef = useRef(false);
+  // ChatGPT-style Chat Voice States
+  const [micPermissionError, setMicPermissionError] = useState(false);
+  const [chatVoiceState, setChatVoiceState] = useState('idle'); // 'idle' | 'recording' | 'transcribing' | 'preview'
+  const [chatVoiceText, setChatVoiceText] = useState('');
+  const [chatVoiceBlob, setChatVoiceBlob] = useState(null);
+  const [chatVoiceDuration, setChatVoiceDuration] = useState(0);
+
+  // ChatGPT-style Voice Refs
+  const chatMediaRecorderRef = useRef(null);
+  const chatAudioContextRef = useRef(null);
+  const chatAnalyserRef = useRef(null);
+  const chatDataArrayRef = useRef(null);
+  const chatSourceRef = useRef(null);
+  const chatCanvasRef = useRef(null);
+  const chatAnimationIdRef = useRef(null);
+  const chatAudioChunksRef = useRef([]);
+  const chatDurationIntervalRef = useRef(null);
+  const chatRecognitionRef = useRef(null);
+
+  const drawChatWaveform = useCallback(() => {
+    if (!chatCanvasRef.current) return;
+    chatAnimationIdRef.current = requestAnimationFrame(drawChatWaveform);
+    const canvas = chatCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const isDark = document.documentElement.classList.contains('dark');
+ 
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = isDark ? 'rgba(15, 22, 42, 0.2)' : 'rgba(248, 250, 252, 0.2)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+ 
+    if (chatAnalyserRef.current) {
+      const analyser = chatAnalyserRef.current;
+      const dataArray = chatDataArrayRef.current;
+      analyser.getByteFrequencyData(dataArray);
+ 
+      const barWidth = (canvas.width / dataArray.length) * 2.5;
+      let barHeight;
+      let x = 0;
+ 
+      for (let i = 0; i < dataArray.length; i++) {
+        barHeight = (dataArray[i] / 256) * canvas.height;
+        ctx.fillStyle = isDark ? 'rgba(99, 102, 241, 0.8)' : 'rgba(79, 70, 229, 0.8)';
+        ctx.fillRect(x, canvas.height / 2 - barHeight / 2, barWidth, barHeight);
+        x += barWidth + 1;
+      }
+    } else {
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = isDark ? '#6366F1' : '#4F46E5';
+      ctx.beginPath();
+      ctx.moveTo(0, canvas.height / 2);
+      ctx.lineTo(canvas.width, canvas.height / 2);
+      ctx.stroke();
+    }
+  }, []);
+
+  const startChatVoiceRecording = async () => {
+    try {
+      setMicPermissionError(false);
+      setChatVoiceText('');
+      setChatVoiceBlob(null);
+      setChatVoiceDuration(0);
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      chatStreamRef.current = stream;
+      chatAudioChunksRef.current = [];
+      const mediaRecorder = new MediaRecorder(stream);
+      chatMediaRecorderRef.current = mediaRecorder;
+
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 128;
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      const source = audioCtx.createMediaStreamSource(stream);
+      source.connect(analyser);
+
+      chatAudioContextRef.current = audioCtx;
+      chatAnalyserRef.current = analyser;
+      chatDataArrayRef.current = dataArray;
+      chatSourceRef.current = source;
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          chatAudioChunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        clearInterval(chatDurationIntervalRef.current);
+        cancelAnimationFrame(chatAnimationIdRef.current);
+        if (chatAudioContextRef.current) {
+          chatAudioContextRef.current.close().catch(() => {});
+        }
+
+        const audioBlob = new Blob(chatAudioChunksRef.current, { type: 'audio/webm' });
+        setChatVoiceBlob(audioBlob);
+        
+        if (chatRecognitionRef.current) {
+          try {
+            chatRecognitionRef.current.stop();
+          } catch (e) {}
+        }
+
+        setChatVoiceState('transcribing');
+
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+          const base64Audio = reader.result.split(',')[1];
+          
+          if (chatVoiceText.trim().length > 3) {
+            setChatVoiceState('preview');
+            toast.success('Speech recognition transcript generated.');
+          } else {
+            try {
+              const data = await apiService.transcribeAudio(base64Audio, 'audio/webm');
+              if (data && data.text) {
+                setChatVoiceText(data.text);
+                setChatVoiceState('preview');
+                toast.success('Speech transcribed successfully.');
+              } else {
+                throw new Error('Empty text');
+              }
+            } catch (err) {
+              console.error('Whisper failed:', err);
+              setChatVoiceState('idle');
+              toast.error('Unable to transcribe voice audio.');
+            }
+          }
+        };
+
+        stream.getTracks().forEach(t => t.stop());
+      };
+
+      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const rec = new SpeechRecognition();
+        chatRecognitionRef.current = rec;
+        rec.lang = 'en-US';
+        rec.continuous = true;
+        rec.interimResults = true;
+        rec.onresult = (event) => {
+          const currentTranscript = Array.from(event.results)
+            .map(result => result[0].transcript)
+            .join('');
+          setChatVoiceText(currentTranscript);
+        };
+        rec.start();
+      }
+
+      setChatVoiceState('recording');
+      mediaRecorder.start();
+
+      let durationCount = 0;
+      chatDurationIntervalRef.current = setInterval(() => {
+        durationCount += 1;
+        setChatVoiceDuration(durationCount);
+      }, 1000);
+
+      setTimeout(() => {
+        drawChatWaveform();
+      }, 100);
+
+    } catch (err) {
+      console.error('Failed to start voice record:', err);
+      setMicPermissionError(true);
+    }
+  };
+
+  const stopChatVoiceRecording = () => {
+    if (chatMediaRecorderRef.current && chatMediaRecorderRef.current.state !== 'inactive') {
+      chatMediaRecorderRef.current.stop();
+    }
+  };
+
+  const cancelChatVoiceRecording = () => {
+    clearInterval(chatDurationIntervalRef.current);
+    cancelAnimationFrame(chatAnimationIdRef.current);
+    
+    if (chatRecognitionRef.current) {
+      try {
+        chatRecognitionRef.current.stop();
+      } catch (e) {}
+    }
+    
+    if (chatMediaRecorderRef.current && chatMediaRecorderRef.current.state !== 'inactive') {
+      chatMediaRecorderRef.current.stop();
+    }
+    
+    if (chatStreamRef.current) {
+      chatStreamRef.current.getTracks().forEach(t => t.stop());
+    }
+
+    setChatVoiceState('idle');
+    setChatVoiceText('');
+    setChatVoiceBlob(null);
+    setChatVoiceDuration(0);
+  };
+
+  const sendChatVoiceTranscript = () => {
+    if (!chatVoiceText.trim()) return;
+    const textToSend = chatVoiceText;
+    
+    setChatVoiceState('idle');
+    setChatVoiceText('');
+    setChatVoiceBlob(null);
+    setChatVoiceDuration(0);
+
+    setInputValue(textToSend);
+    setTimeout(() => {
+      sendMessage(textToSend);
+    }, 50);
+  };
+
+  const chatStreamRef = useRef(null);
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef(null);
 
   const handleVoiceInput = () => {
-    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      toast.error('Voice input not supported in this browser');
-      return;
+    if (chatVoiceState === 'recording') {
+      stopChatVoiceRecording();
+    } else {
+      startChatVoiceRecording();
     }
-    if (isListening) {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      setIsListening(false);
-      return;
-    }
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognitionRef.current = recognition;
-    recognition.lang = 'en-US';
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.onstart = () => {
-      setIsListening(true);
-      toast.success("Listening... Speak now");
-    };
-    recognition.onresult = (event) => {
-      const transcript = Array.from(event.results)
-        .map(result => result[0].transcript)
-        .join('');
-      setInputValue(transcript);
-    };
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-    recognition.onerror = () => {
-      setIsListening(false);
-    };
-    recognition.start();
   };
 
   const { toolkitLanguage, setToolkitLanguage } = useLanguage();
@@ -2590,58 +2785,184 @@ THINK IN TARGET LANGUAGE:
             />
 
             <form 
+              id="chat-form-element"
               onSubmit={(e) => { 
                 e.preventDefault(); 
                 if (isTyping || generationState === 'streaming') {
                   handleStop();
-                } else {
+                } else if (chatVoiceState === 'preview') {
+                  sendChatVoiceTranscript();
+                } else if (chatVoiceState === 'idle') {
                   sendMessage(); 
                 }
               }}
               className="flex-1 flex items-center gap-1 sm:gap-2 min-w-0"
             >
-              <input 
-                ref={inputRef}
-                type="text" 
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Ask AI to draft, analyze or strategize..."
-                className="flex-1 w-full min-w-0 bg-transparent border-none text-[13px] sm:text-xs font-semibold focus:ring-0 p-0 text-slate-700 placeholder-slate-400 outline-none truncate"
-              />
+              {micPermissionError ? (
+                <div className="flex-1 flex items-center justify-between gap-3 p-1 select-none w-full text-left">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <MicOff size={16} className="text-red-550 shrink-0" />
+                    <span className="text-[10px] text-red-500 font-bold leading-tight truncate">Microphone Access is required.</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMicPermissionError(false);
+                        startChatVoiceRecording();
+                      }}
+                      className="px-3 py-1.5 bg-[#5B3DF5] text-white text-[9px] font-black uppercase tracking-wider rounded-lg hover:bg-indigo-700 transition-colors border-none cursor-pointer"
+                    >
+                      Allow
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMicPermissionError(false)}
+                      className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-400 rounded-full transition-colors border-none bg-transparent cursor-pointer flex items-center justify-center"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                </div>
+              ) : chatVoiceState === 'recording' ? (
+                <div className="flex-1 flex items-center justify-between gap-3 min-w-0 w-full">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping shrink-0" />
+                    <span className="text-[10px] font-black uppercase text-rose-500 tracking-wider whitespace-nowrap hidden sm:inline">● Listening</span>
+                    <span className="text-[10px] font-black uppercase text-rose-500 tracking-wider whitespace-nowrap sm:hidden">● REC</span>
+                  </div>
+                  
+                  <div className="flex-1 max-w-[240px] h-7 bg-transparent rounded-lg overflow-hidden border dark:border-zinc-800/80 p-0.5 shrink-0 min-w-[80px]">
+                    <canvas ref={chatCanvasRef} className="w-full h-full bg-transparent" width={240} height={24} />
+                  </div>
 
-              <button 
-                type="button" 
-                onClick={handleVoiceInput}
-                className={`p-2 sm:p-2.5 rounded-full transition-colors shrink-0 border-none bg-transparent cursor-pointer flex items-center justify-center ${
-                  isListening ? 'text-red-500 animate-pulse bg-red-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
-                }`}
-                title="Voice input"
-              >
-                <Mic size={18} />
-              </button>
+                  <div className="text-[13px] font-mono font-bold text-slate-700 dark:text-slate-305 shrink-0">
+                    {String(Math.floor(chatVoiceDuration / 60)).padStart(2, '0')}:{String(chatVoiceDuration % 60).padStart(2, '0')}
+                  </div>
 
-              {(isTyping || generationState === 'streaming') ? (
-                <button 
-                  type="button" 
-                  onClick={handleStop}
-                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-full transition-all shrink-0 bg-red-500 hover:bg-red-600 text-white shadow-sm flex items-center justify-center animate-pulse border-none cursor-pointer"
-                  title="Stop generating"
-                >
-                  <Square size={14} className="fill-white stroke-none" />
-                </button>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={stopChatVoiceRecording}
+                      className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all select-none shadow-sm border-none cursor-pointer"
+                      title="Stop Recording"
+                    >
+                      Stop
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelChatVoiceRecording}
+                      className="p-1.5 hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-400 hover:text-rose-500 transition-colors border-none bg-transparent cursor-pointer rounded-full flex items-center justify-center"
+                      title="Delete Recording"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </div>
+              ) : chatVoiceState === 'transcribing' ? (
+                <div className="flex-1 flex items-center justify-center gap-2 py-1 select-none">
+                  <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin shrink-0" />
+                  <span className="text-[10px] font-black uppercase text-indigo-500 tracking-widest animate-pulse whitespace-nowrap">Transcribing Speech to Text...</span>
+                </div>
+              ) : chatVoiceState === 'preview' ? (
+                <div className="flex-1 flex flex-col gap-2 p-1 select-none w-full text-left">
+                  <div className="text-[9px] font-black uppercase tracking-wider text-[#5B3DF5]">You Said (Voice Transcript Preview):</div>
+                  <div className="flex items-end gap-2.5 w-full">
+                    <textarea
+                      rows={2}
+                      value={chatVoiceText}
+                      onChange={(e) => setChatVoiceText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          sendChatVoiceTranscript();
+                        } else if (e.key === 'Escape') {
+                          e.preventDefault();
+                          cancelChatVoiceRecording();
+                        }
+                      }}
+                      className={`flex-1 text-xs font-semibold p-2 border rounded-xl outline-none resize-none focus:border-indigo-500 ${
+                        isDark ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-slate-50 border-slate-205 text-slate-700'
+                      }`}
+                    />
+                    
+                    <div className="flex flex-col gap-1.5 shrink-0">
+                      <div className="flex gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setChatVoiceState('idle');
+                            startChatVoiceRecording();
+                          }}
+                          className="px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border-none cursor-pointer"
+                        >
+                          Re-record
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelChatVoiceRecording}
+                          className="p-1.5 bg-slate-500/10 hover:bg-slate-550 hover:text-white text-slate-500 rounded-lg transition-all border-none cursor-pointer flex items-center justify-center"
+                          title="Delete"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={sendChatVoiceTranscript}
+                        className="w-full py-1.5 bg-[#5B3DF5] hover:bg-indigo-700 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all select-none shadow-sm border-none cursor-pointer text-center"
+                      >
+                        Send Message
+                      </button>
+                    </div>
+                  </div>
+                </div>
               ) : (
-                <button 
-                  type="submit" 
-                  disabled={!inputValue.trim() && attachments.length === 0}
-                  className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full transition-all shrink-0 border-none flex items-center justify-center cursor-pointer ${
-                    (inputValue.trim() || attachments.length > 0)
-                      ? 'bg-[#4F46E5] text-white hover:bg-[#4338CA] shadow-md shadow-indigo-500/20'
-                      : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                  }`}
-                  title="Send query"
-                >
-                  <Send size={16} className={inputValue.trim() || attachments.length > 0 ? "ml-0.5" : ""} />
-                </button>
+                <>
+                  <input 
+                    ref={inputRef}
+                    type="text" 
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    placeholder="Ask AI to draft, analyze or strategize..."
+                    className="flex-1 w-full min-w-0 bg-transparent border-none text-[13px] sm:text-xs font-semibold focus:ring-0 p-0 text-slate-700 placeholder-slate-400 outline-none truncate"
+                  />
+
+                  <button 
+                    type="button" 
+                    onClick={handleVoiceInput}
+                    className={`p-2 sm:p-2.5 rounded-full transition-colors shrink-0 border-none bg-transparent cursor-pointer flex items-center justify-center ${
+                      isListening ? 'text-red-500 animate-pulse bg-red-50' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+                    }`}
+                    title="Voice input"
+                  >
+                    <Mic size={18} />
+                  </button>
+
+                  {(isTyping || generationState === 'streaming') ? (
+                    <button 
+                      type="button" 
+                      onClick={handleStop}
+                      className="w-10 h-10 sm:w-11 sm:h-11 rounded-full transition-all shrink-0 bg-red-500 hover:bg-red-600 text-white shadow-sm flex items-center justify-center animate-pulse border-none cursor-pointer"
+                      title="Stop generating"
+                    >
+                      <Square size={14} className="fill-white stroke-none" />
+                    </button>
+                  ) : (
+                    <button 
+                      type="submit" 
+                      disabled={!inputValue.trim() && attachments.length === 0}
+                      className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full transition-all shrink-0 border-none flex items-center justify-center cursor-pointer ${
+                        (inputValue.trim() || attachments.length > 0)
+                          ? 'bg-[#4F46E5] text-white hover:bg-[#4338CA] shadow-md shadow-indigo-500/20'
+                          : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                      }`}
+                      title="Send query"
+                    >
+                      <Send size={16} className={inputValue.trim() || attachments.length > 0 ? "ml-0.5" : ""} />
+                    </button>
+                  )}
+                </>
               )}
             </form>
           </div>
