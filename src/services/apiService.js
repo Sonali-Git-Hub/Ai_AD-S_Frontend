@@ -93,6 +93,71 @@ apiClient.interceptors.response.use(
 );
 
 export const apiService = {
+  // ─── Finance Dashboard ─────────────────────────────────────────────────────
+  async getFinanceStats() {
+    try {
+      const response = await apiClient.get('/admin/finance/stats');
+      return response.data;
+    } catch (error) {
+      console.error('[apiService] getFinanceStats failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async getFinanceInvoices(params = {}) {
+    try {
+      const response = await apiClient.get('/admin/finance/invoices', { params });
+      return response.data;
+    } catch (error) {
+      console.error('[apiService] getFinanceInvoices failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async getMonthlyReport(month, year) {
+    try {
+      const response = await apiClient.get('/admin/finance/monthly-report', { params: { month, year } });
+      return response.data;
+    } catch (error) {
+      console.error('[apiService] getMonthlyReport failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async exportFinanceCSV(params = {}) {
+    try {
+      const response = await apiClient.get('/admin/finance/export-csv', {
+        params,
+        responseType: 'blob',
+      });
+      return response;
+    } catch (error) {
+      console.error('[apiService] exportFinanceCSV failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async downloadInvoicePDF(subscriptionId) {
+    try {
+      const response = await apiClient.get(`/payment/invoice/${subscriptionId}`, {
+        responseType: 'blob',
+      });
+      return response;
+    } catch (error) {
+      console.error('[apiService] downloadInvoicePDF failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Legacy billing methods (kept for any existing references)
+  async getAdminBillingStats() {
+    return this.getFinanceStats();
+  },
+
+  async getAdminInvoices(search = '', page = 1) {
+    return this.getFinanceInvoices({ search, page });
+  },
+
   // --- AI Tools ---
   async generateImage(prompt, aspectRatio = '1:1', modelId = 'imagen-3.0-generate-001') {
     try {
@@ -1828,6 +1893,57 @@ export const apiService = {
       return response.data;
     } catch (error) {
       console.error('getAdminInvoices failed:', error);
+      throw error;
+    }
+  },
+
+  // ─── Finance Dashboard (new) ────────────────────────────────────────────────
+  async getFinanceStats() {
+    try {
+      const response = await apiClient.get('/admin/finance/stats');
+      return response.data;
+    } catch (error) {
+      console.error('getFinanceStats failed:', error);
+      throw error;
+    }
+  },
+
+  async getFinanceInvoices(params = {}) {
+    try {
+      const response = await apiClient.get('/admin/finance/invoices', { params });
+      return response.data;
+    } catch (error) {
+      console.error('getFinanceInvoices failed:', error);
+      throw error;
+    }
+  },
+
+  async getMonthlyReport(month, year) {
+    try {
+      const response = await apiClient.get('/admin/finance/monthly-report', { params: { month, year } });
+      return response.data;
+    } catch (error) {
+      console.error('getMonthlyReport failed:', error);
+      throw error;
+    }
+  },
+
+  async exportFinanceCSV(params = {}) {
+    try {
+      const response = await apiClient.get('/admin/finance/export-csv', { params, responseType: 'blob' });
+      return response.data;
+    } catch (error) {
+      console.error('exportFinanceCSV failed:', error);
+      throw error;
+    }
+  },
+
+  async syncRazorpayPayments(daysBack = 90) {
+    try {
+      const response = await apiClient.post('/admin/finance/sync-razorpay', null, { params: { daysBack } });
+      return response.data;
+    } catch (error) {
+      console.error('syncRazorpayPayments failed:', error);
       throw error;
     }
   },
