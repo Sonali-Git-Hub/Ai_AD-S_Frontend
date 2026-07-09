@@ -126,6 +126,16 @@ const VisualViewportManager = () => {
       document.body.classList.add('is-landing-page');
       document.body.classList.remove('is-dashboard');
     }
+    const handleResize = () => {
+      const currentShouldLock = isMobile() && window.location.pathname.startsWith('/dashboard');
+      if (!currentShouldLock) {
+        unlockBody();
+      } else {
+        lockBody();
+      }
+      updateViewport();
+    };
+
     updateViewport();
 
     // ── Event Listeners ──
@@ -134,32 +144,13 @@ const VisualViewportManager = () => {
       vv.addEventListener('resize', updateViewport, { passive: true });
       vv.addEventListener('scroll', updateViewport, { passive: true });
     }
-    window.addEventListener('resize', updateViewport, { passive: true });
+    window.addEventListener('resize', handleResize, { passive: true });
     window.addEventListener('scroll', preventWindowScroll, { passive: true });
     window.addEventListener('orientationchange', () => {
-      setTimeout(() => {
-        if (shouldLock) {
-          lockBody();
-        } else {
-          unlockBody();
-        }
-        updateViewport();
-      }, 400);
+      setTimeout(handleResize, 400);
     });
     document.addEventListener('focusin', onFocusIn, true);
     document.addEventListener('focusout', onFocusOut, true);
-
-    // ── Handle resize to desktop ──
-    const resizeObserver = new ResizeObserver(() => {
-      const currentShouldLock = isMobile() && window.location.pathname.startsWith('/dashboard');
-      if (!currentShouldLock) {
-        unlockBody();
-      } else {
-        lockBody();
-      }
-      updateViewport();
-    });
-    resizeObserver.observe(document.documentElement);
 
     return () => {
       clearTimeout(focusTimer);
@@ -167,11 +158,10 @@ const VisualViewportManager = () => {
         vv.removeEventListener('resize', updateViewport);
         vv.removeEventListener('scroll', updateViewport);
       }
-      window.removeEventListener('resize', updateViewport);
+      window.removeEventListener('resize', handleResize);
       window.removeEventListener('scroll', preventWindowScroll);
       document.removeEventListener('focusin', onFocusIn, true);
       document.removeEventListener('focusout', onFocusOut, true);
-      resizeObserver.disconnect();
       // Ensure body is unlocked when location changes and this cleanup runs
       unlockBody();
     };

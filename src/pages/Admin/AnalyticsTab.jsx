@@ -316,7 +316,7 @@ const AnalyticsTab = () => {
                                                         <div className="w-full bg-white/10 rounded-full h-1.5 mb-2">
                                                             <motion.div
                                                                 initial={{ width: 0 }}
-                                                                animate={{ width: `${m.count}%` /* Wait, it is m.count in original? Let's check: in original it was Math.round((p.count / maxPatternCount) * 100) */ }}
+                                                                animate={{ width: `${Math.round((p.count / maxPatternCount) * 100)}%` }}
                                                                 style={{ width: `${Math.round((p.count / maxPatternCount) * 100)}%`, backgroundColor: p.color }}
                                                                 transition={{ duration: 0.5, delay: i * 0.04 }}
                                                                 className="h-1.5 rounded-full"
