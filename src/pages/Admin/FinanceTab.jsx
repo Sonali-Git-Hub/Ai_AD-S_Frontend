@@ -684,14 +684,13 @@ const InvoiceLedgerTab = () => {
                                 <th className="py-3 px-3 font-bold text-right">Total</th>
                                 <th className="py-3 px-3 font-bold">Gateway</th>
                                 <th className="py-3 px-3 font-bold">Status</th>
-                                <th className="py-3 px-3 font-bold text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan={10}><Spinner /></td></tr>
+                                <tr><td colSpan={9}><Spinner /></td></tr>
                             ) : invoices.length === 0 ? (
-                                <tr><td colSpan={10} className="py-12 text-center text-subtext">No invoices found.</td></tr>
+                                <tr><td colSpan={9} className="py-12 text-center text-subtext">No invoices found.</td></tr>
                             ) : invoices.map((inv) => {
                                 const gstCalc = inv.gstAmount || ((inv.cgst || 0) + (inv.sgst || 0) + (inv.igst || 0));
                                 const planName = inv.subscriptionId?.planId?.planName || '—';
@@ -733,24 +732,7 @@ const InvoiceLedgerTab = () => {
                                                 {status}
                                             </span>
                                         </td>
-                                        <td className="py-3 px-3">
-                                            <div className="flex items-center justify-center gap-1">
-                                                <button
-                                                    onClick={() => handleDownloadPDF(inv)}
-                                                    title="Download PDF"
-                                                    className="p-1.5 rounded-lg hover:bg-primary/10 text-subtext hover:text-primary transition-all"
-                                                >
-                                                    <Download className="w-3 h-3" />
-                                                </button>
-                                                <button
-                                                    onClick={() => window.print()}
-                                                    title="Print"
-                                                    className="p-1.5 rounded-lg hover:bg-white/10 text-subtext hover:text-maintext transition-all"
-                                                >
-                                                    <Printer className="w-3 h-3" />
-                                                </button>
-                                            </div>
-                                        </td>
+
                                     </tr>
                                 );
                             })}
@@ -905,11 +887,6 @@ const MonthlyReportsTab = () => {
                             className="flex items-center gap-1.5 px-3 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-xl text-xs font-bold transition-all">
                             <FileSpreadsheet className="w-3 h-3" />
                             Excel
-                        </button>
-                        <button onClick={handlePrintReport}
-                            className="flex items-center gap-1.5 px-3 py-2 bg-white/5 hover:bg-white/10 text-subtext hover:text-maintext border border-white/10 rounded-xl text-xs font-bold transition-all">
-                            <Printer className="w-3 h-3" />
-                            Print PDF
                         </button>
                     </div>
                 )}
