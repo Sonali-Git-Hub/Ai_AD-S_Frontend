@@ -973,23 +973,23 @@ Please continue the conversation naturally using this context. Never ask the use
         reader.onloadend = async () => {
           const base64Audio = reader.result.split(',')[1];
           
-          if (chatVoiceText.trim().length > 3) {
-            setChatVoiceState('preview');
-            toast.success('Speech recognition transcript generated.');
-          } else {
-            try {
-              const data = await apiService.transcribeAudio(base64Audio, 'audio/webm');
-              if (data && data.text) {
-                setChatVoiceText(data.text);
-                setChatVoiceState('preview');
-                toast.success('Speech transcribed successfully.');
-              } else {
-                throw new Error('Empty text');
-              }
-            } catch (err) {
-              console.error('Whisper failed:', err);
+          try {
+            const data = await apiService.transcribeAudio(base64Audio, 'audio/webm');
+            if (data && data.text) {
+              setChatVoiceText(data.text);
+              setChatVoiceState('preview');
+              toast.success('Speech transcribed successfully.');
+            } else {
+              throw new Error('Empty text');
+            }
+          } catch (err) {
+            console.error('Whisper failed:', err);
+            if (chatVoiceText && chatVoiceText.trim().length > 0) {
+              setChatVoiceState('preview');
+              toast.error('AI transcription failed. Fell back to browser transcript.');
+            } else {
               setChatVoiceState('idle');
-              toast.error('Unable to transcribe voice audio.');
+              toast.error('Unable to understand audio. Please try again.');
             }
           }
         };
@@ -1001,7 +1001,7 @@ Please continue the conversation naturally using this context. Never ask the use
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const rec = new SpeechRecognition();
         chatRecognitionRef.current = rec;
-        rec.lang = 'en-US';
+        rec.lang = toolkitLanguage === 'Hindi' ? 'hi-IN' : 'en-IN';
         rec.continuous = true;
         rec.interimResults = true;
         rec.onresult = (event) => {
@@ -2825,39 +2825,48 @@ THINK IN TARGET LANGUAGE:
                   </div>
                 </div>
               ) : chatVoiceState === 'recording' ? (
-                <div className="flex-1 flex items-center justify-between gap-3 min-w-0 w-full">
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping shrink-0" />
-                    <span className="text-[10px] font-black uppercase text-rose-500 tracking-wider whitespace-nowrap hidden sm:inline">● Listening</span>
-                    <span className="text-[10px] font-black uppercase text-rose-500 tracking-wider whitespace-nowrap sm:hidden">● REC</span>
-                  </div>
-                  
-                  <div className="flex-1 max-w-[240px] h-7 bg-transparent rounded-lg overflow-hidden border dark:border-zinc-800/80 p-0.5 shrink-0 min-w-[80px]">
-                    <canvas ref={chatCanvasRef} className="w-full h-full bg-transparent" width={240} height={24} />
-                  </div>
+                <div className="flex-1 flex flex-col gap-2 min-w-0 w-full text-left">
+                  <div className="flex items-center justify-between gap-3 w-full">
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping shrink-0" />
+                      <span className="text-[10px] font-black uppercase text-rose-500 tracking-wider whitespace-nowrap hidden sm:inline">● Listening</span>
+                      <span className="text-[10px] font-black uppercase text-rose-500 tracking-wider whitespace-nowrap sm:hidden">● REC</span>
+                    </div>
+                    
+                    <div className="flex-1 max-w-[240px] h-7 bg-transparent rounded-lg overflow-hidden border dark:border-zinc-800/80 p-0.5 shrink-0 min-w-[80px]">
+                      <canvas ref={chatCanvasRef} className="w-full h-full bg-transparent" width={240} height={24} />
+                    </div>
 
-                  <div className="text-[13px] font-mono font-bold text-slate-700 dark:text-slate-305 shrink-0">
-                    {String(Math.floor(chatVoiceDuration / 60)).padStart(2, '0')}:{String(chatVoiceDuration % 60).padStart(2, '0')}
-                  </div>
+                    <div className="text-[13px] font-mono font-bold text-slate-700 dark:text-slate-305 shrink-0">
+                      {String(Math.floor(chatVoiceDuration / 60)).padStart(2, '0')}:{String(chatVoiceDuration % 60).padStart(2, '0')}
+                    </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      type="button"
-                      onClick={stopChatVoiceRecording}
-                      className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all select-none shadow-sm border-none cursor-pointer"
-                      title="Stop Recording"
-                    >
-                      Stop
-                    </button>
-                    <button
-                      type="button"
-                      onClick={cancelChatVoiceRecording}
-                      className="p-1.5 hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-400 hover:text-rose-500 transition-colors border-none bg-transparent cursor-pointer rounded-full flex items-center justify-center"
-                      title="Delete Recording"
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={stopChatVoiceRecording}
+                        className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all select-none shadow-sm border-none cursor-pointer"
+                        title="Stop Recording"
+                      >
+                        Stop
+                      </button>
+                      <button
+                        type="button"
+                        onClick={cancelChatVoiceRecording}
+                        className="p-1.5 hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-400 hover:text-rose-500 transition-colors border-none bg-transparent cursor-pointer rounded-full flex items-center justify-center"
+                        title="Delete Recording"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   </div>
+                  {chatVoiceText && (
+                    <div className="w-full text-left px-3 py-1.5 bg-black/5 dark:bg-black/20 rounded-xl max-h-16 overflow-y-auto">
+                      <p className="text-xs font-semibold text-slate-655 dark:text-slate-300 italic">
+                        "{chatVoiceText}"
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : chatVoiceState === 'transcribing' ? (
                 <div className="flex-1 flex items-center justify-center gap-2 py-1 select-none">
@@ -2888,6 +2897,17 @@ THINK IN TARGET LANGUAGE:
                     
                     <div className="flex flex-col gap-1.5 shrink-0">
                       <div className="flex gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(chatVoiceText);
+                            toast.success('Transcript copied to clipboard!');
+                          }}
+                          className="p-1.5 bg-slate-500/10 hover:bg-slate-550 hover:text-white text-slate-500 rounded-lg transition-all border-none cursor-pointer flex items-center justify-center"
+                          title="Copy"
+                        >
+                          <Copy size={12} />
+                        </button>
                         <button
                           type="button"
                           onClick={() => {

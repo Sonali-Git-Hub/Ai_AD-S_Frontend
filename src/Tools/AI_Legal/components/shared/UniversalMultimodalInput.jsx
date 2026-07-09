@@ -2,12 +2,13 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Mic, MicOff, Square, Trash2, Edit2, RefreshCw, Globe, FileText, Camera,
   Check, X, ChevronDown, ChevronUp, FolderOpen, Plus, Play, Pause,
-  Save, Upload, AlertCircle, Briefcase, Smartphone, Cloud, MessageSquare, Sparkles, Image, CheckCircle
+  Save, Upload, AlertCircle, Briefcase, Smartphone, Cloud, MessageSquare, Sparkles, Image, CheckCircle, Copy
 } from 'lucide-react';
 import { apiService } from '../../../../services/apiService';
 import toast from 'react-hot-toast';
 import JSZip from 'jszip';
 import { createPortal } from 'react-dom';
+import { useLanguage } from '../../../../context/LanguageContext';
 
 const CLOUD_DRIVE_MOCK_FILES = {
   gdrive: [
@@ -101,6 +102,8 @@ export const UniversalMultimodalInput = ({
   layout = 'upload'
 }) => {
   const isDark = theme === 'dark';
+  const { toolkitLanguage } = useLanguage();
+  const [appendingVoiceRecordId, setAppendingVoiceRecordId] = useState(null);
 
   // State elements
   const [activeInputTab, setActiveInputTab] = useState(null); // 'voice', 'whatsapp', 'drive', 'camera', 'notes', 'files'
@@ -319,6 +322,7 @@ export const UniversalMultimodalInput = ({
       setMicPermissionError(false);
       setVoiceTranscriptText('');
       setVoiceTranscriptBlob(null);
+      const startTime = Date.now();
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioChunksRef.current = [];
@@ -352,6 +356,7 @@ export const UniversalMultimodalInput = ({
           audioCtxRef.current.close().catch(() => {});
         }
 
+        const durationSec = Math.round((Date.now() - startTime) / 1000) || 1;
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         setVoiceTranscriptBlob(audioBlob);
         
@@ -370,25 +375,53 @@ export const UniversalMultimodalInput = ({
         reader.onloadend = async () => {
           const base64Audio = reader.result.split(',')[1];
           
-          // Check if SpeechRecognition already populated the transcript
-          if (voiceTranscriptText.trim().length > 3) {
-            setVoiceRecordingState('ready');
-            toast.success('Speech recognition transcript generated.');
-          } else {
-            // Whisper API fallback
-            try {
-              const data = await apiService.transcribeAudio(base64Audio, 'audio/webm');
-              if (data && data.text) {
-                setVoiceTranscriptText(data.text);
+          try {
+            const data = await apiService.transcribeAudio(base64Audio, 'audio/webm');
+            if (data && data.text) {
+              const finalTranscriptText = data.text;
+              
+              if (appendingVoiceRecordId) {
+                setVoiceRecordings(prev => prev.map(item => 
+                  item.id === appendingVoiceRecordId 
+                    ? { ...item, transcript: (item.transcript + ' ' + finalTranscriptText).trim(), duration: item.duration + durationSec } 
+                    : item
+                ));
+                setVoiceRecordingState('idle');
+                setVoiceTranscriptText('');
+                setVoiceTranscriptBlob(null);
+                setAppendingVoiceRecordId(null);
+                toast.success('Appended recording to voice context card.');
+              } else {
+                setVoiceTranscriptText(finalTranscriptText);
                 setVoiceRecordingState('ready');
                 toast.success('Speech transcribed successfully via AI engine.');
-              } else {
-                throw new Error('Whisper returned empty transcript.');
               }
-            } catch (err) {
-              console.error('Whisper transcription failed:', err);
+            } else {
+              throw new Error('Whisper returned empty transcript.');
+            }
+          } catch (err) {
+            console.error('Whisper transcription failed:', err);
+            // Fallback to browser live transcript if Whisper fails
+            if (voiceTranscriptText && voiceTranscriptText.trim().length > 0) {
+              const fallbackText = voiceTranscriptText;
+              if (appendingVoiceRecordId) {
+                setVoiceRecordings(prev => prev.map(item => 
+                  item.id === appendingVoiceRecordId 
+                    ? { ...item, transcript: (item.transcript + ' ' + fallbackText).trim(), duration: item.duration + durationSec } 
+                    : item
+                ));
+                setVoiceRecordingState('idle');
+                setVoiceTranscriptText('');
+                setVoiceTranscriptBlob(null);
+                setAppendingVoiceRecordId(null);
+                toast.error('AI transcription failed. Appended browser live transcript to card.');
+              } else {
+                setVoiceRecordingState('ready');
+                toast.error('AI transcription failed. Fell back to browser live transcript.');
+              }
+            } else {
               setVoiceRecordingState('error');
-              toast.error('Unable to transcribe voice audio.');
+              toast.error('Unable to understand audio. Please try again.');
             }
           }
         };
@@ -403,7 +436,7 @@ export const UniversalMultimodalInput = ({
         const recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
-        recognition.lang = 'en-US';
+        recognition.lang = toolkitLanguage === 'Hindi' ? 'hi-IN' : 'en-IN';
         
         let accumulatedText = '';
         recognition.onresult = (event) => {
@@ -962,6 +995,14 @@ export const UniversalMultimodalInput = ({
                   <canvas ref={canvasRef} className="w-full h-12 bg-transparent rounded-lg" width={400} height={48} />
                 </div>
 
+                {voiceTranscriptText && (
+                  <div className="w-full text-center px-4 py-2 bg-black/5 dark:bg-black/20 rounded-xl max-h-20 overflow-y-auto">
+                    <p className="text-xs font-semibold text-slate-655 dark:text-slate-300 italic">
+                      "{voiceTranscriptText}"
+                    </p>
+                  </div>
+                )}
+
                 <div className="flex gap-3 justify-center w-full">
                   <button 
                     type="button"
@@ -1051,8 +1092,8 @@ export const UniversalMultimodalInput = ({
             ) : voiceRecordingState === 'error' ? (
               <div className="p-4 border border-red-500/20 bg-red-500/[0.01] rounded-2xl space-y-4 animate-fadeIn text-center w-full">
                 <div className="space-y-1">
-                  <p className="text-[10px] font-black uppercase text-red-500 tracking-wider font-bold">Unable to Transcribe Audio</p>
-                  <p className="text-[9px] text-slate-400 font-semibold leading-relaxed">The STT service was unable to decode the audio signal.</p>
+                  <p className="text-[10px] font-black uppercase text-red-500 tracking-wider font-bold">Unable to understand audio.</p>
+                  <p className="text-[9px] text-slate-400 font-semibold leading-relaxed">Please try again or edit the transcript manually.</p>
                 </div>
                 <div className="flex flex-wrap gap-2 justify-center w-full">
                   <button
@@ -1094,12 +1135,12 @@ export const UniversalMultimodalInput = ({
                   <button
                     type="button"
                     onClick={() => {
-                      setVoiceTranscriptText('Audio content uploaded without text representation.');
+                      setVoiceTranscriptText('');
                       setVoiceRecordingState('ready');
                     }}
-                    className="py-1.5 px-3 bg-slate-500/10 hover:bg-slate-500/20 text-slate-600 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all"
+                    className="py-1.5 px-3 bg-slate-500/10 hover:bg-slate-500/20 text-slate-650 dark:text-slate-350 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all"
                   >
-                    Use Without Transcript
+                    Type Transcript Manually
                   </button>
                 </div>
               </div>
@@ -1412,7 +1453,28 @@ export const UniversalMultimodalInput = ({
                     <Mic className="text-violet-500 shrink-0" size={14} />
                     <span className="uppercase text-[9.5px] tracking-wider">Voice Context Note ({vr.duration}s)</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(vr.transcript);
+                        toast.success('Transcript copied to clipboard!');
+                      }}
+                      className="p-1 hover:bg-slate-500/10 rounded text-slate-400 hover:text-[#5B3DF5]"
+                      title="Copy Transcript"
+                    >
+                      <Copy size={12} />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setAppendingVoiceRecordId(vr.id);
+                        setVoiceRecordingState('recording');
+                        startRecording();
+                      }}
+                      className="p-1 hover:bg-slate-500/10 rounded text-slate-400 hover:text-emerald-500"
+                      title="Continue Recording (Append)"
+                    >
+                      <Plus size={12} />
+                    </button>
                     <button 
                       onClick={() => translateTranscript(vr.id)} 
                       className="p-1 hover:bg-slate-500/10 rounded text-slate-400 hover:text-[#5B3DF5]"
@@ -1444,6 +1506,7 @@ export const UniversalMultimodalInput = ({
                     <button 
                       onClick={() => setVoiceRecordings(prev => prev.filter(item => item.id !== vr.id))} 
                       className="text-slate-400 hover:text-rose-500 p-1"
+                      title="Delete Transcript"
                     >
                       <Trash2 size={12} />
                     </button>
@@ -1452,27 +1515,31 @@ export const UniversalMultimodalInput = ({
                 
                 <div className="p-3.5 space-y-2.5 text-left text-[10.5px]">
                   {editingTranscriptId === vr.id ? (
-                    <div className="flex items-center gap-2 w-full">
-                      <input
-                        type="text"
+                    <div className="flex items-start gap-2 w-full">
+                      <textarea
+                        rows={3}
                         value={editingTranscriptText}
                         onChange={e => setEditingTranscriptText(e.target.value)}
-                        className={`flex-1 border rounded px-2 py-1 outline-none text-xs font-semibold ${
+                        className={`flex-1 border rounded px-2 py-1.5 outline-none text-xs font-semibold resize-none ${
                           isDark ? 'bg-zinc-800 border-zinc-700 text-white' : 'bg-white border-slate-350'
                         }`}
                       />
-                      <button 
-                        onClick={() => saveEditedTranscript(vr.id)}
-                        className="p-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg"
-                      >
-                        <Check size={12} />
-                      </button>
-                      <button 
-                        onClick={() => setEditingTranscriptId(null)}
-                        className="p-1.5 bg-slate-550 text-white rounded-lg"
-                      >
-                        <X size={12} />
-                      </button>
+                      <div className="flex flex-col gap-1.5 shrink-0">
+                        <button 
+                          onClick={() => saveEditedTranscript(vr.id)}
+                          className="p-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg flex items-center justify-center"
+                          title="Save Changes"
+                        >
+                          <Check size={12} />
+                        </button>
+                        <button 
+                          onClick={() => setEditingTranscriptId(null)}
+                          className="p-1.5 bg-slate-500 text-white rounded-lg flex items-center justify-center"
+                          title="Cancel Edit"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-1.5">
