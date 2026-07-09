@@ -550,6 +550,7 @@ const getActionIcon = (iconName) => {
 
 // ─── MAIN LEGAL CHAT SCREEN ──────────────────────────────────────────────────
 const LegalChatScreen = ({ onBack, currentCase, onUpdateCase }) => {
+  const isDark = document.documentElement.classList.contains('dark');
   const toolName = 'General Legal Chat';
   const toolColor = '#4f46e5';
   const toolDesc = 'Professional legal discourse, situational guidance, and citation Q&A.';
