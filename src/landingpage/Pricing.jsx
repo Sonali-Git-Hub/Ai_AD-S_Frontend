@@ -7,8 +7,7 @@ import toast from 'react-hot-toast';
 import { useRecoilState } from 'recoil';
 import { userData, updateUser, getUserData } from '../userStore/userData';
 import { useLanguage } from '../context/LanguageContext';
-import ApplePayButton from '../Components/ApplePayButton';
-import PayPalButton from '../Components/PayPalButton';
+
 import useCreditStore from '../userStore/useCreditStore';
 
 // Helper function to format feature checklist descriptions dynamically matching DB limits
@@ -761,72 +760,8 @@ const Pricing = () => {
                 className="w-full py-3 bg-primary text-white rounded-xl text-xs font-bold shadow-lg shadow-primary/20 hover:opacity-95 active:scale-[0.99] transition-all uppercase tracking-wider"
                 disabled={processing}
               >
-                Pay with Card / UPI / NetBanking
+                Proceed to Payment (Card / UPI / NetBanking)
               </button>
-
-              {/* Gateway 2: PayPal */}
-              <div className="w-full">
-                <div className="text-[10px] text-center text-white/40 uppercase tracking-widest font-black mb-2">or pay with</div>
-                <PayPalButton
-                  planId={selectedPlanForUpgrade._id}
-                  billingCycle={billingCycle}
-                  billingDetails={billingForm}
-                  onSuccess={(data) => {
-                    setBillingModalOpen(false);
-                    if (data?.isFree) return;
-                    toast.success(`✅ PayPal payment successful! ${selectedPlanForUpgrade.planName} activated.`);
-                    const updatedUser = updateUser({
-                      founderStatus: isStartupProPlan(selectedPlanForUpgrade) ? true : userState.user?.founderStatus
-                    });
-                    setUserState({ user: updatedUser });
-                    useCreditStore.getState().syncCredits();
-                  }}
-                  onError={(err) => {
-                    toast.error(err.message || 'PayPal payment failed.');
-                  }}
-                  onProcessing={(val) => setProcessing(val)}
-                  disabled={processing}
-                />
-              </div>
-
-              {/* Gateway 3: Apple Pay (iOS/macOS only) */}
-              {(() => {
-                const isIOSDevice = /iPhone|iPad|iPod/.test(navigator.userAgent);
-                if (!isIOSDevice) return null;
-                const basePrice = billingCycle === 'yearly' ? selectedPlanForUpgrade.priceYearly : selectedPlanForUpgrade.priceMonthly;
-                const totalAmount = Math.round(basePrice * 1.18 * 100) / 100;
-                return (
-                  <div className="w-full">
-                    <ApplePayButton
-                      planId={selectedPlanForUpgrade._id}
-                      billingCycle={billingCycle}
-                      amount={totalAmount}
-                      currency="INR"
-                      onSuccess={(data) => {
-                        setBillingModalOpen(false);
-                        if (data.isTest) {
-                          toast.success(data.message || "Test Payment Successful.");
-                          return;
-                        }
-                        toast.success(`✅ Apple Pay successful! ${selectedPlanForUpgrade.planName} activated.`);
-                        if (data.credits !== undefined) {
-                          const updatedUser = updateUser({
-                            credits: data.credits,
-                            founderStatus: isStartupProPlan(selectedPlanForUpgrade) ? true : userState.user?.founderStatus
-                          });
-                          setUserState({ user: updatedUser });
-                        }
-                        useCreditStore.getState().syncCredits();
-                      }}
-                      onError={(err) => {
-                        toast.error(err.message || 'Apple Pay failed.');
-                      }}
-                      onProcessing={(val) => setProcessing(val)}
-                      disabled={processing}
-                    />
-                  </div>
-                );
-              })()}
 
               <button
                 type="button"

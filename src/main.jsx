@@ -10,7 +10,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { PersonalizationProvider } from './context/PersonalizationContext';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { BrowserRouter, useLocation } from 'react-router-dom';
-import { PayPalScriptProvider } from '@paypal/react-paypal-js';
+
 
 import ErrorBoundary from './Components/ErrorBoundary';
 
@@ -198,12 +198,6 @@ const AppTree = (
 
 createRoot(document.getElementById('root')).render(
   <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-    <PayPalScriptProvider options={{
-      'client-id': window._env_?.VITE_PAYPAL_CLIENT_ID || import.meta.env.VITE_PAYPAL_CLIENT_ID || 'sb',
-      currency: 'USD',
-      intent: 'capture',
-    }}>
-      {AppTree}
-    </PayPalScriptProvider>
+    {AppTree}
   </GoogleOAuthProvider>
 );
