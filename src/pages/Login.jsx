@@ -488,7 +488,7 @@ const Login = () => {
               initial={{ scale: 0.95, y: 10 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 10 }}
-              className="relative w-full max-w-[360px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-[2rem] shadow-2xl text-center"
+              className="relative w-full max-w-[360px] max-h-[calc(100dvh-2rem)] overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-[2rem] shadow-2xl text-center custom-scrollbar-thin"
             >
               <h3 className="text-xl font-black text-slate-800 dark:text-white mb-2 uppercase tracking-tighter">
                 Accept Terms & Policy
@@ -504,7 +504,8 @@ const Login = () => {
                     type="checkbox"
                     checked={modalAgreedToTerms}
                     onChange={(e) => setModalAgreedToTerms(e.target.checked)}
-                    className="mt-0.5 rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary w-4 h-4"
+                    className="mt-0.5 rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary w-4 h-4 shrink-0 min-w-4 min-h-4 max-w-4 max-h-4 aspect-square cursor-pointer"
+                    style={{ width: '16px', height: '16px', minWidth: '16px', minHeight: '16px', flexShrink: 0 }}
                   />
                   <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 leading-tight">
                     I agree to the{' '}
@@ -526,7 +527,8 @@ const Login = () => {
                     type="checkbox"
                     checked={modalAcknowledgedPrivacy}
                     onChange={(e) => setModalAcknowledgedPrivacy(e.target.checked)}
-                    className="mt-0.5 rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary w-4 h-4"
+                    className="mt-0.5 rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary w-4 h-4 shrink-0 min-w-4 min-h-4 max-w-4 max-h-4 aspect-square cursor-pointer"
+                    style={{ width: '16px', height: '16px', minWidth: '16px', minHeight: '16px', flexShrink: 0 }}
                   />
                   <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 leading-tight">
                     I acknowledge the{' '}
@@ -548,7 +550,8 @@ const Login = () => {
                     type="checkbox"
                     checked={modalMarketingOptIn}
                     onChange={(e) => setModalMarketingOptIn(e.target.checked)}
-                    className="mt-0.5 rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary w-4 h-4"
+                    className="mt-0.5 rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary w-4 h-4 shrink-0 min-w-4 min-h-4 max-w-4 max-h-4 aspect-square cursor-pointer"
+                    style={{ width: '16px', height: '16px', minWidth: '16px', minHeight: '16px', flexShrink: 0 }}
                   />
                   <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-500 leading-tight">
                     I agree to receive marketing updates (Optional)
