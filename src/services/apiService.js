@@ -780,9 +780,11 @@ export const apiService = {
     }
   },
 
-  async getAdminErrorDrillDown(mode, range = '7d') {
+  async getAdminErrorDrillDown(mode, range = '7d', tool = '') {
     try {
-      const response = await apiClient.get(`/admin/analytics/errors/${encodeURIComponent(mode)}`, { params: { range } });
+      const params = { range };
+      if (tool) params.tool = tool;
+      const response = await apiClient.get(`/admin/analytics/errors/${encodeURIComponent(mode)}`, { params });
       return response.data;
     } catch (error) {
       console.error('Failed to fetch error drill-down:', error.message);

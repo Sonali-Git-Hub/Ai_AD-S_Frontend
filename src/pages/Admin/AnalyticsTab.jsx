@@ -19,6 +19,7 @@ const AnalyticsTab = () => {
     const [drillData, setDrillData] = useState(null);
     const [drillLoading, setDrillLoading] = useState(false);
     const [drawerOpen, setDrawerOpen] = useState(false);
+    const [selectedSubTool, setSelectedSubTool] = useState(null);
 
     const fetchAnalytics = async (isManual = false) => {
         if (isManual) setRefreshing(true);
@@ -35,13 +36,14 @@ const AnalyticsTab = () => {
         }
     };
 
-    const openDrillDown = async (mode) => {
+    const openDrillDown = async (mode, subTool = null) => {
         setDrillMode(mode);
+        setSelectedSubTool(subTool);
         setDrawerOpen(true);
         setDrillLoading(true);
         setDrillData(null);
         try {
-            const res = await apiService.getAdminErrorDrillDown(mode, range);
+            const res = await apiService.getAdminErrorDrillDown(mode, range, subTool || '');
             setDrillData(res.drillDown);
         } catch (err) {
             console.error('Drill-down fetch failed:', err);
@@ -50,6 +52,17 @@ const AnalyticsTab = () => {
             setDrillLoading(false);
         }
     };
+
+    useEffect(() => {
+        if (drawerOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [drawerOpen]);
 
     useEffect(() => { fetchAnalytics(); }, [range]);
 
@@ -250,6 +263,22 @@ const AnalyticsTab = () => {
 
     return (
         <div className="relative">
+            <style dangerouslySetInnerHTML={{__html: `
+                .custom-drawer-scrollbar::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .custom-drawer-scrollbar::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .custom-drawer-scrollbar::-webkit-scrollbar-thumb {
+                    background: rgba(255, 255, 255, 0.15);
+                    border-radius: 999px;
+                }
+                .custom-drawer-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: rgba(255, 255, 255, 0.3);
+                }
+            `}} />
+
             {mainContent}
 
             {/* Slide over Drill-down Drawer */}
@@ -276,7 +305,9 @@ const AnalyticsTab = () => {
                                     <h3 className="font-bold text-maintext text-base flex items-center gap-2">
                                         <AlertTriangle className="w-4 h-4 text-red-400" /> Inspecting Errors: {getLabel(drillMode)}
                                     </h3>
-                                    <p className="text-[11px] text-subtext mt-0.5">Sub-pattern analyzer for the active range</p>
+                                    <p className="text-[11px] text-subtext mt-0.5">
+                                        {selectedSubTool ? `Filtered by Sub-Tool: ${selectedSubTool}` : 'Sub-pattern analyzer for the active range'}
+                                    </p>
                                 </div>
                                 <button
                                     onClick={() => setDrawerOpen(false)}
@@ -287,7 +318,7 @@ const AnalyticsTab = () => {
                             </div>
 
                             {/* Drawer Content */}
-                            <div className="flex-1 overflow-y-auto p-5 space-y-6">
+                            <div className="flex-1 overflow-y-auto custom-drawer-scrollbar p-5 space-y-6">
                                 {drillLoading ? (
                                     <div className="flex flex-col items-center justify-center py-20 gap-3">
                                         <RefreshCw className="w-6 h-6 text-primary animate-spin" />
@@ -295,63 +326,94 @@ const AnalyticsTab = () => {
                                     </div>
                                 ) : drillData ? (
                                     <>
-                                        {/* ── Pattern Matches ─── */}
-                                        <div>
-                                            <h3 className="text-sm font-bold text-maintext mb-3 flex items-center gap-2">
-                                                <BarChart2 className="w-4 h-4 text-primary" /> Error Sub-types & Patterns
-                                            </h3>
-                                            <div className="space-y-2">
-                                                {drillData.patterns.map((p, i) => (
-                                                    <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-3">
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-                                                                <span className="text-sm font-semibold text-maintext">{p.label}</span>
-                                                            </div>
-                                                            <div className="flex items-center gap-2 text-xs">
-                                                                <span className="font-bold" style={{ color: p.color }}>{p.count}×</span>
-                                                                <span className="text-subtext">{p.sessionCount} sessions</span>
-                                                            </div>
-                                                        </div>
-                                                        <div className="w-full bg-white/10 rounded-full h-1.5 mb-2">
-                                                            <motion.div
-                                                                initial={{ width: 0 }}
-                                                                animate={{ width: `${Math.round((p.count / maxPatternCount) * 100)}%` }}
-                                                                style={{ width: `${Math.round((p.count / maxPatternCount) * 100)}%`, backgroundColor: p.color }}
-                                                                transition={{ duration: 0.5, delay: i * 0.04 }}
-                                                                className="h-1.5 rounded-full"
-                                                            />
-                                                        </div>
-                                                        {/* Sample error messages */}
-                                                        {p.samples.length > 0 && (
-                                                            <div className="space-y-1 mt-2">
-                                                                <p className="text-[10px] text-subtext uppercase tracking-wider font-bold">Sample Messages:</p>
-                                                                {p.samples.map((sample, si) => (
-                                                                    <div key={si} className="bg-black/10 dark:bg-black/30 rounded-lg px-3 py-2 text-xs text-subtext font-mono leading-relaxed border border-white/5">
-                                                                        "{sample.length > 200 ? sample.substring(0, 200) + '...' : sample}"
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-
                                         {/* ── Tool/Sub-feature Breakdown ─── */}
-                                        {drillData.toolStats.length > 0 && drillData.toolStats[0].tool !== 'General' && (
+                                        {drillData.toolStats.length > 0 && (
                                             <div>
-                                                <h3 className="text-sm font-bold text-maintext mb-3 flex items-center gap-2">
-                                                    <Layers className="w-4 h-4 text-primary" /> Errors by Sub-Tool
+                                                <h3 className="text-sm font-bold text-maintext mb-3 flex items-center justify-between gap-2">
+                                                    <span className="flex items-center gap-2">
+                                                        <Layers className="w-4 h-4 text-primary" /> Errors by Sub-Tool (Click to Filter)
+                                                    </span>
+                                                    {selectedSubTool && (
+                                                        <button 
+                                                            onClick={() => openDrillDown(drillMode, null)}
+                                                            className="text-[10px] text-primary hover:underline font-bold"
+                                                        >
+                                                            Clear Filter
+                                                        </button>
+                                                    )}
                                                 </h3>
                                                 <div className="space-y-2">
-                                                    {drillData.toolStats.slice(0, 6).map((t, i) => (
-                                                        <div key={i} className="flex items-center justify-between p-2.5 bg-white/5 rounded-xl border border-white/10">
-                                                            <span className="text-sm text-maintext font-medium">{t.tool}</span>
-                                                            <span className="text-xs font-bold text-red-400 bg-red-400/10 px-2 py-0.5 rounded-lg">{t.count} errors</span>
+                                                    {drillData.toolStats.map((t, i) => {
+                                                        const isSelected = selectedSubTool === t.tool;
+                                                        return (
+                                                            <button
+                                                                key={i}
+                                                                onClick={() => openDrillDown(drillMode, isSelected ? null : t.tool)}
+                                                                className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all text-left ${
+                                                                    isSelected 
+                                                                        ? 'bg-red-500/10 border-red-500/50 hover:bg-red-500/20' 
+                                                                        : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                                                                }`}
+                                                            >
+                                                                <span className="text-sm text-maintext font-medium">{t.tool}</span>
+                                                                <span className={`text-xs font-bold px-2 py-0.5 rounded-lg transition-all ${
+                                                                    isSelected 
+                                                                        ? 'text-red-400 bg-red-500/20' 
+                                                                        : 'text-red-400 bg-red-400/10'
+                                                                }`}>{t.count} errors</span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* ── Pattern Matches ─── */}
+                                        {drillData.patterns.length > 0 ? (
+                                            <div>
+                                                <h3 className="text-sm font-bold text-maintext mb-3 flex items-center gap-2">
+                                                    <BarChart2 className="w-4 h-4 text-primary" /> Error Sub-types & Patterns
+                                                </h3>
+                                                <div className="space-y-2">
+                                                    {drillData.patterns.map((p, i) => (
+                                                        <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-3">
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+                                                                    <span className="text-sm font-semibold text-maintext">{p.label}</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2 text-xs">
+                                                                    <span className="font-bold" style={{ color: p.color }}>{p.count}×</span>
+                                                                    <span className="text-subtext">{p.sessionCount} sessions</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="w-full bg-white/10 rounded-full h-1.5 mb-2">
+                                                                <motion.div
+                                                                    initial={{ width: 0 }}
+                                                                    animate={{ width: `${Math.round((p.count / maxPatternCount) * 100)}%` }}
+                                                                    style={{ width: `${Math.round((p.count / maxPatternCount) * 100)}%`, backgroundColor: p.color }}
+                                                                    transition={{ duration: 0.5, delay: i * 0.04 }}
+                                                                    className="h-1.5 rounded-full"
+                                                                />
+                                                            </div>
+                                                            {/* Sample error messages */}
+                                                            {p.samples.length > 0 && (
+                                                                <div className="space-y-1 mt-2">
+                                                                    <p className="text-[10px] text-subtext uppercase tracking-wider font-bold">Sample Messages:</p>
+                                                                    {p.samples.map((sample, si) => (
+                                                                        <div key={si} className="bg-black/10 dark:bg-black/30 rounded-lg px-3 py-2 text-xs text-subtext font-mono leading-relaxed border border-white/5">
+                                                                            "{sample.length > 200 ? sample.substring(0, 200) + '...' : sample}"
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     ))}
                                                 </div>
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-6 text-subtext text-xs border border-dashed border-white/10 rounded-xl">
+                                                No specific patterns matched for this sub-tool.
                                             </div>
                                         )}
 
@@ -387,7 +449,7 @@ const AnalyticsTab = () => {
                                         )}
 
                                         {/* ── Recent Error Sessions ─── */}
-                                        {drillData.recentSessions.length > 0 && (
+                                        {drillData.recentSessions.length > 0 ? (
                                             <div>
                                                 <h3 className="text-sm font-bold text-maintext mb-3 flex items-center gap-2">
                                                     <Clock className="w-4 h-4 text-subtext" /> Recent Affected Sessions
@@ -396,13 +458,16 @@ const AnalyticsTab = () => {
                                                     {drillData.recentSessions.map((s, i) => (
                                                         <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-2">
                                                             <div className="flex items-center justify-between flex-wrap gap-2">
-                                                                <span className="font-mono text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-lg">
+                                                                <span className="font-mono text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-lg">
                                                                     {s.sessionId?.substring(0, 20)}...
                                                                 </span>
                                                                 <div className="flex items-center gap-2 text-xs">
                                                                     <span className="text-red-400 font-bold bg-red-400/10 px-2 py-0.5 rounded-lg">{s.errorCount} errors</span>
                                                                     <span className="text-subtext">{s.createdAt ? new Date(s.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '-'}</span>
                                                                 </div>
+                                                            </div>
+                                                            <div className="text-[10px] text-subtext px-0.5">
+                                                                Sub-Tool: <span className="text-maintext font-bold">{s.activeTool || 'General'}</span>
                                                             </div>
                                                             {s.topError && (
                                                                 <p className="text-[11px] text-subtext bg-black/10 dark:bg-black/30 rounded-lg px-2.5 py-1.5 font-mono leading-relaxed border border-white/5 line-clamp-3">
@@ -412,6 +477,10 @@ const AnalyticsTab = () => {
                                                         </div>
                                                     ))}
                                                 </div>
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-6 text-subtext text-xs border border-dashed border-white/10 rounded-xl">
+                                                No recent error sessions found for this sub-tool.
                                             </div>
                                         )}
                                     </>
