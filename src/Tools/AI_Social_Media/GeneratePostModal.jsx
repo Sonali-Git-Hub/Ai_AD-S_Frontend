@@ -123,13 +123,15 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate }) {
       language
     };
 
-    if (onGenerate) {
-      await onGenerate(config);
+    try {
+      if (onGenerate) {
+        await onGenerate(config);
+      }
+    } catch (e) {
+      console.error("Post generation failed:", e);
+    } finally {
+      setIsGenerating(false);
     }
-    
-    // If onGenerate doesn't manage closing, we can close it here, but let's assume parent manages
-    // setIsGenerating(false); 
-    // onClose();
   };
 
   return (
