@@ -47,7 +47,7 @@ const MODE_LABELS = {
 const SessionStatusBadge = ({ status }) => {
     const meta = STATUS_META[status] || { label: status, color: 'bg-gray-500/15 text-gray-400 border-gray-500/30' };
     return (
-        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border ${meta.color}`}>
+        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border whitespace-nowrap ${meta.color}`}>
             {meta.label}
         </span>
     );
@@ -186,7 +186,7 @@ const ChatSessionsTab = () => {
     return (
         <div className="space-y-6">
             {/* Summary Cards */}
-            <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2 sm:gap-3">
+            <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-9 gap-2 sm:gap-3">
                 {statCards.map((card, i) => (
                     <motion.div
                         key={i}
@@ -340,10 +340,10 @@ const ChatSessionsTab = () => {
                                         animate={{ opacity: 1 }}
                                         transition={{ delay: i * 0.02 }}
                                         onClick={() => fetchDetail(s.sessionId)}
-                                        className="border-b border-white/5 hover:bg-primary/5 cursor-pointer transition-all group"
+                                    className="border-b border-white/5 hover:bg-primary/5 cursor-pointer transition-all group"
                                     >
                                         <td className="px-4 py-3">
-                                            <span className="font-mono text-[11px] text-primary/80 group-hover:text-primary transition-colors">
+                                            <span className="font-mono text-[11px] text-primary/80 group-hover:text-primary transition-colors whitespace-nowrap">
                                                 {s.sessionId?.slice(0, 12)}…
                                             </span>
                                         </td>
@@ -374,18 +374,18 @@ const ChatSessionsTab = () => {
                                             <span className="text-xs text-subtext whitespace-nowrap">{formatDate(s.createdAt)}</span>
                                         </td>
                                         <td className="px-4 py-3">
-                                            <span className="text-xs font-mono text-subtext">{s.duration || '—'}</span>
+                                            <span className="text-xs font-mono text-subtext whitespace-nowrap">{s.duration || '—'}</span>
                                         </td>
                                         <td className="px-4 py-3 text-center">
-                                            <span className="text-xs font-bold text-maintext">{s.totalMessages ?? 0}</span>
+                                            <span className="text-xs font-bold text-maintext whitespace-nowrap">{s.totalMessages ?? 0}</span>
                                         </td>
                                         <td className="px-4 py-3 text-center">
-                                            <span className="text-xs text-blue-400 font-semibold">{s.userMessages ?? 0}</span>
+                                            <span className="text-xs text-blue-400 font-semibold whitespace-nowrap">{s.userMessages ?? 0}</span>
                                         </td>
                                         <td className="px-4 py-3 text-center">
-                                            <span className="text-xs text-emerald-400 font-semibold">{s.aiMessages ?? 0}</span>
+                                            <span className="text-xs text-emerald-400 font-semibold whitespace-nowrap">{s.aiMessages ?? 0}</span>
                                         </td>
-                                        <td className="px-4 py-3">
+                                        <td className="px-4 py-3 whitespace-nowrap">
                                             <SessionStatusBadge status={s.sessionStatus} />
                                         </td>
                                     </motion.tr>

@@ -2053,6 +2053,77 @@ export const apiService = {
       throw error;
     }
   },
+
+  // ─── DevOps Incident Management API Calls ──────────────────────────────────
+  async getIncidents(params = {}) {
+    try {
+      const response = await apiClient.get('/incidents', { params });
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] getIncidents failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async getIncidentKPIs(params = {}) {
+    try {
+      const response = await apiClient.get('/incidents/kpis', { params });
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] getIncidentKPIs failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async getIncidentDetails(incidentId) {
+    try {
+      const response = await apiClient.get(`/incidents/${incidentId}`);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] getIncidentDetails failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async assignIncident(incidentId, developerId, developerName) {
+    try {
+      const response = await apiClient.post(`/incidents/${incidentId}/assign`, { developerId, developerName });
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] assignIncident failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async resolveIncident(incidentId, details) {
+    try {
+      const response = await apiClient.post(`/incidents/${incidentId}/resolve`, details);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] resolveIncident failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async updateIncidentStatus(incidentId, status, notes) {
+    try {
+      const response = await apiClient.post(`/incidents/${incidentId}/status`, { status, notes });
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] updateIncidentStatus failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async getSessionReplayDetails(sessionId) {
+    try {
+      const response = await apiClient.get(`/incidents/session-replay/${sessionId}`);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] getSessionReplayDetails failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
 };
 
 export default apiService;

@@ -13,6 +13,14 @@ import { BrowserRouter, useLocation } from 'react-router-dom';
 
 
 import ErrorBoundary from './Components/ErrorBoundary';
+import { initIncidentReporter } from './services/incidentReporter';
+
+// Initialize DevOps telemetry and client error collectors
+try {
+  initIncidentReporter();
+} catch (e) {
+  console.error('[Telemetry failed to start]', e);
+}
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
   || import.meta.env.AISA_GOOGLE_CLIENT_ID

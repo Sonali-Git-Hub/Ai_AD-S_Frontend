@@ -7,8 +7,10 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SectionCard } from './AdminCommon';
+import ErrorMonitoring from './ErrorMonitoring';
 
 const AnalyticsTab = () => {
+    const [subTab, setSubTab] = useState('usage');
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [range, setRange] = useState('7d');
@@ -262,7 +264,7 @@ const AnalyticsTab = () => {
     const maxDailyErr = drillData?.dailyErrors?.[0]?.errorCount || 1;
 
     return (
-        <div className="relative">
+        <div className="relative space-y-6">
             <style dangerouslySetInnerHTML={{__html: `
                 .custom-drawer-scrollbar::-webkit-scrollbar {
                     width: 6px;
@@ -279,10 +281,37 @@ const AnalyticsTab = () => {
                 }
             `}} />
 
-            {mainContent}
+            {/* Sub Tabs Selector */}
+            <div className="flex bg-white/10 dark:bg-black/25 p-1 rounded-xl border border-white/10 self-start max-w-sm gap-1">
+                <button
+                    onClick={() => setSubTab('usage')}
+                    className={`flex-1 px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center justify-center gap-1.5 ${
+                        subTab === 'usage' 
+                            ? 'bg-primary text-white shadow-md' 
+                            : 'text-subtext hover:text-maintext'
+                    }`}
+                >
+                    <Layers className="w-3.5 h-3.5" /> Usage & Latency
+                </button>
+                <button
+                    onClick={() => setSubTab('incidents')}
+                    className={`flex-1 px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center justify-center gap-2 ${
+                        subTab === 'incidents' 
+                            ? 'bg-primary text-white shadow-md' 
+                            : 'text-subtext hover:text-maintext'
+                    }`}
+                >
+                    <AlertTriangle className="w-3.5 h-3.5 text-orange-400" /> Incident Monitoring
+                    <span className="w-2 h-2 bg-orange-400 rounded-full animate-pulse" />
+                </button>
+            </div>
 
-            {/* Slide over Drill-down Drawer */}
-            <AnimatePresence>
+            {subTab === 'usage' ? (
+                <>
+                    {mainContent}
+
+                    {/* Slide over Drill-down Drawer */}
+                    <AnimatePresence>
                 {drawerOpen && (
                     <>
                         <motion.div
@@ -492,6 +521,10 @@ const AnalyticsTab = () => {
                     </>
                 )}
             </AnimatePresence>
+                </>
+            ) : (
+                <ErrorMonitoring />
+            )}
         </div>
     );
 };

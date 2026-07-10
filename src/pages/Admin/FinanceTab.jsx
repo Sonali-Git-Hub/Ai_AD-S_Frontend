@@ -672,7 +672,7 @@ const InvoiceLedgerTab = () => {
             {/* Table */}
             <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs">
+                    <table className="w-full text-left border-collapse text-xs min-w-[950px]">
                         <thead>
                             <tr className="border-b border-white/10 text-subtext uppercase tracking-wider">
                                 <th className="py-3 px-3 font-bold">Invoice #</th>
