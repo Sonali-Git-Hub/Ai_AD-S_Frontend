@@ -1820,6 +1820,212 @@ export const apiService = {
     }
   },
 
+  async createManualPost(formData, onUploadProgress) {
+    try {
+      const response = await apiClient.post('/manual-post/create', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress,
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to create manual post:", error);
+      throw error;
+    }
+  },
+
+  async getManualPost(id) {
+    try {
+      const response = await apiClient.get(`/manual-post/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to get manual post with id ${id}:`, error);
+      throw error;
+    }
+  },
+
+  async updateManualPost(id, data) {
+    try {
+      const response = await apiClient.put(`/manual-post/${id}`, data);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to update manual post with id ${id}:`, error);
+      throw error;
+    }
+  },
+
+  async deleteManualPost(id) {
+    try {
+      const response = await apiClient.delete(`/manual-post/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to delete manual post with id ${id}:`, error);
+      throw error;
+    }
+  },
+
+  async analyzeManualPostImage(postId, workspaceId, imageUrl) {
+    try {
+      const response = await apiClient.post('/manual-post/analyze-image', { postId, workspaceId, imageUrl });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to analyze manual post image:", error);
+      throw error;
+    }
+  },
+
+  async generateManualPostContent(postId, workspaceId, regenerateSection = null) {
+    try {
+      const response = await apiClient.post('/manual-post/generate-content', { postId, workspaceId, regenerateSection });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to generate manual post content:", error);
+      throw error;
+    }
+  },
+
+  async analyzeBrandUrl(url, workspaceId) {
+    try {
+      const response = await apiClient.post('/brand-intelligence/analyze-url', { url, workspaceId });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to analyze brand URL:", error);
+      throw error;
+    }
+  },
+
+  async analyzeBrandDocs(formData, workspaceId, onProgress) {
+    try {
+      const response = await apiClient.post('/brand-intelligence/analyze-docs', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: onProgress
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to analyze brand documents:", error);
+      throw error;
+    }
+  },
+
+  async saveBrandDNA(workspaceId, dna, logoUrl, rawKnowledgeBase, sourceType) {
+    try {
+      const response = await apiClient.post('/brand-intelligence/save', { workspaceId, dna, logoUrl, rawKnowledgeBase, sourceType });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to save brand DNA:", error);
+      throw error;
+    }
+  },
+
+  async getBrandDNA(workspaceId) {
+    try {
+      const response = await apiClient.get(`/brand-intelligence/${workspaceId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch brand DNA:", error);
+      throw error;
+    }
+  },
+
+  async updateBrandDNASection(workspaceId, sectionName, data) {
+    try {
+      const response = await apiClient.put(`/brand-intelligence/${workspaceId}/section/${sectionName}`, { data });
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to update DNA section ${sectionName}:`, error);
+      throw error;
+    }
+  },
+
+  async regenerateBrandDNASection(workspaceId, sectionName) {
+    try {
+      const response = await apiClient.post(`/brand-intelligence/${workspaceId}/section/${sectionName}/regenerate`);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to regenerate DNA section ${sectionName}:`, error);
+      throw error;
+    }
+  },
+
+  async uploadBrandAsset(formData, onProgress) {
+    try {
+      const response = await apiClient.post('/brand-intelligence/assets/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: onProgress
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to upload brand assets:", error);
+      throw error;
+    }
+  },
+
+  async getBrandAssets(workspaceId) {
+    try {
+      const response = await apiClient.get(`/brand-intelligence/assets/${workspaceId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch brand assets:", error);
+      throw error;
+    }
+  },
+
+  async deleteBrandAsset(workspaceId, filename) {
+    try {
+      const response = await apiClient.delete(`/brand-intelligence/assets/${workspaceId}/${filename}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to delete brand asset:", error);
+      throw error;
+    }
+  },
+
+  // ── Brand Intelligence Agent: Auto-Discovery ────────────────────────────────
+
+  async discoverBrandAssets(workspaceId, urlOrFormData) {
+    try {
+      const isFormData = urlOrFormData instanceof FormData;
+      const headers = isFormData ? { 'Content-Type': 'multipart/form-data' } : {};
+      const payload = isFormData ? urlOrFormData : { url: urlOrFormData };
+      const response = await apiClient.post(`/brand-intelligence/${workspaceId}/assets/discover`, payload, { headers });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to discover brand assets:", error);
+      throw error;
+    }
+  },
+
+  async saveDiscoveredBrandAssets(workspaceId, approvedAssets) {
+    try {
+      const response = await apiClient.post(`/brand-intelligence/${workspaceId}/assets/save-discovered`, { approvedAssets });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to save discovered brand assets:", error);
+      throw error;
+    }
+  },
+
+  async getAllBrandAssets(workspaceId) {
+    try {
+      const response = await apiClient.get(`/brand-intelligence/${workspaceId}/assets/all`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch all brand assets:", error);
+      throw error;
+    }
+  },
+
+  async deleteBrandAssetById(workspaceId, assetId) {
+    try {
+      const response = await apiClient.delete(`/brand-intelligence/${workspaceId}/assets/by-id/${assetId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to delete brand asset by id:", error);
+      throw error;
+    }
+  },
+
   async uploadMediaFile(file) {
     try {
       const formData = new FormData();
