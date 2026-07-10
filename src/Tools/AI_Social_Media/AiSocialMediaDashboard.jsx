@@ -18,6 +18,7 @@ import { apiService } from '../../services/apiService';
 import { API } from '../../types.js';
 import { getUserData, updateUser } from '../../userStore/userData';
 import GeneratePostModal from './GeneratePostModal';
+import BrandWorkspace from './BrandWorkspace';
 
 /**
  * Safely wraps a URL through the backend media proxy.
@@ -377,6 +378,82 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   const [isGeneratingManual, setIsGeneratingManual] = useState(false);
   const [manualValidationErrors, setManualValidationErrors] = useState({});
 
+  const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
+  const [visionAnalysisResult, setVisionAnalysisResult] = useState(null);
+  const [visionAnalysisError, setVisionAnalysisError] = useState('');
+  const [createdPostId, setCreatedPostId] = useState('');
+
+  const [generationStep, setGenerationStep] = useState(0); // 0 = idle, 1 = Uploading, 2 = Analyzing, 3 = Generating, 4 = Finalizing
+  const [manualGeneratedContent, setManualGeneratedContent] = useState(null);
+  const [isRegeneratingSection, setIsRegeneratingSection] = useState(null);
+
+  const [manualUploadProgress, setManualUploadProgress] = useState(0);
+  const [manualPostSaved, setManualPostSaved] = useState(false);
+
+  const triggerVisionAnalysis = async (postId, imageUrl) => {
+    setIsAnalyzingImage(true);
+    setVisionAnalysisError('');
+    setVisionAnalysisResult(null);
+    setCreatedPostId(postId);
+
+    try {
+      const res = await apiService.analyzeManualPostImage(postId, workspace._id, imageUrl);
+      if (res.success) {
+        setVisionAnalysisResult(res.visionAnalysis);
+        toast.success("Image analyzed successfully.");
+      } else {
+        setVisionAnalysisError("AI analysis failed. Please try again.");
+        toast.error("AI analysis failed. Please try again.");
+      }
+    } catch (err) {
+      setVisionAnalysisError("AI analysis failed. Please try again.");
+      toast.error("AI analysis failed. Please try again.");
+    } finally {
+      setIsAnalyzingImage(false);
+    }
+  };
+
+  const triggerSectionRegeneration = async (section) => {
+    setIsRegeneratingSection(section);
+    try {
+      const res = await apiService.generateManualPostContent(createdPostId, workspace._id, section);
+      if (res.success) {
+        setManualGeneratedContent(res.generatedContent);
+        toast.success(`${section.toUpperCase()} regenerated successfully!`);
+      } else {
+        toast.error("Failed to regenerate section.");
+      }
+    } catch (err) {
+      toast.error("Failed to regenerate section.");
+    } finally {
+      setIsRegeneratingSection(null);
+    }
+  };
+
+  const openManualModal = () => {
+    setManualPlatform('');
+    setManualContentType('');
+    setManualCustomContentType('');
+    setManualTargetAudience('General Audience');
+    setManualCustomTargetAudience('');
+    setManualTone([]);
+    setManualDescription('');
+    setManualUploadedFiles([]);
+    setManualLanguage('English');
+    setManualCta('Learn More');
+    setManualContentLength('Medium');
+    setManualUploadProgress(0);
+    setManualPostSaved(false);
+    setIsAnalyzingImage(false);
+    setVisionAnalysisResult(null);
+    setVisionAnalysisError('');
+    setCreatedPostId('');
+    setGenerationStep(0);
+    setManualGeneratedContent(null);
+    setIsRegeneratingSection(null);
+    setShowManualGenModal(true);
+  };
+
   // Escape key listener to close manual post modal
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -405,17 +482,17 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     handleFileSelection(files);
   };
 
-  const handleFileSelection = async (files) => {
-    if (manualUploadedFiles.length + files.length > 10) {
-      toast.error("Maximum 10 files allowed");
-      return;
-    }
-
+  const handleFileSelection = (files) => {
+    if (isGeneratingManual) return;
     const validFiles = files.filter(file => {
       const isImage = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'].includes(file.type);
       const isVideo = ['video/mp4', 'video/quicktime', 'video/webm'].includes(file.type);
       if (!isImage && !isVideo) {
-        toast.error(`Invalid file type: ${file.name}`);
+        toast.error(`${file.name} has an invalid file type`);
+        return false;
+      }
+      if (file.size > 50 * 1024 * 1024) {
+        toast.error(`${file.name} exceeds the 50MB size limit`);
         return false;
       }
       return true;
@@ -423,39 +500,22 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
     if (validFiles.length === 0) return;
 
-    // Add files to local state first as uploading status
+    if (manualUploadedFiles.length + validFiles.length > 10) {
+      toast.error("Maximum 10 files allowed");
+      return;
+    }
+
     const newUploads = validFiles.map(file => ({
       id: Math.random().toString(36).substring(7),
       name: file.name,
       size: file.size,
-      uploading: true,
-      url: null,
-      mimetype: file.type
+      uploading: false,
+      url: URL.createObjectURL(file),
+      mimetype: file.type,
+      file: file
     }));
 
     setManualUploadedFiles(prev => [...prev, ...newUploads]);
-
-    for (const localFile of newUploads) {
-      const actualFile = validFiles.find(f => f.name === localFile.name && f.size === localFile.size);
-      if (!actualFile) continue;
-
-      try {
-        const res = await apiService.uploadMediaFile(actualFile);
-        if (res.success) {
-          setManualUploadedFiles(prev => prev.map(item => 
-            item.id === localFile.id 
-              ? { ...item, uploading: false, url: res.data.url }
-              : item
-          ));
-        } else {
-          toast.error(`Failed to upload ${localFile.name}`);
-          setManualUploadedFiles(prev => prev.filter(item => item.id !== localFile.id));
-        }
-      } catch (err) {
-        toast.error(`Upload error for ${localFile.name}`);
-        setManualUploadedFiles(prev => prev.filter(item => item.id !== localFile.id));
-      }
-    }
   };
 
   const handleReplaceFile = (id) => {
@@ -463,7 +523,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*,video/*';
-    input.onchange = async (e) => {
+    input.onchange = (e) => {
       const file = e.target.files[0];
       if (!file) return;
       
@@ -475,23 +535,16 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       }
 
       setManualUploadedFiles(prev => prev.map(item => 
-        item.id === id ? { ...item, uploading: true, url: null, name: file.name, size: file.size, mimetype: file.type } : item
+        item.id === id ? {
+          ...item,
+          uploading: false,
+          url: URL.createObjectURL(file),
+          name: file.name,
+          size: file.size,
+          mimetype: file.type,
+          file: file
+        } : item
       ));
-
-      try {
-        const res = await apiService.uploadMediaFile(file);
-        if (res.success) {
-          setManualUploadedFiles(prev => prev.map(item => 
-            item.id === id ? { ...item, uploading: false, url: res.data.url } : item
-          ));
-        } else {
-          toast.error("Replace failed");
-          setManualUploadedFiles(prev => prev.filter(item => item.id !== id));
-        }
-      } catch (err) {
-        toast.error("Replace failed");
-        setManualUploadedFiles(prev => prev.filter(item => item.id !== id));
-      }
     };
     input.click();
   };
@@ -519,66 +572,101 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       errors.description = `Description must not exceed 3000 characters (current: ${manualDescription.trim().length})`;
     }
 
+    const hasImage = manualUploadedFiles.some(f => f.url?.match(/\.(png|jpe?g|webp|gif)$/i) || f.file);
+    if (!hasImage) {
+      errors.media = "Please upload at least one image";
+    }
+
     if (Object.keys(errors).length > 0) {
       setManualValidationErrors(errors);
-      toast.error("Please fix the validation errors before generating");
+      toast.error(errors.media || "Please fix the validation errors before generating");
       return;
     }
 
     setManualValidationErrors({});
     setIsGeneratingManual(true);
+    setManualUploadProgress(0);
+    setManualPostSaved(false);
+    setGenerationStep(1); // Step 1: Uploading...
 
     try {
-      const payload = {
-        workspaceId: workspace._id,
-        platform: manualPlatform,
-        contentType: manualContentType === 'Custom' ? manualCustomContentType : manualContentType,
-        targetAudience: manualTargetAudience === 'Custom' ? manualCustomTargetAudience : manualTargetAudience,
-        tone: manualTone,
-        description: manualDescription,
-        uploadedFiles: manualUploadedFiles.filter(f => !f.uploading && f.url).map(f => ({
-          url: f.url,
-          mimetype: f.mimetype,
-          filename: f.name,
-          size: f.size
-        })),
-        language: manualLanguage,
-        contentLength: manualContentLength,
-        cta: manualCta,
-        enhancements: manualEnhancements
-      };
+      const formData = new FormData();
+      formData.append('workspaceId', workspace._id);
+      formData.append('platform', manualPlatform);
+      formData.append('contentType', manualContentType === 'Custom' ? manualCustomContentType : manualContentType);
+      formData.append('targetAudience', manualTargetAudience === 'Custom' ? manualCustomTargetAudience : manualTargetAudience);
+      formData.append('tone', JSON.stringify(manualTone));
+      formData.append('description', manualDescription);
+      formData.append('language', manualLanguage);
+      formData.append('cta', manualCta);
+      formData.append('contentLength', manualContentLength);
+      formData.append('enhancements', JSON.stringify(manualEnhancements));
 
-      const res = await apiService.generateManualSocialPost(payload);
+      manualUploadedFiles.forEach(fileObj => {
+        if (fileObj.file) {
+          formData.append('uploadedFiles', fileObj.file);
+        }
+      });
+
+      const res = await apiService.createManualPost(formData, (progressEvent) => {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        setManualUploadProgress(percentCompleted);
+      });
+
       if (res.success) {
-        toast.success("Manual post generated!");
-        setShowManualGenModal(false);
-        // Reset states
-        setManualPlatform('');
-        setManualContentType('');
-        setManualCustomContentType('');
-        setManualTargetAudience('General Audience');
-        setManualCustomTargetAudience('');
-        setManualTone([]);
-        setManualDescription('');
-        setManualUploadedFiles([]);
-        setManualLanguage('English');
-        setManualCta('Learn More');
-        setManualContentLength('Medium');
-        // Refresh posts list
-        const postData = await apiService.getSocialAgentPosts(workspace._id);
-        if (postData.success) setGeneratedPosts(postData.posts);
-        // Refresh assets list
-        const assetData = await apiService.getSocialAgentAssets(workspace._id);
-        if (assetData.success) setAssets(assetData.assets);
-        // Switch tab to assets (Post Generation)
-        setActiveTab('assets');
+        setManualPostSaved(true);
+
+        const hasUploadedMedia = res.uploadedMedia && res.uploadedMedia.length > 0;
+        let savedUploadedMedia = [];
+
+        if (hasUploadedMedia) {
+          savedUploadedMedia = res.uploadedMedia;
+          setManualUploadedFiles(prev => prev.map((item, idx) => {
+            if (res.uploadedMedia[idx]) {
+              return { ...item, url: res.uploadedMedia[idx] };
+            }
+            return item;
+          }));
+        }
+
+        let firstImage = null;
+        if (hasUploadedMedia) {
+          firstImage = savedUploadedMedia.find(url => url.match(/\.(png|jpe?g|webp|gif)$/i));
+        }
+
+        if (!firstImage) {
+          throw new Error("No valid image file found for analysis.");
+        }
+
+        // Step 2: Analyzing Image...
+        setGenerationStep(2);
+        const visionRes = await apiService.analyzeManualPostImage(res.postId, workspace._id, firstImage);
+        if (!visionRes.success) {
+          throw new Error("AI Vision Analysis failed.");
+        }
+        setVisionAnalysisResult(visionRes.visionAnalysis);
+
+        // Step 3: Generating AI Content...
+        setGenerationStep(3);
+        const genRes = await apiService.generateManualPostContent(res.postId, workspace._id);
+        if (!genRes.success) {
+          throw new Error("AI Content Generation failed.");
+        }
+
+        // Step 4: Finalizing...
+        setGenerationStep(4);
+        setManualGeneratedContent(genRes.generatedContent);
+        setCreatedPostId(res.postId);
+
+        toast.success("Manual post created successfully.");
       } else {
-        toast.error(`Generation failed: ${res.error || 'Unknown error'}`);
+        toast.error(`Generation failed: ${res.message || 'Unknown error'}`);
       }
     } catch (err) {
-      toast.error(`Generation failed: ${err.response?.data?.error || err.message}`);
+      toast.error(`Generation failed: ${err.message}`);
     } finally {
       setIsGeneratingManual(false);
+      setGenerationStep(0);
     }
   };
 
@@ -701,7 +789,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
   const tabs = [
     { id: 'overview', name: 'Overview', icon: LayoutDashboard },
-    { id: 'brand', name: 'Brand Setup', icon: Palette },
+    { id: 'brand', name: 'Brand WorkSpace', icon: Palette },
     { id: 'calendar', name: 'Content Generator', icon: CalendarRange },
     { id: 'generation', name: 'Content Calendar', icon: Sparkles },
     { id: 'assets', name: 'Post Generation', icon: Library }
@@ -2725,7 +2813,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                 </div>
 
                 {/* Generate Manually Card */}
-                <div onClick={() => setShowManualGenModal(true)} className="bg-slate-50 dark:bg-[#1E2438] rounded-[32px] border border-slate-200 dark:border-white/10 p-6 flex flex-col justify-center items-center w-full shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-500 cursor-pointer group min-h-[220px]">
+                <div onClick={openManualModal} className="bg-slate-50 dark:bg-[#1E2438] rounded-[32px] border border-slate-200 dark:border-white/10 p-6 flex flex-col justify-center items-center w-full shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-500 cursor-pointer group min-h-[220px]">
                   <div className="w-16 h-16 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-slate-300 mb-4 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-500 shadow-sm">
                     <Palette className="w-8 h-8" />
                   </div>
@@ -4694,14 +4782,14 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     if (!showManualGenModal) return null;
 
     const PLATFORMS = [
-      { id: 'Instagram', name: 'Instagram', icon: <Instagram className="w-5 h-5" /> },
-      { id: 'Facebook', name: 'Facebook', icon: <Facebook className="w-5 h-5" /> },
-      { id: 'LinkedIn', name: 'LinkedIn', icon: <Linkedin className="w-5 h-5" /> },
-      { id: 'Twitter', name: 'Twitter (X)', icon: <TwitterXIcon className="w-5 h-5" /> },
-      { id: 'Threads', name: 'Threads', icon: <ThreadsIcon className="w-5 h-5" /> },
-      { id: 'TikTok', name: 'TikTok', icon: <TikTokIcon className="w-5 h-5" /> },
-      { id: 'Pinterest', name: 'Pinterest', icon: <PinterestIcon className="w-5 h-5" /> },
-      { id: 'YouTube', name: 'YouTube Community', icon: <Youtube className="w-5 h-5" /> }
+      { id: 'Instagram', name: 'Instagram', icon: <Instagram className="w-5 h-5" />, color: 'text-[#E1306C]' },
+      { id: 'Facebook', name: 'Facebook', icon: <Facebook className="w-5 h-5" />, color: 'text-[#1877F2]' },
+      { id: 'LinkedIn', name: 'LinkedIn', icon: <Linkedin className="w-5 h-5" />, color: 'text-[#0077B5]' },
+      { id: 'Twitter', name: 'Twitter (X)', icon: <TwitterXIcon className="w-5 h-5" />, color: 'text-slate-800 dark:text-white' },
+      { id: 'Threads', name: 'Threads', icon: <ThreadsIcon className="w-5 h-5" />, color: 'text-slate-800 dark:text-white' },
+      { id: 'TikTok', name: 'TikTok', icon: <TikTokIcon className="w-5 h-5" />, color: 'text-slate-800 dark:text-white' },
+      { id: 'Pinterest', name: 'Pinterest', icon: <PinterestIcon className="w-5 h-5" />, color: 'text-[#BD081C]' },
+      { id: 'YouTube', name: 'YouTube Community', icon: <Youtube className="w-5 h-5" />, color: 'text-[#FF0000]' }
     ];
 
     const CONTENT_TYPES = [
@@ -4832,7 +4920,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                             : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.02] hover:border-primary/40'
                         }`}
                       >
-                        <div className={`mb-2 transition-transform duration-300 group-hover:scale-115 ${isSelected ? 'text-primary' : 'text-slate-600 dark:text-slate-300'}`}>
+                        <div className={`mb-2 transition-transform duration-300 group-hover:scale-115 ${p.color}`}>
                           {p.icon}
                         </div>
                         <span className={`text-[10px] font-black tracking-wider uppercase ${isSelected ? 'text-primary' : 'text-slate-700 dark:text-slate-300'}`}>
@@ -5082,6 +5170,110 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                 )}
               </div>
 
+              {/* SECTION 6.5 — AI IMAGE ANALYSIS */}
+              {(isAnalyzingImage || visionAnalysisResult || visionAnalysisError) && (
+                <>
+                  <hr className="border-slate-100 dark:border-white/5" />
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[3px]">AI Image Analysis</h4>
+                      {isAnalyzingImage && (
+                        <div className="flex items-center gap-1.5 text-[9px] font-black text-primary uppercase tracking-wider animate-pulse">
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin text-primary" />
+                          <span>Analyzing image with AI...</span>
+                        </div>
+                      )}
+                      {visionAnalysisResult && !isAnalyzingImage && (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[8px] font-black uppercase tracking-widest">
+                          Image analyzed successfully
+                        </span>
+                      )}
+                      {visionAnalysisError && !isAnalyzingImage && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[8px] font-black text-red-500 uppercase tracking-widest">{visionAnalysisError}</span>
+                          <button
+                            onClick={() => {
+                              const img = manualUploadedFiles.find(f => f.url?.match(/\.(png|jpe?g|webp|gif)$/i) || f.file);
+                              if (img) triggerVisionAnalysis(createdPostId, img.url);
+                            }}
+                            className="px-2.5 py-1 rounded-xl bg-primary text-white text-[8px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all"
+                          >
+                            Retry
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {visionAnalysisResult && (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <div className="p-3 bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl space-y-1">
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Detected Scene</span>
+                          <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 block truncate" title={visionAnalysisResult.scene}>
+                            {visionAnalysisResult.scene || 'N/A'}
+                          </span>
+                        </div>
+
+                        <div className="p-3 bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl space-y-1">
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Detected Objects</span>
+                          <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 block truncate" title={visionAnalysisResult.objects?.join(', ')}>
+                            {visionAnalysisResult.objects?.length > 0 ? visionAnalysisResult.objects.join(', ') : 'None'}
+                          </span>
+                        </div>
+
+                        <div className="p-3 bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl space-y-1">
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Detected Colors</span>
+                          <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 block truncate" title={visionAnalysisResult.colors?.join(', ')}>
+                            {visionAnalysisResult.colors?.length > 0 ? visionAnalysisResult.colors.join(', ') : 'None'}
+                          </span>
+                        </div>
+
+                        <div className="p-3 bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl space-y-1">
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Detected Mood</span>
+                          <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 block truncate">
+                            {visionAnalysisResult.mood || 'N/A'}
+                          </span>
+                        </div>
+
+                        <div className="p-3 bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl space-y-1">
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Industry</span>
+                          <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 block truncate">
+                            {visionAnalysisResult.industry || 'N/A'}
+                          </span>
+                        </div>
+
+                        <div className="p-3 bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl space-y-1">
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Logo Detection</span>
+                          <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 block truncate">
+                            {visionAnalysisResult.logoDetected ? `Yes (${visionAnalysisResult.brandName || 'Unknown'})` : 'No logo'}
+                          </span>
+                        </div>
+
+                        <div className="p-3 bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl space-y-1 col-span-2">
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Detected Text</span>
+                          <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 block truncate" title={visionAnalysisResult.detectedText}>
+                            {visionAnalysisResult.detectedText || 'None detected'}
+                          </span>
+                        </div>
+
+                        <div className="p-3 bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl space-y-1">
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Environment</span>
+                          <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 block truncate">
+                            {visionAnalysisResult.environment || 'N/A'}
+                          </span>
+                        </div>
+
+                        <div className="p-3 bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-2xl space-y-1">
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Confidence Score</span>
+                          <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 block truncate">
+                            {typeof visionAnalysisResult.confidence === 'number' ? `${(visionAnalysisResult.confidence * 100).toFixed(0)}%` : 'N/A'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
               <hr className="border-slate-100 dark:border-white/5" />
 
               {/* SECTION 7 — AI ENHANCEMENT OPTIONS */}
@@ -5186,79 +5378,327 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
             </div>
 
-            {/* SECTION 11 — LIVE PREVIEW PANEL */}
+            {/* SECTION 11 — LIVE PREVIEW / GENERATED CONTENT PANEL */}
             <div className="lg:col-span-1">
-              <div className="sticky top-0 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-[32px] p-6 shadow-sm space-y-6">
+              <div className="sticky top-0 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-[32px] p-6 shadow-sm space-y-6 max-h-[80vh] overflow-y-auto">
                 <div>
-                  <h4 className="text-[10px] font-black text-primary uppercase tracking-[3px]">Section 11 &mdash; Live Preview</h4>
-                  <span className="text-[8px] font-bold text-slate-400 uppercase mt-0.5 block">Summary updating in real-time</span>
+                  <h4 className="text-[10px] font-black text-primary uppercase tracking-[3px]">
+                    {manualGeneratedContent ? "Generated Content Preview" : "Section 11 — Live Preview"}
+                  </h4>
+                  <span className="text-[8px] font-bold text-slate-400 uppercase mt-0.5 block">
+                    {manualGeneratedContent ? "Copy or regenerate sections below" : "Summary updating in real-time"}
+                  </span>
                 </div>
 
-                <div className="space-y-3.5 border-t border-slate-200 dark:border-white/5 pt-4 text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                  <div className="flex justify-between">
-                    <span className="opacity-60">Platform:</span>
-                    <span className="text-slate-800 dark:text-white font-black">{manualPlatform || 'Not Selected'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="opacity-60">Content Type:</span>
-                    <span className="text-slate-800 dark:text-white font-black truncate max-w-[140px] text-right">
-                      {manualContentType === 'Custom' ? (manualCustomContentType || 'Custom') : (manualContentType || 'Not Selected')}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="opacity-60">Audience:</span>
-                    <span className="text-slate-800 dark:text-white font-black truncate max-w-[140px] text-right">
-                      {manualTargetAudience === 'Custom' ? (manualCustomTargetAudience || 'Custom') : manualTargetAudience}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="opacity-60">Tones ({manualTone.length}):</span>
-                    <span className="text-slate-800 dark:text-white font-black truncate max-w-[140px] text-right">
-                      {manualTone.length > 0 ? manualTone.join(', ') : 'None'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="opacity-60">Language:</span>
-                    <span className="text-slate-800 dark:text-white font-black">{manualLanguage}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="opacity-60">CTA Style:</span>
-                    <span className="text-slate-800 dark:text-white font-black">{manualCta}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="opacity-60">Length:</span>
-                    <span className="text-slate-800 dark:text-white font-black">{manualContentLength}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="opacity-60">Uploads:</span>
-                    <span className="text-slate-800 dark:text-white font-black">{manualUploadedFiles.filter(f => !f.uploading).length} files</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="opacity-60">Prompt characters:</span>
-                    <span className="text-slate-800 dark:text-white font-black">{manualDescription.length} / 3000</span>
-                  </div>
-                </div>
+                {!manualGeneratedContent ? (
+                  <>
+                    <div className="space-y-3.5 border-t border-slate-200 dark:border-white/5 pt-4 text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                      <div className="flex justify-between">
+                        <span className="opacity-60">Platform:</span>
+                        <span className="text-slate-800 dark:text-white font-black">{manualPlatform || 'Not Selected'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="opacity-60">Content Type:</span>
+                        <span className="text-slate-800 dark:text-white font-black truncate max-w-[140px] text-right">
+                          {manualContentType === 'Custom' ? (manualCustomContentType || 'Custom') : (manualContentType || 'Not Selected')}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="opacity-60">Audience:</span>
+                        <span className="text-slate-800 dark:text-white font-black truncate max-w-[140px] text-right">
+                          {manualTargetAudience === 'Custom' ? (manualCustomTargetAudience || 'Custom') : manualTargetAudience}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="opacity-60">Tones ({manualTone.length}):</span>
+                        <span className="text-slate-800 dark:text-white font-black truncate max-w-[140px] text-right">
+                          {manualTone.length > 0 ? manualTone.join(', ') : 'None'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="opacity-60">Language:</span>
+                        <span className="text-slate-800 dark:text-white font-black">{manualLanguage}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="opacity-60">CTA Style:</span>
+                        <span className="text-slate-800 dark:text-white font-black">{manualCta}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="opacity-60">Length:</span>
+                        <span className="text-slate-800 dark:text-white font-black">{manualContentLength}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="opacity-60">Uploads:</span>
+                        <span className="text-slate-800 dark:text-white font-black">{manualUploadedFiles.filter(f => !f.uploading).length} files</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="opacity-60">Prompt characters:</span>
+                        <span className="text-slate-800 dark:text-white font-black">{manualDescription.length} / 3000</span>
+                      </div>
+                    </div>
 
-                {/* Estimated AI Output */}
-                <div className="p-4 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/5 rounded-2xl space-y-3">
-                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block border-b border-slate-100 dark:border-white/5 pb-2">Estimated AI Output</span>
-                  <div className="space-y-2 text-[9px] font-medium leading-relaxed text-slate-500">
-                    <div className="font-bold text-slate-800 dark:text-slate-300">
-                      {`[AI will generate a punchy ${manualTone.slice(0, 2).join('/') || 'engaging'} hook for ${manualPlatform || 'social media'} here]`}
-                    </div>
-                    <div>
-                      {`[AI will generate a ${manualContentLength} length caption targeting ${manualTargetAudience} in ${manualLanguage}. It will highlight: "${manualDescription.slice(0, 50) || 'your description'}..." and include strategic emoji suggestions]` }
-                    </div>
-                    {manualCta !== 'No CTA' && (
-                      <div className="text-primary font-black uppercase tracking-widest">
-                        {`[CTA: ${manualCta}]`}
+                    {/* Uploaded Images Preview inside Live Preview Panel */}
+                    {manualUploadedFiles.length > 0 && (
+                      <div className="p-4 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/5 rounded-2xl space-y-2">
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block border-b border-slate-100 dark:border-white/5 pb-2">Uploaded Files Preview</span>
+                        <div className="grid grid-cols-4 gap-2">
+                          {manualUploadedFiles.map((file, idx) => {
+                            const isImage = file.mimetype?.startsWith('image/') || file.name?.match(/\.(png|jpe?g|webp|gif)$/i);
+                            const serverUrl = API.replace('/api', '');
+                            const imageUrl = file.url?.startsWith('blob:') || file.url?.startsWith('http') ? file.url : `${serverUrl}${file.url}`;
+                            return (
+                              <div key={file.id || idx} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/20">
+                                {isImage ? (
+                                  <img src={imageUrl} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-slate-800 text-white/50">
+                                    <Video className="w-4 h-4" />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
-                    <div className="text-indigo-500 font-bold">
-                      {`[Hashtags: AI will generate custom viral tags for ${manualPlatform || 'your platform'}]`}
+
+                    {/* Estimated AI Output */}
+                    <div className="p-4 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/5 rounded-2xl space-y-3">
+                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block border-b border-slate-100 dark:border-white/5 pb-2">Estimated AI Output</span>
+                      <div className="space-y-2 text-[9px] font-medium leading-relaxed text-slate-500">
+                        <div className="font-bold text-slate-800 dark:text-slate-300">
+                          {`[AI will generate a punchy ${manualTone.slice(0, 2).join('/') || 'engaging'} hook for ${manualPlatform || 'social media'} here]`}
+                        </div>
+                        <div>
+                          {`[AI will generate a ${manualContentLength} length caption targeting ${manualTargetAudience} in ${manualLanguage}. It will highlight: "${manualDescription.slice(0, 50) || 'your description'}..." and include strategic emoji suggestions]`}
+                        </div>
+                        {manualCta !== 'No CTA' && (
+                          <div className="text-primary font-black uppercase tracking-widest">
+                            {`[CTA: ${manualCta}]`}
+                          </div>
+                        )}
+                        <div className="text-indigo-500 font-bold">
+                          {`[Hashtags: AI will generate custom viral tags for ${manualPlatform || 'your platform'}]`}
+                        </div>
+                      </div>
+                    </div>
+
+                    {manualPostSaved && (
+                      <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[10px] font-black uppercase tracking-wider rounded-2xl flex items-center gap-2">
+                        <CheckCircle2 className="w-4.5 h-4.5 shrink-0 text-emerald-500" />
+                        <span>Your request has been saved and is ready for AI generation.</span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Generated Title */}
+                    <div className="p-4 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/5 rounded-2xl space-y-2 relative group">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Generated Title</span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(manualGeneratedContent.title);
+                            toast.success("Title copied!");
+                          }}
+                          className="text-[9px] font-black text-primary uppercase tracking-widest flex items-center gap-1 hover:scale-105 active:scale-95 transition-all"
+                        >
+                          <Copy className="w-3.5 h-3.5" /> Copy
+                        </button>
+                      </div>
+                      <h3 className="text-xs font-black text-slate-800 dark:text-white leading-snug">{manualGeneratedContent.title}</h3>
+                    </div>
+
+                    {/* Generated Caption */}
+                    <div className="p-4 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/5 rounded-2xl space-y-2 relative group">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Generated Caption</span>
+                        <div className="flex gap-2">
+                          <button
+                            disabled={isRegeneratingSection !== null}
+                            onClick={() => triggerSectionRegeneration('caption')}
+                            className="text-[9px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                          >
+                            <RefreshCw className={`w-3.5 h-3.5 ${isRegeneratingSection === 'caption' ? 'animate-spin' : ''}`} /> Regenerate
+                          </button>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(manualGeneratedContent.caption);
+                              toast.success("Caption copied!");
+                            }}
+                            className="text-[9px] font-black text-primary uppercase tracking-widest flex items-center gap-1 hover:scale-105 active:scale-95 transition-all"
+                          >
+                            <Copy className="w-3.5 h-3.5" /> Copy
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-[10px] font-medium text-slate-600 dark:text-slate-300 whitespace-pre-line leading-relaxed">{manualGeneratedContent.caption}</p>
+                    </div>
+
+                    {/* Generated Hashtags */}
+                    <div className="p-4 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/5 rounded-2xl space-y-2 relative group">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Generated Hashtags</span>
+                        <div className="flex gap-2">
+                          <button
+                            disabled={isRegeneratingSection !== null}
+                            onClick={() => triggerSectionRegeneration('hashtags')}
+                            className="text-[9px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                          >
+                            <RefreshCw className={`w-3.5 h-3.5 ${isRegeneratingSection === 'hashtags' ? 'animate-spin' : ''}`} /> Regenerate
+                          </button>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(manualGeneratedContent.hashtags?.join(' '));
+                              toast.success("Hashtags copied!");
+                            }}
+                            className="text-[9px] font-black text-primary uppercase tracking-widest flex items-center gap-1 hover:scale-105 active:scale-95 transition-all"
+                          >
+                            <Copy className="w-3.5 h-3.5" /> Copy
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {manualGeneratedContent.hashtags?.map((tag, idx) => (
+                          <span key={idx} className="px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 text-[9px] font-black tracking-wider uppercase">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Generated CTA */}
+                    <div className="p-4 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/5 rounded-2xl space-y-2 relative group">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Generated CTA</span>
+                        <div className="flex gap-2">
+                          <button
+                            disabled={isRegeneratingSection !== null}
+                            onClick={() => triggerSectionRegeneration('cta')}
+                            className="text-[9px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                          >
+                            <RefreshCw className={`w-3.5 h-3.5 ${isRegeneratingSection === 'cta' ? 'animate-spin' : ''}`} /> Regenerate
+                          </button>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(manualGeneratedContent.cta);
+                              toast.success("CTA copied!");
+                            }}
+                            className="text-[9px] font-black text-primary uppercase tracking-widest flex items-center gap-1 hover:scale-105 active:scale-95 transition-all"
+                          >
+                            <Copy className="w-3.5 h-3.5" /> Copy
+                          </button>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-wider block">{manualGeneratedContent.cta}</span>
+                    </div>
+
+                    {/* SEO Keywords */}
+                    <div className="p-4 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/5 rounded-2xl space-y-2 relative group">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">SEO Keywords</span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(manualGeneratedContent.seoKeywords?.join(', '));
+                            toast.success("SEO Keywords copied!");
+                          }}
+                          className="text-[9px] font-black text-primary uppercase tracking-widest flex items-center gap-1 hover:scale-105 active:scale-95 transition-all"
+                        >
+                          <Copy className="w-3.5 h-3.5" /> Copy
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {manualGeneratedContent.seoKeywords?.map((kw, idx) => (
+                          <span key={idx} className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 text-[9px] font-bold uppercase tracking-wider">
+                            {kw}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Alt Text */}
+                    <div className="p-4 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/5 rounded-2xl space-y-2 relative group">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Image Alt Text</span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(manualGeneratedContent.altText);
+                            toast.success("Alt Text copied!");
+                          }}
+                          className="text-[9px] font-black text-primary uppercase tracking-widest flex items-center gap-1 hover:scale-105 active:scale-95 transition-all"
+                        >
+                          <Copy className="w-3.5 h-3.5" /> Copy
+                        </button>
+                      </div>
+                      <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 leading-normal">{manualGeneratedContent.altText}</p>
+                    </div>
+
+                    {/* Image Prompt */}
+                    <div className="p-4 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/5 rounded-2xl space-y-2 relative group">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Generated Image Prompt</span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(manualGeneratedContent.imagePrompt);
+                            toast.success("Image Prompt copied!");
+                          }}
+                          className="text-[9px] font-black text-primary uppercase tracking-widest flex items-center gap-1 hover:scale-105 active:scale-95 transition-all"
+                        >
+                          <Copy className="w-3.5 h-3.5" /> Copy
+                        </button>
+                      </div>
+                      <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 leading-normal italic">"{manualGeneratedContent.imagePrompt}"</p>
+                    </div>
+
+                    {/* Best Posting Time */}
+                    <div className="p-4 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/5 rounded-2xl space-y-2 relative group">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Best Posting Time</span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(manualGeneratedContent.bestPostingTime);
+                            toast.success("Posting Time copied!");
+                          }}
+                          className="text-[9px] font-black text-primary uppercase tracking-widest flex items-center gap-1 hover:scale-105 active:scale-95 transition-all"
+                        >
+                          <Copy className="w-3.5 h-3.5" /> Copy
+                        </button>
+                      </div>
+                      <span className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-wider block">{manualGeneratedContent.bestPostingTime}</span>
+                    </div>
+
+                    {/* Variations */}
+                    <div className="p-4 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/5 rounded-2xl space-y-4">
+                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block border-b border-slate-100 dark:border-white/5 pb-2">Alternative Variations</span>
+                      <div className="space-y-4">
+                        {manualGeneratedContent.variations?.map((variant, idx) => (
+                          <div key={idx} className="space-y-1.5 border-l-2 border-primary/20 pl-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-[9px] font-black text-primary uppercase tracking-wider">Variation {idx + 1}: {variant.title}</span>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(`${variant.title}\n\n${variant.caption}\n\n${variant.hashtags?.join(' ')}`);
+                                  toast.success(`Variation ${idx + 1} copied!`);
+                                }}
+                                className="text-[8px] font-black text-slate-400 hover:text-primary uppercase tracking-widest flex items-center gap-1 hover:scale-105 active:scale-95 transition-all"
+                              >
+                                <Copy className="w-3 h-3" /> Copy
+                              </button>
+                            </div>
+                            <p className="text-[9px] font-bold text-slate-600 dark:text-slate-300 whitespace-pre-line leading-relaxed">{variant.caption}</p>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {variant.hashtags?.map((tag, tIdx) => (
+                                <span key={tIdx} className="text-[8px] font-medium text-indigo-400 uppercase">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -5274,11 +5714,17 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
             </button>
             <button
               onClick={handleGenerateManualContent}
-              disabled={isGeneratingManual || !manualPlatform || !manualContentType || manualDescription.length < 20 || manualDescription.length > 3000}
+              disabled={isGeneratingManual || isAnalyzingImage || !manualPlatform || !manualContentType || manualDescription.length < 20 || manualDescription.length > 3000}
               className="flex-1 h-12 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-98 transition-all disabled:opacity-50"
             >
               {isGeneratingManual ? (
-                <><RefreshCw className="w-4 h-4 animate-spin" /> Generating...</>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  {generationStep === 1 && <span>Uploading... {manualUploadProgress}%</span>}
+                  {generationStep === 2 && <span>Analyzing Image...</span>}
+                  {generationStep === 3 && <span>Generating AI Content...</span>}
+                  {generationStep === 4 && <span>Finalizing...</span>}
+                </div>
               ) : (
                 <><Sparkles className="w-4 h-4" /> Generate Content</>
               )}
@@ -6215,7 +6661,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
     switch (activeTab) {
       case 'overview': return renderOverview();
-      case 'brand': return renderBrandSetup();
+      case 'brand': return <BrandWorkspace workspaceId={workspace?._id} />;
       case 'calendar': return renderContentCalendar();
       case 'generation': return renderContentOrchestration();
       case 'assets': return renderAssetLibrary();
