@@ -1149,12 +1149,12 @@ const BrandWorkspace = ({ workspaceId }) => {
     try {
       const toSave = [];
       const d = discoveredAssets;
-      const collect = (arr, cat, extraFn) => arr.forEach((item, i) => {
-        if (assetApprovals[`${cat}-${i}`]) toSave.push({ category: cat, ...item, ...(extraFn ? extraFn(item) : {}) });
+      const collect = (arr, cat, extraFn) => (arr || []).forEach((item, i) => {
+        if (item && assetApprovals[`${cat}-${i}`]) toSave.push({ category: cat, ...item, ...(extraFn ? extraFn(item) : {}) });
       });
       collect(d.logos || [], 'logo');
-      collect(d.colors || [], 'color', item => ({ hex: item.hex }));
-      collect(d.fonts || [], 'font', item => ({ name: item.name }));
+      collect(d.colors || [], 'color', item => ({ hex: item?.hex || '' }));
+      collect(d.fonts || [], 'font', item => ({ name: item?.name || '' }));
       collect(d.images || [], 'image');
       collect(d.socialProfiles || [], 'social', item => ({ platform: item.platform }));
       collect(d.documents || [], 'document', item => ({ type: item.type, name: item.name }));
@@ -1195,12 +1195,12 @@ const BrandWorkspace = ({ workspaceId }) => {
     };
 
     const d = discoveredAssets || {};
-    const logos  = dedupeByKey(d.logos,          item => item.url);
-    const colors = dedupeByKey(d.colors,         item => item.hex?.toLowerCase());
-    const fonts  = dedupeByKey(d.fonts,          item => item.name?.toLowerCase());
-    const images = dedupeByKey(d.images,         item => item.url);
-    const socials = dedupeByKey(d.socialProfiles, item => item.url || item.platform);
-    const docs   = dedupeByKey(d.documents,      item => item.url || item.name);
+    const logos  = dedupeByKey(d.logos,          item => item?.url);
+    const colors = dedupeByKey(d.colors,         item => item?.hex?.toLowerCase());
+    const fonts  = dedupeByKey(d.fonts,          item => item?.name?.toLowerCase());
+    const images = dedupeByKey(d.images,         item => item?.url);
+    const socials = dedupeByKey(d.socialProfiles, item => item?.url || item?.platform);
+    const docs   = dedupeByKey(d.documents,      item => item?.url || item?.name);
     const favicon = d.favicon;
 
     const totalAssets = logos.length + colors.length + fonts.length + images.length + socials.length + docs.length + (favicon ? 1 : 0);
@@ -1414,7 +1414,7 @@ const BrandWorkspace = ({ workspaceId }) => {
             )}
 
             {/* ── COLORS ── */}
-            {colors.length > 0 && (
+            {colors.length > 0 ? (
               <div className="bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-3xl p-6 shadow-sm">
                 <SectionHeader icon={Palette} title="Brand Colors" count={colors.length}
                   onSelectAll={() => { const u = {}; colors.forEach((_, i) => u[`color-${i}`] = true); setAssetApprovals(p => ({ ...p, ...u })); }}
@@ -1422,17 +1422,22 @@ const BrandWorkspace = ({ workspaceId }) => {
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
                   {colors.map((color, idx) => (
                     <CheckCard key={idx} cardKey={`color-${idx}`} className="overflow-hidden">
-                      <div className="h-20 w-full rounded-t-[14px]" style={{ backgroundColor: color.hex }} />
+                      <div className="h-20 w-full rounded-t-[14px]" style={{ backgroundColor: color?.hex }} />
                       <div className="p-2.5 bg-white dark:bg-[#0f172a] space-y-0.5">
-                        <p className="text-[9px] font-black text-slate-700 dark:text-white truncate">{color.role || color.label || 'Color'}</p>
-                        <p className="text-[8px] font-bold text-slate-400 font-mono uppercase">{color.hex}</p>
-                        {color.rgb && <p className="text-[7px] text-slate-300 dark:text-slate-600 font-mono">{color.rgb}</p>}
+                        <p className="text-[9px] font-black text-slate-700 dark:text-white truncate">{color?.role || color?.label || 'Color'}</p>
+                        <p className="text-[8px] font-bold text-slate-400 font-mono uppercase">{color?.hex}</p>
+                        {color?.rgb && <p className="text-[7px] text-slate-300 dark:text-slate-600 font-mono">{color?.rgb}</p>}
                       </div>
                     </CheckCard>
                   ))}
                 </div>
               </div>
-            )}
+            ) : discoveredAssets ? (
+              <div className="bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-3xl p-6 shadow-sm text-center py-8">
+                <Palette className="w-8 h-8 text-slate-300 dark:text-white/20 mx-auto mb-2" />
+                <p className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">No brand colors detected from this website.</p>
+              </div>
+            ) : null}
 
             {/* ── FONTS ── */}
             {fonts.length > 0 && (
