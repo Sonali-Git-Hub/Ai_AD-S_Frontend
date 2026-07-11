@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   ChevronLeft, ChevronRight, Gavel, Plus, FileText, Copy,
   Share2, FileDown, History, Search, X, Shield, Clock,
@@ -17,6 +17,8 @@ import { getUserData } from '../../../userStore/userData';
 import useOutputLanguage from '../hooks/useOutputLanguage';
 import { useLanguage } from '../../../context/LanguageContext';
 import LanguageToggle from './shared/LanguageToggle';
+import { UniversalMultimodalInput } from './shared/UniversalMultimodalInput';
+
 import CopyOutputButton from './shared/CopyOutputButton';
 
 // Specialized litigation roadmap templates
@@ -170,7 +172,13 @@ JSON Schema:
     "criticalIssues": ["Critical issue identified"],
     "priorityImprovements": ["Priority improvement needed"]
   }
-}`;
+}
+
+CRITICAL PROMPT DIRECTIVE:
+1. You MUST construct your response based primarily on the uploaded documents, OCR text details, voice transcripts, and manual notes provided in the Case Facts / Staged Context. 
+2. Under no circumstances are you allowed to return a generic template case description.
+3. You MUST quote the actual uploaded facts, party names (e.g. "Rajesh Kumar Sharma", "Sunil Verma"), specific dates (e.g. 15/09/2025, 05/02/2026), exact clauses (e.g. Clause 8), witness details, and sections mentioned in the context.
+4. If multiple sources conflict, resolve them using the priority rules: Voice Instructions ➔ Manual Notes ➔ Uploaded Document Facts.`;
 
 const TEMPLATE_SEED_DATA = {
   Bail: {
@@ -421,11 +429,13 @@ const generatePath = (val) => {
 };
 
 const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdateCase }) => {
-  const { toolkitLanguage, setToolkitLanguage } = useLanguage();
+  const { toolkitLanguage, setToolkitLanguage, tLegal: t } = useLanguage();
   const isDark = theme === 'dark';
 
   // Platform States
   const [strategySource, setStrategySource] = useState('EXISTING_CASE');
+  const [multimodalContext, setMultimodalContext] = useState(null);
+
   const [caseTitle, setCaseTitle] = useState('');
   const [caseFacts, setCaseFacts] = useState('');
   const [linkedCaseId, setLinkedCaseId] = useState(currentCase?._id || '');
@@ -484,11 +494,17 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
   // Simulation & Loader States
   const [isAuditing, setIsAuditing] = useState(false);
   const [auditStep, setAuditStep] = useState('');
+  const [rawStrategyResult, setRawStrategyResult] = useState(null);
+  const [isStrategyTranslating, setIsStrategyTranslating] = useState(false);
   const [strategyResult, _setStrategyResult] = useState(null);
   const setStrategyResult = (val) => {
     console.log("[StrategyEngine] setStrategyResult called with:", val);
     console.trace("[StrategyEngine] setStrategyResult Call Stack");
     _setStrategyResult(val);
+  };
+  const setRawStrategyResultAndSync = (val) => {
+    setRawStrategyResult(val);
+    setStrategyResult(val);
   };
   const lastLoadedCaseIdRef = useRef(null);
   const [briefMenuOpen, setBriefMenuOpen] = useState(false);
@@ -497,6 +513,10 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
 
   const loadingRef = useRef(null);
   const reportRef = useRef(null);
+  const contextChangeRef = useRef(null);
+  const stableContextChange = useCallback((ctx) => {
+    contextChangeRef.current?.(ctx);
+  }, []);
 
   // Automatic scrolling effects
   useEffect(() => {
@@ -595,6 +615,132 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
     summary: ''
   });
 
+  const {
+    outputLang,
+    setOutputLang,
+    isTranslating: outputIsTranslating,
+    setIsTranslating: setOutputIsTranslating,
+    translateText: translateStrategyText,
+    getDisplayText: getStrategyDisplayText,
+  } = useOutputLanguage('strategy_engine', currentCase?._id || 'global');
+
+  const deepTranslateStrategyData = useCallback(async (result, targetLang, translateFn) => {
+    if (!result) return null;
+
+    const EXCLUDED_KEYS = new Set([
+      'id', '_id', 'timestamp', 'overallStrategyScore', 'winningProbability', 'litigationRisk',
+      'evidenceStrength', 'precedentSupport', 'aiConfidence', 'courtReadiness',
+      'missingEvidenceCount', 'missingDocumentsCount', 'settlementProbability', 'appealRisk',
+      'similarityScore', 'legal', 'evidence', 'procedural', 'financial', 'strategic',
+      'riskPercentage', 'settlementChance', 'credibilityScore'
+    ]);
+
+    const isBypass = (str) => {
+      if (!str || typeof str !== 'string') return true;
+      const trimmed = str.trim();
+      if (!trimmed) return true;
+      if (/^[0-9a-fA-F]{32,64}$/.test(trimmed)) return true;
+      if (/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(trimmed)) return true;
+      if (/^\d+(%|\/\d+)?$/.test(trimmed)) return true;
+      if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) return true;
+      return false;
+    };
+
+    const translatableList = [];
+
+    const traverseCollect = (val, path) => {
+      if (val === null || val === undefined) return;
+      if (typeof val === 'string') {
+        const lastKey = path.split('.').pop();
+        if (!EXCLUDED_KEYS.has(lastKey) && !isBypass(val)) {
+          translatableList.push({ path, original: val });
+        }
+      } else if (Array.isArray(val)) {
+        val.forEach((item, index) => traverseCollect(item, `${path}[${index}]`));
+      } else if (typeof val === 'object') {
+        Object.keys(val).forEach(key => {
+          traverseCollect(val[key], path ? `${path}.${key}` : key);
+        });
+      }
+    };
+
+    traverseCollect(result, '');
+
+    if (translatableList.length === 0) return result;
+
+    const delimiter = ' ||| ';
+    const joinedText = translatableList.map(item => item.original).join(delimiter);
+
+    const translatedText = await translateFn(joinedText);
+    const translatedSegments = translatedText.split('|||').map(s => s.trim());
+
+    const cloned = JSON.parse(JSON.stringify(result));
+
+    const setValueAtPath = (obj, path, value) => {
+      const parts = path.split(/\.|\[|\]/).filter(Boolean);
+      let current = obj;
+      for (let i = 0; i < parts.length - 1; i++) {
+        const part = parts[i];
+        const nextPart = parts[i + 1];
+        if (/^\d+$/.test(nextPart) && !current[part]) {
+          current[part] = [];
+        } else if (!current[part]) {
+          current[part] = {};
+        }
+        current = current[part];
+      }
+      const lastKey = parts[parts.length - 1];
+      if (current) {
+        current[lastKey] = value;
+      }
+    };
+
+    if (translatedSegments.length === translatableList.length) {
+      translatableList.forEach((item, idx) => {
+        setValueAtPath(cloned, item.path, translatedSegments[idx]);
+      });
+    } else {
+      console.warn(`[deepTranslate] strategy translation mismatch: got ${translatedSegments.length}, expected ${translatableList.length}`);
+      translatableList.forEach((item, idx) => {
+        const translatedVal = translatedSegments[idx] || item.original;
+        setValueAtPath(cloned, item.path, translatedVal);
+      });
+    }
+
+    return cloned;
+  }, []);
+
+  // Handle live translation when rawStrategyResult or language changes
+  useEffect(() => {
+    if (!rawStrategyResult) {
+      _setStrategyResult(null);
+      return;
+    }
+
+    const targetLang = toolkitLanguage === 'Hindi' ? 'Hindi' : 'English';
+    const sampleText = rawStrategyResult.strategies?.primary?.description || '';
+    const hasDevanagari = /[\u0900-\u097F]/.test(sampleText);
+    const rawIsHindi = hasDevanagari;
+    const targetIsHindi = (targetLang === 'Hindi');
+
+    if (rawIsHindi === targetIsHindi) {
+      _setStrategyResult(rawStrategyResult);
+      return;
+    }
+
+    setIsStrategyTranslating(true);
+    deepTranslateStrategyData(rawStrategyResult, targetLang, (txt) => translateStrategyText(txt, targetLang))
+      .then((translated) => {
+        _setStrategyResult(translated);
+        setIsStrategyTranslating(false);
+      })
+      .catch((err) => {
+        console.error("Failed to translate strategy data:", err);
+        _setStrategyResult(rawStrategyResult);
+        setIsStrategyTranslating(false);
+      });
+  }, [rawStrategyResult, toolkitLanguage, translateStrategyText, deepTranslateStrategyData]);
+
   // Favorites Templates
   const [favoriteTemplates, setFavoriteTemplates] = useState(() => {
     try {
@@ -640,7 +786,7 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
   // Strategy Source change handler
   const handleStrategySourceChange = (source) => {
     setStrategySource(source);
-    setStrategyResult(null);
+    setRawStrategyResultAndSync(null);
     if (source === 'MANUAL_SCENARIO') {
       resetPlatformState();
       setClientName('');
@@ -741,7 +887,7 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
     setEvidenceList([]);
     setWitnessList([]);
     setTimelineList([]);
-    setStrategyResult(null);
+    setRawStrategyResultAndSync(null);
     setAuditLogs([]);
     setTasks([]);
   };
@@ -767,7 +913,7 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
 
       if (isDifferentCase) {
         console.log(`[StrategyEngine] Case ID changed from previous to ${caseObj._id}. Hydrating strategyResult from DB.`);
-        setStrategyResult(ls.activeStrategy || null);
+        setRawStrategyResultAndSync(ls.activeStrategy || null);
         // Reset notes editor when switching case
         setCurrentNoteText('');
         setEditingNoteId(null);
@@ -972,11 +1118,11 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
       }
       setNotesSaveStatus('saved');
       setLastSavedAt(new Date());
-      toast.success('Note saved successfully.');
+      toast.success(t('noteSavedSuccessfully') || 'Note saved successfully.');
     } catch (e) {
       console.error('[AdvocateNotes] Save failed:', e);
       setNotesSaveStatus('error');
-      toast.error('Failed to save note. Please try again.');
+      toast.error(t('noteSaveFailed') || 'Failed to save note. Please try again.');
     }
   };
 
@@ -1001,10 +1147,10 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
           });
         }
       }
-      toast.success('Note deleted.');
+      toast.success(t('noteDeleted') || 'Note deleted.');
     } catch (e) {
       console.error('[AdvocateNotes] Delete failed:', e);
-      toast.error('Failed to delete note.');
+      toast.error(t('noteDeleteFailed') || 'Failed to delete note.');
     }
   };
 
@@ -1082,12 +1228,12 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
           await syncToDatabase({
             activeStrategy: strategyResult
           });
-          toast.success("Strategy successfully updated in Database!");
+          toast.success(t('strategyUpdatedInDb') || "Strategy successfully updated in Database!");
         }
       }
     } catch (err) {
       console.error("Save strategy failed:", err);
-      toast.error("Failed to save strategy: " + err.message);
+      toast.error((t('strategySaveFailed') || "Failed to save strategy: ") + err.message);
     } finally {
       setIsSyncing(false);
     }
@@ -1109,7 +1255,7 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
       await syncToDatabase({ tasks: updatedTasks });
     }
     await logAudit("Task Appended", `Added procedural strategy task: "${newTask.task}"`);
-    toast.success("Task appended to checklist.");
+    toast.success(t('taskAppended') || "Task appended to checklist.");
   };
 
   const handleToggleTask = async (taskId) => {
@@ -1160,13 +1306,20 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
 
   // Dynamic AI Strategy Completion Check metrics
   const strategyReadinessCalculated = useMemo(() => {
+    // Defensive coercions — state may be set to non-string by OCR extraction
+    const safeClientName = typeof clientName === 'string' ? clientName : String(clientName || '');
+    const safeOpponentName = typeof opponentName === 'string' ? opponentName : String(opponentName || '');
+    const safeCaseFacts = typeof caseFacts === 'string' ? caseFacts : String(caseFacts || '');
+    const safeCaseTitle = typeof caseTitle === 'string' ? caseTitle : String(caseTitle || '');
+
     const isManual = strategySource === 'MANUAL_SCENARIO';
-    const infoOk = isManual ? (caseTitle.trim() ? 1 : 0) : (clientName.trim() && opponentName.trim() ? 1 : 0);
-    const factsOk = caseFacts.trim().length > 15 ? 1 : 0;
+    const infoOk = isManual ? (safeCaseTitle.trim() ? 1 : 0) : (safeClientName.trim() && safeOpponentName.trim() ? 1 : 0);
+    const factsOk = safeCaseFacts.trim().length > 15 ? 1 : 0;
     const timelineOk = timelineList.length > 0 ? 1 : 0;
     const evidenceOk = evidenceList.length > 0 ? 1 : 0;
     const witnessesOk = witnessList.length > 0 ? 1 : 0;
-    const opponentOk = scenarioOpponent.trim().length > 10 ? 1 : 0;
+    const safeOpponent = typeof scenarioOpponent === 'string' ? scenarioOpponent : String(scenarioOpponent || '');
+    const opponentOk = safeOpponent.trim().length > 10 ? 1 : 0;
 
     const score = Math.round(((infoOk * 15) + (factsOk * 25) + (timelineOk * 15) + (evidenceOk * 15) + (witnessesOk * 15) + (opponentOk * 15)));
 
@@ -1179,7 +1332,7 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
       opponent: opponentOk === 1,
       overall: score
     };
-  }, [clientName, opponentName, caseFacts, timelineList, evidenceList, witnessList, scenarioOpponent]);
+  }, [clientName, opponentName, caseFacts, caseTitle, timelineList, evidenceList, witnessList, scenarioOpponent, strategySource]);
 
   // --- Dynamic workflow bar status indicators ---
   const getWorkflowStepStatus = (stepKey) => {
@@ -1233,12 +1386,12 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
     const currentTitle = caseTitle.trim() || targetCase?.name || 'Custom Courtroom Strategy';
 
     if (!factsText.trim()) {
-      toast.error("Please provide case facts or load templates first.");
+      toast.error(t('provideCaseFactsFirst') || "Please provide case facts or load templates first.");
       return;
     }
 
     setIsAuditing(true);
-    setStrategyResult(null);
+    setRawStrategyResultAndSync(null);
     setAuditStep('Reading Facts...');
 
     const toastId = toast.loading(`AI litigation workspace: compiling ${actionType.replace('_', ' ').toLowerCase()}...`);
@@ -1260,12 +1413,27 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
       customizedPrompt += `\n\n[INSTRUCTION: Formulate trial arguments. Structure "finalArguments" (opening, core arguments, rebuttal, closing prayer) and "crossExamPlanner".]`;
     }
 
+    if (multimodalContext && multimodalContext.promptString) {
+      customizedPrompt += `\n${multimodalContext.promptString}`;
+    }
+
+    const attachments = [];
+    if (multimodalContext && multimodalContext.cameraImages) {
+      multimodalContext.cameraImages.forEach(img => {
+        attachments.push({
+          url: `data:image/png;base64,${img.base64}`,
+          name: img.name,
+          type: 'image'
+        });
+      });
+    }
+
     try {
       const response = await generateChatResponse(
         [],
         customizedPrompt,
         LITIGATION_SYSTEM_PROMPT,
-        [],
+        attachments,
         toolkitLanguage || 'English',
         null,
         'legal'
@@ -1492,7 +1660,7 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
         };
       }
 
-      setStrategyResult(parsed);
+      setRawStrategyResultAndSync(parsed);
       setActiveWorkflowStep('winning_probability');
 
       // Only write/sync to database if strategySource is EXISTING_CASE
@@ -1514,16 +1682,16 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
             activeStrategy: parsed
           });
         }
-        await logAudit("AI Litigation Strategy Simulated", `Completed strategy run with Winning Probability: ${parsed.stats.winningProbability}%.`);
+        await logAudit("AI Litigation Strategy Simulated", `Completed strategy run with {t('winningProbability') || 'Winning Probability'}: ${parsed.stats.winningProbability}%.`);
       } else {
         toast.success("Litigation strategy generated locally!");
       }
 
-      toast.success("AI litigation analysis complete!", { id: toastId });
+      toast.success(t('aiAnalysisComplete') || "AI litigation analysis complete!", { id: toastId });
 
     } catch (e) {
       console.error("Simulation error", e);
-      toast.error("Failed to compile strategy simulation: " + e.message, { id: toastId });
+      toast.error((t('failedToCompileSimulation') || "Failed to compile strategy simulation: ") + e.message, { id: toastId });
     } finally {
       setIsAuditing(false);
       setAuditStep('');
@@ -1533,7 +1701,7 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
   // --- Real-time AI Extract/Autofill helpers ---
   const runAIFieldExtraction = async (fieldType) => {
     if (!caseFacts.trim()) {
-      toast.error("Please enter Case Facts first so the AI can extract data.");
+      toast.error(t('enterCaseFactsFirst') || "Please enter Case Facts first so the AI can extract data.");
       return;
     }
     const tid = toast.loading(`AI extracting ${fieldType} from case facts...`);
@@ -1544,10 +1712,10 @@ const StrategyEngine = ({ currentCase, onBack, theme, allProjects = [], onUpdate
 Schema: [{"title": "Event Title", "date": "Date/Time string", "description": "Short explanation"}]`;
       } else if (fieldType === 'evidence') {
         prompt = `Based on these case facts: "${caseFacts}", identify likely evidence. Return ONLY a JSON array of evidence items. No conversational text.
-Schema: [{"name": "Document/Item Name", "type": "Document | Digital | Physical | Oral", "admissibility": "High | Medium | Low", "strength": "Strong | Medium | Weak", "credibility": "High | Medium | Low", "linkedWitness": "Witness Name or N/A", "status": "Ready | Staged", "risk": "Low | Medium | High"}]`;
+Schema: [{"name": "Document/Item Name", "type": "Document | Digital | Physical | Oral", "admissibility": "High | Medium | Low", "strength": "Strong | Medium | Weak", "credibility": "High | Medium | Low", "linkedWitness": "{t('witnessNameLabel') || 'Witness Name'} or N/A", "status": "Ready | Staged", "risk": "Low | Medium | High"}]`;
       } else if (fieldType === 'witnesses') {
         prompt = `Based on these case facts: "${caseFacts}", identify potential witnesses. Return ONLY a JSON array of witness items. No conversational text.
-Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plaintiff | Defendant", "weakness": "Potential vulnerability", "questions": ["Cross exam question 1", "Cross exam question 2"], "credibilityScore": 0-100}]`;
+Schema: [{"name": "{t('witnessNameLabel') || 'Witness Name'}", "role": "Role description", "supports": "Plaintiff | Defendant", "weakness": "Potential vulnerability", "questions": ["Cross exam question 1", "Cross exam question 2"], "credibilityScore": 0-100}]`;
       }
 
       const response = await generateChatResponse(
@@ -1580,7 +1748,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
         if (strategySource === 'EXISTING_CASE') {
           await syncToDatabase({ scenarioTimeline: serialized });
         }
-        toast.success("Timeline milestones extracted!", { id: tid });
+        toast.success(t('timelineMilestonesExtracted') || "Timeline milestones extracted!", { id: tid });
       } else if (fieldType === 'evidence') {
         const formatted = parsed.map((item, idx) => ({
           id: `ev_${idx}_${Date.now()}`,
@@ -1592,7 +1760,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
         if (strategySource === 'EXISTING_CASE') {
           await syncToDatabase({ scenarioEvidence: serialized });
         }
-        toast.success("Evidence items extracted!", { id: tid });
+        toast.success(t('evidenceItemsExtracted') || "Evidence items extracted!", { id: tid });
       } else if (fieldType === 'witnesses') {
         const formatted = parsed.map((item, idx) => ({
           id: `wit_${idx}_${Date.now()}`,
@@ -1604,11 +1772,11 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
         if (strategySource === 'EXISTING_CASE') {
           await syncToDatabase({ scenarioWitnesses: serialized });
         }
-        toast.success("Witness pool identified!", { id: tid });
+        toast.success(t('witnessPoolIdentified') || "Witness pool identified!", { id: tid });
       }
     } catch (err) {
       console.error("AI Extraction failed", err);
-      toast.error("Failed to extract data. Make sure facts are detailed.", { id: tid });
+      toast.error(t('extractionFailed') || "Failed to extract data. Make sure facts are detailed.", { id: tid });
     }
   };
 
@@ -1641,12 +1809,12 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
       status: 'Staged'
     }));
     setUploadedFiles(prev => [...prev, ...formatted]);
-    toast.success(`${files.length} documents uploaded to workspace.`);
+    toast.success(`${files.length} ` + (t('documentsUploaded') || "documents uploaded to workspace."));
   };
 
   const runDocumentAnalysis = async () => {
     if (uploadedFiles.length === 0) {
-      toast.error("Please upload at least one legal document first.");
+      toast.error(t('uploadOneDocFirst') || "Please upload at least one legal document first.");
       return;
     }
     setIsExtractingDocs(true);
@@ -1672,7 +1840,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
         "caseFacts": "extracted summary of case facts",
         "timeline": [{"title": "Event Title", "date": "Date/Time string", "description": "Short explanation"}],
         "evidence": [{"name": "Document Name", "type": "Document | Digital | Physical | Oral", "admissibility": "High | Medium | Low", "strength": "Strong | Medium | Weak", "risk": "Low | Medium | High"}],
-        "witnesses": [{"name": "Witness Name", "role": "Witness role/duties", "supports": "Plaintiff | Defendant", "credibilityScore": 85}],
+        "witnesses": [{"name": "{t('witnessNameLabel') || 'Witness Name'}", "role": "Witness role/duties", "supports": "Plaintiff | Defendant", "credibilityScore": 85}],
         "opponentPosition": "extracted opponent demands/arguments",
         "reliefSought": "extracted relief demands (e.g. Damages, Stay Order)",
         "previousOrders": "extracted summary of previous orders",
@@ -1724,12 +1892,12 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
         }
 
         setUploadedFiles(prev => prev.map(f => ({ ...f, status: 'Extracted' })));
-        toast.success("Documents successfully parsed! Scenario builder prefilled.", { id: tid });
+        toast.success(t('documentsParsed') || "Documents successfully parsed! Scenario builder prefilled.", { id: tid });
         setActiveWorkflowStep('fact_analysis');
       }
     } catch (err) {
       console.error(err);
-      toast.error("Failed to extract content from documents.", { id: tid });
+      toast.error(t('documentExtractionFailed') || "Failed to extract content from documents.", { id: tid });
       setUploadedFiles(prev => prev.map(f => ({ ...f, status: 'Failed' })));
     } finally {
       setIsExtractingDocs(false);
@@ -1741,7 +1909,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
     if (!strategyResult) return;
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
-      toast.error("Popup blocked! Enable popups to print/export PDF.");
+      toast.error(t('popupBlocked') || "Popup blocked! Enable popups to print/export PDF.");
       return;
     }
 
@@ -1757,7 +1925,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
       <head>
         <meta charset="UTF-8"/>
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-        <title>AI LEGAL™ Strategy Report - ${caseTitle}</title>
+        <title>AI LEGAL™ ${t('strategyEngineTitle') || "Strategy Engine"} - ${caseTitle}</title>
         ${styles}
         <style>
           @page { size: A4; margin: 15mm; }
@@ -1812,7 +1980,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
     const docHtml = `
       <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
       <head>
-        <title>AI LEGAL™ Full Litigation Strategy Report</title>
+        <title>AI LEGAL™ ${t('strategyReportTitle') || "AI LEGAL™ Full Litigation Strategy Report"}</title>
         <!--[if gte mso 9]>
         <xml>
           <w:WordDocument>
@@ -1923,7 +2091,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
           <tr>
             <td><strong>Matter Title:</strong></td>
             <td>${caseTitle || 'Custom Courtroom Strategy'}</td>
-            <td><strong>Court / Jurisdiction:</strong></td>
+            <td><strong>Court / {t('jurisdiction') || 'Jurisdiction'}:</strong></td>
             <td>${courtName || 'Not Specified'}</td>
           </tr>
           <tr>
@@ -2062,7 +2230,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     logAudit("Exported Word Report", "Downloaded litigation strategy document report.");
-    toast.success("Word Document exported successfully!");
+    toast.success(t('wordExported') || "Word Document exported successfully!");
   };
 
   const handlePrintBriefPDF = () => {
@@ -2087,7 +2255,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
       <head>
         <meta charset="UTF-8"/>
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-        <title>AI LEGAL™ Executive Litigation Brief - ${caseTitle}</title>
+        <title>AI LEGAL™ ${t('executiveLitigationBriefTitle') || "AI LEGAL™ Executive Litigation Brief"} - ${caseTitle}</title>
         ${styles}
         <style>
           @page { size: A4; margin: 20mm; }
@@ -2126,7 +2294,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
               <p class="font-extrabold text-slate-850 dark:text-slate-200">${caseTitle || 'Custom Courtroom Strategy'}</p>
             </div>
             <div>
-              <p class="text-slate-400 uppercase font-bold text-[8px] mb-0.5">Court / Jurisdiction</p>
+              <p class="text-slate-400 uppercase font-bold text-[8px] mb-0.5">Court / {t('jurisdiction') || 'Jurisdiction'}</p>
               <p class="font-extrabold text-slate-850 dark:text-slate-205">${courtName || 'Not Specified'}</p>
             </div>
             <div>
@@ -2167,24 +2335,24 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
             </div>
           </div>
 
-          <!-- Executive Summary -->
+          <!-- {t('executiveSummary') || 'Executive Summary'} -->
           <div class="space-y-2 page-break-avoid">
-            <h3 class="text-xs font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 border-b pb-1">Executive Summary</h3>
+            <h3 class="text-xs font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 border-b pb-1">{t('executiveSummary') || 'Executive Summary'}</h3>
             <p class="text-xs font-medium text-slate-700 dark:text-slate-300 leading-relaxed">
               ${strategyResult.strategies?.primary?.description || strategyResult.finalOpinion?.reasoning || 'N/A'}
             </p>
           </div>
 
-          <!-- Strengths & Weaknesses Grid -->
+          <!-- {t('strengthsTitle') || 'Strengths'} & {t('weaknessesTitle') || 'Weaknesses'} Grid -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 page-break-avoid">
             <div class="space-y-2">
-              <h3 class="text-xs font-black uppercase tracking-wider text-emerald-600 border-b pb-1">Top Strengths</h3>
+              <h3 class="text-xs font-black uppercase tracking-wider text-emerald-600 border-b pb-1">Top {t('strengthsTitle') || 'Strengths'}</h3>
               <div class="space-y-1">
                 ${strengthsList.slice(0, 4).map(s => `<div class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-start gap-1.5">✓ ${s}</div>`).join('') || '<div class="text-xs italic text-slate-400">None identified</div>'}
               </div>
             </div>
             <div class="space-y-2">
-              <h3 class="text-xs font-black uppercase tracking-wider text-red-650 border-b pb-1">Key Weaknesses</h3>
+              <h3 class="text-xs font-black uppercase tracking-wider text-red-650 border-b pb-1">Key {t('weaknessesTitle') || 'Weaknesses'}</h3>
               <div class="space-y-1">
                 ${weaknessesList.slice(0, 4).map(w => `<div class="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-start gap-1.5">✗ ${w}</div>`).join('') || '<div class="text-xs italic text-slate-400">None identified</div>'}
               </div>
@@ -2200,9 +2368,9 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
             </div>
           </div>
 
-          <!-- Immediate Next Steps -->
+          <!-- {t('immediateNextStepsTitle') || 'Immediate Next Steps'} -->
           <div class="space-y-2 page-break-avoid">
-            <h3 class="text-xs font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1">Immediate Next Steps</h3>
+            <h3 class="text-xs font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1">{t('immediateNextStepsTitle') || 'Immediate Next Steps'}</h3>
             <div class="space-y-1.5 text-[11px] font-medium text-slate-700 dark:text-slate-300">
               ${(strategyResult.aiRecommendations?.doFirst || []).slice(0, 3).map(act => `<div class="flex items-start gap-1.5">➔ <strong>[Do First]</strong> ${act}</div>`).join('')}
               ${(strategyResult.aiRecommendations?.doNext || []).slice(0, 2).map(act => `<div class="flex items-start gap-1.5">➔ <strong>[Do Next]</strong> ${act}</div>`).join('')}
@@ -2245,7 +2413,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
     const docHtml = `
       <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
       <head>
-        <title>AI LEGAL™ Executive Litigation Brief</title>
+        <title>AI LEGAL™ ${t('executiveLitigationBriefTitle') || "AI LEGAL™ Executive Litigation Brief"}</title>
         <!--[if gte mso 9]>
         <xml>
           <w:WordDocument>
@@ -2353,7 +2521,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
           <tr>
             <td><strong>Matter Title:</strong></td>
             <td>${caseTitle || 'Custom Courtroom Strategy'}</td>
-            <td><strong>Court / Jurisdiction:</strong></td>
+            <td><strong>Court / {t('jurisdiction') || 'Jurisdiction'}:</strong></td>
             <td>${courtName || 'Not Specified'}</td>
           </tr>
           <tr>
@@ -2379,20 +2547,20 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
           </tr>
         </table>
 
-        <div class="section-title">Executive Summary</div>
+        <div class="section-title">{t('executiveSummary') || 'Executive Summary'}</div>
         <p>${strategyResult.strategies?.primary?.description || strategyResult.finalOpinion?.reasoning || 'N/A'}</p>
 
-        <div class="section-title">Top Key Strengths & Weaknesses</div>
+        <div class="section-title">Top Key {t('strengthsTitle') || 'Strengths'} & {t('weaknessesTitle') || 'Weaknesses'}</div>
         <table style="width: 100%; border-collapse: collapse;">
           <tr>
             <td style="width: 50%; vertical-align: top; padding-right: 15px;">
-              <h4 style="color:#16a34a; margin-top:0;">Top Strengths</h4>
+              <h4 style="color:#16a34a; margin-top:0;">Top {t('strengthsTitle') || 'Strengths'}</h4>
               <ul>
                 ${strengthsList.slice(0, 4).map(s => `<li style="margin-bottom:6px;">${s}</li>`).join('') || '<li>None</li>'}
               </ul>
             </td>
             <td style="width: 50%; vertical-align: top; padding-left: 15px;">
-              <h4 style="color:#dc2626; margin-top:0;">Key Weaknesses</h4>
+              <h4 style="color:#dc2626; margin-top:0;">Key {t('weaknessesTitle') || 'Weaknesses'}</h4>
               <ul>
                 ${weaknessesList.slice(0, 4).map(w => `<li style="margin-bottom:6px;">${w}</li>`).join('') || '<li>None</li>'}
               </ul>
@@ -2404,7 +2572,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
         <p><strong>Primary Strategy:</strong> ${strategyResult.strategies?.primary?.description || 'N/A'}</p>
         <p><strong>Alternative Action:</strong> ${strategyResult.strategies?.alternative?.description || 'N/A'}</p>
 
-        <div class="section-title">Immediate Next Steps</div>
+        <div class="section-title">{t('immediateNextStepsTitle') || 'Immediate Next Steps'}</div>
         <ul>
           ${(strategyResult.aiRecommendations?.doFirst || []).slice(0, 3).map(act => `<li><strong>[Do First]</strong> ${act}</li>`).join('')}
           ${(strategyResult.aiRecommendations?.doNext || []).slice(0, 2).map(act => `<li><strong>[Do Next]</strong> ${act}</li>`).join('')}
@@ -2455,7 +2623,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
       setWitnessList(parseWitnessText(seed.witnesses));
       setTimelineList(parseTimelineText(seed.timeline));
 
-      toast.success(`Template loaded: ${seed.title}`);
+      toast.success((t('templateLoaded') || "Template loaded: ") + seed.title);
       addToRecentTemplates(toolId);
       setActiveWorkflowStep('fact_analysis');
     }
@@ -2500,10 +2668,10 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
         const response = await apiService.updateProject(projectId, payload);
         setLocalProjects(prev => prev.map(p => p._id === projectId ? { ...p, litigationStrategy: null } : p));
         if (onUpdateCase) onUpdateCase(response);
-        toast.success("Strategy removed from history.");
+        toast.success(t('strategyRemoved') || "Strategy removed from history.");
       }
     } catch (e) {
-      toast.error("Failed to delete strategy from archive.");
+      toast.error(t('deleteStrategyFailed') || "Failed to delete strategy from archive.");
     }
   };
 
@@ -2513,7 +2681,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
     if (selectedProj) {
       hydrateFromCase(selectedProj);
       setIsUsingActiveCase(true);
-      toast.success(`Selected Active Case: ${selectedProj.name}`);
+      toast.success((t('selectedActiveCase') || "Selected Active Case: ") + selectedProj.name);
       setActiveWorkflowStep('fact_analysis');
     }
   };
@@ -2552,7 +2720,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
   // Handle new case creation modal submit
   const handleCreateNewCase = async () => {
     if (!newCaseForm.clientName.trim()) {
-      toast.error("Client Name is required");
+      toast.error(t('clientNameRequired') || "Client Name is required");
       return;
     }
     const tid = toast.loading("Creating legal matter...");
@@ -2578,7 +2746,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
       setLinkedCaseId(newProj._id);
       hydrateFromCase(newProj);
 
-      toast.success("New litigation matter created successfully!", { id: tid });
+      toast.success(t('litigationMatterCreated') || "New litigation matter created successfully!", { id: tid });
       setNewCaseModalOpen(false);
       setNewCaseForm({
         clientName: '',
@@ -2591,7 +2759,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
       });
     } catch (e) {
       console.error(e);
-      toast.error("Failed to create case", { id: tid });
+      toast.error(t('failedToCreateCase') || "Failed to create case", { id: tid });
     }
   };
 
@@ -2606,7 +2774,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
     setEvidenceList(newList);
     setScenarioEvidence(serializeEvidenceList(newList));
     setNewEv({ name: '', type: 'Document', admissibility: 'High', strength: 'Strong', credibility: 'High', risk: 'Low' });
-    toast.success("Evidence added to dossier.");
+    toast.success(t('evidenceAdded') || "Evidence added to dossier.");
   };
 
   const handleAddWitness = () => {
@@ -2621,7 +2789,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
     setWitnessList(newList);
     setScenarioWitnesses(serializeWitnessList(newList));
     setNewWit({ name: '', role: '', supports: 'Plaintiff', credibilityScore: 85 });
-    toast.success("Witness added to pool.");
+    toast.success(t('witnessAdded') || "Witness added to pool.");
   };
 
   const handleAddTimeline = () => {
@@ -2635,7 +2803,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
     setTimelineList(newList);
     setScenarioTimeline(serializeTimelineList(newList));
     setNewTime({ date: '', title: '' });
-    toast.success("Timeline milestone added.");
+    toast.success(t('timelineMilestoneAdded') || "Timeline milestone added.");
   };
 
   const handleRemoveEvidence = (id) => {
@@ -2676,7 +2844,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
     { key: 'evidence_analysis', name: 'Evidence Analysis' },
     { key: 'opponent_prediction', name: 'Opponent Prediction' },
     { key: 'legal_risk_analysis', name: 'Legal Risk Analysis' },
-    { key: 'winning_probability', name: 'Winning Probability' },
+    { key: 'winning_probability', name: t('winningProbability') || 'Winning Probability' },
     { key: 'argument_planning', name: 'Argument Planning' },
     { key: 'settlement_rec', name: 'Settlement Rec' },
     { key: 'final_strategy', name: 'Final Strategy' }
@@ -2696,12 +2864,12 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
       <>
         {/* Choose Strategy Source selection */}
         <div className="space-y-2.5">
-          <label className="text-[9px] font-black uppercase tracking-widest text-indigo-500">Choose Input Source</label>
+          <label className="text-[9px] font-black uppercase tracking-widest text-indigo-500">{t('chooseInputSource') || "Choose Input Source"}</label>
           <div className="flex flex-col gap-2 p-1.5 bg-slate-100/50 dark:bg-[#131c31] rounded-2xl border dark:border-zinc-800">
             {[
-              { id: 'EXISTING_CASE', name: 'Existing Case', desc: 'Auto-load case from files' },
-              { id: 'UPLOAD_DOCUMENTS', name: 'Upload Documents', desc: 'AI auto-extracts case files' },
-              { id: 'MANUAL_SCENARIO', name: 'Manual Strategy', desc: 'Manually specify case profile' }
+              { id: 'EXISTING_CASE', name: t('existingCase') || 'Existing Case', desc: t('existingCaseDesc') || 'Auto-load case from files' },
+              { id: 'UPLOAD_DOCUMENTS', name: t('uploadDocuments') || 'Upload Documents', desc: t('uploadDocumentsDesc') || 'AI auto-extracts case files' },
+              { id: 'MANUAL_SCENARIO', name: t('manualStrategy') || 'Manual Strategy', desc: t('manualStrategyDesc') || 'Manually specify case profile' }
             ].map(src => {
               const active = strategySource === src.id;
               return (
@@ -2731,7 +2899,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
         <div className="space-y-4 shrink-0 pt-2 border-t border-slate-100 dark:border-zinc-800/80">
           {strategySource === 'EXISTING_CASE' ? (
             <div className="space-y-3">
-              <label className="text-[9px] font-black uppercase tracking-widest text-indigo-500">Active Case Switching</label>
+              <label className="text-[9px] font-black uppercase tracking-widest text-indigo-500">{t('activeCaseSwitching') || "Active Case Switching"}</label>
               <div className="space-y-2">
                 <select
                   value={linkedCaseId || ''}
@@ -2739,7 +2907,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                   className={`w-full border rounded-xl px-3 py-2.5 text-xs font-bold outline-none cursor-pointer appearance-none ${isDark ? 'bg-[#131c31] border-zinc-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-850'
                     }`}
                 >
-                  <option value="">-- Select Case File --</option>
+                  <option value="">{t('selectCaseFilePlaceholder') || "-- Select Case File --"}</option>
                   {localProjects.map(p => (
                     <option key={p._id} value={p._id}>{p.name}</option>
                   ))}
@@ -2750,7 +2918,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                   className="w-full flex items-center justify-center gap-1.5 py-2.5 border border-dashed rounded-xl text-[10px] font-black uppercase tracking-wider text-indigo-500 hover:bg-indigo-500/5 transition-all"
                 >
                   <PlusCircle size={13} />
-                  <span>Create New Scenario</span>
+                  <span>{t('createNewScenario') || "Create New Scenario"}</span>
                 </button>
               </div>
 
@@ -2759,8 +2927,8 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                 <div className="flex items-center gap-2">
                   <Folder size={14} className="text-indigo-500 shrink-0" />
                   <div className="leading-none">
-                    <p className="text-[10px] font-black text-slate-800 dark:text-white uppercase">Use Active Case</p>
-                    <p className="text-[8px] text-slate-400 mt-0.5">Auto-fill all case fields</p>
+                    <p className="text-[10px] font-black text-slate-800 dark:text-white uppercase">{t('useActiveCase') || "Use Active Case"}</p>
+                    <p className="text-[8px] text-slate-400 mt-0.5">{t('autoFillCaseFields') || "Auto-fill all case fields"}</p>
                   </div>
                 </div>
                 <div
@@ -2776,77 +2944,19 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
               </div>
             </div>
           ) : strategySource === 'UPLOAD_DOCUMENTS' ? (
-            <div className="space-y-3">
-              <label className="text-[9px] font-black uppercase tracking-widest text-indigo-500">Document Upload Workspace</label>
-
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={() => document.getElementById('strategy-doc-uploader').click()}
-                className="border-2 border-dashed border-slate-300 dark:border-zinc-800 hover:border-indigo-500 rounded-2xl p-5 text-center cursor-pointer transition-all flex flex-col items-center gap-2 bg-slate-500/3"
-              >
-                <Upload className="text-slate-400" size={24} />
-                <span className="text-[10.5px] text-slate-500 dark:text-slate-400 font-bold">Drag & drop files or click to browse</span>
-                <span className="text-[8px] text-slate-404 uppercase font-semibold">Supports PDFs, Plaints, Agreements, FIRs</span>
-                <input
-                  id="strategy-doc-uploader"
-                  type="file"
-                  multiple
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
-              </div>
-
-              {/* Uploaded File List */}
-              {uploadedFiles.length > 0 && (
-                <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
-                  {uploadedFiles.map(file => (
-                    <div key={file.id} className="p-2.5 border rounded-xl bg-slate-500/5 flex items-center justify-between text-xs font-semibold gap-2">
-                      <div className="min-w-0 flex items-center gap-1.5">
-                        <FileText size={14} className="text-slate-405 shrink-0" />
-                        <span className="truncate text-slate-800 dark:text-slate-300">{file.name}</span>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${file.status === 'OCR Running' ? 'bg-amber-500/10 text-amber-500 animate-pulse' :
-                            file.status === 'OCR Complete' ? 'bg-emerald-500/10 text-emerald-500' :
-                              file.status === 'Extracting' ? 'bg-violet-500/10 text-violet-500 animate-pulse' :
-                                file.status === 'Extracted' ? 'bg-green-500/10 text-green-500 font-black' :
-                                  'bg-slate-205 text-slate-450'
-                          }`}>{file.status}</span>
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setUploadedFiles(prev => prev.filter(f => f.id !== file.id));
-                          }}
-                          className="p-0.5 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded text-red-500 font-bold"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-
-                  <button
-                    onClick={runDocumentAnalysis}
-                    disabled={isExtractingDocs}
-                    className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-indigo-650 hover:bg-indigo-705 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-50"
-                  >
-                    {isExtractingDocs ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Sparkles size={12} />}
-                    <span>AI Parse Uploaded Documents</span>
-                  </button>
-                </div>
-              )}
+            <div className="p-6 text-center border rounded-2xl bg-indigo-500/[0.01] border-indigo-500/10 space-y-2">
+              <p className="text-xs font-bold text-slate-705 dark:text-slate-355">
+                Use the Multimodal Legal Workspace below to upload documents, record voice notes, or import WhatsApp backups.
+              </p>
             </div>
           ) : (
             /* Manual Mode intent-driven input fields directly in sidebar */
             <div className="space-y-4 text-xs font-semibold">
-              <label className="text-[9px] font-black uppercase tracking-widest text-indigo-500">Legal Strategy Config</label>
+              <label className="text-[9px] font-black uppercase tracking-widest text-indigo-500">{t('legalStrategyConfig') || "Legal Strategy Config"}</label>
 
               {/* Primary Input 1: Strategy Goal / Practice Area */}
               <div className="space-y-1">
-                <span className="text-[8px] uppercase font-black text-slate-400">Strategy Goal / Practice Area</span>
+                <span className="text-[8px] uppercase font-black text-slate-400">{t('strategyGoalPracticeArea') || "Strategy Goal / Practice Area"}</span>
                 <input
                   type="text"
                   value={caseTitle}
@@ -3012,7 +3122,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                     </div>
 
                     <div className="space-y-1">
-                      <span className="text-[8px] uppercase font-black text-slate-404">Court Jurisdiction</span>
+                      <span className="text-[8px] uppercase font-black text-slate-404">Court {t('jurisdiction') || 'Jurisdiction'}</span>
                       <input
                         type="text"
                         value={courtName}
@@ -3057,9 +3167,20 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
           )}
         </div>
 
+        {/* Multimodal input staging workspace */}
+        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-zinc-800/80">
+          <UniversalMultimodalInput
+            caseId={linkedCaseId || 'global'}
+            workspaceName="StrategyEngine"
+            onContextChange={stableContextChange}
+            theme={isDark ? 'dark' : 'light'}
+            layout={strategySource === 'EXISTING_CASE' ? 'case' : strategySource === 'UPLOAD_DOCUMENTS' ? 'upload' : 'manual'}
+          />
+        </div>
+
         {/* Search Strategy Templates Select Box */}
         <div className="space-y-1.5 pt-3 border-t border-slate-100 dark:border-zinc-800/80">
-          <label className="text-[9px] font-black uppercase tracking-widest text-indigo-500">Search Strategy Templates</label>
+          <label className="text-[9px] font-black uppercase tracking-widest text-indigo-500">{t('searchStrategyTemplates') || "Search Strategy Templates"}</label>
           <div className="relative">
             <select
               onChange={(e) => {
@@ -3070,7 +3191,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
               className={`w-full border rounded-xl px-3 py-2.5 text-xs font-bold outline-none cursor-pointer appearance-none ${isDark ? 'bg-[#131c31] border-zinc-800 text-white' : 'bg-slate-50 border-slate-202 text-slate-850'
                 }`}
             >
-              <option value="">-- Load Preset Template --</option>
+              <option value="">{t('loadPresetTemplate') || "-- Load Preset Template --"}</option>
               {allTools.map(t => (
                 <option key={t.id} value={t.id}>{t.name} ({t.category})</option>
               ))}
@@ -3079,6 +3200,93 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
         </div>
       </>
     );
+  };
+
+  // Stable ref callback assignment to prevent rendering infinite loops
+  contextChangeRef.current = (ctx) => {
+    setMultimodalContext(ctx);
+
+    if (ctx && ctx.stagedFiles && ctx.stagedFiles.length > 0) {
+      const ocrText = ctx.stagedFiles
+        .map(f => f.content || '')
+        .filter(Boolean)
+        .join('\n\n');
+
+      if (ocrText.trim()) {
+        // Guard state update to prevent rendering loop if text is identical
+        const trimmedOcr = ocrText.trim();
+        if (caseFacts !== trimmedOcr) {
+          setCaseFacts(prev => prev.trim() ? prev : trimmedOcr);
+
+          // Auto-extract timeline/evidence/witnesses from OCR if lists are empty
+          // Use a short debounced AI extraction call
+          setTimeout(async () => {
+            if (trimmedOcr.length > 100) {
+              try {
+                const { generateChatResponse } = await import('../../../services/geminiService');
+                const extractPrompt = `From this document text, extract and return a JSON object with:
+1. "timeline": array of objects {date, event, description} (max 8 items)  
+2. "evidence": array of objects {title, type, description} (max 6 items)
+3. "witnesses": array of objects {name, role, testimony} (max 4 items)
+4. "parties": {plaintiff, defendant, others}
+5. "sections": array of applicable IPC/BNS/legal sections mentioned
+
+Document Text:
+${trimmedOcr.slice(0, 6000)}
+
+Return ONLY valid JSON. No markdown wrapper.`;
+                const resp = await generateChatResponse([], extractPrompt, 
+                  'You are a legal document analyzer. Extract structured case data from documents. Return ONLY valid JSON.',
+                  [], 'English', null, 'legal');
+                const rawText = resp?.reply || (typeof resp === 'string' ? resp : '');
+                // Parse JSON from response
+                let extracted = null;
+                try {
+                  const jMatch = rawText.match(/```json\s*([\s\S]*?)\s*```/) || rawText.match(/(\{[\s\S]*\})/);
+                  if (jMatch) extracted = JSON.parse(jMatch[1] || jMatch[0]);
+                  else extracted = JSON.parse(rawText.trim());
+                } catch (_) {}
+                if (extracted) {
+                  if (Array.isArray(extracted.timeline) && extracted.timeline.length > 0) {
+                    setTimelineList(prev => prev.length > 0 ? prev : extracted.timeline.map((t, i) => ({
+                      id: `ocr_tl_${i}`, date: t.date || '', event: t.event || '', description: t.description || ''
+                    })));
+                  }
+                  if (Array.isArray(extracted.evidence) && extracted.evidence.length > 0) {
+                    setEvidenceList(prev => prev.length > 0 ? prev : extracted.evidence.map((e, i) => ({
+                      id: `ocr_ev_${i}`, title: e.title || e.name || '', type: e.type || 'Document', description: e.description || ''
+                    })));
+                  }
+                  if (Array.isArray(extracted.witnesses) && extracted.witnesses.length > 0) {
+                    setWitnessList(prev => prev.length > 0 ? prev : extracted.witnesses.map((w, i) => ({
+                      id: `ocr_wit_${i}`, name: w.name || '', role: w.role || '', testimony: w.testimony || ''
+                    })));
+                  }
+                  if (extracted.parties) {
+                    const plaintiff = extracted.parties.plaintiff;
+                    const defendant = extracted.parties.defendant;
+                    // Guard: AI may return object/array — always coerce to string
+                    const plaintiffStr = plaintiff ? (typeof plaintiff === 'string' ? plaintiff : String(plaintiff)).trim() : '';
+                    const defendantStr = defendant ? (typeof defendant === 'string' ? defendant : String(defendant)).trim() : '';
+                    if (plaintiffStr && !clientName.trim()) setClientName(plaintiffStr);
+                    if (defendantStr && !opponentName.trim()) setOpponentName(defendantStr);
+                  }
+                }
+              } catch (extractErr) {
+                console.warn('[StrategyEngine] Auto-extract from OCR failed:', extractErr);
+              }
+            }
+          }, 1500);
+        }
+      }
+    }
+
+    if (ctx && ctx.manualNotes && ctx.manualNotes.trim()) {
+      const trimmedNotes = ctx.manualNotes.trim();
+      if (caseFacts !== trimmedNotes) {
+        setCaseFacts(prev => prev.trim() ? prev : trimmedNotes);
+      }
+    }
   };
 
   return (
@@ -3129,7 +3337,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                 }`}
             >
               <ChevronLeft size={11} />
-              <span>Back</span>
+              <span>{t('back') || "Back"}</span>
             </button>
 
             <div className="flex flex-col min-w-0">
@@ -3142,7 +3350,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                 )}
               </div>
               <p className={`text-[10px] sm:text-[11px] font-medium leading-none mt-1 truncate hidden sm:block ${isDark ? 'text-slate-400' : 'text-slate-505'}`}>
-                AI-powered litigation simulation, opponent prediction, judicial risk analysis, evidence evaluation and courtroom strategy planning.
+                {t('strategyEngineSubtitle') || 'AI-powered litigation simulation, opponent prediction, judicial risk analysis, evidence evaluation and courtroom strategy planning.'}
               </p>
             </div>
           </div>
@@ -3150,8 +3358,8 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
           <div className="flex items-center flex-wrap gap-2.5 lg:shrink-0">
             <LanguageToggle lang={toolkitLanguage === 'Hindi' ? 'hi' : 'en'} onChange={(l) => setToolkitLanguage(l === 'hi' ? 'Hindi' : 'English')} />
             <div className="hidden xl:flex flex-col text-right text-[10px] text-slate-400 font-semibold mr-1">
-              <span>Recent Strategy count: <strong>{historyData.length}</strong></span>
-              <span>Last Simulation: <strong>{historyData[0]?.timestamp || 'Never'}</strong></span>
+              <span>{t('recentStrategyCount') || 'Recent Strategy count:'} <strong>{historyData.length}</strong></span>
+              <span>{t('lastSimulation') || 'Last Simulation:'} <strong>{historyData[0]?.timestamp || 'Never'}</strong></span>
             </div>
             <button
               onClick={() => setIsNotesDrawerOpen(true)}
@@ -3159,7 +3367,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                 }`}
             >
               <BookOpen size={14} className="shrink-0" />
-              <span>Advocate Notes</span>
+              <span>{t('advocateNotes') || 'Advocate Notes'}</span>
             </button>
             <button
               onClick={() => setHistoryVisible(true)}
@@ -3167,7 +3375,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                 }`}
             >
               <History size={14} className="shrink-0" />
-              <span>History ({historyData.length})</span>
+              <span>{t('history') || 'History'} ({historyData.length})</span>
             </button>
           </div>
         </div>
@@ -3272,24 +3480,24 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                 {/* 5 clean fields */}
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs font-semibold">
                   <div className="space-y-0.5">
-                    <span className="text-[8px] uppercase font-black text-slate-400 tracking-wide">Case Title / Parties</span>
+                    <span className="text-[8px] uppercase font-black text-slate-400 tracking-wide">{t('caseTitleParties') || 'Case Title / Parties'}</span>
                     <p className="font-extrabold text-slate-800 dark:text-slate-200 truncate">{caseTitle || 'Custom Scenario'}</p>
                   </div>
                   <div className="space-y-0.5">
-                    <span className="text-[8px] uppercase font-black text-slate-400 tracking-wide">Court Category</span>
+                    <span className="text-[8px] uppercase font-black text-slate-400 tracking-wide">{t('courtCategory') || 'Court Category'}</span>
                     <p className="font-extrabold text-indigo-500 truncate">{matterType || 'Civil'}</p>
                   </div>
                   <div className="space-y-0.5">
-                    <span className="text-[8px] uppercase font-black text-slate-400 tracking-wide">Jurisdiction</span>
+                    <span className="text-[8px] uppercase font-black text-slate-400 tracking-wide">{t('jurisdiction') || 'Jurisdiction'}</span>
                     <p className="font-bold text-slate-705 dark:text-slate-300 truncate">{courtName || 'N/A'}</p>
                   </div>
                   <div className="space-y-0.5">
-                    <span className="text-[8px] uppercase font-black text-slate-400 tracking-wide">Litigation Stage</span>
+                    <span className="text-[8px] uppercase font-black text-slate-400 tracking-wide">{t('litigationStage') || 'Litigation Stage'}</span>
                     <span className="inline-block px-1.5 py-0.5 bg-amber-500/10 text-amber-600 rounded text-[7.5px] font-black uppercase w-fit">{caseStage || 'Pre-trial'}</span>
                   </div>
                   <div className="space-y-0.5">
-                    <span className="text-[8px] uppercase font-black text-slate-400 tracking-wide">Evidence dossiers</span>
-                    <p className="font-bold text-violet-500">{evidenceList.length} Items</p>
+                    <span className="text-[8px] uppercase font-black text-slate-400 tracking-wide">{t('evidenceDossiersTitle') || 'Evidence dossiers'}</span>
+                    <p className="font-bold text-violet-500">{evidenceList.length} {t('items') || "Items"}</p>
                   </div>
                 </div>
               </div>
@@ -3313,20 +3521,20 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                   >
                     <div className="flex items-center gap-2">
                       <FileText size={14} className={activeAccordion === 'facts' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'} />
-                      <span className={`text-[10px] font-black uppercase tracking-wider ${activeAccordion === 'facts' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-805 dark:text-white'}`}>Case Facts & Claims</span>
+                      <span className={`text-[10px] font-black uppercase tracking-wider ${activeAccordion === 'facts' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-805 dark:text-white'}`}>{t('caseFactsClaims') || 'Case Facts & Claims'}</span>
                     </div>
                     {activeAccordion === 'facts' ? <ChevronUp size={14} className="text-indigo-600 dark:text-indigo-400" /> : <ChevronDown size={14} className="text-slate-400" />}
                   </div>
                   {activeAccordion === 'facts' && (
                     <div className={`p-4 space-y-3.5 ${isDark ? 'bg-[#0B1020]/20' : 'bg-white'}`}>
                       <div className="flex justify-between items-center text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                        <span>Facts statement brief</span>
+                        <span>{t('factsStatementBrief') || 'Facts statement brief'}</span>
                         <div className="flex items-center gap-2">
-                          <button onClick={() => setCaseFacts('')} className="hover:text-red-500">Clear</button>
+                          <button onClick={() => setCaseFacts('')} className="hover:text-red-500">{t('clear') || "Clear"}</button>
                           <button
                             onClick={() => {
                               navigator.clipboard.writeText(caseFacts);
-                              toast.success("Copied to clipboard!");
+                              toast.success(t('copiedToClipboard') || "Copied to clipboard!");
                             }}
                             className="hover:text-indigo-500"
                           >
@@ -3337,7 +3545,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
 
                       {!caseFacts.trim() && (
                         <div className="p-3 border rounded-xl bg-amber-500/5 border-amber-500/10 text-[10.5px] font-bold text-amber-600">
-                          ⚠️ Case facts currently empty. Enter details or use active cases to populate strategy targets.
+                          ⚠️ {t('caseFactsEmptyWarning') || 'Case facts currently empty. Enter details or use active cases to populate strategy targets.'}
                         </div>
                       )}
 
@@ -3345,7 +3553,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                         rows={5}
                         value={caseFacts}
                         onChange={e => setCaseFacts(e.target.value)}
-                        placeholder="Enter detailed facts of the case, breach details, transaction issues..."
+                        placeholder={t('factsStatementBriefPlaceholder') || 'Enter detailed facts of the case, breach details, transaction issues...'}
                         className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold outline-none resize-none ${isDark ? 'bg-black/25 border-zinc-800 text-white' : 'bg-slate-50 border-slate-200'
                           }`}
                       />
@@ -3353,7 +3561,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                   )}
                 </div>
 
-                {/* Accordion 2: Evidence Dossier */}
+                {/* Accordion 2: {t('evidenceDossier') || 'Evidence Dossier'} */}
                 <div className={`rounded-2xl overflow-hidden transition-all duration-300 ${activeAccordion === 'evidence'
                     ? 'border-2 border-indigo-500 shadow-lg dark:border-indigo-400'
                     : 'border border-slate-200 dark:border-zinc-800'
@@ -3367,7 +3575,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                   >
                     <div className="flex items-center gap-2">
                       <Database size={14} className={activeAccordion === 'evidence' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'} />
-                      <span className={`text-[10px] font-black uppercase tracking-wider ${activeAccordion === 'evidence' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-805 dark:text-white'}`}>Evidence Dossier</span>
+                      <span className={`text-[10px] font-black uppercase tracking-wider ${activeAccordion === 'evidence' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-805 dark:text-white'}`}>{t('evidenceDossier') || 'Evidence Dossier'}</span>
                     </div>
                     {activeAccordion === 'evidence' ? <ChevronUp size={14} className="text-indigo-600 dark:text-indigo-400" /> : <ChevronDown size={14} className="text-slate-400" />}
                   </div>
@@ -3380,7 +3588,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                           className="flex items-center gap-1 px-2.5 py-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-555 rounded-lg text-[8px] font-black uppercase transition-all"
                         >
                           <Sparkles size={9} />
-                          <span>Autofill Dossier</span>
+                          <span>{t('autofillDossier') || "Autofill Dossier"}</span>
                         </button>
                       </div>
 
@@ -3416,21 +3624,21 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                         </div>
                       ) : (
                         <div className="p-3 border rounded-xl bg-slate-500/5 text-center text-slate-405 font-bold">
-                          No evidence logged yet. Use AI Autofill or add manually below.
+                          {t('noEvidenceLoggedYet') || 'No evidence logged yet. Use AI Autofill or add manually below.'}
                         </div>
                       )}
 
                       {/* Inline form */}
                       <div className="p-3 border rounded-xl bg-slate-500/3 space-y-3.5">
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Add custom evidence item</span>
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">{t('addCustomEvidenceItem') || 'Add custom evidence item'}</span>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                           <div className="space-y-1">
-                            <span className="text-[8px] uppercase text-slate-405">Evidence Title / Name</span>
+                            <span className="text-[8px] uppercase text-slate-405">{t('evidenceTitleName') || 'Evidence Title / Name'}</span>
                             <input
                               type="text"
                               value={newEv.name}
                               onChange={e => setNewEv({ ...newEv, name: e.target.value })}
-                              placeholder="e.g. Agreement sheet copy"
+                              placeholder={t('evidenceTitlePlaceholder') || 'e.g. Agreement sheet copy'}
                               className={`w-full border rounded-lg px-2.5 py-1.5 text-xs font-semibold outline-none ${isDark ? 'bg-zinc-900 border-zinc-800 text-white' : 'bg-white border-slate-205'}`}
                             />
                           </div>
@@ -3507,7 +3715,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                             onClick={handleAddEvidence}
                             className="px-4 py-1.5 bg-indigo-650 hover:bg-indigo-705 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all"
                           >
-                            Add to Dossier
+                            {t('addToDossierButton') || 'Add to Dossier'}
                           </button>
                         </div>
                       </div>
@@ -3515,7 +3723,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                   )}
                 </div>
 
-                {/* Witness Pool (Only shown if witnesses detected) */}
+                {/* {t('witnessPoolTitle') || 'Witness Pool'} (Only shown if witnesses detected) */}
                 {witnessList.length > 0 && (
                   <div className={`rounded-2xl overflow-hidden transition-all duration-300 ${activeAccordion === 'witnesses'
                       ? 'border-2 border-indigo-500 shadow-lg dark:border-indigo-400'
@@ -3530,7 +3738,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                     >
                       <div className="flex items-center gap-2">
                         <UserCheck size={14} className={activeAccordion === 'witnesses' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'} />
-                        <span className={`text-[10px] font-black uppercase tracking-wider ${activeAccordion === 'witnesses' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-805 dark:text-white'}`}>Witness Pool</span>
+                        <span className={`text-[10px] font-black uppercase tracking-wider ${activeAccordion === 'witnesses' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-805 dark:text-white'}`}>{t('witnessPoolTitle') || 'Witness Pool'}</span>
                       </div>
                       {activeAccordion === 'witnesses' ? <ChevronUp size={14} className="text-indigo-600 dark:text-indigo-400" /> : <ChevronDown size={14} className="text-slate-400" />}
                     </div>
@@ -3574,7 +3782,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                         : (isDark ? 'bg-[#131c31] border-zinc-800 text-slate-404 hover:text-white' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100')
                       }`}
                   >
-                    <span>{showAdvanced ? 'Hide Advanced Parameters' : 'Show Advanced Parameters'}</span>
+                    <span>{showAdvanced ? (t('hideAdvancedParameters') || 'Hide Advanced Parameters') : (t('showAdvancedParameters') || 'Show Advanced Parameters')}</span>
                     {showAdvanced ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                   </button>
                 </div>
@@ -3597,20 +3805,20 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                       >
                         <div className="flex items-center gap-2">
                           <Clock size={14} className={activeAccordion === 'timeline' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'} />
-                          <span className={`text-[10px] font-black uppercase tracking-wider ${activeAccordion === 'timeline' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-800 dark:text-white'}`}>Milestones Chronology</span>
+                          <span className={`text-[10px] font-black uppercase tracking-wider ${activeAccordion === 'timeline' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-800 dark:text-white'}`}>{t('milestonesChronologyTitle') || 'Milestones Chronology'}</span>
                         </div>
                         {activeAccordion === 'timeline' ? <ChevronUp size={14} className="text-indigo-600 dark:text-indigo-400" /> : <ChevronDown size={14} className="text-slate-400" />}
                       </div>
                       {activeAccordion === 'timeline' && (
                         <div className={`p-4 space-y-4 ${isDark ? 'bg-[#0B1020]/20' : 'bg-white'}`}>
                           <div className="flex justify-between items-center">
-                            <span className="text-[8px] font-black text-slate-405 uppercase">Chronological Milestones Chain</span>
+                            <span className="text-[8px] font-black text-slate-405 uppercase">{t('chronologicalMilestonesChain') || 'Chronological Milestones Chain'}</span>
                             <button
                               onClick={() => runAIFieldExtraction('timeline')}
                               className="flex items-center gap-1 px-2.5 py-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-655 rounded-lg text-[8px] font-black uppercase transition-all"
                             >
                               <Sparkles size={9} />
-                              <span>AI Chronology Sync</span>
+                              <span>{t('aiChronologySync') || 'AI Chronology Sync'}</span>
                             </button>
                           </div>
 
@@ -3631,7 +3839,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                             </div>
                           ) : (
                             <div className="p-3 border rounded-xl bg-slate-500/5 text-center text-slate-400 font-bold">
-                              No timeline milestones parsed yet.
+                              {t('noTimelineMilestones') || 'No timeline milestones parsed yet.'}
                             </div>
                           )}
                         </div>
@@ -3652,7 +3860,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                         >
                           <div className="flex items-center gap-2">
                             <UserCheck size={14} className={activeAccordion === 'witnesses' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'} />
-                            <span className={`text-[10px] font-black uppercase tracking-wider ${activeAccordion === 'witnesses' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-800 dark:text-white'}`}>Witness Registry (Add manually)</span>
+                            <span className={`text-[10px] font-black uppercase tracking-wider ${activeAccordion === 'witnesses' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-800 dark:text-white'}`}>{t('witnessRegistryAddManually') || 'Witness Registry (Add manually)'}</span>
                           </div>
                           {activeAccordion === 'witnesses' ? <ChevronUp size={14} className="text-indigo-600 dark:text-indigo-400" /> : <ChevronDown size={14} className="text-slate-400" />}
                         </div>
@@ -3678,7 +3886,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                       >
                         <div className="flex items-center gap-2">
                           <Scale size={14} className={activeAccordion === 'relief' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'} />
-                          <span className={`text-[10px] font-black uppercase tracking-wider ${activeAccordion === 'relief' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-800 dark:text-white'}`}>Relief & Previous Orders</span>
+                          <span className={`text-[10px] font-black uppercase tracking-wider ${activeAccordion === 'relief' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-800 dark:text-white'}`}>{t('reliefPreviousOrders') || 'Relief & Previous Orders'}</span>
                         </div>
                         {activeAccordion === 'relief' ? <ChevronUp size={14} className="text-indigo-600 dark:text-indigo-400" /> : <ChevronDown size={14} className="text-slate-400" />}
                       </div>
@@ -3686,7 +3894,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                         <div className={`p-4 space-y-3.5 ${isDark ? 'bg-black/5' : 'bg-white'}`}>
                           {/* Relief */}
                           <div className="space-y-1.5">
-                            <span className="text-[8px] font-black text-slate-404 uppercase">Relief Category preset</span>
+                            <span className="text-[8px] font-black text-slate-404 uppercase">{t('reliefCategoryPreset') || 'Relief Category preset'}</span>
                             <div className="flex flex-wrap gap-1.5">
                               {['Compensation damages', 'Specific performance', 'Permanent Injunction', 'Declaration decree', 'Declaration nullity', 'Stay execution order'].map(chip => {
                                 const active = scenarioRelief.includes(chip);
@@ -3709,10 +3917,10 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                           </div>
 
                           <div className="space-y-1 text-xs">
-                            <span className="text-[8px] font-black text-slate-400 uppercase">Relief Sought Details (AI suggested / editable)</span>
+                            <span className="text-[8px] font-black text-slate-400 uppercase">{t('reliefSoughtDetailsSuggested') || 'Relief Sought Details (AI suggested / editable)'}</span>
                             <input
                               type="text"
-                              placeholder="AI will suggest relief details, or you can edit..."
+                              placeholder={t('aiWillSuggestRelief') || 'AI will suggest relief details, or you can edit...'}
                               value={scenarioRelief}
                               onChange={e => setScenarioRelief(e.target.value)}
                               className={`w-full border rounded-xl px-3 py-2 outline-none font-bold ${isDark ? 'bg-black/25 border-zinc-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-808'}`}
@@ -3721,12 +3929,12 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
 
                           {/* Previous Court Orders */}
                           <div className="space-y-1 text-xs pt-2 border-t border-slate-100 dark:border-white/5">
-                            <span className="text-[8px] font-black text-slate-400 uppercase">Previous Court Orders (if any)</span>
+                            <span className="text-[8px] font-black text-slate-400 uppercase">{t('previousCourtOrdersIfAny') || 'Previous Court Orders (if any)'}</span>
                             <textarea
                               rows={3}
                               value={scenarioOrders}
                               onChange={e => setScenarioOrders(e.target.value)}
-                              placeholder="Enter previous stays, notices, or caveat decrees details..."
+                              placeholder={t('enterPreviousStaysPlaceholder') || 'Enter previous stays, notices, or caveat decrees details...'}
                               className={`w-full border rounded-xl px-3 py-2 outline-none resize-none font-bold ${isDark ? 'bg-black/25 border-zinc-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
                             />
                           </div>
@@ -3738,13 +3946,13 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
               </div>
             )}
 
-            {/* REDESIGNED Strategy Readiness Metrics Card */}
+            {/* REDESIGNED {t('strategyReadiness') || 'Strategy Readiness'} Metrics Card */}
             <div className={`border rounded-3xl p-5 shadow-sm space-y-4 ${isDark ? 'bg-[#131c31]/30 border-slate-800' : 'bg-white border-slate-200'
               }`}>
               <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-zinc-800/80">
                 <div className="flex items-center gap-2">
                   <Shield size={16} className="text-indigo-505 font-extrabold" />
-                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">Strategy Readiness</h3>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">{t('strategyReadiness') || 'Strategy Readiness'}</h3>
                 </div>
                 <span className={`px-2.5 py-0.5 rounded text-[10px] font-black uppercase ${
                   strategyReadinessCalculated.overall === 100
@@ -3800,7 +4008,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                 {isAuditing ? (
                   <>
                     <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
-                    <span>Generating AI Strategy...</span>
+                    <span>{t('generatingAiStrategy') || 'Generating AI Strategy...'}</span>
                   </>
                 ) : (
                   <>
@@ -3809,7 +4017,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                   </>
                 )}
               </button>
-              <p className="text-[8.5px] font-black uppercase text-slate-400 tracking-wider">Estimated Processing Time: 12 Sec</p>
+              <p className="text-[8.5px] font-black uppercase text-slate-400 tracking-wider">{t('estimatedProcessingTime12Sec') || 'Estimated Processing Time: 12 Sec'}</p>
             </div>
 
             {/* AI Simulation run loading steps (directly below the button) */}
@@ -3853,7 +4061,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
               </div>
             )}
 
-            {/* AI STRATEGY REPORT (PREMIUM PROFESSIONAL LEGAL CARD IN SAME LOCATION) */}
+            {/* {t('aiStrategyReport') || 'AI STRATEGY REPORT'} (PREMIUM PROFESSIONAL LEGAL CARD IN SAME LOCATION) */}
             {strategyResult && (
               <div ref={reportRef} className="space-y-6 pt-4 report-animate-fadeIn">
                 <div className={`p-8 sm:p-12 border-t-8 border-indigo-600 rounded-[32px] shadow-2xl space-y-8 select-text ${isDark ? 'bg-[#131c31] border-zinc-800' : 'bg-white border-slate-205'
@@ -3863,14 +4071,14 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                   <div className="text-center border-b pb-6 border-slate-200 dark:border-zinc-800/80">
                     <div className="flex justify-center items-center gap-2 mb-2 text-indigo-600 dark:text-indigo-400">
                       <Scale size={32} />
-                      <span className="font-extrabold text-sm uppercase tracking-[0.2em] text-slate-800 dark:text-slate-200">AI Legal™ Intelligence Command</span>
+                      <span className="font-extrabold text-sm uppercase tracking-[0.2em] text-slate-800 dark:text-slate-200">{t('litigationCommandSubtitle') || 'AI Legal™ Intelligence Command'}</span>
                     </div>
                     <div className="font-mono text-[9px] uppercase tracking-widest text-slate-400 dark:text-zinc-500">
-                      Confidential Legal Report // Privileged Attorney Work Product
+                      {t('confidentialLegalReportPrivileged') || 'Confidential Legal Report // Privileged Attorney Work Product'}
                     </div>
                     <div className="font-serif text-[18px] sm:text-[22px] font-black text-slate-800 dark:text-slate-100 tracking-wide mt-4 py-2 border-y border-dashed border-slate-200 dark:border-zinc-800/80">
                       =================================<br />
-                      AI STRATEGY REPORT<br />
+                      {t('aiStrategyReport') || 'AI STRATEGY REPORT'}<br />
                       =================================
                     </div>
                   </div>
@@ -3882,7 +4090,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                       <p className="font-black text-slate-800 dark:text-slate-200">{caseTitle || 'Custom Courtroom Strategy'}</p>
                     </div>
                     <div>
-                      <p className="text-slate-400 uppercase tracking-wider font-extrabold text-[8px] mb-1">Court / Jurisdiction</p>
+                      <p className="text-slate-400 uppercase tracking-wider font-extrabold text-[8px] mb-1">Court / {t('jurisdiction') || 'Jurisdiction'}</p>
                       <p className="font-black text-slate-800 dark:text-slate-200">{courtName || 'Not Specified'}</p>
                     </div>
                     <div>
@@ -3895,9 +4103,9 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                     </div>
                   </div>
 
-                  {/* Executive Summary */}
+                  {/* {t('executiveSummary') || 'Executive Summary'} */}
                   <div className="space-y-3">
-                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">Executive Summary</h3>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">{t('executiveSummary') || 'Executive Summary'}</h3>
                     <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 leading-relaxed">
                       {strategyResult.finalOpinion?.reasoning || strategyResult.strategies?.primary?.description || "No summary details generated."}
                     </p>
@@ -3907,7 +4115,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div className="p-5 border rounded-2xl bg-slate-50 dark:bg-black/10 dark:border-zinc-800/80 space-y-2">
                       <div className="flex justify-between items-center text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                        <span>Winning Probability</span>
+                        <span>{t('winningProbability') || 'Winning Probability'}</span>
                         <span className="text-emerald-500 text-sm font-black">{stats.winningProbability}%</span>
                       </div>
                       <div className="w-full bg-slate-200 dark:bg-zinc-800 h-2.5 rounded-full overflow-hidden">
@@ -3918,7 +4126,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
 
                     <div className="p-5 border rounded-2xl bg-slate-50 dark:bg-black/10 dark:border-zinc-800/80 space-y-2">
                       <div className="flex justify-between items-center text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                        <span>Case Strength Score</span>
+                        <span>{t('caseStrengthScore') || 'Case Strength Score'}</span>
                         <span className="text-indigo-500 text-sm font-black">{stats.overallStrategyScore}/100</span>
                       </div>
                       <div className="w-full bg-slate-200 dark:bg-zinc-800 h-2.5 rounded-full overflow-hidden">
@@ -3928,11 +4136,11 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                     </div>
                   </div>
 
-                  {/* Strengths & Weaknesses (Grid) */}
+                  {/* {t('strengthsTitle') || 'Strengths'} & {t('weaknessesTitle') || 'Weaknesses'} (Grid) */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {/* Strengths */}
+                    {/* {t('strengthsTitle') || 'Strengths'} */}
                     <div className="space-y-3">
-                      <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">Strengths</h3>
+                      <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">{t('strengthsTitle') || 'Strengths'}</h3>
                       <div className="space-y-2">
                         {strategyResult.evidenceStrategy?.strong?.map((item, idx) => (
                           <div key={idx} className="flex gap-2.5 p-3 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 text-xs font-semibold text-slate-800 dark:text-slate-205">
@@ -3949,9 +4157,9 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                       </div>
                     </div>
 
-                    {/* Weaknesses */}
+                    {/* {t('weaknessesTitle') || 'Weaknesses'} */}
                     <div className="space-y-3">
-                      <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">Weaknesses</h3>
+                      <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">{t('weaknessesTitle') || 'Weaknesses'}</h3>
                       <div className="space-y-2">
                         {strategyResult.evidenceStrategy?.weak?.map((item, idx) => (
                           <div key={idx} className="flex gap-2.5 p-3 rounded-2xl bg-red-500/5 border border-red-500/10 text-xs font-semibold text-slate-800 dark:text-slate-200">
@@ -3977,9 +4185,9 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                     </div>
                   </div>
 
-                  {/* Key Legal Issues */}
+                  {/* {t('keyLegalIssuesTitle') || 'Key Legal Issues'} */}
                   <div className="space-y-3">
-                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">Key Legal Issues</h3>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">{t('keyLegalIssuesTitle') || 'Key Legal Issues'}</h3>
                     <div className="space-y-2">
                       {strategyResult.judgePerspective?.likelyQuestions?.map((issue, idx) => (
                         <div key={idx} className="flex gap-3 p-3.5 border rounded-2xl bg-slate-50 dark:bg-black/10 dark:border-zinc-800/80 text-xs font-semibold text-slate-800 dark:text-slate-200">
@@ -3993,9 +4201,9 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                     </div>
                   </div>
 
-                  {/* Opponent Analysis */}
+                  {/* {t('opponentAnalysisTitle') || 'Opponent Analysis'} */}
                   <div className="space-y-3">
-                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-655 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">Opponent Analysis</h3>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-655 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">{t('opponentAnalysisTitle') || 'Opponent Analysis'}</h3>
                     <div className="p-5 border rounded-2xl bg-slate-50 dark:bg-black/10 dark:border-zinc-800/80 space-y-3 text-xs font-semibold text-slate-700 dark:text-slate-300 leading-relaxed">
                       <p><strong>Likely Opposition Defense:</strong> {strategyResult.opponentStrategy?.likelyDefence || 'Not Specified'}</p>
                       {strategyResult.opponentStrategy?.likelyObjections?.length > 0 && (
@@ -4012,9 +4220,9 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                     </div>
                   </div>
 
-                  {/* Relevant Precedents */}
+                  {/* {t('relevantPrecedentsTitle') || 'Relevant Precedents'} */}
                   <div className="space-y-3">
-                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">Relevant Precedents</h3>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">{t('relevantPrecedentsTitle') || 'Relevant Precedents'}</h3>
                     <div className="space-y-3">
                       {strategyResult.precedents?.map((p, idx) => (
                         <div key={idx} className="p-4 border rounded-2xl bg-slate-50 dark:bg-black/10 dark:border-zinc-800/80">
@@ -4035,9 +4243,9 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                     </div>
                   </div>
 
-                  {/* Evidence Evaluation */}
+                  {/* {t('evidenceEvaluationTitle') || 'Evidence Evaluation'} */}
                   <div className="space-y-3">
-                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">Evidence Evaluation</h3>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">{t('evidenceEvaluationTitle') || 'Evidence Evaluation'}</h3>
                     <div className="p-5 border rounded-2xl bg-slate-50 dark:bg-black/10 dark:border-zinc-800/80 space-y-4">
                       {/* Admissible Evidence list */}
                       <div className="space-y-2">
@@ -4063,9 +4271,9 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                     </div>
                   </div>
 
-                  {/* Recommended Arguments */}
+                  {/* {t('recommendedArgumentsTitle') || 'Recommended Arguments'} */}
                   <div className="space-y-3">
-                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">Recommended Arguments</h3>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">{t('recommendedArgumentsTitle') || 'Recommended Arguments'}</h3>
                     <div className="space-y-3">
                       {strategyResult.finalArguments?.arguments?.map((arg, idx) => (
                         <div key={idx} className="flex gap-3 p-4 border border-dashed rounded-2xl bg-slate-500/3 text-xs font-semibold text-slate-700 dark:text-slate-300 leading-relaxed">
@@ -4082,9 +4290,9 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                     </div>
                   </div>
 
-                  {/* Cross Examination Strategy */}
+                  {/* {t('crossExaminationStrategyTitle') || 'Cross Examination Strategy'} */}
                   <div className="space-y-3">
-                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">Cross Examination Strategy</h3>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">{t('crossExaminationStrategyTitle') || 'Cross Examination Strategy'}</h3>
                     <div className="space-y-3">
                       {strategyResult.crossExamPlanner?.map((plan, idx) => (
                         <div key={idx} className="p-5 border rounded-2xl bg-slate-50 dark:bg-black/10 dark:border-zinc-800/80 space-y-3 text-xs">
@@ -4113,9 +4321,9 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                     </div>
                   </div>
 
-                  {/* Risk Assessment */}
+                  {/* {t('riskAssessmentTitle') || 'Risk Assessment'} */}
                   <div className="space-y-3">
-                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">Risk Assessment</h3>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">{t('riskAssessmentTitle') || 'Risk Assessment'}</h3>
                     <div className="p-5 border rounded-2xl bg-slate-50 dark:bg-black/10 dark:border-zinc-800/80 space-y-4">
                       {(() => {
                         const risks = strategyResult.risks || {};
@@ -4151,9 +4359,9 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                     </div>
                   </div>
 
-                  {/* Settlement Recommendation */}
+                  {/* {t('settlementRecommendationTitle') || 'Settlement Recommendation'} */}
                   <div className="space-y-3">
-                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">Settlement Recommendation</h3>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">{t('settlementRecommendationTitle') || 'Settlement Recommendation'}</h3>
                     <div className="p-5 border rounded-2xl bg-slate-50 dark:bg-black/10 dark:border-zinc-800/80 space-y-4">
                       <div className="text-xs font-semibold leading-relaxed text-slate-650 dark:text-slate-350">
                         <p><strong>Mediation Suitability:</strong> {strategyResult.settlement?.mediationPossibility || 'Highly suitable for Section 89 mediation'}</p>
@@ -4177,9 +4385,9 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                     </div>
                   </div>
 
-                  {/* Litigation Roadmap */}
+                  {/* {t('litigationRoadmapTitle') || 'Litigation Roadmap'} */}
                   <div className="space-y-3">
-                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">Litigation Roadmap</h3>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">{t('litigationRoadmapTitle') || 'Litigation Roadmap'}</h3>
                     <div className="p-5 border rounded-2xl bg-slate-50 dark:bg-black/10 dark:border-zinc-800/80 space-y-4">
                       <div className="relative border-l border-slate-200 dark:border-zinc-800 pl-4 ml-2 space-y-4">
                         {strategyResult.winningRoadmap?.map((stage, idx) => (
@@ -4202,9 +4410,9 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                     </div>
                   </div>
 
-                  {/* Immediate Next Steps */}
+                  {/* {t('immediateNextStepsTitle') || 'Immediate Next Steps'} */}
                   <div className="space-y-3">
-                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">Immediate Next Steps</h3>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 border-b pb-1 border-slate-200 dark:border-zinc-800/80">{t('immediateNextStepsTitle') || 'Immediate Next Steps'}</h3>
                     <div className="p-5 border rounded-2xl bg-slate-50 dark:bg-black/10 dark:border-zinc-800/80 space-y-3">
                       {strategyResult.aiRecommendations?.doFirst?.map((act, idx) => (
                         <div key={idx} className="flex items-center gap-3 p-3 border rounded-xl bg-white dark:bg-zinc-900 dark:border-zinc-800/85 text-xs font-semibold text-slate-805 dark:text-slate-200 shadow-sm">
@@ -4264,7 +4472,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
           <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setHistoryVisible(false)} />
           <div className="relative bg-white dark:bg-zinc-900 border border-slate-205 dark:border-zinc-850 rounded-[32px] w-[95vw] sm:max-w-lg max-h-[85%] flex flex-col overflow-hidden shadow-2xl p-4 sm:p-6 animate-fadeIn">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-4 shrink-0">
-              <h3 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-wider">Simulation History Logs</h3>
+              <h3 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-wider">{t('simulationHistoryLogs') || 'Simulation History Logs'}</h3>
               <button onClick={() => setHistoryVisible(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full">
                 <X size={20} className="text-slate-400" />
               </button>
@@ -4275,7 +4483,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
               <Search size={14} className="text-slate-400 mr-2" />
               <input
                 type="text"
-                placeholder="Search past simulation strategies..."
+                placeholder={t('searchPastSimulationStrategies') || 'Search past simulation strategies...'}
                 className="w-full bg-transparent border-none text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-0"
                 value={historySearch}
                 onChange={e => setHistorySearch(e.target.value)}
@@ -4308,13 +4516,13 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                     </span>
                     <button
                       onClick={() => {
-                        setStrategyResult(item.activeStrategy || item);
+                        setRawStrategyResultAndSync(item.activeStrategy || item);
                         setHistoryVisible(false);
-                        toast.success(`Loaded strategy: ${item.title}`);
+                        toast.success((t('loadedStrategy') || "Loaded strategy: ") + item.title);
                       }}
                       className="px-3 py-1 bg-indigo-650 hover:bg-indigo-700 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all"
                     >
-                      Load Strategy
+                      {t('loadStrategyButton') || 'Load Strategy'}
                     </button>
                   </div>
                 </div>
@@ -4323,7 +4531,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
               {historyData.length === 0 && (
                 <div className="text-center py-10 space-y-2">
                   <Folder size={32} className="mx-auto text-slate-350 dark:text-zinc-700" />
-                  <p className="text-xs font-semibold text-slate-400">No strategy simulations archived.</p>
+                  <p className="text-xs font-semibold text-slate-400">{t('noStrategySimulationsArchived') || 'No strategy simulations archived.'}</p>
                 </div>
               )}
             </div>
@@ -4402,7 +4610,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
               </div>
 
               <div className="space-y-1">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wide">Court Jurisdiction</label>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wide">Court {t('jurisdiction') || 'Jurisdiction'}</label>
                 <input
                   type="text"
                   placeholder="e.g. Supreme Court of India"
@@ -4503,7 +4711,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                 <div className={`px-5 py-4 border-b ${isDark ? 'border-slate-800/60' : 'border-slate-100'}`}>
                   <div className="flex items-center justify-between mb-2">
                     <span className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                      {editingNoteId ? 'Editing Note' : 'New Note'}
+                      {editingNoteId ? (t('editNote') || 'Edit Note') : (t('newNote') || 'New Note')}
                     </span>
                     <span className="text-[9px]">{saveStatusLabel()}</span>
                   </div>
@@ -4541,7 +4749,7 @@ Schema: [{"name": "Witness Name", "role": "Role description", "supports": "Plain
                       {notesSaveStatus === 'saving' ? (
                         <><RefreshCw size={11} className="animate-spin" /> Saving...</>
                       ) : (
-                        <><Save size={11} /> {editingNoteId ? 'Update Note' : 'Save Note'}</>
+                        <><Save size={11} /> {editingNoteId ? (t('updateNote') || 'Update Note') : (t('saveNote') || 'Save Note')}</>
                       )}
                     </button>
                     {editingNoteId && (

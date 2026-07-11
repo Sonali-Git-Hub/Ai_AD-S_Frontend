@@ -93,6 +93,71 @@ apiClient.interceptors.response.use(
 );
 
 export const apiService = {
+  // ─── Finance Dashboard ─────────────────────────────────────────────────────
+  async getFinanceStats() {
+    try {
+      const response = await apiClient.get('/admin/finance/stats');
+      return response.data;
+    } catch (error) {
+      console.error('[apiService] getFinanceStats failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async getFinanceInvoices(params = {}) {
+    try {
+      const response = await apiClient.get('/admin/finance/invoices', { params });
+      return response.data;
+    } catch (error) {
+      console.error('[apiService] getFinanceInvoices failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async getMonthlyReport(month, year) {
+    try {
+      const response = await apiClient.get('/admin/finance/monthly-report', { params: { month, year } });
+      return response.data;
+    } catch (error) {
+      console.error('[apiService] getMonthlyReport failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async exportFinanceCSV(params = {}) {
+    try {
+      const response = await apiClient.get('/admin/finance/export-csv', {
+        params,
+        responseType: 'blob',
+      });
+      return response;
+    } catch (error) {
+      console.error('[apiService] exportFinanceCSV failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async downloadInvoicePDF(subscriptionId) {
+    try {
+      const response = await apiClient.get(`/payment/invoice/${subscriptionId}`, {
+        responseType: 'blob',
+      });
+      return response;
+    } catch (error) {
+      console.error('[apiService] downloadInvoicePDF failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Legacy billing methods (kept for any existing references)
+  async getAdminBillingStats() {
+    return this.getFinanceStats();
+  },
+
+  async getAdminInvoices(search = '', page = 1) {
+    return this.getFinanceInvoices({ search, page });
+  },
+
   // --- AI Tools ---
   async generateImage(prompt, aspectRatio = '1:1', modelId = 'imagen-3.0-generate-001') {
     try {
@@ -715,9 +780,11 @@ export const apiService = {
     }
   },
 
-  async getAdminErrorDrillDown(mode, range = '7d') {
+  async getAdminErrorDrillDown(mode, range = '7d', tool = '') {
     try {
-      const response = await apiClient.get(`/admin/analytics/errors/${encodeURIComponent(mode)}`, { params: { range } });
+      const params = { range };
+      if (tool) params.tool = tool;
+      const response = await apiClient.get(`/admin/analytics/errors/${encodeURIComponent(mode)}`, { params });
       return response.data;
     } catch (error) {
       console.error('Failed to fetch error drill-down:', error.message);
@@ -899,6 +966,18 @@ export const apiService = {
       throw error;
     }
   },
+
+  async transcribeAudio(audioBase64, mimeType = 'audio/webm') {
+    try {
+      const response = await apiClient.post('/voice/transcribe', { audio: audioBase64, mimeType });
+      return response.data;
+    } catch (error) {
+      console.error("Audio transcription failed:", error);
+      throw error;
+    }
+  },
+
+
 
   // --- Notifications ---
   async getNotifications() {
@@ -1981,8 +2060,6 @@ export const apiService = {
     }
   },
 
-  // ── Brand Intelligence Agent: Auto-Discovery ────────────────────────────────
-
   async discoverBrandAssets(workspaceId, urlOrFormData) {
     try {
       const isFormData = urlOrFormData instanceof FormData;
@@ -2040,7 +2117,246 @@ export const apiService = {
       console.error("Failed to upload media file:", error);
       throw error;
     }
-  }
+  },
+
+  // ─── Admin Billing & Stats ──────────────────────────────────────────────────
+  async getAdminBillingStats() {
+    try {
+      const response = await apiClient.get('/admin/billing/stats');
+      return response.data;
+    } catch (error) {
+      console.error('getAdminBillingStats failed:', error);
+      throw error;
+    }
+  },
+
+  async getAdminInvoices(search = '', page = 1) {
+    try {
+      const response = await apiClient.get('/admin/billing/invoices', {
+        params: { search, page, limit: 15 }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('getAdminInvoices failed:', error);
+      throw error;
+    }
+  },
+
+  // ─── Finance Dashboard ──────────────────────────────────────────────────────
+  async getFinanceStats() {
+    try {
+      const response = await apiClient.get('/admin/finance/stats');
+      return response.data;
+    } catch (error) {
+      console.error('getFinanceStats failed:', error);
+      throw error;
+    }
+  },
+
+  async getFinanceInvoices(params = {}) {
+    try {
+      const response = await apiClient.get('/admin/finance/invoices', { params });
+      return response.data;
+    } catch (error) {
+      console.error('getFinanceInvoices failed:', error);
+      throw error;
+    }
+  },
+
+  async getMonthlyReport(month, year) {
+    try {
+      const response = await apiClient.get('/admin/finance/monthly-report', { params: { month, year } });
+      return response.data;
+    } catch (error) {
+      console.error('getMonthlyReport failed:', error);
+      throw error;
+    }
+  },
+
+  async exportFinanceCSV(params = {}) {
+    try {
+      const response = await apiClient.get('/admin/finance/export-csv', { params, responseType: 'blob' });
+      return response.data;
+    } catch (error) {
+      console.error('exportFinanceCSV failed:', error);
+      throw error;
+    }
+  },
+
+  async syncRazorpayPayments(daysBack = 90) {
+    try {
+      const response = await apiClient.post('/admin/finance/sync-razorpay', null, { params: { daysBack } });
+      return response.data;
+    } catch (error) {
+      console.error('syncRazorpayPayments failed:', error);
+      throw error;
+    }
+  },
+
+  async downloadInvoice(subscriptionId) {
+    try {
+      const response = await apiClient.get(`/payment/invoice/${subscriptionId}`, {
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error) {
+      console.error('downloadInvoice failed:', error);
+      throw error;
+    }
+  },
+
+  // ─── Cases & Evidence ──────────────────────────────────────────────────────
+  async getEvidence(caseId) {
+    try {
+      const response = await apiClient.get(`/cases/${caseId}/evidence`);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] getEvidence failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async uploadEvidence(caseId, data) {
+    try {
+      const response = await apiClient.post(`/cases/${caseId}/evidence`, data);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] uploadEvidence failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async updateEvidence(caseId, evidenceId, data) {
+    try {
+      const response = await apiClient.patch(`/cases/${caseId}/evidence/${evidenceId}`, data);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] updateEvidence failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async deleteEvidence(caseId, evidenceId) {
+    try {
+      const response = await apiClient.delete(`/cases/${caseId}/evidence/${evidenceId}`);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] deleteEvidence failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async getEvidenceStats(caseId) {
+    try {
+      const response = await apiClient.get(`/cases/${caseId}/evidence/stats`);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] getEvidenceStats failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // ─── Secure Account Deletion ───────────────────────────────────────────────
+  async sendDeleteAccountOtp() {
+    try {
+      const response = await apiClient.post('/user/delete-otp/send');
+      return response.data;
+    } catch (error) {
+      console.error('sendDeleteAccountOtp failed:', error);
+      throw error;
+    }
+  },
+
+  async verifyDeleteAccountOtp(otp) {
+    try {
+      const response = await apiClient.post('/user/delete-otp/verify', { otp });
+      return response.data;
+    } catch (error) {
+      console.error('verifyDeleteAccountOtp failed:', error);
+      throw error;
+    }
+  },
+
+  async deleteAccountSecure() {
+    try {
+      const response = await apiClient.delete('/user');
+      return response.data;
+    } catch (error) {
+      console.error('deleteAccountSecure failed:', error);
+      throw error;
+    }
+  },
+
+  // ─── DevOps Incident Management ────────────────────────────────────────────
+  async getIncidents(params = {}) {
+    try {
+      const response = await apiClient.get('/incidents', { params });
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] getIncidents failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async getIncidentKPIs(params = {}) {
+    try {
+      const response = await apiClient.get('/incidents/kpis', { params });
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] getIncidentKPIs failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async getIncidentDetails(incidentId) {
+    try {
+      const response = await apiClient.get(`/incidents/${incidentId}`);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] getIncidentDetails failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async assignIncident(incidentId, developerId, developerName) {
+    try {
+      const response = await apiClient.post(`/incidents/${incidentId}/assign`, { developerId, developerName });
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] assignIncident failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async resolveIncident(incidentId, details) {
+    try {
+      const response = await apiClient.post(`/incidents/${incidentId}/resolve`, details);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] resolveIncident failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async updateIncidentStatus(incidentId, status, notes) {
+    try {
+      const response = await apiClient.post(`/incidents/${incidentId}/status`, { status, notes });
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] updateIncidentStatus failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async getSessionReplayDetails(sessionId) {
+    try {
+      const response = await apiClient.get(`/incidents/session-replay/${sessionId}`);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] getSessionReplayDetails failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
 };
 
 export default apiService;

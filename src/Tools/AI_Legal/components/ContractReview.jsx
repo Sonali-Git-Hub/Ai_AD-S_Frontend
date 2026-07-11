@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   ChevronLeft, ChevronRight, Gavel, Plus, FileText, Copy, 
   Share2, FileDown, History, Search, X, Shield, Clock, 
@@ -17,6 +18,8 @@ import { getUserData } from '../../../userStore/userData';
 import useOutputLanguage from '../hooks/useOutputLanguage';
 import { useLanguage } from '../../../context/LanguageContext';
 import LanguageToggle from './shared/LanguageToggle';
+import { UniversalMultimodalInput } from './shared/UniversalMultimodalInput';
+
 import CopyOutputButton from './shared/CopyOutputButton';
 
 // Specialized modules presets
@@ -225,12 +228,14 @@ Section 9. Governing Law: Subject to Courts of Delhi.`;
 };
 
 const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdateCase }) => {
-  const { toolkitLanguage, setToolkitLanguage } = useLanguage();
+  const { toolkitLanguage, setToolkitLanguage, tLegal: t } = useLanguage();
   const isDark = theme === 'dark';
   
   // Platform States
   const [contractTitle, setContractTitle] = useState('');
   const [contractText, setContractText] = useState('');
+  const [multimodalContext, setMultimodalContext] = useState(null);
+
   const [activeTemplateId, setActiveTemplateId] = useState('NDA');
   const [linkedCaseId, setLinkedCaseId] = useState(currentCase?._id || '');
   const [isSyncing, setIsSyncing] = useState(false);
@@ -245,14 +250,110 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
 
   // Audit States
   const [isAuditing, setIsAuditing] = useState(false);
+  const [auditError, setAuditError] = useState(null); // stores last error for retry UI
+  const auditAbortRef = React.useRef(null); // AbortController ref for cancel/timeout
   const [auditStep, setAuditStep] = useState('');
-  const [auditResult, setAuditResult] = useState(null);
+  const [rawAuditResult, setRawAuditResult] = useState(null);
+  const [translatedAuditResult, setTranslatedAuditResult] = useState(null);
+  const originalResultLangRef = useRef('en');
+
+  const activeAuditResult = useMemo(() => {
+    const currentTargetLang = toolkitLanguage === 'Hindi' ? 'hi' : 'en';
+    if (currentTargetLang === originalResultLangRef.current || !translatedAuditResult) {
+      return rawAuditResult;
+    }
+    return translatedAuditResult;
+  }, [toolkitLanguage, translatedAuditResult, rawAuditResult]);
+
+  const auditResult = activeAuditResult;
+
+  const deepTranslateAuditResult = useCallback(async (result, translateFn) => {
+    if (!result) return null;
+
+    const EXCLUDED_KEYS = new Set([
+      'id', '_id', 'risk', 'status', 'confidence', 'overallScore', 'riskScore',
+      'complianceScore', 'negotiationScore', 'missingClausesCount', 'confidenceRate',
+      'highRiskClausesCount', 'mediumRiskClausesCount', 'lowRiskClausesCount', 'totalClausesCount',
+      'timeSaved', 'reviewStatus', 'effectiveDate', 'expiryDate', 'duration', 'date', 'timestamp',
+      'taxes', 'deposit', 'penalty', 'lateFees', 'renewalCharges', 'interest', 'unfair'
+    ]);
+
+    const isBypass = (str) => {
+      if (!str || typeof str !== 'string') return true;
+      const trimmed = str.trim();
+      if (!trimmed) return true;
+      if (/^[0-9a-fA-F]{32,64}$/.test(trimmed)) return true;
+      if (/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(trimmed)) return true;
+      if (/^\d+(%|\/\d+)?$/.test(trimmed)) return true;
+      if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) return true;
+      return false;
+    };
+
+    const translatableList = [];
+
+    const traverseCollect = (val, path) => {
+      if (val === null || val === undefined) return;
+      if (typeof val === 'string') {
+        const lastKey = path.split('.').pop();
+        if (!EXCLUDED_KEYS.has(lastKey) && !isBypass(val)) {
+          translatableList.push({ path, original: val });
+        }
+      } else if (Array.isArray(val)) {
+        val.forEach((item, index) => traverseCollect(item, `${path}[${index}]`));
+      } else if (typeof val === 'object') {
+        Object.keys(val).forEach(key => {
+          traverseCollect(val[key], path ? `${path}.${key}` : key);
+        });
+      }
+    };
+
+    traverseCollect(result, '');
+
+    if (translatableList.length === 0) return result;
+
+    const delimiter = ' ||| ';
+    const joinedText = translatableList.map(item => item.original).join(delimiter);
+
+    const translatedText = await translateFn(joinedText);
+    const translatedSegments = translatedText.split('|||').map(s => s.trim());
+
+    const cloned = JSON.parse(JSON.stringify(result));
+
+    const setValueAtPath = (obj, path, value) => {
+      const parts = path.split(/\.|\[|\]/).filter(Boolean);
+      let current = obj;
+      for (let i = 0; i < parts.length - 1; i++) {
+        current = current[parts[i]];
+      }
+      const lastKey = parts[parts.length - 1];
+      if (current) {
+        current[lastKey] = value;
+      }
+    };
+
+    if (translatedSegments.length === translatableList.length) {
+      translatableList.forEach((item, idx) => {
+        setValueAtPath(cloned, item.path, translatedSegments[idx]);
+      });
+    } else {
+      console.warn(`[deepTranslate] translation segment count mismatch: got ${translatedSegments.length}, expected ${translatableList.length}. Mapping sequentially.`);
+      translatableList.forEach((item, idx) => {
+        const translatedVal = translatedSegments[idx] || item.original;
+        setValueAtPath(cloned, item.path, translatedVal);
+      });
+    }
+
+    return cloned;
+  }, []);
   
   // Tabs & Views
   const [activeTab, setActiveTab] = useState('summary'); // 'summary' | 'clauses' | 'missing' | 'risks' | 'compliance' | 'financials' | 'obligations' | 'dates' | 'compare' | 'chat' | 'logs'
   const [historyVisible, setHistoryVisible] = useState(false);
   const [historySearch, setHistorySearch] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [editingFileId, setEditingFileId] = useState(null);
+  const [editNameInput, setEditNameInput] = useState('');
+  const [historyTab, setHistoryTab] = useState('contracts'); // 'contracts' | 'logs'
 
   // Version Control & Logging
   // Catalog Table States
@@ -446,10 +547,27 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
   const scrollRef = useRef(null);
   const chatBottomRef = useRef(null);
   const contractMountedRef = useRef(true);
-  const uploadInputRef = useRef(null); // shared ref for the sidebar upload input
+  const uploadInputRef = useRef(null); // hidden file input for direct upload
+  const cameraVideoRef = useRef(null); // webcam video stream element
+  const cameraStreamRef = useRef(null); // active MediaStream to stop later
   const lastHydratedCaseIdRef = useRef(null); // track last case ID that was hydrated
   const suppressHydrationRef = useRef(false); // block re-hydration during upload/analysis
 
+  // Upload Source Modal states
+  const [showUploadSourceModal, setShowUploadSourceModal] = useState(false);
+  const [showCameraModal, setShowCameraModal] = useState(false);
+  const [cameraError, setCameraError] = useState('');
+  const [capturedImage, setCapturedImage] = useState(null); // base64 image from camera capture
+  const [isCameraReady, setIsCameraReady] = useState(false);
+  const [availableCameras, setAvailableCameras] = useState([]);
+  const [activeCameraIndex, setActiveCameraIndex] = useState(0);
+
+  const contextChangeRef = useRef(null);
+  const stableContextChange = useCallback(async (ctx) => {
+    if (contextChangeRef.current) {
+      await contextChangeRef.current(ctx);
+    }
+  }, []);
 
   // ─ Language Toggle ────────────────────────────────────────
   const {
@@ -474,35 +592,49 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
 
   // Reset display when auditResult changes
   useEffect(() => {
-    if (auditResult?.finalOpinion?.reasoning) {
-      setContractOpinionDisplay(auditResult.finalOpinion.reasoning);
-      setContractLang('en');
+    if (rawAuditResult?.finalOpinion?.reasoning) {
+      setContractOpinionDisplay(rawAuditResult.finalOpinion.reasoning);
+      originalResultLangRef.current = toolkitLanguage === 'Hindi' ? 'hi' : 'en';
     }
-  }, [auditResult]); // eslint-disable-line
+  }, [rawAuditResult]); // eslint-disable-line
 
-  const handleContractLangChange = useCallback(async (newLang) => {
-    setContractLang(newLang);
-    const text = auditResult?.finalOpinion?.reasoning;
-    if (!text) return;
-    if (newLang === 'en') {
-      setContractOpinionDisplay(text);
+  // Traversal deep translation effect when toolkitLanguage changes
+  useEffect(() => {
+    if (!rawAuditResult) {
+      setTranslatedAuditResult(null);
       return;
     }
-    const cached = getContractDisplayText(text);
-    if (cached && cached !== text) {
-      setContractOpinionDisplay(cached);
+    const currentTargetLang = toolkitLanguage === 'Hindi' ? 'hi' : 'en';
+    if (currentTargetLang === originalResultLangRef.current) {
+      setTranslatedAuditResult(null);
+      if (rawAuditResult?.finalOpinion?.reasoning) {
+        setContractOpinionDisplay(rawAuditResult.finalOpinion.reasoning);
+      }
       return;
     }
-    setIsContractTranslating(true);
-    try {
-      const translated = await translateContractText(text);
-      if (contractMountedRef.current) setContractOpinionDisplay(translated);
-    } catch {
-      if (contractMountedRef.current) setContractOpinionDisplay(text);
-    } finally {
-      if (contractMountedRef.current) setIsContractTranslating(false);
-    }
-  }, [auditResult, getContractDisplayText, setContractLang, setIsContractTranslating, translateContractText]);
+
+    const runTranslation = async () => {
+      setIsContractTranslating(true);
+      try {
+        const translated = await deepTranslateAuditResult(rawAuditResult, translateContractText);
+        if (contractMountedRef.current) {
+          setTranslatedAuditResult(translated);
+          if (translated?.finalOpinion?.reasoning) {
+            setContractOpinionDisplay(translated.finalOpinion.reasoning);
+          }
+        }
+      } catch (e) { 
+        console.error("[ContractReview] Traversal translation failed:", e);
+      } finally {
+        if (contractMountedRef.current) setIsContractTranslating(false);
+      }
+    };
+    runTranslation();
+  }, [rawAuditResult, toolkitLanguage, translateContractText, setIsContractTranslating, deepTranslateAuditResult]);
+
+  const handleContractLangChange = useCallback((newLang) => {
+    setToolkitLanguage(newLang === 'hi' ? 'Hindi' : 'English');
+  }, [setToolkitLanguage]);
 
   // --- Initialize and Hydrate from Database ---
   useEffect(() => {
@@ -595,7 +727,7 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
     setContractTitle('');
     setContractText('');
     setFiles([]);
-    setAuditResult(null);
+    setRawAuditResult(null);
     setVersions([]);
     setAuditLogs([]);
     setChatHistory([]);
@@ -654,7 +786,7 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
         setSelectedAnalysisFileId(targetFile.id);
         setContractTitle(targetFile.name);
         setContractText(targetFile.ocrText || '');
-        setAuditResult(targetFile.contractAnalysis || ci?.auditResult || null);
+        setRawAuditResult(targetFile.contractAnalysis || ci?.auditResult || null);
         setVersions(targetFile.versions || ci?.versions || []);
         setAuditLogs(targetFile.auditLogs || ci?.auditLogs || []);
         setChatHistory(ci?.chatHistory || []);
@@ -671,7 +803,7 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
         setSelectedAnalysisFileId(null);
         setContractTitle('');
         setContractText('');
-        setAuditResult(null);
+        setRawAuditResult(null);
         setVersions([]);
         setAuditLogs([]);
         setChatHistory([]);
@@ -681,7 +813,7 @@ const ContractReview = ({ currentCase, onBack, theme, allProjects = [], onUpdate
       setFiles([]);
       setContractTitle('');
       setContractText('');
-      setAuditResult(null);
+      setRawAuditResult(null);
       setVersions([]);
       setAuditLogs([]);
       setChatHistory([]);
@@ -1219,7 +1351,106 @@ Provide a comparative analysis in JSON format:
     }
   };
 
-  // --- AI Contract Review Engine ---
+  // ── Upload Source Modal Helpers ──────────────────────────────────────────
+  const openUploadModal = () => setShowUploadSourceModal(true);
+
+  const handleSelectDeviceUpload = () => {
+    setShowUploadSourceModal(false);
+    setTimeout(() => uploadInputRef.current?.click(), 80);
+  };
+
+  const handleSelectCameraCapture = () => {
+    setShowUploadSourceModal(false);
+    startCameraCapture();
+  };
+
+  const startCameraCapture = async () => {
+    setCameraError('');
+    setCapturedImage(null);
+    setIsCameraReady(false);
+    setShowCameraModal(true);
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(d => d.kind === 'videoinput');
+      setAvailableCameras(videoDevices);
+      const deviceId = videoDevices[activeCameraIndex]?.deviceId;
+      const constraints = { video: deviceId ? { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } } : { width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      cameraStreamRef.current = stream;
+      if (cameraVideoRef.current) {
+        cameraVideoRef.current.srcObject = stream;
+        cameraVideoRef.current.play();
+        setIsCameraReady(true);
+      }
+    } catch (err) {
+      console.error('[Camera] Failed to open camera:', err);
+      setCameraError('Camera access denied or not available. Please check browser permissions.');
+    }
+  };
+
+  const stopCamera = () => {
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach(t => t.stop());
+      cameraStreamRef.current = null;
+    }
+    setIsCameraReady(false);
+    setCapturedImage(null);
+    setShowCameraModal(false);
+  };
+
+  const switchCamera = async () => {
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach(t => t.stop());
+    }
+    const nextIndex = (activeCameraIndex + 1) % Math.max(availableCameras.length, 1);
+    setActiveCameraIndex(nextIndex);
+    setIsCameraReady(false);
+    try {
+      const deviceId = availableCameras[nextIndex]?.deviceId;
+      const constraints = { video: deviceId ? { deviceId: { exact: deviceId } } : true, audio: false };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      cameraStreamRef.current = stream;
+      if (cameraVideoRef.current) { cameraVideoRef.current.srcObject = stream; cameraVideoRef.current.play(); }
+      setIsCameraReady(true);
+    } catch (err) { setCameraError('Failed to switch camera.'); }
+  };
+
+  const capturePhoto = () => {
+    if (!cameraVideoRef.current) return;
+    const video = cameraVideoRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    setCapturedImage(dataUrl);
+    // Pause stream to show preview
+    if (cameraStreamRef.current) cameraStreamRef.current.getTracks().forEach(t => t.enabled = false);
+  };
+
+  const retakePhoto = () => {
+    setCapturedImage(null);
+    if (cameraStreamRef.current) cameraStreamRef.current.getTracks().forEach(t => t.enabled = true);
+  };
+
+  const confirmCapturedPhoto = async () => {
+    if (!capturedImage) return;
+    stopCamera();
+    // Convert dataURL to a File object and pass to handleFileUpload
+    const base64Data = capturedImage.split(',')[1];
+    const byteCharacters = atob(base64Data);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: 'image/jpeg' });
+    const capturedFile = new File([blob], `captured_document_${Date.now()}.jpg`, { type: 'image/jpeg' });
+    // Fake a synthetic event for handleFileUpload
+    const syntheticEvent = { target: { files: [capturedFile] } };
+    await handleFileUpload(syntheticEvent);
+  };
+
+
   const runContractAudit = async () => {
     if (!contractText.trim()) {
       toast.error(
@@ -1322,8 +1553,26 @@ Provide a comparative analysis in JSON format:
 
   const performContractAuditInternal = async (title, text, activeFiles, activeVersions, activeLogs, loadingMsg, action = 'all') => {
     setIsAuditing(true);
-    setAuditResult(null);
+    setRawAuditResult(null);
     setAuditStep('OCR Scanning Check...');
+
+    // ── Resolve contract text: prefer multimodal OCR content when text is placeholder ──
+    let resolvedText = text;
+    const isPlaceholder = !text || text.trim().startsWith('[Contract file') || text.trim().length < 50;
+    if (isPlaceholder && multimodalContext) {
+      // Try to get real OCR content from staged files
+      if (multimodalContext.stagedFiles && multimodalContext.stagedFiles.length > 0) {
+        const ocrContent = multimodalContext.stagedFiles
+          .map(f => f.content || '')
+          .filter(Boolean)
+          .join('\n\n---\n\n');
+        if (ocrContent.trim()) resolvedText = ocrContent;
+      }
+      // Fall back to the full promptString if no individual file OCR content
+      if ((!resolvedText || resolvedText.trim().length < 50) && multimodalContext.promptString) {
+        resolvedText = multimodalContext.promptString;
+      }
+    }
 
     const toastId = toast.loading(loadingMsg || "AI Platform auditing contract parameters...");
 
@@ -1363,23 +1612,64 @@ Provide a comparative analysis in JSON format:
         { step: 'Translating Plain English...', delay: 1000 },
         { step: 'Finalizing Comparative Layouts...', delay: 1500 }
       ];
-    } else {
-      progressIntervals = [
-        { step: 'OCR Scanning Check...', delay: 300 },
-        { step: 'Extracting Clauses...', delay: 600 },
-        { step: 'Running AI Audit Review...', delay: 1000 },
-        { step: 'Risk Detection Calculations...', delay: 1400 },
-        { step: 'Statutory Compliance Checks...', delay: 1800 },
-        { step: 'Supreme Court Case Law Search...', delay: 2200 },
-        { step: 'Generating Summary Report...', delay: 2600 }
-      ];
     }
 
-    progressIntervals.forEach(item => {
-      setTimeout(() => {
-        setAuditStep(item.step);
-      }, item.delay);
-    });
+    // ── Now override with pillar-aligned steps for all actions ────────────────
+    // These step strings map to the pillar keywords (OCR, Clause, Risk, Legal, AI)
+    // so the progress bar advances correctly through all 5 stages.
+    const PILLAR_STEPS = {
+      summary: [
+        { step: 'OCR Scanning Document...', delay: 0 },
+        { step: 'Clause Parsing Contract...', delay: 4000 },
+        { step: 'Risk Analysis In Progress...', delay: 10000 },
+        { step: 'Legal Opinion Synthesis...', delay: 20000 },
+        { step: 'AI Verdict Processing...', delay: 35000 }
+      ],
+      heatmap: [
+        { step: 'OCR Scanning Document...', delay: 0 },
+        { step: 'Risk Analysis — Heatmap Build...', delay: 3000 },
+        { step: 'AI Verdict Risk Scoring...', delay: 12000 }
+      ],
+      clauses: [
+        { step: 'OCR Scanning Document...', delay: 0 },
+        { step: 'Clause Detect — Category Match...', delay: 3000 },
+        { step: 'AI Verdict Gap Analysis...', delay: 15000 }
+      ],
+      compliance: [
+        { step: 'OCR Scanning Document...', delay: 0 },
+        { step: 'Legal Opinion — Act Mapping...', delay: 5000 },
+        { step: 'AI Verdict Status Report...', delay: 18000 }
+      ],
+      negotiation: [
+        { step: 'OCR Scanning Document...', delay: 0 },
+        { step: 'Clause Parsing Priorities...', delay: 4000 },
+        { step: 'AI Verdict Leverage Map...', delay: 15000 }
+      ],
+      redraft: [
+        { step: 'OCR Scanning Document...', delay: 0 },
+        { step: 'Clause Parsing — Redraft Build...', delay: 4000 },
+        { step: 'AI Verdict Plain English...', delay: 18000 }
+      ]
+    };
+    progressIntervals = PILLAR_STEPS[action] || PILLAR_STEPS['summary'];
+
+    // Cancel any previous in-flight request
+    if (auditAbortRef.current) {
+      try { auditAbortRef.current.abort(); } catch (_) {}
+    }
+    const controller = new AbortController();
+    auditAbortRef.current = controller;
+    // Auto-abort after 90 seconds to prevent UI freeze
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 90000);
+
+    setAuditError(null);
+    // Schedule step label updates (timers auto-cancelled when finally{} runs)
+    const stepTimers = progressIntervals.map(item =>
+      setTimeout(() => setAuditStep(item.step), item.delay)
+    );
+
 
     try {
       let actionSpecificInstructions = '';
@@ -1562,7 +1852,13 @@ JSON Schema structure:
     "status": "<Critical Legal Risk | High Legal Risk | Medium Legal Risk | Low Legal Risk>",
     "reasoning": "<Executive reasoning explaining overall contract health, execution suitability, and key commercial/statutory recommendations>"
   }
-}`;
+}
+
+CRITICAL PROMPT DIRECTIVE:
+1. You MUST construct your response based primarily on the uploaded documents, OCR text details, voice transcripts, and manual notes provided in the Case Facts / Staged Context. 
+2. Under no circumstances are you allowed to return a generic template case description.
+3. You MUST quote the actual uploaded facts, party names (e.g. "Rajesh Kumar Sharma", "Sunil Verma"), specific dates (e.g. 15/09/2025, 05/02/2026), exact clauses (e.g. Clause 8), witness details, and sections mentioned in the context.
+4. If multiple sources conflict, resolve them using the priority rules: Voice Instructions ➔ Manual Notes ➔ Uploaded Document Facts.`;
 
       // ─── Build structured prompt: Case Context + Contract Text ──────────────
       // Case context improves understanding; Contract Text is the ONLY analysis source.
@@ -1580,11 +1876,11 @@ Case Summary : ${caseContext.summary || 'N/A'}
 
       // ── Cap contract text to stay within model token limits ──────────────────
       const MAX_CONTRACT_CHARS = 12000;
-      const contractTextForAI = text.length > MAX_CONTRACT_CHARS
-        ? text.slice(0, MAX_CONTRACT_CHARS) + `\n\n[NOTE: Contract text truncated to ${MAX_CONTRACT_CHARS} characters for AI processing. Full document is ${text.length} characters. Analysis covers the first portion of the contract.]`
-        : text;
+      const contractTextForAI = resolvedText.length > MAX_CONTRACT_CHARS
+        ? resolvedText.slice(0, MAX_CONTRACT_CHARS) + `\n\n[NOTE: Contract text truncated to ${MAX_CONTRACT_CHARS} characters for AI processing. Full document is ${resolvedText.length} characters. Analysis covers the first portion of the contract.]`
+        : resolvedText;
 
-      const userMessage = `${caseContextBlock}
+      let userMessage = `${caseContextBlock}
 ════════════════════════════════════════
 CONTRACT DOCUMENT (analyze this ONLY)
 ════════════════════════════════════════
@@ -1600,16 +1896,32 @@ Use the Case Context ONLY to improve legal understanding (parties, jurisdiction 
 DO NOT generate analysis from the Case Summary alone.
 DO NOT fabricate clauses that are not present in the Contract Document.`;
 
-      console.log(`[ContractAudit] Sending ${userMessage.length} chars to AI (contract: ${text.length} → ${contractTextForAI.length} chars used)`);
+      if (multimodalContext && multimodalContext.promptString) {
+        userMessage += `\n\n════════════════════════════════════════\nMULTIMODAL EXPLANATION & INPUTS (incorporate into analysis)\n════════════════════════════════════════\n${multimodalContext.promptString}`;
+      }
+
+      console.log(`[ContractAudit] Sending ${userMessage.length} chars to AI (contract: ${resolvedText.length} → ${contractTextForAI.length} chars used)`);
 
       setAuditStep('Processing compliance algorithms...');
+
+      const attachments = [];
+      if (multimodalContext && multimodalContext.cameraImages) {
+        multimodalContext.cameraImages.forEach(img => {
+          attachments.push({
+            url: `data:image/png;base64,${img.base64}`,
+            name: img.name,
+            type: 'image'
+          });
+        });
+      }
+
       const response = await generateChatResponse(
         [],
         userMessage,
         systemPrompt,
-        [],
+        attachments,
         toolkitLanguage || 'English',
-        null,
+        controller.signal,  // AbortController signal for 90s timeout
         'legal'
       );
 
@@ -1850,7 +2162,7 @@ DO NOT fabricate clauses that are not present in the Contract Document.`;
       }
 
 
-      setAuditResult(parsedResult);
+      setRawAuditResult(parsedResult);
       toast.success("AI Contract intelligence report compiled!", { id: toastId });
 
       if (action === 'summary' || action === 'all') {
@@ -1889,16 +2201,23 @@ DO NOT fabricate clauses that are not present in the Contract Document.`;
       });
 
     } catch (err) {
-      console.error(err);
+      console.error('[ContractAudit] Generation failed:', err);
+      const isTimeout = err.name === 'AbortError' || err.code === 'ERR_CANCELED';
+      const errMsg = isTimeout
+        ? 'Request timed out (90s). The contract may be too large — try a shorter excerpt.'
+        : (err.message || 'Network delay or parsing issue. Check your connection.');
+      setAuditError(errMsg);
       toast.error(
         <span>
-          <strong>Unable to analyze contract.</strong><br/>
-          Reason: {err.message || 'Network delay or parsing issues'}.<br/>
-          Upload or load a template first.
+          <strong>Report generation failed.</strong><br/>
+          Reason: {errMsg}<br/>
+          <em>Use the Retry button below to try again.</em>
         </span>,
-        { id: toastId, duration: 6000 }
+        { id: toastId, duration: 8000 }
       );
     } finally {
+      clearTimeout(timeoutId);
+      stepTimers.forEach(t => clearTimeout(t));
       setIsAuditing(false);
       setAuditStep('');
     }
@@ -2570,7 +2889,7 @@ SUMMARY INFO:
         setActiveFileId('');
         setContractTitle('');
         setContractText('');
-        setAuditResult(null);
+        setRawAuditResult(null);
       }
     }
     
@@ -2592,6 +2911,43 @@ SUMMARY INFO:
     });
     
     toast.success("Document removed from workspace catalog.");
+  };
+
+  const handleRenameFile = async (fileId, newName) => {
+    if (!newName || !newName.trim()) {
+      toast.error("Name cannot be empty");
+      return;
+    }
+    const updatedFiles = files.map(f => {
+      if (f.id === fileId) {
+        return { ...f, name: newName.trim() };
+      }
+      return f;
+    });
+    setFiles(updatedFiles);
+    
+    if (activeFileId === fileId) {
+      setContractTitle(newName.trim());
+    }
+
+    const timestamp = new Date().toISOString();
+    const userEmail = getUserData()?.email || 'System User';
+    const userName = getUserData()?.name || 'Advocate';
+    const newLog = {
+      timestamp,
+      action: 'Document Renamed',
+      details: `Renamed contract file ID ${fileId} to: ${newName.trim()}`,
+      editedBy: `${userName} (${userEmail})`
+    };
+    const updatedLogs = [newLog, ...auditLogs];
+    setAuditLogs(updatedLogs);
+
+    await syncToDatabase({
+      files: updatedFiles,
+      auditLogs: updatedLogs
+    });
+
+    toast.success("Document renamed successfully.");
   };
 
   const renderKPICards = () => {
@@ -2664,7 +3020,93 @@ SUMMARY INFO:
     );
   };
 
+  // Stable ref callback assignment to prevent rendering infinite loops
+  contextChangeRef.current = async (ctx) => {
+    setMultimodalContext(ctx);
+
+    if (ctx && ctx.stagedFiles && ctx.stagedFiles.length > 0) {
+      const combinedText = ctx.stagedFiles
+        .map(f => f.content || '')
+        .filter(Boolean)
+        .join('\n\n---\n\n');
+
+      const firstStagedFile = ctx.stagedFiles[0];
+      const ocrReady = combinedText.trim().length > 20;
+
+      if (ocrReady) {
+        // Guard state updates to prevent re-trigger loop if values are identical
+        if (contractText !== combinedText) {
+          setContractText(combinedText);
+        }
+        const titleName = firstStagedFile?.name || 'Uploaded Contract';
+        if (contractTitle !== titleName) {
+          setContractTitle(titleName);
+        }
+
+        const syntheticFiles = ctx.stagedFiles.map((sf, idx) => ({
+          id: sf.id || `staged_${Date.now()}_${idx}`,
+          name: sf.name || `Document_${idx + 1}`,
+          size: sf.size || 0,
+          type: sf.type || 'application/octet-stream',
+          uploadDate: new Date().toLocaleDateString(),
+          base64: sf.base64 || '',
+          ocrText: sf.content || combinedText
+        }));
+
+        // Guard files update to prevent loops
+        let isDiff = false;
+        if (files.length !== syntheticFiles.length) {
+          isDiff = true;
+        } else {
+          for (let i = 0; i < files.length; i++) {
+            if (files[i].id !== syntheticFiles[i].id) {
+              isDiff = true;
+              break;
+            }
+          }
+        }
+        if (isDiff) {
+          setFiles(syntheticFiles);
+        }
+
+        if (syntheticFiles[0] && activeFileId !== syntheticFiles[0].id) {
+          setActiveFileId(syntheticFiles[0].id);
+        }
+
+        // Auto-trigger analysis only if we do not already have a result or ongoing audit
+        if (!isAuditing && !rawAuditResult) {
+          try {
+            setActiveTab('summary');
+            await performContractAuditInternal(
+              firstStagedFile?.name || 'Uploaded Contract',
+              combinedText,
+              syntheticFiles,
+              versions,
+              auditLogs
+            );
+          } catch (e) {
+            console.error('[ContractReview] Auto-analysis from context failed:', e);
+          }
+        }
+
+      } else if (firstStagedFile) {
+        const placeholder = `[Contract staged: "${firstStagedFile.name}". OCR processing...]`;
+        if (contractText !== placeholder) {
+          setContractText(placeholder);
+          setContractTitle(firstStagedFile.name);
+        }
+      }
+
+    } else {
+      if (contractText !== '') {
+        setContractText('');
+        setContractTitle('');
+      }
+    }
+  };
+
   return (
+    <>
     <div className={`flex-1 flex flex-col w-full h-full min-h-0 ${isDark ? 'bg-[#070b16] text-slate-100' : 'bg-slate-50 text-slate-800'} overflow-hidden select-none relative`}>
       
       {/* Header bar */}
@@ -3013,116 +3455,38 @@ SUMMARY INFO:
                   </div>
                 )}
                 <div className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest pl-1">
-                  {linkedCaseId ? "Case Active • Staged Workspace" : "Detached Draft • Manual Scope"}
+                  {linkedCaseId ? (t('caseActiveStagedWorkspace') || "Case Active • Staged Workspace") : (t('detachedDraftManualScope') || "Detached Draft • Manual Scope")}
                 </div>
               </div>
 
-              {/* 2. CONTRACT UPLOAD */}
+              {/* 2. CONTRACT UPLOAD & MULTIMODAL INPUT */}
               <div className="space-y-1.5 shrink-0">
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-550">Upload</span>
-                <div 
-                  className={`border border-dashed rounded-xl p-3 text-center transition-all relative hover:bg-indigo-500/5 ${
-                    isDark ? 'border-slate-850 bg-[#131c31]/10' : 'border-slate-200 bg-slate-50/50'
-                  }`}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (isOcrLoading || isAuditing) return;
-                    const droppedFiles = e.dataTransfer.files;
-                    if (droppedFiles && droppedFiles.length > 0) {
-                      handleFileUpload({ target: { files: droppedFiles } });
-                    }
-                  }}
-                >
-                  <input 
-                    ref={uploadInputRef}
-                    type="file" 
-                    multiple
-                    accept=".pdf,.docx,.doc,.txt,image/*"
-                    onChange={e => {
-                      handleFileUpload(e);
-                      e.target.value = '';
-                    }}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    style={{ zIndex: 10 }}
-                    disabled={isOcrLoading || isAuditing}
-                  />
-                  <div className="flex items-center justify-center gap-1.5">
-                    <UploadCloud size={14} className="text-indigo-500 animate-pulse" />
-                    <span className="text-[9px] font-black text-slate-700 dark:text-slate-300 uppercase">Drop or Browse contract</span>
-                  </div>
-                  <div className="flex items-center justify-center gap-2 mt-1.5 text-[7.5px] font-extrabold text-slate-400">
-                    <span className="flex items-center gap-0.5 text-emerald-500"><BadgeCheck size={9} /> OCR READY</span>
-                    <span>•</span>
-                    <span className="flex items-center gap-0.5 text-indigo-500"><Lock size={9} /> ENCRYPTED</span>
-                  </div>
-                </div>
-
-                {/* Staged file list */}
-                {files.length > 0 && (
-                  <div className="space-y-1">
-                    {files.map(f => (
-                      <div
-                        key={f.id}
-                        className={`flex items-center justify-between p-2 rounded-xl border text-[9px] font-black transition-all ${
-                          f.id === activeFileId 
-                            ? 'border-indigo-500/30 bg-indigo-500/10 text-indigo-500' 
-                            : 'border-slate-200/50 dark:border-zinc-800 text-slate-600 dark:text-slate-400 bg-white/5 dark:bg-zinc-900/30'
-                        }`}
-                      >
-                        <button
-                          onClick={() => {
-                            setActiveFileId(f.id);
-                            setContractTitle(f.name);
-                            setContractText(f.ocrText);
-                            performContractAuditInternal(f.name, f.ocrText, files, versions, auditLogs);
-                          }}
-                          className="flex items-center gap-1.5 truncate text-left flex-1"
-                        >
-                          <FileCheck size={12} className="shrink-0 text-indigo-500" />
-                          <span className="truncate max-w-[170px]">{f.name}</span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setFiles(prev => prev.filter(item => item.id !== f.id));
-                            if (activeFileId === f.id) {
-                              setActiveFileId(null);
-                              setContractText('');
-                            }
-                            toast.success("Contract removed");
-                          }}
-                          className="p-1 hover:text-red-500 rounded shrink-0"
-                        >
-                          <X size={10} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <UniversalMultimodalInput
+                  caseId={linkedCaseId || 'global'}
+                  workspaceName="ContractReview"
+                  onContextChange={stableContextChange}
+                  theme={isDark ? 'dark' : 'light'}
+                />
               </div>
 
               {/* 3. QUICK ACTIONS */}
               <div className="space-y-1.5 shrink-0">
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-550">Quick Actions</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-550">{t('quickActions') || "Quick Actions"}</span>
                 {/* Disabled banner when no contract */}
                 {!contractText.trim() && linkedCaseId && (
                   <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 text-[8.5px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wide">
                     <Upload size={9} className="shrink-0" />
-                    Upload a contract to enable AI actions
+                    {t('uploadContractToEnable') || "Upload a contract to enable AI actions"}
                   </div>
                 )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                   {[
-                    { id: 'summary', name: 'Analyze', icon: Sparkles, runAudit: true },
-                    { id: 'heatmap', name: 'Risk Scan', icon: AlertTriangle },
-                    { id: 'clauses', name: 'Clauses', icon: NotebookPen },
-                    { id: 'compliance', name: 'Compliance', icon: ShieldCheck },
-                    { id: 'negotiation', name: 'Negotiate', icon: GitCompareArrows },
-                    { id: 'redraft', name: 'Redraft', icon: FilePenLine },
+                    { id: 'summary', name: t('analyze') || 'Analyze', icon: Sparkles, runAudit: true },
+                    { id: 'heatmap', name: t('riskScan') || 'Risk Scan', icon: AlertTriangle },
+                    { id: 'clauses', name: t('clauses') || 'Clauses', icon: NotebookPen },
+                    { id: 'compliance', name: t('compliance') || 'Compliance', icon: ShieldCheck },
+                    { id: 'negotiation', name: t('negotiate') || 'Negotiate', icon: GitCompareArrows },
+                    { id: 'redraft', name: t('redraft') || 'Redraft', icon: FilePenLine },
                   ].map(act => {
                     const IconComp = act.icon;
                     const isActive = activeTab === act.id;
@@ -3135,12 +3499,12 @@ SUMMARY INFO:
                             if (noContract) return;
                             setActiveTab(act.id);
                             handleQuickActionClick(act.id);
-                            let customLoadingMsg = "AI Platform auditing contract parameters...";
-                            if (act.id === 'heatmap') customLoadingMsg = "AI Platform scanning risk vectors & heatmap matrix...";
-                            if (act.id === 'clauses') customLoadingMsg = "AI Platform detecting active clauses & replacement standards...";
-                            if (act.id === 'compliance') customLoadingMsg = "AI Platform checking compliance against Indian Contract Act & related statutes...";
-                            if (act.id === 'negotiation') customLoadingMsg = "AI Platform building negotiation suggestions & fallback language...";
-                            if (act.id === 'redraft') customLoadingMsg = "AI Platform generating side-by-side redrafted contract drafts...";
+                            let customLoadingMsg = t('auditLoading') || "AI Platform auditing contract parameters...";
+                            if (act.id === 'heatmap') customLoadingMsg = t('riskScanLoading') || "AI Platform scanning risk vectors & heatmap matrix...";
+                            if (act.id === 'clauses') customLoadingMsg = t('clausesLoading') || "AI Platform detecting active clauses & replacement standards...";
+                            if (act.id === 'compliance') customLoadingMsg = t('complianceLoading') || "AI Platform checking compliance against Indian Contract Act & related statutes...";
+                            if (act.id === 'negotiation') customLoadingMsg = t('negotiationLoading') || "AI Platform building negotiation suggestions & fallback language...";
+                            if (act.id === 'redraft') customLoadingMsg = t('redraftLoading') || "AI Platform generating side-by-side redrafted contract drafts...";
                             await performContractAuditInternal(contractTitle, contractText, files, versions, auditLogs, customLoadingMsg, act.id);
                           }}
                           className={`w-full flex items-center gap-1.5 px-2.5 py-2 border rounded-lg text-[9px] font-black uppercase tracking-wider transition-all min-h-[36px] ${
@@ -3280,7 +3644,7 @@ SUMMARY INFO:
             )}
 
             {/* Empty State: No Contract Available */}
-            {linkedCaseId && files.length === 0 && !isOcrLoading && !isWorkspaceLoading && (
+            {!isOcrLoading && !isWorkspaceLoading && files.length === 0 && !contractText.trim() && (
               <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 px-4 py-8">
                 {/* Illustration */}
                 <div className="relative animate-in fade-in zoom-in-95 duration-300">
@@ -3322,7 +3686,7 @@ SUMMARY INFO:
                 {/* CTAs */}
                 <div className="flex flex-col sm:flex-row gap-3 pt-2">
                   <button
-                    onClick={() => uploadInputRef.current?.click()}
+                    onClick={openUploadModal}
                     className="px-6 py-3 bg-[#5B3DF5] hover:bg-indigo-700 active:scale-95 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/25"
                   >
                     <Upload size={14} /> Upload Contract
@@ -3342,7 +3706,7 @@ SUMMARY INFO:
               </div>
             )}
 
-            {linkedCaseId && files.length > 0 && (
+            {files.length > 0 && (
               (() => {
                 // 1. Filter and sorting calculation
                 let filtered = [...files];
@@ -3533,56 +3897,6 @@ SUMMARY INFO:
                             >
                               <Cpu size={12} className={isAuditing ? "animate-spin" : ""} />
                               {isAuditing ? "Analyzing..." : "Analyze Contract"}
-                            </button>
-                            <button
-                              onClick={() => {
-                                setActiveFileId(activeFile.id);
-                                setContractTitle(activeFile.name);
-                                setContractText(activeFile.ocrText);
-                                toast.success(`Loaded active contract viewer for: ${activeFile.name}`);
-                              }}
-                              className="flex-1 xl:flex-initial px-3.5 py-2 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-slate-300 rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1"
-                              title="View Contract"
-                            >
-                              <Eye size={12} />
-                              View Contract
-                            </button>
-                            <button
-                              onClick={() => {
-                                setActiveFileId(activeFile.id);
-                                const input = document.getElementById('contract-upload-input');
-                                if (input) input.click();
-                              }}
-                              className="flex-1 xl:flex-initial px-3.5 py-2 bg-amber-500/10 hover:bg-amber-500 text-amber-500 hover:text-white border border-amber-500/20 rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1"
-                              title="Replace Contract"
-                            >
-                              <UploadCloud size={12} />
-                              Replace Contract
-                            </button>
-                            <button
-                              onClick={() => {
-                                const input = document.getElementById('contract-upload-input');
-                                if (input) input.click();
-                              }}
-                              className="flex-1 xl:flex-initial px-3.5 py-2 bg-indigo-500/10 hover:bg-indigo-500 text-indigo-500 hover:text-white border border-indigo-500/20 rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1"
-                              title="Upload New Version"
-                            >
-                              <Plus size={12} />
-                              Upload New Version
-                            </button>
-                            <button
-                              onClick={() => handleDownloadFile(activeFile)}
-                              className="flex-1 xl:flex-initial p-2 bg-slate-100 dark:bg-zinc-850 hover:bg-slate-200 dark:hover:bg-zinc-800 text-slate-500 hover:text-indigo-500 rounded-xl transition-all flex items-center justify-center"
-                              title="Download Contract"
-                            >
-                              <Download size={14} />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteFile(activeFile.id)}
-                              className="flex-1 xl:flex-initial p-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl transition-all flex items-center justify-center"
-                              title="Delete Contract"
-                            >
-                              <Trash2 size={14} />
                             </button>
                           </div>
                         </div>
@@ -4216,8 +4530,13 @@ SUMMARY INFO:
                 redraft: { name: 'Redraft Review', color: 'text-pink-500', bg: 'bg-pink-500/10', pillars: ['OCR Complete', 'Clause Parse', 'Redraft Build', 'Plain English', 'Compare Layout'] }
               };
               const mode = modeLabels[activeTab] || modeLabels['summary'];
-              const activeStep = auditStep || 'Staging analysis parameters...';
-              const pillarIndex = mode.pillars.findIndex(p => activeStep.toLowerCase().includes(p.split(' ')[0].toLowerCase()));
+              const activeStep = auditStep || 'OCR Scanning Document...';
+              // Match first word of auditStep against first word of each pillar
+              const stepFirstWord = activeStep.split(' ')[0].toLowerCase();
+              const pillarIndex = mode.pillars.findIndex(p => p.split(' ')[0].toLowerCase() === stepFirstWord);
+              // If no exact match, try partial include
+              const resolvedIdx = pillarIndex >= 0 ? pillarIndex : mode.pillars.findIndex(p => activeStep.toLowerCase().includes(p.split(' ')[0].toLowerCase()));
+              const barWidth = Math.max(10, resolvedIdx >= 0 ? Math.round((resolvedIdx + 1) / mode.pillars.length * 100) : 15);
               
               return (
                 <div className={`border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${
@@ -4234,8 +4553,8 @@ SUMMARY INFO:
                   </div>
                   
                   <div className="w-full bg-slate-100 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full transition-all duration-700 animate-[shimmer_2s_linear_infinite] ${activeTab === 'heatmap' ? 'bg-red-500' : activeTab === 'clauses' ? 'bg-violet-500' : activeTab === 'compliance' ? 'bg-emerald-500' : activeTab === 'negotiation' ? 'bg-amber-500' : activeTab === 'redraft' ? 'bg-pink-500' : 'bg-indigo-500'}`} 
-                      style={{ width: `${Math.max(15, pillarIndex >= 0 ? (pillarIndex + 1) * 20 : 25)}%` }} />
+                    <div className={`h-full rounded-full transition-all duration-1000 ${activeTab === 'heatmap' ? 'bg-red-500' : activeTab === 'clauses' ? 'bg-violet-500' : activeTab === 'compliance' ? 'bg-emerald-500' : activeTab === 'negotiation' ? 'bg-amber-500' : activeTab === 'redraft' ? 'bg-pink-500' : 'bg-indigo-500'}`} 
+                      style={{ width: `${barWidth}%` }} />
                   </div>
 
                   <div className="grid grid-cols-5 gap-2">
@@ -4256,17 +4575,42 @@ SUMMARY INFO:
                 </div>
               );
             })()}
+            {/* Retry / Error Card — shown when generation fails */}
+            {!isAuditing && auditError && !auditResult && (
+              <div className={`border rounded-2xl p-4 sm:p-5 shadow-sm space-y-3 border-l-4 border-l-red-500 ${
+                isDark ? 'bg-slate-900/40 border-slate-800' : 'bg-white border-slate-200'
+              }`}>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                  <span className="text-[10px] font-black uppercase tracking-wider text-red-500">Report Generation Failed</span>
+                </div>
+                <p className={`text-xs font-semibold ${ isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                  <strong>Reason:</strong> {auditError}
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => runContractAudit()}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+                  >
+                    ↩ Retry Analysis
+                  </button>
+                  <button
+                    onClick={() => setAuditError(null)}
+                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
+                      isDark ? 'bg-zinc-800 text-slate-400 hover:bg-zinc-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Sticky Actions Row */}
-            {linkedCaseId && files.length > 0 && (
+            {files.length > 0 && (
               <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 sm:p-3 bg-slate-500/5 border border-slate-200/40 dark:border-zinc-800 rounded-2xl">
                 <span className="text-[10px] font-black uppercase text-indigo-500 tracking-wider hidden sm:block">Analysis Controls</span>
                 <div className="flex items-center gap-1 flex-wrap">
-                  <LanguageToggle
-                    lang={contractLang}
-                    onChange={handleContractLangChange}
-                    isTranslating={isContractTranslating}
-                  />
                   <button
                     onClick={handleShareReport}
                     disabled={!auditResult}
@@ -4304,7 +4648,7 @@ SUMMARY INFO:
             )}
 
             {/* 6. EXECUTIVE SUMMARY */}
-            {linkedCaseId && files.length > 0 && (
+            {files.length > 0 && (
               <div id="section-summary" className={`border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${
                 isDark ? 'bg-slate-900/40' : 'bg-white'
               } ${getSectionHighlightClass('summary')}`}>
@@ -4452,7 +4796,7 @@ SUMMARY INFO:
             )}
 
             {/* AI FINDINGS PANEL */}
-            {linkedCaseId && files.length > 0 && (
+            {files.length > 0 && (
               <div id="section-findings" className={`border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${
                 isDark ? 'bg-slate-900/40' : 'bg-white'
               } ${getSectionHighlightClass('heatmap')}`}>
@@ -4521,7 +4865,7 @@ SUMMARY INFO:
             )}
 
             {/* 8. RISK ANALYSIS & MATRIX */}
-            {linkedCaseId && files.length > 0 && (
+            {files.length > 0 && (
               <div id="section-heatmap" className={`border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${
                 isDark ? 'bg-slate-900/40' : 'bg-white'
               } ${getSectionHighlightClass('heatmap')}`}>
@@ -4557,8 +4901,44 @@ SUMMARY INFO:
                       {/* Detailed Risk Vectors Table */}
                       <div className="border-t border-slate-100 dark:border-zinc-800 pt-4 mt-2">
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Detailed Risk Vectors Registry</span>
-                        <div className="overflow-x-auto custom-scrollbar">
-                          <table className="w-full text-left border-collapse text-[9.5px]">
+                        
+                        {/* Mobile View (Card List) */}
+                        <div className="block md:hidden space-y-3">
+                          {(auditResult.clauses || []).map((c, idx) => (
+                            <div key={idx} className={`p-4 rounded-xl border space-y-2.5 text-[9.5px] ${isDark ? 'bg-zinc-950/40 border-zinc-800/80 text-white' : 'bg-slate-50/50 border-slate-200 text-slate-800'}`}>
+                              <div className="flex items-start justify-between gap-2">
+                                <span className="font-extrabold text-[11px] text-slate-800 dark:text-slate-100 leading-tight">{c.name}</span>
+                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase shrink-0 ${
+                                  c.risk === 'Critical' || c.risk === 'High' ? 'bg-red-500/10 text-red-500' : 'bg-amber-500/10 text-amber-500'
+                                }`}>{c.risk}</span>
+                              </div>
+                              
+                              <div className="grid grid-cols-3 gap-2 text-[9px] font-bold uppercase tracking-wider border-t border-b dark:border-white/5 py-1.5">
+                                <div>
+                                  <span className="block text-[7.5px] text-slate-400 font-semibold lowercase">Impact</span>
+                                  <span className="text-slate-700 dark:text-slate-350 font-extrabold">{c.legalImpact || 'Medium'}</span>
+                                </div>
+                                <div>
+                                  <span className="block text-[7.5px] text-slate-400 font-semibold lowercase">Severity</span>
+                                  <span className="text-indigo-500 font-black">{c.confidence || '94'}%</span>
+                                </div>
+                                <div>
+                                  <span className="block text-[7.5px] text-slate-400 font-semibold lowercase">Governing Law</span>
+                                  <span className="text-slate-700 dark:text-slate-350 truncate block" title={c.indianLawMapping?.actName}>{c.indianLawMapping?.actName || 'ICA 1872'}</span>
+                                </div>
+                              </div>
+
+                              <div className="text-[10px] text-slate-500 dark:text-slate-450 leading-relaxed">
+                                <span className="font-bold text-slate-400 block text-[8px] uppercase tracking-wider mb-0.5">Mitigation / Recommendation</span>
+                                {c.suggestion || 'Use balanced reciprocal indemnity.'}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Desktop View (Table) */}
+                        <div className="hidden md:block overflow-x-auto custom-scrollbar">
+                          <table className="w-full text-left border-collapse text-[9.5px]" style={{ minWidth: '700px' }}>
                             <thead>
                               <tr className="border-b border-slate-100 dark:border-zinc-800 text-[8px] uppercase tracking-widest text-slate-400">
                                 <th className="py-2 px-3">Affected Clause</th>
@@ -4612,7 +4992,7 @@ SUMMARY INFO:
             )}
 
             {/* 7. CLAUSE INTELLIGENCE */}
-            {linkedCaseId && files.length > 0 && (
+            {files.length > 0 && (
               <div id="section-clauses" className={`border rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 ${
                 isDark ? 'bg-slate-900/40' : 'bg-white'
               } ${getSectionHighlightClass('clauses')}`}>
@@ -4954,7 +5334,7 @@ SUMMARY INFO:
                           setActiveFileId(f.id);
                           setContractTitle(f.name);
                           setContractText(f.ocrText || '');
-                          setAuditResult(null);
+                          setRawAuditResult(null);
                         }}
                         className="accent-indigo-600"
                       />
@@ -4977,52 +5357,224 @@ SUMMARY INFO:
 
       </div>
 
-      {/* History Modal */}
+      {/* History Modal / Audit Timeline Manager */}
       {historyVisible && (
         <div className="fixed inset-0 z-[120000] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setHistoryVisible(false)} />
-          <div className="relative bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 rounded-[32px] max-w-lg w-full max-h-[80%] flex flex-col overflow-hidden shadow-2xl p-6">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => { setHistoryVisible(false); setEditingFileId(null); }} />
+          <div className="relative bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 rounded-[32px] max-w-lg w-full max-h-[80%] flex flex-col overflow-hidden shadow-2xl p-6 animate-fadeIn">
+            
+            {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-4 shrink-0">
-              <h3 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-wider">Platform Audit Trails</h3>
-              <button onClick={() => setHistoryVisible(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full">
+              <div>
+                <h3 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-wider">Audit Timeline &amp; Workspace</h3>
+                <p className="text-[9.5px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Manage matter files and timeline checkpoints</p>
+              </div>
+              <button onClick={() => { setHistoryVisible(false); setEditingFileId(null); }} className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full">
                 <X size={20} className="text-slate-400" />
               </button>
             </div>
 
-            {/* Search */}
+            {/* Tab Toggles */}
+            <div className="flex bg-slate-100 dark:bg-zinc-800/60 p-1.5 rounded-xl mt-4 shrink-0 gap-1">
+              <button
+                onClick={() => { setHistoryTab('contracts'); setHistorySearch(''); setEditingFileId(null); }}
+                className={`flex-1 py-2 text-center text-[10px] font-black uppercase tracking-wider rounded-lg transition-all ${
+                  historyTab === 'contracts'
+                    ? 'bg-[#5B3DF5] text-white shadow-md'
+                    : 'text-slate-450 dark:text-slate-450 hover:text-slate-650'
+                }`}
+              >
+                📚 Staged Contracts ({files.length})
+              </button>
+              <button
+                onClick={() => { setHistoryTab('logs'); setHistorySearch(''); setEditingFileId(null); }}
+                className={`flex-1 py-2 text-center text-[10px] font-black uppercase tracking-wider rounded-lg transition-all ${
+                  historyTab === 'logs'
+                    ? 'bg-[#5B3DF5] text-white shadow-md'
+                    : 'text-slate-450 dark:text-slate-450 hover:text-slate-650'
+                }`}
+              >
+                ⚖️ Platform Logs ({auditLogs.length})
+              </button>
+            </div>
+
+            {/* Search Input */}
             <div className="flex items-center bg-slate-50 dark:bg-[#131C31] border border-slate-200 dark:border-white/5 rounded-xl px-3 py-2 mt-4 shrink-0">
               <Search size={14} className="text-slate-400 mr-2" />
               <input 
                 type="text"
-                placeholder="Search audit trail logs..."
+                placeholder={historyTab === 'contracts' ? "Search matter files..." : "Search audit logs..."}
                 className="w-full bg-transparent border-none text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-0"
                 value={historySearch}
                 onChange={e => setHistorySearch(e.target.value)}
               />
             </div>
 
-            {/* List */}
-            <div className="flex-1 overflow-y-auto mt-4 space-y-3 custom-scrollbar">
-              {auditLogs.filter(h => 
-                h.action?.toLowerCase().includes(historySearch.toLowerCase()) || 
-                h.details?.toLowerCase().includes(historySearch.toLowerCase())
-              ).map((item, idx) => (
-                <div key={idx} className="p-4 bg-slate-50 dark:bg-[#1A2540] border border-slate-200/50 dark:border-white/5 rounded-2xl shadow-sm">
-                  <div className="flex justify-between items-start">
-                    <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">{item.action}</h4>
-                    <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider shrink-0 ml-2">
-                      {new Date(item.timestamp).toLocaleTimeString()}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1">{item.editedBy}</p>
-                  <p className="text-xs text-slate-400 mt-2 font-medium leading-relaxed select-text">{item.details}</p>
-                </div>
-              ))}
-              {auditLogs.length === 0 && (
-                <div className="text-center py-10">
-                  <Folder size={32} className="mx-auto text-slate-350 dark:text-zinc-700" />
-                  <p className="text-xs font-semibold text-slate-400 mt-2">No audit logs synced to database yet.</p>
-                </div>
+            {/* Content List Area */}
+            <div className="flex-1 overflow-y-auto mt-4 space-y-3 custom-scrollbar pr-1">
+              {historyTab === 'contracts' ? (
+                // 📚 Managed Contracts Tab
+                (() => {
+                  const filteredFiles = files.filter(f =>
+                    f.name?.toLowerCase().includes(historySearch.toLowerCase())
+                  );
+
+                  return (
+                    <>
+                      {filteredFiles.map((file) => {
+                        const isActive = activeFileId === file.id;
+                        const isEditing = editingFileId === file.id;
+
+                        return (
+                          <div
+                            key={file.id}
+                            className={`p-3.5 border rounded-2xl transition-all ${
+                              isActive
+                                ? 'bg-indigo-50/40 dark:bg-indigo-950/10 border-indigo-500/30'
+                                : 'bg-slate-50 dark:bg-[#1A2540] border-slate-200/50 dark:border-white/5'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-3 min-w-0">
+                              <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                                <FileText size={18} className="text-indigo-500 shrink-0 mt-0.5" />
+                                <div className="min-w-0 flex-1">
+                                  {isEditing ? (
+                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                      <input
+                                        type="text"
+                                        className="w-full px-2 py-1 bg-white dark:bg-zinc-950 border dark:border-zinc-800 rounded-lg text-xs font-semibold outline-none"
+                                        value={editNameInput}
+                                        onChange={(e) => setEditNameInput(e.target.value)}
+                                        autoFocus
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            handleRenameFile(file.id, editNameInput);
+                                            setEditingFileId(null);
+                                          } else if (e.key === 'Escape') {
+                                            setEditingFileId(null);
+                                          }
+                                        }}
+                                      />
+                                      <button
+                                        onClick={() => {
+                                          handleRenameFile(file.id, editNameInput);
+                                          setEditingFileId(null);
+                                        }}
+                                        className="p-1 bg-emerald-500/10 hover:bg-emerald-500 hover:text-white text-emerald-500 rounded-md transition-colors"
+                                      >
+                                        <Check size={12} />
+                                      </button>
+                                      <button
+                                        onClick={() => setEditingFileId(null)}
+                                        className="p-1 bg-red-500/10 hover:bg-red-500 hover:text-white text-red-500 rounded-md transition-colors"
+                                      >
+                                        <X size={12} />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <h4 className="font-extrabold text-[11px] text-slate-800 dark:text-slate-100 truncate leading-tight">
+                                      {file.name}
+                                    </h4>
+                                  )}
+                                  <div className="flex gap-2 text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide mt-1">
+                                    <span>Size: {file.size ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : '0.1 MB'}</span>
+                                    <span>•</span>
+                                    <span>{file.uploadDate || 'Today'}</span>
+                                    {isActive && (
+                                      <>
+                                        <span>•</span>
+                                        <span className="text-indigo-500 font-extrabold">Active</span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Action Buttons for each File */}
+                              {!isEditing && (
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    onClick={() => {
+                                      setActiveFileId(file.id);
+                                      setContractTitle(file.name);
+                                      setContractText(file.ocrText);
+                                      setHistoryVisible(false);
+                                      toast.success(`Active contract switched: ${file.name}`);
+                                    }}
+                                    title="Open file in workspace"
+                                    className={`p-1.5 rounded-lg border transition-all ${
+                                      isActive
+                                        ? 'bg-[#5B3DF5] border-[#5B3DF5] text-white hover:bg-indigo-700'
+                                        : 'bg-white dark:bg-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-700 text-slate-500 dark:text-slate-450 border-slate-200 dark:border-zinc-700/60'
+                                    }`}
+                                  >
+                                    <Eye size={12} />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setEditingFileId(file.id);
+                                      setEditNameInput(file.name);
+                                    }}
+                                    title="Rename file"
+                                    className="p-1.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700/60 hover:bg-slate-100 dark:hover:bg-zinc-700 text-slate-500 dark:text-slate-450 rounded-lg transition-all"
+                                  >
+                                    <Edit3 size={12} />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteFile(file.id)}
+                                    title="Delete file"
+                                    className="p-1.5 bg-red-500/10 hover:bg-red-500 hover:text-white border border-red-500/20 text-red-500 rounded-lg transition-all"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {filteredFiles.length === 0 && (
+                        <div className="text-center py-10">
+                          <Folder size={32} className="mx-auto text-slate-350 dark:text-zinc-700" />
+                          <p className="text-xs font-semibold text-slate-450 mt-2 font-black uppercase tracking-wider">No staged contracts found</p>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()
+              ) : (
+                // ⚖️ Platform Logs Tab
+                (() => {
+                  const filteredLogs = auditLogs.filter(h => 
+                    h.action?.toLowerCase().includes(historySearch.toLowerCase()) || 
+                    h.details?.toLowerCase().includes(historySearch.toLowerCase())
+                  );
+
+                  return (
+                    <>
+                      {filteredLogs.map((item, idx) => (
+                        <div key={idx} className="p-4 bg-slate-50 dark:bg-[#1A2540] border border-slate-200/50 dark:border-white/5 rounded-2xl shadow-sm">
+                          <div className="flex justify-between items-start">
+                            <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">{item.action}</h4>
+                            <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider shrink-0 ml-2">
+                              {new Date(item.timestamp).toLocaleTimeString()}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1">{item.editedBy}</p>
+                          <p className="text-xs text-slate-400 mt-2 font-medium leading-relaxed select-text">{item.details}</p>
+                        </div>
+                      ))}
+
+                      {filteredLogs.length === 0 && (
+                        <div className="text-center py-10">
+                          <History size={32} className="mx-auto text-slate-350 dark:text-zinc-700" />
+                          <p className="text-xs font-semibold text-slate-400 mt-2 font-black uppercase tracking-wider">No logs found</p>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()
               )}
             </div>
           </div>
@@ -5036,7 +5588,7 @@ SUMMARY INFO:
           <div className="relative bg-white dark:bg-zinc-900 border border-slate-250 dark:border-zinc-800 rounded-[32px] max-w-xl w-full max-h-[85%] flex flex-col overflow-hidden shadow-2xl p-6">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-4 shrink-0">
               <div>
-                <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">AI Clause Rewrite Engine</h3>
+                <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">{t('aiClauseRewriteEngine') || "AI Clause Rewrite Engine"}</h3>
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">{activeRewriteClause.name}</p>
               </div>
               <button onClick={() => setActiveRewriteClause(null)} className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full">
@@ -5046,7 +5598,7 @@ SUMMARY INFO:
 
             <div className="flex-1 overflow-y-auto mt-4 space-y-4 custom-scrollbar">
               <div>
-                <label className="text-[9px] font-black uppercase tracking-widest text-slate-450">Original Clause text</label>
+                <label className="text-[9px] font-black uppercase tracking-widest text-slate-450">{t('originalClauseText') || "Original Clause text"}</label>
                 <blockquote className="p-3 bg-slate-500/5 rounded-xl font-mono text-[10px] leading-relaxed text-slate-400 mt-1 select-text">
                   "{activeRewriteClause.text}"
                 </blockquote>
@@ -5054,11 +5606,11 @@ SUMMARY INFO:
 
               {/* Tone Selection */}
               <div className="space-y-1.5">
-                <label className="text-[9px] font-black uppercase tracking-widest text-slate-450">Draft Tone Wording</label>
+                <label className="text-[9px] font-black uppercase tracking-widest text-slate-450">{t('draftToneWording') || "Draft Tone Wording"}</label>
                 <div className="flex gap-1.5 overflow-x-auto pb-1 max-w-full">
                   {['Balanced', 'Professional', 'Court-safe', 'Legally Strong'].map(tone => (
                     <button
-                      key={tone}
+                      key={t(tone) || tone}
                       onClick={() => setRewriteTone(tone)}
                       className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all ${rewriteTone === tone ? 'bg-indigo-650 text-white' : 'bg-slate-100 dark:bg-zinc-800 text-slate-500'}`}
                     >
@@ -5074,12 +5626,12 @@ SUMMARY INFO:
                 className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
                 <RefreshCw size={12} className={isRewriting ? 'animate-spin' : ''} />
-                <span>Generate Rewritten Clause</span>
+                <span>{t('generateRewrittenClause') || "Generate Rewritten Clause"}</span>
               </button>
 
               {rewrittenWording && (
                 <div className="space-y-1.5 animate-fadeIn">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-emerald-500">AI Rewritten Alternate</label>
+                  <label className="text-[9px] font-black uppercase tracking-widest text-emerald-500">{t('aiRewrittenAlternate') || "AI Rewritten Alternate"}</label>
                   <blockquote className="p-3 bg-emerald-500/5 rounded-xl border border-emerald-500/10 font-mono text-[10px] leading-relaxed text-emerald-600 dark:text-emerald-400 select-text">
                     "{rewrittenWording}"
                   </blockquote>
@@ -5093,14 +5645,14 @@ SUMMARY INFO:
                 onClick={() => setActiveRewriteClause(null)}
                 className="flex-1 py-3 border border-slate-200 dark:border-zinc-800 rounded-xl font-black text-xs text-slate-500 uppercase tracking-wider"
               >
-                Cancel
+                {t('cancel') || "Cancel"}
               </button>
               <button
                 onClick={applyRewrittenClause}
                 disabled={!rewrittenWording}
                 className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all disabled:opacity-50"
               >
-                Apply Edit Draft
+                {t('applyEditDraft') || "Apply Edit Draft"}
               </button>
             </div>
           </div>
@@ -5115,7 +5667,7 @@ SUMMARY INFO:
           }`}>
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-3">
               <h3 className="text-xs font-black uppercase text-indigo-500 tracking-wider flex items-center gap-1.5">
-                <FolderKanban size={14} /> Create Case Matter Profile
+                <FolderKanban size={14} /> {t('createCaseMatterProfile') || "Create Case Matter Profile"}
               </h3>
               <button onClick={() => setIsCreateCaseModalOpen(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full">
                 <X size={14} className="text-slate-400" />
@@ -5124,7 +5676,7 @@ SUMMARY INFO:
 
             <div className="space-y-3">
               <div className="space-y-1">
-                <label className="text-[8.5px] font-black uppercase tracking-widest text-slate-400">Case Name</label>
+                <label className="text-[8.5px] font-black uppercase tracking-widest text-slate-400">{t('caseName') || "Case Name"}</label>
                 <input
                   type="text"
                   placeholder="e.g. Rajesh Sharma vs Amit Verma"
@@ -5138,7 +5690,7 @@ SUMMARY INFO:
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[8.5px] font-black uppercase tracking-widest text-slate-400">Client Name</label>
+                  <label className="text-[8.5px] font-black uppercase tracking-widest text-slate-400">{t('clientName') || "Client Name"}</label>
                   <input
                     type="text"
                     placeholder="e.g. Rajesh Sharma"
@@ -5150,7 +5702,7 @@ SUMMARY INFO:
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[8.5px] font-black uppercase tracking-widest text-slate-400">Opponent Name</label>
+                  <label className="text-[8.5px] font-black uppercase tracking-widest text-slate-400">{t('opponentName') || "Opponent Name"}</label>
                   <input
                     type="text"
                     placeholder="e.g. Amit Verma"
@@ -5164,7 +5716,7 @@ SUMMARY INFO:
               </div>
 
               <div className="space-y-1">
-                <label className="text-[8.5px] font-black uppercase tracking-widest text-slate-400">Case Matter Type</label>
+                <label className="text-[8.5px] font-black uppercase tracking-widest text-slate-400">{t('caseMatterType') || "Case Matter Type"}</label>
                 <select
                   className={`w-full px-3 py-2 border rounded-xl outline-none text-[10px] font-bold ${
                     isDark ? 'bg-black/20 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
@@ -5172,19 +5724,19 @@ SUMMARY INFO:
                   value={newCaseType}
                   onChange={e => setNewCaseType(e.target.value)}
                 >
-                  <option value="Civil Suit">Civil Suit</option>
-                  <option value="Commercial Dispute">Commercial Dispute</option>
-                  <option value="Consumer Case">Consumer Case</option>
-                  <option value="Contract Matter">Contract Matter</option>
-                  <option value="Employment Matter">Employment Matter</option>
-                  <option value="IT Wording Audit">IT Wording Audit</option>
+                  <option value="Civil Suit">{t('Civil Suit') || "Civil Suit"}</option>
+                  <option value="Commercial Dispute">{t('Commercial Dispute') || "Commercial Dispute"}</option>
+                  <option value="Consumer Case">{t('Consumer Case') || "Consumer Case"}</option>
+                  <option value="Contract Matter">{t('Contract Matter') || "Contract Matter"}</option>
+                  <option value="Employment Matter">{t('Employment Matter') || "Employment Matter"}</option>
+                  <option value="IT Wording Audit">{t('IT Wording Audit') || "IT Wording Audit"}</option>
                 </select>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[8.5px] font-black uppercase tracking-widest text-slate-400">Brief Overview / Description</label>
+                <label className="text-[8.5px] font-black uppercase tracking-widest text-slate-400">{t('briefOverviewDescription') || "Brief Overview / Description"}</label>
                 <textarea
-                  placeholder="Summarize the core legal issue..."
+                  placeholder={t('summarizeCoreLegalIssue') || "Summarize the core legal issue..."}
                   rows={3}
                   className={`w-full px-3 py-2 border rounded-xl outline-none text-[10px] font-bold resize-none ${
                     isDark ? 'bg-black/20 border-slate-800 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
@@ -5200,7 +5752,7 @@ SUMMARY INFO:
                 onClick={() => setIsCreateCaseModalOpen(false)}
                 className={`flex-1 py-2.5 border rounded-xl font-black text-xs uppercase tracking-wider text-slate-405 dark:border-zinc-805 hover:bg-slate-50 dark:hover:bg-zinc-850 transition-colors`}
               >
-                Cancel
+                {t('cancel') || "Cancel"}
               </button>
               <button
                 onClick={async () => {
@@ -5232,7 +5784,7 @@ SUMMARY INFO:
                     setNewCaseClient('');
                     setNewCaseOpponent('');
                     setNewCaseSummary('');
-                    toast.success("📁 New Case Matter Profile linked successfully!");
+                    toast.success(t('newCaseLinkedSuccess') || "📁 New Case Matter Profile linked successfully!");
                   } catch (e) {
                     console.error(e);
                     toast.error("Failed to link case profile.");
@@ -5307,6 +5859,201 @@ SUMMARY INFO:
       )}
 
     </div>
+
+      {/* ── Hidden file input — wired to handleFileUpload ────────────────── */}
+      <input
+        type="file"
+        ref={uploadInputRef}
+        className="hidden"
+        multiple
+        accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.webp,.zip,.odt"
+        onChange={(e) => handleFileUpload(e)}
+      />
+
+      {/* ── Upload Source Modal ───────────────────────────────────────────── */}
+      {showUploadSourceModal && createPortal(
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className={`w-full max-w-[720px] rounded-[18px] p-7 shadow-2xl space-y-6 border ${isDark ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+            {/* Header */}
+            <div className="flex justify-between items-start border-b dark:border-white/5 pb-4">
+              <div className="space-y-1">
+                <h3 className="text-[20px] font-black uppercase text-[#5B3DF5] tracking-wider">Choose Upload Source</h3>
+                <p className="text-[13px] text-slate-400 font-semibold">Select how you want to add your contract document.</p>
+              </div>
+              <button onClick={() => setShowUploadSourceModal(false)} className="p-2 rounded-full hover:bg-slate-500/10 text-slate-400 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Options grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Device Upload */}
+              <div
+                onClick={handleSelectDeviceUpload}
+                className={`relative p-6 border rounded-[14px] flex flex-col justify-between cursor-pointer hover:scale-[1.01] transition-all shadow-sm hover:shadow-md h-[230px] ${isDark ? 'border-zinc-800 hover:border-[#5B3DF5] bg-zinc-950/20' : 'border-slate-200 hover:border-[#5B3DF5] bg-slate-50'}`}
+              >
+                <div className="space-y-3 flex-1 flex flex-col">
+                  <div className={`p-3 rounded-xl w-12 h-12 flex items-center justify-center ${isDark ? 'bg-zinc-900' : 'bg-white shadow-sm border border-slate-100'}`}>
+                    <Upload size={22} className="text-blue-500" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-[17px] font-extrabold tracking-tight leading-tight">Upload from Device</h4>
+                    <p className="text-[12px] text-slate-400 font-medium leading-relaxed">Browse PDF, DOCX, TXT, Images and other supported files.</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSelectDeviceUpload}
+                  className="w-full mt-4 py-2.5 px-4 bg-[#5B3DF5] hover:bg-indigo-700 text-white rounded-xl text-[14px] font-black uppercase tracking-wider transition-all"
+                >
+                  Choose Files
+                </button>
+              </div>
+
+              {/* Camera Capture */}
+              <div
+                onClick={handleSelectCameraCapture}
+                className={`relative p-6 border rounded-[14px] flex flex-col justify-between cursor-pointer hover:scale-[1.01] transition-all shadow-sm hover:shadow-md h-[230px] ${isDark ? 'border-zinc-800 hover:border-amber-500 bg-zinc-950/20' : 'border-slate-200 hover:border-amber-500 bg-slate-50'}`}
+              >
+                <div className="space-y-3 flex-1 flex flex-col">
+                  <div className={`p-3 rounded-xl w-12 h-12 flex items-center justify-center ${isDark ? 'bg-zinc-900' : 'bg-white shadow-sm border border-slate-100'}`}>
+                    <Mic size={22} className="text-amber-500" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-[17px] font-extrabold tracking-tight leading-tight">Scan / Capture Document</h4>
+                    <p className="text-[12px] text-slate-400 font-medium leading-relaxed">Use your webcam to instantly capture and scan a physical contract.</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSelectCameraCapture}
+                  className="w-full mt-4 py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[14px] font-black uppercase tracking-wider transition-all"
+                >
+                  Open Camera
+                </button>
+              </div>
+            </div>
+
+            <p className="text-center text-[10px] text-slate-400 font-semibold uppercase tracking-widest">
+              Supported: PDF · DOCX · TXT · DOC · PNG · JPG (OCR)
+            </p>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── Camera Capture Modal ──────────────────────────────────────────── */}
+      {showCameraModal && createPortal(
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className={`w-full max-w-[700px] rounded-[18px] overflow-hidden shadow-2xl border ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+            {/* Camera Header */}
+            <div className={`flex items-center justify-between px-5 py-4 border-b ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
+              <div className="flex items-center gap-2.5">
+                <span className={`w-2 h-2 rounded-full ${isCameraReady && !capturedImage ? 'bg-red-500 animate-pulse' : 'bg-slate-400'}`} />
+                <span className="text-[13px] font-black uppercase tracking-wider text-[#5B3DF5]">
+                  {capturedImage ? 'Preview — Confirm or Retake' : isCameraReady ? '● Recording' : 'Starting Camera...'}
+                </span>
+              </div>
+              <button onClick={stopCamera} className="p-2 rounded-full hover:bg-slate-500/10 text-slate-400 transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Camera Body */}
+            <div className="relative w-full bg-black" style={{ aspectRatio: '16/9' }}>
+              {/* Live viewfinder */}
+              <video
+                ref={cameraVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className={`w-full h-full object-cover ${capturedImage ? 'hidden' : 'block'}`}
+              />
+              {/* Captured image preview */}
+              {capturedImage && (
+                <img src={capturedImage} alt="Captured document" className="w-full h-full object-contain" />
+              )}
+              {/* Camera not ready overlay */}
+              {!isCameraReady && !capturedImage && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                  {cameraError ? (
+                    <>
+                      <span className="text-red-400 text-sm font-bold text-center px-6">{cameraError}</span>
+                      <button
+                        onClick={startCameraCapture}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase"
+                      >
+                        Retry
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span className="text-white/60 text-xs font-semibold">Initializing camera...</span>
+                    </>
+                  )}
+                </div>
+              )}
+              {/* Document guide overlay */}
+              {isCameraReady && !capturedImage && (
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                  <div className="border-2 border-dashed border-white/40 rounded-lg" style={{ width: '75%', height: '80%' }} />
+                </div>
+              )}
+            </div>
+
+            {/* Camera Controls */}
+            <div className={`px-5 py-4 border-t ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
+              {!capturedImage ? (
+                <div className="flex items-center justify-center gap-4">
+                  {/* Cancel */}
+                  <button
+                    onClick={stopCamera}
+                    className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${isDark ? 'bg-zinc-800 text-slate-300 hover:bg-zinc-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                  >
+                    Cancel
+                  </button>
+                  {/* Capture */}
+                  <button
+                    onClick={capturePhoto}
+                    disabled={!isCameraReady}
+                    className="w-16 h-16 rounded-full bg-white border-4 border-slate-300 hover:border-indigo-500 shadow-lg transition-all disabled:opacity-40 flex items-center justify-center active:scale-95"
+                    title="Capture"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-[#5B3DF5]" />
+                  </button>
+                  {/* Switch Camera */}
+                  {availableCameras.length > 1 && (
+                    <button
+                      onClick={switchCamera}
+                      className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${isDark ? 'bg-zinc-800 text-slate-300 hover:bg-zinc-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                    >
+                      Flip
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-3">
+                  <button
+                    onClick={retakePhoto}
+                    className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${isDark ? 'bg-zinc-800 text-slate-300 hover:bg-zinc-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                  >
+                    ↩ Retake
+                  </button>
+                  <button
+                    onClick={confirmCapturedPhoto}
+                    className="px-6 py-2.5 bg-[#5B3DF5] hover:bg-indigo-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-indigo-500/25 flex items-center gap-2"
+                  >
+                    <CheckCircle2 size={14} /> Use Photo — Start Analysis
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 };
 

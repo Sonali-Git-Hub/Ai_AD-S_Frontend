@@ -410,6 +410,9 @@ const AiLegalContent = ({
         if (createdId) {
           if (setCurrentCase) setCurrentCase(created);
           if (setCurrentProjectId) setCurrentProjectId(createdId);
+          if (setLegalView) setLegalView('CHAT');
+          if (setSelectedLegalTool) setSelectedLegalTool({ id: 'legal_my_case', name: 'My Case Assistant' });
+          navigate(`/dashboard/legal/cases/${createdId}/chat`, { replace: true });
         }
         await loadDashboardData();
         setCaseRefreshKey(prev => prev + 1);

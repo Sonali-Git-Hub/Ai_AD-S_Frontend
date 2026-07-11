@@ -70,7 +70,7 @@ pre, code { max-width: 100%; white-space: pre-wrap; word-break: break-word; }
 /* FORM INPUTS - full width mobile */
 @media (max-width: 639px) {
   .grid.grid-cols-1.sm\:grid-cols-2 > * { grid-column: span 1; }
-  input, select, textarea { width: 100%; font-size: 16px !important; min-height: 44px; }
+  input:not([type="checkbox"]):not([type="radio"]), select, textarea { width: 100%; font-size: 16px !important; min-height: 44px; }
 }
 
 /* NO HORIZONTAL SCROLL */

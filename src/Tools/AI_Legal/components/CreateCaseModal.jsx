@@ -69,54 +69,29 @@ const OPPONENT_ROLES = ['Respondent', 'Non-Applicant', 'Opposite Party'];
 const CreateCaseModal = ({ isDark, isVisible, onClose, onSave, editingCase }) => {
   const [caseData, setCaseData] = useState({
     title: '',
-    regdNo: '',
-    caseNo: '',
-    firNo: '',
     clientRole: '',
     clientName: '',
-    clientPhone: '',
-    clientEmail: '',
-    countryCode: '+91',
     opponentRole: '',
     opponentName: '',
-    caseReceivedOn: '',
     courtName: '',
-    caseType: '',
-    caseCategories: [],
-    hearingDate: '',
-    priority: 'Medium',
-    description: '',
-    documents: [],
-    advocateName: '',
     courtType: '',
-    bench: '',
-    judge: '',
-    policeStation: '',
+    caseCategories: [],
+    priority: 'Standard',
     state: '',
     district: '',
     city: '',
-    address: '',
     filingDate: '',
     incidentDate: '',
     status: 'Active',
-    tags: '',
-    notes: '',
-    caseSummary: '',
-    aiSummary: '',
-    customFields: {}
+    caseSummary: ''
   });
 
   const [isLoading, setIsLoading] = useState(false);
   const [loadingError, setLoadingError] = useState(null);
 
-  const [countrySearch, setCountrySearch] = useState('');
   const [categorySearch, setCategorySearch] = useState('');
-  const [selectedCountry, setSelectedCountry] = useState(
-    COUNTRIES.find(c => c.dial === '+91') || COUNTRIES[0]
-  );
 
   // Sub-picker toggles
-  const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showClientRolePicker, setShowClientRolePicker] = useState(false);
   const [showOpponentRolePicker, setShowOpponentRolePicker] = useState(false);
@@ -132,46 +107,22 @@ const CreateCaseModal = ({ isDark, isVisible, onClose, onSave, editingCase }) =>
         setCaseData({
           id: fullCase._id || fullCase.id || '',
           title: fullCase.title || fullCase.name || '',
-          regdNo: fullCase.regdNo || '',
-          caseNo: fullCase.caseNo || fullCase.caseNumber || '',
-          firNo: fullCase.firNo || fullCase.firNumber || '',
           clientRole: fullCase.clientRole || '',
           clientName: fullCase.clientName || '',
-          clientPhone: fullCase.clientPhone || '',
-          clientEmail: fullCase.clientEmail || fullCase.email || '',
-          countryCode: fullCase.countryCode || '+91',
           opponentRole: fullCase.opponentRole || '',
           opponentName: fullCase.opponentName || '',
-          caseReceivedOn: fullCase.caseReceivedOn || fullCase.caseReceivedDate || '',
           courtName: fullCase.courtName || fullCase.court || '',
-          caseType: fullCase.caseType || '',
           caseCategories: categories,
-          hearingDate: fullCase.hearingDate || fullCase.nextHearing || '',
-          priority: fullCase.priority || 'Medium',
-          description: fullCase.description || '',
-          documents: fullCase.documents || [],
-          advocateName: fullCase.advocateName || '',
+          priority: fullCase.priority || 'Standard',
           courtType: fullCase.courtType || '',
-          bench: fullCase.bench || '',
-          judge: fullCase.judge || '',
-          policeStation: fullCase.policeStation || '',
           state: fullCase.state || '',
           district: fullCase.district || '',
           city: fullCase.city || '',
-          address: fullCase.address || '',
           filingDate: fullCase.filingDate || '',
           incidentDate: fullCase.incidentDate || '',
           status: fullCase.status || 'Active',
-          tags: Array.isArray(fullCase.tags) ? fullCase.tags.join(', ') : (fullCase.tags || ''),
-          notes: fullCase.notes || '',
-          caseSummary: fullCase.caseSummary || fullCase.summary || '',
-          aiSummary: fullCase.aiSummary || '',
-          customFields: fullCase.customFields || {}
+          caseSummary: fullCase.caseSummary || fullCase.summary || ''
         });
-        if (fullCase.countryCode) {
-          const foundCountry = COUNTRIES.find(c => c.dial === fullCase.countryCode);
-          if (foundCountry) setSelectedCountry(foundCountry);
-        }
         setIsLoading(false);
       })
       .catch(err => {
@@ -194,58 +145,27 @@ const CreateCaseModal = ({ isDark, isVisible, onClose, onSave, editingCase }) =>
       setLoadingError(null);
       setCaseData({
         title: '',
-        regdNo: '',
-        caseNo: '',
-        firNo: '',
         clientRole: '',
         clientName: '',
-        clientPhone: '',
-        clientEmail: '',
-        countryCode: '+91',
         opponentRole: '',
         opponentName: '',
-        caseReceivedOn: '',
         courtName: '',
-        caseType: '',
-        caseCategories: [],
-        hearingDate: '',
-        priority: 'Medium',
-        description: '',
-        documents: [],
-        advocateName: '',
         courtType: '',
-        bench: '',
-        judge: '',
-        policeStation: '',
+        caseCategories: [],
+        priority: 'Standard',
         state: '',
         district: '',
         city: '',
-        address: '',
         filingDate: '',
         incidentDate: '',
         status: 'Active',
-        tags: '',
-        notes: '',
-        caseSummary: '',
-        aiSummary: '',
-        customFields: {}
+        caseSummary: ''
       });
-      setSelectedCountry(COUNTRIES.find(c => c.dial === '+91') || COUNTRIES[0]);
     }
     return () => {
       active = false;
     };
   }, [editingCase, isVisible]);
-
-  const filteredCountries = useMemo(() => {
-    const q = countrySearch.toLowerCase().trim();
-    if (!q) return COUNTRIES;
-    return COUNTRIES.filter(c =>
-      c.name.toLowerCase().includes(q) ||
-      c.dial.includes(q) ||
-      c.iso.toLowerCase().includes(q)
-    );
-  }, [countrySearch]);
 
   const filteredCategories = useMemo(() => {
     const q = categorySearch.toLowerCase().trim();
@@ -267,26 +187,13 @@ const CreateCaseModal = ({ isDark, isVisible, onClose, onSave, editingCase }) =>
     });
   };
 
-  const handleFileUpload = (e) => {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
-    const newDocs = files.map(file => ({
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      name: file.name,
-      type: file.type || 'file',
-      size: file.size,
-      uploadedAt: new Date().toISOString(),
-      uri: URL.createObjectURL(file)
-    }));
-    setCaseData(prev => ({
-      ...prev,
-      documents: [...(prev.documents || []), ...newDocs]
-    }));
-  };
-
   const handleSave = () => {
     if (!caseData.title.trim()) {
       alert('Please enter a Case Title before saving.');
+      return;
+    }
+    if (!caseData.caseCategories || caseData.caseCategories.length === 0) {
+      alert('Please select at least 1 case category.');
       return;
     }
     if (!caseData.clientRole) {
@@ -297,17 +204,14 @@ const CreateCaseModal = ({ isDark, isVisible, onClose, onSave, editingCase }) =>
       alert(`Please enter the ${caseData.clientRole} Name.`);
       return;
     }
-    if (caseData.opponentRole && !caseData.opponentName.trim()) {
-      alert(`Please enter the ${caseData.opponentRole} Name.`);
-      return;
-    }
-    if (!caseData.caseCategories || caseData.caseCategories.length === 0) {
-      alert('Please select at least 1 case category.');
+    if (!caseData.caseSummary.trim()) {
+      alert('Please enter a Case Summary.');
       return;
     }
 
     const savedPayload = {
       ...caseData,
+      name: caseData.title,
       caseType: caseData.caseCategories.join(', ')
     };
     onSave(savedPayload);
@@ -315,41 +219,21 @@ const CreateCaseModal = ({ isDark, isVisible, onClose, onSave, editingCase }) =>
     // Reset form
     setCaseData({
       title: '',
-      regdNo: '',
-      caseNo: '',
-      firNo: '',
       clientRole: '',
       clientName: '',
-      clientPhone: '',
-      clientEmail: '',
-      countryCode: '+91',
       opponentRole: '',
       opponentName: '',
-      caseReceivedOn: '',
       courtName: '',
-      caseType: '',
-      caseCategories: [],
-      hearingDate: '',
-      priority: 'Medium',
-      description: '',
-      documents: [],
-      advocateName: '',
       courtType: '',
-      bench: '',
-      judge: '',
-      policeStation: '',
+      caseCategories: [],
+      priority: 'Standard',
       state: '',
       district: '',
       city: '',
-      address: '',
       filingDate: '',
       incidentDate: '',
       status: 'Active',
-      tags: '',
-      notes: '',
-      caseSummary: '',
-      aiSummary: '',
-      customFields: {}
+      caseSummary: ''
     });
   };
 
@@ -422,11 +306,11 @@ const CreateCaseModal = ({ isDark, isVisible, onClose, onSave, editingCase }) =>
                     </div>
                   ) : (
                     <>
-                      {/* SECTION 1: Case Details */}
+                      {/* SECTION 1: Case Identity */}
                       <div className="border-b border-slate-100 dark:border-zinc-800/80 pb-5">
                         <h4 className="text-xs font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-4 flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full" />
-                          Case Identity & Scope
+                          SECTION 1 — Case Identity
                         </h4>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -463,51 +347,6 @@ const CreateCaseModal = ({ isDark, isVisible, onClose, onSave, editingCase }) =>
                             </div>
                           </div>
 
-                          {/* Registration Number */}
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Registration Number</label>
-                            <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                              <Hash size={18} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0" />
-                              <input
-                                type="text"
-                                placeholder="Enter Registration Number"
-                                value={caseData.regdNo}
-                                onChange={e => setCaseData({ ...caseData, regdNo: e.target.value.replace(/[^a-zA-Z0-9\-]/g, '').toUpperCase() })}
-                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Case Number */}
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Case Number</label>
-                            <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                              <Hash size={18} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0" />
-                              <input
-                                type="text"
-                                placeholder="Enter Case Number"
-                                value={caseData.caseNo}
-                                onChange={e => setCaseData({ ...caseData, caseNo: e.target.value })}
-                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
-                              />
-                            </div>
-                          </div>
-
-                          {/* FIR Number */}
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">FIR Number</label>
-                            <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                              <Hash size={18} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0" />
-                              <input
-                                type="text"
-                                placeholder="Enter FIR Number"
-                                value={caseData.firNo}
-                                onChange={e => setCaseData({ ...caseData, firNo: e.target.value })}
-                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
-                              />
-                            </div>
-                          </div>
-
                           {/* Priority */}
                           <div className="space-y-1.5">
                             <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Priority</label>
@@ -529,9 +368,9 @@ const CreateCaseModal = ({ isDark, isVisible, onClose, onSave, editingCase }) =>
                           <div className="space-y-1.5">
                             <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Case Category *</label>
                             <button
-                              type="button"
-                              onClick={() => setShowCategoryPicker(true)}
-                              className="w-full flex items-center justify-between bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-2.5 text-left min-h-[52px]"
+                               type="button"
+                               onClick={() => setShowCategoryPicker(true)}
+                               className="w-full flex items-center justify-between bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-2.5 text-left min-h-[52px]"
                             >
                               <div className="flex items-center gap-2 flex-wrap max-w-[85%]">
                                 <List size={18} className="text-indigo-600 dark:text-indigo-400 mr-1 shrink-0" />
@@ -555,20 +394,6 @@ const CreateCaseModal = ({ isDark, isVisible, onClose, onSave, editingCase }) =>
                               <ChevronDown size={16} className="text-slate-400 shrink-0" />
                             </button>
                           </div>
-
-                          {/* Tags */}
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Tags (comma-separated)</label>
-                            <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                              <input
-                                type="text"
-                                placeholder="e.g. land, civil, appeal"
-                                value={caseData.tags}
-                                onChange={e => setCaseData({ ...caseData, tags: e.target.value })}
-                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
-                              />
-                            </div>
-                          </div>
                         </div>
                       </div>
 
@@ -576,7 +401,7 @@ const CreateCaseModal = ({ isDark, isVisible, onClose, onSave, editingCase }) =>
                       <div className="border-b border-slate-100 dark:border-zinc-800/80 pb-5">
                         <h4 className="text-xs font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-4 flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full" />
-                          Participants & Roles
+                          SECTION 2 — Participants
                         </h4>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -645,68 +470,14 @@ const CreateCaseModal = ({ isDark, isVisible, onClose, onSave, editingCase }) =>
                               />
                             </div>
                           </div>
-
-                          {/* Advocate Name */}
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Advocate Name</label>
-                            <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                              <Shield size={18} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0" />
-                              <input
-                                type="text"
-                                placeholder="Advocate Name"
-                                value={caseData.advocateName}
-                                onChange={e => setCaseData({ ...caseData, advocateName: e.target.value })}
-                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Phone Number */}
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Phone Number *</label>
-                            <div className="flex gap-2">
-                              <button
-                                type="button"
-                                onClick={() => setShowCountryPicker(true)}
-                                className="flex items-center justify-between bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-3 py-3 text-left w-24 shrink-0"
-                              >
-                                <span className="text-lg mr-1">{selectedCountry.flag}</span>
-                                <span className="text-xs font-bold text-slate-800 dark:text-white">{selectedCountry.dial}</span>
-                              </button>
-                              <div className="flex-1 flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                                <Phone size={18} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0" />
-                                <input
-                                  type="tel"
-                                  placeholder="9876543210"
-                                  value={caseData.clientPhone}
-                                  onChange={e => setCaseData({ ...caseData, clientPhone: e.target.value.replace(/[^0-9]/g, '') })}
-                                  className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Email */}
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Email</label>
-                            <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                              <input
-                                type="email"
-                                placeholder="client@email.com"
-                                value={caseData.clientEmail}
-                                onChange={e => setCaseData({ ...caseData, clientEmail: e.target.value })}
-                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
-                              />
-                            </div>
-                          </div>
                         </div>
                       </div>
 
-                      {/* SECTION 3: Court & Judiciary */}
+                      {/* SECTION 3: Court Details */}
                       <div className="border-b border-slate-100 dark:border-zinc-800/80 pb-5">
                         <h4 className="text-xs font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-4 flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full" />
-                          Court & Jurisdiction Details
+                          SECTION 3 — Court Details
                         </h4>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -739,51 +510,9 @@ const CreateCaseModal = ({ isDark, isVisible, onClose, onSave, editingCase }) =>
                             </div>
                           </div>
 
-                          {/* Bench */}
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Bench</label>
-                            <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                              <input
-                                type="text"
-                                placeholder="e.g. Division Bench, Single Bench"
-                                value={caseData.bench}
-                                onChange={e => setCaseData({ ...caseData, bench: e.target.value })}
-                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Judge */}
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Judge Name</label>
-                            <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                              <input
-                                type="text"
-                                placeholder="Hon'ble Justice..."
-                                value={caseData.judge}
-                                onChange={e => setCaseData({ ...caseData, judge: e.target.value })}
-                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Police Station */}
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Police Station</label>
-                            <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                              <input
-                                type="text"
-                                placeholder="e.g. Connaught Place PS"
-                                value={caseData.policeStation}
-                                onChange={e => setCaseData({ ...caseData, policeStation: e.target.value })}
-                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white"
-                              />
-                            </div>
-                          </div>
-
                           {/* State */}
                           <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">State / Province</label>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">State</label>
                             <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
                               <input
                                 type="text"
@@ -823,27 +552,13 @@ const CreateCaseModal = ({ isDark, isVisible, onClose, onSave, editingCase }) =>
                             </div>
                           </div>
                         </div>
-
-                        {/* Address */}
-                        <div className="space-y-1.5 mt-4">
-                          <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Address / Jurisdiction Details</label>
-                          <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                            <textarea
-                              rows={2}
-                              placeholder="Complete Court or Client Address..."
-                              value={caseData.address}
-                              onChange={e => setCaseData({ ...caseData, address: e.target.value })}
-                              className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-800 dark:text-white resize-none"
-                            />
-                          </div>
-                        </div>
                       </div>
 
-                      {/* SECTION 4: Dates & Timeline */}
+                      {/* SECTION 4: Important Dates */}
                       <div className="border-b border-slate-100 dark:border-zinc-800/80 pb-5">
                         <h4 className="text-xs font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-4 flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full" />
-                          Dates & Chronology
+                          SECTION 4 — Important Dates
                         </h4>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -856,21 +571,6 @@ const CreateCaseModal = ({ isDark, isVisible, onClose, onSave, editingCase }) =>
                                 type="date"
                                 value={caseData.filingDate}
                                 onChange={e => setCaseData({ ...caseData, filingDate: e.target.value })}
-                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-855 dark:text-white cursor-pointer"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Case Received Date */}
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Case Received Date</label>
-                            <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                              <Calendar size={18} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0" />
-                              <input
-                                type="date"
-                                max={new Date().toISOString().split('T')[0]}
-                                value={caseData.caseReceivedOn}
-                                onChange={e => setCaseData({ ...caseData, caseReceivedOn: e.target.value })}
                                 className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-855 dark:text-white cursor-pointer"
                               />
                             </div>
@@ -890,110 +590,28 @@ const CreateCaseModal = ({ isDark, isVisible, onClose, onSave, editingCase }) =>
                               />
                             </div>
                           </div>
-
-                          {/* Next Hearing */}
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Next Hearing</label>
-                            <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                              <Calendar size={18} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0" />
-                              <input
-                                type="date"
-                                min={new Date().toISOString().split('T')[0]}
-                                value={caseData.hearingDate}
-                                onChange={e => setCaseData({ ...caseData, hearingDate: e.target.value })}
-                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-855 dark:text-white cursor-pointer"
-                              />
-                            </div>
-                          </div>
                         </div>
                       </div>
 
-                      {/* SECTION 5: Summaries & Documents */}
+                      {/* SECTION 5: Case Summary */}
                       <div className="pb-2">
                         <h4 className="text-xs font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-4 flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full" />
-                          Summaries & Evidence
+                          SECTION 5 — Case Summary
                         </h4>
                         
                         {/* Case Summary */}
                         <div className="space-y-1.5 mb-4">
-                          <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Case Summary</label>
+                          <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Case Summary *</label>
                           <div className="flex items-start bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
                             <textarea
-                              rows={3}
-                              placeholder="Complete legal case summary details..."
+                              rows={5}
+                              placeholder="Describe the timeline, facts, claims, important events, and relief sought..."
                               value={caseData.caseSummary}
                               onChange={e => setCaseData({ ...caseData, caseSummary: e.target.value })}
                               className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-850 dark:text-white resize-none"
                             />
                           </div>
-                        </div>
-
-                        {/* AI Summary */}
-                        <div className="space-y-1.5 mb-4">
-                          <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">AI Summary</label>
-                          <div className="flex items-start bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                            <textarea
-                              rows={3}
-                              placeholder="AI analysis summary..."
-                              value={caseData.aiSummary}
-                              onChange={e => setCaseData({ ...caseData, aiSummary: e.target.value })}
-                              className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-bold text-slate-850 dark:text-white resize-none"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Notes / Description */}
-                        <div className="space-y-1.5 mb-4">
-                          <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Notes / Description</label>
-                          <div className="flex items-start bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3">
-                            <Plus size={18} className="text-indigo-600 dark:text-indigo-400 mr-2 shrink-0 mt-0.5" />
-                            <textarea
-                              rows={3}
-                              placeholder="General case description, advocate notes or directives..."
-                              value={caseData.description}
-                              onChange={e => setCaseData({ ...caseData, description: e.target.value })}
-                              className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm font-medium text-slate-800 dark:text-white resize-none"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Documents */}
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black uppercase tracking-widest text-subtext ml-1">Evidence & Documents</label>
-                          <div className="flex gap-4">
-                            <label className="flex-1 flex items-center justify-center gap-2 border-2 border-dashed border-indigo-600/30 rounded-2xl py-4 cursor-pointer hover:border-indigo-600 transition-colors">
-                              <Upload size={18} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
-                              <span className="text-xs font-bold text-indigo-650 dark:text-indigo-400">Upload PDF, Word or Image</span>
-                              <input
-                                type="file"
-                                multiple
-                                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                                onChange={handleFileUpload}
-                                className="hidden"
-                              />
-                            </label>
-                          </div>
-
-                          {caseData.documents && caseData.documents.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-3">
-                              {caseData.documents.map((doc, idx) => (
-                                <div 
-                                  key={doc.id || idx} 
-                                  className="flex items-center gap-2 bg-indigo-55/10 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-950/30 px-3 py-1.5 rounded-xl max-w-xs shrink-0"
-                                >
-                                  <span className="text-[11px] font-bold truncate max-w-[150px]">{doc.name}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => setCaseData(prev => ({ ...prev, documents: prev.documents.filter(d => d.id !== doc.id) }))}
-                                    className="text-indigo-600 dark:text-indigo-400 hover:text-red-500 rounded-full"
-                                  >
-                                    <X size={12} />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
                         </div>
                       </div>
                     </>
@@ -1016,62 +634,6 @@ const CreateCaseModal = ({ isDark, isVisible, onClose, onSave, editingCase }) =>
         </div>
 
         {/* --- Sub-picker Modals --- */}
-        {/* Country Picker Modal */}
-        <Transition.Root show={showCountryPicker} as={Fragment}>
-          <Dialog as="div" className="relative z-[130000]" onClose={() => setShowCountryPicker(false)}>
-            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" />
-            <div className="fixed inset-0 overflow-y-auto flex items-end justify-center p-4">
-              <Transition.Child
-                as={Fragment}
-                enter="transition ease-out duration-300 transform"
-                enterFrom="translate-y-full"
-                enterTo="translate-y-0"
-                leave="transition ease-in duration-200 transform"
-                leaveFrom="translate-y-0"
-                leaveTo="translate-y-full"
-              >
-                <Dialog.Panel className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-t-3xl p-6 text-left shadow-2xl border-t border-slate-100 dark:border-zinc-800">
-                  <div className="flex justify-between items-center mb-4">
-                    <Dialog.Title className="text-md font-extrabold text-slate-900 dark:text-white">Select Country</Dialog.Title>
-                    <button onClick={() => setShowCountryPicker(false)} className="p-1"><X size={18} className="text-slate-400" /></button>
-                  </div>
-                  <div className="flex items-center bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 mb-4">
-                    <Search size={14} className="text-slate-400 mr-2" />
-                    <input
-                      type="text"
-                      placeholder="Search country or code..."
-                      value={countrySearch}
-                      onChange={e => setCountrySearch(e.target.value)}
-                      className="bg-transparent border-none outline-none focus:ring-0 text-xs w-full text-slate-800 dark:text-white"
-                    />
-                  </div>
-                  <div className="max-h-60 overflow-y-auto custom-scrollbar space-y-1">
-                    {filteredCountries.map(c => (
-                      <button
-                        key={c.iso}
-                        onClick={() => {
-                          setSelectedCountry(c);
-                          setCaseData(prev => ({ ...prev, countryCode: c.dial }));
-                          setShowCountryPicker(false);
-                        }}
-                        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-xs font-bold transition-all ${
-                          selectedCountry.iso === c.iso ? 'bg-indigo-50 dark:bg-indigo-950/20 text-indigo-650' : 'hover:bg-slate-50 dark:hover:bg-white/5 text-slate-800 dark:text-slate-200'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">{c.flag}</span>
-                          <span>{c.name}</span>
-                          <span className="text-[10px] text-slate-400">{c.iso}</span>
-                        </div>
-                        <span className="text-indigo-600 dark:text-indigo-400">{c.dial}</span>
-                      </button>
-                    ))}
-                  </div>
-                </Dialog.Panel>
-              </Transition.Child>
-            </div>
-          </Dialog>
-        </Transition.Root>
 
         {/* Category Picker Modal */}
         <Transition.Root show={showCategoryPicker} as={Fragment}>
