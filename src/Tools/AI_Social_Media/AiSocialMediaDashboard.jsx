@@ -2172,7 +2172,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
             {
               id: 'brands',
               label: 'Brand History',
-              val: allWorkspaces.filter(ws => !ws.isPersonalProfile).length,
+              val: allWorkspaces.filter(ws => !ws.isPersonalProfile && (ws.onboarding?.completed || ws.brandProfile?.companyName)).length,
               icon: Palette,
               color: 'text-indigo-500',
               bg: 'bg-indigo-500/10'
@@ -7129,7 +7129,13 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
                         {/* ── BRAND HISTORY ── */}
                         {(() => {
-                          const activeBrands = allWorkspaces.filter(ws => !ws.isPersonalProfile);
+                          const activeBrands = allWorkspaces
+                            .filter(ws => !ws.isPersonalProfile && (ws.onboarding?.completed || ws.brandProfile?.companyName))
+                            .sort((a, b) => {
+                              if (a._id === workspace?._id) return -1;
+                              if (b._id === workspace?._id) return 1;
+                              return 0;
+                            });
                           if (activeBrands.length === 0) return null;
                           return (
                             <div className={`mb-6 ${isSidebarCollapsed ? 'px-1' : 'px-0'}`}>
