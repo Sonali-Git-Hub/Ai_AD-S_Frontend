@@ -179,7 +179,7 @@ const DNAField = ({ label, value, onChange, multiline }) => {
             className="w-full text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-white/5 border border-primary/40 rounded-xl px-3 py-2 outline-none" />
         )
       ) : (
-        <p className="w-full text-xs font-medium text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 min-h-[36px] leading-relaxed">
+        <p className="w-full text-xs font-medium text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 min-h-[36px] leading-relaxed whitespace-pre-line">
           {value || <span className="italic text-slate-400">Not set</span>}
         </p>
       )}
