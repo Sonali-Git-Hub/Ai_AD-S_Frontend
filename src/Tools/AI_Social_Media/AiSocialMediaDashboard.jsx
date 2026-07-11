@@ -7028,7 +7028,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
     switch (activeTab) {
       case 'overview': return renderOverview();
-      case 'brand': return <BrandWorkspace workspaceId={workspace?._id} />;
+      case 'brand': return <BrandWorkspace workspaceId={workspace?._id} setActiveTab={setActiveTab} setShowGeneratorOptions={setShowGeneratorOptions} />;
       case 'calendar': return renderContentCalendar();
       case 'generation': return renderContentOrchestration();
       case 'assets': return renderAssetLibrary();

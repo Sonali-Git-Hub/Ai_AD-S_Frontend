@@ -335,7 +335,7 @@ const renderSectionContent = (sectionKey, sectionData, onFieldChange) => {
   }
 };
 
-const BrandWorkspace = ({ workspaceId }) => {
+const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShowGeneratorOptions }) => {
   const [activeTab, setActiveTab] = useState("setup");
   const [url, setUrl] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -1660,9 +1660,13 @@ const BrandWorkspace = ({ workspaceId }) => {
                   </div>
                 ))}
               </div>
-              <button onClick={() => setShowSuccessCard(false)}
+               <button onClick={() => {
+                  setShowSuccessCard(false);
+                  if (setParentActiveTab) setParentActiveTab('calendar');
+                  if (setShowGeneratorOptions) setShowGeneratorOptions(true);
+                }}
                 className="w-full py-3 bg-primary text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-primary/25">
-                Continue to Brand Workspace
+                Content generator
               </button>
             </div>
           </div>
