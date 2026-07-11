@@ -42,9 +42,26 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401) {
       const isMock = localStorage.getItem('token') === 'mock_token';
       if (!isMock) {
-        // Clear user data and redirect to login on unauthorized
-        localStorage.removeItem('user');
-        window.location.href = '/login';
+        const code = error.response?.data?.code;
+        const errorMsg = error.response?.data?.error || error.response?.data?.message || 'Session expired';
+        
+        // Only redirect on auth-specific routes, not on every 401
+        // This prevents redirect during post generation when session might be revoked
+        const isAuthRoute = error.config?.url?.includes('/auth/') || error.config?.url?.includes('/login');
+        const isSessionRevoked = code === 'SESSION_REVOKED';
+        
+        if (isSessionRevoked || isAuthRoute) {
+          // Clear user data and redirect to login
+          localStorage.removeItem('user');
+          // Show toast before redirecting
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 2000);
+        } else {
+          // For other 401 errors (like during generation), just log and reject
+          // Don't redirect - let the caller handle the error
+          console.warn('[apiService] 401 Unauthorized on:', error.config?.url, '-', errorMsg);
+        }
       }
     }
 
@@ -2355,6 +2372,7 @@ export const apiService = {
       console.error('[Frontend] getSessionReplayDetails failed:', error?.response?.data || error.message);
       throw error;
     }
+  },
 };
 
 export default apiService;

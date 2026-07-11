@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Dialog } from '@headlessui/react';
 import { 
   X, Instagram, Facebook, Linkedin, Twitter, Youtube, Hash, Play, 
-  Image as ImageIcon, Video, Upload, Trash2, CheckCircle2, ChevronDown, Check
+  Image as ImageIcon, Video, Upload, Trash2, CheckCircle2, ChevronDown, Check,
+  FileText, Layers
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -34,12 +35,12 @@ const tones = [
 ];
 
 export default function GeneratePostModal({ isOpen, onClose, onGenerate }) {
-  const [platform, setPlatform] = useState('');
-  const [contentType, setContentType] = useState('');
+  const [selectedPlatforms, setSelectedPlatforms] = useState([]);
+  const [selectedContentTypes, setSelectedContentTypes] = useState([]);
   const [customContentType, setCustomContentType] = useState('');
   const [postTopic, setPostTopic] = useState('');
   const [keyMessage, setKeyMessage] = useState('');
-  const [audience, setAudience] = useState('');
+  const [selectedAudiences, setSelectedAudiences] = useState([]);
   const [customAudience, setCustomAudience] = useState('');
   const [selectedTones, setSelectedTones] = useState([]);
   const [referenceMedia, setReferenceMedia] = useState([]);
@@ -53,17 +54,17 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate }) {
   const [contentLength, setContentLength] = useState('Medium');
   const [language, setLanguage] = useState('English');
   const [isGenerating, setIsGenerating] = useState(false);
-  const fileInputRef = useRef(null);
+  const [selectedGenerateModes, setSelectedGenerateModes] = useState(['caption']);
 
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
-      setPlatform('');
-      setContentType('');
+      setSelectedPlatforms([]);
+      setSelectedContentTypes([]);
       setCustomContentType('');
       setPostTopic('');
       setKeyMessage('');
-      setAudience('');
+      setSelectedAudiences([]);
       setCustomAudience('');
       setSelectedTones([]);
       setReferenceMedia([]);
@@ -71,8 +72,11 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate }) {
       setContentLength('Medium');
       setLanguage('English');
       setIsGenerating(false);
+      setSelectedGenerateModes(['caption']);
     }
   }, [isOpen]);
+
+  const fileInputRef = useRef(null);
 
   const handleMediaUpload = (e) => {
     const files = Array.from(e.target.files);
@@ -81,6 +85,22 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate }) {
       return;
     }
     setReferenceMedia([...referenceMedia, ...files]);
+  };
+
+  const togglePlatform = (pName) => {
+    setSelectedPlatforms(prev => prev.includes(pName) ? prev.filter(p => p !== pName) : [...prev, pName]);
+  };
+
+  const toggleContentType = (type) => {
+    setSelectedContentTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
+  };
+
+  const toggleAudience = (aud) => {
+    setSelectedAudiences(prev => prev.includes(aud) ? prev.filter(a => a !== aud) : [...prev, aud]);
+  };
+
+  const toggleGenerateMode = (mode) => {
+    setSelectedGenerateModes(prev => prev.includes(mode) ? prev.filter(m => m !== mode) : [...prev, mode]);
   };
 
   const removeMedia = (index) => {
@@ -101,24 +121,65 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate }) {
     setAiEnhancements(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleGenerate = async () => {
-    if (!platform) return toast.error('Please select a platform');
-    if (!contentType) return toast.error('Please select a content type');
-    if (contentType === 'Custom' && !customContentType) return toast.error('Please specify the custom content type');
+  const handleGenerate = async (modes) => {
+    if (selectedPlatforms.length === 0) return toast.error('Please select at least one platform');
     if (!postTopic.trim()) return toast.error('Post Topic is required');
+    if (modes.length === 0) return toast.error('Please select at least one generation mode');
+    
+    let updatedContentTypes = [...selectedContentTypes];
+    if (modes.includes('carousel')) {
+      if (!updatedContentTypes.includes('Carousel')) updatedContentTypes.push('Carousel');
+    } else if (modes.includes('image')) {
+      if (!updatedContentTypes.includes('Image')) updatedContentTypes.push('Image');
+    } else if (modes.includes('hashtag') && updatedContentTypes.length === 0) {
+      updatedContentTypes.push('Hashtags');
+    } else if (modes.includes('caption') && updatedContentTypes.length === 0) {
+      updatedContentTypes.push('Caption');
+    } else {
+      if (updatedContentTypes.length === 0) return toast.error('Please select a content type');
+      if (updatedContentTypes.includes('Custom') && !customContentType) return toast.error('Please specify the custom content type');
+    }
 
     setIsGenerating(true);
     
-    // Simulate generation or call actual API
+    let updatedEnhancements = { ...aiEnhancements };
+    
+    if (modes.includes('image') || modes.includes('carousel')) {
+      updatedEnhancements.imagePrompt = true;
+    } else {
+      updatedEnhancements.imagePrompt = false;
+    }
+
+    if (modes.includes('hashtag') || modes.includes('carousel')) {
+      updatedEnhancements.hashtags = true;
+    } else {
+      updatedEnhancements.hashtags = false;
+    }
+
+    if (modes.includes('caption') || modes.includes('carousel')) {
+      updatedEnhancements.caption = true;
+      updatedEnhancements.cta = true;
+    } else {
+      updatedEnhancements.caption = false;
+      updatedEnhancements.cta = false;
+    }
+    
+    if (modes.includes('carousel')) {
+       updatedEnhancements.multipleVariations = true;
+    }
+
+    const finalContentTypes = updatedContentTypes.map(t => t === 'Custom' ? customContentType : t).join(', ');
+    const finalAudiences = selectedAudiences.map(a => a === 'Custom' ? customAudience : a).join(', ');
+
     const config = {
-      platform,
-      contentType: contentType === 'Custom' ? customContentType : contentType,
+      platform: selectedPlatforms.join(', '),
+      contentType: finalContentTypes,
       postTopic,
       keyMessage,
-      audience: audience === 'Custom' ? customAudience : audience,
+      audience: finalAudiences,
       tones: selectedTones,
       referenceMedia,
-      aiEnhancements,
+      aiEnhancements: updatedEnhancements,
       contentLength,
       language
     };
@@ -178,11 +239,11 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate }) {
                 <label className="text-xs font-black uppercase tracking-widest text-slate-400">1. Social Media Platform <span className="text-red-500">*</span></label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {platforms.map(p => {
-                    const isSelected = platform === p.name;
+                    const isSelected = selectedPlatforms.includes(p.name);
                     return (
                       <div
                         key={p.id}
-                        onClick={() => setPlatform(p.name)}
+                        onClick={() => togglePlatform(p.name)}
                         className={`relative p-4 rounded-2xl cursor-pointer transition-all duration-300 border flex flex-col items-center gap-3 text-center
                           ${isSelected 
                             ? 'border-primary bg-primary/5 shadow-[0_0_15px_rgba(79,70,229,0.2)] dark:bg-primary/10' 
@@ -211,9 +272,9 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate }) {
                   {contentTypes.map(type => (
                     <button
                       key={type}
-                      onClick={() => setContentType(type)}
+                      onClick={() => toggleContentType(type)}
                       className={`px-4 py-2.5 rounded-xl border text-[11px] font-bold uppercase tracking-wide transition-all ${
-                        contentType === type
+                        selectedContentTypes.includes(type)
                           ? 'border-primary bg-primary text-white shadow-lg shadow-primary/30'
                           : 'border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:border-primary/40 hover:bg-slate-50 dark:hover:bg-white/5'
                       }`}
@@ -222,7 +283,7 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate }) {
                     </button>
                   ))}
                 </div>
-                {contentType === 'Custom' && (
+                {selectedContentTypes.includes('Custom') && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
                     <input
                       type="text"
@@ -266,18 +327,23 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate }) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                 <section className="space-y-2">
                   <label className="text-xs font-black uppercase tracking-widest text-slate-400">4. Target Audience</label>
-                  <div className="relative">
-                    <select
-                      value={audience}
-                      onChange={(e) => setAudience(e.target.value)}
-                      className="w-full h-12 appearance-none bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm font-bold text-slate-700 dark:text-slate-200 focus:border-primary focus:ring-1 focus:ring-primary outline-none cursor-pointer"
-                    >
-                      <option value="" disabled>Select Audience</option>
-                      {targetAudiences.map(a => <option key={a} value={a}>{a}</option>)}
-                    </select>
-                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {targetAudiences.map(a => (
+                      <button
+                        key={a}
+                        onClick={() => toggleAudience(a)}
+                        className={`px-3 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-wide transition-all flex items-center gap-1.5 ${
+                          selectedAudiences.includes(a)
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-slate-200 dark:border-white/10 text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5'
+                        }`}
+                      >
+                        {selectedAudiences.includes(a) && <Check className="w-3 h-3" />}
+                        {a}
+                      </button>
+                    ))}
                   </div>
-                  {audience === 'Custom' && (
+                  {selectedAudiences.includes('Custom') && (
                     <motion.input
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                       type="text" placeholder="E.g., Graphic Designers"
@@ -429,40 +495,110 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate }) {
                 </section>
               </div>
 
+              {/* SECTION 10 — What do you want to generate? */}
+              <section className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-400">10. What do you want to generate? <span className="text-red-500">*</span></label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { id: 'caption', name: 'Caption', icon: FileText, desc: 'Generate post copy' },
+                    { id: 'hashtag', name: 'Hashtag', icon: Hash, desc: 'Generate trending tags' },
+                    { id: 'carousel', name: 'Carousel', icon: Layers, desc: 'Multi-slide sequence' },
+                    { id: 'image', name: 'Image', icon: ImageIcon, desc: 'AI visual prompt' }
+                  ].map(item => {
+                    const isSelected = selectedGenerateModes.includes(item.id);
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => toggleGenerateMode(item.id)}
+                        className={`relative p-4 rounded-2xl cursor-pointer transition-all duration-300 border flex flex-col items-center gap-2 text-center
+                          ${isSelected 
+                            ? 'border-primary bg-primary/5 shadow-[0_0_15px_rgba(79,70,229,0.2)] dark:bg-primary/10' 
+                            : 'border-slate-200 dark:border-white/10 hover:border-primary/40 hover:bg-slate-50 dark:hover:bg-white/5'
+                          }`}
+                      >
+                        <item.icon className={`w-6 h-6 ${isSelected ? 'text-primary' : 'text-slate-500'}`} />
+                        <span className={`text-xs font-bold uppercase tracking-wide ${isSelected ? 'text-primary' : 'text-slate-700 dark:text-slate-300'}`}>
+                          {item.name}
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-medium">
+                          {item.desc}
+                        </span>
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                            <Check className="w-2.5 h-2.5 text-white" />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
             </div>
 
             {/* Right Column (Live Preview - Desktop Only) */}
-            <div className="hidden lg:flex w-[380px] bg-slate-50 dark:bg-white/[0.02] border-l border-slate-100 dark:border-white/5 flex-col p-8 sticky top-0 h-full">
-              <h3 className="text-sm font-black uppercase tracking-[3px] text-slate-400 mb-6">Live Preview</h3>
-              <div className="flex-1 space-y-6">
+            <div className="hidden lg:flex w-[380px] bg-slate-50 dark:bg-white/[0.02] border-l border-slate-100 dark:border-white/5 flex-col sticky top-0 h-full overflow-hidden">
+              <div className="px-8 pt-8 pb-4 shrink-0">
+                <h3 className="text-sm font-black uppercase tracking-[3px] text-slate-400">Live Preview</h3>
+              </div>
+              <div className="flex-1 overflow-y-auto px-8 pb-8 space-y-6 custom-scrollbar">
                 
                 {/* Preview Cards */}
                 <div className="p-5 rounded-2xl bg-white dark:bg-[#151928] shadow-sm border border-slate-100 dark:border-white/5 space-y-4">
                   
-                  <div className="flex items-center gap-3 border-b border-slate-50 dark:border-white/5 pb-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                      {(() => {
-                        if (!platform) return <span className="text-[10px] font-black uppercase">?</span>;
-                        const Icon = platforms.find(p => p.name === platform)?.icon;
-                        return Icon ? <Icon className="w-4 h-4" /> : <span className="text-[10px] font-black uppercase">?</span>;
-                      })()}
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Platform</div>
-                      <div className="text-xs font-bold text-slate-800 dark:text-white truncate max-w-[200px]">{platform || 'Not Selected'}</div>
-                    </div>
+                  {/* Platform */}
+                  <div className="border-b border-slate-50 dark:border-white/5 pb-3 space-y-2">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Platform</div>
+                    {selectedPlatforms.length === 0 ? (
+                      <div className="text-xs font-bold text-slate-400">Not Selected</div>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedPlatforms.map(pName => {
+                          const p = platforms.find(pl => pl.name === pName);
+                          return (
+                            <span key={pName} className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/5 border border-primary/20 text-[10px] font-bold text-primary`}>
+                              {p?.icon && <p.icon className="w-3 h-3" />}
+                              {pName}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
-                  <div className="space-y-1">
+                  {/* Type */}
+                  <div className="space-y-1.5">
                     <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">Type</div>
-                    <div className="text-sm font-bold text-slate-700 dark:text-slate-200">{contentType === 'Custom' ? (customContentType || 'Custom Type') : (contentType || 'Not Selected')}</div>
+                    {selectedContentTypes.length === 0 ? (
+                      <div className="text-xs font-bold text-slate-400">Not Selected</div>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedContentTypes.map(t => (
+                          <span key={t} className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
+                            {t === 'Custom' ? (customContentType || 'Custom Type') : t}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
-                  <div className="space-y-1">
+                  {/* Audience */}
+                  <div className="space-y-1.5">
                     <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">Audience</div>
-                    <div className="text-xs font-bold text-slate-600 dark:text-slate-300">{audience === 'Custom' ? (customAudience || 'Custom Audience') : (audience || 'Any')}</div>
+                    {selectedAudiences.length === 0 ? (
+                      <div className="text-xs font-bold text-slate-400">Any</div>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedAudiences.map(a => (
+                          <span key={a} className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-white/5 text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
+                            {a === 'Custom' ? (customAudience || 'Custom Audience') : a}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
+                  {/* Language & Length */}
                   <div className="space-y-1">
                     <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">Language & Length</div>
                     <div className="flex gap-2">
@@ -472,11 +608,22 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate }) {
                   </div>
 
                   {selectedTones.length > 0 && (
-                    <div className="space-y-1 border-t border-slate-50 dark:border-white/5 pt-3">
+                    <div className="space-y-1.5 border-t border-slate-50 dark:border-white/5 pt-3">
                       <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">Tone</div>
                       <div className="flex flex-wrap gap-1">
                         {selectedTones.map(t => (
                           <span key={t} className="text-[9px] font-bold px-1.5 py-0.5 rounded border border-slate-200 dark:border-white/10 text-slate-500">{t}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedGenerateModes.length > 0 && (
+                    <div className="space-y-1.5 border-t border-slate-50 dark:border-white/5 pt-3">
+                      <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">Generate</div>
+                      <div className="flex flex-wrap gap-1">
+                        {selectedGenerateModes.map(m => (
+                          <span key={m} className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/10 border border-primary/20 text-primary capitalize">{m}</span>
                         ))}
                       </div>
                     </div>
@@ -495,10 +642,10 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate }) {
                 </div>
 
                 {/* Validation Info */}
-                {(!platform || !contentType || !postTopic) && (
+                {(selectedPlatforms.length === 0 || selectedContentTypes.length === 0 || !postTopic) && (
                   <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-500 text-xs font-bold flex flex-col gap-1">
-                    {!platform && <span>• Select a Platform</span>}
-                    {!contentType && <span>• Select a Content Type</span>}
+                    {selectedPlatforms.length === 0 && <span>• Select a Platform</span>}
+                    {selectedContentTypes.length === 0 && <span>• Select a Content Type</span>}
                     {!postTopic && <span>• Enter a Post Topic</span>}
                   </div>
                 )}
@@ -516,8 +663,8 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate }) {
               Cancel
             </button>
             <button
-              onClick={handleGenerate}
-              disabled={isGenerating || !platform || !contentType || !postTopic}
+              onClick={() => handleGenerate(selectedGenerateModes)}
+              disabled={isGenerating || selectedPlatforms.length === 0 || !postTopic}
               className="px-8 py-3.5 rounded-xl font-black uppercase tracking-[2px] text-xs bg-primary text-white shadow-xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50 disabled:hover:scale-100"
             >
               {isGenerating ? (
@@ -527,10 +674,6 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate }) {
                 </>
               ) : (
                 <>
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-                  </span>
                   Generate With AI
                 </>
               )}
