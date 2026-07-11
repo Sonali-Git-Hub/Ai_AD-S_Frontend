@@ -10,7 +10,7 @@ import {
   ChevronRight, Plus, HelpCircle, AlertCircle, Info, Filter, Search,
   Instagram, Facebook, Linkedin, Twitter, Youtube, Send, Save, Globe, CheckCircle2, Mic2,
   Eye, Target, Zap, Hash, Copy, Sparkle, User, User2, Briefcase, History, Activity, Tag,
-  Server, BrainCircuit, AlertTriangle, Building2, ShoppingBag, Cpu, Utensils, Camera, HeartPulse, UserCircle, ShoppingCart, ArrowRight, AlignLeft, Lock, Crown
+  Server, BrainCircuit, AlertTriangle, Building2, ShoppingBag, Cpu, Utensils, Camera, HeartPulse, UserCircle, ShoppingCart, ArrowRight, AlignLeft, Lock, Crown, Bot
 } from 'lucide-react';
 import { Dialog, Transition, Menu, Listbox } from '@headlessui/react';
 import toast from 'react-hot-toast';
@@ -793,7 +793,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   const tabs = [
     { id: 'overview', name: 'Overview', icon: LayoutDashboard },
     { id: 'brand', name: 'Brand WorkSpace', icon: Palette },
-    { id: 'calendar', name: 'Content Generator', icon: CalendarRange },
+    { id: 'calendar', name: 'Content Studio', icon: CalendarRange },
     { id: 'generation', name: 'Content Calendar', icon: Sparkles },
     { id: 'assets', name: 'Post Generation', icon: Library }
   ];
@@ -2922,7 +2922,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                       <ChevronLeft className="w-5 h-5" />
                     </button>
                     <div>
-                      <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Content Generator</h3>
+                      <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Content Studio</h3>
                       <p className="text-xs text-slate-500 font-medium">Select your preferred method to generate social media content</p>
                     </div>
                   </div>
@@ -2931,7 +2931,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                     {/* Generate by AI Card */}
                     <div onClick={() => setShowWizard(true)} className="bg-gradient-to-br from-primary/10 to-transparent dark:from-primary/20 dark:to-transparent rounded-[32px] border border-primary/20 p-8 flex flex-col justify-center items-center w-full shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-500 cursor-pointer group min-h-[260px]">
                       <div className="w-20 h-20 rounded-2xl bg-primary/20 flex items-center justify-center text-primary mb-6 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 shadow-inner">
-                        <Sparkles className="w-10 h-10" />
+                        <Bot className="w-10 h-10" />
                       </div>
                       <h3 className="text-sm font-black uppercase text-slate-800 dark:text-white tracking-widest text-center">Generate Post by AI</h3>
                       <p className="text-[10px] text-slate-500 text-center mt-2 font-black uppercase tracking-wider opacity-70">Automated Content Plan</p>
@@ -2940,7 +2940,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                     {/* Generate Manually Card */}
                     <div onClick={() => setShowManualGenModal(true)} className="bg-slate-50 dark:bg-[#1E2438] rounded-[32px] border border-slate-200 dark:border-white/10 p-8 flex flex-col justify-center items-center w-full shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-500 cursor-pointer group min-h-[260px]">
                       <div className="w-20 h-20 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-slate-300 mb-6 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-500 shadow-sm">
-                        <Palette className="w-10 h-10" />
+                        <User className="w-10 h-10" />
                       </div>
                       <h3 className="text-sm font-black uppercase text-slate-800 dark:text-white tracking-widest text-center">Generate Post Manually</h3>
                       <p className="text-[10px] text-slate-500 text-center mt-2 font-black uppercase tracking-wider opacity-70">Create from scratch</p>
@@ -3061,7 +3061,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                       <div className="text-center py-20">
                         <Library className="w-12 h-12 text-slate-300 mx-auto mb-4" />
                         <p className="text-sm font-black text-slate-400 uppercase tracking-widest">No content found</p>
-                        <p className="text-xs text-slate-400 mt-2">Generate content using the Content Generator to populate your library</p>
+                        <p className="text-xs text-slate-400 mt-2">Generate content using the Content Studio to populate your library</p>
                       </div>
                     ) : (
                       <div className="space-y-4">
