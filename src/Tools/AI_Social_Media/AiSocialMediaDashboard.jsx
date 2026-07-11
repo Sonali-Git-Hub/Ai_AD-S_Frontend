@@ -2171,7 +2171,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
           {[
             {
               id: 'brands',
-              label: 'Active Brands',
+              label: 'Brand History',
               val: allWorkspaces.filter(ws => !ws.isPersonalProfile).length,
               icon: Palette,
               color: 'text-indigo-500',
@@ -7127,7 +7127,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                             </button>
                           )}
 
-                        {/* ── ACTIVE BRANDS (moved to top) ── */}
+                        {/* ── BRAND HISTORY ── */}
                         {(() => {
                           const activeBrands = allWorkspaces.filter(ws => !ws.isPersonalProfile);
                           if (activeBrands.length === 0) return null;
@@ -7141,7 +7141,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                   <div className="w-5 h-5 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
                                     <Palette className="w-3 h-3 text-emerald-500" />
                                   </div>
-                                  <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[2px] flex-1 text-left">Active Brands</span>
+                                  <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[2px] flex-1 text-left">Brand History</span>
                                   <span className="text-[9px] font-black text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded-lg border border-emerald-500/10">{activeBrands.length}</span>
                                   <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${activeBrandsOpen ? 'rotate-180' : ''}`} />
                                 </button>
