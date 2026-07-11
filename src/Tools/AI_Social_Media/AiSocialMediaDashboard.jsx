@@ -765,6 +765,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(false);
   const [showCompanyInfoPanel, setShowCompanyInfoPanel] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [activeBrandsOpen, setActiveBrandsOpen] = useState(true);
   const dashboardRef = useRef(null); // Ref to stop Headless UI FocusTrap from stealing focus on keystrokes
 
   const handleSyncProfile = async () => {
@@ -7102,118 +7103,80 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                         {/* Inner Scrollable Content */}
                         <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar flex flex-col p-6 lg:p-8">
 
-                        {(() => {
-                          const onboardedWs = allWorkspaces.find(w => w.onboarding?.completed);
-                          const companyName = onboardedWs?.onboarding?.customName || currentUser?.name || 'My Company';
-                          const companyAvatarUrl = onboardedWs?.onboarding?.profileImageUrl || currentUser?.avatar;
-                          const activeBrandName = activeProfile?.companyName || workspace?.workspaceName || '';
-                          return (
-                            <Menu as="div" className="relative mb-8">
-                              <Menu.Button
-                                className={`w-full flex items-center gap-3 p-2.5 rounded-2xl group/ws hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-start ${isSidebarCollapsed ? 'justify-center px-0' : ''}`}
-                                title={isSidebarCollapsed ? companyName : ''}
-                              >
-                                <div className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-md shadow-primary/5 shrink-0 overflow-hidden">
-                                  {companyAvatarUrl ? (
-                                    <img src={toProxyUrl(companyAvatarUrl)} alt={companyName} className="w-full h-full object-cover" onError={e => { e.currentTarget.style.display = 'none'; }} />
-                                  ) : (
-                                    <div className="w-full h-full bg-gradient-to-br from-primary to-indigo-600 text-white flex items-center justify-center text-lg font-black uppercase">
-                                      {companyName.charAt(0)}
-                                    </div>
-                                  )}
-                                </div>
-                                {!isSidebarCollapsed && (
-                                  <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-left-2">
-                                    <p className="text-[12px] font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-tight break-words group-hover/ws:text-primary transition-colors">
-                                      {companyName}
-                                    </p>
-                                    {activeBrandName && (
-                                      <p className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 truncate mt-0.5 leading-none">
-                                        {activeBrandName}
-                                      </p>
-                                    )}
-                                  </div>
-                                )}
-                                {!isSidebarCollapsed && (
-                                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0 group-hover/ws:text-primary transition-all" />
-                                )}
-                              </Menu.Button>
-                              <Transition
-                                as={Fragment}
-                                enter="transition ease-out duration-100"
-                                enterFrom="transform opacity-0 scale-95"
-                                enterTo="transform opacity-100 scale-100"
-                                leave="transition ease-in duration-75"
-                                leaveFrom="transform opacity-100 scale-100"
-                                leaveTo="transform opacity-0 scale-95"
-                              >
-                                <Menu.Items className="absolute left-0 mt-1 w-[270px] origin-top-left bg-white dark:bg-[#1E2438] rounded-[24px] shadow-2xl ring-1 ring-black/5 dark:ring-white/5 focus:outline-none z-[130] p-3 border border-slate-100 dark:border-white/5 animate-in slide-in-from-top-2">
-                                  <div className="flex items-center gap-3 px-4 py-2.5 mb-1">
-                                    <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
-                                      {companyAvatarUrl ? (
-                                        <img src={toProxyUrl(companyAvatarUrl)} alt={companyName} className="w-full h-full object-cover" onError={e => { e.currentTarget.style.display = 'none'; }} />
-                                      ) : (
-                                        <div className="w-full h-full bg-gradient-to-br from-primary to-indigo-600 text-white flex items-center justify-center text-xs font-black uppercase">
-                                          {companyName.charAt(0)}
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tight truncate">{companyName}</p>
-                                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{allWorkspaces.filter(ws => !ws.isPersonalProfile && ws.brandProfile?.companyName).length} {allWorkspaces.filter(ws => !ws.isPersonalProfile && ws.brandProfile?.companyName).length === 1 ? 'Brand' : 'Brands'}</p>
-                                    </div>
-                                  </div>
-                                  <div className="h-px bg-slate-100 dark:bg-white/5 mx-4 mb-2" />
-                                  <p className="text-[7px] font-black text-slate-400 uppercase tracking-[2px] px-4 mb-1.5">Switch Brand</p>
-                                  <div className="max-h-52 overflow-y-auto custom-scrollbar space-y-0.5 px-1">
-                                    {allWorkspaces.map(ws => {
-                                      const wsLogo = ws.brandProfile?.logoUrl;
-                                      const isActive = workspace?._id === ws._id;
-                                      return (
-                                        <Menu.Item key={ws._id}>
-                                          {({ active }) => (
-                                            <button
-                                              onClick={() => switchWorkspace(ws)}
-                                              className={`w-full flex items-center justify-between gap-3 px-3 h-11 rounded-2xl text-[10px] font-black uppercase tracking-wide transition-all ${active || isActive ? 'bg-primary/10 text-primary' : 'text-slate-600 dark:text-slate-400'}`}
-                                            >
-                                              <div className="flex items-center gap-2.5 min-w-0">
-                                                <div className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center shrink-0 overflow-hidden">
-                                                  {wsLogo ? (
-                                                    <img src={toProxyUrl(wsLogo)} alt="" className="w-full h-full object-contain p-0.5" onError={e => { e.currentTarget.style.display = 'none'; }} />
-                                                  ) : (
-                                                    <span className="text-[9px] font-black">{ws.workspaceName?.charAt(0) || 'B'}</span>
-                                                  )}
-                                                </div>
-                                                <span className="truncate">{ws.workspaceName}</span>
-                                              </div>
-                                              <div className="flex items-center gap-1.5 shrink-0">
-                                                {ws.calendarEntryCount > 0 && (
-                                                  <span className="text-[8px] font-black px-1.5 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/10">{ws.calendarEntryCount}</span>
-                                                )}
-                                                {isActive && <Check className="w-3 h-3 text-primary" />}
-                                              </div>
-                                            </button>
-                                          )}
-                                        </Menu.Item>
-                                      );
-                                    })}
-                                  </div>
+                          {/* Back Button */}
+                          {!isSidebarCollapsed && (
+                            <button
+                              onClick={onClose}
+                              className="flex items-center gap-2 mb-5 px-1 py-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors group w-fit"
+                            >
+                              <div className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-white/5 flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-all">
+                                <ChevronLeft className="w-3.5 h-3.5" />
+                              </div>
+                              <span className="text-[9px] font-black uppercase tracking-widest group-hover:text-primary transition-colors">Back</span>
+                            </button>
+                          )}
 
-                                  <div className="h-px bg-slate-100 dark:bg-white/5 mx-4 my-2" />
-                                  <Menu.Item>
-                                    {({ active }) => (
+                        {/* ── ACTIVE BRANDS (moved to top) ── */}
+                        {(() => {
+                          const activeBrands = allWorkspaces.filter(ws => !ws.isPersonalProfile && ws.brandProfile?.companyName);
+                          if (activeBrands.length === 0) return null;
+                          return (
+                            <div className={`mb-6 ${isSidebarCollapsed ? 'px-1' : 'px-0'}`}>
+                              {!isSidebarCollapsed && (
+                                <button
+                                  onClick={() => setActiveBrandsOpen(o => !o)}
+                                  className="w-full flex items-center gap-2 mb-2 px-1 py-1 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group"
+                                >
+                                  <div className="w-5 h-5 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                                    <Palette className="w-3 h-3 text-emerald-500" />
+                                  </div>
+                                  <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[2px] flex-1 text-left">Active Brands</span>
+                                  <span className="text-[9px] font-black text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded-lg border border-emerald-500/10">{activeBrands.length}</span>
+                                  <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${activeBrandsOpen ? 'rotate-180' : ''}`} />
+                                </button>
+                              )}
+                              {(activeBrandsOpen || isSidebarCollapsed) && (
+                                <div className={`rounded-2xl bg-white/60 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 ${isSidebarCollapsed ? 'p-1.5' : 'p-2'} space-y-1 max-h-44 overflow-y-auto custom-scrollbar`}>
+                                  {activeBrands.map(ws => {
+                                    const wsLogo = ws.brandProfile?.logoUrl;
+                                    const isCurrent = workspace?._id === ws._id;
+                                    const brandName = ws.brandProfile?.companyName || ws.workspaceName || 'Brand';
+                                    return (
                                       <button
-                                        onClick={() => setShowCompanyInfoPanel(true)}
-                                        className={`w-full flex items-center gap-3 px-4 h-10 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${active ? 'bg-indigo-500/5 text-indigo-500' : 'text-slate-500 dark:text-slate-400'}`}
+                                        key={ws._id}
+                                        onClick={() => switchWorkspace(ws)}
+                                        title={isSidebarCollapsed ? brandName : ''}
+                                        className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-2'} rounded-xl transition-all group/brand ${
+                                          isCurrent
+                                            ? 'bg-primary/10 border border-primary/20 shadow-sm'
+                                            : 'hover:bg-slate-50 dark:hover:bg-white/5 border border-transparent'
+                                        }`}
                                       >
-                                        <User2 className="w-3.5 h-3.5" />
-                                        Company Info
+                                        <div className={`w-7 h-7 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center shrink-0 overflow-hidden ring-2 ${isCurrent ? 'ring-primary/30' : 'ring-transparent'} transition-all`}>
+                                          {wsLogo ? (
+                                            <img src={toProxyUrl(wsLogo)} alt="" className="w-full h-full object-contain p-0.5" onError={e => { e.currentTarget.style.display = 'none'; }} />
+                                          ) : (
+                                            <div className={`w-full h-full flex items-center justify-center text-[9px] font-black uppercase ${isCurrent ? 'bg-gradient-to-br from-primary to-indigo-600 text-white' : 'text-slate-500 dark:text-slate-400'}`}>
+                                              {brandName.charAt(0)}
+                                            </div>
+                                          )}
+                                        </div>
+                                        {!isSidebarCollapsed && (
+                                          <div className="flex-1 min-w-0 text-left">
+                                            <p className={`text-[10px] font-black uppercase tracking-wide truncate ${isCurrent ? 'text-primary' : 'text-slate-600 dark:text-slate-300 group-hover/brand:text-slate-800 dark:group-hover/brand:text-white'} transition-colors`}>
+                                              {brandName}
+                                            </p>
+                                          </div>
+                                        )}
+                                        {!isSidebarCollapsed && (
+                                          <div className={`w-2 h-2 rounded-full shrink-0 ${isCurrent ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]' : 'bg-slate-300 dark:bg-white/20'}`} />
+                                        )}
                                       </button>
-                                    )}
-                                  </Menu.Item>
-                                </Menu.Items>
-                              </Transition>
-                            </Menu>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
                           );
                         })()}
 
@@ -7262,62 +7225,6 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                           })}
                         </div>
 
-                        {/* ── ACTIVE BRANDS CARD ─────────────────────── */}
-                        {(() => {
-                          const activeBrands = allWorkspaces.filter(ws => !ws.isPersonalProfile && ws.brandProfile?.companyName);
-                          if (activeBrands.length === 0) return null;
-                          return (
-                            <div className={`mt-4 ${isSidebarCollapsed ? 'px-1' : 'px-0'}`}>
-                              {!isSidebarCollapsed && (
-                                <div className="flex items-center gap-2 mb-2.5 px-1">
-                                  <div className="w-5 h-5 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                                    <Palette className="w-3 h-3 text-emerald-500" />
-                                  </div>
-                                  <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[2px]">Active Brands</span>
-                                  <span className="ml-auto text-[9px] font-black text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded-lg border border-emerald-500/10">{activeBrands.length}</span>
-                                </div>
-                              )}
-                              <div className={`rounded-2xl bg-white/60 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 ${isSidebarCollapsed ? 'p-1.5' : 'p-2'} space-y-1 max-h-44 overflow-y-auto custom-scrollbar`}>
-                                {activeBrands.map(ws => {
-                                  const wsLogo = ws.brandProfile?.logoUrl;
-                                  const isCurrent = workspace?._id === ws._id;
-                                  const brandName = ws.brandProfile?.companyName || ws.workspaceName || 'Brand';
-                                  return (
-                                    <button
-                                      key={ws._id}
-                                      onClick={() => switchWorkspace(ws)}
-                                      title={isSidebarCollapsed ? brandName : ''}
-                                      className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-2'} rounded-xl transition-all group/brand ${isCurrent
-                                        ? 'bg-primary/10 border border-primary/20 shadow-sm'
-                                        : 'hover:bg-slate-50 dark:hover:bg-white/5 border border-transparent'
-                                      }`}
-                                    >
-                                      <div className={`${isSidebarCollapsed ? 'w-7 h-7' : 'w-7 h-7'} rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center shrink-0 overflow-hidden ring-2 ${isCurrent ? 'ring-primary/30' : 'ring-transparent'} transition-all`}>
-                                        {wsLogo ? (
-                                          <img src={toProxyUrl(wsLogo)} alt="" className="w-full h-full object-contain p-0.5" onError={e => { e.currentTarget.style.display = 'none'; }} />
-                                        ) : (
-                                          <div className={`w-full h-full flex items-center justify-center text-[9px] font-black uppercase ${isCurrent ? 'bg-gradient-to-br from-primary to-indigo-600 text-white' : 'text-slate-500 dark:text-slate-400'}`}>
-                                            {brandName.charAt(0)}
-                                          </div>
-                                        )}
-                                      </div>
-                                      {!isSidebarCollapsed && (
-                                        <div className="flex-1 min-w-0 text-left">
-                                          <p className={`text-[10px] font-black uppercase tracking-wide truncate ${isCurrent ? 'text-primary' : 'text-slate-600 dark:text-slate-300 group-hover/brand:text-slate-800 dark:group-hover/brand:text-white'} transition-colors`}>
-                                            {brandName}
-                                          </p>
-                                        </div>
-                                      )}
-                                      {!isSidebarCollapsed && (
-                                        <div className={`w-2 h-2 rounded-full shrink-0 ${isCurrent ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]' : 'bg-slate-300 dark:bg-white/20'}`} />
-                                      )}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          );
-                        })()}
 
                         </div>
                       </div>

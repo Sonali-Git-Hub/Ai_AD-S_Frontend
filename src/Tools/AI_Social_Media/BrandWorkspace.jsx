@@ -1664,21 +1664,6 @@ const BrandWorkspace = ({ workspaceId }) => {
         </div>
       )}
 
-      {/* ── Persistent Brand Ready banner (shown on re-open when brand exists) ── */}
-      {savedBrand?.website && !showSuccessCard && brandAssets.length > 0 && (
-        <div className="flex items-center gap-3 px-4 py-3 mb-5 bg-emerald-50 dark:bg-emerald-500/5 border border-emerald-200 dark:border-emerald-500/20 rounded-2xl">
-          <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-500/10 flex items-center justify-center shrink-0">
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Brand Setup Complete</p>
-            <p className="text-[9px] text-emerald-600/70 dark:text-emerald-500/60 font-medium truncate">
-              {savedBrand.website} · {brandAssets.length} asset{brandAssets.length !== 1 ? 's' : ''} saved
-            </p>
-          </div>
-          <span className="text-[8px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-200 dark:border-emerald-500/20 shrink-0">Active</span>
-        </div>
-      )}
 
       <div className="flex gap-1 p-1 bg-slate-100 dark:bg-white/5 rounded-2xl mb-6 w-fit mx-auto">
         {[
