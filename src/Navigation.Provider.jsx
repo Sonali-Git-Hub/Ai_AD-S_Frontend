@@ -348,7 +348,7 @@ const DashboardLayout = () => {
         {/* Outlet for pages */}
         <main
           className={`flex-1 ${(location.pathname.includes('/chat') || location.pathname.includes('/case')) ? 'overflow-hidden' : 'overflow-y-auto'} relative w-full scroll-smooth p-0 scrollbar-hide transition-all duration-300 ease-in-out`}
-          style={{ paddingTop: '0px' }}
+          style={{ paddingTop: 'var(--mobile-nav-h, 0px)' }}
         >
           <Outlet />
         </main>

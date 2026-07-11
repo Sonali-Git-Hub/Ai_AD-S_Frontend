@@ -139,11 +139,17 @@ const FullScreenCaseAssistant = ({
   const hasUserMessages = useMemo(() => aiMessages.some(m => m.role === 'user'), [aiMessages]);
   const visibleMessages = aiMessages;
 
+  const lastCaseIdRef = useRef(null);
+
   useEffect(() => {
+    const currentId = caseData?.id || caseData?._id;
+    if (!currentId) return;
+    if (lastCaseIdRef.current === currentId) return;
+    lastCaseIdRef.current = currentId;
+
     const loadSessions = async () => {
       try {
-        const caseId = caseData?.id || caseData?._id;
-        const dbSessions = await chatStorageService.getSessions(caseId, 'CASE', caseId);
+        const dbSessions = await chatStorageService.getSessions(currentId, 'CASE', currentId);
         const mapped = dbSessions.map(s => ({
           chat_id: s.sessionId || s.chat_id,
           title: s.title || 'New Chat',
@@ -272,13 +278,14 @@ const FullScreenCaseAssistant = ({
   const scrollContainerRef = useRef(null);
   const [showScrollBottomBtn, setShowScrollBottomBtn] = useState(false);
   const prevUserMsgCountRef = useRef(0);
+  const shouldForceScrollRef = useRef(false);
 
   const checkScrollBottom = useCallback(() => {
     if (!scrollContainerRef.current) return;
     const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
     const isGenerating = isChatSending;
     const isScrollable = scrollHeight > clientHeight;
-    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
     setShowScrollBottomBtn(!!(isGenerating && isScrollable && !isNearBottom));
   }, [isChatSending]);
 
@@ -296,17 +303,63 @@ const FullScreenCaseAssistant = ({
     setShowScrollBottomBtn(false);
   };
 
+  // Set force scroll on user message and when sending status starts
   const userMsgCount = useMemo(() => aiMessages.filter(m => m.role === 'user').length, [aiMessages]);
   useEffect(() => {
     if (userMsgCount > prevUserMsgCountRef.current) {
-      scrollToLatest();
+      shouldForceScrollRef.current = true;
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      }
     }
     prevUserMsgCountRef.current = userMsgCount;
   }, [userMsgCount]);
 
   useEffect(() => {
+    if (isChatSending) {
+      shouldForceScrollRef.current = true;
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      }
+    }
+  }, [isChatSending]);
+
+  // Observe inner scroll container content resize and adjust scroll height layout
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const innerDiv = container.firstElementChild;
+    if (!innerDiv) return;
+
+    let isObserving = true;
+    let lastScrollHeight = container.scrollHeight;
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (!isObserving) return;
+      const currentScrollHeight = container.scrollHeight;
+      if (currentScrollHeight === lastScrollHeight) return;
+      lastScrollHeight = currentScrollHeight;
+
+      if (shouldForceScrollRef.current) {
+        requestAnimationFrame(() => {
+          if (container) {
+            container.scrollTop = container.scrollHeight;
+          }
+        });
+        shouldForceScrollRef.current = false;
+      }
+      checkScrollBottom();
+    });
+
+    resizeObserver.observe(innerDiv);
     checkScrollBottom();
-  }, [aiMessages, isChatSending, checkScrollBottom]);
+
+    return () => {
+      isObserving = false;
+      resizeObserver.disconnect();
+    };
+  }, [isChatSending, checkScrollBottom]);
 
   // Copy text helper
   const handleCopyText = (text) => {
@@ -386,11 +439,11 @@ const FullScreenCaseAssistant = ({
             />
             <div>
               <h1 className="text-sm font-black text-slate-900 uppercase tracking-wider leading-tight">
-                {caseData ? (caseData.title || caseData.caseTitle || 'Case Assistant') : 'Case Assistant'}
+                {caseData ? (caseData.title || caseData.name || caseData.caseTitle || 'Case Assistant') : 'Case Assistant'}
               </h1>
               {caseData && (
                 <p className="text-[9px] font-bold text-[#4F46E5] uppercase tracking-widest leading-none mt-0.5">
-                  {[caseData.court, caseData.caseType, caseData.stage].filter(Boolean).join(' · ') || 'Case Workspace Assistant'}
+                  {[caseData.courtName || caseData.court, caseData.caseType || caseData.category, caseData.stage].filter(Boolean).join(' · ') || 'Case Workspace Assistant'}
                 </p>
               )}
             </div>

@@ -38,10 +38,10 @@ export const getSubscriptionDetails = async () => {
   return response.data;
 };
 
-export const purchasePlan = async (planId, billingCycle) => {
+export const purchasePlan = async (planId, billingCycle, paymentId = null, billingDetails = null) => {
   const response = await axios.post(
     `${API}/subscription/purchase`,
-    { planId, billingCycle },
+    { planId, billingCycle, paymentId, billingDetails },
     { headers: getAuthHeaders() }
   );
   return response.data;
@@ -81,10 +81,10 @@ export const createPaypalOrder = async (orderData) => {
   return response.data;
 };
 
-export const capturePaypalOrder = async (orderID, planId, billingCycle) => {
+export const capturePaypalOrder = async (orderID, planId, billingCycle, billingDetails = null) => {
   const response = await axios.post(
     `${API}/payment/paypal/capture`,
-    { orderID, planId, billingCycle },
+    { orderID, planId, billingCycle, billingDetails },
     { headers: getAuthHeaders() }
   );
   return response.data;

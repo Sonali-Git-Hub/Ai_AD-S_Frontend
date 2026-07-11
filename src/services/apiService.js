@@ -93,6 +93,71 @@ apiClient.interceptors.response.use(
 );
 
 export const apiService = {
+  // ─── Finance Dashboard ─────────────────────────────────────────────────────
+  async getFinanceStats() {
+    try {
+      const response = await apiClient.get('/admin/finance/stats');
+      return response.data;
+    } catch (error) {
+      console.error('[apiService] getFinanceStats failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async getFinanceInvoices(params = {}) {
+    try {
+      const response = await apiClient.get('/admin/finance/invoices', { params });
+      return response.data;
+    } catch (error) {
+      console.error('[apiService] getFinanceInvoices failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async getMonthlyReport(month, year) {
+    try {
+      const response = await apiClient.get('/admin/finance/monthly-report', { params: { month, year } });
+      return response.data;
+    } catch (error) {
+      console.error('[apiService] getMonthlyReport failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async exportFinanceCSV(params = {}) {
+    try {
+      const response = await apiClient.get('/admin/finance/export-csv', {
+        params,
+        responseType: 'blob',
+      });
+      return response;
+    } catch (error) {
+      console.error('[apiService] exportFinanceCSV failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async downloadInvoicePDF(subscriptionId) {
+    try {
+      const response = await apiClient.get(`/payment/invoice/${subscriptionId}`, {
+        responseType: 'blob',
+      });
+      return response;
+    } catch (error) {
+      console.error('[apiService] downloadInvoicePDF failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Legacy billing methods (kept for any existing references)
+  async getAdminBillingStats() {
+    return this.getFinanceStats();
+  },
+
+  async getAdminInvoices(search = '', page = 1) {
+    return this.getFinanceInvoices({ search, page });
+  },
+
   // --- AI Tools ---
   async generateImage(prompt, aspectRatio = '1:1', modelId = 'imagen-3.0-generate-001') {
     try {
@@ -715,9 +780,11 @@ export const apiService = {
     }
   },
 
-  async getAdminErrorDrillDown(mode, range = '7d') {
+  async getAdminErrorDrillDown(mode, range = '7d', tool = '') {
     try {
-      const response = await apiClient.get(`/admin/analytics/errors/${encodeURIComponent(mode)}`, { params: { range } });
+      const params = { range };
+      if (tool) params.tool = tool;
+      const response = await apiClient.get(`/admin/analytics/errors/${encodeURIComponent(mode)}`, { params });
       return response.data;
     } catch (error) {
       console.error('Failed to fetch error drill-down:', error.message);
@@ -899,6 +966,18 @@ export const apiService = {
       throw error;
     }
   },
+
+  async transcribeAudio(audioBase64, mimeType = 'audio/webm') {
+    try {
+      const response = await apiClient.post('/voice/transcribe', { audio: audioBase64, mimeType });
+      return response.data;
+    } catch (error) {
+      console.error("Audio transcription failed:", error);
+      throw error;
+    }
+  },
+
+
 
   // --- Notifications ---
   async getNotifications() {
@@ -1820,6 +1899,16 @@ export const apiService = {
     }
   },
 
+  async getAdminBillingStats() {
+    try {
+      const response = await apiClient.get('/admin/billing/stats');
+      return response.data;
+    } catch (error) {
+      console.error('getAdminBillingStats failed:', error);
+      throw error;
+    }
+  },
+
   async createManualPost(formData, onUploadProgress) {
     try {
       const response = await apiClient.post('/manual-post/create', formData, {
@@ -1835,12 +1924,35 @@ export const apiService = {
     }
   },
 
+  async getAdminInvoices(search = '', page = 1) {
+    try {
+      const response = await apiClient.get('/admin/billing/invoices', {
+        params: { search, page, limit: 15 }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('getAdminInvoices failed:', error);
+      throw error;
+    }
+  },
+
   async getManualPost(id) {
     try {
       const response = await apiClient.get(`/manual-post/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Failed to get manual post with id ${id}:`, error);
+      throw error;
+    }
+  },
+
+  // ─── Finance Dashboard (new) ────────────────────────────────────────────────
+  async getFinanceStats() {
+    try {
+      const response = await apiClient.get('/admin/finance/stats');
+      return response.data;
+    } catch (error) {
+      console.error('getFinanceStats failed:', error);
       throw error;
     }
   },
@@ -1855,12 +1967,32 @@ export const apiService = {
     }
   },
 
+  async getFinanceInvoices(params = {}) {
+    try {
+      const response = await apiClient.get('/admin/finance/invoices', { params });
+      return response.data;
+    } catch (error) {
+      console.error('getFinanceInvoices failed:', error);
+      throw error;
+    }
+  },
+
   async deleteManualPost(id) {
     try {
       const response = await apiClient.delete(`/manual-post/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Failed to delete manual post with id ${id}:`, error);
+      throw error;
+    }
+  },
+
+  async getMonthlyReport(month, year) {
+    try {
+      const response = await apiClient.get('/admin/finance/monthly-report', { params: { month, year } });
+      return response.data;
+    } catch (error) {
+      console.error('getMonthlyReport failed:', error);
       throw error;
     }
   },
@@ -1875,12 +2007,32 @@ export const apiService = {
     }
   },
 
+  async exportFinanceCSV(params = {}) {
+    try {
+      const response = await apiClient.get('/admin/finance/export-csv', { params, responseType: 'blob' });
+      return response.data;
+    } catch (error) {
+      console.error('exportFinanceCSV failed:', error);
+      throw error;
+    }
+  },
+
   async generateManualPostContent(postId, workspaceId, regenerateSection = null) {
     try {
       const response = await apiClient.post('/manual-post/generate-content', { postId, workspaceId, regenerateSection });
       return response.data;
     } catch (error) {
       console.error("Failed to generate manual post content:", error);
+      throw error;
+    }
+  },
+
+  async syncRazorpayPayments(daysBack = 90) {
+    try {
+      const response = await apiClient.post('/admin/finance/sync-razorpay', null, { params: { daysBack } });
+      return response.data;
+    } catch (error) {
+      console.error('syncRazorpayPayments failed:', error);
       throw error;
     }
   },
@@ -1908,12 +2060,34 @@ export const apiService = {
     }
   },
 
+  async downloadInvoice(subscriptionId) {
+    try {
+      const response = await apiClient.get(`/payment/invoice/${subscriptionId}`, {
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error) {
+      console.error('downloadInvoice failed:', error);
+      throw error;
+    }
+  },
+
   async saveBrandDNA(workspaceId, dna, logoUrl, rawKnowledgeBase, sourceType) {
     try {
       const response = await apiClient.post('/brand-intelligence/save', { workspaceId, dna, logoUrl, rawKnowledgeBase, sourceType });
       return response.data;
     } catch (error) {
       console.error("Failed to save brand DNA:", error);
+      throw error;
+    }
+  },
+
+  async getEvidence(caseId) {
+    try {
+      const response = await apiClient.get(`/cases/${caseId}/evidence`);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] getEvidence failed:', error?.response?.data || error.message);
       throw error;
     }
   },
@@ -1928,6 +2102,16 @@ export const apiService = {
     }
   },
 
+  async uploadEvidence(caseId, data) {
+    try {
+      const response = await apiClient.post(`/cases/${caseId}/evidence`, data);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] uploadEvidence failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
   async updateBrandDNASection(workspaceId, sectionName, data) {
     try {
       const response = await apiClient.put(`/brand-intelligence/${workspaceId}/section/${sectionName}`, { data });
@@ -1938,12 +2122,32 @@ export const apiService = {
     }
   },
 
+  async updateEvidence(caseId, evidenceId, data) {
+    try {
+      const response = await apiClient.patch(`/cases/${caseId}/evidence/${evidenceId}`, data);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] updateEvidence failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
   async regenerateBrandDNASection(workspaceId, sectionName) {
     try {
       const response = await apiClient.post(`/brand-intelligence/${workspaceId}/section/${sectionName}/regenerate`);
       return response.data;
     } catch (error) {
       console.error(`Failed to regenerate DNA section ${sectionName}:`, error);
+      throw error;
+    }
+  },
+
+  async deleteEvidence(caseId, evidenceId) {
+    try {
+      const response = await apiClient.delete(`/cases/${caseId}/evidence/${evidenceId}`);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] deleteEvidence failed:', error?.response?.data || error.message);
       throw error;
     }
   },
@@ -1961,6 +2165,16 @@ export const apiService = {
     }
   },
 
+  async getEvidenceStats(caseId) {
+    try {
+      const response = await apiClient.get(`/cases/${caseId}/evidence/stats`);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] getEvidenceStats failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
   async getBrandAssets(workspaceId) {
     try {
       const response = await apiClient.get(`/brand-intelligence/assets/${workspaceId}`);
@@ -1971,12 +2185,32 @@ export const apiService = {
     }
   },
 
+  async sendDeleteAccountOtp() {
+    try {
+      const response = await apiClient.post('/user/delete-otp/send');
+      return response.data;
+    } catch (error) {
+      console.error('sendDeleteAccountOtp failed:', error);
+      throw error;
+    }
+  },
+
   async deleteBrandAsset(workspaceId, filename) {
     try {
       const response = await apiClient.delete(`/brand-intelligence/assets/${workspaceId}/${filename}`);
       return response.data;
     } catch (error) {
       console.error("Failed to delete brand asset:", error);
+      throw error;
+    }
+  },
+
+  async verifyDeleteAccountOtp(otp) {
+    try {
+      const response = await apiClient.post('/user/delete-otp/verify', { otp });
+      return response.data;
+    } catch (error) {
+      console.error('verifyDeleteAccountOtp failed:', error);
       throw error;
     }
   },
@@ -1996,12 +2230,33 @@ export const apiService = {
     }
   },
 
+  async deleteAccountSecure() {
+    try {
+      const response = await apiClient.delete('/user');
+      return response.data;
+    } catch (error) {
+      console.error('deleteAccountSecure failed:', error);
+      throw error;
+    }
+  },
+
   async saveDiscoveredBrandAssets(workspaceId, approvedAssets) {
     try {
       const response = await apiClient.post(`/brand-intelligence/${workspaceId}/assets/save-discovered`, { approvedAssets });
       return response.data;
     } catch (error) {
       console.error("Failed to save discovered brand assets:", error);
+      throw error;
+    }
+  },
+
+  // ─── DevOps Incident Management API Calls ──────────────────────────────────
+  async getIncidents(params = {}) {
+    try {
+      const response = await apiClient.get('/incidents', { params });
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] getIncidents failed:', error?.response?.data || error.message);
       throw error;
     }
   },
@@ -2016,12 +2271,32 @@ export const apiService = {
     }
   },
 
+  async getIncidentKPIs(params = {}) {
+    try {
+      const response = await apiClient.get('/incidents/kpis', { params });
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] getIncidentKPIs failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
   async deleteBrandAssetById(workspaceId, assetId) {
     try {
       const response = await apiClient.delete(`/brand-intelligence/${workspaceId}/assets/by-id/${assetId}`);
       return response.data;
     } catch (error) {
       console.error("Failed to delete brand asset by id:", error);
+      throw error;
+    }
+  },
+
+  async getIncidentDetails(incidentId) {
+    try {
+      const response = await apiClient.get(`/incidents/${incidentId}`);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] getIncidentDetails failed:', error?.response?.data || error.message);
       throw error;
     }
   },
@@ -2040,7 +2315,46 @@ export const apiService = {
       console.error("Failed to upload media file:", error);
       throw error;
     }
-  }
+  },
+
+  async assignIncident(incidentId, developerId, developerName) {
+    try {
+      const response = await apiClient.post(`/incidents/${incidentId}/assign`, { developerId, developerName });
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] assignIncident failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async resolveIncident(incidentId, details) {
+    try {
+      const response = await apiClient.post(`/incidents/${incidentId}/resolve`, details);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] resolveIncident failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async updateIncidentStatus(incidentId, status, notes) {
+    try {
+      const response = await apiClient.post(`/incidents/${incidentId}/status`, { status, notes });
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] updateIncidentStatus failed:', error?.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async getSessionReplayDetails(sessionId) {
+    try {
+      const response = await apiClient.get(`/incidents/session-replay/${sessionId}`);
+      return response.data;
+    } catch (error) {
+      console.error('[Frontend] getSessionReplayDetails failed:', error?.response?.data || error.message);
+      throw error;
+    }
 };
 
 export default apiService;

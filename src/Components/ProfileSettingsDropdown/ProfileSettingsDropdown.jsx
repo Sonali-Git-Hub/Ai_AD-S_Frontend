@@ -67,7 +67,22 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
     const [newPassword, setNewPassword] = useState('');
     const [resetLoading, setResetLoading] = useState(false);
     const [planName, setPlanName] = useState("Free Plan");
-    const [isFaqOpen, setIsFaqOpen] = useState(false); // Legacy for now, though we'll embed
+    const [isFaqOpen, setIsFaqOpen] = useState(false);
+
+    // Delete Account OTP Flow States
+    const [deleteStep, setDeleteStep] = useState('confirm'); // 'confirm' | 'otp' | 'verified'
+    const [deleteOtp, setDeleteOtp] = useState('');
+    const [deleteOtpLoading, setDeleteOtpLoading] = useState(false);
+    const [deleteCooldown, setDeleteCooldown] = useState(0);
+    const [deleteError, setDeleteError] = useState('');
+
+    useEffect(() => {
+        let timer;
+        if (deleteCooldown > 0) {
+            timer = setTimeout(() => setDeleteCooldown(prev => prev - 1), 1000);
+        }
+        return () => clearTimeout(timer);
+    }, [deleteCooldown]);
 
     // FAQ States
     const [selectedFaqCategory, setSelectedFaqCategory] = useState(0);
@@ -383,14 +398,76 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
         }
     };
 
+    const handleInitiateDelete = async () => {
+        setDeleteOtpLoading(true);
+        setDeleteError('');
+        try {
+            await axios.post(apis.deleteAccountSendOtp, null, {
+                headers: { 'Authorization': `Bearer ${user?.token}` }
+            });
+            toast.success('Verification code sent to your email');
+            setDeleteStep('otp');
+            setDeleteCooldown(60); // 60 seconds cooldown
+        } catch (error) {
+            const errMsg = error.response?.data?.error || 'Failed to send verification code. Please try again.';
+            setDeleteError(errMsg);
+            toast.error(errMsg);
+        } finally {
+            setDeleteOtpLoading(false);
+        }
+    };
+
+    const handleResendDeleteOtp = async () => {
+        if (deleteCooldown > 0) return;
+        setDeleteOtpLoading(true);
+        setDeleteError('');
+        try {
+            await axios.post(apis.deleteAccountSendOtp, null, {
+                headers: { 'Authorization': `Bearer ${user?.token}` }
+            });
+            toast.success('Verification code resent successfully');
+            setDeleteCooldown(60); // 60 seconds cooldown
+        } catch (error) {
+            const errMsg = error.response?.data?.error || 'Failed to resend verification code.';
+            setDeleteError(errMsg);
+            toast.error(errMsg);
+        } finally {
+            setDeleteOtpLoading(false);
+        }
+    };
+
+    const handleVerifyDeleteOtp = async () => {
+        if (!deleteOtp || deleteOtp.trim().length !== 6) {
+            setDeleteError('Please enter a valid 6-digit verification code.');
+            return;
+        }
+        setDeleteOtpLoading(true);
+        setDeleteError('');
+        try {
+            await axios.post(apis.deleteAccountVerifyOtp, { otp: deleteOtp }, {
+                headers: { 'Authorization': `Bearer ${user?.token}` }
+            });
+            toast.success('Verification successful');
+            setDeleteStep('verified');
+        } catch (error) {
+            const errMsg = error.response?.data?.error || 'Verification failed. Please try again.';
+            setDeleteError(errMsg);
+        } finally {
+            setDeleteOtpLoading(false);
+        }
+    };
+
     const handleDeleteAccount = async () => {
+        if (deleteStep !== 'verified') return;
         setDeleteLoading(true);
         try {
             await axios.delete(apis.deleteAccount, {
                 headers: { 'Authorization': `Bearer ${user?.token}` }
             });
-            toast.success('Account deleted successfully');
+            toast.success('Your account has been permanently deleted.');
             setShowDeleteModal(false);
+            setDeleteStep('confirm');
+            setDeleteOtp('');
             onLogout();
             onClose();
         } catch (error) {
@@ -859,7 +936,7 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
                             </div>
 
                             <div className="grid grid-cols-1 gap-3">
-                                {sessions.length > 0 ? sessions.map(session => (
+                                {Array.isArray(sessions) && sessions.length > 0 ? sessions.map(session => (
                                     <motion.div
                                         layout
                                         initial={{ opacity: 0, y: 10 }}
@@ -1400,35 +1477,134 @@ const ProfileSettingsDropdown = ({ onClose, onLogout }) => {
             </div>
             {/* Account Deletion Modal */}
             {showDeleteModal && (
-                <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-md p-4" onClick={() => setShowDeleteModal(false)}>
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-md p-4" onClick={() => {
+                    setShowDeleteModal(false);
+                    setDeleteStep('confirm');
+                    setDeleteOtp('');
+                    setDeleteError('');
+                }}>
                     <motion.div 
                         initial={{ opacity: 0, scale: 0.95, y: 20 }} 
                         animate={{ opacity: 1, scale: 1, y: 0 }} 
                         className="bg-white dark:bg-[#1E2438] p-6 sm:p-8 rounded-[2rem] w-full max-w-sm shadow-2xl border border-red-500/10 text-center" 
                         onClick={e => e.stopPropagation()}
                     >
-                        <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                            <Trash2 className="w-8 h-8 text-red-500" />
-                        </div>
-                        <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">Delete Account?</h3>
-                        <p className="text-sm text-subtext mb-8 leading-relaxed">
-                            Are you absolutely sure? This will permanently remove your profile, data, and access. <strong className="text-red-500">This cannot be undone.</strong>
-                        </p>
-                        <div className="flex flex-col gap-3">
-                            <button
-                                onClick={handleDeleteAccount}
-                                disabled={deleteLoading}
-                                className="w-full py-4 bg-red-500 text-white rounded-2xl font-black text-sm tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-500/25 disabled:opacity-50 active:scale-95 uppercase"
-                            >
-                                {deleteLoading ? 'Deleting Account...' : 'Yes, Delete Permanently'}
-                            </button>
-                            <button
-                                onClick={() => setShowDeleteModal(false)}
-                                className="w-full py-4 bg-gray-50 dark:bg-white/5 text-gray-500 dark:text-gray-400 rounded-2xl font-black text-sm tracking-widest hover:bg-gray-100 dark:hover:bg-white/10 transition-all active:scale-95 uppercase"
-                            >
-                                Cancel
-                            </button>
-                        </div>
+                        {deleteStep === 'confirm' && (
+                            <>
+                                <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                                    <Trash2 className="w-8 h-8 text-red-500" />
+                                </div>
+                                <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">Delete Account?</h3>
+                                <p className="text-sm text-subtext mb-8 leading-relaxed">
+                                    Are you absolutely sure? This will permanently remove your profile, data, and access. <strong className="text-red-500">This cannot be undone.</strong>
+                                </p>
+                                <div className="flex flex-col gap-3">
+                                    <button
+                                        onClick={handleInitiateDelete}
+                                        disabled={deleteOtpLoading}
+                                        className="w-full py-4 bg-red-500 text-white rounded-2xl font-black text-sm tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-500/25 disabled:opacity-50 active:scale-95 uppercase flex items-center justify-center gap-2"
+                                    >
+                                        {deleteOtpLoading ? 'Sending Code...' : 'Yes, Delete Permanently'}
+                                    </button>
+                                    <button
+                                        onClick={() => setShowDeleteModal(false)}
+                                        className="w-full py-4 bg-gray-50 dark:bg-white/5 text-gray-500 dark:text-gray-400 rounded-2xl font-black text-sm tracking-widest hover:bg-gray-100 dark:hover:bg-white/10 transition-all active:scale-95 uppercase"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </>
+                        )}
+
+                        {deleteStep === 'otp' && (
+                            <>
+                                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                                    <ShieldCheck className="w-8 h-8 text-primary" />
+                                </div>
+                                <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">Verify Identity</h3>
+                                <p className="text-sm text-subtext mb-6 leading-relaxed">
+                                    We sent a 6-digit security code to <strong className="text-maintext">{user?.email}</strong>. Please verify it below.
+                                </p>
+                                
+                                <input
+                                    type="text"
+                                    maxLength={6}
+                                    value={deleteOtp}
+                                    onChange={e => setDeleteOtp(e.target.value.replace(/\D/g, ''))}
+                                    placeholder="••••••"
+                                    className="w-full text-center py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl font-black text-2xl tracking-[0.4em] text-maintext focus:outline-none focus:border-primary/50 placeholder:text-gray-300 dark:placeholder:text-white/15 mb-2"
+                                />
+
+                                {deleteError && (
+                                    <p className="text-xs text-red-500 font-bold mb-4 flex items-center justify-center gap-1">
+                                        <AlertCircle className="w-3.5 h-3.5" />
+                                        {deleteError}
+                                    </p>
+                                )}
+
+                                <div className="flex flex-col gap-3 mt-4">
+                                    <button
+                                        onClick={handleVerifyDeleteOtp}
+                                        disabled={deleteOtpLoading || deleteOtp.length !== 6}
+                                        className="w-full py-4 bg-primary text-white rounded-2xl font-black text-sm tracking-widest hover:bg-primary/95 transition-all shadow-lg shadow-primary/25 disabled:opacity-50 active:scale-95 uppercase"
+                                    >
+                                        {deleteOtpLoading ? 'Verifying...' : 'Verify Code'}
+                                    </button>
+
+                                    <button
+                                        onClick={handleResendDeleteOtp}
+                                        disabled={deleteCooldown > 0 || deleteOtpLoading}
+                                        className="w-full py-3 text-xs font-black tracking-widest text-primary hover:bg-primary/5 rounded-2xl transition-all disabled:opacity-50 disabled:hover:bg-transparent uppercase"
+                                    >
+                                        {deleteCooldown > 0 ? `Resend Code in ${deleteCooldown}s` : 'Resend Code'}
+                                    </button>
+
+                                    <button
+                                        onClick={() => {
+                                            setShowDeleteModal(false);
+                                            setDeleteStep('confirm');
+                                            setDeleteOtp('');
+                                            setDeleteError('');
+                                        }}
+                                        className="w-full py-3 bg-gray-50 dark:bg-white/5 text-gray-500 dark:text-gray-400 rounded-2xl font-black text-sm tracking-widest hover:bg-gray-100 dark:hover:bg-white/10 transition-all active:scale-95 uppercase"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </>
+                        )}
+
+                        {deleteStep === 'verified' && (
+                            <>
+                                <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 animate-pulse">
+                                    <UserCheck className="w-8 h-8 text-emerald-500" />
+                                </div>
+                                <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">Identity Verified</h3>
+                                <p className="text-sm text-subtext mb-8 leading-relaxed">
+                                    Your identity is verified. Ready to permanently remove all your profile data and access.
+                                </p>
+                                <div className="flex flex-col gap-3">
+                                    <button
+                                        onClick={handleDeleteAccount}
+                                        disabled={deleteLoading}
+                                        className="w-full py-4 bg-red-500 text-white rounded-2xl font-black text-sm tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-500/25 disabled:opacity-50 active:scale-95 uppercase"
+                                    >
+                                        {deleteLoading ? 'Deleting Account...' : 'Permanently Delete Account'}
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setShowDeleteModal(false);
+                                            setDeleteStep('confirm');
+                                            setDeleteOtp('');
+                                            setDeleteError('');
+                                        }}
+                                        className="w-full py-4 bg-gray-50 dark:bg-white/5 text-gray-500 dark:text-gray-400 rounded-2xl font-black text-sm tracking-widest hover:bg-gray-100 dark:hover:bg-white/10 transition-all active:scale-95 uppercase"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </motion.div>
                 </div>
             )}
