@@ -1233,12 +1233,23 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     // If no explicit brand profile yet (fresh after onboarding), keep Brand Setup blank.
   }, [workspace]);
 
-  const switchWorkspace = (ws) => {
+  const switchWorkspace = async (ws) => {
     setActiveProfile(null); // Reset profile state to trigger re-load visibility
     setWorkspace(ws);
     setCurrentEditingBrandId(ws._id);
     setIsWorkspaceMenuOpen(false);
     fetchWorkspaceData(ws._id);
+    
+    try {
+      await apiService.getSocialAgentWorkspace(ws._id);
+      const freshList = await apiService.getSocialAgentWorkspaces();
+      if (freshList.success) {
+        setAllWorkspaces(freshList.workspaces);
+      }
+    } catch (e) {
+      console.warn("Failed to notify active workspace switch to backend", e);
+    }
+
     toast.success(`Viewing Profile: ${ws.workspaceName}`);
   };
 
