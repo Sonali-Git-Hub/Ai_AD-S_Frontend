@@ -610,6 +610,10 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
       if (res.success) {
         setSavedBrand(res.brand);
         toast.success("Brand DNA saved successfully!");
+        // Auto-fill the Brand Assets scan URL from Brand Setup URL and switch to Assets tab
+        const websiteUrl = url?.trim() || res.brand?.website?.trim();
+        if (websiteUrl) setDiscoverUrl(websiteUrl);
+        setActiveTab("assets");
       } else {
         toast.error(res.error || "Save failed");
       }
