@@ -1916,7 +1916,6 @@ export const apiService = {
     }
   },
 
-<<<<<<< HEAD
   async getAdminBillingStats() {
     try {
       const response = await apiClient.get('/admin/billing/stats');
@@ -1926,9 +1925,6 @@ export const apiService = {
       throw error;
     }
   },
-
-=======
->>>>>>> 1936ec0abf92ab2da26b6c2672256f0299d1a778
   async createManualPost(formData, onUploadProgress) {
     try {
       const response = await apiClient.post('/manual-post/create', formData, {
@@ -1944,7 +1940,6 @@ export const apiService = {
     }
   },
 
-<<<<<<< HEAD
   async getAdminInvoices(search = '', page = 1) {
     try {
       const response = await apiClient.get('/admin/billing/invoices', {
@@ -1956,16 +1951,12 @@ export const apiService = {
       throw error;
     }
   },
-
-=======
->>>>>>> 1936ec0abf92ab2da26b6c2672256f0299d1a778
   async getManualPost(id) {
     try {
       const response = await apiClient.get(`/manual-post/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Failed to get manual post with id ${id}:`, error);
-<<<<<<< HEAD
       throw error;
     }
   },
@@ -1977,8 +1968,6 @@ export const apiService = {
       return response.data;
     } catch (error) {
       console.error('getFinanceStats failed:', error);
-=======
->>>>>>> 1936ec0abf92ab2da26b6c2672256f0299d1a778
       throw error;
     }
   },
@@ -1993,7 +1982,6 @@ export const apiService = {
     }
   },
 
-<<<<<<< HEAD
   async getFinanceInvoices(params = {}) {
     try {
       const response = await apiClient.get('/admin/finance/invoices', { params });
@@ -2003,9 +1991,6 @@ export const apiService = {
       throw error;
     }
   },
-
-=======
->>>>>>> 1936ec0abf92ab2da26b6c2672256f0299d1a778
   async deleteManualPost(id) {
     try {
       const response = await apiClient.delete(`/manual-post/${id}`);
@@ -2016,7 +2001,6 @@ export const apiService = {
     }
   },
 
-<<<<<<< HEAD
   async getMonthlyReport(month, year) {
     try {
       const response = await apiClient.get('/admin/finance/monthly-report', { params: { month, year } });
@@ -2026,9 +2010,6 @@ export const apiService = {
       throw error;
     }
   },
-
-=======
->>>>>>> 1936ec0abf92ab2da26b6c2672256f0299d1a778
   async analyzeManualPostImage(postId, workspaceId, imageUrl) {
     try {
       const response = await apiClient.post('/manual-post/analyze-image', { postId, workspaceId, imageUrl });
@@ -2039,7 +2020,6 @@ export const apiService = {
     }
   },
 
-<<<<<<< HEAD
   async exportFinanceCSV(params = {}) {
     try {
       const response = await apiClient.get('/admin/finance/export-csv', { params, responseType: 'blob' });
@@ -2049,9 +2029,6 @@ export const apiService = {
       throw error;
     }
   },
-
-=======
->>>>>>> 1936ec0abf92ab2da26b6c2672256f0299d1a778
   async generateManualPostContent(postId, workspaceId, regenerateSection = null) {
     try {
       const response = await apiClient.post('/manual-post/generate-content', { postId, workspaceId, regenerateSection });
@@ -2062,7 +2039,6 @@ export const apiService = {
     }
   },
 
-<<<<<<< HEAD
   async syncRazorpayPayments(daysBack = 90) {
     try {
       const response = await apiClient.post('/admin/finance/sync-razorpay', null, { params: { daysBack } });
@@ -2072,9 +2048,6 @@ export const apiService = {
       throw error;
     }
   },
-
-=======
->>>>>>> 1936ec0abf92ab2da26b6c2672256f0299d1a778
   async analyzeBrandUrl(url, workspaceId) {
     try {
       const response = await apiClient.post('/brand-intelligence/analyze-url', { url, workspaceId });
@@ -2098,7 +2071,6 @@ export const apiService = {
     }
   },
 
-<<<<<<< HEAD
   async downloadInvoice(subscriptionId) {
     try {
       const response = await apiClient.get(`/payment/invoice/${subscriptionId}`, {
@@ -2110,9 +2082,6 @@ export const apiService = {
       throw error;
     }
   },
-
-=======
->>>>>>> 1936ec0abf92ab2da26b6c2672256f0299d1a778
   async saveBrandDNA(workspaceId, dna, logoUrl, rawKnowledgeBase, sourceType) {
     try {
       const response = await apiClient.post('/brand-intelligence/save', { workspaceId, dna, logoUrl, rawKnowledgeBase, sourceType });
@@ -2123,7 +2092,6 @@ export const apiService = {
     }
   },
 
-<<<<<<< HEAD
   async getEvidence(caseId) {
     try {
       const response = await apiClient.get(`/cases/${caseId}/evidence`);
@@ -2133,9 +2101,6 @@ export const apiService = {
       throw error;
     }
   },
-
-=======
->>>>>>> 1936ec0abf92ab2da26b6c2672256f0299d1a778
   async getBrandDNA(workspaceId) {
     try {
       const response = await apiClient.get(`/brand-intelligence/${workspaceId}`);
@@ -2146,7 +2111,6 @@ export const apiService = {
     }
   },
 
-<<<<<<< HEAD
   async uploadEvidence(caseId, data) {
     try {
       const response = await apiClient.post(`/cases/${caseId}/evidence`, data);
@@ -2156,9 +2120,6 @@ export const apiService = {
       throw error;
     }
   },
-
-=======
->>>>>>> 1936ec0abf92ab2da26b6c2672256f0299d1a778
   async updateBrandDNASection(workspaceId, sectionName, data) {
     try {
       const response = await apiClient.put(`/brand-intelligence/${workspaceId}/section/${sectionName}`, { data });
@@ -2169,7 +2130,6 @@ export const apiService = {
     }
   },
 
-<<<<<<< HEAD
   async updateEvidence(caseId, evidenceId, data) {
     try {
       const response = await apiClient.patch(`/cases/${caseId}/evidence/${evidenceId}`, data);
@@ -2179,9 +2139,6 @@ export const apiService = {
       throw error;
     }
   },
-
-=======
->>>>>>> 1936ec0abf92ab2da26b6c2672256f0299d1a778
   async regenerateBrandDNASection(workspaceId, sectionName) {
     try {
       const response = await apiClient.post(`/brand-intelligence/${workspaceId}/section/${sectionName}/regenerate`);
@@ -2192,7 +2149,6 @@ export const apiService = {
     }
   },
 
-<<<<<<< HEAD
   async deleteEvidence(caseId, evidenceId) {
     try {
       const response = await apiClient.delete(`/cases/${caseId}/evidence/${evidenceId}`);
@@ -2202,9 +2158,6 @@ export const apiService = {
       throw error;
     }
   },
-
-=======
->>>>>>> 1936ec0abf92ab2da26b6c2672256f0299d1a778
   async uploadBrandAsset(formData, onProgress) {
     try {
       const response = await apiClient.post('/brand-intelligence/assets/upload', formData, {
@@ -2218,7 +2171,6 @@ export const apiService = {
     }
   },
 
-<<<<<<< HEAD
   async getEvidenceStats(caseId) {
     try {
       const response = await apiClient.get(`/cases/${caseId}/evidence/stats`);
@@ -2228,9 +2180,6 @@ export const apiService = {
       throw error;
     }
   },
-
-=======
->>>>>>> 1936ec0abf92ab2da26b6c2672256f0299d1a778
   async getBrandAssets(workspaceId) {
     try {
       const response = await apiClient.get(`/brand-intelligence/assets/${workspaceId}`);
@@ -2241,7 +2190,6 @@ export const apiService = {
     }
   },
 
-<<<<<<< HEAD
   async sendDeleteAccountOtp() {
     try {
       const response = await apiClient.post('/user/delete-otp/send');
@@ -2251,9 +2199,6 @@ export const apiService = {
       throw error;
     }
   },
-
-=======
->>>>>>> 1936ec0abf92ab2da26b6c2672256f0299d1a778
   async deleteBrandAsset(workspaceId, filename) {
     try {
       const response = await apiClient.delete(`/brand-intelligence/assets/${workspaceId}/${filename}`);
@@ -2264,7 +2209,6 @@ export const apiService = {
     }
   },
 
-<<<<<<< HEAD
   async verifyDeleteAccountOtp(otp) {
     try {
       const response = await apiClient.post('/user/delete-otp/verify', { otp });
@@ -2274,11 +2218,6 @@ export const apiService = {
       throw error;
     }
   },
-
-  // ── Brand Intelligence Agent: Auto-Discovery ────────────────────────────────
-
-=======
->>>>>>> 1936ec0abf92ab2da26b6c2672256f0299d1a778
   async discoverBrandAssets(workspaceId, urlOrFormData) {
     try {
       const isFormData = urlOrFormData instanceof FormData;
@@ -2292,7 +2231,6 @@ export const apiService = {
     }
   },
 
-<<<<<<< HEAD
   async deleteAccountSecure() {
     try {
       const response = await apiClient.delete('/user');
@@ -2302,16 +2240,12 @@ export const apiService = {
       throw error;
     }
   },
-
-=======
->>>>>>> 1936ec0abf92ab2da26b6c2672256f0299d1a778
   async saveDiscoveredBrandAssets(workspaceId, approvedAssets) {
     try {
       const response = await apiClient.post(`/brand-intelligence/${workspaceId}/assets/save-discovered`, { approvedAssets });
       return response.data;
     } catch (error) {
       console.error("Failed to save discovered brand assets:", error);
-<<<<<<< HEAD
       throw error;
     }
   },
@@ -2323,8 +2257,6 @@ export const apiService = {
       return response.data;
     } catch (error) {
       console.error('[Frontend] getIncidents failed:', error?.response?.data || error.message);
-=======
->>>>>>> 1936ec0abf92ab2da26b6c2672256f0299d1a778
       throw error;
     }
   },
@@ -2339,7 +2271,6 @@ export const apiService = {
     }
   },
 
-<<<<<<< HEAD
   async getIncidentKPIs(params = {}) {
     try {
       const response = await apiClient.get('/incidents/kpis', { params });
@@ -2349,9 +2280,6 @@ export const apiService = {
       throw error;
     }
   },
-
-=======
->>>>>>> 1936ec0abf92ab2da26b6c2672256f0299d1a778
   async deleteBrandAssetById(workspaceId, assetId) {
     try {
       const response = await apiClient.delete(`/brand-intelligence/${workspaceId}/assets/by-id/${assetId}`);
@@ -2362,7 +2290,6 @@ export const apiService = {
     }
   },
 
-<<<<<<< HEAD
   async getIncidentDetails(incidentId) {
     try {
       const response = await apiClient.get(`/incidents/${incidentId}`);
@@ -2372,9 +2299,6 @@ export const apiService = {
       throw error;
     }
   },
-
-=======
->>>>>>> 1936ec0abf92ab2da26b6c2672256f0299d1a778
   async uploadMediaFile(file) {
     try {
       const formData = new FormData();
@@ -2391,208 +2315,6 @@ export const apiService = {
     }
   },
 
-<<<<<<< HEAD
-=======
-  // ─── Admin Billing & Stats ──────────────────────────────────────────────────
-  async getAdminBillingStats() {
-    try {
-      const response = await apiClient.get('/admin/billing/stats');
-      return response.data;
-    } catch (error) {
-      console.error('getAdminBillingStats failed:', error);
-      throw error;
-    }
-  },
-
-  async getAdminInvoices(search = '', page = 1) {
-    try {
-      const response = await apiClient.get('/admin/billing/invoices', {
-        params: { search, page, limit: 15 }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('getAdminInvoices failed:', error);
-      throw error;
-    }
-  },
-
-  // ─── Finance Dashboard ──────────────────────────────────────────────────────
-  async getFinanceStats() {
-    try {
-      const response = await apiClient.get('/admin/finance/stats');
-      return response.data;
-    } catch (error) {
-      console.error('getFinanceStats failed:', error);
-      throw error;
-    }
-  },
-
-  async getFinanceInvoices(params = {}) {
-    try {
-      const response = await apiClient.get('/admin/finance/invoices', { params });
-      return response.data;
-    } catch (error) {
-      console.error('getFinanceInvoices failed:', error);
-      throw error;
-    }
-  },
-
-  async getMonthlyReport(month, year) {
-    try {
-      const response = await apiClient.get('/admin/finance/monthly-report', { params: { month, year } });
-      return response.data;
-    } catch (error) {
-      console.error('getMonthlyReport failed:', error);
-      throw error;
-    }
-  },
-
-  async exportFinanceCSV(params = {}) {
-    try {
-      const response = await apiClient.get('/admin/finance/export-csv', { params, responseType: 'blob' });
-      return response.data;
-    } catch (error) {
-      console.error('exportFinanceCSV failed:', error);
-      throw error;
-    }
-  },
-
-  async syncRazorpayPayments(daysBack = 90) {
-    try {
-      const response = await apiClient.post('/admin/finance/sync-razorpay', null, { params: { daysBack } });
-      return response.data;
-    } catch (error) {
-      console.error('syncRazorpayPayments failed:', error);
-      throw error;
-    }
-  },
-
-  async downloadInvoice(subscriptionId) {
-    try {
-      const response = await apiClient.get(`/payment/invoice/${subscriptionId}`, {
-        responseType: 'blob'
-      });
-      return response.data;
-    } catch (error) {
-      console.error('downloadInvoice failed:', error);
-      throw error;
-    }
-  },
-
-  // ─── Cases & Evidence ──────────────────────────────────────────────────────
-  async getEvidence(caseId) {
-    try {
-      const response = await apiClient.get(`/cases/${caseId}/evidence`);
-      return response.data;
-    } catch (error) {
-      console.error('[Frontend] getEvidence failed:', error?.response?.data || error.message);
-      throw error;
-    }
-  },
-
-  async uploadEvidence(caseId, data) {
-    try {
-      const response = await apiClient.post(`/cases/${caseId}/evidence`, data);
-      return response.data;
-    } catch (error) {
-      console.error('[Frontend] uploadEvidence failed:', error?.response?.data || error.message);
-      throw error;
-    }
-  },
-
-  async updateEvidence(caseId, evidenceId, data) {
-    try {
-      const response = await apiClient.patch(`/cases/${caseId}/evidence/${evidenceId}`, data);
-      return response.data;
-    } catch (error) {
-      console.error('[Frontend] updateEvidence failed:', error?.response?.data || error.message);
-      throw error;
-    }
-  },
-
-  async deleteEvidence(caseId, evidenceId) {
-    try {
-      const response = await apiClient.delete(`/cases/${caseId}/evidence/${evidenceId}`);
-      return response.data;
-    } catch (error) {
-      console.error('[Frontend] deleteEvidence failed:', error?.response?.data || error.message);
-      throw error;
-    }
-  },
-
-  async getEvidenceStats(caseId) {
-    try {
-      const response = await apiClient.get(`/cases/${caseId}/evidence/stats`);
-      return response.data;
-    } catch (error) {
-      console.error('[Frontend] getEvidenceStats failed:', error?.response?.data || error.message);
-      throw error;
-    }
-  },
-
-  // ─── Secure Account Deletion ───────────────────────────────────────────────
-  async sendDeleteAccountOtp() {
-    try {
-      const response = await apiClient.post('/user/delete-otp/send');
-      return response.data;
-    } catch (error) {
-      console.error('sendDeleteAccountOtp failed:', error);
-      throw error;
-    }
-  },
-
-  async verifyDeleteAccountOtp(otp) {
-    try {
-      const response = await apiClient.post('/user/delete-otp/verify', { otp });
-      return response.data;
-    } catch (error) {
-      console.error('verifyDeleteAccountOtp failed:', error);
-      throw error;
-    }
-  },
-
-  async deleteAccountSecure() {
-    try {
-      const response = await apiClient.delete('/user');
-      return response.data;
-    } catch (error) {
-      console.error('deleteAccountSecure failed:', error);
-      throw error;
-    }
-  },
-
-  // ─── DevOps Incident Management ────────────────────────────────────────────
-  async getIncidents(params = {}) {
-    try {
-      const response = await apiClient.get('/incidents', { params });
-      return response.data;
-    } catch (error) {
-      console.error('[Frontend] getIncidents failed:', error?.response?.data || error.message);
-      throw error;
-    }
-  },
-
-  async getIncidentKPIs(params = {}) {
-    try {
-      const response = await apiClient.get('/incidents/kpis', { params });
-      return response.data;
-    } catch (error) {
-      console.error('[Frontend] getIncidentKPIs failed:', error?.response?.data || error.message);
-      throw error;
-    }
-  },
-
-  async getIncidentDetails(incidentId) {
-    try {
-      const response = await apiClient.get(`/incidents/${incidentId}`);
-      return response.data;
-    } catch (error) {
-      console.error('[Frontend] getIncidentDetails failed:', error?.response?.data || error.message);
-      throw error;
-    }
-  },
-
->>>>>>> 1936ec0abf92ab2da26b6c2672256f0299d1a778
   async assignIncident(incidentId, developerId, developerName) {
     try {
       const response = await apiClient.post(`/incidents/${incidentId}/assign`, { developerId, developerName });
