@@ -25,6 +25,7 @@ import Hero from './Hero';
 import StackedFeatures from './StackedFeatures';
 import DemoSection from './DemoSection';
 import AiLegalDemoSection from '../Tools/AI_Legal/AiLegalDemoSection';
+import GoogleDisclosure from './GoogleDisclosure';
 
 import FlowingAICreature from './FlowingAICreature';
 import { useLanguage } from '../context/LanguageContext';
@@ -138,6 +139,9 @@ const Landing = () => {
 
             {/* ── AILEGAL Specialization Showcase ── */}
             <AiLegalDemoSection />
+
+            {/* ── Google Integration & OAuth Disclosure ── */}
+            <GoogleDisclosure />
 
 
 

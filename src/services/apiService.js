@@ -42,9 +42,15 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401) {
       const isMock = localStorage.getItem('token') === 'mock_token';
       if (!isMock) {
-        // Clear user data and redirect to login on unauthorized
-        localStorage.removeItem('user');
-        window.location.href = '/login';
+        // Do not redirect if we are on a public dashboard, chat, or case page
+        const publicPaths = ['/dashboard/chat', '/dashboard/legal', '/dashboard/cases', '/dashboard/case', '/dashboard', '/'];
+        const isPublicPath = publicPaths.some(path => 
+          window.location.pathname === path || window.location.pathname.startsWith(path + '/')
+        );
+        if (!isPublicPath) {
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+        }
       }
     }
 

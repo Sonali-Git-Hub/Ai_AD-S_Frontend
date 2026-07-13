@@ -4125,6 +4125,24 @@ const Chat = () => {
       return;
     }
 
+    // --- GUEST CHAT LIMIT (5 Chats Max) ---
+    const user = getUserData();
+    const isLoggedIn = !!(user && user.token);
+    if (!isLoggedIn) {
+      const currentCount = parseInt(localStorage.getItem('aisa_guest_chat_count') || '0', 10);
+      if (currentCount >= 5) {
+        window.dispatchEvent(new CustomEvent('login_required', { 
+          detail: { 
+            toolName: 'AISA™ Chat', 
+            customMessage: 'You have reached the limit of 5 free messages as a guest. Please log in or create an account to continue using AISA™!' 
+          } 
+        }));
+        chatLock.locked = false;
+        return;
+      }
+      localStorage.setItem('aisa_guest_chat_count', (currentCount + 1).toString());
+    }
+
     if (longTextPreview) setLongTextPreview(null);
     setIsAutoPreviewDisabled(false);
 
