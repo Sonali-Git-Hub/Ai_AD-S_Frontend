@@ -1070,34 +1070,28 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       }
 
       // 2. Load latest or create
-      // Try to load the target workspace (or the latest one)
       let wsData = await apiService.getSocialAgentWorkspace(targetId);
-      // If we couldn't load a workspace and there are no workspaces at all, create a default one
-      if ((!wsData || !wsData.success) && (wsList.workspaces || []).length === 0) {
-        wsData = await apiService.createSocialAgentWorkspace({
-          workspaceName: `${currentUser?.name || 'My'} Brand`,
-          planType: 'Low'
-        });
-        if (wsData.success) {
-          // Replace the empty list with the newly created workspace
-          setAllWorkspaces([wsData.workspace]);
-        }
-      }
 
-      if (wsData.success) {
+      const workspacesArray = wsList.workspaces || [];
+
+      if (wsData && wsData.success) {
         setWorkspace(wsData.workspace);
         const wsId = wsData.workspace._id;
-
-        const anyOnboarded = (wsList.workspaces || []).some(w => w.onboarding?.completed);
-
-        // Onboarding wizard removed
-
         setIsCheckingOnboarding(false);
-
         await fetchWorkspaceData(wsId.toString(), isBackground);
-        return wsData.workspace; // Return for reuse
+        return wsData.workspace;
+      } else if (workspacesArray.length > 0) {
+        // Fallback to the first available workspace if target fails to load
+        const fallbackWs = workspacesArray[0];
+        setWorkspace(fallbackWs);
+        setIsCheckingOnboarding(false);
+        await fetchWorkspaceData(fallbackWs._id.toString(), isBackground);
+        return fallbackWs;
+      } else {
+        setWorkspace(null);
+        setIsCheckingOnboarding(false);
+        return null;
       }
-      return null;
     } catch (error) {
       console.error("Dashboard Init Error:", error);
       setIsCheckingOnboarding(false);
@@ -1253,34 +1247,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     toast.success(`Viewing Profile: ${ws.workspaceName}`);
   };
 
-  const handleHardDeleteWorkspace = async (wsId) => {
-    if (!window.confirm("⚠️ WARNING: This will permanently delete this Brand Profile and ALL associated content, calendars, and generated posts. This cannot be undone. Proceed?")) return;
 
-    const toastId = toast.loading("Permanently removing brand workspace...");
-    try {
-      const res = await apiService.deleteSocialAgentWorkspace(wsId);
-      if (res.success) {
-        // Refresh all workspaces to update calendar counts
-        await initWorkspace();
-
-        if (workspace?._id === wsId) {
-          const nextWs = allWorkspaces.find(w => w._id !== wsId);
-          if (nextWs) {
-            switchWorkspace(nextWs);
-          } else {
-            setWorkspace(null);
-            // Onboarding removed
-          }
-        }
-
-        toast.success("Brand Profile fully deleted", { id: toastId });
-      } else {
-        toast.error("Deletion failed", { id: toastId });
-      }
-    } catch (error) {
-      toast.error("Error during deletion", { id: toastId });
-    }
-  };
 
 
 
@@ -7193,7 +7160,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                           <button
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              handleHardDeleteWorkspace(ws._id);
+                                              handleDeleteBrand(ws._id, brandName);
                                             }}
                                             className="w-7 h-7 rounded-lg hover:bg-red-500/10 text-slate-400 hover:text-red-500 flex items-center justify-center shrink-0 transition-all opacity-0 group-hover/brand-row:opacity-100"
                                             title="Delete Brand"
