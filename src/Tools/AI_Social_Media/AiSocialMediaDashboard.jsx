@@ -1233,12 +1233,23 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     // If no explicit brand profile yet (fresh after onboarding), keep Brand Setup blank.
   }, [workspace]);
 
-  const switchWorkspace = (ws) => {
+  const switchWorkspace = async (ws) => {
     setActiveProfile(null); // Reset profile state to trigger re-load visibility
     setWorkspace(ws);
     setCurrentEditingBrandId(ws._id);
     setIsWorkspaceMenuOpen(false);
     fetchWorkspaceData(ws._id);
+    
+    try {
+      await apiService.getSocialAgentWorkspace(ws._id);
+      const freshList = await apiService.getSocialAgentWorkspaces();
+      if (freshList.success) {
+        setAllWorkspaces(freshList.workspaces);
+      }
+    } catch (e) {
+      console.warn("Failed to notify active workspace switch to backend", e);
+    }
+
     toast.success(`Viewing Profile: ${ws.workspaceName}`);
   };
 
@@ -2160,8 +2171,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
           {[
             {
               id: 'brands',
-              label: 'Active Brands',
-              val: allWorkspaces.filter(ws => !ws.isPersonalProfile && ws.brandProfile?.companyName).length,
+              label: 'Brand History',
+              val: allWorkspaces.filter(ws => !ws.isPersonalProfile).length,
               icon: Palette,
               color: 'text-indigo-500',
               bg: 'bg-indigo-500/10'
@@ -7017,7 +7028,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
     switch (activeTab) {
       case 'overview': return renderOverview();
-      case 'brand': return <BrandWorkspace workspaceId={workspace?._id} />;
+      case 'brand': return <BrandWorkspace workspaceId={workspace?._id} setActiveTab={setActiveTab} setShowGeneratorOptions={setShowGeneratorOptions} />;
       case 'calendar': return renderContentCalendar();
       case 'generation': return renderContentOrchestration();
       case 'assets': return renderAssetLibrary();
@@ -7116,9 +7127,15 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                             </button>
                           )}
 
-                        {/* ── ACTIVE BRANDS (moved to top) ── */}
+                        {/* ── BRAND HISTORY ── */}
                         {(() => {
-                          const activeBrands = allWorkspaces.filter(ws => !ws.isPersonalProfile && ws.brandProfile?.companyName);
+                          const activeBrands = allWorkspaces
+                            .filter(ws => !ws.isPersonalProfile)
+                            .sort((a, b) => {
+                              if (a._id === workspace?._id) return -1;
+                              if (b._id === workspace?._id) return 1;
+                              return 0;
+                            });
                           if (activeBrands.length === 0) return null;
                           return (
                             <div className={`mb-6 ${isSidebarCollapsed ? 'px-1' : 'px-0'}`}>
@@ -7130,7 +7147,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                   <div className="w-5 h-5 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
                                     <Palette className="w-3 h-3 text-emerald-500" />
                                   </div>
-                                  <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[2px] flex-1 text-left">Active Brands</span>
+                                  <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[2px] flex-1 text-left">Brand History</span>
                                   <span className="text-[9px] font-black text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded-lg border border-emerald-500/10">{activeBrands.length}</span>
                                   <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${activeBrandsOpen ? 'rotate-180' : ''}`} />
                                 </button>
@@ -7142,36 +7159,49 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                     const isCurrent = workspace?._id === ws._id;
                                     const brandName = ws.brandProfile?.companyName || ws.workspaceName || 'Brand';
                                     return (
-                                      <button
-                                        key={ws._id}
-                                        onClick={() => switchWorkspace(ws)}
-                                        title={isSidebarCollapsed ? brandName : ''}
-                                        className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-2'} rounded-xl transition-all group/brand ${
-                                          isCurrent
-                                            ? 'bg-primary/10 border border-primary/20 shadow-sm'
-                                            : 'hover:bg-slate-50 dark:hover:bg-white/5 border border-transparent'
-                                        }`}
-                                      >
-                                        <div className={`w-7 h-7 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center shrink-0 overflow-hidden ring-2 ${isCurrent ? 'ring-primary/30' : 'ring-transparent'} transition-all`}>
-                                          {wsLogo ? (
-                                            <img src={toProxyUrl(wsLogo)} alt="" className="w-full h-full object-contain p-0.5" onError={e => { e.currentTarget.style.display = 'none'; }} />
-                                          ) : (
-                                            <div className={`w-full h-full flex items-center justify-center text-[9px] font-black uppercase ${isCurrent ? 'bg-gradient-to-br from-primary to-indigo-600 text-white' : 'text-slate-500 dark:text-slate-400'}`}>
-                                              {brandName.charAt(0)}
+                                      <div key={ws._id} className="relative group/brand-row flex items-center gap-1.5 w-full">
+                                        <button
+                                          onClick={() => switchWorkspace(ws)}
+                                          title={isSidebarCollapsed ? brandName : ''}
+                                          className={`flex-1 flex items-center ${isSidebarCollapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-2'} rounded-xl transition-all group/brand ${
+                                            isCurrent
+                                              ? 'bg-primary/10 border border-primary/20 shadow-sm'
+                                              : 'hover:bg-slate-50 dark:hover:bg-white/5 border border-transparent'
+                                          }`}
+                                        >
+                                          <div className={`w-7 h-7 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center shrink-0 overflow-hidden ring-2 ${isCurrent ? 'ring-primary/30' : 'ring-transparent'} transition-all`}>
+                                            {wsLogo ? (
+                                              <img src={toProxyUrl(wsLogo)} alt="" className="w-full h-full object-contain p-0.5" onError={e => { e.currentTarget.style.display = 'none'; }} />
+                                            ) : (
+                                              <div className={`w-full h-full flex items-center justify-center text-[9px] font-black uppercase ${isCurrent ? 'bg-gradient-to-br from-primary to-indigo-600 text-white' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                {brandName.charAt(0)}
+                                              </div>
+                                            )}
+                                          </div>
+                                          {!isSidebarCollapsed && (
+                                            <div className="flex-1 min-w-0 text-left">
+                                              <p className={`text-[10px] font-black uppercase tracking-wide truncate ${isCurrent ? 'text-primary' : 'text-slate-600 dark:text-slate-300 group-hover/brand:text-slate-800 dark:group-hover/brand:text-white'} transition-colors`}>
+                                                {brandName}
+                                              </p>
                                             </div>
                                           )}
-                                        </div>
+                                          {!isSidebarCollapsed && (
+                                            <div className={`w-2 h-2 rounded-full shrink-0 ${isCurrent ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]' : 'bg-slate-300 dark:bg-white/20'}`} />
+                                          )}
+                                        </button>
                                         {!isSidebarCollapsed && (
-                                          <div className="flex-1 min-w-0 text-left">
-                                            <p className={`text-[10px] font-black uppercase tracking-wide truncate ${isCurrent ? 'text-primary' : 'text-slate-600 dark:text-slate-300 group-hover/brand:text-slate-800 dark:group-hover/brand:text-white'} transition-colors`}>
-                                              {brandName}
-                                            </p>
-                                          </div>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleHardDeleteWorkspace(ws._id);
+                                            }}
+                                            className="w-7 h-7 rounded-lg hover:bg-red-500/10 text-slate-400 hover:text-red-500 flex items-center justify-center shrink-0 transition-all opacity-0 group-hover/brand-row:opacity-100"
+                                            title="Delete Brand"
+                                          >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                          </button>
                                         )}
-                                        {!isSidebarCollapsed && (
-                                          <div className={`w-2 h-2 rounded-full shrink-0 ${isCurrent ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]' : 'bg-slate-300 dark:bg-white/20'}`} />
-                                        )}
-                                      </button>
+                                      </div>
                                     );
                                   })}
                                 </div>

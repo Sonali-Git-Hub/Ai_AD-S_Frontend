@@ -127,7 +127,7 @@ const ChipInput = ({ values = [], onChange, placeholder = "Add...", disabled }) 
   return (
     <div className="flex flex-wrap gap-1.5 p-2 border border-slate-200 dark:border-white/10 rounded-xl min-h-[44px] bg-slate-50/50 dark:bg-white/[0.02]">
       {values.map((chip, i) => (
-        <span key={i} className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-primary/10 text-primary text-[9px] font-black uppercase tracking-wider">
+        <span key={i} className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-primary/10 text-primary text-[10px] font-black uppercase tracking-wider">
           {chip}
           {!disabled && (
             <button onClick={() => onChange(values.filter((_, idx) => idx !== i))} className="ml-0.5 opacity-60 hover:opacity-100">
@@ -140,7 +140,7 @@ const ChipInput = ({ values = [], onChange, placeholder = "Add...", disabled }) 
         <input value={inputVal} onChange={e => setInputVal(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addChip(); }}}
           placeholder={placeholder}
-          className="flex-1 min-w-[80px] bg-transparent text-[10px] text-slate-700 dark:text-slate-300 placeholder-slate-400 outline-none font-medium" />
+          className="flex-1 min-w-[80px] bg-transparent text-xs text-slate-700 dark:text-slate-300 placeholder-slate-400 outline-none font-medium" />
       )}
     </div>
   );
@@ -154,17 +154,17 @@ const DNAField = ({ label, value, onChange, multiline }) => {
   return (
     <div className="space-y-1">
       <div className="flex justify-between items-center">
-        <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{label}</label>
+        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</label>
         {!editing ? (
-          <button onClick={() => setEditing(true)} className="text-[8px] font-black text-primary uppercase tracking-widest flex items-center gap-1 hover:scale-105 active:scale-95 transition-all">
+          <button onClick={() => setEditing(true)} className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1 hover:scale-105 active:scale-95 transition-all">
             <Edit3 className="w-2.5 h-2.5" /> Edit
           </button>
         ) : (
           <div className="flex gap-2">
-            <button onClick={save} className="text-[8px] font-black text-emerald-500 uppercase tracking-widest hover:scale-105 transition-all flex items-center gap-1">
+            <button onClick={save} className="text-[10px] font-black text-emerald-500 uppercase tracking-widest hover:scale-105 transition-all flex items-center gap-1">
               <Check className="w-2.5 h-2.5" /> Save
             </button>
-            <button onClick={() => { setLocalVal(value || ""); setEditing(false); }} className="text-[8px] font-black text-slate-400 uppercase tracking-widest hover:scale-105 transition-all flex items-center gap-1">
+            <button onClick={() => { setLocalVal(value || ""); setEditing(false); }} className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:scale-105 transition-all flex items-center gap-1">
               <X className="w-2.5 h-2.5" /> Cancel
             </button>
           </div>
@@ -173,13 +173,13 @@ const DNAField = ({ label, value, onChange, multiline }) => {
       {editing ? (
         multiline ? (
           <textarea value={localVal} onChange={e => setLocalVal(e.target.value)} autoFocus rows={4}
-            className="w-full text-[10px] font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-white/5 border border-primary/40 rounded-xl p-2.5 outline-none resize-none" />
+            className="w-full text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-white/5 border border-primary/40 rounded-xl p-2.5 outline-none resize-none" />
         ) : (
           <input value={localVal} onChange={e => setLocalVal(e.target.value)} onKeyDown={e => e.key === "Enter" && save()} autoFocus
-            className="w-full text-[10px] font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-white/5 border border-primary/40 rounded-xl px-3 py-2 outline-none" />
+            className="w-full text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-white/5 border border-primary/40 rounded-xl px-3 py-2 outline-none" />
         )
       ) : (
-        <p className="text-[10px] font-medium text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 min-h-[36px] leading-relaxed">
+        <p className="w-full text-xs font-medium text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 min-h-[36px] leading-relaxed">
           {value || <span className="italic text-slate-400">Not set</span>}
         </p>
       )}
@@ -193,7 +193,7 @@ const renderSectionContent = (sectionKey, sectionData, onFieldChange) => {
   );
   const chips = (key, label) => (
     <div key={key} className="space-y-1">
-      <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">{label}</label>
+      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">{label}</label>
       <ChipInput values={sectionData?.[key] || []} onChange={(v) => onFieldChange(key, v)} />
     </div>
   );
@@ -223,13 +223,13 @@ const renderSectionContent = (sectionKey, sectionData, onFieldChange) => {
     case "brandPersonality":
       return (
         <div className="space-y-3">
-          <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">Select Personality Traits</label>
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Select Personality Traits</label>
           <div className="flex flex-wrap gap-2">
             {PERSONALITY_TRAITS.map(trait => {
               const selected = (sectionData?.traits || []).includes(trait);
               return (
                 <button key={trait} onClick={() => { const cur = sectionData?.traits || []; onFieldChange("traits", selected ? cur.filter(t => t !== trait) : [...cur, trait]); }}
-                  className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all hover:scale-105 active:scale-95 border ${selected ? "border-primary bg-primary/10 text-primary" : "border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-white/[0.02]"}`}>
+                  className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all hover:scale-105 active:scale-95 border ${selected ? "border-primary bg-primary/10 text-primary" : "border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-white/[0.02]"}`}>
                   {selected && <Check className="w-2.5 h-2.5 inline mr-1" />}{trait}
                 </button>
               );
@@ -335,7 +335,7 @@ const renderSectionContent = (sectionKey, sectionData, onFieldChange) => {
   }
 };
 
-const BrandWorkspace = ({ workspaceId }) => {
+const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShowGeneratorOptions }) => {
   const [activeTab, setActiveTab] = useState("setup");
   const [url, setUrl] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -610,6 +610,10 @@ const BrandWorkspace = ({ workspaceId }) => {
       if (res.success) {
         setSavedBrand(res.brand);
         toast.success("Brand DNA saved successfully!");
+        // Auto-fill the Brand Assets scan URL from Brand Setup URL and switch to Assets tab
+        const websiteUrl = url?.trim() || res.brand?.website?.trim();
+        if (websiteUrl) setDiscoverUrl(websiteUrl);
+        setActiveTab("assets");
       } else {
         toast.error(res.error || "Save failed");
       }
@@ -1149,12 +1153,12 @@ const BrandWorkspace = ({ workspaceId }) => {
     try {
       const toSave = [];
       const d = discoveredAssets;
-      const collect = (arr, cat, extraFn) => arr.forEach((item, i) => {
-        if (assetApprovals[`${cat}-${i}`]) toSave.push({ category: cat, ...item, ...(extraFn ? extraFn(item) : {}) });
+      const collect = (arr, cat, extraFn) => (arr || []).forEach((item, i) => {
+        if (item && assetApprovals[`${cat}-${i}`]) toSave.push({ category: cat, ...item, ...(extraFn ? extraFn(item) : {}) });
       });
       collect(d.logos || [], 'logo');
-      collect(d.colors || [], 'color', item => ({ hex: item.hex }));
-      collect(d.fonts || [], 'font', item => ({ name: item.name }));
+      collect(d.colors || [], 'color', item => ({ hex: item?.hex || '' }));
+      collect(d.fonts || [], 'font', item => ({ name: item?.name || '' }));
       collect(d.images || [], 'image');
       collect(d.socialProfiles || [], 'social', item => ({ platform: item.platform }));
       collect(d.documents || [], 'document', item => ({ type: item.type, name: item.name }));
@@ -1195,12 +1199,12 @@ const BrandWorkspace = ({ workspaceId }) => {
     };
 
     const d = discoveredAssets || {};
-    const logos  = dedupeByKey(d.logos,          item => item.url);
-    const colors = dedupeByKey(d.colors,         item => item.hex?.toLowerCase());
-    const fonts  = dedupeByKey(d.fonts,          item => item.name?.toLowerCase());
-    const images = dedupeByKey(d.images,         item => item.url);
-    const socials = dedupeByKey(d.socialProfiles, item => item.url || item.platform);
-    const docs   = dedupeByKey(d.documents,      item => item.url || item.name);
+    const logos  = dedupeByKey(d.logos,          item => item?.url);
+    const colors = dedupeByKey(d.colors,         item => item?.hex?.toLowerCase());
+    const fonts  = dedupeByKey(d.fonts,          item => item?.name?.toLowerCase());
+    const images = dedupeByKey(d.images,         item => item?.url);
+    const socials = dedupeByKey(d.socialProfiles, item => item?.url || item?.platform);
+    const docs   = dedupeByKey(d.documents,      item => item?.url || item?.name);
     const favicon = d.favicon;
 
     const totalAssets = logos.length + colors.length + fonts.length + images.length + socials.length + docs.length + (favicon ? 1 : 0);
@@ -1414,7 +1418,7 @@ const BrandWorkspace = ({ workspaceId }) => {
             )}
 
             {/* ── COLORS ── */}
-            {colors.length > 0 && (
+            {colors.length > 0 ? (
               <div className="bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-3xl p-6 shadow-sm">
                 <SectionHeader icon={Palette} title="Brand Colors" count={colors.length}
                   onSelectAll={() => { const u = {}; colors.forEach((_, i) => u[`color-${i}`] = true); setAssetApprovals(p => ({ ...p, ...u })); }}
@@ -1422,17 +1426,22 @@ const BrandWorkspace = ({ workspaceId }) => {
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
                   {colors.map((color, idx) => (
                     <CheckCard key={idx} cardKey={`color-${idx}`} className="overflow-hidden">
-                      <div className="h-20 w-full rounded-t-[14px]" style={{ backgroundColor: color.hex }} />
+                      <div className="h-20 w-full rounded-t-[14px]" style={{ backgroundColor: color?.hex }} />
                       <div className="p-2.5 bg-white dark:bg-[#0f172a] space-y-0.5">
-                        <p className="text-[9px] font-black text-slate-700 dark:text-white truncate">{color.role || color.label || 'Color'}</p>
-                        <p className="text-[8px] font-bold text-slate-400 font-mono uppercase">{color.hex}</p>
-                        {color.rgb && <p className="text-[7px] text-slate-300 dark:text-slate-600 font-mono">{color.rgb}</p>}
+                        <p className="text-[9px] font-black text-slate-700 dark:text-white truncate">{color?.role || color?.label || 'Color'}</p>
+                        <p className="text-[8px] font-bold text-slate-400 font-mono uppercase">{color?.hex}</p>
+                        {color?.rgb && <p className="text-[7px] text-slate-300 dark:text-slate-600 font-mono">{color?.rgb}</p>}
                       </div>
                     </CheckCard>
                   ))}
                 </div>
               </div>
-            )}
+            ) : discoveredAssets ? (
+              <div className="bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-3xl p-6 shadow-sm text-center py-8">
+                <Palette className="w-8 h-8 text-slate-300 dark:text-white/20 mx-auto mb-2" />
+                <p className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">No brand colors detected from this website.</p>
+              </div>
+            ) : null}
 
             {/* ── FONTS ── */}
             {fonts.length > 0 && (
@@ -1655,9 +1664,13 @@ const BrandWorkspace = ({ workspaceId }) => {
                   </div>
                 ))}
               </div>
-              <button onClick={() => setShowSuccessCard(false)}
+               <button onClick={() => {
+                  setShowSuccessCard(false);
+                  if (setParentActiveTab) setParentActiveTab('calendar');
+                  if (setShowGeneratorOptions) setShowGeneratorOptions(true);
+                }}
                 className="w-full py-3 bg-primary text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-primary/25">
-                Continue to Brand Workspace
+                Content generator
               </button>
             </div>
           </div>
