@@ -8356,7 +8356,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                   <input id="photos-upload" type="file" ref={photosInputRef} onChange={handleFileSelect} multiple className="hidden" accept="image/*" />
                   <input id="camera-upload" type="file" ref={cameraInputRef} onChange={handleFileSelect} className="hidden" accept="image/*" capture="environment" />
 
-                  <div className="flex items-end gap-2 w-full">
+                  <div className={`flex w-full gap-2 \${isInputExpanded || inputValue.includes('\n') || inputValue.length > 100 ? 'items-end' : 'items-center'}`}>
 
 
                     {/* AI CashFlow Search Results Dropdown */}
@@ -8930,7 +8930,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                             setIsToolsMenuOpen(!isToolsMenuOpen);
                             setIsAttachMenuOpen(false);
                           }}
-                          className="w-[32px] h-[32px] rounded-full flex items-center justify-center bg-slate-50 dark:bg-zinc-800 text-slate-500 hover:text-primary transition-all border border-slate-200/50 dark:border-zinc-700/50 shadow-sm relative z-[1003]"
+                          className="w-[30px] h-[30px] sm:w-[34px] sm:h-[34px] rounded-full flex items-center justify-center bg-slate-50 dark:bg-zinc-800 text-slate-500 hover:text-primary transition-all border border-slate-200/50 dark:border-zinc-700/50 shadow-sm relative z-[1003]"
                           title="AISA ™ Magic Tools"
                         >
                           <Brain className="w-5 h-5" />
@@ -9255,10 +9255,10 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                           }}
                           placeholder={isLimitReached ? t('limitReached') || "Chat limit reached. Sign in to continue." : (window.innerWidth < 768 ? "Ask anything..." : ((activeTool && TOOL_PLACEHOLDERS[activeTool]) ? TOOL_PLACEHOLDERS[activeTool] : typedPlaceholder))}
                           rows={1}
-                          className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none px-1 pt-2.5 pb-0 sm:px-3 sm:py-2 pr-8 text-slate-800 dark:text-zinc-100 text-left placeholder-slate-400 dark:placeholder-zinc-500 resize-none overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] font-normal leading-normal text-[15px] sm:text-[16px] transition-all duration-300 ${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
+                          className={`w-full bg-transparent border-0 focus:ring-0 outline-none focus:outline-none px-1 py-[9px] sm:px-3 sm:py-[7px] pr-8 text-slate-800 dark:text-zinc-100 text-left placeholder-slate-400 dark:placeholder-zinc-500 resize-none overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] font-normal leading-normal text-[15px] sm:text-[16px] transition-all duration-300 \${isLimitReached ? 'cursor-not-allowed opacity-50' : ''}`}
                           style={isInputExpanded
                             ? { minHeight: '220px', height: '220px', maxHeight: '500px' }
-                            : { minHeight: '38px', height: '38px', maxHeight: '140px' }
+                            : { minHeight: '38px', maxHeight: '140px' }
                           }
                         />
 
@@ -9306,7 +9306,7 @@ If the user asks for an image (e.g., "generate", "create", "draw", "show me a pi
                                 onClick={() => {
                                   handleVoiceInput();
                                 }}
-                                className="w-[32px] h-[32px] rounded-full flex items-center justify-center bg-white dark:bg-zinc-800 text-slate-500 hover:text-primary transition-all shadow-sm border border-slate-200 dark:border-zinc-700 relative overflow-visible z-20"
+                                className="w-[30px] h-[30px] sm:w-[34px] sm:h-[34px] rounded-full flex items-center justify-center bg-white dark:bg-zinc-800 text-slate-500 hover:text-primary transition-all shadow-sm border border-slate-200 dark:border-zinc-700 relative overflow-visible z-20"
                                 title={t('voiceInput')}
                               >
                                 <Mic className={`w-[18px] h-[18px] shrink-0 transition-colors`} />
