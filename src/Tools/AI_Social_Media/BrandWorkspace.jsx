@@ -361,7 +361,7 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
   const [confidenceDiff, setConfidenceDiff] = useState({});
   const [isUploadingAsset, setIsUploadingAsset] = useState(false);
   const [assetCategory, setAssetCategory] = useState("logo");
-  const [isLoadingDNA, setIsLoadingDNA] = useState(true);
+  const [isLoadingDNA, setIsLoadingDNA] = useState(false);
 
   // Brand Intelligence Agent — Asset Discovery
   const [discoverUrl, setDiscoverUrl] = useState("");
@@ -389,20 +389,40 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
     }
   }, [liveLogs]);
 
-  // Fetch initial DNA — only store as savedBrand (for reference), do NOT pre-fill dnaData fields
+  // Fetch initial DNA & determine onboarding state
   useEffect(() => {
-    if (!workspaceId) return;
+    if (!workspaceId) {
+      setIsLoadingDNA(false);
+      setSavedBrand(null);
+      setDnaData(null);
+      setActiveTab("setup");
+      return;
+    }
     setIsLoadingDNA(true);
     (async () => {
       try {
         const res = await apiService.getBrandDNA(workspaceId);
         if (res.success && res.brand) {
-          // Keep savedBrand so the system knows a profile exists (used for regeneration context etc.)
-          // but do NOT call setDnaData — fields should always start blank on open
           setSavedBrand(res.brand);
+          // Check if there is actual DNA data populated in the profile
+          const hasDNA = res.brand.companyName || (res.brand.companyInfo && res.brand.companyInfo.brandName);
+          if (hasDNA) {
+            setDnaData(res.brand);
+            setActiveTab("dna");
+          } else {
+            setDnaData(null);
+            setActiveTab("setup");
+          }
+        } else {
+          setSavedBrand(null);
+          setDnaData(null);
+          setActiveTab("setup");
         }
       } catch (e) {
         console.error("Failed to load initial DNA:", e);
+        setSavedBrand(null);
+        setDnaData(null);
+        setActiveTab("setup");
       } finally {
         setIsLoadingDNA(false);
       }
