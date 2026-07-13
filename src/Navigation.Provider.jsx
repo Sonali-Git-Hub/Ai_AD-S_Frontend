@@ -19,6 +19,7 @@ import Chat, {
   HearingsRoute
 } from './pages/Chat';
 import Sidebar from './Components/SideBar/Sidebar.jsx';
+import CardErrorBoundary from './Components/CardErrorBoundary.jsx';
 import AiPersonalAssistantDashboard from './Tools/AI_Personal_Assistant/Dashboard';
 import Pricing from './landingpage/Pricing';
 import SocialAgentPage from './Tools/AI_Social_Media/SocialAgentPage.jsx';
@@ -500,23 +501,23 @@ const NavigateProvider = () => {
             <Route path="cases/:caseId/chat" element={null} />
             
             {/* AI Legal Nested Routes */}
-            <Route path="legal" element={<AiLegalContentRoute />} />
-            <Route path="legal/chat" element={<LegalChatScreenRoute />} />
+            <Route path="legal" element={<CardErrorBoundary cardName="Legal Toolkit Dashboard" toolModule="LEGAL_TOOLKIT"><AiLegalContentRoute /></CardErrorBoundary>} />
+            <Route path="legal/chat" element={<CardErrorBoundary cardName="Legal AI Assistant" toolModule="LEGAL_TOOLKIT"><LegalChatScreenRoute /></CardErrorBoundary>} />
             <Route path="legal/cases/:caseId/chat" element={null} />
-            <Route path="legal/draft" element={<DraftMakerRoute />} />
-            <Route path="legal/evidence" element={<EvidenceAnalysisRoute />} />
-            <Route path="legal/strategy" element={<StrategyEngineRoute />} />
-            <Route path="legal/contracts" element={<ContractReviewRoute />} />
-            <Route path="legal/predictor" element={<CasePredictorRoute />} />
-            <Route path="legal/arguments" element={<ArgumentBuilderRoute />} />
-            <Route path="legal/precedents" element={<LegalPrecedentsRoute />} />
-            <Route path="legal/compliance" element={<ComplianceRoute />} />
-            <Route path="legal/hearings" element={<HearingsRoute />} />
+            <Route path="legal/draft" element={<CardErrorBoundary cardName="Legal Document Draft Maker" toolModule="LEGAL_TOOLKIT"><DraftMakerRoute /></CardErrorBoundary>} />
+            <Route path="legal/evidence" element={<CardErrorBoundary cardName="Evidence Analysis Toolkit" toolModule="LEGAL_TOOLKIT"><EvidenceAnalysisRoute /></CardErrorBoundary>} />
+            <Route path="legal/strategy" element={<CardErrorBoundary cardName="Litigation Strategy Engine" toolModule="LEGAL_TOOLKIT"><StrategyEngineRoute /></CardErrorBoundary>} />
+            <Route path="legal/contracts" element={<CardErrorBoundary cardName="Contract Compliance Review" toolModule="LEGAL_TOOLKIT"><ContractReviewRoute /></CardErrorBoundary>} />
+            <Route path="legal/predictor" element={<CardErrorBoundary cardName="Case Predictor Analytics" toolModule="LEGAL_TOOLKIT"><CasePredictorRoute /></CardErrorBoundary>} />
+            <Route path="legal/arguments" element={<CardErrorBoundary cardName="Court Argument Builder" toolModule="LEGAL_TOOLKIT"><ArgumentBuilderRoute /></CardErrorBoundary>} />
+            <Route path="legal/precedents" element={<CardErrorBoundary cardName="Legal Precedents Database" toolModule="LEGAL_TOOLKIT"><LegalPrecedentsRoute /></CardErrorBoundary>} />
+            <Route path="legal/compliance" element={<CardErrorBoundary cardName="Regulatory Compliance Check" toolModule="LEGAL_TOOLKIT"><ComplianceRoute /></CardErrorBoundary>} />
+            <Route path="legal/hearings" element={<CardErrorBoundary cardName="Hearings Timeline Manager" toolModule="LEGAL_TOOLKIT"><HearingsRoute /></CardErrorBoundary>} />
           </Route>
           <Route path="case/:caseId" element={<NavigateToCaseChat />} />
-          <Route path="social-agent" element={<ProtectedRoute><SocialAgentPage /></ProtectedRoute>} />
-          <Route path="ai-personal-assistant" element={<ProtectedRoute><AiPersonalAssistantDashboard /></ProtectedRoute>} />
-          <Route path="ai-base" element={<ProtectedRoute><Suspense fallback={<div className="flex h-full items-center justify-center">Loading AI Base...</div>}><AiBase /></Suspense></ProtectedRoute>} />
+          <Route path="social-agent" element={<ProtectedRoute><CardErrorBoundary cardName="AI Social Media Dashboard" toolModule="AI_SOCIAL_MEDIA"><SocialAgentPage /></CardErrorBoundary></ProtectedRoute>} />
+          <Route path="ai-personal-assistant" element={<ProtectedRoute><CardErrorBoundary cardName="AI Personal Assistant Dashboard" toolModule="AI_PERSONAL_ASSISTANT"><AiPersonalAssistantDashboard /></CardErrorBoundary></ProtectedRoute>} />
+          <Route path="ai-base" element={<ProtectedRoute><CardErrorBoundary cardName="AI Base Module" toolModule="AI_BASE"><Suspense fallback={<div className="flex h-full items-center justify-center">Loading AI Base...</div>}><AiBase /></Suspense></CardErrorBoundary></ProtectedRoute>} />
 
           <Route path="admin" element={
             <Suspense fallback={<div className="flex items-center justify-center h-full">Loading...</div>}>

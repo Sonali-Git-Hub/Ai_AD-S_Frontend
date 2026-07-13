@@ -534,12 +534,16 @@ const ErrorMonitoring = () => {
                                                     <ComponentBadge component={inc.component} />
                                                 </td>
                                                 <td className="py-3 px-3">
-                                                    <div className="text-[10px] text-maintext truncate font-semibold max-w-[100px]">{inc.toolModule}</div>
-                                                    {inc.apiRoute && (
-                                                        <div className="text-[9px] text-subtext/60 truncate max-w-[100px] font-mono mt-0.5" title={`${inc.apiMethod} ${inc.apiRoute}`}>
-                                                            {inc.apiMethod} {inc.apiRoute}
-                                                        </div>
-                                                    )}
+                                                     <div className="text-[10px] text-maintext truncate font-semibold max-w-[100px]">{inc.toolModule}</div>
+                                                     {inc.cardName ? (
+                                                         <div className="text-[9px] text-violet-400 font-bold truncate max-w-[100px] mt-0.5 flex items-center gap-0.5" title={`Crashed Card: ${inc.cardName}`}>
+                                                             <span className="text-[10px]">🎴</span> {inc.cardName}
+                                                         </div>
+                                                     ) : inc.apiRoute && (
+                                                         <div className="text-[9px] text-subtext/60 truncate max-w-[100px] font-mono mt-0.5" title={`${inc.apiMethod} ${inc.apiRoute}`}>
+                                                             {inc.apiMethod} {inc.apiRoute}
+                                                         </div>
+                                                     )}
                                                 </td>
                                                 <td className="py-3 px-3 text-center font-mono font-bold text-maintext">{inc.totalOccurrences}</td>
                                                 <td className="py-3 px-3 text-center font-mono text-subtext">{inc.affectedSessions?.length || 0}</td>
@@ -847,23 +851,25 @@ const ErrorMonitoring = () => {
                                                 <div className="space-y-2">
                                                     <h4 className="text-[10px] font-black text-subtext uppercase tracking-widest">Telemetry & Metadata</h4>
                                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                                        {[
-                                                            { label: 'OS', value: selectedIncidentDetail.latestOccurrence?.os || 'Unknown', icon: Laptop },
-                                                            { label: 'Browser', value: selectedIncidentDetail.latestOccurrence?.browser || 'Unknown', icon: Cpu },
-                                                            { label: 'Device', value: selectedIncidentDetail.latestOccurrence?.device || 'Desktop', icon: Laptop },
-                                                            { label: 'Environment', value: selectedIncidentDetail.environment || 'Production', icon: Info },
-                                                            { label: 'API Route', value: selectedIncidentDetail.apiRoute || 'N/A', icon: Code },
-                                                            { label: 'API Method', value: selectedIncidentDetail.apiMethod || 'N/A', icon: Code },
-                                                            { label: 'Error Code', value: selectedIncidentDetail.errorCode || 'N/A', icon: AlertCircle },
-                                                            { label: 'Total Events', value: selectedIncidentDetail.totalOccurrences, icon: Activity }
-                                                        ].map((item, index) => (
-                                                            <div key={index} className="bg-white/5 rounded-xl p-3 border border-white/5 space-y-1">
-                                                                <span className="text-[9px] text-subtext/60 uppercase font-extrabold tracking-wider leading-none flex items-center gap-1.5">
-                                                                    <item.icon className="w-3 h-3 text-primary/60" /> {item.label}
-                                                                </span>
-                                                                <p className="text-xs text-maintext font-bold leading-tight break-all">{item.value}</p>
-                                                            </div>
-                                                        ))}
+                                                         {[
+                                                             { label: 'OS', value: selectedIncidentDetail.latestOccurrence?.os || 'Unknown', icon: Laptop },
+                                                             { label: 'Browser', value: selectedIncidentDetail.latestOccurrence?.browser || 'Unknown', icon: Cpu },
+                                                             { label: 'Device', value: selectedIncidentDetail.latestOccurrence?.device || 'Desktop', icon: Laptop },
+                                                             { label: 'Environment', value: selectedIncidentDetail.environment || 'Production', icon: Info },
+                                                             { label: 'Crashed Card', value: selectedIncidentDetail.cardName || selectedIncidentDetail.latestOccurrence?.cardName || 'N/A', icon: BookOpen },
+                                                             { label: 'Action Context', value: selectedIncidentDetail.actionName || selectedIncidentDetail.latestOccurrence?.actionName || 'N/A', icon: Play },
+                                                             { label: 'API Route', value: selectedIncidentDetail.apiRoute || 'N/A', icon: Code },
+                                                             { label: 'API Method', value: selectedIncidentDetail.apiMethod || 'N/A', icon: Code },
+                                                             { label: 'Error Code', value: selectedIncidentDetail.errorCode || 'N/A', icon: AlertCircle },
+                                                             { label: 'Total Events', value: selectedIncidentDetail.totalOccurrences, icon: Activity }
+                                                         ].map((item, index) => (
+                                                             <div key={index} className="bg-white/5 rounded-xl p-3 border border-white/5 space-y-1">
+                                                                 <span className="text-[9px] text-subtext/60 uppercase font-extrabold tracking-wider leading-none flex items-center gap-1.5">
+                                                                     <item.icon className="w-3 h-3 text-primary/60" /> {item.label}
+                                                                 </span>
+                                                                 <p className="text-xs text-maintext font-bold leading-tight break-all">{item.value}</p>
+                                                             </div>
+                                                         ))}
                                                     </div>
                                                 </div>
 
