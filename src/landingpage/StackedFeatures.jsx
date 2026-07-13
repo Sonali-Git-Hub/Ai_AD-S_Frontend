@@ -754,8 +754,8 @@ const StackedFeatures = () => {
             const Icon = feat.icon;
             const { Demo } = feat;
             const isActive = activeSlide === index;
-            const translatedTitle = t(featTranslateKeys[feat.title]?.title || feat.title);
-            const translatedDesc = t(featTranslateKeys[feat.title]?.desc || feat.description);
+            const translatedTitle = t(featTranslateKeys[feat.title]?.title) || featTranslateKeys[feat.title]?.title || feat.title;
+            const translatedDesc = t(featTranslateKeys[feat.title]?.desc) || featTranslateKeys[feat.title]?.desc || feat.description;
 
             return (
               <div
