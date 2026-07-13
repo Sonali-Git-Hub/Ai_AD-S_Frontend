@@ -80,11 +80,13 @@ export const reportErrorToBackend = async (errorMessage, stackTrace, details = {
             component: 'Frontend',
             apiRoute: details.apiRoute || path,
             apiMethod: details.apiMethod || 'CLIENT',
-            toolModule,
+            toolModule: details.toolModule || toolModule,
+            cardName: details.cardName || undefined,
+            actionName: details.actionName || undefined,
             errorCode: details.errorCode || 'CLIENT_ERROR',
             statusCode: details.statusCode || 0,
             userId: userId ? String(userId) : undefined,
-            sessionId,
+            sessionId: details.sessionId || sessionId,
             environment: import.meta.env.MODE || 'Production',
             browser,
             os,
@@ -92,7 +94,11 @@ export const reportErrorToBackend = async (errorMessage, stackTrace, details = {
             payload: details.requestPayload || {},
             responsePayload: details.responsePayload || {},
             breadcrumbs,
-            logs: [`Page URL: ${window.location.href}`, `History Stack Length: ${window.history.length}`]
+            logs: [
+                `Page URL: ${window.location.href}`, 
+                `History Stack Length: ${window.history.length}`,
+                ...(details.logs || [])
+            ]
         };
 
         const config = {};
