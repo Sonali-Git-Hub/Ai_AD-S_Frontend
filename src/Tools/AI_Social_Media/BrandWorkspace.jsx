@@ -387,20 +387,19 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
     setDiscoveredAssets(null);
     setAnalysisError(null);
 
-    // Resolve a workspaceId from prop OR from localStorage cache
+    // Resolve a workspaceId entirely from prop (parent dashboard is the single source of truth)
     const effectiveId = (workspaceId && String(workspaceId) !== 'undefined')
       ? String(workspaceId)
-      : localStorage.getItem('brandWorkspaceId');
+      : null;
 
     if (!effectiveId) {
       setIsLoadingDNA(false);
       setSavedBrand(null);
+      setDnaData(null);
       setActiveTab('setup');
       return;
     }
 
-    // Persist so future renders can resolve even before parent workspace loads
-    localStorage.setItem('brandWorkspaceId', effectiveId);
 
     setIsLoadingDNA(true);
     (async () => {
@@ -490,8 +489,7 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
     const raw =
       (workspaceId && String(workspaceId) !== 'undefined' ? workspaceId : null) ||
       (dnaData?.workspaceId ? dnaData.workspaceId : null) ||
-      (savedBrand?.workspaceId ? savedBrand.workspaceId : null) ||
-      localStorage.getItem('brandWorkspaceId'); // ← persist-backed fallback
+      (savedBrand?.workspaceId ? savedBrand.workspaceId : null);
     if (!raw) return null;
     return String(raw); // always coerce ObjectId → string
   };
@@ -936,18 +934,17 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
           </div>
           <h2 className="text-2xl font-black text-slate-800 dark:text-white">Brand Intelligence Onboarding</h2>
           <p className="text-[12px] font-medium text-slate-500 dark:text-slate-400">
-            Select a target format below to automatically configure the AI memory engine.
+            Analyze your brand domain to automatically configure the AI memory engine.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          
-          {/* Option 1 - Website URL Card */}
-          <div className="bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-[28px] p-6 space-y-4 hover:border-primary/30 transition-all flex flex-col justify-between">
+        <div className="max-w-xl mx-auto">
+          {/* Website URL Card */}
+          <div className="bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-[28px] p-6 space-y-4 hover:border-primary/30 transition-all flex flex-col justify-between shadow-sm">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Globe className="w-4.5 h-4.5 text-primary" />
-                <h3 className="text-[10px] font-black text-slate-700 dark:text-white uppercase tracking-[3px]">Option 1 — URL</h3>
+                <h3 className="text-[10px] font-black text-slate-700 dark:text-white uppercase tracking-[3px]">Brand Website URL</h3>
               </div>
               <p className="text-[10px] font-medium text-slate-400">Scan domain pages to extract tone, products, and brand voice.</p>
             </div>
@@ -967,50 +964,6 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
               </button>
             </div>
           </div>
-
-          {/* Option 2 - Documents Upload Card */}
-          <div className="bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-[28px] p-6 space-y-4 hover:border-primary/30 transition-all flex flex-col justify-between">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4.5 h-4.5 text-primary" />
-                <h3 className="text-[10px] font-black text-slate-700 dark:text-white uppercase tracking-[3px]">Option 2 — Upload</h3>
-              </div>
-              <p className="text-[10px] font-medium text-slate-400">Parse brand files: Guidelines, PDFs, or PPTs.</p>
-            </div>
-
-            <div className="space-y-3 pt-2">
-              <div onDragOver={e => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)}
-                onDrop={e => { e.preventDefault(); setDragOver(false); setUploadedFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]); }}
-                onClick={() => docInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-4 text-center cursor-pointer transition-all ${dragOver ? "border-primary bg-primary/5" : "border-slate-200 dark:border-white/10 hover:border-primary/40"}`}>
-                <Upload className="w-6 h-6 text-slate-300 dark:text-slate-600 mx-auto mb-1" />
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Upload Guidelines files</p>
-                <input ref={docInputRef} type="file" accept=".pdf,.docx,.pptx,.ppt,.txt" multiple hidden
-                  onChange={e => { setUploadedFiles(prev => [...prev, ...Array.from(e.target.files)]); e.target.value = ""; }} />
-              </div>
-              {uploadedFiles.length > 0 && (
-                <div className="space-y-2 max-h-[120px] overflow-y-auto">
-                  {uploadedFiles.map((f, i) => (
-                    <div key={i} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-white/[0.01] border border-slate-200 dark:border-white/10 rounded-xl">
-                      <div className="flex items-center gap-2 truncate">
-                        <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
-                        <span className="text-[9px] font-bold text-slate-700 dark:text-slate-300 truncate">{f.name}</span>
-                      </div>
-                      <button onClick={(e) => { e.stopPropagation(); setUploadedFiles(prev => prev.filter((_, idx) => idx !== i)); }} className="text-slate-400 hover:text-red-500 transition-colors shrink-0">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                  <button onClick={handleAnalyzeDocs}
-                    className="w-full py-3 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-all">
-                    <Sparkles className="w-4 h-4" />
-                    Extract Files
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
         </div>
       </div>
     );
@@ -1725,7 +1678,7 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
                   let finalWorkspaceId = getActiveWorkspaceId();
                   try {
                     if (dnaData && finalWorkspaceId) {
-                      const res = await apiService.saveBrandDNA(finalWorkspaceId, dnaData, null, '', url ? 'url' : 'document');
+                      const res = await apiService.saveBrandDNA(finalWorkspaceId, dnaData, null, '', url ? 'url' : 'document', true);
                       if (res.success) setSavedBrand(res.brand);
                     }
                   } catch { }
