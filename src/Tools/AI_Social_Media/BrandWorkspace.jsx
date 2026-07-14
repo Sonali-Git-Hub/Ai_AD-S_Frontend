@@ -408,13 +408,21 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
         const res = await apiService.getBrandDNA(effectiveId);
         if (res.success && res.brand) {
           setSavedBrand(res.brand);
-          // dnaData stays null — DNA form only appears after fresh analysis
+          // If setup is already complete, populate dnaData so it displays immediately
+          const hasDNA = res.brand.companyName || (res.brand.companyInfo && res.brand.companyInfo.brandName) || res.brand.website;
+          if (hasDNA) {
+            setDnaData(res.brand);
+          } else {
+            setDnaData(null);
+          }
         } else {
           setSavedBrand(null);
+          setDnaData(null);
         }
       } catch (e) {
         console.error('Failed to load initial brand:', e);
         setSavedBrand(null);
+        setDnaData(null);
       } finally {
         setIsLoadingDNA(false);
         setActiveTab('setup');
@@ -566,6 +574,8 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
           );
           if (saveRes.success) {
             setSavedBrand(saveRes.brand);
+            // Notify parent to refresh Brand History immediately after analysis
+            if (onBrandSaved) onBrandSaved(activeId);
           }
         } catch (saveErr) {
           console.error("Auto-save failed:", saveErr);
@@ -626,6 +636,8 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
           );
           if (saveRes.success) {
             setSavedBrand(saveRes.brand);
+            // Notify parent to refresh Brand History immediately after analysis
+            if (onBrandSaved) onBrandSaved(activeId);
           }
         } catch (saveErr) {
           console.error("Auto-save failed:", saveErr);
@@ -1710,15 +1722,15 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
                <button onClick={async () => {
                   setShowSuccessCard(false);
                   // Persist brand to DB without side-effect tab switching
+                  let finalWorkspaceId = getActiveWorkspaceId();
                   try {
-                    let activeWorkspaceId = getActiveWorkspaceId();
-                    if (dnaData && activeWorkspaceId) {
-                      const res = await apiService.saveBrandDNA(activeWorkspaceId, dnaData, null, '', url ? 'url' : 'document');
+                    if (dnaData && finalWorkspaceId) {
+                      const res = await apiService.saveBrandDNA(finalWorkspaceId, dnaData, null, '', url ? 'url' : 'document');
                       if (res.success) setSavedBrand(res.brand);
                     }
                   } catch { }
-                  // Notify parent to refresh Brand History list
-                  if (onBrandSaved) await onBrandSaved();
+                  // Notify parent to refresh Brand History list with the workspace ID
+                  if (onBrandSaved) await onBrandSaved(finalWorkspaceId);
                   // Navigate to Content Studio
                   if (setParentActiveTab) setParentActiveTab('calendar');
                   if (setShowGeneratorOptions) setShowGeneratorOptions(true);
@@ -1747,8 +1759,13 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
       <div className="px-1">
         {activeTab === "setup" && (
           <div className="space-y-8">
-            {renderSetupTab()}
-            {dnaData && renderDNATab()}
+            {/* Show onboarding form only if setup is not done yet, or we are crawling/encountered errors */}
+            {(!savedBrand?.companyName && !savedBrand?.website || isAnalyzing || analysisError || isCancelled) ? (
+              renderSetupTab()
+            ) : (
+              // Otherwise show the completed DNA tab
+              dnaData && renderDNATab()
+            )}
           </div>
         )}
         {activeTab === "assets" && renderAssetsTab()}

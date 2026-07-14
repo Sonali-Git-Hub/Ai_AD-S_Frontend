@@ -7003,10 +7003,24 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
         workspaceId={workspace?._id}
         setActiveTab={setActiveTab}
         setShowGeneratorOptions={setShowGeneratorOptions}
-        onBrandSaved={async () => {
+        onBrandSaved={async (savedWorkspaceId) => {
           try {
+            // Always re-fetch ALL workspaces so Brand History stays complete
             const freshList = await apiService.getSocialAgentWorkspaces();
-            if (freshList.success) setAllWorkspaces(freshList.workspaces);
+            if (freshList.success) {
+              setAllWorkspaces(freshList.workspaces);
+              // If BrandWorkspace created a new workspace, make it the active one
+              if (savedWorkspaceId) {
+                const savedWs = freshList.workspaces.find(
+                  w => String(w._id) === String(savedWorkspaceId)
+                );
+                if (savedWs) {
+                  setWorkspace(savedWs);
+                  setCurrentEditingBrandId(savedWs._id);
+                  localStorage.setItem('brandWorkspaceId', String(savedWs._id));
+                }
+              }
+            }
           } catch (e) {
             console.warn('[BrandHistory] Failed to refresh workspace list:', e);
           }
@@ -7115,9 +7129,15 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                           const activeBrands = allWorkspaces
                             .filter(ws => !ws.isPersonalProfile)
                             .sort((a, b) => {
-                              if (a._id === workspace?._id) return -1;
-                              if (b._id === workspace?._id) return 1;
-                              return 0;
+                              // Active brand always first
+                              const aIsActive = String(a._id) === String(workspace?._id);
+                              const bIsActive = String(b._id) === String(workspace?._id);
+                              if (aIsActive) return -1;
+                              if (bIsActive) return 1;
+                              // Then sort by lastAccessedAt descending (most recent first)
+                              const aTime = a.lastAccessedAt ? new Date(a.lastAccessedAt).getTime() : new Date(a.createdAt || 0).getTime();
+                              const bTime = b.lastAccessedAt ? new Date(b.lastAccessedAt).getTime() : new Date(b.createdAt || 0).getTime();
+                              return bTime - aTime;
                             });
                           return (
                             <div className={`mb-6 ${isSidebarCollapsed ? 'px-1' : 'px-0'}`}>
@@ -7135,7 +7155,30 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                 </button>
                               )}
                               {((activeBrandsOpen && !isSidebarCollapsed) || (isSidebarCollapsed && activeBrands.length > 0)) && (
-                                <div className={`rounded-2xl bg-white/60 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 ${isSidebarCollapsed ? 'p-1.5' : 'p-2'} space-y-1 max-h-44 overflow-y-auto custom-scrollbar`}>
+                                <div className={`rounded-2xl bg-white/60 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 ${isSidebarCollapsed ? 'p-1.5' : 'p-2'} space-y-1 max-h-72 overflow-y-auto custom-scrollbar`}>
+                                  
+                                  {/* + CREATE NEW BRAND BUTTON */}
+                                  <div className="w-full">
+                                    <button
+                                      onClick={() => {
+                                        setWorkspace(null);
+                                        setCurrentEditingBrandId(null);
+                                        localStorage.removeItem('brandWorkspaceId');
+                                        setActiveTab('brand');
+                                        toast.success("Ready to setup a new Brand!");
+                                      }}
+                                      title="Create New Brand"
+                                      className={`w-full flex items-center justify-center transition-all border border-dashed border-slate-200 dark:border-white/10 hover:border-primary/50 text-slate-500 hover:text-primary hover:bg-primary/5 ${
+                                        isSidebarCollapsed
+                                          ? 'p-2 rounded-lg'
+                                          : 'gap-2 px-3 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider mb-2'
+                                      }`}
+                                    >
+                                      <Plus className={isSidebarCollapsed ? 'w-4 h-4 text-primary' : 'w-3.5 h-3.5'} />
+                                      {!isSidebarCollapsed && <span>Create New Brand</span>}
+                                    </button>
+                                  </div>
+
                                   {activeBrands.length === 0 ? (
                                     <div className="text-[9px] text-slate-400 dark:text-slate-500 text-center py-4 px-2 italic font-black uppercase tracking-wider">
                                       No Brands Setup
