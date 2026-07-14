@@ -2938,12 +2938,13 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
             }
 
             if (showContentLibrary) {
-              const allLibraryEntries = calendarEntries.filter(e => {
+              const combinedEntries = [...(calendarEntries || []), ...(generatedPosts || [])].sort((a, b) => new Date(b.createdAt || b.dateString) - new Date(a.createdAt || a.dateString));
+              const allLibraryEntries = combinedEntries.filter(e => {
                 if (!librarySearchQuery) return true;
                 const q = librarySearchQuery.toLowerCase().trim();
                 return (
                   (e.title || '').toLowerCase().includes(q) ||
-                  (e.heading_hook || '').toLowerCase().includes(q) ||
+                  (e.heading_hook || e.hook || '').toLowerCase().includes(q) ||
                   (e.captionShort || e.short_caption || '').toLowerCase().includes(q) ||
                   (e.captionLong || e.long_caption || '').toLowerCase().includes(q) ||
                   (e.platform || '').toLowerCase().includes(q) ||
@@ -2987,7 +2988,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   <div className="grid grid-cols-3 gap-4 max-w-2xl">
                     <div className="bg-white dark:bg-[#1E2438] rounded-2xl border border-slate-100 dark:border-white/5 p-4 text-center">
                       <p className="text-2xl font-black text-primary">{allLibraryEntries.length}</p>
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mt-1">Posts</p>
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mt-1">Captions</p>
                     </div>
                     <div className="bg-white dark:bg-[#1E2438] rounded-2xl border border-slate-100 dark:border-white/5 p-4 text-center">
                       <p className="text-2xl font-black text-emerald-500">{libraryAssets.length}</p>
@@ -3057,10 +3058,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                             <div className="flex items-start justify-between mb-3">
                               <div className="flex-1">
                                 <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight line-clamp-1">
-                                  {entry.heading_hook || entry.title || 'Untitled'}
+                                  {entry.heading_hook || entry.title || entry.hook || 'Untitled'}
                                 </h4>
                                 <div className="flex items-center gap-2 mt-1.5">
-                                  <span className="text-[9px] font-black text-slate-400 uppercase">{entry.format || entry.postType || 'Post'}</span>
+                                  <span className="text-[9px] font-black text-slate-400 uppercase">{entry.format || entry.postType || entry.type || 'Post'}</span>
                                   <span className="text-slate-300 dark:text-white/10">·</span>
                                   <span className="text-[9px] font-black text-slate-400 uppercase">{entry.platform || 'Multi'}</span>
                                   {entry.dateString && (
