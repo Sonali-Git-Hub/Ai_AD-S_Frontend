@@ -1070,34 +1070,30 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       }
 
       // 2. Load latest or create
-      // Try to load the target workspace (or the latest one)
       let wsData = await apiService.getSocialAgentWorkspace(targetId);
-      // If we couldn't load a workspace and there are no workspaces at all, create a default one
-      if ((!wsData || !wsData.success) && (wsList.workspaces || []).length === 0) {
-        wsData = await apiService.createSocialAgentWorkspace({
-          workspaceName: `${currentUser?.name || 'My'} Brand`,
-          planType: 'Low'
-        });
-        if (wsData.success) {
-          // Replace the empty list with the newly created workspace
-          setAllWorkspaces([wsData.workspace]);
-        }
-      }
 
-      if (wsData.success) {
+      const workspacesArray = wsList.workspaces || [];
+
+      if (wsData && wsData.success) {
         setWorkspace(wsData.workspace);
         const wsId = wsData.workspace._id;
-
-        const anyOnboarded = (wsList.workspaces || []).some(w => w.onboarding?.completed);
-
-        // Onboarding wizard removed
-
+        localStorage.setItem('brandWorkspaceId', wsId.toString()); // persist for BrandWorkspace
         setIsCheckingOnboarding(false);
-
         await fetchWorkspaceData(wsId.toString(), isBackground);
-        return wsData.workspace; // Return for reuse
+        return wsData.workspace;
+      } else if (workspacesArray.length > 0) {
+        // Fallback to the first available workspace if target fails to load
+        const fallbackWs = workspacesArray[0];
+        setWorkspace(fallbackWs);
+        localStorage.setItem('brandWorkspaceId', fallbackWs._id.toString()); // persist for BrandWorkspace
+        setIsCheckingOnboarding(false);
+        await fetchWorkspaceData(fallbackWs._id.toString(), isBackground);
+        return fallbackWs;
+      } else {
+        setWorkspace(null);
+        setIsCheckingOnboarding(false);
+        return null;
       }
-      return null;
     } catch (error) {
       console.error("Dashboard Init Error:", error);
       setIsCheckingOnboarding(false);
@@ -1239,7 +1235,9 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     setCurrentEditingBrandId(ws._id);
     setIsWorkspaceMenuOpen(false);
     fetchWorkspaceData(ws._id);
-    
+    // Navigate to the Brand Workspace tab so the brand info is visible
+    setActiveTab('brand');
+
     try {
       await apiService.getSocialAgentWorkspace(ws._id);
       const freshList = await apiService.getSocialAgentWorkspaces();
@@ -1253,34 +1251,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     toast.success(`Viewing Profile: ${ws.workspaceName}`);
   };
 
-  const handleHardDeleteWorkspace = async (wsId) => {
-    if (!window.confirm("⚠️ WARNING: This will permanently delete this Brand Profile and ALL associated content, calendars, and generated posts. This cannot be undone. Proceed?")) return;
 
-    const toastId = toast.loading("Permanently removing brand workspace...");
-    try {
-      const res = await apiService.deleteSocialAgentWorkspace(wsId);
-      if (res.success) {
-        // Refresh all workspaces to update calendar counts
-        await initWorkspace();
-
-        if (workspace?._id === wsId) {
-          const nextWs = allWorkspaces.find(w => w._id !== wsId);
-          if (nextWs) {
-            switchWorkspace(nextWs);
-          } else {
-            setWorkspace(null);
-            // Onboarding removed
-          }
-        }
-
-        toast.success("Brand Profile fully deleted", { id: toastId });
-      } else {
-        toast.error("Deletion failed", { id: toastId });
-      }
-    } catch (error) {
-      toast.error("Error during deletion", { id: toastId });
-    }
-  };
 
 
 
@@ -7046,7 +7017,19 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
     switch (activeTab) {
       case 'overview': return renderOverview();
-      case 'brand': return <BrandWorkspace workspaceId={workspace?._id} setActiveTab={setActiveTab} setShowGeneratorOptions={setShowGeneratorOptions} />;
+      case 'brand': return <BrandWorkspace
+        workspaceId={workspace?._id}
+        setActiveTab={setActiveTab}
+        setShowGeneratorOptions={setShowGeneratorOptions}
+        onBrandSaved={async () => {
+          try {
+            const freshList = await apiService.getSocialAgentWorkspaces();
+            if (freshList.success) setAllWorkspaces(freshList.workspaces);
+          } catch (e) {
+            console.warn('[BrandHistory] Failed to refresh workspace list:', e);
+          }
+        }}
+      />;
       case 'calendar': return renderContentCalendar();
       case 'generation': return renderContentOrchestration();
       case 'assets': return renderAssetLibrary();
@@ -7154,7 +7137,6 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                               if (b._id === workspace?._id) return 1;
                               return 0;
                             });
-                          if (activeBrands.length === 0) return null;
                           return (
                             <div className={`mb-6 ${isSidebarCollapsed ? 'px-1' : 'px-0'}`}>
                               {!isSidebarCollapsed && (
@@ -7170,58 +7152,64 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                   <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${activeBrandsOpen ? 'rotate-180' : ''}`} />
                                 </button>
                               )}
-                              {(activeBrandsOpen || isSidebarCollapsed) && (
+                              {((activeBrandsOpen && !isSidebarCollapsed) || (isSidebarCollapsed && activeBrands.length > 0)) && (
                                 <div className={`rounded-2xl bg-white/60 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 ${isSidebarCollapsed ? 'p-1.5' : 'p-2'} space-y-1 max-h-44 overflow-y-auto custom-scrollbar`}>
-                                  {activeBrands.map(ws => {
-                                    const wsLogo = ws.brandProfile?.logoUrl;
-                                    const isCurrent = workspace?._id === ws._id;
-                                    const brandName = ws.brandProfile?.companyName || ws.workspaceName || 'Brand';
-                                    return (
-                                      <div key={ws._id} className="relative group/brand-row flex items-center gap-1.5 w-full">
-                                        <button
-                                          onClick={() => switchWorkspace(ws)}
-                                          title={isSidebarCollapsed ? brandName : ''}
-                                          className={`flex-1 flex items-center ${isSidebarCollapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-2'} rounded-xl transition-all group/brand ${
-                                            isCurrent
-                                              ? 'bg-primary/10 border border-primary/20 shadow-sm'
-                                              : 'hover:bg-slate-50 dark:hover:bg-white/5 border border-transparent'
-                                          }`}
-                                        >
-                                          <div className={`w-7 h-7 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center shrink-0 overflow-hidden ring-2 ${isCurrent ? 'ring-primary/30' : 'ring-transparent'} transition-all`}>
-                                            {wsLogo ? (
-                                              <img src={toProxyUrl(wsLogo)} alt="" className="w-full h-full object-contain p-0.5" onError={e => { e.currentTarget.style.display = 'none'; }} />
-                                            ) : (
-                                              <div className={`w-full h-full flex items-center justify-center text-[9px] font-black uppercase ${isCurrent ? 'bg-gradient-to-br from-primary to-indigo-600 text-white' : 'text-slate-500 dark:text-slate-400'}`}>
-                                                {brandName.charAt(0)}
+                                  {activeBrands.length === 0 ? (
+                                    <div className="text-[9px] text-slate-400 dark:text-slate-500 text-center py-4 px-2 italic font-black uppercase tracking-wider">
+                                      No Brands Setup
+                                    </div>
+                                  ) : (
+                                    activeBrands.map(ws => {
+                                      const wsLogo = ws.brandProfile?.logoUrl;
+                                      const isCurrent = workspace?._id === ws._id;
+                                      const brandName = ws.brandProfile?.companyName || ws.workspaceName || 'Brand';
+                                      return (
+                                        <div key={ws._id} className="relative group/brand-row flex items-center gap-1.5 w-full">
+                                          <button
+                                            onClick={() => switchWorkspace(ws)}
+                                            title={isSidebarCollapsed ? brandName : ''}
+                                            className={`flex-1 flex items-center ${isSidebarCollapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-2'} rounded-xl transition-all group/brand ${
+                                              isCurrent
+                                                ? 'bg-primary/10 border border-primary/20 shadow-sm'
+                                                : 'hover:bg-slate-50 dark:hover:bg-white/5 border border-transparent'
+                                            }`}
+                                          >
+                                            <div className={`w-7 h-7 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center shrink-0 overflow-hidden ring-2 ${isCurrent ? 'ring-primary/30' : 'ring-transparent'} transition-all`}>
+                                              {wsLogo ? (
+                                                <img src={toProxyUrl(wsLogo)} alt="" className="w-full h-full object-contain p-0.5" onError={e => { e.currentTarget.style.display = 'none'; }} />
+                                              ) : (
+                                                <div className={`w-full h-full flex items-center justify-center text-[9px] font-black uppercase ${isCurrent ? 'bg-gradient-to-br from-primary to-indigo-600 text-white' : 'text-slate-500 dark:text-slate-400'}`}>
+                                                  {brandName.charAt(0)}
+                                                </div>
+                                              )}
+                                            </div>
+                                            {!isSidebarCollapsed && (
+                                              <div className="flex-1 min-w-0 text-left">
+                                                <p className={`text-[10px] font-black uppercase tracking-wide truncate ${isCurrent ? 'text-primary' : 'text-slate-600 dark:text-slate-300 group-hover/brand:text-slate-800 dark:group-hover/brand:text-white'} transition-colors`}>
+                                                  {brandName}
+                                                </p>
                                               </div>
                                             )}
-                                          </div>
-                                          {!isSidebarCollapsed && (
-                                            <div className="flex-1 min-w-0 text-left">
-                                              <p className={`text-[10px] font-black uppercase tracking-wide truncate ${isCurrent ? 'text-primary' : 'text-slate-600 dark:text-slate-300 group-hover/brand:text-slate-800 dark:group-hover/brand:text-white'} transition-colors`}>
-                                                {brandName}
-                                              </p>
-                                            </div>
-                                          )}
-                                          {!isSidebarCollapsed && (
-                                            <div className={`w-2 h-2 rounded-full shrink-0 ${isCurrent ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]' : 'bg-slate-300 dark:bg-white/20'}`} />
-                                          )}
-                                        </button>
-                                        {!isSidebarCollapsed && (
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleHardDeleteWorkspace(ws._id);
-                                            }}
-                                            className="w-7 h-7 rounded-lg hover:bg-red-500/10 text-slate-400 hover:text-red-500 flex items-center justify-center shrink-0 transition-all opacity-0 group-hover/brand-row:opacity-100"
-                                            title="Delete Brand"
-                                          >
-                                            <Trash2 className="w-3.5 h-3.5" />
+                                            {!isSidebarCollapsed && (
+                                              <div className={`w-2 h-2 rounded-full shrink-0 ${isCurrent ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]' : 'bg-slate-300 dark:bg-white/20'}`} />
+                                            )}
                                           </button>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
+                                          {!isSidebarCollapsed && (
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteBrand(ws._id, brandName);
+                                              }}
+                                              className="w-7 h-7 rounded-lg hover:bg-red-500/10 text-slate-400 hover:text-red-500 flex items-center justify-center shrink-0 transition-all opacity-0 group-hover/brand-row:opacity-100"
+                                              title="Delete Brand"
+                                            >
+                                              <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                          )}
+                                        </div>
+                                      );
+                                    })
+                                  )}
                                 </div>
                               )}
                             </div>

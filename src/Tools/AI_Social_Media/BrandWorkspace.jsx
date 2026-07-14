@@ -14,18 +14,6 @@ import { API } from "../../types.js";
 const DNA_SECTIONS = [
   { key: "companyInfo",           label: "Company Information",         icon: Building2,  sectionLetter: "A" },
   { key: "brandIdentity",         label: "Brand Identity",              icon: Sparkles,   sectionLetter: "B" },
-  { key: "brandPersonality",      label: "Brand Personality",           icon: Cpu,        sectionLetter: "C" },
-  { key: "brandVoice",            label: "Brand Voice",                 icon: Megaphone,  sectionLetter: "D" },
-  { key: "audienceProfile",       label: "Target Audience",             icon: Users,      sectionLetter: "E" },
-  { key: "productsServices",      label: "Products and Services",       icon: ShoppingBag,sectionLetter: "F" },
-  { key: "seoKeywords",           label: "SEO and Marketing Keywords",  icon: Hash,       sectionLetter: "G" },
-  { key: "contentStrategy",       label: "Content Strategy",            icon: Calendar,   sectionLetter: "H" },
-  { key: "ctaStrategy",           label: "CTA Strategy",                icon: Target,     sectionLetter: "I" },
-  { key: "socialRecommendation",  label: "Social Media Recommendation", icon: BarChart3,  sectionLetter: "J" },
-  { key: "competitorIntelligence",label: "Competitor Intelligence",     icon: TrendingUp, sectionLetter: "K" },
-  { key: "visualIdentity",        label: "Visual Identity",             icon: Palette,    sectionLetter: "L" },
-  { key: "swotAnalysis",          label: "SWOT Analysis",               icon: Zap,        sectionLetter: "M" },
-  { key: "contentPreferences",    label: "Content Preferences",         icon: FileCheck,  sectionLetter: "N" },
 ];
 
 const PERSONALITY_TRAITS = ["Professional","Friendly","Premium","Luxury","Modern","Corporate","Innovative","Technical","Emotional","Bold","Minimal"];
@@ -185,7 +173,7 @@ const DNAField = ({ label, value, onChange, multiline }) => {
       )}
     </div>
   );
-};
+                      };
 
 const renderSectionContent = (sectionKey, sectionData, onFieldChange) => {
   const field = (key, label, multiline = false) => (
@@ -214,10 +202,6 @@ const renderSectionContent = (sectionKey, sectionData, onFieldChange) => {
       return (
         <div className="grid grid-cols-1 gap-4">
           {field("mission","Mission",true)} {field("vision","Vision",true)}
-          {chips("coreValues","Core Values")}
-          {field("brandStory","Brand Story",true)} {field("usp","USP",true)}
-          {field("competitiveAdvantage","Competitive Advantage",true)}
-          {field("brandPositioning","Brand Positioning",true)}
         </div>
       );
     case "brandPersonality":
@@ -335,7 +319,7 @@ const renderSectionContent = (sectionKey, sectionData, onFieldChange) => {
   }
 };
 
-const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShowGeneratorOptions }) => {
+const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShowGeneratorOptions, onBrandSaved }) => {
   const [activeTab, setActiveTab] = useState("setup");
   const [url, setUrl] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -361,7 +345,7 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
   const [confidenceDiff, setConfidenceDiff] = useState({});
   const [isUploadingAsset, setIsUploadingAsset] = useState(false);
   const [assetCategory, setAssetCategory] = useState("logo");
-  const [isLoadingDNA, setIsLoadingDNA] = useState(true);
+  const [isLoadingDNA, setIsLoadingDNA] = useState(false);
 
   // Brand Intelligence Agent — Asset Discovery
   const [discoverUrl, setDiscoverUrl] = useState("");
@@ -389,50 +373,63 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
     }
   }, [liveLogs]);
 
-  // Fetch initial DNA — only store as savedBrand (for reference), do NOT pre-fill dnaData fields
+  // Fetch initial brand & determine onboarding state
+  // NOTE: We intentionally do NOT pre-fill dnaData from the saved brand on load.
+  // The DNA editor section should ONLY appear after the user actively analyzes
+  // a URL or uploads documents in the current session.
   useEffect(() => {
-    if (!workspaceId) return;
+    // Reset all session input fields when workspace changes
+    setUrl('');
+    setDiscoverUrl('');
+    setUploadedFiles([]);
+    setDnaData(null);   // Always clear — DNA only shows after fresh analysis
+    setLiveLogs([]);
+    setDiscoveredAssets(null);
+    setAnalysisError(null);
+
+    // Resolve a workspaceId from prop OR from localStorage cache
+    const effectiveId = (workspaceId && String(workspaceId) !== 'undefined')
+      ? String(workspaceId)
+      : localStorage.getItem('brandWorkspaceId');
+
+    if (!effectiveId) {
+      setIsLoadingDNA(false);
+      setSavedBrand(null);
+      setActiveTab('setup');
+      return;
+    }
+
+    // Persist so future renders can resolve even before parent workspace loads
+    localStorage.setItem('brandWorkspaceId', effectiveId);
+
     setIsLoadingDNA(true);
     (async () => {
       try {
-        const res = await apiService.getBrandDNA(workspaceId);
+        const res = await apiService.getBrandDNA(effectiveId);
         if (res.success && res.brand) {
-          // Keep savedBrand so the system knows a profile exists (used for regeneration context etc.)
-          // but do NOT call setDnaData — fields should always start blank on open
           setSavedBrand(res.brand);
+          // dnaData stays null — DNA form only appears after fresh analysis
+        } else {
+          setSavedBrand(null);
         }
       } catch (e) {
-        console.error("Failed to load initial DNA:", e);
+        console.error('Failed to load initial brand:', e);
+        setSavedBrand(null);
       } finally {
         setIsLoadingDNA(false);
+        setActiveTab('setup');
       }
     })();
   }, [workspaceId]);
 
-  // Fetch Assets (via new unified endpoint)
-  useEffect(() => {
-    if (!workspaceId) return;
-    (async () => {
-      try {
-        const res = await apiService.getAllBrandAssets(workspaceId);
-        if (res.success) setBrandAssets(res.assets || []);
-      } catch (e) {
-        // fallback to legacy endpoint
-        try {
-          const legacy = await apiService.getBrandAssets(workspaceId);
-          if (legacy.success) setBrandAssets(legacy.assets || []);
-        } catch { }
-      }
-    })();
-  }, [workspaceId]);
+
+
 
   // Auto-fill discoverUrl ONLY from completed Brand Setup data (savedBrand.website)
   // Does NOT read from the live url input — only triggers when brand is already saved
-  useEffect(() => {
-    if (savedBrand?.website?.trim() && !discoverUrl) {
-      setDiscoverUrl(savedBrand.website.trim());
-    }
-  }, [savedBrand]);
+  // NOTE: We intentionally do NOT auto-fill the URL field from savedBrand.website.
+  // The URL input must always start empty so the user types a fresh URL
+  // to trigger new analysis. Old data is shown only after fresh analysis.
 
   // AI Workflow Loading & Log Simulation Hook
   useEffect(() => {
@@ -479,6 +476,52 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
     };
   }, [isAnalyzing]);
 
+  // ─── Shared workspace ID resolver ─────────────────────────────────────────
+  // Checks all available sources in priority order and always returns a string
+  const getActiveWorkspaceId = () => {
+    const raw =
+      (workspaceId && String(workspaceId) !== 'undefined' ? workspaceId : null) ||
+      (dnaData?.workspaceId ? dnaData.workspaceId : null) ||
+      (savedBrand?.workspaceId ? savedBrand.workspaceId : null) ||
+      localStorage.getItem('brandWorkspaceId'); // ← persist-backed fallback
+    if (!raw) return null;
+    return String(raw); // always coerce ObjectId → string
+  };
+
+  // ─── Resolve OR auto-create workspace, always returns a valid string ID ────
+  const ensureWorkspaceId = async (brandName = 'New Brand Workspace') => {
+    let id = getActiveWorkspaceId();
+    if (id) return id;
+    // No workspace exists yet — create one automatically
+    const wsRes = await apiService.createSocialAgentWorkspace({
+      workspaceName: brandName,
+      planType: 'Low'
+    });
+    if (!wsRes.success) throw new Error('Failed to initialize brand workspace.');
+    id = String(wsRes.workspace._id);
+    localStorage.setItem('brandWorkspaceId', id);
+    return id;
+  };
+
+  const resolvedWsId = getActiveWorkspaceId();
+
+  // Fetch Assets (via new unified endpoint)
+  useEffect(() => {
+    if (!resolvedWsId) return;
+    (async () => {
+      try {
+        const res = await apiService.getAllBrandAssets(resolvedWsId);
+        if (res.success) setBrandAssets(res.assets || []);
+      } catch (e) {
+        // fallback to legacy endpoint
+        try {
+          const legacy = await apiService.getBrandAssets(resolvedWsId);
+          if (legacy.success) setBrandAssets(legacy.assets || []);
+        } catch { }
+      }
+    })();
+  }, [resolvedWsId]);
+
   const handleCancelAnalysis = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
     if (abortControllerRef.current) {
@@ -510,8 +553,12 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
 
         // Save DNA to parent & normalized database immediately
         try {
+          const brandName = res.dna?.companyInfo?.brandName ||
+            url.trim().replace(/^https?:\/\//, '').split('/')[0] ||
+            'New Brand';
+          const activeId = await ensureWorkspaceId(brandName);
           const saveRes = await apiService.saveBrandDNA(
-            workspaceId,
+            activeId,
             res.dna,
             res.logoUrl || null,
             res.rawKnowledgeBase || "",
@@ -531,7 +578,7 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
         setLiveLogs(prev => [...prev, `${new Date().toLocaleTimeString()} - [System] Analysis complete. Saved successfully.`]);
         
         toast.success("Brand DNA extracted and saved successfully!");
-        setTimeout(() => { setActiveTab("dna"); }, 800);
+        setTimeout(() => { setActiveTab("setup"); }, 800);
       } else {
         throw new Error(res.error || "Analysis returned an unsuccessful code.");
       }
@@ -568,8 +615,10 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
         setRawKnowledgeBase(res.rawKnowledgeBase || "");
 
         try {
+          const brandName = res.dna?.companyInfo?.brandName || 'New Brand';
+          const activeId = await ensureWorkspaceId(brandName);
           const saveRes = await apiService.saveBrandDNA(
-            workspaceId,
+            activeId,
             res.dna,
             null,
             res.rawKnowledgeBase || "",
@@ -588,7 +637,7 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
         setLiveLogs(prev => [...prev, `${new Date().toLocaleTimeString()} - [System] Analysis complete. Saved successfully.`]);
         
         toast.success("Documents parsed and DNA cached successfully!");
-        setTimeout(() => { setActiveTab("dna"); }, 800);
+        setTimeout(() => { setActiveTab("setup"); }, 800);
       } else {
         throw new Error(res.error || "Document parsing pipeline failed.");
       }
@@ -606,11 +655,25 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
     if (!dnaData) return;
     setIsSaving(true);
     try {
-      const res = await apiService.saveBrandDNA(workspaceId, dnaData, null, "", url ? "url" : "document");
+      let activeWorkspaceId = getActiveWorkspaceId();
+
+      if (!activeWorkspaceId) {
+        const brandName = dnaData?.companyInfo?.brandName || url?.replace(/^https?:\/\//, '').split('/')[0] || "New Brand Workspace";
+        const wsRes = await apiService.createSocialAgentWorkspace({
+          workspaceName: brandName,
+          planType: 'Low'
+        });
+        if (wsRes.success) {
+          activeWorkspaceId = String(wsRes.workspace._id);
+        } else {
+          throw new Error("Failed to initialize workspace record.");
+        }
+      }
+
+      const res = await apiService.saveBrandDNA(activeWorkspaceId, dnaData, null, "", url ? "url" : "document");
       if (res.success) {
         setSavedBrand(res.brand);
         toast.success("Brand DNA saved successfully!");
-        // Auto-fill the Brand Assets scan URL from Brand Setup URL and switch to Assets tab
         const websiteUrl = url?.trim() || res.brand?.website?.trim();
         if (websiteUrl) setDiscoverUrl(websiteUrl);
         setActiveTab("assets");
@@ -634,7 +697,13 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
     }));
 
     try {
-      const res = await apiService.updateBrandDNASection(workspaceId, sectionKey, newSectionData);
+      const activeWorkspaceId = getActiveWorkspaceId();
+
+      if (!activeWorkspaceId) {
+        throw new Error("No active workspace ID available to update the section.");
+      }
+
+      const res = await apiService.updateBrandDNASection(activeWorkspaceId, sectionKey, newSectionData);
       if (res.success) {
         setDnaData(prev => ({
           ...prev,
@@ -648,7 +717,12 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
   };
 
   const handleRegenerateSection = async (sectionKey) => {
-    if (!workspaceId) return;
+    const activeWorkspaceId = getActiveWorkspaceId();
+
+    if (!activeWorkspaceId) {
+      toast.error("No active brand workspace selected.");
+      return;
+    }
     
     const currentConf = dnaData?.[sectionKey]?.aiConfidence || 85;
     setRegeneratingSections(p => ({ ...p, [sectionKey]: true }));
@@ -667,7 +741,7 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
     }, 2000);
 
     try {
-      const res = await apiService.regenerateBrandDNASection(workspaceId, sectionKey);
+      const res = await apiService.regenerateBrandDNASection(activeWorkspaceId, sectionKey);
       clearInterval(phraseInterval);
       if (res.success) {
         const newConf = res.section?.aiConfidence || 85;
@@ -714,9 +788,10 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
     if (!files?.length) return;
     setIsUploadingAsset(true);
     try {
+      const activeId = await ensureWorkspaceId(dnaData?.companyInfo?.brandName || 'New Brand');
       const formData = new FormData();
       Array.from(files).forEach(f => formData.append("files", f));
-      formData.append("workspaceId", workspaceId);
+      formData.append("workspaceId", activeId);
       formData.append("category", assetCategory);
       const res = await apiService.uploadBrandAsset(formData);
       if (res.success) {
@@ -734,7 +809,9 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
 
   const handleDeleteAsset = async (filename) => {
     try {
-      await apiService.deleteBrandAsset(workspaceId, filename);
+      const activeId = getActiveWorkspaceId();
+      if (!activeId) throw new Error("No active workspace found");
+      await apiService.deleteBrandAsset(activeId, filename);
       setBrandAssets(prev => prev.filter(a => a.filename !== filename));
       toast.success("Asset deleted");
     } catch (err) {
@@ -976,20 +1053,10 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
         {/* DNA Header controls */}
         <div className="flex justify-between items-center bg-white dark:bg-white/[0.01] p-4 border border-slate-200 dark:border-white/10 rounded-2xl max-w-4xl mx-auto">
           <div>
-            <h2 className="text-md font-black text-slate-800 dark:text-white">Brand DNA Matrix</h2>
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">14 Normalized Sections • Dynamic CRUD & History Versioning</p>
+            <h2 className="text-md font-black text-slate-800 dark:text-white">Brand DNA</h2>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Company Info & Brand Identity</p>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => {
-              const expands = {};
-              DNA_SECTIONS.forEach(s => expands[s.key] = true);
-              setExpandedSections(expands);
-            }} className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-white/5 dark:hover:bg-white/10 dark:text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">
-              Expand All
-            </button>
-            <button onClick={() => setExpandedSections({})} className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-white/5 dark:hover:bg-white/10 dark:text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">
-              Collapse All
-            </button>
             <button onClick={handleSaveDNA} disabled={isSaving}
               className="px-5 py-2.5 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50">
               {isSaving ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
@@ -998,39 +1065,36 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
           </div>
         </div>
 
-        {/* Sections loop */}
-        <div className="space-y-4 max-w-4xl mx-auto">
-          {DNA_SECTIONS.map(({ key, label, icon: Icon, sectionLetter }) => {
-            const sectionData = dnaData?.[key];
-            const confidence = sectionData?.aiConfidence || 0;
-            const isExpanded = expandedSections[key] ?? false;
-            const isRegenerating = regeneratingSections[key];
+        {/* Combined single card for all DNA sections */}
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white dark:bg-white/[0.01] border border-slate-200 dark:border-white/10 rounded-[24px] overflow-hidden">
+            {DNA_SECTIONS.map(({ key, label, icon: Icon }, sectionIndex) => {
+              const sectionData = dnaData?.[key];
+              const confidence = sectionData?.aiConfidence || 0;
+              const isRegenerating = regeneratingSections[key];
 
-            return (
-              <div key={key} className={`bg-white dark:bg-white/[0.01] border rounded-[24px] overflow-hidden transition-all duration-300 ${isExpanded ? "border-primary/30 shadow-sm" : "border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20"}`}>
-                
-                {/* Header toggle button */}
-                <button onClick={() => setExpandedSections(p => ({ ...p, [key]: !isExpanded }))}
-                  className="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ${isExpanded ? "bg-primary/20 text-primary" : "bg-slate-100 dark:bg-white/5 text-slate-400"}`}>
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <div className="text-left">
-                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">Section {sectionLetter}</span>
+              return (
+                <div key={key} className={sectionIndex > 0 ? "border-t border-slate-100 dark:border-white/5" : ""}>
+                  {/* Section sub-header */}
+                  <div className="flex items-center justify-between px-5 py-3 bg-slate-50/70 dark:bg-white/[0.01]">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
+                        <Icon className="w-3.5 h-3.5" />
+                      </div>
                       <span className="text-[11px] font-black text-slate-800 dark:text-white">{label}</span>
                     </div>
+                    <div className="flex items-center gap-2">
+                      <ConfidenceBadge score={confidence} />
+                      <button onClick={() => handleRegenerateSection(key)} disabled={isRegenerating}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 text-[8px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all disabled:opacity-50">
+                        <RefreshCw className={`w-2.5 h-2.5 ${isRegenerating ? "animate-spin" : ""}`} />
+                        {isRegenerating ? "..." : "Regen"}
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <ConfidenceBadge score={confidence} />
-                    {isExpanded ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
-                  </div>
-                </button>
 
-                {/* Body Content */}
-                {isExpanded && (
-                  <div className="px-5 pb-5 space-y-4 animate-fade-in border-t border-slate-100 dark:border-white/5 pt-4">
-                    
+                  {/* Section body */}
+                  <div className="px-5 pb-5 pt-4 space-y-4">
                     {/* Live active regeneration updates */}
                     {isRegenerating && aiThinkingText[key] && (
                       <div className="flex items-center gap-2 p-3 bg-indigo-50/50 dark:bg-indigo-500/5 border border-indigo-500/10 rounded-2xl animate-pulse">
@@ -1038,7 +1102,6 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
                         <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">{aiThinkingText[key]}</span>
                       </div>
                     )}
-
                     {/* Confidence Delta Box */}
                     {confidenceDiff[key] && (
                       <div className="flex items-center gap-2 p-3 bg-emerald-50/50 dark:bg-emerald-500/5 border border-emerald-500/10 rounded-2xl animate-fade-in">
@@ -1048,41 +1111,12 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
                         </span>
                       </div>
                     )}
-
-                    {/* Section CRUD controls */}
-                    <div className="flex flex-wrap gap-2 pt-1 border-b border-slate-100 dark:border-white/5 pb-3">
-                      <button onClick={() => handleRegenerateSection(key)} disabled={isRegenerating}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 text-[8px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all disabled:opacity-50">
-                        <RefreshCw className={`w-3 h-3 ${isRegenerating ? "animate-spin" : ""}`} />
-                        {isRegenerating ? "Regenerating..." : "Regenerate"}
-                      </button>
-                      
-                      <button onClick={() => { handleUpdateSection(key, { isApproved: true }); toast.success("Section approved!"); }}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all ${sectionData?.isApproved === true ? "bg-emerald-500/10 text-emerald-500" : "bg-slate-100 dark:bg-white/5 text-slate-500"}`}>
-                        <Check className="w-3 h-3" />
-                        Approved
-                      </button>
-
-                      <button onClick={() => { handleUpdateSection(key, { isApproved: false }); toast.error("Section rejected / unapproved."); }}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all ${sectionData?.isApproved === false ? "bg-red-500/10 text-red-500" : "bg-slate-100 dark:bg-white/5 text-slate-500"}`}>
-                        <X className="w-3 h-3" />
-                        Rejected
-                      </button>
-
-                      <button onClick={() => handleResetSection(key)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-500 text-[8px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all">
-                        <RotateCcw className="w-3 h-3" />
-                        Reset
-                      </button>
-                    </div>
-
                     {renderSectionContent(key, sectionData, (fieldKey, value) => handleFieldChange(key, fieldKey, value))}
                   </div>
-                )}
-
-              </div>
-            );
-          })}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
       </div>
@@ -1116,7 +1150,11 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
         payload = targetUrl;
       }
 
-      const res = await apiService.discoverBrandAssets(workspaceId, payload);
+      // Ensure active workspace exists
+      const brandName = savedBrand?.companyName || url?.trim().replace(/^https?:\/\//, '').split('/')[0] || 'New Brand';
+      const activeId = await ensureWorkspaceId(brandName);
+
+      const res = await apiService.discoverBrandAssets(activeId, payload);
       if (res.success) {
         setDiscoveredAssets(res.discovered);
         // Default-approve all with confidence >= 80
@@ -1164,13 +1202,18 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
       collect(d.documents || [], 'document', item => ({ type: item.type, name: item.name }));
       if (assetApprovals['favicon-0'] && d.favicon) toSave.push({ category: 'favicon', ...d.favicon });
 
-      if (toSave.length === 0) { toast.error('Select at least one asset to save'); setIsSavingAssets(false); return; }
+      const activeId = getActiveWorkspaceId();
+      if (!activeId) {
+        toast.error('No active workspace ID found to save assets.');
+        setIsSavingAssets(false);
+        return;
+      }
 
-      const res = await apiService.saveDiscoveredBrandAssets(workspaceId, toSave);
+      const res = await apiService.saveDiscoveredBrandAssets(activeId, toSave);
       if (res.success) {
         toast.success(`${res.saved} assets saved to Brand Memory!`);
         // Refresh the stored assets list
-        const updated = await apiService.getAllBrandAssets(workspaceId);
+        const updated = await apiService.getAllBrandAssets(activeId);
         if (updated.success) setBrandAssets(updated.assets || []);
         setDiscoveredAssets(null);
         // Show brand setup complete success card
@@ -1664,13 +1707,24 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
                   </div>
                 ))}
               </div>
-               <button onClick={() => {
+               <button onClick={async () => {
                   setShowSuccessCard(false);
+                  // Persist brand to DB without side-effect tab switching
+                  try {
+                    let activeWorkspaceId = getActiveWorkspaceId();
+                    if (dnaData && activeWorkspaceId) {
+                      const res = await apiService.saveBrandDNA(activeWorkspaceId, dnaData, null, '', url ? 'url' : 'document');
+                      if (res.success) setSavedBrand(res.brand);
+                    }
+                  } catch { }
+                  // Notify parent to refresh Brand History list
+                  if (onBrandSaved) await onBrandSaved();
+                  // Navigate to Content Studio
                   if (setParentActiveTab) setParentActiveTab('calendar');
                   if (setShowGeneratorOptions) setShowGeneratorOptions(true);
                 }}
                 className="w-full py-3 bg-primary text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-primary/25">
-                Content generator
+                Continue to Content Studio
               </button>
             </div>
           </div>
@@ -1680,9 +1734,8 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
 
       <div className="flex gap-1 p-1 bg-slate-100 dark:bg-white/5 rounded-2xl mb-6 w-fit mx-auto">
         {[
-          { id: "setup", label: "Brand Setup", icon: Globe },
-          { id: "dna",   label: "Brand DNA",   icon: Sparkles },
-          { id: "assets",label: "Brand Assets",icon: ImageIcon },
+          { id: "setup", label: "Brand Setup & DNA", icon: Sparkles },
+          { id: "assets",label: "Brand Assets",      icon: ImageIcon },
         ].map(({ id, label, icon: Icon }) => (
           <button key={id} onClick={() => setActiveTab(id)}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === id ? "bg-white dark:bg-white/10 text-primary shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white"}`}>
@@ -1692,8 +1745,12 @@ const BrandWorkspace = ({ workspaceId, setActiveTab: setParentActiveTab, setShow
         ))}
       </div>
       <div className="px-1">
-        {activeTab === "setup"  && renderSetupTab()}
-        {activeTab === "dna"    && renderDNATab()}
+        {activeTab === "setup" && (
+          <div className="space-y-8">
+            {renderSetupTab()}
+            {dnaData && renderDNATab()}
+          </div>
+        )}
         {activeTab === "assets" && renderAssetsTab()}
       </div>
     </div>
