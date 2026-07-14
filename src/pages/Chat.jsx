@@ -649,7 +649,7 @@ const Chat = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { personalizations, getSystemPromptExtensions, updatePersonalization } = usePersonalization();
-  const { language: currentLang, toolkitLanguage, t } = useLanguage();
+  const { language: currentLang, toolkitLanguage, setLanguage, t } = useLanguage();
   // Use the DOM-based dark mode hook — ThemeContext already applies the correct
   // 'dark' or 'light' class to <html> based on user settings + system preference.
   // This is the most reliable single source of truth.
