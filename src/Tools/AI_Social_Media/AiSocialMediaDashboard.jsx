@@ -1835,6 +1835,9 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       if (config.keyMessage && config.keyMessage.trim()) {
         description += `\nKey Message: ${config.keyMessage}`;
       }
+      if (config.description && config.description.trim()) {
+        description += `\nInstructions: ${config.description}`;
+      }
 
       // 3. Map tones to array/string format expected by backend (which accepts array of tones)
       const tone = config.tones || [];
@@ -1873,6 +1876,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       if (res.success) {
         toast.success("AI Post generated successfully!", { id: toastId });
         setShowWizard(false);
+        setShowManualGenModal(false);
 
         // Refresh posts list
         const postData = await apiService.getSocialAgentPosts(workspace._id);
@@ -2912,8 +2916,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-4xl pt-4">
                     {/* Generate by AI Card */}
-                    <div onClick={() => setShowWizard(true)} className="bg-gradient-to-br from-primary/10 to-transparent dark:from-primary/20 dark:to-transparent rounded-[32px] border border-primary/20 p-8 flex flex-col justify-center items-center w-full shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-500 cursor-pointer group min-h-[260px]">
-                      <div className="w-20 h-20 rounded-2xl bg-primary/20 flex items-center justify-center text-primary mb-6 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 shadow-inner">
+                    <div onClick={() => setShowWizard(true)} className="bg-gradient-to-br from-primary/10 to-transparent dark:from-primary/20 dark:to-transparent rounded-[32px] border border-primary/20 p-8 flex flex-col justify-center items-center w-full shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)] cursor-pointer min-h-[260px]">
+                      <div className="w-20 h-20 rounded-2xl bg-primary/20 flex items-center justify-center text-primary mb-6 shadow-inner">
                         <Bot className="w-10 h-10" />
                       </div>
                       <h3 className="text-sm font-black uppercase text-slate-800 dark:text-white tracking-widest text-center">Generate Post by AI</h3>
@@ -4825,13 +4829,23 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
   const renderGenerationWizard = () => {
     return (
-      <GeneratePostModal
-        isOpen={showWizard}
-        onClose={() => setShowWizard(false)}
-        onGenerate={async (config) => {
-          await handleGenerateAiWizardContent(config);
-        }}
-      />
+      <>
+        <GeneratePostModal
+          isOpen={showWizard}
+          onClose={() => setShowWizard(false)}
+          onGenerate={async (config) => {
+            await handleGenerateAiWizardContent(config);
+          }}
+        />
+        <GeneratePostModal
+          isOpen={showManualGenModal}
+          onClose={() => setShowManualGenModal(false)}
+          onGenerate={async (config) => {
+            await handleGenerateAiWizardContent(config);
+          }}
+          isManual={true}
+        />
+      </>
     );
   };
 
@@ -5117,6 +5131,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   };
 
   const renderManualGenModal = () => {
+    return null;
+  };
+
+  const _renderManualGenModalDeprecated = () => {
     if (!showManualGenModal) return null;
 
     const PLATFORMS = [
