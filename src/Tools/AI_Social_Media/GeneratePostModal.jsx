@@ -34,7 +34,7 @@ const tones = [
   'Luxury', 'Funny', 'Persuasive', 'Inspirational'
 ];
 
-export default function GeneratePostModal({ isOpen, onClose, onGenerate }) {
+export default function GeneratePostModal({ isOpen, onClose, onGenerate, isManual = false }) {
   const [selectedPlatforms, setSelectedPlatforms] = useState([]);
   const [selectedContentTypes, setSelectedContentTypes] = useState([]);
   const [customContentType, setCustomContentType] = useState('');
@@ -55,6 +55,7 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate }) {
   const [language, setLanguage] = useState('English');
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedGenerateModes, setSelectedGenerateModes] = useState(['caption']);
+  const [description, setDescription] = useState('');
 
   // Reset state when modal opens
   useEffect(() => {
@@ -73,6 +74,7 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate }) {
       setLanguage('English');
       setIsGenerating(false);
       setSelectedGenerateModes(['caption']);
+      setDescription('');
     }
   }, [isOpen]);
 
@@ -124,6 +126,7 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate }) {
   const handleGenerate = async (modes) => {
     if (selectedPlatforms.length === 0) return toast.error('Please select at least one platform');
     if (!postTopic.trim()) return toast.error('Post Topic is required');
+    if (isManual && !description.trim()) return toast.error('Description is required in manual mode');
     if (modes.length === 0) return toast.error('Please select at least one generation mode');
     
     let updatedContentTypes = [...selectedContentTypes];
@@ -181,7 +184,8 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate }) {
       referenceMedia,
       aiEnhancements: updatedEnhancements,
       contentLength,
-      language
+      language,
+      description
     };
 
     try {
@@ -320,6 +324,17 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate }) {
                       className="w-full h-12 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm font-semibold text-slate-800 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all shadow-inner"
                     />
                   </div>
+                  {isManual && (
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Description / Custom Instructions <span className="text-red-500">*</span></label>
+                      <textarea
+                        placeholder="Describe exactly what you want to write in this post..."
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        className="w-full min-h-[100px] max-h-[250px] bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all shadow-inner resize-y"
+                      />
+                    </div>
+                  )}
                 </div>
               </section>
 
@@ -642,11 +657,12 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate }) {
                 </div>
 
                 {/* Validation Info */}
-                {(selectedPlatforms.length === 0 || selectedContentTypes.length === 0 || !postTopic) && (
+                {(selectedPlatforms.length === 0 || selectedContentTypes.length === 0 || !postTopic || (isManual && !description)) && (
                   <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-500 text-xs font-bold flex flex-col gap-1">
                     {selectedPlatforms.length === 0 && <span>• Select a Platform</span>}
                     {selectedContentTypes.length === 0 && <span>• Select a Content Type</span>}
                     {!postTopic && <span>• Enter a Post Topic</span>}
+                    {isManual && !description && <span>• Enter a Description</span>}
                   </div>
                 )}
               </div>
@@ -664,7 +680,7 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate }) {
             </button>
             <button
               onClick={() => handleGenerate(selectedGenerateModes)}
-              disabled={isGenerating || selectedPlatforms.length === 0 || !postTopic}
+              disabled={isGenerating || selectedPlatforms.length === 0 || !postTopic || (isManual && !description)}
               className="px-8 py-3.5 rounded-xl font-black uppercase tracking-[2px] text-xs bg-primary text-white shadow-xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50 disabled:hover:scale-100"
             >
               {isGenerating ? (
