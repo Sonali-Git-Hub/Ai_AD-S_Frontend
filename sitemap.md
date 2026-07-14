@@ -110,7 +110,7 @@ graph TD
 
 ## ─── BACKEND API CONTROLLERS MAPPING ───
 
-All API routes are served under the `/api` prefix by `server.js`:
+All API routes are served under the `https://aisa24.com/api` prefix:
 
 ### 1. Authentication & Security
 - **Path prefix**: `/api/auth` (handled by `routes/authRoutes.js` and `routes/ssoRoutes.js`)
