@@ -361,9 +361,38 @@ const Hero = () => {
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                style={{ background: 'none', border: 'none', color: isDarkMode ? '#fff' : '#0F172A', cursor: 'pointer' }}
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  color: isDarkMode ? '#fff' : '#0F172A', 
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0
+                }}
               >
-                <CircleUser size={30} color={isDarkMode ? "#a78bfa" : "#6366f1"} />
+                {user?.avatar ? (
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    overflow: 'hidden',
+                    border: isDarkMode ? '2px solid #a78bfa' : '2px solid #6366f1'
+                  }}>
+                    <img 
+                      src={user.avatar} 
+                      alt="Profile" 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                      onError={(e) => { 
+                        e.currentTarget.onerror = null; 
+                        e.currentTarget.src = '/account.png'; 
+                      }} 
+                    />
+                  </div>
+                ) : (
+                  <CircleUser size={30} color={isDarkMode ? "#a78bfa" : "#6366f1"} />
+                )}
               </motion.button>
               <AnimatePresence>
                 {isProfileOpen && (
