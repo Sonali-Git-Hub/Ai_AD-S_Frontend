@@ -412,7 +412,7 @@ const Hero = () => {
           ) : (
             <motion.button
               whileHover={{ scale: 1.05, background: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(99, 102, 241, 0.1)' }}
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/signup')}
               style={{
                 background: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(99, 102, 241, 0.05)',
                 border: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(99, 102, 241, 0.2)',
