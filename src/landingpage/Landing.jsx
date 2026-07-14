@@ -101,6 +101,13 @@ const Landing = () => {
         };
 
         window.addEventListener('aisa-bloom-explosion', handleBloom);
+        
+        // If we are on mobile/tablet, reveal the footer immediately
+        // since the FlowingAICreature is disabled and won't dispatch the event.
+        if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+            handleBloom();
+        }
+
         return () => window.removeEventListener('aisa-bloom-explosion', handleBloom);
     }, []);
 
