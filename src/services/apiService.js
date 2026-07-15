@@ -2082,9 +2082,9 @@ export const apiService = {
       throw error;
     }
   },
-  async saveBrandDNA(workspaceId, dna, logoUrl, rawKnowledgeBase, sourceType) {
+  async saveBrandDNA(workspaceId, dna, logoUrl, rawKnowledgeBase, sourceType, completed) {
     try {
-      const response = await apiClient.post('/brand-intelligence/save', { workspaceId, dna, logoUrl, rawKnowledgeBase, sourceType });
+      const response = await apiClient.post('/brand-intelligence/save', { workspaceId, dna, logoUrl, rawKnowledgeBase, sourceType, completed });
       return response.data;
     } catch (error) {
       console.error("Failed to save brand DNA:", error);
@@ -2107,6 +2107,96 @@ export const apiService = {
       return response.data;
     } catch (error) {
       console.error("Failed to fetch brand DNA:", error);
+      throw error;
+    }
+  },
+  async createCampaign(data) {
+    try {
+      const response = await apiClient.post('/calendar/create-campaign', data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to create campaign:", error);
+      throw error;
+    }
+  },
+  async createCampaignPost(data) {
+    try {
+      const response = await apiClient.post('/calendar/post', data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to create campaign post:", error);
+      throw error;
+    }
+  },
+  async generateDates(data) {
+    try {
+      const response = await apiClient.post('/calendar/generate-dates', data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to generate dates:", error);
+      throw error;
+    }
+  },
+  async getCampaign(campaignId) {
+    try {
+      const response = await apiClient.get(`/calendar/${campaignId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to load campaign:", error);
+      throw error;
+    }
+  },
+  async updateCampaignPost(id, data) {
+    try {
+      const response = await apiClient.put(`/calendar/post/${id}`, data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to update post:", error);
+      throw error;
+    }
+  },
+  async deleteCampaignPost(id) {
+    try {
+      const response = await apiClient.delete(`/calendar/post/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to delete post:", error);
+      throw error;
+    }
+  },
+  async generateSinglePost(id) {
+    try {
+      const response = await apiClient.post(`/calendar/post/${id}/generate`);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to generate single post:", error);
+      throw error;
+    }
+  },
+  async generateAllPosts(campaignId) {
+    try {
+      const response = await apiClient.post('/calendar/generate-all', { campaignId });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to generate all posts:", error);
+      throw error;
+    }
+  },
+  async regenerateAllPosts(campaignId) {
+    try {
+      const response = await apiClient.post('/calendar/regenerate-all', { campaignId });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to regenerate campaign:", error);
+      throw error;
+    }
+  },
+  async exportCampaign(campaignId) {
+    try {
+      const response = await apiClient.post('/calendar/export', { campaignId }, { responseType: 'blob' });
+      return response.data; // Blob
+    } catch (error) {
+      console.error("Failed to export campaign:", error);
       throw error;
     }
   },

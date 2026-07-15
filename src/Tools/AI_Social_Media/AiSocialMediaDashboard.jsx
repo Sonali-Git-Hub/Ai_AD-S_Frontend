@@ -341,8 +341,25 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPipelineLoading, setIsPipelineLoading] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
+  const [wizardPrefill, setWizardPrefill] = useState(null);
   const [wizardConfig, setWizardConfig] = useState({ mode: 'today', count: 1, platform: ['Instagram'], contentType: ['Professional'], schedule: 'Daily' });
   const [stagedCalendarCount, setStagedCalendarCount] = useState(0);
+  const [currentCampaign, setCurrentCampaign] = useState(null);
+  const [campaignPosts, setCampaignPosts] = useState([]);
+  const [campaignConfig, setCampaignConfig] = useState({
+    campaignName: 'Q1 Launch Campaign',
+    campaignMonth: 'January',
+    postingFrequency: '3x Per Week',
+    startDate: '',
+    endDate: '',
+    campaignGoals: ['Brand Awareness'],
+    campaignGoal: 'Brand Awareness',
+    platforms: ['Instagram', 'LinkedIn']
+  });
+  const [selectedCampaignPost, setSelectedCampaignPost] = useState(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isCampaignLoading, setIsCampaignLoading] = useState(false);
+  const [isGeneratingAll, setIsGeneratingAll] = useState(false);
 
   // AI Ads™ Agent — Visual Post Generation state
   const [visualGenRowId, setVisualGenRowId] = useState(null); // tracks which card is actively generating
@@ -794,8 +811,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   const tabs = [
     { id: 'overview', name: 'Overview', icon: LayoutDashboard },
     { id: 'brand', name: 'Brand WorkSpace', icon: Palette },
-    { id: 'calendar', name: 'Content Studio', icon: CalendarRange },
     { id: 'generation', name: 'Content Calendar', icon: Sparkles },
+    { id: 'calendar', name: 'Content Studio', icon: CalendarRange },
     { id: 'assets', name: 'Post Generation', icon: Library }
   ];
 
@@ -805,7 +822,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       !ws.isPersonalProfile && (
         (ws.calendarEntryCount > 0) ||
         (ws.onboarding?.calendarCount > 0) ||
-        (ws._id === workspace?._id && (calendarEntries.length > 0 || (pipelineRows && pipelineRows.length > 0)))
+        (workspace?._id && String(ws._id) === String(workspace._id) && (calendarEntries.length > 0 || (pipelineRows && pipelineRows.length > 0)))
       )
     );
   }, [allWorkspaces, workspace?._id, calendarEntries.length, pipelineRows?.length]);
@@ -841,7 +858,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   // --- 1. Dashboard Initialization ---
   useEffect(() => {
     if (isOpen) {
-      initWorkspace();
+      // Force clean workspace initialization on open so it starts fresh in onboarding mode
+      initWorkspace(false, null, true);
     }
   }, [isOpen]);
 
@@ -1035,6 +1053,23 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       const calData = await apiService.getSocialAgentCalendar(wsId);
       if (calData.success) setCalendarEntries(calData.entries);
 
+      // 5b. Fetch Active Campaign (Campaign Planner V3)
+      setIsCampaignLoading(true);
+      try {
+        const campaignData = await apiService.getCampaign(wsId);
+        if (campaignData.success && campaignData.campaign) {
+          setCurrentCampaign(campaignData.campaign);
+          setCampaignPosts(campaignData.posts || []);
+        } else {
+          setCurrentCampaign(null);
+          setCampaignPosts([]);
+        }
+      } catch (err) {
+        console.error("Failed to load campaign data:", err);
+      } finally {
+        setIsCampaignLoading(false);
+      }
+
       // 6. Fetch Generated Posts
       const postData = await apiService.getSocialAgentPosts(wsId);
       if (postData.success) setGeneratedPosts(postData.posts);
@@ -1059,7 +1094,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     }
   };
 
-  const initWorkspace = async (isBackground = false, targetId = null) => {
+  const initWorkspace = async (isBackground = false, targetId = null, forceClean = false) => {
     try {
       if (!isBackground) setLoading(true);
       // 1. Get All Workspaces
@@ -1069,31 +1104,28 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
         setAllWorkspaces(wsList.workspaces);
       }
 
-      // 2. Load latest or create
-      let wsData = await apiService.getSocialAgentWorkspace(targetId);
+      // Determine what workspace to load:
+      // 1. If forceClean is true, we always bypass loading any workspace (clean onboarding form)
+      // 2. Otherwise: targetId if explicitly specified, or currently active workspace
+      const effectiveId = forceClean ? null : (targetId || workspace?._id || null);
 
-      const workspacesArray = wsList.workspaces || [];
-
-      if (wsData && wsData.success) {
-        setWorkspace(wsData.workspace);
-        const wsId = wsData.workspace._id;
-        localStorage.setItem('brandWorkspaceId', wsId.toString()); // persist for BrandWorkspace
-        setIsCheckingOnboarding(false);
-        await fetchWorkspaceData(wsId.toString(), isBackground);
-        return wsData.workspace;
-      } else if (workspacesArray.length > 0) {
-        // Fallback to the first available workspace if target fails to load
-        const fallbackWs = workspacesArray[0];
-        setWorkspace(fallbackWs);
-        localStorage.setItem('brandWorkspaceId', fallbackWs._id.toString()); // persist for BrandWorkspace
-        setIsCheckingOnboarding(false);
-        await fetchWorkspaceData(fallbackWs._id.toString(), isBackground);
-        return fallbackWs;
-      } else {
-        setWorkspace(null);
-        setIsCheckingOnboarding(false);
-        return null;
+      if (effectiveId) {
+        let wsData = await apiService.getSocialAgentWorkspace(effectiveId);
+        if (wsData && wsData.success) {
+          setWorkspace(wsData.workspace);
+          const wsId = wsData.workspace._id;
+          localStorage.setItem('brandWorkspaceId', wsId.toString()); // persist for BrandWorkspace
+          setIsCheckingOnboarding(false);
+          await fetchWorkspaceData(wsId.toString(), isBackground);
+          return wsData.workspace;
+        }
       }
+
+      // Default: clean onboarding state
+      setWorkspace(null);
+      localStorage.removeItem('brandWorkspaceId');
+      setIsCheckingOnboarding(false);
+      return null;
     } catch (error) {
       console.error("Dashboard Init Error:", error);
       setIsCheckingOnboarding(false);
@@ -1104,11 +1136,29 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   };
 
   const renderModuleGuard = (title, description) => {
-    if (workspace?.isPersonalProfile) {
+    // If the data is loading during a brand switch, show a loading spinner instead of restricted screen
+    if (loading) {
+      return (
+        <div className="flex flex-col items-center justify-center p-32 space-y-6 min-h-[500px]">
+          <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[4px] animate-pulse">Loading Brand Workspace...</p>
+        </div>
+      );
+    }
+
+    // Verify whether the selected brand has already completed Brand Setup.
+    // A brand is completed if onboarding.completed is true, or if we have loaded a valid Brand Profile.
+    const hasCompletedBrand = 
+      workspace && 
+      !workspace.isPersonalProfile && 
+      (workspace.onboarding?.completed || 
+       (activeProfile && (activeProfile.companyName || activeProfile.website)));
+
+    if (!hasCompletedBrand) {
       return (
         <div className="flex flex-col items-center justify-center p-20 bg-slate-50 dark:bg-white/5 rounded-[40px] border-2 border-dashed border-slate-200 dark:border-white/10 text-center space-y-8 min-h-[500px]">
           <div className="w-24 h-24 rounded-full bg-indigo-500/10 flex items-center justify-center">
-            <ShieldAlert className="w-12 h-12 text-indigo-500" />
+            <AlertCircle className="w-12 h-12 text-indigo-500" />
           </div>
           <div className="space-y-4 max-w-lg">
             <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">{title} Restricted</h2>
@@ -1235,8 +1285,6 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     setCurrentEditingBrandId(ws._id);
     setIsWorkspaceMenuOpen(false);
     fetchWorkspaceData(ws._id);
-    // Navigate to the Brand Workspace tab so the brand info is visible
-    setActiveTab('brand');
 
     try {
       await apiService.getSocialAgentWorkspace(ws._id);
@@ -1886,8 +1934,9 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
         const assetData = await apiService.getSocialAgentAssets(workspace._id);
         if (assetData.success) setAssets(assetData.assets);
 
-        // Switch tab to assets (Post Generation)
-        setActiveTab('assets');
+        // Switch tab to calendar (Content Studio) and open library
+        setActiveTab('calendar');
+        setShowContentLibrary(true);
       } else {
         toast.error(`Generation failed: ${res.error || 'Unknown error'}`, { id: toastId });
       }
@@ -1993,8 +2042,11 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
           .catch(() => { });
       }
 
-      // Auto-redirect to Post Generation tab after short delay
-      setTimeout(() => setActiveTab('assets'), 1500);
+      // Auto-redirect to Content Library inside Content Studio after short delay
+      setTimeout(() => {
+        setActiveTab('calendar');
+        setShowContentLibrary(true);
+      }, 1500);
 
     } catch (err) {
       console.error('[VisualPost] Error:', err);
@@ -2147,7 +2199,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
             {
               id: 'brands',
               label: 'Brand History',
-              val: allWorkspaces.filter(ws => !ws.isPersonalProfile).length,
+              val: allWorkspaces.filter(ws => !ws.isPersonalProfile && ws.onboarding?.completed).length,
               icon: Palette,
               color: 'text-indigo-500',
               bg: 'bg-indigo-500/10'
@@ -2201,7 +2253,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                 <Library className="w-5 h-5 text-primary shrink-0" />
                 <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-white leading-tight">Recent Visuals</h3>
               </div>
-              <button onClick={() => { setActiveTab('assets'); document.getElementById('main-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' }); }} className="text-[9px] font-black text-primary uppercase tracking-widest text-right shrink-0">Open Vault &rarr;</button>
+              <button onClick={() => { setActiveTab('calendar'); setShowContentLibrary(true); document.getElementById('main-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' }); }} className="text-[9px] font-black text-primary uppercase tracking-widest text-right shrink-0">Open Vault &rarr;</button>
             </div>
 
             <div className="flex-1 flex items-center">
@@ -3015,7 +3067,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                           const thumbUrl = asset.gcsUrl || (isCarousel && asset.metadata?.slides?.[0]) || '';
                           return (
                             <div key={asset._id} onClick={() => setSelectedAsset(asset)} className="group relative cursor-pointer">
-                              <div className="aspect-square rounded-[24px] overflow-hidden border-2 border-white dark:border-zinc-900 shadow-lg group-hover:scale-[1.03] active:scale-95 transition-all duration-500">
+                              <div className="aspect-square rounded-[24px] overflow-hidden relative border-2 border-white dark:border-zinc-900 shadow-lg group-hover:scale-[1.03] active:scale-95 transition-all duration-500">
                                 {thumbUrl ? (
                                   <img src={toProxyUrl(thumbUrl)} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Asset" onError={e => { e.currentTarget.style.display = 'none'; }} />
                                 ) : (
@@ -3028,6 +3080,29 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                 )}
                                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
                                   <Download className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                </div>
+
+                                <div className="absolute top-2 right-2 z-20 flex flex-col gap-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDownloadMedia(thumbUrl);
+                                    }}
+                                    title="Download Artifact"
+                                    className="w-8 h-8 rounded-xl bg-white/90 dark:bg-black/90 text-primary flex items-center justify-center shadow-2xl hover:bg-primary hover:text-white transition-all transform hover:rotate-6 active:scale-90"
+                                  >
+                                    <Download className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCopyImageToClipboard(thumbUrl);
+                                    }}
+                                    title="Copy Image to Clipboard"
+                                    className="w-8 h-8 rounded-xl bg-white/90 dark:bg-black/90 text-indigo-600 flex items-center justify-center shadow-2xl hover:bg-indigo-600 hover:text-white transition-all transform hover:-rotate-6 active:scale-90"
+                                  >
+                                    <Copy className="w-3.5 h-3.5" />
+                                  </button>
                                 </div>
                               </div>
                             </div>
@@ -3168,7 +3243,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
                 {calendarWorkspaces.map(ws => {
                   const profile = ws.brandProfile || {};
-                  const isCurrent = ws._id === workspace?._id;
+                  const isCurrent = ws._id && workspace?._id && String(ws._id) === String(workspace._id);
                   const entriesCount = isCurrent ? calendarEntries.length : (ws.calendarEntryCount || ws.onboarding?.calendarCount || 0);
 
                   return (
@@ -3262,7 +3337,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                               if (res.success) {
                                 toast.success(`Calendar cleared for ${wsName}`, { id: toastId });
                                 // Update local state immediately
-                                if (ws._id === workspace?._id) setCalendarEntries([]);
+                                if (ws._id && workspace?._id && String(ws._id) === String(workspace._id)) setCalendarEntries([]);
                                 // Refresh allWorkspaces so the switcher count resets to 0
                                 const wsList = await apiService.getSocialAgentWorkspaces();
                                 if (wsList.success) setAllWorkspaces(wsList.workspaces);
@@ -3443,7 +3518,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                 onClick={() => {
                                   const generatedAsset = assets?.find(a => a.calendarEntryId === entry._id);
                                   if (generatedAsset) setSelectedAsset(generatedAsset);
-                                  setActiveTab('assets');
+                                  setActiveTab('calendar');
+                                  setShowContentLibrary(true);
                                 }}
                                 disabled={!!visualGenRowId}
                                 className="h-9 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-emerald-500 text-white"
@@ -3501,7 +3577,25 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                     toast.error("Visual generation stopped.");
                                     return;
                                   }
-                                  setGenPostModal({ open: true, entry, format: 'single' });
+                                  // Navigate to Content Studio > Generate with AI, prefilled with this entry's context
+                                  const platformNameMap = {
+                                    instagram: 'Instagram', facebook: 'Facebook',
+                                    linkedin: 'LinkedIn', twitter: 'Twitter (X)',
+                                    threads: 'Threads', tiktok: 'TikTok',
+                                    pinterest: 'Pinterest', youtube: 'YouTube Community'
+                                  };
+                                  const rawPlatform = (entry.platform || '').toLowerCase();
+                                  const normalizedPlatform = platformNameMap[rawPlatform] || entry.platform;
+                                  const prefill = {
+                                    postTopic: entry.heading_hook || entry.title || entry.hook || '',
+                                    keyMessage: entry.subHeading || entry.sub_heading || '',
+                                    platform: normalizedPlatform ? [normalizedPlatform] : [],
+                                    contentType: [],
+                                  };
+                                  setWizardPrefill(prefill);
+                                  setActiveTab('calendar');
+                                  setShowGeneratorOptions(false);
+                                  setShowWizard(true);
                                 }}
                                 disabled={(!!visualGenRowId && visualGenRowId !== String(entry._id)) || isProcessing}
                                 className={`col-span-1 h-9 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 ${visualGenRowId === String(entry._id) ? 'bg-indigo-600 text-white' : 'bg-primary text-white'}`}
@@ -3899,287 +3993,907 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   const renderContentOrchestration = () => {
     const guard = renderModuleGuard("Content Calendar");
     if (guard) return guard;
-    const finalRows = (pipelineRows?.length || 0) > 0 ? pipelineRows : calendarEntries;
 
-    return (
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 h-auto flex flex-col space-y-6 pb-32">
-        {/* Step 1: Strategy Context Selector */}
-        <div className="bg-white dark:bg-[#080808] p-6 lg:p-8 rounded-[32px] border border-slate-100 dark:border-white/5 shadow-xl">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-            <div className="max-w-md w-full">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[3px] block mb-4">Select Target Brand Strategy</label>
-              <CustomSelect
-                value={calendarWorkspaces.some(w => w._id === workspace?._id) ? workspace?._id : ''}
-                onChange={(val) => {
-                  const ws = allWorkspaces.find(b => b._id === val);
-                  if (ws) {
-                    switchWorkspace(ws);
-                    fetchPipelines(ws._id);
-                  }
-                }}
-                options={calendarWorkspaces.length === 0 ? [{ value: '', label: 'Discovery: No Content Calendars Found' }] : [
-                  ...(calendarWorkspaces.some(w => w._id === workspace?._id) ? [] : [{ value: '', label: 'Select a brand with a calendar...' }]),
-                  ...calendarWorkspaces.map(b => ({
-                    value: b._id,
-                    label: b.workspaceName || b.brandProfile?.companyName || "Untitled Brand"
-                  }))
-                ]}
-                className="h-16 pl-6 pr-12 bg-white dark:bg-[#1a1a1a] border border-slate-200 dark:border-white/10 rounded-2xl text-xs"
-                color="primary"
+    const formatDateSpan = (startStr, endStr) => {
+      if (!startStr || !endStr) return '';
+      const start = new Date(startStr);
+      const end = new Date(endStr);
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) return '';
+      const options = { day: '2-digit', month: 'short', year: 'numeric' };
+      return `${start.toLocaleDateString('en-US', options)} → ${end.toLocaleDateString('en-US', options)}`;
+    };
+
+    const handleCreateCampaign = async () => {
+      if (!campaignConfig.startDate || !campaignConfig.endDate) {
+        toast.error("Please select Campaign Start and End dates.");
+        return;
+      }
+      if (new Date(campaignConfig.startDate) > new Date(campaignConfig.endDate)) {
+        toast.error("Start Date cannot be greater than End Date.");
+        return;
+      }
+      if (!campaignConfig.platforms || campaignConfig.platforms.length === 0) {
+        toast.error("Please select at least one Target Platform.");
+        return;
+      }
+      if (!campaignConfig.campaignName) {
+        toast.error("Please enter a Campaign Name.");
+        return;
+      }
+
+      setIsCampaignLoading(true);
+      try {
+        const payload = {
+          workspaceId: workspace._id,
+          ...campaignConfig,
+          campaignGoal: Array.isArray(campaignConfig.campaignGoals)
+            ? campaignConfig.campaignGoals.join(', ')
+            : campaignConfig.campaignGoal
+        };
+        const res = await apiService.createCampaign(payload);
+        if (res.success) {
+          setCurrentCampaign(res.campaign);
+          setCampaignPosts(res.posts || []);
+          toast.success("Campaign created and schedule generated successfully!");
+        } else {
+          toast.error(res.error || "Failed to create campaign");
+        }
+      } catch (err) {
+        toast.error(err.message || "Failed to create campaign");
+      } finally {
+        setIsCampaignLoading(false);
+      }
+    };
+
+    const handleGenerateSingle = async (postId) => {
+      toast.loading("Generating content...", { id: postId });
+      try {
+        const res = await apiService.generateSinglePost(postId);
+        if (res.success) {
+          setCampaignPosts(prev => prev.map(p => p._id === postId ? res.post : p));
+          toast.success("Post content generated!", { id: postId });
+        } else {
+          toast.error(res.error || "Failed to generate post", { id: postId });
+        }
+      } catch (err) {
+        toast.error(err.message || "Failed to generate post", { id: postId });
+      }
+    };
+
+    const handleGenerateAll = async () => {
+      if (!currentCampaign) return;
+      setIsGeneratingAll(true);
+      const toastId = toast.loading("Generating all campaign posts in bulk...");
+      try {
+        const res = await apiService.generateAllPosts(currentCampaign._id);
+        if (res.success) {
+          setCampaignPosts(res.posts || []);
+          toast.success(`Generated content for ${res.generatedCount} posts!`, { id: toastId });
+        } else {
+          toast.error(res.error || "Failed to generate campaign", { id: toastId });
+        }
+      } catch (err) {
+        toast.error(err.message || "Failed to generate campaign", { id: toastId });
+      } finally {
+        setIsGeneratingAll(false);
+      }
+    };
+
+    const handleRegenerateAll = async () => {
+      if (!currentCampaign) return;
+      if (!window.confirm("Are you sure you want to regenerate all post copies? This will overwrite existing content.")) return;
+      setIsGeneratingAll(true);
+      const toastId = toast.loading("Regenerating entire campaign...");
+      try {
+        const res = await apiService.regenerateAllPosts(currentCampaign._id);
+        if (res.success) {
+          setCampaignPosts(res.posts || []);
+          toast.success(`Regenerated content for ${res.regeneratedCount} posts!`, { id: toastId });
+        } else {
+          toast.error(res.error || "Failed to regenerate campaign", { id: toastId });
+        }
+      } catch (err) {
+        toast.error(err.message || "Failed to regenerate campaign", { id: toastId });
+      } finally {
+        setIsGeneratingAll(false);
+      }
+    };
+
+    const handleDeleteAll = async () => {
+      if (!currentCampaign) return;
+      if (!window.confirm("Are you sure you want to delete this campaign? This will clear all day cards.")) return;
+      setIsCampaignLoading(true);
+      try {
+        for (const post of campaignPosts) {
+          await apiService.deleteCampaignPost(post._id);
+        }
+        setCurrentCampaign(null);
+        setCampaignPosts([]);
+        toast.success("Campaign cleared successfully.");
+      } catch (err) {
+        toast.error("Failed to clear campaign.");
+      } finally {
+        setIsCampaignLoading(false);
+      }
+    };
+
+    const handleExportCampaign = async () => {
+      if (!currentCampaign) return;
+      const toastId = toast.loading("Exporting campaign details...");
+      try {
+        const blob = await apiService.exportCampaign(currentCampaign._id);
+        const url = window.URL.createObjectURL(new Blob([blob]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `Campaign_Plan_${currentCampaign.campaignName.replace(/\s+/g, '_')}.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+        toast.success("Export complete!", { id: toastId });
+      } catch (err) {
+        toast.error("Export failed.", { id: toastId });
+      }
+    };
+
+    const handleUpdatePostField = async (postId, updates) => {
+      try {
+        const res = await apiService.updateCampaignPost(postId, updates);
+        if (res.success) {
+          setCampaignPosts(prev => prev.map(p => p._id === postId ? res.post : p));
+          if (selectedCampaignPost && selectedCampaignPost._id === postId) {
+            setSelectedCampaignPost(res.post);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to update post field:", err);
+      }
+    };
+
+    const handleDeletePost = async (postId) => {
+      if (!window.confirm("Are you sure you want to delete this post card?")) return;
+      try {
+        const res = await apiService.deleteCampaignPost(postId);
+        if (res.success) {
+          setCampaignPosts(prev => prev.filter(p => p._id !== postId));
+          toast.success("Post card deleted.");
+        }
+      } catch (err) {
+        toast.error("Delete failed.");
+      }
+    };
+
+    // Derived counts
+    const totalCount = campaignPosts.length;
+    const generatedCount = campaignPosts.filter(p => ['Generated', 'Approved', 'Scheduled', 'Published'].includes(p.status)).length;
+    const approvedCount = campaignPosts.filter(p => p.approvalStatus === 'Approved').length;
+    const scheduledCount = campaignPosts.filter(p => p.status === 'Scheduled').length;
+    const publishedCount = campaignPosts.filter(p => p.status === 'Published').length;
+    const remainingCount = totalCount - generatedCount;
+    const progressPercent = totalCount > 0 ? Math.round((generatedCount / totalCount) * 100) : 0;
+
+    // AI Suggestions quick applies
+    const applySuggestion = (type) => {
+      if (campaignPosts.length === 0) return;
+      if (type === 'raksha') {
+        const index = Math.floor(campaignPosts.length / 2);
+        const post = campaignPosts[index];
+        handleUpdatePostField(post._id, {
+          prompt: `Create a festive Raksha Bandhan special greeting campaign post. Tone: Warm & Heartfelt. Include family themes, special promotional offers, and warm sibling messages.`,
+          contentType: 'Carousel'
+        });
+        toast.success("Applied Raksha Bandhan special theme to card #" + (index + 1));
+      } else if (type === 'tuesday') {
+        const tuePost = campaignPosts.find(p => p.day === 'Tuesday');
+        if (tuePost) {
+          handleUpdatePostField(tuePost._id, {
+            contentType: 'Infographic',
+            postObjective: 'Educational',
+            prompt: `${tuePost.prompt} Focus on providing high-value educational insights and industry facts. Use infographic format to maximize engagement.`
+          });
+          toast.success("Optimized Tuesday card for high educational engagement.");
+        }
+      } else if (type === 'weekend') {
+        const weekendPost = campaignPosts.find(p => p.day === 'Saturday' || p.day === 'Sunday');
+        if (weekendPost) {
+          handleUpdatePostField(weekendPost._id, {
+            contentType: 'Reel',
+            postObjective: 'Behind The Scenes',
+            prompt: `${weekendPost.prompt} Add lifestyle behind-the-scenes content ideal for weekend social browsing.`
+          });
+          toast.success("Weekend post optimized successfully!");
+        }
+      }
+    };
+
+    const campaignInfoCard = (
+      <div className="bg-white dark:bg-[#080808]/80 p-6 rounded-[32px] border border-slate-100 dark:border-white/5 shadow-xl flex flex-col justify-between">
+        <div>
+          <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-white/5 mb-4">
+            <Settings className="w-5 h-5 text-primary" />
+            <h3 className="text-sm font-black uppercase text-slate-800 dark:text-white tracking-wider">Campaign Info</h3>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Campaign Name</label>
+              <input
+                type="text"
+                value={campaignConfig.campaignName}
+                onChange={e => setCampaignConfig(prev => ({ ...prev, campaignName: e.target.value }))}
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:border-primary/50"
+                placeholder="e.g. Q1 Product Launch"
               />
             </div>
 
-            {workspace && (
-              <div className="flex items-center gap-6 p-4 bg-slate-50 dark:bg-white/5 rounded-[32px] border border-slate-100 dark:border-white/5">
-                <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white dark:bg-[#161B2E] border border-slate-200 dark:border-white/10 flex items-center justify-center p-2">
-                  {(activeProfile?.logoUrl || workspace?.brandProfile?.logoUrl || workspace?.onboarding?.profileImageUrl) ? (
-                    <img
-                      src={toProxyUrl(activeProfile?.logoUrl || workspace?.brandProfile?.logoUrl || workspace?.onboarding?.profileImageUrl)}
-                      className="w-full h-full object-contain"
-                      alt="Logo"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-primary text-white flex items-center justify-center text-xl font-black">
-                      {(activeProfile?.companyName || workspace?.workspaceName || 'B').charAt(0)}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter leading-none mb-1">{workspace.workspaceName}</h3>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Active Brand Ecosystem</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Campaign Month</label>
+              <select
+                value={campaignConfig.campaignMonth}
+                onChange={e => setCampaignConfig(prev => ({ ...prev, campaignMonth: e.target.value }))}
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-[#1a1a1a] border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:border-primary/50"
+              >
+                {['January','February','March','April','May','June','July','August','September','October','November','December'].map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
 
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Posting Frequency</label>
+              <select
+                value={campaignConfig.postingFrequency}
+                onChange={e => setCampaignConfig(prev => ({ ...prev, postingFrequency: e.target.value }))}
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-[#1a1a1a] border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:border-primary/50"
+              >
+                {['Daily', '2x Per Week', '3x Per Week', '4x Per Week', '5x Per Week', 'Weekly', 'Bi Weekly', 'Monthly'].map(f => (
+                  <option key={f} value={f}>{f}</option>
+                ))}
+              </select>
+            </div>
 
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Start Date</label>
+              <input
+                type="date"
+                value={campaignConfig.startDate}
+                onChange={e => setCampaignConfig(prev => ({ ...prev, startDate: e.target.value }))}
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:border-primary/50"
+              />
+            </div>
 
-        {/* Dynamic Content Generation Pipeline */}
-        {isPipelineLoading ? (
-          <div className="flex flex-col items-center justify-center p-32 bg-white dark:bg-[#080808]/50 rounded-[40px] border border-slate-100 dark:border-white/5 space-y-6">
-            <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[4px] animate-pulse">Establishing Secure Brand Connection...</p>
-          </div>
-        ) : finalRows.length > 0 ? (
-          <div className="bg-white dark:bg-[#080808]/50 rounded-[32px] border border-slate-100 dark:border-white/5 shadow-xl animate-in slide-in-from-bottom-8 duration-700 min-h-[400px] sm:min-h-[500px] flex flex-col">
-            <div className="p-6 sm:p-8 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                  <Server className="w-5 h-5 sm:w-6 sm:h-6" />
-                </div>
-                <div>
-                  <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-white uppercase tracking-widest">Orchestration Pipeline: {workspace?.workspaceName}</h3>
-                  <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase mt-1">{finalRows.length} Strategized Rows Detected</p>
-                </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">End Date</label>
+              <input
+                type="date"
+                value={campaignConfig.endDate}
+                onChange={e => setCampaignConfig(prev => ({ ...prev, endDate: e.target.value }))}
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:border-primary/50"
+              />
+            </div>
+
+            <div className="space-y-1 sm:col-span-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2">Campaign Goals</label>
+              <div className="flex flex-wrap gap-1.5">
+                {['Brand Awareness', 'Product Launch', 'Festival Campaign', 'Educational', 'Sales', 'Lead Generation', 'Customer Engagement', 'Website Traffic', 'Custom'].map(goal => {
+                  const selected = campaignConfig.campaignGoals ? campaignConfig.campaignGoals.includes(goal) : false;
+                  return (
+                    <button
+                      key={goal}
+                      type="button"
+                      onClick={() => {
+                        setCampaignConfig(prev => {
+                          const currentGoals = prev.campaignGoals || [];
+                          const newGoals = currentGoals.includes(goal)
+                            ? currentGoals.filter(g => g !== goal)
+                            : [...currentGoals, goal];
+                          return { ...prev, campaignGoals: newGoals };
+                        });
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${
+                        selected
+                          ? 'bg-indigo-500 text-white border-indigo-500 shadow-sm shadow-indigo-500/20'
+                          : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 hover:border-slate-300 dark:hover:border-white/20'
+                      }`}
+                    >
+                      {goal}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            <div className="flex-1 w-full overflow-y-auto custom-scrollbar">
-              {/* Desktop View */}
-              <div className="hidden lg:block overflow-x-auto">
-                <table className="w-full text-left border-collapse table-auto">
-                  <thead>
-                    <tr className="border-b border-slate-100 dark:border-white/5 bg-slate-50/30 dark:bg-white/[0.01]">
-                      <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Schedule</th>
-                      <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Platform</th>
-                      <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Phase</th>
-                      <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Strategy / Hook</th>
-                      <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Asset Type</th>
-                      <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                    {finalRows.map((row, idx) => (
-                      <tr key={row._id || idx} className="group hover:bg-slate-50 dark:hover:bg-white/[0.01] transition-colors">
-                        <td className="p-4">
-                          <div className="flex items-center gap-3 whitespace-nowrap">
-                            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/5 flex flex-col items-center justify-center border border-slate-200 dark:border-white/10 group-hover:border-primary/30 transition-colors">
-                              <span className="text-[9px] font-black text-primary leading-none">{new Date(row.scheduledDate).getDate()}</span>
-                              <span className="text-[6px] font-black text-slate-400 uppercase tracking-tighter">{new Date(row.scheduledDate).toLocaleString('default', { month: 'short' })}</span>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <div className="flex gap-1">
-                            {['instagram', 'linkedin', 'x', 'facebook', 'youtube'].map(p => {
-                              const active = (row.platform || row.rawData?.Platform || '').toLowerCase().includes(p) || (p === 'x' && (row.platform || row.rawData?.Platform || '').toLowerCase().includes('twitter'));
-                              if (!active) return null;
-                              return (
-                                <div key={p} className="p-1.5 rounded-lg bg-primary/5 text-primary border border-primary/10 group-hover:border-primary/30 transition-all">
-                                  {p === 'instagram' && <Instagram className="w-3 h-3" />}
-                                  {p === 'linkedin' && <Linkedin className="w-3 h-3" />}
-                                  {p === 'x' && <TwitterXIcon className="w-3 h-3" />}
-                                  {p === 'facebook' && <Facebook className="w-3 h-3" />}
-                                  {p === 'youtube' && <Youtube className="w-3 h-3" />}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-white/5 px-1.5 py-0.5 rounded border border-slate-200 dark:border-white/10">
-                            {row.phase || row.rawData?.Phase || "Awareness"}
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          <div className="max-w-[200px] xl:max-w-[350px]">
-                            <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight mb-0.5 truncate group-hover:text-primary transition-colors">
-                              {row.heading_hook || row.title || row.rawData?.Title}
-                            </p>
-                            <p className="text-[9px] text-slate-400 font-medium truncate italic opacity-60">
-                              {row.sub_heading || row.hook || row.rawData?.Hook || "Defining direction..."}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase border ${(row.postType || row.format || row.rawData?.Format) === 'Video' ? 'bg-amber-100 dark:bg-amber-500/10 text-amber-600 border-amber-200/50' :
-                            (row.postType || row.format || row.rawData?.Format) === 'Carousel' ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 border-indigo-200/50' :
-                              'bg-blue-100 dark:bg-primary/10 text-primary border-blue-200/50'
-                            }`}>
-                            {row.postType || row.format || row.rawData?.Format}
-                          </span>
-                        </td>
-                        <td className="p-4 text-right">
-                          <div className="flex justify-end gap-2">
-                            {row.status === 'generated' ? (
-                              <button
-                                onClick={() => {
-                                  const post = generatedPosts.find(p => ensureStringId(p.calendarEntryId) === ensureStringId(row._id));
-                                  const asset = assets?.find(a =>
-                                    (post && ensureStringId(a.postId) === ensureStringId(post._id)) ||
-                                    ensureStringId(a.calendarEntryId) === ensureStringId(row._id)
-                                  );
-                                  if (asset) {
-                                    setSelectedAsset(asset);
-                                  } else {
-                                    // Navigate to Direct Synthesis view (text content)
-                                    setActiveGenerationRowId(ensureStringId(row._id));
-                                  }
-                                }}
-                                className="h-9 px-4 bg-emerald-500 text-white rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center gap-2"
-                              >
-                                <Eye className="w-3 h-3" /> View
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => handleGenerateContent('single', 1, [row._id])}
-                                disabled={isGenerating}
-                                className="h-9 px-4 bg-primary text-white rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all flex items-center gap-2"
-                              >
-                                <Sparkle className="w-3 h-3" /> Gen Content
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <div className="space-y-1 sm:col-span-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2">Target Platforms</label>
+              <div className="flex flex-wrap gap-1.5">
+                {['Instagram', 'Facebook', 'LinkedIn', 'Threads', 'Pinterest', 'YouTube', 'X (Twitter)', 'TikTok'].map(plat => {
+                  const selected = campaignConfig.platforms.includes(plat);
+                  return (
+                    <button
+                      key={plat}
+                      type="button"
+                      onClick={() => {
+                        setCampaignConfig(prev => {
+                          const newPlats = prev.platforms.includes(plat)
+                            ? prev.platforms.filter(p => p !== plat)
+                            : [...prev.platforms, plat];
+                          return { ...prev, platforms: newPlats };
+                        });
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${
+                        selected
+                          ? 'bg-primary text-white border-primary shadow-sm shadow-primary/20'
+                          : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 hover:border-slate-300 dark:hover:border-white/20'
+                      }`}
+                    >
+                      {plat}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4 mt-4">
+          {campaignConfig.startDate && campaignConfig.endDate && (
+            <div className="flex items-center justify-between p-3 bg-primary/5 rounded-xl border border-primary/10">
+              <span className="text-[9px] font-black uppercase text-primary/70 tracking-widest">Active Schedule Span</span>
+              <span className="text-[10px] font-black text-primary uppercase tracking-widest">
+                {formatDateSpan(campaignConfig.startDate, campaignConfig.endDate)}
+              </span>
+            </div>
+          )}
+
+          <button
+            onClick={handleCreateCampaign}
+            disabled={isCampaignLoading}
+            className="w-full py-3.5 bg-primary hover:bg-primary/95 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            <Sparkles className="w-4.5 h-4.5" />
+            {isCampaignLoading ? "Generating Intelligent Framework..." : "Generate Calendar"}
+          </button>
+        </div>
+      </div>
+    );
+
+    const campaignProgressCard = (
+      <div className="bg-white dark:bg-[#080808]/50 p-6 rounded-[28px] border border-slate-100 dark:border-white/5 shadow-sm space-y-4 flex flex-col justify-between">
+        <div>
+          <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-white/5 mb-4">
+            <div>
+              <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest">Campaign Progress: {currentCampaign?.campaignName}</h3>
+              <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">{totalCount} Scheduled Publication Days</p>
+            </div>
+            <span className="text-xs font-black text-primary bg-primary/10 px-3 py-1 rounded-full">{progressPercent}% Completed</span>
+          </div>
+
+          <div className="w-full bg-slate-100 dark:bg-white/5 h-2 rounded-full overflow-hidden mb-4">
+            <div className="bg-primary h-full transition-all duration-1000" style={{ width: `${progressPercent}%` }} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { label: "Total Posts", val: totalCount },
+              { label: "Generated", val: generatedCount },
+              { label: "Approved", val: approvedCount },
+              { label: "Scheduled", val: scheduledCount },
+              { label: "Published", val: publishedCount },
+              { label: "Remaining", val: remainingCount }
+            ].map((c, idx) => (
+              <div key={idx} className="p-3.5 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl text-center">
+                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-1">{c.label}</span>
+                <span className="text-sm font-black text-slate-800 dark:text-white">{c.val}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+
+    return (
+      <div className="animate-in fade-in duration-700 h-auto flex flex-col space-y-8 pb-32">
+        {/* Render Campaign Info and Campaign Progress side by side if active, else Campaign Info full width */}
+        {currentCampaign && !isCampaignLoading ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+            {campaignInfoCard}
+            {campaignProgressCard}
+          </div>
+        ) : (
+          <div className="w-full">
+            {campaignInfoCard}
+          </div>
+        )}
+
+        {/* ─── Campaign Dashboard Planner View (Active) ─── */}
+        {isCampaignLoading ? (
+          <div className="flex flex-col items-center justify-center p-32 bg-white dark:bg-[#080808]/50 rounded-[40px] border border-slate-100 dark:border-white/5 space-y-6">
+            <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[4px] animate-pulse">Designing Campaign Framework & Days...</p>
+          </div>
+        ) : currentCampaign ? (
+          <div className="space-y-8 animate-in slide-in-from-bottom-8 duration-700">
+            {/* ── Bulk Actions Panel ── */}
+            <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-[24px]">
+              <div className="flex gap-2">
+                <button
+                  onClick={handleGenerateAll}
+                  disabled={isGeneratingAll || remainingCount === 0}
+                  className="px-4 py-2.5 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md hover:opacity-95 transition-opacity disabled:opacity-50 flex items-center gap-2"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Generate All
+                </button>
+                <button
+                  onClick={handleRegenerateAll}
+                  disabled={isGeneratingAll}
+                  className="px-4 py-2.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-slate-50 transition-all flex items-center gap-2"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Regenerate All
+                </button>
+                <button
+                  onClick={handleDeleteAll}
+                  className="px-4 py-2.5 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-2"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Delete All
+                </button>
               </div>
 
-              {/* Mobile View */}
-              <div className="lg:hidden p-4 space-y-4">
-                {finalRows.map((row, idx) => (
-                  <div key={row._id || idx} className="p-5 bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-3xl space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex flex-col items-center justify-center border border-primary/20">
-                          <span className="text-[11px] font-black text-primary leading-none">{new Date(row.scheduledDate).getDate()}</span>
-                          <span className="text-[7px] font-black text-slate-400 uppercase tracking-tighter">{new Date(row.scheduledDate).toLocaleString('default', { month: 'short' })}</span>
-                        </div>
-                        <div>
-                          <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">
-                            {row.heading_hook || row.title || row.rawData?.Title}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1.5 py-0.5 bg-white dark:bg-[#161B2E] rounded border border-slate-200 dark:border-white/10">
-                              {row.phase || row.rawData?.Phase || "Awareness"}
-                            </span>
-                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase border ${(row.postType || row.format || row.rawData?.Format) === 'Video' ? 'bg-amber-100 dark:bg-amber-500/10 text-amber-600 border-amber-200/50' :
-                              (row.postType || row.format || row.rawData?.Format) === 'Carousel' ? 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 border-indigo-200/50' :
-                                'bg-blue-100 dark:bg-primary/10 text-primary border-blue-200/50'
-                              }`}>
-                              {row.postType || row.format || row.rawData?.Format}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-1">
-                        {['instagram', 'linkedin', 'x', 'facebook', 'youtube'].map(p => {
-                          const active = (row.platform || row.rawData?.Platform || '').toLowerCase().includes(p) || (p === 'x' && (row.platform || row.rawData?.Platform || '').toLowerCase().includes('twitter'));
-                          if (!active) return null;
-                          return (
-                            <div key={p} className="p-1 rounded-lg bg-primary/5 text-primary border border-primary/10">
-                              {p === 'instagram' && <Instagram className="w-3 h-3" />}
-                              {p === 'linkedin' && <Linkedin className="w-3 h-3" />}
-                              {p === 'x' && <TwitterXIcon className="w-3 h-3" />}
-                              {p === 'facebook' && <Facebook className="w-3 h-3" />}
-                              {p === 'youtube' && <Youtube className="w-3 h-3" />}
-                            </div>
-                          );
-                        })}
-                      </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    const name = window.prompt("Enter new campaign name:", `Copy of ${currentCampaign.campaignName}`);
+                    if (!name) return;
+                    setIsCampaignLoading(true);
+                    try {
+                      const payload = {
+                        workspaceId: workspace._id,
+                        ...campaignConfig,
+                        campaignName: name
+                      };
+                      const res = await apiService.createCampaign(payload);
+                      if (res.success) {
+                        setCurrentCampaign(res.campaign);
+                        setCampaignPosts(res.posts || []);
+                        toast.success("Campaign duplicated successfully!");
+                      }
+                    } catch {
+                      toast.error("Failed to duplicate campaign.");
+                    } finally {
+                      setIsCampaignLoading(false);
+                    }
+                  }}
+                  className="px-4 py-2.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-slate-50 transition-all flex items-center gap-2"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  Duplicate Campaign
+                </button>
+                <button
+                  onClick={handleExportCampaign}
+                  className="px-4 py-2.5 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md hover:bg-emerald-600 transition-all flex items-center gap-2"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Export Campaign
+                </button>
+              </div>
+            </div>
+
+            {/* ── AI Recommendation Panel ── */}
+            <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-[28px] p-6 space-y-4">
+              <div className="flex items-center gap-2">
+                <BrainCircuit className="w-5 h-5 text-indigo-500" />
+                <h4 className="text-xs font-black uppercase tracking-wider dark:text-white">AI Recommendations & High Engagement Opportunities</h4>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  { title: "Raksha Bandhan Campaign special", desc: "Prep sibling appreciation and festive offers for mid-campaign.", type: 'raksha' },
+                  { title: "Highest engagement day detected", desc: "Tuesday holds 24% higher engagement. Educational infographic recommended.", type: 'tuesday' },
+                  { title: "Optimize weekend reach on Facebook", desc: "Weekend stories and lifestyle BTS perform best. Align story prompts.", type: 'weekend' },
+                ].map((rec, i) => (
+                  <div key={i} className="p-4 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl flex items-center justify-between gap-4">
+                    <div className="min-w-0">
+                      <h5 className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-wider">{rec.title}</h5>
+                      <p className="text-[9px] text-slate-400 font-medium truncate mt-0.5">{rec.desc}</p>
                     </div>
-
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed italic border-l-2 border-primary/20 pl-3">
-                      {row.sub_heading || row.hook || row.rawData?.Hook || "Defining direction..."}
-                    </p>
-
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5">
-                      <div className="flex items-center gap-1.5">
-                        <div className={`w-1.5 h-1.5 rounded-full ${row.status === 'generated' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-300'}`} />
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                          {row.status === 'generated' ? 'Ready' : 'Pending Gen'}
-                        </span>
-                      </div>
-
-                      {row.status === 'generated' ? (
-                        <button
-                          onClick={() => {
-                            const post = generatedPosts.find(p => ensureStringId(p.calendarEntryId) === ensureStringId(row._id));
-                            const asset = assets?.find(a =>
-                              (post && ensureStringId(a.postId) === ensureStringId(post._id)) ||
-                              ensureStringId(a.calendarEntryId) === ensureStringId(row._id)
-                            );
-                            if (asset) {
-                              setSelectedAsset(asset);
-                            } else {
-                              // Navigate to Direct Synthesis view (text content)
-                              setActiveGenerationRowId(ensureStringId(row._id));
-                            }
-                          }}
-                          className="h-10 px-6 bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center gap-2"
-                        >
-                          <Eye className="w-3.5 h-3.5" /> View
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleGenerateContent('single', 1, [row._id])}
-                          disabled={isGenerating}
-                          className="h-10 px-6 bg-primary text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all flex items-center gap-2"
-                        >
-                          <Sparkle className="w-3.5 h-3.5" /> Gen Content
-                        </button>
-                      )}
-                    </div>
+                    <button
+                      onClick={() => applySuggestion(rec.type)}
+                      className="px-3 py-1.5 bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-lg text-[8px] font-black uppercase tracking-widest shrink-0 transition-all"
+                    >
+                      One-Click Apply
+                    </button>
                   </div>
                 ))}
               </div>
             </div>
+
+            {/* ── Generated Day Cards Grid ── */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {campaignPosts.map((post, idx) => {
+                const dateObj = new Date(post.date);
+                const dateStr = dateObj.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+
+                return (
+                  <div key={post._id} className="bg-white dark:bg-[#0c0c0c] border border-slate-200 dark:border-white/10 rounded-[28px] p-6 space-y-4 hover:shadow-xl hover:border-primary/20 transition-all flex flex-col justify-between">
+                    <div className="space-y-3">
+                      {/* Card Header: Date & Day */}
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">{dateStr}</h4>
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{post.day}</span>
+                        </div>
+
+                        {/* Status Select */}
+                        <select
+                          value={post.status}
+                          onChange={e => handleUpdatePostField(post._id, { status: e.target.value })}
+                          className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border outline-none cursor-pointer ${
+                            post.status === 'Draft' ? 'bg-slate-50 dark:bg-white/5 text-slate-400 border-slate-200 dark:border-white/10' :
+                            post.status === 'Generated' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
+                            post.status === 'Approved' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                            post.status === 'Scheduled' ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' :
+                            post.status === 'Published' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' :
+                            'bg-red-500/10 text-red-500 border-red-500/20'
+                          }`}
+                        >
+                          {['Draft', 'Generated', 'Approved', 'Scheduled', 'Published', 'Failed'].map(st => (
+                            <option key={st} value={st}>{st}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Dropdown Selectors: Platform & Format */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <select
+                          value={post.platform}
+                          onChange={e => handleUpdatePostField(post._id, { platform: e.target.value })}
+                          className="w-full text-[9px] font-black uppercase tracking-wide px-2 py-1.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-primary outline-none"
+                        >
+                          {['Instagram', 'Facebook', 'LinkedIn', 'Threads', 'Pinterest', 'YouTube', 'X (Twitter)', 'TikTok'].map(p => (
+                            <option key={p} value={p}>{p}</option>
+                          ))}
+                        </select>
+
+                        <select
+                          value={post.contentType}
+                          onChange={e => handleUpdatePostField(post._id, { contentType: e.target.value })}
+                          className="w-full text-[9px] font-bold px-2 py-1.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-slate-600 dark:text-slate-300 outline-none"
+                        >
+                          {['Image', 'Carousel', 'Reel', 'Story', 'Video', 'Text', 'Thread', 'Poll', 'Quote', 'Infographic'].map(c => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Stage & Objective tags */}
+                      <div className="flex gap-1.5">
+                        <span className="text-[7px] font-black uppercase tracking-wider bg-indigo-500/10 text-indigo-500 px-1.5 py-0.5 rounded border border-indigo-500/20">
+                          {post.campaignStage}
+                        </span>
+                        <span className="text-[7px] font-black uppercase tracking-wider bg-slate-100 dark:bg-white/5 text-slate-400 px-1.5 py-0.5 rounded border border-slate-200 dark:border-white/10">
+                          {post.postObjective}
+                        </span>
+                      </div>
+
+                      {/* Editable AI Prompt */}
+                      <textarea
+                        value={post.prompt}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setCampaignPosts(prev => prev.map(p => p._id === post._id ? { ...p, prompt: val } : p));
+                        }}
+                        onBlur={e => handleUpdatePostField(post._id, { prompt: e.target.value })}
+                        className="w-full h-20 p-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-[9px] font-medium text-slate-600 dark:text-slate-400 focus:outline-none focus:border-primary/50 resize-none"
+                        placeholder="Customize AI prompt direction..."
+                      />
+
+                      {/* Caption Preview */}
+                      <div className="p-3 bg-slate-50/50 dark:bg-white/[0.01] rounded-xl border border-slate-100 dark:border-white/5">
+                        <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest block mb-1">Caption Preview</span>
+                        <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400 line-clamp-3 leading-relaxed">
+                          {post.caption || "Awaiting generation. Customize the prompt and click Generate."}
+                        </p>
+                      </div>
+
+                      {/* Expected Engagement & AI Score */}
+                      <div className="grid grid-cols-4 gap-2 text-center pt-1 border-t border-slate-100 dark:border-white/5">
+                        <div>
+                          <span className="text-[6px] font-black text-slate-400 uppercase tracking-wider block">AI Score</span>
+                          <span className="text-[9px] font-black text-indigo-500">{post.aiScore ? `${post.aiScore}%` : 'TBD'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[6px] font-black text-slate-400 uppercase tracking-wider block">Reach</span>
+                          <span className="text-[9px] font-black text-slate-700 dark:text-slate-300">{post.expectedReach || 'TBD'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[6px] font-black text-slate-400 uppercase tracking-wider block">Eng.</span>
+                          <span className="text-[9px] font-black text-slate-700 dark:text-slate-300">{post.expectedEngagement || 'TBD'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[6px] font-black text-slate-400 uppercase tracking-wider block">Best Time</span>
+                          <span className="text-[8px] font-black text-slate-700 dark:text-slate-300 whitespace-nowrap">{post.bestPostingTime || 'TBD'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex gap-2 pt-3 border-t border-slate-100 dark:border-white/5 mt-3 shrink-0">
+                      <button
+                        onClick={() => {
+                          // Normalize platform name to match GeneratePostModal's list
+                          const platformNameMap = {
+                            instagram: 'Instagram', facebook: 'Facebook',
+                            linkedin: 'LinkedIn', twitter: 'Twitter (X)',
+                            'x (twitter)': 'Twitter (X)', threads: 'Threads',
+                            tiktok: 'TikTok', pinterest: 'Pinterest', youtube: 'YouTube Community'
+                          };
+                          const rawPlatform = (post.platform || '').toLowerCase();
+                          const normalizedPlatform = platformNameMap[rawPlatform] || post.platform;
+                          const prefill = {
+                            postTopic: post.prompt || post.postObjective || '',
+                            keyMessage: post.campaignStage ? `Campaign Stage: ${post.campaignStage}` : '',
+                            platform: normalizedPlatform ? [normalizedPlatform] : [],
+                            contentType: [],
+                          };
+                          setWizardPrefill(prefill);
+                          setActiveTab('calendar');
+                          setShowGeneratorOptions(false);
+                          setShowWizard(true);
+                        }}
+                        className="flex-1 h-8 bg-primary hover:bg-primary/95 text-white rounded-lg text-[8px] font-black uppercase tracking-widest shadow-md flex items-center justify-center gap-1.5 transition-all"
+                      >
+                        <Sparkles className="w-3 h-3" />
+                        {post.status === 'Draft' ? 'Generate' : 'Regenerate'}
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setSelectedCampaignPost(post);
+                          setIsDrawerOpen(true);
+                        }}
+                        className="p-2 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-all flex items-center justify-center border border-slate-200 dark:border-white/10"
+                        title="Preview Details"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        onClick={async () => {
+                          const toastId = toast.loading("Duplicating card...");
+                          try {
+                            const newDate = new Date(post.date);
+                            newDate.setDate(newDate.getDate() + 1);
+                            const duplicated = {
+                              campaignId: post.campaignId,
+                              workspaceId: post.workspaceId,
+                              date: newDate,
+                              day: newDate.toLocaleDateString('en-US', { weekday: 'long' }),
+                              platform: post.platform,
+                              contentType: post.contentType,
+                              campaignStage: post.campaignStage,
+                              postObjective: post.postObjective,
+                              prompt: `[Copy] ${post.prompt}`,
+                              status: 'Draft',
+                              approvalStatus: 'Pending',
+                              bestPostingTime: post.bestPostingTime
+                            };
+                            const res = await apiService.createCampaignPost(duplicated);
+                            if (res.success) {
+                              setCampaignPosts(prev => [...prev, res.post].sort((a,b) => new Date(a.date) - new Date(b.date)));
+                              toast.success("Card duplicated successfully!", { id: toastId });
+                            }
+                          } catch {
+                            toast.error("Failed to duplicate card.", { id: toastId });
+                          }
+                        }}
+                        className="p-2 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-all flex items-center justify-center border border-slate-200 dark:border-white/10"
+                        title="Duplicate Card"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        onClick={() => handleDeletePost(post._id)}
+                        className="p-2 bg-slate-50 dark:bg-white/5 hover:bg-red-500/10 rounded-lg text-slate-400 hover:text-red-500 transition-all flex items-center justify-center border border-slate-200 dark:border-white/10"
+                        title="Delete Card"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         ) : (
-          <div className="p-20 bg-white dark:bg-[#080808]/50 rounded-[60px] border border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center text-center">
+          <div className="p-20 bg-white dark:bg-[#080808]/50 rounded-[40px] border border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center text-center">
             <div className="w-20 h-20 rounded-3xl bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-300 mb-6">
               <Layers className="w-8 h-8 opacity-20" />
             </div>
-            <h3 className="text-xs font-black text-slate-400 uppercase tracking-[4px]">Awaiting Pipeline Connection</h3>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">Select a brand strategy above to view and orchestrate content rows.</p>
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-[4px]">No Campaigns Active</h3>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">Configure campaign month and click Generate Calendar above to orchestrate publication schedules.</p>
           </div>
         )}
+
+        {/* ─── Side Drawer: Card Details Drawer ─── */}
+        <AnimatePresence>
+          {isDrawerOpen && selectedCampaignPost && (
+            <>
+              {/* Overlay background */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.5 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsDrawerOpen(false)}
+                className="fixed inset-0 bg-black z-40"
+              />
+
+              {/* Slide out drawer panel */}
+              <motion.div
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'tween', duration: 0.3 }}
+                className="fixed right-0 top-0 h-full w-[460px] max-w-full bg-white dark:bg-[#0c0c0c] border-l border-slate-200 dark:border-white/10 shadow-2xl z-50 p-6 flex flex-col justify-between"
+              >
+                <div className="flex-1 overflow-y-auto space-y-6 pr-2 custom-scrollbar">
+                  {/* Drawer Header */}
+                  <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-white/5">
+                    <div>
+                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{selectedCampaignPost.day}</span>
+                      <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">
+                        {new Date(selectedCampaignPost.date).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </h3>
+                    </div>
+                    <button
+                      onClick={() => setIsDrawerOpen(false)}
+                      className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 text-slate-400 dark:text-slate-500"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Drawer Content */}
+                  <div className="space-y-4">
+                    {/* Media Image Section */}
+                    <div>
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Generated Visual</label>
+                      {selectedCampaignPost.generatedImage ? (
+                        <div className="relative group rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 aspect-square bg-slate-50 flex items-center justify-center p-2">
+                          <img src={toProxyUrl(selectedCampaignPost.generatedImage)} className="w-full h-full object-contain" alt="Preview" />
+                        </div>
+                      ) : (
+                        <div className="border border-dashed border-slate-200 dark:border-white/10 rounded-2xl aspect-square flex flex-col items-center justify-center p-8 text-center bg-slate-50 dark:bg-white/[0.01]">
+                          <ImageIcon className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">No Visual Generated Yet</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Prompt info */}
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Target AI Prompt</label>
+                      <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-white/5 p-3 rounded-xl border border-slate-100 dark:border-white/5 leading-relaxed">
+                        {selectedCampaignPost.prompt}
+                      </p>
+                    </div>
+
+                    {/* Editable Caption */}
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Generated Caption Copy</label>
+                      <textarea
+                        value={selectedCampaignPost.caption || ''}
+                        onChange={e => handleUpdatePostField(selectedCampaignPost._id, { caption: e.target.value })}
+                        className="w-full h-32 p-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-[10px] font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:border-primary/50"
+                        placeholder="Click Generate to create AI caption..."
+                      />
+                    </div>
+
+                    {/* Editable CTA */}
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Call To Action (CTA)</label>
+                      <input
+                        type="text"
+                        value={selectedCampaignPost.cta || ''}
+                        onChange={e => handleUpdatePostField(selectedCampaignPost._id, { cta: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-[10px] font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:border-primary/50"
+                        placeholder="CTA link or prompt..."
+                      />
+                    </div>
+
+                    {/* Editable Hashtags */}
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Hashtags</label>
+                      <input
+                        type="text"
+                        value={Array.isArray(selectedCampaignPost.hashtags) ? selectedCampaignPost.hashtags.join(', ') : (selectedCampaignPost.hashtags || '')}
+                        onChange={e => handleUpdatePostField(selectedCampaignPost._id, { hashtags: e.target.value.split(',').map(s => s.trim()) })}
+                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-[10px] font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:border-primary/50"
+                        placeholder="e.g. ai, marketing, analytics"
+                      />
+                    </div>
+
+                    {/* SEO & Alt Text */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">SEO Keywords</label>
+                        <input
+                          type="text"
+                          value={selectedCampaignPost.seoKeywords || ''}
+                          onChange={e => handleUpdatePostField(selectedCampaignPost._id, { seoKeywords: e.target.value })}
+                          className="w-full px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-[10px] font-medium text-slate-700 dark:text-slate-300 focus:outline-none"
+                          placeholder="Keywords..."
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Alt Text</label>
+                        <input
+                          type="text"
+                          value={selectedCampaignPost.altText || ''}
+                          onChange={e => handleUpdatePostField(selectedCampaignPost._id, { altText: e.target.value })}
+                          className="w-full px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-[10px] font-medium text-slate-700 dark:text-slate-300 focus:outline-none"
+                          placeholder="Image description..."
+                        />
+                      </div>
+                    </div>
+
+                    {/* Publishing Time & Notes */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Best Time</label>
+                        <input
+                          type="text"
+                          value={selectedCampaignPost.bestPostingTime || ''}
+                          onChange={e => handleUpdatePostField(selectedCampaignPost._id, { bestPostingTime: e.target.value })}
+                          className="w-full px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-[10px] font-medium text-slate-700 dark:text-slate-300 focus:outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Approval Status</label>
+                        <select
+                          value={selectedCampaignPost.approvalStatus || 'Pending'}
+                          onChange={e => handleUpdatePostField(selectedCampaignPost._id, { approvalStatus: e.target.value })}
+                          className="w-full px-3 py-2 bg-slate-50 dark:bg-[#1a1a1a] border border-slate-200 dark:border-white/10 rounded-xl text-[10px] font-bold text-slate-700 dark:text-slate-300 focus:outline-none"
+                        >
+                          {['Pending', 'Approved', 'Rejected'].map(s => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Strategic Notes</label>
+                      <textarea
+                        value={selectedCampaignPost.notes || ''}
+                        onChange={e => handleUpdatePostField(selectedCampaignPost._id, { notes: e.target.value })}
+                        className="w-full h-20 p-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-[10px] font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:border-primary/50"
+                        placeholder="Add editorial notes..."
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-[#0c0c0c] flex gap-2 shrink-0">
+                  <button
+                    onClick={() => handleGenerateSingle(selectedCampaignPost._id)}
+                    className="flex-1 py-3 bg-primary hover:bg-primary/95 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md flex items-center justify-center gap-1.5"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Regenerate AI Copy
+                  </button>
+                  <button
+                    onClick={() => setIsDrawerOpen(false)}
+                    className="px-6 py-3 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-slate-200 transition-all"
+                  >
+                    Close
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
     );
   };
@@ -4833,10 +5547,11 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       <>
         <GeneratePostModal
           isOpen={showWizard}
-          onClose={() => setShowWizard(false)}
+          onClose={() => { setShowWizard(false); setWizardPrefill(null); }}
           onGenerate={async (config) => {
             await handleGenerateAiWizardContent(config);
           }}
+          initialConfig={wizardPrefill}
         />
         <GeneratePostModal
           isOpen={showManualGenModal}
@@ -7022,10 +7737,24 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
         workspaceId={workspace?._id}
         setActiveTab={setActiveTab}
         setShowGeneratorOptions={setShowGeneratorOptions}
-        onBrandSaved={async () => {
+        onBrandSaved={async (savedWorkspaceId) => {
           try {
+            // Always re-fetch ALL workspaces so Brand History stays complete
             const freshList = await apiService.getSocialAgentWorkspaces();
-            if (freshList.success) setAllWorkspaces(freshList.workspaces);
+            if (freshList.success) {
+              setAllWorkspaces(freshList.workspaces);
+              // If BrandWorkspace created a new workspace, make it the active one
+              if (savedWorkspaceId) {
+                const savedWs = freshList.workspaces.find(
+                  w => String(w._id) === String(savedWorkspaceId)
+                );
+                if (savedWs) {
+                  setWorkspace(savedWs);
+                  setCurrentEditingBrandId(savedWs._id);
+                  localStorage.setItem('brandWorkspaceId', String(savedWs._id));
+                }
+              }
+            }
           } catch (e) {
             console.warn('[BrandHistory] Failed to refresh workspace list:', e);
           }
@@ -7132,11 +7861,17 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                         {/* ── BRAND HISTORY ── */}
                         {(() => {
                           const activeBrands = allWorkspaces
-                            .filter(ws => !ws.isPersonalProfile)
+                            .filter(ws => !ws.isPersonalProfile && ws.onboarding?.completed)
                             .sort((a, b) => {
-                              if (a._id === workspace?._id) return -1;
-                              if (b._id === workspace?._id) return 1;
-                              return 0;
+                              // Active brand always first
+                              const aIsActive = String(a._id) === String(workspace?._id);
+                              const bIsActive = String(b._id) === String(workspace?._id);
+                              if (aIsActive) return -1;
+                              if (bIsActive) return 1;
+                              // Then sort by lastAccessedAt descending (most recent first)
+                              const aTime = a.lastAccessedAt ? new Date(a.lastAccessedAt).getTime() : new Date(a.createdAt || 0).getTime();
+                              const bTime = b.lastAccessedAt ? new Date(b.lastAccessedAt).getTime() : new Date(b.createdAt || 0).getTime();
+                              return bTime - aTime;
                             });
                           return (
                             <div className={`mb-6 ${isSidebarCollapsed ? 'px-1' : 'px-0'}`}>
@@ -7154,7 +7889,30 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                 </button>
                               )}
                               {((activeBrandsOpen && !isSidebarCollapsed) || (isSidebarCollapsed && activeBrands.length > 0)) && (
-                                <div className={`rounded-2xl bg-white/60 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 ${isSidebarCollapsed ? 'p-1.5' : 'p-2'} space-y-1 max-h-44 overflow-y-auto custom-scrollbar`}>
+                                <div className={`rounded-2xl bg-white/60 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 ${isSidebarCollapsed ? 'p-1.5' : 'p-2'} space-y-1 max-h-72 overflow-y-auto custom-scrollbar`}>
+                                  
+                                  {/* + CREATE NEW BRAND BUTTON */}
+                                  <div className="w-full">
+                                    <button
+                                      onClick={() => {
+                                        setWorkspace(null);
+                                        setCurrentEditingBrandId(null);
+                                        localStorage.removeItem('brandWorkspaceId');
+                                        setActiveTab('brand');
+                                        toast.success("Ready to setup a new Brand!");
+                                      }}
+                                      title="Create New Brand"
+                                      className={`w-full flex items-center justify-center transition-all border border-dashed border-slate-200 dark:border-white/10 hover:border-primary/50 text-slate-500 hover:text-primary hover:bg-primary/5 ${
+                                        isSidebarCollapsed
+                                          ? 'p-2 rounded-lg'
+                                          : 'gap-2 px-3 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider mb-2'
+                                      }`}
+                                    >
+                                      <Plus className={isSidebarCollapsed ? 'w-4 h-4 text-primary' : 'w-3.5 h-3.5'} />
+                                      {!isSidebarCollapsed && <span>Create New Brand</span>}
+                                    </button>
+                                  </div>
+
                                   {activeBrands.length === 0 ? (
                                     <div className="text-[9px] text-slate-400 dark:text-slate-500 text-center py-4 px-2 italic font-black uppercase tracking-wider">
                                       No Brands Setup
@@ -7162,7 +7920,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                   ) : (
                                     activeBrands.map(ws => {
                                       const wsLogo = ws.brandProfile?.logoUrl;
-                                      const isCurrent = workspace?._id === ws._id;
+                                      const isCurrent = workspace?._id && ws._id && String(workspace._id) === String(ws._id);
                                       const brandName = ws.brandProfile?.companyName || ws.workspaceName || 'Brand';
                                       return (
                                         <div key={ws._id} className="relative group/brand-row flex items-center gap-1.5 w-full">

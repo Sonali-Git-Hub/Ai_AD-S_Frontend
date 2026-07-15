@@ -34,7 +34,7 @@ const tones = [
   'Luxury', 'Funny', 'Persuasive', 'Inspirational'
 ];
 
-export default function GeneratePostModal({ isOpen, onClose, onGenerate, isManual = false }) {
+export default function GeneratePostModal({ isOpen, onClose, onGenerate, isManual = false, initialConfig = null }) {
   const [selectedPlatforms, setSelectedPlatforms] = useState([]);
   const [selectedContentTypes, setSelectedContentTypes] = useState([]);
   const [customContentType, setCustomContentType] = useState('');
@@ -57,14 +57,14 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate, isManua
   const [selectedGenerateModes, setSelectedGenerateModes] = useState(['caption']);
   const [description, setDescription] = useState('');
 
-  // Reset state when modal opens
+  // Reset state when modal opens (apply initialConfig prefill if provided)
   useEffect(() => {
     if (isOpen) {
-      setSelectedPlatforms([]);
-      setSelectedContentTypes([]);
+      setSelectedPlatforms(initialConfig?.platform || []);
+      setSelectedContentTypes(initialConfig?.contentType || []);
       setCustomContentType('');
-      setPostTopic('');
-      setKeyMessage('');
+      setPostTopic(initialConfig?.postTopic || '');
+      setKeyMessage(initialConfig?.keyMessage || '');
       setSelectedAudiences([]);
       setCustomAudience('');
       setSelectedTones([]);
