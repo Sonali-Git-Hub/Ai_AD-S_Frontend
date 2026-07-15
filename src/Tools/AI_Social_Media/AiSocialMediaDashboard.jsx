@@ -4049,10 +4049,6 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
         toast.error("Start Date cannot be greater than End Date.");
         return;
       }
-      if (!campaignConfig.platforms || campaignConfig.platforms.length === 0) {
-        toast.error("Please select at least one Target Platform.");
-        return;
-      }
       if (!campaignConfig.campaignName) {
         toast.error("Please enter a Campaign Name.");
         return;
@@ -4692,11 +4688,32 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                         {/* Actions */}
                         <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-white/5 mt-2 shrink-0">
                           <button
-                            onClick={() => handleGenerateSingle(activePost._id)}
+                            onClick={() => {
+                              // Navigate to Content Studio > Generate with AI, prefilled with this post's context
+                              const platformNameMap = {
+                                instagram: 'Instagram', facebook: 'Facebook',
+                                linkedin: 'LinkedIn', twitter: 'Twitter (X)',
+                                threads: 'Threads', tiktok: 'TikTok',
+                                pinterest: 'Pinterest', youtube: 'YouTube Community',
+                                'x (twitter)': 'Twitter (X)'
+                              };
+                              const rawPlatform = (activePost.platform || '').toLowerCase();
+                              const normalizedPlatform = platformNameMap[rawPlatform] || activePost.platform;
+                              const prefill = {
+                                postTopic: activePost.heading_hook || activePost.title || activePost.hook || activePost.prompt || '',
+                                keyMessage: activePost.subHeading || activePost.sub_heading || '',
+                                platform: normalizedPlatform ? [normalizedPlatform] : [],
+                                contentType: activePost.postType ? [activePost.postType] : [],
+                              };
+                              setWizardPrefill(prefill);
+                              setShowGeneratorOptions(false);
+                              setActiveTab('calendar');
+                              setShowWizard(true);
+                            }}
                             className="flex-1 h-8 bg-primary hover:bg-primary/95 text-white rounded-lg text-[8px] font-black uppercase tracking-widest shadow-md flex items-center justify-center gap-1.5 transition-all"
                           >
                             <Sparkles className="w-3 h-3" />
-                            {activePost.status === 'Draft' ? 'Generate' : 'Regenerate'}
+                            Generate with AI
                           </button>
 
                           <button
@@ -4762,116 +4779,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                           There is no post generated for {selectedDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}. Click on one of the purple-marked dates in the calendar to view its post content.
                         </p>
                       </div>
-<<<<<<< HEAD
-
-                      {/* Expected Engagement & AI Score */}
-                      <div className="grid grid-cols-4 gap-2 text-center pt-1 border-t border-slate-100 dark:border-white/5">
-                        <div>
-                          <span className="text-[6px] font-black text-slate-400 uppercase tracking-wider block">AI Score</span>
-                          <span className="text-[9px] font-black text-indigo-500">{post.aiScore ? `${post.aiScore}%` : 'TBD'}</span>
-                        </div>
-                        <div>
-                          <span className="text-[6px] font-black text-slate-400 uppercase tracking-wider block">Reach</span>
-                          <span className="text-[9px] font-black text-slate-700 dark:text-slate-300">{post.expectedReach || 'TBD'}</span>
-                        </div>
-                        <div>
-                          <span className="text-[6px] font-black text-slate-400 uppercase tracking-wider block">Eng.</span>
-                          <span className="text-[9px] font-black text-slate-700 dark:text-slate-300">{post.expectedEngagement || 'TBD'}</span>
-                        </div>
-                        <div>
-                          <span className="text-[6px] font-black text-slate-400 uppercase tracking-wider block">Best Time</span>
-                          <span className="text-[8px] font-black text-slate-700 dark:text-slate-300 whitespace-nowrap">{post.bestPostingTime || 'TBD'}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Action buttons */}
-                    <div className="flex gap-2 pt-3 border-t border-slate-100 dark:border-white/5 mt-3 shrink-0">
-                      <button
-                        onClick={() => {
-                          // Normalize platform name to match GeneratePostModal's list
-                          const platformNameMap = {
-                            instagram: 'Instagram', facebook: 'Facebook',
-                            linkedin: 'LinkedIn', twitter: 'Twitter (X)',
-                            'x (twitter)': 'Twitter (X)', threads: 'Threads',
-                            tiktok: 'TikTok', pinterest: 'Pinterest', youtube: 'YouTube Community'
-                          };
-                          const rawPlatform = (post.platform || '').toLowerCase();
-                          const normalizedPlatform = platformNameMap[rawPlatform] || post.platform;
-                          const prefill = {
-                            postTopic: post.prompt || post.postObjective || '',
-                            keyMessage: post.campaignStage ? `Campaign Stage: ${post.campaignStage}` : '',
-                            platform: normalizedPlatform ? [normalizedPlatform] : [],
-                            contentType: [],
-                          };
-                          setWizardPrefill(prefill);
-                          setActiveTab('calendar');
-                          setShowGeneratorOptions(false);
-                          setShowWizard(true);
-                        }}
-                        className="flex-1 h-8 bg-primary hover:bg-primary/95 text-white rounded-lg text-[8px] font-black uppercase tracking-widest shadow-md flex items-center justify-center gap-1.5 transition-all"
-                      >
-                        <Sparkles className="w-3 h-3" />
-                        {post.status === 'Draft' ? 'Generate' : 'Regenerate'}
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setSelectedCampaignPost(post);
-                          setIsDrawerOpen(true);
-                        }}
-                        className="p-2 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-all flex items-center justify-center border border-slate-200 dark:border-white/10"
-                        title="Preview Details"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                      </button>
-
-                      <button
-                        onClick={async () => {
-                          const toastId = toast.loading("Duplicating card...");
-                          try {
-                            const newDate = new Date(post.date);
-                            newDate.setDate(newDate.getDate() + 1);
-                            const duplicated = {
-                              campaignId: post.campaignId,
-                              workspaceId: post.workspaceId,
-                              date: newDate,
-                              day: newDate.toLocaleDateString('en-US', { weekday: 'long' }),
-                              platform: post.platform,
-                              contentType: post.contentType,
-                              campaignStage: post.campaignStage,
-                              postObjective: post.postObjective,
-                              prompt: `[Copy] ${post.prompt}`,
-                              status: 'Draft',
-                              approvalStatus: 'Pending',
-                              bestPostingTime: post.bestPostingTime
-                            };
-                            const res = await apiService.createCampaignPost(duplicated);
-                            if (res.success) {
-                              setCampaignPosts(prev => [...prev, res.post].sort((a,b) => new Date(a.date) - new Date(b.date)));
-                              toast.success("Card duplicated successfully!", { id: toastId });
-                            }
-                          } catch {
-                            toast.error("Failed to duplicate card.", { id: toastId });
-                          }
-                        }}
-                        className="p-2 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-all flex items-center justify-center border border-slate-200 dark:border-white/10"
-                        title="Duplicate Card"
-                      >
-                        <Copy className="w-3.5 h-3.5" />
-                      </button>
-
-                      <button
-                        onClick={() => handleDeletePost(post._id)}
-                        className="p-2 bg-slate-50 dark:bg-white/5 hover:bg-red-500/10 rounded-lg text-slate-400 hover:text-red-500 transition-all flex items-center justify-center border border-slate-200 dark:border-white/10"
-                        title="Delete Card"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-=======
                     )}
->>>>>>> eee17023b633f8c8007a0d7fe52f888bfba1138d
                   </div>
                 </div>
               );
