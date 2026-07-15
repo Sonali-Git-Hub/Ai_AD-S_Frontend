@@ -345,20 +345,40 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   const [stagedCalendarCount, setStagedCalendarCount] = useState(0);
   const [currentCampaign, setCurrentCampaign] = useState(null);
   const [campaignPosts, setCampaignPosts] = useState([]);
+  const [campaignHistory, setCampaignHistory] = useState([]);
+  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
+  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  // Auto-sync calendar view to campaign start date on load
+  useEffect(() => {
+    if (currentCampaign) {
+      const firstDate = currentCampaign.startDate ? new Date(currentCampaign.startDate) : new Date();
+      setCalendarMonth(firstDate.getMonth());
+      setCalendarYear(firstDate.getFullYear());
+      if (campaignPosts && campaignPosts.length > 0) {
+        setSelectedDate(new Date(campaignPosts[0].date));
+      } else {
+        setSelectedDate(firstDate);
+      }
+    }
+  }, [currentCampaign]);
   const [campaignConfig, setCampaignConfig] = useState({
-    campaignName: 'Q1 Launch Campaign',
+    campaignName: '',
     campaignMonth: 'January',
     postingFrequency: '3x Per Week',
     startDate: '',
     endDate: '',
-    campaignGoals: ['Brand Awareness'],
-    campaignGoal: 'Brand Awareness',
-    platforms: ['Instagram', 'LinkedIn']
+    campaignGoals: [],
+    campaignGoal: '',
+    platforms: []
   });
   const [selectedCampaignPost, setSelectedCampaignPost] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isCampaignLoading, setIsCampaignLoading] = useState(false);
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
+  const [aiRecommendations, setAiRecommendations] = useState([]);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
 
   // AI Ads™ Agent — Visual Post Generation state
   const [visualGenRowId, setVisualGenRowId] = useState(null); // tracks which card is actively generating
@@ -1056,12 +1076,29 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       setIsCampaignLoading(true);
       try {
         const campaignData = await apiService.getCampaign(wsId);
+        setCampaignHistory(campaignData.campaigns || []);
         if (campaignData.success && campaignData.campaign) {
           setCurrentCampaign(campaignData.campaign);
           setCampaignPosts(campaignData.posts || []);
+          setCampaignConfig({
+            campaignName: campaignData.campaign.campaignName || '',
+            campaignMonth: campaignData.campaign.campaignMonth || 'January',
+            postingFrequency: campaignData.campaign.postingFrequency || '3x Per Week',
+            startDate: campaignData.campaign.startDate ? campaignData.campaign.startDate.split('T')[0] : '',
+            endDate: campaignData.campaign.endDate ? campaignData.campaign.endDate.split('T')[0] : '',
+            campaignGoals: campaignData.campaign.campaignGoals || (campaignData.campaign.campaignGoal ? [campaignData.campaign.campaignGoal] : []),
+            campaignGoal: campaignData.campaign.campaignGoal || '',
+            platforms: campaignData.campaign.platforms || []
+          });
         } else {
           setCurrentCampaign(null);
           setCampaignPosts([]);
+          setCampaignConfig(prev => ({
+            ...prev,
+            campaignName: '',
+            startDate: '',
+            endDate: ''
+          }));
         }
       } catch (err) {
         console.error("Failed to load campaign data:", err);
@@ -3987,6 +4024,31 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
           setCurrentCampaign(res.campaign);
           setCampaignPosts(res.posts || []);
           toast.success("Campaign created and schedule generated successfully!");
+          
+          // Reload the campaign history list so the new campaign is available in dropdown
+          apiService.getCampaign(workspace._id).then(histData => {
+            if (histData.success && histData.campaigns) {
+              setCampaignHistory(histData.campaigns);
+            }
+          }).catch(() => {});
+
+          // Auto-fetch AI recommendations in background
+          setAiRecommendations([]);
+          setIsLoadingRecommendations(true);
+          apiService.getAIRecommendations({
+            workspaceId: workspace._id,
+            startDate: campaignConfig.startDate,
+            endDate: campaignConfig.endDate,
+            platforms: campaignConfig.platforms,
+            campaignGoals: campaignConfig.campaignGoals,
+            campaignGoal: Array.isArray(campaignConfig.campaignGoals) ? campaignConfig.campaignGoals.join(', ') : campaignConfig.campaignGoal,
+            campaignName: campaignConfig.campaignName,
+            postingFrequency: campaignConfig.postingFrequency
+          }).then(recRes => {
+            if (recRes.success && Array.isArray(recRes.recommendations)) {
+              setAiRecommendations(recRes.recommendations);
+            }
+          }).catch(() => {}).finally(() => setIsLoadingRecommendations(false));
         } else {
           toast.error(res.error || "Failed to create campaign");
         }
@@ -4158,36 +4220,62 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     };
 
     const campaignInfoCard = (
-      <div className="bg-white dark:bg-[#080808]/80 p-6 rounded-[32px] border border-slate-100 dark:border-white/5 shadow-xl flex flex-col justify-between">
+      <div className="bg-white dark:bg-[#080808]/80 p-4 rounded-[28px] border border-slate-100 dark:border-white/5 shadow-xl flex flex-col justify-between">
         <div>
-          <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-white/5 mb-4">
-            <Settings className="w-5 h-5 text-primary" />
-            <h3 className="text-sm font-black uppercase text-slate-800 dark:text-white tracking-wider">Campaign Info</h3>
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/5 mb-3">
+            <div className="flex items-center gap-2">
+              <Settings className="w-4 h-4 text-primary" />
+              <h3 className="text-xs font-black uppercase text-slate-800 dark:text-white tracking-wider">Campaign Info</h3>
+            </div>
+            {campaignHistory.length > 0 && (
+              <select
+                value={currentCampaign?._id || ''}
+                onChange={async (e) => {
+                  const selectedId = e.target.value;
+                  if (!selectedId) return;
+                  setIsCampaignLoading(true);
+                  try {
+                    const res = await apiService.getCampaign(selectedId);
+                    if (res.success && res.campaign) {
+                      setCurrentCampaign(res.campaign);
+                      setCampaignPosts(res.posts || []);
+                      setCampaignConfig({
+                        campaignName: res.campaign.campaignName || '',
+                        campaignMonth: res.campaign.campaignMonth || 'January',
+                        postingFrequency: res.campaign.postingFrequency || '3x Per Week',
+                        startDate: res.campaign.startDate ? res.campaign.startDate.split('T')[0] : '',
+                        endDate: res.campaign.endDate ? res.campaign.endDate.split('T')[0] : '',
+                        campaignGoals: res.campaign.campaignGoals || (res.campaign.campaignGoal ? [res.campaign.campaignGoal] : []),
+                        campaignGoal: res.campaign.campaignGoal || '',
+                        platforms: res.campaign.platforms || []
+                      });
+                    }
+                  } catch (err) {
+                    console.error("Failed to load selected campaign:", err);
+                  } finally {
+                    setIsCampaignLoading(false);
+                  }
+                }}
+                className="text-[9px] font-black uppercase tracking-wider px-2 py-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-slate-500 outline-none max-w-[150px] truncate"
+              >
+                <option value="" disabled>Campaign History</option>
+                {campaignHistory.map(c => (
+                  <option key={c._id} value={c._id}>{c.campaignName || 'Unnamed'}</option>
+                ))}
+              </select>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Campaign Name</label>
               <input
                 type="text"
                 value={campaignConfig.campaignName}
                 onChange={e => setCampaignConfig(prev => ({ ...prev, campaignName: e.target.value }))}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:border-primary/50"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:border-primary/50"
                 placeholder="e.g. Q1 Product Launch"
               />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Campaign Month</label>
-              <select
-                value={campaignConfig.campaignMonth}
-                onChange={e => setCampaignConfig(prev => ({ ...prev, campaignMonth: e.target.value }))}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-[#1a1a1a] border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:border-primary/50"
-              >
-                {['January','February','March','April','May','June','July','August','September','October','November','December'].map(m => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
             </div>
 
             <div className="space-y-1">
@@ -4195,7 +4283,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
               <select
                 value={campaignConfig.postingFrequency}
                 onChange={e => setCampaignConfig(prev => ({ ...prev, postingFrequency: e.target.value }))}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-[#1a1a1a] border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:border-primary/50"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-[#1a1a1a] border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:border-primary/50"
               >
                 {['Daily', '2x Per Week', '3x Per Week', '4x Per Week', '5x Per Week', 'Weekly', 'Bi Weekly', 'Monthly'].map(f => (
                   <option key={f} value={f}>{f}</option>
@@ -4209,7 +4297,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                 type="date"
                 value={campaignConfig.startDate}
                 onChange={e => setCampaignConfig(prev => ({ ...prev, startDate: e.target.value }))}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:border-primary/50"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:border-primary/50"
               />
             </div>
 
@@ -4219,76 +4307,15 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                 type="date"
                 value={campaignConfig.endDate}
                 onChange={e => setCampaignConfig(prev => ({ ...prev, endDate: e.target.value }))}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:border-primary/50"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:border-primary/50"
               />
-            </div>
-
-            <div className="space-y-1 sm:col-span-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2">Campaign Goals</label>
-              <div className="flex flex-wrap gap-1.5">
-                {['Brand Awareness', 'Product Launch', 'Festival Campaign', 'Educational', 'Sales', 'Lead Generation', 'Customer Engagement', 'Website Traffic', 'Custom'].map(goal => {
-                  const selected = campaignConfig.campaignGoals ? campaignConfig.campaignGoals.includes(goal) : false;
-                  return (
-                    <button
-                      key={goal}
-                      type="button"
-                      onClick={() => {
-                        setCampaignConfig(prev => {
-                          const currentGoals = prev.campaignGoals || [];
-                          const newGoals = currentGoals.includes(goal)
-                            ? currentGoals.filter(g => g !== goal)
-                            : [...currentGoals, goal];
-                          return { ...prev, campaignGoals: newGoals };
-                        });
-                      }}
-                      className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${
-                        selected
-                          ? 'bg-indigo-500 text-white border-indigo-500 shadow-sm shadow-indigo-500/20'
-                          : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 hover:border-slate-300 dark:hover:border-white/20'
-                      }`}
-                    >
-                      {goal}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="space-y-1 sm:col-span-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2">Target Platforms</label>
-              <div className="flex flex-wrap gap-1.5">
-                {['Instagram', 'Facebook', 'LinkedIn', 'Threads', 'Pinterest', 'YouTube', 'X (Twitter)', 'TikTok'].map(plat => {
-                  const selected = campaignConfig.platforms.includes(plat);
-                  return (
-                    <button
-                      key={plat}
-                      type="button"
-                      onClick={() => {
-                        setCampaignConfig(prev => {
-                          const newPlats = prev.platforms.includes(plat)
-                            ? prev.platforms.filter(p => p !== plat)
-                            : [...prev.platforms, plat];
-                          return { ...prev, platforms: newPlats };
-                        });
-                      }}
-                      className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border ${
-                        selected
-                          ? 'bg-primary text-white border-primary shadow-sm shadow-primary/20'
-                          : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 hover:border-slate-300 dark:hover:border-white/20'
-                      }`}
-                    >
-                      {plat}
-                    </button>
-                  );
-                })}
-              </div>
             </div>
           </div>
         </div>
 
-        <div className="space-y-4 mt-4">
+        <div className="space-y-3 mt-3">
           {campaignConfig.startDate && campaignConfig.endDate && (
-            <div className="flex items-center justify-between p-3 bg-primary/5 rounded-xl border border-primary/10">
+            <div className="flex items-center justify-between p-2.5 bg-primary/5 rounded-xl border border-primary/10">
               <span className="text-[9px] font-black uppercase text-primary/70 tracking-widest">Active Schedule Span</span>
               <span className="text-[10px] font-black text-primary uppercase tracking-widest">
                 {formatDateSpan(campaignConfig.startDate, campaignConfig.endDate)}
@@ -4299,9 +4326,9 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
           <button
             onClick={handleCreateCampaign}
             disabled={isCampaignLoading}
-            className="w-full py-3.5 bg-primary hover:bg-primary/95 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center gap-2"
+            className="w-full py-3 bg-primary hover:bg-primary/95 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center gap-2"
           >
-            <Sparkles className="w-4.5 h-4.5" />
+            <Sparkles className="w-4 h-4" />
             {isCampaignLoading ? "Generating Intelligent Framework..." : "Generate Calendar"}
           </button>
         </div>
@@ -4309,21 +4336,21 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     );
 
     const campaignProgressCard = (
-      <div className="bg-white dark:bg-[#080808]/50 p-6 rounded-[28px] border border-slate-100 dark:border-white/5 shadow-sm space-y-4 flex flex-col justify-between">
+      <div className="bg-white dark:bg-[#080808]/50 p-4 rounded-[28px] border border-slate-100 dark:border-white/5 shadow-sm flex flex-col justify-between">
         <div>
-          <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-white/5 mb-4">
+          <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-white/5 mb-3">
             <div>
-              <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-widest">Campaign Progress: {currentCampaign?.campaignName}</h3>
+              <h3 className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-widest">Campaign Progress: {currentCampaign?.campaignName}</h3>
               <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">{totalCount} Scheduled Publication Days</p>
             </div>
-            <span className="text-xs font-black text-primary bg-primary/10 px-3 py-1 rounded-full">{progressPercent}% Completed</span>
+            <span className="text-[10px] font-black text-primary bg-primary/10 px-2.5 py-1 rounded-full">{progressPercent}% Completed</span>
           </div>
 
-          <div className="w-full bg-slate-100 dark:bg-white/5 h-2 rounded-full overflow-hidden mb-4">
+          <div className="w-full bg-slate-100 dark:bg-white/5 h-1.5 rounded-full overflow-hidden mb-3">
             <div className="bg-primary h-full transition-all duration-1000" style={{ width: `${progressPercent}%` }} />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             {[
               { label: "Total Posts", val: totalCount },
               { label: "Generated", val: generatedCount },
@@ -4332,8 +4359,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
               { label: "Published", val: publishedCount },
               { label: "Remaining", val: remainingCount }
             ].map((c, idx) => (
-              <div key={idx} className="p-3.5 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl text-center">
-                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-1">{c.label}</span>
+              <div key={idx} className="p-3 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl text-center">
+                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">{c.label}</span>
                 <span className="text-sm font-black text-slate-800 dark:text-white">{c.val}</span>
               </div>
             ))}
@@ -4364,279 +4391,334 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
           </div>
         ) : currentCampaign ? (
           <div className="space-y-8 animate-in slide-in-from-bottom-8 duration-700">
-            {/* ── Bulk Actions Panel ── */}
-            <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-[24px]">
-              <div className="flex gap-2">
-                <button
-                  onClick={handleGenerateAll}
-                  disabled={isGeneratingAll || remainingCount === 0}
-                  className="px-4 py-2.5 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md hover:opacity-95 transition-opacity disabled:opacity-50 flex items-center gap-2"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Generate All
-                </button>
-                <button
-                  onClick={handleRegenerateAll}
-                  disabled={isGeneratingAll}
-                  className="px-4 py-2.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-slate-50 transition-all flex items-center gap-2"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  Regenerate All
-                </button>
-                <button
-                  onClick={handleDeleteAll}
-                  className="px-4 py-2.5 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-2"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Delete All
-                </button>
-              </div>
+            {(() => {
+              const isSameDay = (date1, date2) => {
+                if (!date1 || !date2) return false;
+                const d1 = new Date(date1);
+                const d2 = new Date(date2);
+                return d1.getDate() === d2.getDate() &&
+                       d1.getMonth() === d2.getMonth() &&
+                       d1.getFullYear() === d2.getFullYear();
+              };
 
-              <div className="flex gap-2">
-                <button
-                  onClick={async () => {
-                    const name = window.prompt("Enter new campaign name:", `Copy of ${currentCampaign.campaignName}`);
-                    if (!name) return;
-                    setIsCampaignLoading(true);
-                    try {
-                      const payload = {
-                        workspaceId: workspace._id,
-                        ...campaignConfig,
-                        campaignName: name
-                      };
-                      const res = await apiService.createCampaign(payload);
-                      if (res.success) {
-                        setCurrentCampaign(res.campaign);
-                        setCampaignPosts(res.posts || []);
-                        toast.success("Campaign duplicated successfully!");
-                      }
-                    } catch {
-                      toast.error("Failed to duplicate campaign.");
-                    } finally {
-                      setIsCampaignLoading(false);
-                    }
-                  }}
-                  className="px-4 py-2.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-slate-50 transition-all flex items-center gap-2"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  Duplicate Campaign
-                </button>
-                <button
-                  onClick={handleExportCampaign}
-                  className="px-4 py-2.5 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md hover:bg-emerald-600 transition-all flex items-center gap-2"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  Export Campaign
-                </button>
-              </div>
-            </div>
+              const monthNames = [
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+              ];
 
-            {/* ── AI Recommendation Panel ── */}
-            <div className="bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-[28px] p-6 space-y-4">
-              <div className="flex items-center gap-2">
-                <BrainCircuit className="w-5 h-5 text-indigo-500" />
-                <h4 className="text-xs font-black uppercase tracking-wider dark:text-white">AI Recommendations & High Engagement Opportunities</h4>
-              </div>
+              const getCalendarCells = (year, month) => {
+                const firstDay = new Date(year, month, 1).getDay();
+                const startOffset = firstDay === 0 ? 6 : firstDay - 1;
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  { title: "Raksha Bandhan Campaign special", desc: "Prep sibling appreciation and festive offers for mid-campaign.", type: 'raksha' },
-                  { title: "Highest engagement day detected", desc: "Tuesday holds 24% higher engagement. Educational infographic recommended.", type: 'tuesday' },
-                  { title: "Optimize weekend reach on Facebook", desc: "Weekend stories and lifestyle BTS perform best. Align story prompts.", type: 'weekend' },
-                ].map((rec, i) => (
-                  <div key={i} className="p-4 bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl flex items-center justify-between gap-4">
-                    <div className="min-w-0">
-                      <h5 className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-wider">{rec.title}</h5>
-                      <p className="text-[9px] text-slate-400 font-medium truncate mt-0.5">{rec.desc}</p>
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+                const cells = [];
+
+                for (let i = startOffset - 1; i >= 0; i--) {
+                  cells.push({
+                    day: daysInPrevMonth - i,
+                    month: month === 0 ? 11 : month - 1,
+                    year: month === 0 ? year - 1 : year,
+                    isCurrentMonth: false
+                  });
+                }
+
+                for (let i = 1; i <= daysInMonth; i++) {
+                  cells.push({
+                    day: i,
+                    month,
+                    year,
+                    isCurrentMonth: true
+                  });
+                }
+
+                const remaining = 42 - cells.length;
+                for (let i = 1; i <= remaining; i++) {
+                  cells.push({
+                    day: i,
+                    month: month === 11 ? 0 : month + 1,
+                    year: month === 11 ? year + 1 : year,
+                    isCurrentMonth: false
+                  });
+                }
+
+                return cells;
+              };
+
+              const calendarCells = getCalendarCells(calendarYear, calendarMonth);
+
+              const handlePrevMonth = () => {
+                if (calendarMonth === 0) {
+                  setCalendarMonth(11);
+                  setCalendarYear(prev => prev - 1);
+                } else {
+                  setCalendarMonth(prev => prev - 1);
+                }
+              };
+
+              const handleNextMonth = () => {
+                if (calendarMonth === 11) {
+                  setCalendarMonth(0);
+                  setCalendarYear(prev => prev + 1);
+                } else {
+                  setCalendarMonth(prev => prev + 1);
+                }
+              };
+
+              const activePost = campaignPosts.find(p => isSameDay(p.date, selectedDate));
+
+              return (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                  {/* Calendar Widget panel */}
+                  <div className="lg:col-span-5 bg-white dark:bg-[#080808]/80 p-6 rounded-[28px] border border-slate-100 dark:border-white/5 shadow-xl space-y-4">
+                    {/* Header */}
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
+                      <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">
+                        {monthNames[calendarMonth]}, {calendarYear}
+                      </h3>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handlePrevMonth}
+                          className="p-1.5 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-400 hover:text-slate-600 transition-all"
+                        >
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={handleNextMonth}
+                          className="p-1.5 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-400 hover:text-slate-600 transition-all"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => applySuggestion(rec.type)}
-                      className="px-3 py-1.5 bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500 hover:text-white rounded-lg text-[8px] font-black uppercase tracking-widest shrink-0 transition-all"
-                    >
-                      One-Click Apply
-                    </button>
+
+                    {/* Weekday headers */}
+                    <div className="grid grid-cols-7 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(dayName => (
+                        <div key={dayName} className="py-2">{dayName}</div>
+                      ))}
+                    </div>
+
+                    {/* Calendar cells grid */}
+                    <div className="grid grid-cols-7 gap-y-2 text-center text-xs font-bold">
+                      {calendarCells.map((cell, cellIdx) => {
+                        const cellDate = new Date(cell.year, cell.month, cell.day);
+                        const hasPost = campaignPosts.some(p => isSameDay(p.date, cellDate));
+                        const isSelected = isSameDay(cellDate, selectedDate);
+
+                        return (
+                          <div key={cellIdx} className="flex justify-center items-center relative aspect-square">
+                            <button
+                              onClick={() => {
+                                setSelectedDate(cellDate);
+                              }}
+                              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all text-[11px] ${
+                                !cell.isCurrentMonth
+                                  ? 'text-slate-300 dark:text-slate-600'
+                                  : 'text-slate-700 dark:text-slate-300'
+                              } ${
+                                hasPost
+                                  ? 'bg-indigo-600 text-white font-black shadow-md shadow-indigo-600/30'
+                                  : 'hover:bg-slate-50 dark:hover:bg-white/5'
+                              } ${
+                                isSelected
+                                  ? 'ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-[#080808] scale-110'
+                                  : ''
+                              }`}
+                            >
+                              {cell.day}
+                            </button>
+                            {hasPost && !isSelected && (
+                              <span className="absolute bottom-1 w-1.5 h-1.5 bg-indigo-300 rounded-full animate-pulse" />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
 
-            {/* ── Generated Day Cards Grid ── */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {campaignPosts.map((post, idx) => {
-                const dateObj = new Date(post.date);
-                const dateStr = dateObj.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+                  {/* Active day's post card */}
+                  <div className="lg:col-span-7">
+                    {activePost ? (
+                      <div key={activePost._id} className="bg-white dark:bg-[#0c0c0c] border border-slate-200 dark:border-white/10 rounded-[28px] p-6 space-y-4 hover:shadow-xl hover:border-primary/20 transition-all flex flex-col justify-between">
+                        <div className="space-y-3">
+                          {/* Card Header */}
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">
+                                {new Date(activePost.date).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              </h4>
+                              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{activePost.day}</span>
+                            </div>
 
-                return (
-                  <div key={post._id} className="bg-white dark:bg-[#0c0c0c] border border-slate-200 dark:border-white/10 rounded-[28px] p-6 space-y-4 hover:shadow-xl hover:border-primary/20 transition-all flex flex-col justify-between">
-                    <div className="space-y-3">
-                      {/* Card Header: Date & Day */}
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight">{dateStr}</h4>
-                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{post.day}</span>
+                            {/* Status */}
+                            <select
+                              value={activePost.status}
+                              onChange={e => handleUpdatePostField(activePost._id, { status: e.target.value })}
+                              className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border outline-none cursor-pointer ${
+                                activePost.status === 'Draft' ? 'bg-slate-50 dark:bg-white/5 text-slate-400 border-slate-200 dark:border-white/10' :
+                                activePost.status === 'Generated' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
+                                activePost.status === 'Approved' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                                activePost.status === 'Scheduled' ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' :
+                                activePost.status === 'Published' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' :
+                                'bg-red-500/10 text-red-500 border-red-500/20'
+                              }`}
+                            >
+                              {['Draft', 'Generated', 'Approved', 'Scheduled', 'Published', 'Failed'].map(st => (
+                                <option key={st} value={st}>{st}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Dropdowns */}
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-0.5">
+                              <span className="text-[6px] font-black text-slate-400 uppercase tracking-wider block">Platform</span>
+                              <select
+                                value={activePost.platform}
+                                onChange={e => handleUpdatePostField(activePost._id, { platform: e.target.value })}
+                                className="w-full text-[9px] font-black uppercase tracking-wide px-2 py-1.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-primary outline-none"
+                              >
+                                {['Instagram', 'Facebook', 'LinkedIn', 'Threads', 'Pinterest', 'YouTube', 'X (Twitter)', 'TikTok'].map(p => (
+                                  <option key={p} value={p}>{p}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div className="space-y-0.5">
+                              <span className="text-[6px] font-black text-slate-400 uppercase tracking-wider block">Post Type</span>
+                              <select
+                                value={activePost.postType || activePost.contentType || 'Image'}
+                                onChange={e => handleUpdatePostField(activePost._id, { postType: e.target.value, contentType: e.target.value })}
+                                className="w-full text-[9px] font-bold px-2 py-1.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-slate-600 dark:text-slate-300 outline-none"
+                              >
+                                {['Image', 'Carousel'].map(c => (
+                                  <option key={c} value={c}>{c}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* Carousel Size */}
+                          {(activePost.postType === 'Carousel' || activePost.contentType === 'Carousel') && (
+                            <div className="space-y-0.5">
+                              <span className="text-[6px] font-black text-slate-400 uppercase tracking-wider block">Carousel Size</span>
+                              <select
+                                value={activePost.carouselImages || 2}
+                                onChange={e => handleUpdatePostField(activePost._id, { carouselImages: Number(e.target.value) })}
+                                className="w-full text-[9px] font-bold px-2 py-1.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-slate-600 dark:text-slate-300 outline-none"
+                              >
+                                {[2, 3, 4, 5].map(num => (
+                                  <option key={num} value={num}>{num} Images</option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+
+                          {/* Post For Dropdown */}
+                          <div className="space-y-0.5">
+                            <span className="text-[6px] font-black text-slate-400 uppercase tracking-wider block">Post For</span>
+                            <select
+                              value={activePost.postFor || 'Brand Awareness'}
+                              onChange={e => handleUpdatePostField(activePost._id, { postFor: e.target.value })}
+                              className="w-full text-[9px] font-bold px-2 py-1.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-slate-600 dark:text-slate-300 outline-none"
+                            >
+                              {[
+                                "Brand Awareness", "Product Promotion", "Special Offer", "Festival Offer",
+                                "Flash Sale", "Discount", "Product Launch", "Customer Testimonial",
+                                "Customer Success Story", "Educational", "Tips & Tricks", "How To Guide",
+                                "Behind The Scenes", "Team Introduction", "Company Culture", "Event Promotion",
+                                "Announcement", "Quote", "Motivational Quote", "Industry Insights",
+                                "FAQ", "Poll", "Contest", "Giveaway", "Engagement Post", "Feature Highlight",
+                                "Case Study", "Before & After", "Seasonal Campaign", "Limited Time Offer",
+                                "New Arrival", "Service Highlight", "Brand Story", "CSR Activity",
+                                "Partnership", "Milestone Celebration", "User Generated Content"
+                              ].map(opt => (
+                                <option key={opt} value={opt}>{opt}</option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
 
-                        {/* Status Select */}
-                        <select
-                          value={post.status}
-                          onChange={e => handleUpdatePostField(post._id, { status: e.target.value })}
-                          className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border outline-none cursor-pointer ${
-                            post.status === 'Draft' ? 'bg-slate-50 dark:bg-white/5 text-slate-400 border-slate-200 dark:border-white/10' :
-                            post.status === 'Generated' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
-                            post.status === 'Approved' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
-                            post.status === 'Scheduled' ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' :
-                            post.status === 'Published' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' :
-                            'bg-red-500/10 text-red-500 border-red-500/20'
-                          }`}
-                        >
-                          {['Draft', 'Generated', 'Approved', 'Scheduled', 'Published', 'Failed'].map(st => (
-                            <option key={st} value={st}>{st}</option>
-                          ))}
-                        </select>
+                        {/* Actions */}
+                        <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-white/5 mt-2 shrink-0">
+                          <button
+                            onClick={() => handleGenerateSingle(activePost._id)}
+                            className="flex-1 h-8 bg-primary hover:bg-primary/95 text-white rounded-lg text-[8px] font-black uppercase tracking-widest shadow-md flex items-center justify-center gap-1.5 transition-all"
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            {activePost.status === 'Draft' ? 'Generate' : 'Regenerate'}
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setSelectedCampaignPost(activePost);
+                              setIsDrawerOpen(true);
+                            }}
+                            className="p-2 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-all flex items-center justify-center border border-slate-200 dark:border-white/10"
+                            title="Preview Details"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
+                            onClick={async () => {
+                              const toastId = toast.loading("Duplicating card...");
+                              try {
+                                const newDate = new Date(activePost.date);
+                                newDate.setDate(newDate.getDate() + 1);
+                                const duplicated = {
+                                  campaignId: activePost.campaignId,
+                                  workspaceId: activePost.workspaceId,
+                                  date: newDate,
+                                  day: newDate.toLocaleDateString('en-US', { weekday: 'long' }),
+                                  platform: activePost.platform,
+                                  contentType: activePost.contentType,
+                                  campaignStage: activePost.campaignStage,
+                                  postObjective: activePost.postObjective,
+                                  prompt: `[Copy] ${activePost.prompt}`,
+                                  status: 'Draft',
+                                  approvalStatus: 'Pending',
+                                  bestPostingTime: activePost.bestPostingTime
+                                };
+                                const res = await apiService.createCampaignPost(duplicated);
+                                if (res.success) {
+                                  setCampaignPosts(prev => [...prev, res.post].sort((a,b) => new Date(a.date) - new Date(b.date)));
+                                  toast.success("Card duplicated successfully!", { id: toastId });
+                                }
+                              } catch {
+                                toast.error("Failed to duplicate card.", { id: toastId });
+                              }
+                            }}
+                            className="p-2 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-all flex items-center justify-center border border-slate-200 dark:border-white/10"
+                            title="Duplicate Card"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
+                            onClick={() => handleDeletePost(activePost._id)}
+                            className="p-2 bg-slate-50 dark:bg-white/5 hover:bg-red-500/10 rounded-lg text-slate-400 hover:text-red-500 transition-all flex items-center justify-center border border-slate-200 dark:border-white/10"
+                            title="Delete Card"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
-
-                      {/* Dropdown Selectors: Platform & Format */}
-                      <div className="grid grid-cols-2 gap-2">
-                        <select
-                          value={post.platform}
-                          onChange={e => handleUpdatePostField(post._id, { platform: e.target.value })}
-                          className="w-full text-[9px] font-black uppercase tracking-wide px-2 py-1.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-primary outline-none"
-                        >
-                          {['Instagram', 'Facebook', 'LinkedIn', 'Threads', 'Pinterest', 'YouTube', 'X (Twitter)', 'TikTok'].map(p => (
-                            <option key={p} value={p}>{p}</option>
-                          ))}
-                        </select>
-
-                        <select
-                          value={post.contentType}
-                          onChange={e => handleUpdatePostField(post._id, { contentType: e.target.value })}
-                          className="w-full text-[9px] font-bold px-2 py-1.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-slate-600 dark:text-slate-300 outline-none"
-                        >
-                          {['Image', 'Carousel', 'Reel', 'Story', 'Video', 'Text', 'Thread', 'Poll', 'Quote', 'Infographic'].map(c => (
-                            <option key={c} value={c}>{c}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Stage & Objective tags */}
-                      <div className="flex gap-1.5">
-                        <span className="text-[7px] font-black uppercase tracking-wider bg-indigo-500/10 text-indigo-500 px-1.5 py-0.5 rounded border border-indigo-500/20">
-                          {post.campaignStage}
-                        </span>
-                        <span className="text-[7px] font-black uppercase tracking-wider bg-slate-100 dark:bg-white/5 text-slate-400 px-1.5 py-0.5 rounded border border-slate-200 dark:border-white/10">
-                          {post.postObjective}
-                        </span>
-                      </div>
-
-                      {/* Editable AI Prompt */}
-                      <textarea
-                        value={post.prompt}
-                        onChange={e => {
-                          const val = e.target.value;
-                          setCampaignPosts(prev => prev.map(p => p._id === post._id ? { ...p, prompt: val } : p));
-                        }}
-                        onBlur={e => handleUpdatePostField(post._id, { prompt: e.target.value })}
-                        className="w-full h-20 p-2.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-[9px] font-medium text-slate-600 dark:text-slate-400 focus:outline-none focus:border-primary/50 resize-none"
-                        placeholder="Customize AI prompt direction..."
-                      />
-
-                      {/* Caption Preview */}
-                      <div className="p-3 bg-slate-50/50 dark:bg-white/[0.01] rounded-xl border border-slate-100 dark:border-white/5">
-                        <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest block mb-1">Caption Preview</span>
-                        <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400 line-clamp-3 leading-relaxed">
-                          {post.caption || "Awaiting generation. Customize the prompt and click Generate."}
+                    ) : (
+                      <div className="bg-white dark:bg-[#0c0c0c] border border-dashed border-slate-200 dark:border-white/10 rounded-[28px] p-12 text-center flex flex-col items-center justify-center h-full min-h-[300px]">
+                        <Calendar className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-3" />
+                        <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">No Post Scheduled</h5>
+                        <p className="text-[9px] text-slate-400 font-medium mt-1 leading-normal max-w-xs">
+                          There is no post generated for {selectedDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}. Click on one of the purple-marked dates in the calendar to view its post content.
                         </p>
                       </div>
-
-                      {/* Expected Engagement & AI Score */}
-                      <div className="grid grid-cols-4 gap-2 text-center pt-1 border-t border-slate-100 dark:border-white/5">
-                        <div>
-                          <span className="text-[6px] font-black text-slate-400 uppercase tracking-wider block">AI Score</span>
-                          <span className="text-[9px] font-black text-indigo-500">{post.aiScore ? `${post.aiScore}%` : 'TBD'}</span>
-                        </div>
-                        <div>
-                          <span className="text-[6px] font-black text-slate-400 uppercase tracking-wider block">Reach</span>
-                          <span className="text-[9px] font-black text-slate-700 dark:text-slate-300">{post.expectedReach || 'TBD'}</span>
-                        </div>
-                        <div>
-                          <span className="text-[6px] font-black text-slate-400 uppercase tracking-wider block">Eng.</span>
-                          <span className="text-[9px] font-black text-slate-700 dark:text-slate-300">{post.expectedEngagement || 'TBD'}</span>
-                        </div>
-                        <div>
-                          <span className="text-[6px] font-black text-slate-400 uppercase tracking-wider block">Best Time</span>
-                          <span className="text-[8px] font-black text-slate-700 dark:text-slate-300 whitespace-nowrap">{post.bestPostingTime || 'TBD'}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Action buttons */}
-                    <div className="flex gap-2 pt-3 border-t border-slate-100 dark:border-white/5 mt-3 shrink-0">
-                      <button
-                        onClick={() => handleGenerateSingle(post._id)}
-                        className="flex-1 h-8 bg-primary hover:bg-primary/95 text-white rounded-lg text-[8px] font-black uppercase tracking-widest shadow-md flex items-center justify-center gap-1.5 transition-all"
-                      >
-                        <Sparkles className="w-3 h-3" />
-                        {post.status === 'Draft' ? 'Generate' : 'Regenerate'}
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setSelectedCampaignPost(post);
-                          setIsDrawerOpen(true);
-                        }}
-                        className="p-2 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-all flex items-center justify-center border border-slate-200 dark:border-white/10"
-                        title="Preview Details"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                      </button>
-
-                      <button
-                        onClick={async () => {
-                          const toastId = toast.loading("Duplicating card...");
-                          try {
-                            const newDate = new Date(post.date);
-                            newDate.setDate(newDate.getDate() + 1);
-                            const duplicated = {
-                              campaignId: post.campaignId,
-                              workspaceId: post.workspaceId,
-                              date: newDate,
-                              day: newDate.toLocaleDateString('en-US', { weekday: 'long' }),
-                              platform: post.platform,
-                              contentType: post.contentType,
-                              campaignStage: post.campaignStage,
-                              postObjective: post.postObjective,
-                              prompt: `[Copy] ${post.prompt}`,
-                              status: 'Draft',
-                              approvalStatus: 'Pending',
-                              bestPostingTime: post.bestPostingTime
-                            };
-                            const res = await apiService.createCampaignPost(duplicated);
-                            if (res.success) {
-                              setCampaignPosts(prev => [...prev, res.post].sort((a,b) => new Date(a.date) - new Date(b.date)));
-                              toast.success("Card duplicated successfully!", { id: toastId });
-                            }
-                          } catch {
-                            toast.error("Failed to duplicate card.", { id: toastId });
-                          }
-                        }}
-                        className="p-2 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-all flex items-center justify-center border border-slate-200 dark:border-white/10"
-                        title="Duplicate Card"
-                      >
-                        <Copy className="w-3.5 h-3.5" />
-                      </button>
-
-                      <button
-                        onClick={() => handleDeletePost(post._id)}
-                        className="p-2 bg-slate-50 dark:bg-white/5 hover:bg-red-500/10 rounded-lg text-slate-400 hover:text-red-500 transition-all flex items-center justify-center border border-slate-200 dark:border-white/10"
-                        title="Delete Card"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                    )}
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })()}
           </div>
         ) : (
           <div className="p-20 bg-white dark:bg-[#080808]/50 rounded-[40px] border border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center text-center">
