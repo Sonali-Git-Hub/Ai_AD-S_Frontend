@@ -2200,6 +2200,15 @@ export const apiService = {
       throw error;
     }
   },
+  async getAIRecommendations(data) {
+    try {
+      const response = await apiClient.post('/calendar/recommendations', data);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch AI recommendations:", error);
+      throw error;
+    }
+  },
 
   async uploadEvidence(caseId, data) {
     try {
