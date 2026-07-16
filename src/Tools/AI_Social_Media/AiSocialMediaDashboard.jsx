@@ -2235,7 +2235,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
           {[
             {
               id: 'brands',
-              label: 'Brand History',
+              label: 'Total Brand',
               val: allWorkspaces.filter(ws => !ws.isPersonalProfile && ws.onboarding?.completed).length,
               icon: Palette,
               color: 'text-indigo-500',
@@ -2256,6 +2256,30 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
           ))}
         </div>
 
+        {/* ── AI Ads™ Engine Promotion Banner ── */}
+        <div className="p-6 md:p-8 rounded-[28px] bg-gradient-to-r from-[#0d2240] to-[#122e54] border border-[#1b3d68] relative overflow-hidden flex flex-col justify-center space-y-3.5 shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-500">
+          {/* Top Badge */}
+          <div className="flex items-center gap-2 self-start bg-[#163a65] border border-[#23538a] px-3 py-1 rounded-full text-[9px] font-black text-slate-300 uppercase tracking-widest">
+            <Target className="w-3.5 h-3.5 text-blue-400" />
+            <span>AI Ads™ ENGINE</span>
+          </div>
+
+          {/* Heading */}
+          <h2 className="text-xl md:text-2xl font-black text-white tracking-tight leading-tight max-w-xl">
+            Struggling to come up with daily social posts?{' '}
+            <span className="text-[#3b82f6] dark:text-[#60a5fa]">Not Anymore.</span>
+          </h2>
+
+          {/* Subheading */}
+          <p className="text-xs font-bold text-slate-300 max-w-lg leading-relaxed uppercase tracking-wider">
+            Introducing <span className="underline decoration-blue-400 decoration-2 underline-offset-4 font-black text-white">AI Ads™ Generator</span> to Create Ready-To-Post Creatives in Seconds!
+          </p>
+
+          {/* Decorative background visual element representing a subtle star/sparkle */}
+          <div className="absolute right-8 top-1/2 -translate-y-1/2 opacity-[0.08] pointer-events-none hidden md:block">
+            <Sparkles className="w-32 h-32 text-white animate-pulse" />
+          </div>
+        </div>
 
         {/* ── SECTION 6: Intelligence & Visual Vault ─────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
@@ -4271,43 +4295,70 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
               <Settings className="w-4 h-4 text-primary" />
               <h3 className="text-xs font-black uppercase text-slate-800 dark:text-white tracking-wider">Campaign Info</h3>
             </div>
-            {campaignHistory.length > 0 && (
-              <select
-                value={currentCampaign?._id || ''}
-                onChange={async (e) => {
-                  const selectedId = e.target.value;
-                  if (!selectedId) return;
-                  setIsCampaignLoading(true);
-                  try {
-                    const res = await apiService.getCampaign(selectedId);
-                    if (res.success && res.campaign) {
-                      setCurrentCampaign(res.campaign);
-                      setCampaignPosts(res.posts || []);
-                      setCampaignConfig({
-                        campaignName: res.campaign.campaignName || '',
-                        campaignMonth: res.campaign.campaignMonth || 'January',
-                        postingFrequency: res.campaign.postingFrequency || '3x Per Week',
-                        startDate: res.campaign.startDate ? res.campaign.startDate.split('T')[0] : '',
-                        endDate: res.campaign.endDate ? res.campaign.endDate.split('T')[0] : '',
-                        campaignGoals: res.campaign.campaignGoals || (res.campaign.campaignGoal ? [res.campaign.campaignGoal] : []),
-                        campaignGoal: res.campaign.campaignGoal || '',
-                        platforms: res.campaign.platforms || []
-                      });
+            
+            <div className="flex items-center gap-2">
+              {campaignHistory.length > 0 && (
+                <select
+                  value={currentCampaign?._id || ''}
+                  onChange={async (e) => {
+                    const selectedId = e.target.value;
+                    if (!selectedId) return;
+                    setIsCampaignLoading(true);
+                    try {
+                      const res = await apiService.getCampaign(selectedId);
+                      if (res.success && res.campaign) {
+                        setCurrentCampaign(res.campaign);
+                        setCampaignPosts(res.posts || []);
+                        setCampaignConfig({
+                          campaignName: res.campaign.campaignName || '',
+                          campaignMonth: res.campaign.campaignMonth || 'January',
+                          postingFrequency: res.campaign.postingFrequency || '3x Per Week',
+                          startDate: res.campaign.startDate ? res.campaign.startDate.split('T')[0] : '',
+                          endDate: res.campaign.endDate ? res.campaign.endDate.split('T')[0] : '',
+                          campaignGoals: res.campaign.campaignGoals || (res.campaign.campaignGoal ? [res.campaign.campaignGoal] : []),
+                          campaignGoal: res.campaign.campaignGoal || '',
+                          platforms: res.campaign.platforms || []
+                        });
+                      }
+                    } catch (err) {
+                      console.error("Failed to load selected campaign:", err);
+                    } finally {
+                      setIsCampaignLoading(false);
                     }
-                  } catch (err) {
-                    console.error("Failed to load selected campaign:", err);
-                  } finally {
-                    setIsCampaignLoading(false);
-                  }
+                  }}
+                  className="text-[9px] font-black uppercase tracking-wider px-2 py-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-slate-500 outline-none max-w-[120px] truncate"
+                >
+                  <option value="" disabled>Campaign History</option>
+                  {campaignHistory.map(c => (
+                    <option key={c._id} value={c._id}>{c.campaignName || 'Unnamed'}</option>
+                  ))}
+                </select>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentCampaign(null);
+                  setCampaignPosts([]);
+                  setCampaignConfig({
+                    campaignName: '',
+                    campaignMonth: 'January',
+                    postingFrequency: '3x Per Week',
+                    startDate: '',
+                    endDate: '',
+                    campaignGoals: [],
+                    campaignGoal: '',
+                    platforms: []
+                  });
+                  toast.success("Ready to create a new calendar!");
                 }}
-                className="text-[9px] font-black uppercase tracking-wider px-2 py-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-slate-500 outline-none max-w-[150px] truncate"
+                className="p-1 text-primary hover:text-primary-hover bg-primary/5 hover:bg-primary/10 rounded-lg border border-primary/20 hover:border-primary transition-all flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-1"
+                title="Create New Calendar"
               >
-                <option value="" disabled>Campaign History</option>
-                {campaignHistory.map(c => (
-                  <option key={c._id} value={c._id}>{c.campaignName || 'Unnamed'}</option>
-                ))}
-              </select>
-            )}
+                <Plus className="w-3.5 h-3.5" />
+                <span>New</span>
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
