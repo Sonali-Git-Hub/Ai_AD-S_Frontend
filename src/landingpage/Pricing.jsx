@@ -225,17 +225,17 @@ const Pricing = () => {
     try {
       setProcessing(true);
       
-      const basePrice = billingCycle === 'yearly' ? plan.priceYearly : plan.priceMonthly;
-      const gstAmount = Math.round(basePrice * 0.18 * 100) / 100;
-      const totalAmount = Math.round(basePrice * 1.18 * 100) / 100;
+      const totalAmount = billingCycle === 'yearly' ? plan.priceYearly : plan.priceMonthly;
+      const basePrice = Math.round((totalAmount / 1.18) * 100) / 100;
+      const gstAmount = Math.round((totalAmount - basePrice) * 100) / 100;
       
       // Print breakdown in console as requested
       console.log("========================================");
-      console.log("[CHECKOUT] GST INVOICE CALCULATION");
+      console.log("[CHECKOUT] GST INVOICE CALCULATION (GST INCLUSIVE)");
       console.log(`Plan Name:   ${plan.planName}`);
-      console.log(`Base Price:  ₹${basePrice}`);
-      console.log(`GST (18%):   ₹${gstAmount}`);
-      console.log(`Total:       ₹${totalAmount}`);
+      console.log(`Base Price (excl. GST):  ₹${basePrice}`);
+      console.log(`GST (18% inclusive):     ₹${gstAmount}`);
+      console.log(`Total (Inclusive):       ₹${totalAmount}`);
       console.log("Billing Details:", billingDetails);
       console.log("========================================");
 
@@ -734,17 +734,9 @@ const Pricing = () => {
                 <span>Plan:</span>
                 <span className="font-bold text-white">{selectedPlanForUpgrade.planName} ({billingCycle})</span>
               </div>
-              <div className="flex justify-between text-white/60">
-                <span>Base Price:</span>
-                <span>₹{(billingCycle === 'yearly' ? selectedPlanForUpgrade.priceYearly : selectedPlanForUpgrade.priceMonthly).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-white/60">
-                <span>GST (18%):</span>
-                <span>₹{((billingCycle === 'yearly' ? selectedPlanForUpgrade.priceYearly : selectedPlanForUpgrade.priceMonthly) * 0.18).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between pt-2 border-t border-white/10 text-base font-black text-primary">
+              <div className="flex justify-between text-white/60 pt-1">
                 <span>Total Amount:</span>
-                <span>₹{((billingCycle === 'yearly' ? selectedPlanForUpgrade.priceYearly : selectedPlanForUpgrade.priceMonthly) * 1.18).toFixed(2)}</span>
+                <span className="font-bold text-primary">₹{(billingCycle === 'yearly' ? selectedPlanForUpgrade.priceYearly : selectedPlanForUpgrade.priceMonthly).toFixed(2)}</span>
               </div>
             </div>
 

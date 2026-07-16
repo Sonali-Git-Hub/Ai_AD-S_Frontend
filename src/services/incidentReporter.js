@@ -71,6 +71,14 @@ export const reportErrorToBackend = async (errorMessage, stackTrace, details = {
         else if (path.includes('/dashboard/social-agent')) toolModule = 'AI_SOCIAL_MEDIA';
         else if (path.includes('/dashboard/ai-personal-assistant')) toolModule = 'AI_PERSONAL_ASSISTANT';
         else if (path.includes('/dashboard/ai-base')) toolModule = 'AI_BASE';
+        else {
+            try {
+                const activeMode = localStorage.getItem('aisa_active_mode');
+                if (activeMode) {
+                    toolModule = activeMode;
+                }
+            } catch (e) {}
+        }
 
         const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
 

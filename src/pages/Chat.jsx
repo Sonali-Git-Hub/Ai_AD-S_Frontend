@@ -1414,12 +1414,17 @@ const Chat = () => {
 
   // SAVE: persist mode states whenever they change
   useEffect(() => {
-    if (currentMode) {
-      localStorage.setItem('aisa_active_mode', currentMode);
-    } else {
-      localStorage.removeItem('aisa_active_mode');
-    }
-  }, [currentMode]);
+    let mode = currentMode || 'NORMAL_CHAT';
+    if (isCashFlowMode) mode = 'CASHFLOW';
+    else if (isImageGeneration) mode = 'IMAGE_GENERATION';
+    else if (isVideoGeneration) mode = 'VIDEO_GENERATION';
+    else if (isAudioConvertMode) mode = 'AUDIO_CONVERT';
+    else if (isDocumentConvert) mode = 'DOCUMENT_CONVERT';
+    else if (isCodeWriter) mode = 'CODE_WRITER';
+    else if (isDeepSearch || isWebSearch || isFileAnalysis) mode = 'RAG';
+    
+    localStorage.setItem('aisa_active_mode', mode);
+  }, [currentMode, isCashFlowMode, isImageGeneration, isVideoGeneration, isAudioConvertMode, isDocumentConvert, isCodeWriter, isDeepSearch, isWebSearch, isFileAnalysis]);
 
   useEffect(() => {
     if (selectedLegalTool) {
