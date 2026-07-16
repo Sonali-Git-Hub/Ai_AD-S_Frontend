@@ -12,8 +12,6 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { logo } from '../constants';
 import { chatStorageService } from '../services/chatStorageService';
 
-import loginBg from './login_bg.gif';
-
 
 const Login = () => {
   const navigate = useNavigate();

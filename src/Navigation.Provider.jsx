@@ -1,23 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Routes, Route, Outlet, Navigate, BrowserRouter, useNavigate, useLocation, Link, useParams } from 'react-router-dom';
 
 import Landing from './landingpage/Landing';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import VerificationForm from './pages/VerificationForm';
-import Chat, {
-  AiLegalContentRoute,
-  LegalChatScreenRoute,
-  DraftMakerRoute,
-  EvidenceAnalysisRoute,
-  StrategyEngineRoute,
-  ContractReviewRoute,
-  CasePredictorRoute,
-  ArgumentBuilderRoute,
-  LegalPrecedentsRoute,
-  ComplianceRoute,
-  HearingsRoute
-} from './pages/Chat';
 import Sidebar from './Components/SideBar/Sidebar.jsx';
 import CardErrorBoundary from './Components/CardErrorBoundary.jsx';
 import AiPersonalAssistantDashboard from './Tools/AI_Personal_Assistant/Dashboard';
@@ -25,8 +9,6 @@ import Pricing from './landingpage/Pricing';
 import SocialAgentPage from './Tools/AI_Social_Media/SocialAgentPage.jsx';
 import CreditUpsellPopup from './Components/CreditUpsellPopup';
 import SharedChat from './pages/SharedChat';
-
-
 
 import { AppRoute, apis } from './types';
 import { Menu, Bell, Sun, Moon, LogIn, User, Gavel } from 'lucide-react';
@@ -38,23 +20,33 @@ import { usePersonalization } from './context/PersonalizationContext';
 import NotificationCenter from './Components/NotificationBar/NotificationCenter.jsx';
 import ProfileSettingsDropdown from './Components/ProfileSettingsDropdown/ProfileSettingsDropdown.jsx';
 
-import ForgotPassword from './pages/ForgotPassword.jsx';
-import ResetPassword from './pages/ResetPassword.jsx';
-import PrivacyPolicy from './landingpage/PrivacyPolicy.jsx';
-import TermsOfService from './landingpage/TermsOfService.jsx';
-import CookiePolicy from './landingpage/CookiePolicy.jsx';
 import { AnimatePresence, motion } from 'framer-motion';
-import { lazy, Suspense } from 'react';
 import { Toaster } from 'react-hot-toast';
 import CookieConsentBanner from './landingpage/CookieConsentBanner';
 import ProtectedRoute from './Components/ProtectedRoute/ProtectedRoute.jsx';
+import Loader from './Components/Loader/Loader.jsx';
+
+// --- Lazy-Loaded Route Components ---
+const Login = lazy(() => import('./pages/Login'));
+const Signup = lazy(() => import('./pages/Signup'));
+const VerificationForm = lazy(() => import('./pages/VerificationForm'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword.jsx'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword.jsx'));
+
+const Chat = lazy(() => import('./pages/Chat'));
+const AiLegalContentRoute = lazy(() => import('./pages/Chat').then(m => ({ default: m.AiLegalContentRoute })));
+const LegalChatScreenRoute = lazy(() => import('./pages/Chat').then(m => ({ default: m.LegalChatScreenRoute })));
+const DraftMakerRoute = lazy(() => import('./pages/Chat').then(m => ({ default: m.DraftMakerRoute })));
+const EvidenceAnalysisRoute = lazy(() => import('./pages/Chat').then(m => ({ default: m.EvidenceAnalysisRoute })));
+const StrategyEngineRoute = lazy(() => import('./pages/Chat').then(m => ({ default: m.StrategyEngineRoute })));
+const ContractReviewRoute = lazy(() => import('./pages/Chat').then(m => ({ default: m.ContractReviewRoute })));
+const CasePredictorRoute = lazy(() => import('./pages/Chat').then(m => ({ default: m.CasePredictorRoute })));
+const ArgumentBuilderRoute = lazy(() => import('./pages/Chat').then(m => ({ default: m.ArgumentBuilderRoute })));
+const LegalPrecedentsRoute = lazy(() => import('./pages/Chat').then(m => ({ default: m.LegalPrecedentsRoute })));
+const ComplianceRoute = lazy(() => import('./pages/Chat').then(m => ({ default: m.ComplianceRoute })));
+const HearingsRoute = lazy(() => import('./pages/Chat').then(m => ({ default: m.HearingsRoute })));
+
 const AiBase = lazy(() => import('./Tools/AI_Base/AI_Base').catch(() => ({ default: () => <div className="flex h-full items-center justify-center text-subtext">AI Base Module not found.</div> })));
-
-// Vendor Imports Removed
-// import VendorLayout from './Components/Vendor/VendorLayout';
-// import VendorOverview from './pages/Vendor/VendorOverview';
-// ...
-
 const SecurityAndGuidelines = lazy(() => import('./landingpage/SecurityAndGuidelines'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 
@@ -243,9 +235,14 @@ const DashboardLayout = () => {
 
   // Sync CSS variable for child pages top-padding
   useEffect(() => {
-    // Keep padding constant to prevent layout shifts/flickering. The navbar will slide out of view smoothly via CSS translate, but the content shouldn't abruptly jump up.
-    const hValue = allowNavbar ? '64px' : '0px';
-    document.documentElement.style.setProperty('--mobile-nav-h', hValue);
+    const handleResize = () => {
+      const isMobileViewport = window.innerWidth < 1024;
+      const hValue = (allowNavbar && isMobileViewport) ? '64px' : '0px';
+      document.documentElement.style.setProperty('--mobile-nav-h', hValue);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, [allowNavbar]);
 
   return (
@@ -473,12 +470,15 @@ const NavigateProvider = () => {
       <Routes>
         {/* Public Routes */}
         <Route path={AppRoute.LANDING} element={<HomeRedirect />} />
-        <Route path={AppRoute.LOGIN} element={<GuestRoute><Login /></GuestRoute>} />
-        <Route path={AppRoute.SIGNUP} element={<GuestRoute><Signup /></GuestRoute>} />
 
-        <Route path={AppRoute.E_Verification} element={<VerificationForm />} />
-        <Route path={AppRoute.FORGOT_PASSWORD} element={<ForgotPassword />} />
-        <Route path={AppRoute.RESET_PASSWORD} element={<ResetPassword />} />
+        {/* Dynamic Guest / Public Routes wrapped in Suspense */}
+        <Route element={<Suspense fallback={<div className="flex items-center justify-center h-screen w-full"><Loader /></div>}><Outlet /></Suspense>}>
+          <Route path={AppRoute.LOGIN} element={<GuestRoute><Login /></GuestRoute>} />
+          <Route path={AppRoute.SIGNUP} element={<GuestRoute><Signup /></GuestRoute>} />
+          <Route path={AppRoute.E_Verification} element={<VerificationForm />} />
+          <Route path={AppRoute.FORGOT_PASSWORD} element={<ForgotPassword />} />
+          <Route path={AppRoute.RESET_PASSWORD} element={<ResetPassword />} />
+        </Route>
 
         <Route path={AppRoute.PRIVACY_POLICY} element={<Landing />} />
         <Route path={AppRoute.TERMS_OF_SERVICE} element={<Landing />} />
@@ -494,7 +494,11 @@ const NavigateProvider = () => {
         >
           <Route index element={<Navigate to="chat/new" replace state={{ forceGlobal: true }} />} />
           <Route path="chat" element={<Navigate to="new" replace state={{ forceGlobal: true }} />} />
-          <Route element={<Chat />}>
+          <Route element={
+            <Suspense fallback={<div className="flex items-center justify-center h-screen w-full"><Loader /></div>}>
+              <Chat />
+            </Suspense>
+          }>
             <Route path="chat/new" element={null} />
             <Route path="chat/:sessionId" element={null} />
             <Route path="cases" element={<Navigate to="/dashboard/legal" replace />} />
