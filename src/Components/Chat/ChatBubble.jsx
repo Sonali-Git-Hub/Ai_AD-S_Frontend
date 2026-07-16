@@ -8,9 +8,6 @@ import { dracula as highlighterTheme } from 'react-syntax-highlighter/dist/esm/s
 import { logo } from '../../constants';
 import { MODES } from '../../utils/modeDetection';
 import { copyText } from '../../utils/clipboard';
-import { getModeInfo } from '../../pages/Chat';
-import { transformLegalActions } from '../../pages/Chat';
-import { FEEDBACK_PROMPTS } from '../../pages/Chat';
 import ActionCard from '../ActionCard';
 import AISnapshot from '../../landingpage/AISnapshot';
 import toast from 'react-hot-toast';
