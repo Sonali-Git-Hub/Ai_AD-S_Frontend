@@ -29,6 +29,46 @@ const ImageViewer = ({ src, alt }) => (
   <img src={src} alt={alt || 'AI Image'} className="max-w-full h-auto object-contain" />
 );
 
+const areEqual = (prevProps, nextProps) => {
+  if (prevProps.msg !== nextProps.msg) return false;
+
+  const wasLast = prevProps.idx === prevProps.messages.length - 1;
+  const isLast = nextProps.idx === nextProps.messages.length - 1;
+  if (wasLast !== isLast) return false;
+
+  if (isLast || wasLast) {
+    if (prevProps.suggestions !== nextProps.suggestions) return false;
+    if (prevProps.isLoading !== nextProps.isLoading) return false;
+  }
+
+  if ((prevProps.typingMessageId === prevProps.msg.id) !== (nextProps.typingMessageId === nextProps.msg.id)) return false;
+
+  if (prevProps.expandedMessages?.[prevProps.msg.id] !== nextProps.expandedMessages?.[nextProps.msg.id]) return false;
+
+  if ((prevProps.activeMessageId === prevProps.msg.id) !== (nextProps.activeMessageId === nextProps.msg.id)) return false;
+
+  const wasEditing = prevProps.editingMessageId === prevProps.msg.id;
+  const isEditing = nextProps.editingMessageId === nextProps.msg.id;
+  if (wasEditing !== isEditing) return false;
+
+  if (isEditing && prevProps.editContent !== nextProps.editContent) return false;
+
+  if (prevProps.messageFeedback?.[prevProps.msg.id] !== nextProps.messageFeedback?.[nextProps.msg.id]) return false;
+
+  const wasSpeaking = prevProps.speakingMessageId === prevProps.msg.id;
+  const isSpeaking = nextProps.speakingMessageId === nextProps.msg.id;
+  if (wasSpeaking !== isSpeaking) return false;
+  if (isSpeaking && prevProps.isPaused !== nextProps.isPaused) return false;
+
+  if (prevProps.downloadedMessages?.[prevProps.msg.id] !== nextProps.downloadedMessages?.[nextProps.msg.id]) return false;
+
+  if (prevProps.msg.imageUrl) {
+    if ((prevProps.isDownloadingUrl === prevProps.msg.imageUrl) !== (nextProps.isDownloadingUrl === nextProps.msg.imageUrl)) return false;
+  }
+
+  return true;
+};
+
 const ChatBubble = React.memo(({
   msg,
   idx,
@@ -771,7 +811,7 @@ const ChatBubble = React.memo(({
       </div>
     </div>
   );
-});
+}, areEqual);
 
 ChatBubble.displayName = 'ChatBubble';
 export default ChatBubble;
