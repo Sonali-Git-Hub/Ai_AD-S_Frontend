@@ -4,7 +4,7 @@ import { Dialog } from '@headlessui/react';
 import { 
   X, Instagram, Facebook, Linkedin, Twitter, Youtube, Hash, Play, 
   Image as ImageIcon, Video, Upload, Trash2, CheckCircle2, ChevronDown, Check,
-  FileText, Layers
+  FileText, Layers, Sparkles
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -126,7 +126,7 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate, isManua
   const handleGenerate = async (modes) => {
     if (selectedPlatforms.length === 0) return toast.error('Please select at least one platform');
     if (!postTopic.trim()) return toast.error('Post Topic is required');
-    if (isManual && !description.trim()) return toast.error('Description is required in manual mode');
+    if (isManual && !description.trim() && referenceMedia.length === 0) return toast.error('Description is required in manual mode');
     if (modes.length === 0) return toast.error('Please select at least one generation mode');
     
     let updatedContentTypes = [...selectedContentTypes];
@@ -325,13 +325,18 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate, isManua
                     />
                   </div>
                   {isManual && (
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Description / Custom Instructions <span className="text-red-500">*</span></label>
+                    <div className="space-y-2 relative">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex justify-between">
+                        <span>Description / Custom Instructions {referenceMedia.length === 0 && <span className="text-red-500">*</span>}</span>
+                        {referenceMedia.length > 0 && <span className="text-primary text-[9px] bg-primary/10 px-1.5 py-0.5 rounded">Optional</span>}
+                      </label>
                       <textarea
-                        placeholder="Describe exactly what you want to write in this post..."
+                        placeholder={referenceMedia.length > 0 ? "Optional: Add any specific instructions. AI will primarily generate based on your uploaded images." : "Describe exactly what you want to write in this post..."}
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        className="w-full min-h-[100px] max-h-[250px] bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all shadow-inner resize-y"
+                        className={`w-full min-h-[100px] max-h-[250px] bg-white dark:bg-black/20 border rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 dark:text-white outline-none transition-all shadow-inner resize-y ${
+                          referenceMedia.length > 0 ? 'border-primary/30 focus:border-primary focus:ring-1 focus:ring-primary/50' : 'border-slate-200 dark:border-white/10 focus:border-primary focus:ring-1 focus:ring-primary'
+                        }`}
                       />
                     </div>
                   )}
@@ -428,6 +433,20 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate, isManua
                     onChange={handleMediaUpload}
                   />
                 </div>
+                
+                {referenceMedia.length > 0 && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0 mt-0.5">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-[11px] font-black uppercase tracking-widest text-primary">AI Vision Active</h4>
+                      <p className="text-[10px] font-medium text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
+                        The AI will automatically analyze your uploaded images to generate highly contextual captions, hashtags, and variations based on the visual content.
+                      </p>
+                    </div>
+                  </div>
+                )}
                 
                 {/* File Preview */}
                 {referenceMedia.length > 0 && (
@@ -657,12 +676,12 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate, isManua
                 </div>
 
                 {/* Validation Info */}
-                {(selectedPlatforms.length === 0 || selectedContentTypes.length === 0 || !postTopic || (isManual && !description)) && (
+                {(selectedPlatforms.length === 0 || selectedContentTypes.length === 0 || !postTopic || (isManual && !description && referenceMedia.length === 0)) && (
                   <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-500 text-xs font-bold flex flex-col gap-1">
                     {selectedPlatforms.length === 0 && <span>• Select a Platform</span>}
                     {selectedContentTypes.length === 0 && <span>• Select a Content Type</span>}
                     {!postTopic && <span>• Enter a Post Topic</span>}
-                    {isManual && !description && <span>• Enter a Description</span>}
+                    {(isManual && !description && referenceMedia.length === 0) && <span>• Enter a Description or Upload an Image</span>}
                   </div>
                 )}
               </div>
@@ -680,7 +699,7 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate, isManua
             </button>
             <button
               onClick={() => handleGenerate(selectedGenerateModes)}
-              disabled={isGenerating || selectedPlatforms.length === 0 || !postTopic || (isManual && !description)}
+              disabled={isGenerating || selectedPlatforms.length === 0 || !postTopic || (isManual && !description && referenceMedia.length === 0)}
               className="px-8 py-3.5 rounded-xl font-black uppercase tracking-[2px] text-xs bg-primary text-white shadow-xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50 disabled:hover:scale-100"
             >
               {isGenerating ? (
