@@ -74,6 +74,7 @@ import GlobalFloatingNavbar from '../Components/GlobalFloatingNavbar.jsx';
 import { useTheme, useIsDark } from '../context/ThemeContext';
 import ChatWelcome from '../Components/Chat/ChatWelcome.jsx';
 import ChatInput from '../Components/Chat/ChatInput.jsx';
+import ChatBubble from '../Components/Chat/ChatBubble.jsx';
 
 // AI Legal Modular Components
 import ActionCard from '../Components/ActionCard';
