@@ -4547,6 +4547,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                     {/* Calendar cells grid */}
                     <div className="grid grid-cols-7 gap-y-2 text-center text-xs font-bold">
                       {calendarCells.map((cell, cellIdx) => {
+                        if (!cell.isCurrentMonth) {
+                          return <div key={cellIdx} className="aspect-square" />;
+                        }
+
                         const cellDate = new Date(cell.year, cell.month, cell.day);
                         const hasPost = campaignPosts.some(p => isSameDay(p.date, cellDate));
                         const isSelected = isSameDay(cellDate, selectedDate);
@@ -4558,13 +4562,9 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                 setSelectedDate(cellDate);
                               }}
                               className={`w-8 h-8 rounded-full flex items-center justify-center transition-all text-[11px] ${
-                                !cell.isCurrentMonth
-                                  ? 'text-slate-300 dark:text-slate-600'
-                                  : 'text-slate-700 dark:text-slate-300'
-                              } ${
                                 hasPost
                                   ? 'bg-indigo-600 text-white font-black shadow-md shadow-indigo-600/30'
-                                  : 'hover:bg-slate-50 dark:hover:bg-white/5'
+                                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5'
                               } ${
                                 isSelected
                                   ? 'ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-[#080808] scale-110'
@@ -4603,13 +4603,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                               className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border outline-none cursor-pointer ${
                                 activePost.status === 'Draft' ? 'bg-slate-50 dark:bg-white/5 text-slate-400 border-slate-200 dark:border-white/10' :
                                 activePost.status === 'Generated' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
-                                activePost.status === 'Approved' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
-                                activePost.status === 'Scheduled' ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' :
-                                activePost.status === 'Published' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' :
                                 'bg-red-500/10 text-red-500 border-red-500/20'
                               }`}
                             >
-                              {['Draft', 'Generated', 'Approved', 'Scheduled', 'Published', 'Failed'].map(st => (
+                              {['Draft', 'Generated'].map(st => (
                                 <option key={st} value={st}>{st}</option>
                               ))}
                             </select>
@@ -4710,64 +4707,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                               setActiveTab('calendar');
                               setShowWizard(true);
                             }}
-                            className="flex-1 h-8 bg-primary hover:bg-primary/95 text-white rounded-lg text-[8px] font-black uppercase tracking-widest shadow-md flex items-center justify-center gap-1.5 transition-all"
+                            className="w-full h-9 bg-primary hover:bg-primary/95 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-md flex items-center justify-center gap-1.5 transition-all hover:scale-[1.01] active:scale-95"
                           >
-                            <Sparkles className="w-3 h-3" />
+                            <Sparkles className="w-3.5 h-3.5" />
                             Generate with AI
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setSelectedCampaignPost(activePost);
-                              setIsDrawerOpen(true);
-                            }}
-                            className="p-2 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-all flex items-center justify-center border border-slate-200 dark:border-white/10"
-                            title="Preview Details"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </button>
-
-                          <button
-                            onClick={async () => {
-                              const toastId = toast.loading("Duplicating card...");
-                              try {
-                                const newDate = new Date(activePost.date);
-                                newDate.setDate(newDate.getDate() + 1);
-                                const duplicated = {
-                                  campaignId: activePost.campaignId,
-                                  workspaceId: activePost.workspaceId,
-                                  date: newDate,
-                                  day: newDate.toLocaleDateString('en-US', { weekday: 'long' }),
-                                  platform: activePost.platform,
-                                  contentType: activePost.contentType,
-                                  campaignStage: activePost.campaignStage,
-                                  postObjective: activePost.postObjective,
-                                  prompt: `[Copy] ${activePost.prompt}`,
-                                  status: 'Draft',
-                                  approvalStatus: 'Pending',
-                                  bestPostingTime: activePost.bestPostingTime
-                                };
-                                const res = await apiService.createCampaignPost(duplicated);
-                                if (res.success) {
-                                  setCampaignPosts(prev => [...prev, res.post].sort((a,b) => new Date(a.date) - new Date(b.date)));
-                                  toast.success("Card duplicated successfully!", { id: toastId });
-                                }
-                              } catch {
-                                toast.error("Failed to duplicate card.", { id: toastId });
-                              }
-                            }}
-                            className="p-2 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-all flex items-center justify-center border border-slate-200 dark:border-white/10"
-                            title="Duplicate Card"
-                          >
-                            <Copy className="w-3.5 h-3.5" />
-                          </button>
-
-                          <button
-                            onClick={() => handleDeletePost(activePost._id)}
-                            className="p-2 bg-slate-50 dark:bg-white/5 hover:bg-red-500/10 rounded-lg text-slate-400 hover:text-red-500 transition-all flex items-center justify-center border border-slate-200 dark:border-white/10"
-                            title="Delete Card"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
