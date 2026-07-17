@@ -534,12 +534,16 @@ const ErrorMonitoring = () => {
                                                     <ComponentBadge component={inc.component} />
                                                 </td>
                                                 <td className="py-3 px-3">
-                                                    <div className="text-[10px] text-maintext truncate font-semibold max-w-[100px]">{inc.toolModule}</div>
-                                                    {inc.apiRoute && (
-                                                        <div className="text-[9px] text-subtext/60 truncate max-w-[100px] font-mono mt-0.5" title={`${inc.apiMethod} ${inc.apiRoute}`}>
-                                                            {inc.apiMethod} {inc.apiRoute}
-                                                        </div>
-                                                    )}
+                                                     <div className="text-[10px] text-maintext truncate font-semibold max-w-[100px]">{inc.toolModule}</div>
+                                                     {inc.cardName ? (
+                                                         <div className="text-[9px] text-violet-400 font-bold truncate max-w-[100px] mt-0.5 flex items-center gap-0.5" title={`Crashed Card: ${inc.cardName}`}>
+                                                             <span className="text-[10px]">🎴</span> {inc.cardName}
+                                                         </div>
+                                                     ) : inc.apiRoute && (
+                                                         <div className="text-[9px] text-subtext/60 truncate max-w-[100px] font-mono mt-0.5" title={`${inc.apiMethod} ${inc.apiRoute}`}>
+                                                             {inc.apiMethod} {inc.apiRoute}
+                                                         </div>
+                                                     )}
                                                 </td>
                                                 <td className="py-3 px-3 text-center font-mono font-bold text-maintext">{inc.totalOccurrences}</td>
                                                 <td className="py-3 px-3 text-center font-mono text-subtext">{inc.affectedSessions?.length || 0}</td>
@@ -847,25 +851,91 @@ const ErrorMonitoring = () => {
                                                 <div className="space-y-2">
                                                     <h4 className="text-[10px] font-black text-subtext uppercase tracking-widest">Telemetry & Metadata</h4>
                                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                                        {[
-                                                            { label: 'OS', value: selectedIncidentDetail.latestOccurrence?.os || 'Unknown', icon: Laptop },
-                                                            { label: 'Browser', value: selectedIncidentDetail.latestOccurrence?.browser || 'Unknown', icon: Cpu },
-                                                            { label: 'Device', value: selectedIncidentDetail.latestOccurrence?.device || 'Desktop', icon: Laptop },
-                                                            { label: 'Environment', value: selectedIncidentDetail.environment || 'Production', icon: Info },
-                                                            { label: 'API Route', value: selectedIncidentDetail.apiRoute || 'N/A', icon: Code },
-                                                            { label: 'API Method', value: selectedIncidentDetail.apiMethod || 'N/A', icon: Code },
-                                                            { label: 'Error Code', value: selectedIncidentDetail.errorCode || 'N/A', icon: AlertCircle },
-                                                            { label: 'Total Events', value: selectedIncidentDetail.totalOccurrences, icon: Activity }
-                                                        ].map((item, index) => (
-                                                            <div key={index} className="bg-white/5 rounded-xl p-3 border border-white/5 space-y-1">
-                                                                <span className="text-[9px] text-subtext/60 uppercase font-extrabold tracking-wider leading-none flex items-center gap-1.5">
-                                                                    <item.icon className="w-3 h-3 text-primary/60" /> {item.label}
-                                                                </span>
-                                                                <p className="text-xs text-maintext font-bold leading-tight break-all">{item.value}</p>
-                                                            </div>
-                                                        ))}
+                                                         {[
+                                                             { label: 'OS', value: selectedIncidentDetail.latestOccurrence?.os || 'Unknown', icon: Laptop },
+                                                             { label: 'Browser', value: selectedIncidentDetail.latestOccurrence?.browser || 'Unknown', icon: Cpu },
+                                                             { label: 'Device', value: selectedIncidentDetail.latestOccurrence?.device || 'Desktop', icon: Laptop },
+                                                             { label: 'Environment', value: selectedIncidentDetail.environment || 'Production', icon: Info },
+                                                             { label: 'Crashed Card', value: selectedIncidentDetail.cardName || selectedIncidentDetail.latestOccurrence?.cardName || 'N/A', icon: BookOpen },
+                                                             { label: 'Action Context', value: selectedIncidentDetail.actionName || selectedIncidentDetail.latestOccurrence?.actionName || 'N/A', icon: Play },
+                                                             { label: 'API Route', value: selectedIncidentDetail.apiRoute || 'N/A', icon: Code },
+                                                             { label: 'API Method', value: selectedIncidentDetail.apiMethod || 'N/A', icon: Code },
+                                                             { label: 'Error Code', value: selectedIncidentDetail.errorCode || 'N/A', icon: AlertCircle },
+                                                             { label: 'Total Events', value: selectedIncidentDetail.totalOccurrences, icon: Activity }
+                                                         ].map((item, index) => (
+                                                             <div key={index} className="bg-white/5 rounded-xl p-3 border border-white/5 space-y-1">
+                                                                 <span className="text-[9px] text-subtext/60 uppercase font-extrabold tracking-wider leading-none flex items-center gap-1.5">
+                                                                     <item.icon className="w-3 h-3 text-primary/60" /> {item.label}
+                                                                 </span>
+                                                                 <p className="text-xs text-maintext font-bold leading-tight break-all">{item.value}</p>
+                                                             </div>
+                                                         ))}
                                                     </div>
                                                 </div>
+
+                                                {/* Affected Users Summary */}
+                                                {selectedIncidentDetail.affectedUsersDetails && selectedIncidentDetail.affectedUsersDetails.length > 0 && (
+                                                    <div className="space-y-2">
+                                                        <h4 className="text-[10px] font-black text-subtext uppercase tracking-widest">Affected Users ({selectedIncidentDetail.affectedUsersDetails.length})</h4>
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                            {selectedIncidentDetail.affectedUsersDetails.map((user, idx) => (
+                                                                <div key={idx} className="flex items-center gap-2.5 p-2.5 bg-white/5 border border-white/5 rounded-xl">
+                                                                    <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
+                                                                        {user.avatar ? (
+                                                                            <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = '/account.png'; }} />
+                                                                        ) : (
+                                                                            <span className="font-bold text-primary text-[10px]">
+                                                                                {user.name?.charAt(0)?.toUpperCase() || 'U'}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="min-w-0">
+                                                                        <p className="font-bold text-maintext text-xs truncate leading-tight">{user.name}</p>
+                                                                        <p className="text-[9px] text-subtext truncate mt-0.5">{user.email}</p>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Recent Event Log with User Info */}
+                                                {occurrences && occurrences.length > 0 && (
+                                                    <div className="space-y-2">
+                                                        <h4 className="text-[10px] font-black text-subtext uppercase tracking-widest">Recent Event Occurrences</h4>
+                                                        <div className="space-y-2 max-h-[220px] overflow-y-auto custom-scrollbar border border-white/5 rounded-xl p-2.5 bg-white/[0.01]">
+                                                            {occurrences.map((occ, idx) => (
+                                                                <div key={occ._id || idx} className="p-2.5 bg-white/5 border border-white/5 rounded-xl space-y-1.5 text-xs">
+                                                                    <div className="flex justify-between items-center flex-wrap gap-1 text-[10px] text-subtext/60">
+                                                                        <span className="font-mono text-primary font-bold">#{occurrences.length - idx} • {formatTime(occ.timestamp || occ.createdAt)}</span>
+                                                                        <span>{occ.browser} • {occ.os}</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="w-5.5 h-5.5 rounded-full bg-white/10 flex items-center justify-center overflow-hidden border border-white/10 shrink-0">
+                                                                            {occ.userInfo?.avatar ? (
+                                                                                <img src={occ.userInfo.avatar} alt="U" className="w-full h-full object-cover" />
+                                                                            ) : (
+                                                                                <User className="w-3 h-3 text-subtext/80" />
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="min-w-0 flex-1">
+                                                                            {occ.userInfo ? (
+                                                                                <p className="text-xs font-bold text-maintext truncate leading-none">
+                                                                                    {occ.userInfo.name} <span className="text-[10px] font-normal text-subtext">({occ.userInfo.email})</span>
+                                                                                </p>
+                                                                            ) : (
+                                                                                <p className="text-xs text-subtext/70 italic leading-none">Anonymous / Guest User</p>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                    {occ.sessionId && (
+                                                                        <p className="text-[9px] font-mono text-subtext/40 truncate">Session ID: {occ.sessionId}</p>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
 
                                                 {/* Latest request payloads details */}
                                                 {selectedIncidentDetail.latestOccurrence?.payload && Object.keys(selectedIncidentDetail.latestOccurrence.payload).length > 0 && (
@@ -993,6 +1063,22 @@ const ErrorMonitoring = () => {
                                                         </div>
                                                     ) : replayData ? (
                                                         <div className="space-y-4 flex flex-col h-full">
+                                                            {/* User Info Banner */}
+                                                            {replayData.userInfo && (
+                                                                <div className="flex items-center gap-2.5 p-3 bg-primary/10 border border-primary/20 rounded-xl">
+                                                                    <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden border border-primary/30 shrink-0">
+                                                                        {replayData.userInfo.avatar ? (
+                                                                            <img src={replayData.userInfo.avatar} alt="U" className="w-full h-full object-cover" />
+                                                                        ) : (
+                                                                            <User className="w-4 h-4 text-primary" />
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="min-w-0">
+                                                                        <p className="font-bold text-maintext text-xs leading-none">{replayData.userInfo.name}</p>
+                                                                        <p className="text-[10px] text-subtext leading-none mt-1.5">{replayData.userInfo.email}</p>
+                                                                    </div>
+                                                                </div>
+                                                            )}
                                                             {/* Complete Conversation overlay */}
                                                             <div className="space-y-2 flex-1 flex flex-col min-h-[220px]">
                                                                 <h4 className="text-[10px] font-black text-subtext uppercase tracking-widest flex items-center gap-1.5"><Eye className="w-3.5 h-3.5" /> Replay: Chat Conversation</h4>

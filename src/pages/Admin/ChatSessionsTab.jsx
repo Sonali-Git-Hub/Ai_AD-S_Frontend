@@ -429,7 +429,7 @@ const ChatSessionsTab = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[2050] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+                        className="fixed inset-0 z-[9998] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-4"
                         onClick={(e) => { if (e.target === e.currentTarget) setSelectedSession(null); }}
                     >
                         <motion.div
@@ -467,18 +467,18 @@ const ChatSessionsTab = () => {
                             ) : selectedSession && (
                                 <div className="flex flex-col flex-1 overflow-hidden">
                                     {/* Session Meta */}
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-5 border-b border-white/10">
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-5 border-b border-white/10 shrink-0 overflow-y-auto max-h-[220px] custom-scrollbar">
                                         {[
                                             { label: 'User', value: selectedSession.userName || 'Guest' },
                                             {
                                                 label: 'Email', value: selectedSession.userEmail ? (
-                                                    <div className="flex items-center justify-between gap-1">
-                                                        <span>{selectedSession.userEmail}</span>
+                                                    <div className="flex flex-col gap-1.5">
+                                                        <span className="text-xs font-semibold text-maintext break-all leading-snug">{selectedSession.userEmail}</span>
                                                         <button
                                                             onClick={() => handleOpenMailModal(selectedSession.userEmail)}
-                                                            className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/20 hover:bg-primary/30 text-primary text-[9px] font-bold uppercase transition-all"
+                                                            className="self-start flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/15 hover:bg-primary/25 text-primary text-[9px] font-bold uppercase tracking-wide transition-all border border-primary/20"
                                                         >
-                                                            <Mail className="w-2.5 h-2.5" /> Send
+                                                            <Mail className="w-2.5 h-2.5" /> Send Mail
                                                         </button>
                                                     </div>
                                                 ) : '—'
@@ -493,14 +493,14 @@ const ChatSessionsTab = () => {
                                         ].map((item, i) => (
                                             <div key={i} className="bg-white/20 dark:bg-white/5 rounded-xl p-3">
                                                 <p className="text-[10px] font-bold text-subtext uppercase tracking-wider mb-1">{item.label}</p>
-                                                <p className="text-xs font-semibold text-maintext">{item.value}</p>
+                                                <div className="text-xs font-semibold text-maintext">{item.value}</div>
                                             </div>
                                         ))}
                                     </div>
 
                                     {/* Conversation */}
-                                    <div className="flex-1 overflow-y-auto p-5 space-y-3">
-                                        <p className="text-[10px] font-bold text-subtext uppercase tracking-wider mb-3">Conversation History</p>
+                                    <div className="flex-1 overflow-y-auto p-5 space-y-3 min-h-0">
+                                        <p className="text-[10px] font-bold text-subtext uppercase tracking-wider mb-3 sticky top-0 bg-white dark:bg-[#12141a] pb-2">Conversation History</p>
                                         {(!selectedSession.messages || selectedSession.messages.length === 0) ? (
                                             <p className="text-center text-subtext text-sm py-6">No messages in this session</p>
                                         ) : (
@@ -518,7 +518,7 @@ const ChatSessionsTab = () => {
                                                             ? 'bg-primary/20 text-maintext rounded-br-sm'
                                                             : 'bg-white/20 dark:bg-white/5 text-maintext rounded-bl-sm'
                                                         }`}>
-                                                        <p className="leading-relaxed whitespace-pre-wrap break-words line-clamp-6">{msg.content}</p>
+                                                        <p className="leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
                                                         {msg.imageUrl && <p className="text-[10px] text-primary mt-1">📸 Image attached</p>}
                                                         {msg.videoUrl && <p className="text-[10px] text-primary mt-1">🎬 Video attached</p>}
                                                         <p className="text-[10px] text-subtext/60 mt-1 text-right">

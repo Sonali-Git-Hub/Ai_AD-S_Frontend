@@ -20,7 +20,7 @@ export const TabButton = ({ active, icon: Icon, label, onClick }) => (
             }`}
     >
         <Icon className="w-4 h-4 shrink-0" />
-        <span className="hidden sm:inline">{label}</span>
+        <span className="text-[11px] sm:text-xs md:text-sm font-semibold">{label}</span>
     </button>
 );
 

@@ -25,6 +25,7 @@ import Hero from './Hero';
 import StackedFeatures from './StackedFeatures';
 import DemoSection from './DemoSection';
 import AiLegalDemoSection from '../Tools/AI_Legal/AiLegalDemoSection';
+import GoogleDisclosure from './GoogleDisclosure';
 
 import FlowingAICreature from './FlowingAICreature';
 import { useLanguage } from '../context/LanguageContext';
@@ -100,6 +101,13 @@ const Landing = () => {
         };
 
         window.addEventListener('aisa-bloom-explosion', handleBloom);
+        
+        // If we are on mobile/tablet, reveal the footer immediately
+        // since the FlowingAICreature is disabled and won't dispatch the event.
+        if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+            handleBloom();
+        }
+
         return () => window.removeEventListener('aisa-bloom-explosion', handleBloom);
     }, []);
 
@@ -138,6 +146,9 @@ const Landing = () => {
 
             {/* ── AILEGAL Specialization Showcase ── */}
             <AiLegalDemoSection />
+
+            {/* ── Google Integration & OAuth Disclosure ── */}
+            <GoogleDisclosure />
 
 
 

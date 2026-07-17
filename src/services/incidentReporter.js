@@ -71,6 +71,14 @@ export const reportErrorToBackend = async (errorMessage, stackTrace, details = {
         else if (path.includes('/dashboard/social-agent')) toolModule = 'AI_SOCIAL_MEDIA';
         else if (path.includes('/dashboard/ai-personal-assistant')) toolModule = 'AI_PERSONAL_ASSISTANT';
         else if (path.includes('/dashboard/ai-base')) toolModule = 'AI_BASE';
+        else {
+            try {
+                const activeMode = localStorage.getItem('aisa_active_mode');
+                if (activeMode) {
+                    toolModule = activeMode;
+                }
+            } catch (e) {}
+        }
 
         const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
 
@@ -80,11 +88,13 @@ export const reportErrorToBackend = async (errorMessage, stackTrace, details = {
             component: 'Frontend',
             apiRoute: details.apiRoute || path,
             apiMethod: details.apiMethod || 'CLIENT',
-            toolModule,
+            toolModule: details.toolModule || toolModule,
+            cardName: details.cardName || undefined,
+            actionName: details.actionName || undefined,
             errorCode: details.errorCode || 'CLIENT_ERROR',
             statusCode: details.statusCode || 0,
             userId: userId ? String(userId) : undefined,
-            sessionId,
+            sessionId: details.sessionId || sessionId,
             environment: import.meta.env.MODE || 'Production',
             browser,
             os,
@@ -92,7 +102,11 @@ export const reportErrorToBackend = async (errorMessage, stackTrace, details = {
             payload: details.requestPayload || {},
             responsePayload: details.responsePayload || {},
             breadcrumbs,
-            logs: [`Page URL: ${window.location.href}`, `History Stack Length: ${window.history.length}`]
+            logs: [
+                `Page URL: ${window.location.href}`, 
+                `History Stack Length: ${window.history.length}`,
+                ...(details.logs || [])
+            ]
         };
 
         const config = {};

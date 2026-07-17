@@ -50,7 +50,13 @@ apiClient.interceptors.response.use(
         const isAuthRoute = error.config?.url?.includes('/auth/') || error.config?.url?.includes('/login');
         const isSessionRevoked = code === 'SESSION_REVOKED';
         
-        if (isSessionRevoked || isAuthRoute) {
+        // Do not redirect if we are on a public dashboard, chat, or case page
+        const publicPaths = ['/dashboard/chat', '/dashboard/legal', '/dashboard/cases', '/dashboard/case', '/dashboard', '/'];
+        const isPublicPath = publicPaths.some(path => 
+          window.location.pathname === path || window.location.pathname.startsWith(path + '/')
+        );
+        
+        if ((isSessionRevoked || isAuthRoute) && !isPublicPath) {
           // Clear user data and redirect to login
           localStorage.removeItem('user');
           // Show toast before redirecting

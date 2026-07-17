@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { apiService } from '../../services/apiService';
 import toast from 'react-hot-toast';
 import {
     RefreshCw, PieChart, MessageSquare, AlertTriangle, Cpu, TrendingUp, X,
-    Layers, TrendingDown, Clock, BarChart2
+    Layers, TrendingDown, Clock, BarChart2, Eye, Mail, Copy, Check, User2,
+    Laptop, Terminal, ExternalLink, ChevronRight, Globe, Monitor, BugPlay,
+    Smartphone, Server, FileWarning, MessageCircle, ShieldAlert
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SectionCard } from './AdminCommon';
@@ -15,20 +17,36 @@ const AnalyticsTab = () => {
     const [loading, setLoading] = useState(true);
     const [range, setRange] = useState('7d');
     const [refreshing, setRefreshing] = useState(false);
+    const [lastFetched, setLastFetched] = useState(null); // timestamp of last successful fetch
 
     // Drill-down state
-    const [drillMode, setDrillMode] = useState(null); // which mode was clicked
+    const [drillMode, setDrillMode] = useState(null);
     const [drillData, setDrillData] = useState(null);
     const [drillLoading, setDrillLoading] = useState(false);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [selectedSubTool, setSelectedSubTool] = useState(null);
+    // In-memory drill-down cache: key → { data, fetchedAt }
+    const drillCache = React.useRef({});
+
+    // Session inspector state
+    const [inspectSession, setInspectSession] = useState(null);
+    const [copiedStack, setCopiedStack] = useState(false);
+
+    const copyStack = useCallback((text) => {
+        navigator.clipboard.writeText(text || '');
+        setCopiedStack(true);
+        setTimeout(() => setCopiedStack(false), 2000);
+    }, []);
 
     const fetchAnalytics = async (isManual = false) => {
+        // Skip if data already fresh (< 3 min old) and not manually triggered
+        if (!isManual && data && lastFetched && Date.now() - lastFetched < 3 * 60 * 1000) return;
         if (isManual) setRefreshing(true);
         else setLoading(true);
         try {
             const res = await apiService.getAdminAnalytics(range);
             setData(res.analytics);
+            setLastFetched(Date.now());
         } catch (err) {
             console.error('Analytics fetch failed:', err);
             toast.error('Failed to load analytics');
@@ -39,14 +57,24 @@ const AnalyticsTab = () => {
     };
 
     const openDrillDown = async (mode, subTool = null) => {
+        const key = `${mode}:${range}:${subTool || ''}`;
         setDrillMode(mode);
         setSelectedSubTool(subTool);
         setDrawerOpen(true);
+
+        // Use cache if available and < 3 min old
+        const cached = drillCache.current[key];
+        if (cached && Date.now() - cached.fetchedAt < 3 * 60 * 1000) {
+            setDrillData(cached.data);
+            return;
+        }
+
         setDrillLoading(true);
         setDrillData(null);
         try {
             const res = await apiService.getAdminErrorDrillDown(mode, range, subTool || '');
             setDrillData(res.drillDown);
+            drillCache.current[key] = { data: res.drillDown, fetchedAt: Date.now() };
         } catch (err) {
             console.error('Drill-down fetch failed:', err);
             toast.error('Failed to load error details');
@@ -66,7 +94,20 @@ const AnalyticsTab = () => {
         };
     }, [drawerOpen]);
 
-    useEffect(() => { fetchAnalytics(); }, [range]);
+    useEffect(() => {
+        // Clear drill cache when range changes
+        drillCache.current = {};
+        fetchAnalytics();
+    }, [range]);
+
+    // Relative time helper
+    const relativeTime = (ts) => {
+        if (!ts) return null;
+        const diff = Math.floor((Date.now() - ts) / 1000);
+        if (diff < 60) return 'just now';
+        if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+        return `${Math.floor(diff / 3600)}h ago`;
+    };
 
     const MODE_LABELS = {
         NORMAL_CHAT: 'AI Chat',
@@ -122,11 +163,16 @@ const AnalyticsTab = () => {
                             >{r}</button>
                         ))}
                     </div>
+                    {lastFetched && (
+                        <span className="text-[10px] text-subtext/60 hidden sm:block">
+                            Updated {relativeTime(lastFetched)}
+                        </span>
+                    )}
                     <button
                         onClick={() => fetchAnalytics(true)}
                         disabled={refreshing}
                         className="p-2 rounded-lg hover:bg-primary/10 text-primary transition-all disabled:opacity-50"
-                        title="Refresh"
+                        title="Force refresh (bypass cache)"
                     >
                         <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
                     </button>
@@ -134,7 +180,7 @@ const AnalyticsTab = () => {
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }}
                     className="bg-white/40 dark:bg-white/5 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl p-5 group hover:border-primary/30 transition-all">
                     <div className="flex items-center justify-between mb-3">
@@ -482,27 +528,66 @@ const AnalyticsTab = () => {
                                             <div>
                                                 <h3 className="text-sm font-bold text-maintext mb-3 flex items-center gap-2">
                                                     <Clock className="w-4 h-4 text-subtext" /> Recent Affected Sessions
+                                                    <span className="ml-auto text-[10px] text-subtext font-normal">Click Inspect to see full details</span>
                                                 </h3>
                                                 <div className="space-y-2">
                                                     {drillData.recentSessions.map((s, i) => (
-                                                        <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-2">
+                                                        <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-2 hover:border-white/20 transition-all">
+                                                            {/* Row 1: User + date + error count */}
                                                             <div className="flex items-center justify-between flex-wrap gap-2">
-                                                                <span className="font-mono text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded-lg">
-                                                                    {s.sessionId?.substring(0, 20)}...
-                                                                </span>
+                                                                <div className="flex items-center gap-2">
+                                                                    {s.user ? (
+                                                                        <div className="flex items-center gap-1.5">
+                                                                            <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                                                                                <User2 className="w-3 h-3 text-primary" />
+                                                                            </div>
+                                                                            <div>
+                                                                                <p className="text-[11px] font-bold text-maintext leading-tight">{s.user.name}</p>
+                                                                                <p className="text-[9px] text-subtext leading-tight">{s.user.email}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <span className="text-[10px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                                                                            <Globe className="w-2.5 h-2.5" /> Guest Session
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                                 <div className="flex items-center gap-2 text-xs">
-                                                                    <span className="text-red-400 font-bold bg-red-400/10 px-2 py-0.5 rounded-lg">{s.errorCount} errors</span>
-                                                                    <span className="text-subtext">{s.createdAt ? new Date(s.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '-'}</span>
+                                                                    <span className="text-red-400 font-bold bg-red-400/10 px-2 py-0.5 rounded-lg">{s.errorCount} error{s.errorCount !== 1 ? 's' : ''}</span>
+                                                                    <span className="text-subtext">{s.createdAt ? new Date(s.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'}</span>
                                                                 </div>
                                                             </div>
-                                                            <div className="text-[10px] text-subtext px-0.5">
-                                                                Sub-Tool: <span className="text-maintext font-bold">{s.activeTool || 'General'}</span>
+
+                                                            {/* Row 2: Session title + sub-tool */}
+                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                <span className="text-[10px] text-subtext">
+                                                                    <span className="text-maintext font-semibold">"{s.sessionTitle || 'Unnamed Session'}"</span>
+                                                                </span>
+                                                                <span className="text-[9px] text-subtext/60">·</span>
+                                                                <span className="text-[9px] bg-white/5 border border-white/10 px-1.5 py-0.5 rounded font-mono text-subtext">{s.activeTool || 'General'}</span>
                                                             </div>
+
+                                                            {/* Row 3: Error snippet */}
                                                             {s.topError && (
-                                                                <p className="text-[11px] text-subtext bg-black/10 dark:bg-black/30 rounded-lg px-2.5 py-1.5 font-mono leading-relaxed border border-white/5 line-clamp-3">
+                                                                <p className="text-[10px] text-red-300/80 bg-red-500/5 border border-red-500/10 rounded-lg px-2.5 py-1.5 font-mono leading-relaxed line-clamp-2">
                                                                     {s.topError}
                                                                 </p>
                                                             )}
+
+                                                            {/* Row 4: Telemetry chips + Inspect button */}
+                                                            <div className="flex items-center justify-between flex-wrap gap-2">
+                                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                                    {s.os && <span className="text-[9px] bg-white/5 border border-white/5 px-1.5 py-0.5 rounded font-mono text-subtext/70 flex items-center gap-1"><Monitor className="w-2.5 h-2.5" />{s.os}</span>}
+                                                                    {s.browser && <span className="text-[9px] bg-white/5 border border-white/5 px-1.5 py-0.5 rounded font-mono text-subtext/70 flex items-center gap-1"><Globe className="w-2.5 h-2.5" />{s.browser}</span>}
+                                                                    {s.statusCode && <span className="text-[9px] bg-orange-500/10 border border-orange-500/10 px-1.5 py-0.5 rounded font-mono text-orange-400">{s.statusCode}</span>}
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => { setInspectSession(s); setDrawerOpen(false); }}
+                                                                    className="flex items-center gap-1 text-[10px] font-bold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 px-2.5 py-1 rounded-lg transition-all"
+                                                                >
+                                                                    <Eye className="w-3 h-3" /> Inspect &amp; Resolve
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -525,8 +610,289 @@ const AnalyticsTab = () => {
             ) : (
                 <ErrorMonitoring />
             )}
+
+            {/* Session Inspector Modal */}
+            {inspectSession && (
+                <SessionInspectorModal
+                    session={inspectSession}
+                    onClose={() => setInspectSession(null)}
+                    copiedStack={copiedStack}
+                    onCopyStack={copyStack}
+                />
+            )}
         </div>
     );
 };
 
 export default AnalyticsTab;
+
+// ──────────────────────────────────────────────────────────────────────────────────
+// Session Inspector Modal - shown when admin clicks "Inspect & Resolve"
+// ──────────────────────────────────────────────────────────────────────────────────
+export const SessionInspectorModal = ({ session, onClose, copiedStack, onCopyStack }) => {
+    const [activeTab, setActiveTab] = useState('error');
+    if (!session) return null;
+    return (
+        <AnimatePresence>
+            <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4" style={{ perspective: '1000px' }}>
+                {/* Backdrop */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={onClose}
+                    className="absolute inset-0 bg-black/70 backdrop-blur-md"
+                />
+
+                {/* Modal */}
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.92, y: 24 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.92, y: 24 }}
+                    transition={{ type: 'spring', damping: 24, stiffness: 200 }}
+                    className="relative z-10 w-full max-w-4xl max-h-[92vh] min-h-[520px] flex flex-col bg-[#0a0c12] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+                >
+                    {/* ── Header ── */}
+                    <div className="flex items-start justify-between p-5 border-b border-white/10 bg-gradient-to-r from-red-950/30 to-transparent shrink-0">
+                        <div className="space-y-1 min-w-0 flex-1 pr-4">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <span className="flex items-center gap-1.5 text-[10px] font-black text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                                    <BugPlay className="w-3 h-3" /> Session Error Inspector
+                                </span>
+                                <span className="text-[10px] font-mono text-subtext/60">{session.sessionId ? `ID: ${session.sessionId.substring(0, 24)}...` : 'Guest / No Session'}</span>
+                            </div>
+                            <h2 className="text-base font-bold text-maintext leading-tight truncate">
+                                "{session.sessionTitle || 'Unnamed Session'}"
+                            </h2>
+                            <p className="text-[11px] text-subtext">
+                                {session.createdAt ? new Date(session.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—'}
+                                {' · '}
+                                <span className="text-red-400 font-bold">{session.errorCount} error{session.errorCount !== 1 ? 's' : ''}</span>
+                                {' · '}
+                                <span className="text-subtext">{session.activeTool || 'General'}</span>
+                            </p>
+                        </div>
+
+                        {/* User / Guest Badge */}
+                        <div className="flex items-center gap-3 shrink-0">
+                            {session.user ? (
+                                <div className="text-right">
+                                    <p className="text-xs font-bold text-maintext">{session.user.name}</p>
+                                    <p className="text-[10px] text-subtext">{session.user.email}</p>
+                                </div>
+                            ) : (
+                                <span className="text-[10px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-1 rounded-lg flex items-center gap-1">
+                                    <Globe className="w-3 h-3" /> Guest
+                                </span>
+                            )}
+                            <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 text-subtext hover:text-maintext transition-all">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* ── Tab Bar ── */}
+                    <div className="shrink-0 bg-[#0d1017] border-b border-white/10 px-5 py-3">
+                        <div className="flex items-center gap-2">
+                            {[
+                                { id: 'error',        label: 'Error & Stack',  Icon: ShieldAlert,    color: 'text-red-400',    activeBg: 'bg-red-500/15 border-red-500/30' },
+                                { id: 'conversation', label: 'Conversation',   Icon: MessageCircle,  color: 'text-blue-400',   activeBg: 'bg-blue-500/15 border-blue-500/30' },
+                                { id: 'telemetry',    label: 'Telemetry',      Icon: Monitor,        color: 'text-emerald-400',activeBg: 'bg-emerald-500/15 border-emerald-500/30' },
+                                { id: 'breadcrumbs',  label: 'User Journey',   Icon: ChevronRight,   color: 'text-amber-400',  activeBg: 'bg-amber-500/15 border-amber-500/30' },
+                            ].map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-bold transition-all ${
+                                        activeTab === tab.id
+                                            ? `${tab.activeBg} ${tab.color}`
+                                            : 'border-transparent text-subtext hover:text-maintext hover:bg-white/5'
+                                    }`}
+                                >
+                                    <tab.Icon className={`w-3.5 h-3.5 shrink-0 ${ activeTab === tab.id ? tab.color : 'text-subtext/60' }`} />
+                                    <span className="truncate">{tab.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* ── Tab Content ── */}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-4">
+
+                        {/* ERROR & STACK TRACE TAB */}
+                        {activeTab === 'error' && (
+                            <div className="space-y-4">
+                                {/* Top Error Message */}
+                                <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4 space-y-2">
+                                    <h4 className="text-[10px] font-black text-red-400 uppercase tracking-widest flex items-center gap-1.5">
+                                        <ShieldAlert className="w-3.5 h-3.5" /> Error Message
+                                    </h4>
+                                    <p className="text-sm text-maintext font-mono whitespace-pre-wrap leading-relaxed select-all">
+                                        {session.topError || 'No error message captured.'}
+                                    </p>
+                                </div>
+
+                                {/* Stack Trace */}
+                                {session.stackTrace ? (
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="text-[10px] font-black text-subtext uppercase tracking-widest flex items-center gap-1.5">
+                                                <Terminal className="w-3.5 h-3.5" /> Full Stack Trace
+                                            </h4>
+                                            <button
+                                                onClick={() => onCopyStack(session.stackTrace)}
+                                                className="flex items-center gap-1 text-[10px] font-bold text-primary hover:underline transition-all"
+                                            >
+                                                {copiedStack ? <><Check className="w-3 h-3 text-emerald-400" /> Copied!</> : <><Copy className="w-3 h-3" /> Copy Stack</>}
+                                            </button>
+                                        </div>
+                                        <pre className="p-4 bg-[#05070a] border border-white/5 rounded-xl font-mono text-[10.5px] leading-relaxed text-subtext/90 overflow-x-auto select-text whitespace-pre max-h-72 overflow-y-auto custom-scrollbar">
+                                            {session.stackTrace}
+                                        </pre>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-8 text-subtext text-xs border border-dashed border-white/10 rounded-xl">
+                                        No stack trace was captured for this error occurrence.
+                                    </div>
+                                )}
+
+                                {/* API Info */}
+                                {(session.apiRoute || session.statusCode) && (
+                                    <div className="flex items-center gap-3 p-3 bg-orange-500/5 border border-orange-500/10 rounded-xl">
+                                        <Server className="w-4 h-4 text-orange-400 shrink-0" />
+                                        <div className="text-[11px] font-mono">
+                                            {session.statusCode && <span className="text-orange-400 font-bold mr-2">[{session.statusCode}]</span>}
+                                            <span className="text-maintext">{session.apiRoute || 'Unknown route'}</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* CONVERSATION REPLAY TAB */}
+                        {activeTab === 'conversation' && (
+                            <div className="space-y-3">
+                                {session.conversation && session.conversation.length > 0 ? (
+                                    <>
+                                        <p className="text-[10px] text-subtext italic">Showing last {session.conversation.length} messages in this session at the time of error.</p>
+                                        <div className="space-y-2 flex flex-col">
+                                            {session.conversation.map((msg, idx) => {
+                                                const isModel = msg.role === 'model' || msg.role === 'assistant';
+                                                return (
+                                                    <div key={idx} className={`flex flex-col max-w-[85%] ${isModel ? 'self-start' : 'self-end ml-auto'}`}>
+                                                        <span className={`text-[9px] uppercase font-bold tracking-wider mb-0.5 ${isModel ? 'text-primary/70' : 'text-subtext/70'}`}>
+                                                            {isModel ? '🤖 AISA AI' : `👤 ${session.user?.name || 'User'}`}
+                                                        </span>
+                                                        <div className={`p-2.5 rounded-xl text-xs leading-relaxed ${
+                                                            isModel
+                                                                ? 'bg-white/5 border border-white/10 text-maintext'
+                                                                : 'bg-primary text-white'
+                                                        }`}>
+                                                            {msg.content}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="text-center py-12 text-subtext text-xs border border-dashed border-white/10 rounded-xl">
+                                        <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                                        No conversation messages were recorded in this session.
+                                        <p className="mt-1 text-[10px] opacity-60">This may be a direct API call or guest one-shot request.</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* TELEMETRY TAB */}
+                        {activeTab === 'telemetry' && (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                    {[
+                                        { label: 'Operating System', value: session.os, icon: Monitor },
+                                        { label: 'Browser', value: session.browser, icon: Globe },
+                                        { label: 'Device', value: session.device, icon: Smartphone },
+                                        { label: 'Sub-Tool', value: session.activeTool, icon: Cpu },
+                                        { label: 'Session Mode', value: session.detectedMode, icon: BugPlay },
+                                        { label: 'Session Type', value: session.isGuest ? 'Guest Session' : 'Authenticated', icon: User2 },
+                                    ].map((item, idx) => (
+                                        <div key={idx} className="bg-white/5 border border-white/5 rounded-xl p-3 space-y-1">
+                                            <div className="flex items-center gap-1.5 text-[9px] text-subtext/60 uppercase tracking-wider font-extrabold">
+                                                <item.icon className="w-3 h-3 text-primary/60" />
+                                                {item.label}
+                                            </div>
+                                            <p className="text-xs font-bold text-maintext break-all">{item.value || 'Unknown'}</p>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* User Card */}
+                                {session.user && (
+                                    <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                                            <User2 className="w-5 h-5 text-primary" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-maintext">{session.user.name}</p>
+                                            <p className="text-[11px] text-subtext flex items-center gap-1 mt-0.5">
+                                                <Mail className="w-3 h-3" /> {session.user.email}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Session ID (copyable) */}
+                                {session.sessionId && (
+                                    <div className="bg-white/5 border border-white/5 rounded-xl p-3 space-y-1">
+                                        <p className="text-[9px] text-subtext/60 uppercase tracking-wider font-extrabold">Full Session ID</p>
+                                        <p
+                                            className="text-xs font-mono text-primary select-all cursor-pointer hover:underline"
+                                            onClick={() => { navigator.clipboard.writeText(session.sessionId); toast.success('Session ID copied!'); }}
+                                        >
+                                            {session.sessionId}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* BREADCRUMBS / JOURNEY TAB */}
+                        {activeTab === 'breadcrumbs' && (
+                            <div className="space-y-3">
+                                {session.breadcrumbs && session.breadcrumbs.length > 0 ? (
+                                    <>
+                                        <p className="text-[10px] text-subtext italic">User journey leading up to the error — {session.breadcrumbs.length} events captured.</p>
+                                        <div className="relative border-l-2 border-primary/20 pl-4 ml-2 space-y-4">
+                                            {session.breadcrumbs.map((crumb, idx) => (
+                                                <div key={idx} className="relative">
+                                                    <div className="absolute -left-[21px] top-1 w-3 h-3 rounded-full bg-[#0a0c12] border-2 border-primary/50" />
+                                                    <div className="bg-white/5 border border-white/5 rounded-xl p-3 space-y-1">
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <span className="text-[9px] font-black uppercase tracking-wider text-primary">{crumb.category || 'event'}</span>
+                                                            <span className="text-[9px] text-subtext/50 font-mono">{crumb.timestamp ? new Date(crumb.timestamp).toLocaleTimeString('en-IN') : ''}</span>
+                                                        </div>
+                                                        <p className="text-xs font-semibold text-maintext">{crumb.message}</p>
+                                                        {crumb.data && Object.keys(crumb.data).length > 0 && (
+                                                            <p className="text-[9px] text-subtext/60 font-mono truncate">{JSON.stringify(crumb.data)}</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="text-center py-12 text-subtext text-xs border border-dashed border-white/10 rounded-xl">
+                                        <ChevronRight className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                                        No breadcrumb events were captured for this session.
+                                        <p className="mt-1 text-[10px] opacity-60">Breadcrumbs are logged when the SDK is configured on the client side.</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </motion.div>
+            </div>
+        </AnimatePresence>
+    );
+};

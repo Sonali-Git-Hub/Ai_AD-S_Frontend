@@ -213,4 +213,24 @@ export const LanguageProvider = ({ children }) => {
     );
 };
 
-export const useLanguage = () => useContext(LanguageContext);
+export const useLanguage = () => {
+    const context = useContext(LanguageContext);
+    if (!context) {
+        return {
+            language: 'English',
+            setLanguage: () => {},
+            t: (key) => key,
+            toolkitLanguage: 'English',
+            setToolkitLanguage: () => {},
+            tLegal: (key) => key,
+            languages: ['English'],
+            region: 'India',
+            setRegion: () => {},
+            regions: { 'India': ['English'] },
+            regionFlags: { 'India': 'IN' },
+            allTimezones: [],
+            regionTimezones: {}
+        };
+    }
+    return context;
+};
