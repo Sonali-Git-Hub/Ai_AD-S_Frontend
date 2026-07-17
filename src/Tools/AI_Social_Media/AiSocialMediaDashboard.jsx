@@ -10,7 +10,7 @@ import {
   ChevronRight, Plus, HelpCircle, AlertCircle, Info, Filter, Search,
   Instagram, Facebook, Linkedin, Twitter, Youtube, Send, Save, Globe, CheckCircle2, Mic2,
   Eye, Target, Zap, Hash, Copy, Sparkle, User, User2, Briefcase, History, Activity, Tag,
-  Server, BrainCircuit, AlertTriangle, Building2, ShoppingBag, Cpu, Utensils, Camera, HeartPulse, UserCircle, ShoppingCart, ArrowRight, AlignLeft, Lock, Crown, Bot
+  Server, BrainCircuit, AlertTriangle, Building2, ShoppingBag, Cpu, Utensils, Camera, HeartPulse, UserCircle, ShoppingCart, ArrowRight, AlignLeft, Lock, Crown, Bot, Maximize2, Minimize2
 } from 'lucide-react';
 import { Dialog, Transition, Menu, Listbox } from '@headlessui/react';
 import toast from 'react-hot-toast';
@@ -19,6 +19,7 @@ import { API } from '../../types.js';
 import { getUserData, updateUser } from '../../userStore/userData';
 import GeneratePostModal from './GeneratePostModal';
 import BrandWorkspace from './BrandWorkspace';
+import ReactMarkdown from 'react-markdown';
 
 /**
  * Safely wraps a URL through the backend media proxy.
@@ -353,6 +354,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
   // Chatbot Assistant FAB & Interface states
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+  const [isChatbotMaximized, setIsChatbotMaximized] = useState(false);
   const [chatbotInput, setChatbotInput] = useState('');
   const [chatbotMessages, setChatbotMessages] = useState([
     { sender: 'bot', text: 'Hello! I am your AI Ads™ Assistant. I can help you with creating posts, campaign ideas, hashtags, or visual suggestions. Ask me anything!' }
@@ -5665,7 +5667,11 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="fixed bottom-24 right-6 z-[9999] w-[350px] sm:w-[380px] h-[500px] bg-white dark:bg-[#0c0c0c] border border-slate-200 dark:border-white/10 rounded-[28px] shadow-2xl flex flex-col overflow-hidden text-left"
+              className={`fixed z-[9999] bg-white dark:bg-[#0c0c0c] border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col overflow-hidden text-left transition-all duration-300 ease-in-out ${
+                isChatbotMaximized
+                  ? 'top-0 bottom-0 right-0 h-screen rounded-l-[28px] rounded-r-none border-r-0 w-[95%] sm:w-[80%] md:w-[40%] lg:w-[30%]'
+                  : 'bottom-24 right-6 w-[350px] sm:w-[380px] h-[500px] rounded-[28px]'
+              }`}
             >
               {/* Header */}
               <div className="bg-gradient-to-r from-[#0d2240] to-[#122e54] border-b border-[#1b3d68] p-4 flex items-center justify-between">
@@ -5678,13 +5684,28 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                     <p className="text-[8px] font-bold text-emerald-400 uppercase tracking-widest mt-0.5">Online & Ready</p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsChatbotOpen(false)}
-                  className="p-1.5 hover:bg-white/10 text-slate-300 hover:text-white rounded-lg transition-all"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1">
+                  {/* Maximize / Minimize Button */}
+                  <button
+                    type="button"
+                    onClick={() => setIsChatbotMaximized(!isChatbotMaximized)}
+                    className="p-1.5 hover:bg-white/10 text-slate-300 hover:text-white rounded-lg transition-all flex items-center justify-center"
+                    title={isChatbotMaximized ? "Minimize Window" : "Maximize Window"}
+                  >
+                    {isChatbotMaximized ? (
+                      <Minimize2 className="w-4 h-4" />
+                    ) : (
+                      <Maximize2 className="w-4 h-4" />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsChatbotOpen(false)}
+                    className="p-1.5 hover:bg-white/10 text-slate-300 hover:text-white rounded-lg transition-all"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               {/* Message Box */}
@@ -5692,30 +5713,56 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                 {chatbotMessages.map((msg, idx) => (
                   <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div
-                      className={`max-w-[80%] p-3 rounded-2xl text-xs leading-relaxed ${
+                      className={`max-w-[85%] p-3.5 rounded-2xl text-[12px] leading-relaxed shadow-sm ${
                         msg.sender === 'user'
                           ? 'bg-primary text-white rounded-tr-none shadow-md shadow-primary/10'
-                          : 'bg-white dark:bg-[#1E2438] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 rounded-tl-none shadow-sm'
+                          : 'bg-white dark:bg-[#1E2438] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 rounded-tl-none'
                       }`}
                     >
-                      {msg.text}
+                      {msg.sender === 'user' ? (
+                        msg.text
+                      ) : (
+                        <div className="prose prose-slate dark:prose-invert max-w-none break-words">
+                          <ReactMarkdown
+                            components={{
+                              p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                              ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-2" {...props} />,
+                              ol: ({node, ...props}) => <ol className="list-decimal pl-4 mb-2" {...props} />,
+                              li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                              h1: ({node, ...props}) => <h1 className="text-sm font-bold mb-2 mt-1 text-[#3b82f6] dark:text-[#60a5fa]" {...props} />,
+                              h2: ({node, ...props}) => <h2 className="text-xs font-bold mb-2 mt-1 text-[#3b82f6] dark:text-[#60a5fa]" {...props} />,
+                              h3: ({node, ...props}) => <h3 className="text-xs font-bold mb-1 mt-1 text-[#3b82f6] dark:text-[#60a5fa]" {...props} />,
+                              strong: ({node, ...props}) => <strong className="font-extrabold text-[#3b82f6] dark:text-[#60a5fa]" {...props} />,
+                              a: ({node, ...props}) => <a className="text-[#3b82f6] dark:text-[#60a5fa] hover:underline" target="_blank" rel="noopener noreferrer" {...props} />
+                            }}
+                          >
+                            {msg.text}
+                          </ReactMarkdown>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
 
               {/* Input Form */}
-              <form onSubmit={handleSendChat} className="p-3 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-[#0c0c0c] flex gap-2">
-                <input
-                  type="text"
+              <form onSubmit={handleSendChat} className="p-3 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-[#0c0c0c] flex items-end gap-2">
+                <textarea
                   placeholder="Ask me a question..."
                   value={chatbotInput}
                   onChange={(e) => setChatbotInput(e.target.value)}
-                  className="flex-1 px-4 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-primary/50 placeholder:text-slate-400"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendChat(e);
+                    }
+                  }}
+                  rows={Math.min(4, Math.max(1, chatbotInput.split('\n').length))}
+                  className="flex-1 px-4 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-primary/50 placeholder:text-slate-400 resize-none custom-scrollbar min-h-[36px] max-h-[120px] leading-normal align-middle"
                 />
                 <button
                   type="submit"
-                  className="p-2.5 bg-primary hover:bg-primary/95 text-white rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+                  className="p-2.5 bg-primary hover:bg-primary/95 text-white rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95 shrink-0 h-9 w-9"
                 >
                   <Send className="w-4 h-4" />
                 </button>
