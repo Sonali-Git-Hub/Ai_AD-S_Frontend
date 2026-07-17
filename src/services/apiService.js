@@ -409,6 +409,16 @@ export const apiService = {
     }
   },
 
+  async queryAiAdsAssistant(query) {
+    try {
+      const response = await apiClient.post('/chat/ai-ads-assistant', { query });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to query AI Ads assistant:", error);
+      throw error;
+    }
+  },
+
   // --- AI Social Agent (Phase 2 & 3) ---
   async completeSocialOnboarding(data) {
     try {
