@@ -35,6 +35,9 @@ export const setUserData = (data) => {
 
   // Update primary user
   localStorage.setItem("user", JSON.stringify(finalData));
+  
+  // Clear guest chat limit count upon login
+  localStorage.removeItem('aisa_guest_chat_count');
 
   // Update account list
   const accounts = JSON.parse(localStorage.getItem('accounts') || '[]');

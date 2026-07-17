@@ -72,8 +72,8 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    reportCompressedSize: false,
-    minify: false,
+    reportCompressedSize: true,
+    minify: 'esbuild',
     rollupOptions: {},
   },
 });

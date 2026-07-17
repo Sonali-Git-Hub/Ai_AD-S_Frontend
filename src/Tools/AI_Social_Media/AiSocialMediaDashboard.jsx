@@ -9,8 +9,8 @@ import {
   LayoutDashboard, Palette, CalendarRange, Library, CheckSquare, Clock, Monitor,
   ChevronRight, Plus, HelpCircle, AlertCircle, Info, Filter, Search,
   Instagram, Facebook, Linkedin, Twitter, Youtube, Send, Save, Globe, CheckCircle2, Mic2,
-  Eye, Target, Zap, Hash, Copy, Sparkle, User, User2, Briefcase, History, Activity, Tag, Maximize2,
-  Server, BrainCircuit, AlertTriangle, Building2, ShoppingBag, Cpu, Utensils, Camera, HeartPulse, UserCircle, ShoppingCart, ArrowRight, AlignLeft, Lock, Crown, Bot
+  Eye, Target, Zap, Hash, Copy, Sparkle, User, User2, Briefcase, History, Activity, Tag,
+  Server, BrainCircuit, AlertTriangle, Building2, ShoppingBag, Cpu, Utensils, Camera, HeartPulse, UserCircle, ShoppingCart, ArrowRight, AlignLeft, Lock, Crown, Bot, Maximize2, Minimize2
 } from 'lucide-react';
 import { Dialog, Transition, Menu, Listbox } from '@headlessui/react';
 import toast from 'react-hot-toast';
@@ -19,6 +19,7 @@ import { API } from '../../types.js';
 import { getUserData, updateUser } from '../../userStore/userData';
 import GeneratePostModal from './GeneratePostModal';
 import BrandWorkspace from './BrandWorkspace';
+import ReactMarkdown from 'react-markdown';
 
 /**
  * Safely wraps a URL through the backend media proxy.
@@ -350,6 +351,14 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
   const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
   const [selectedDate, setSelectedDate] = useState(new Date());
+
+  // Chatbot Assistant FAB & Interface states
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+  const [isChatbotMaximized, setIsChatbotMaximized] = useState(false);
+  const [chatbotInput, setChatbotInput] = useState('');
+  const [chatbotMessages, setChatbotMessages] = useState([
+    { sender: 'bot', text: 'Hello! I am your AI Ads™ Assistant. I can help you with creating posts, campaign ideas, hashtags, or visual suggestions. Ask me anything!' }
+  ]);
 
   // Auto-sync calendar view to campaign start date on load
   useEffect(() => {
@@ -2240,7 +2249,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
           {[
             {
               id: 'brands',
-              label: 'Brand History',
+              label: 'Total Brand',
               val: allWorkspaces.filter(ws => !ws.isPersonalProfile && ws.onboarding?.completed).length,
               icon: Palette,
               color: 'text-indigo-500',
@@ -2261,6 +2270,30 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
           ))}
         </div>
 
+        {/* ── AI Ads™ Engine Promotion Banner ── */}
+        <div className="p-6 md:p-8 rounded-[28px] bg-gradient-to-r from-[#0d2240] to-[#122e54] border border-[#1b3d68] relative overflow-hidden flex flex-col justify-center space-y-3.5 shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-500">
+          {/* Top Badge */}
+          <div className="flex items-center gap-2 self-start bg-[#163a65] border border-[#23538a] px-3 py-1 rounded-full text-[9px] font-black text-slate-300 uppercase tracking-widest">
+            <Target className="w-3.5 h-3.5 text-blue-400" />
+            <span>AI Ads™ ENGINE</span>
+          </div>
+
+          {/* Heading */}
+          <h2 className="text-xl md:text-2xl font-black text-white tracking-tight leading-tight max-w-xl">
+            Struggling to come up with daily social posts?{' '}
+            <span className="text-[#3b82f6] dark:text-[#60a5fa]">Not Anymore.</span>
+          </h2>
+
+          {/* Subheading */}
+          <p className="text-xs font-bold text-slate-300 max-w-lg leading-relaxed uppercase tracking-wider">
+            Introducing <span className="underline decoration-blue-400 decoration-2 underline-offset-4 font-black text-white">AI Ads™ Generator</span> to Create Ready-To-Post Creatives in Seconds!
+          </p>
+
+          {/* Decorative background visual element representing a subtle star/sparkle */}
+          <div className="absolute right-8 top-1/2 -translate-y-1/2 opacity-[0.08] pointer-events-none hidden md:block">
+            <Sparkles className="w-32 h-32 text-white animate-pulse" />
+          </div>
+        </div>
 
         {/* ── SECTION 6: Intelligence & Visual Vault ─────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
@@ -4258,43 +4291,70 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
               <Settings className="w-4 h-4 text-primary" />
               <h3 className="text-xs font-black uppercase text-slate-800 dark:text-white tracking-wider">Campaign Info</h3>
             </div>
-            {campaignHistory.length > 0 && (
-              <select
-                value={currentCampaign?._id || ''}
-                onChange={async (e) => {
-                  const selectedId = e.target.value;
-                  if (!selectedId) return;
-                  setIsCampaignLoading(true);
-                  try {
-                    const res = await apiService.getCampaign(selectedId);
-                    if (res.success && res.campaign) {
-                      setCurrentCampaign(res.campaign);
-                      setCampaignPosts(res.posts || []);
-                      setCampaignConfig({
-                        campaignName: res.campaign.campaignName || '',
-                        campaignMonth: res.campaign.campaignMonth || 'January',
-                        postingFrequency: res.campaign.postingFrequency || '3x Per Week',
-                        startDate: res.campaign.startDate ? res.campaign.startDate.split('T')[0] : '',
-                        endDate: res.campaign.endDate ? res.campaign.endDate.split('T')[0] : '',
-                        campaignGoals: res.campaign.campaignGoals || (res.campaign.campaignGoal ? [res.campaign.campaignGoal] : []),
-                        campaignGoal: res.campaign.campaignGoal || '',
-                        platforms: res.campaign.platforms || []
-                      });
+            
+            <div className="flex items-center gap-2">
+              {campaignHistory.length > 0 && (
+                <select
+                  value={currentCampaign?._id || ''}
+                  onChange={async (e) => {
+                    const selectedId = e.target.value;
+                    if (!selectedId) return;
+                    setIsCampaignLoading(true);
+                    try {
+                      const res = await apiService.getCampaign(selectedId);
+                      if (res.success && res.campaign) {
+                        setCurrentCampaign(res.campaign);
+                        setCampaignPosts(res.posts || []);
+                        setCampaignConfig({
+                          campaignName: res.campaign.campaignName || '',
+                          campaignMonth: res.campaign.campaignMonth || 'January',
+                          postingFrequency: res.campaign.postingFrequency || '3x Per Week',
+                          startDate: res.campaign.startDate ? res.campaign.startDate.split('T')[0] : '',
+                          endDate: res.campaign.endDate ? res.campaign.endDate.split('T')[0] : '',
+                          campaignGoals: res.campaign.campaignGoals || (res.campaign.campaignGoal ? [res.campaign.campaignGoal] : []),
+                          campaignGoal: res.campaign.campaignGoal || '',
+                          platforms: res.campaign.platforms || []
+                        });
+                      }
+                    } catch (err) {
+                      console.error("Failed to load selected campaign:", err);
+                    } finally {
+                      setIsCampaignLoading(false);
                     }
-                  } catch (err) {
-                    console.error("Failed to load selected campaign:", err);
-                  } finally {
-                    setIsCampaignLoading(false);
-                  }
+                  }}
+                  className="text-[9px] font-black uppercase tracking-wider px-2 py-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-slate-500 outline-none max-w-[120px] truncate"
+                >
+                  <option value="" disabled>Campaign History</option>
+                  {campaignHistory.map(c => (
+                    <option key={c._id} value={c._id}>{c.campaignName || 'Unnamed'}</option>
+                  ))}
+                </select>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentCampaign(null);
+                  setCampaignPosts([]);
+                  setCampaignConfig({
+                    campaignName: '',
+                    campaignMonth: 'January',
+                    postingFrequency: '3x Per Week',
+                    startDate: '',
+                    endDate: '',
+                    campaignGoals: [],
+                    campaignGoal: '',
+                    platforms: []
+                  });
+                  toast.success("Ready to create a new calendar!");
                 }}
-                className="text-[9px] font-black uppercase tracking-wider px-2 py-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-slate-500 outline-none max-w-[150px] truncate"
+                className="p-1 text-primary hover:text-primary-hover bg-primary/5 hover:bg-primary/10 rounded-lg border border-primary/20 hover:border-primary transition-all flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-1"
+                title="Create New Calendar"
               >
-                <option value="" disabled>Campaign History</option>
-                {campaignHistory.map(c => (
-                  <option key={c._id} value={c._id}>{c.campaignName || 'Unnamed'}</option>
-                ))}
-              </select>
-            )}
+                <Plus className="w-3.5 h-3.5" />
+                <span>New</span>
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -4534,6 +4594,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                     {/* Calendar cells grid */}
                     <div className="grid grid-cols-7 gap-y-2 text-center text-xs font-bold">
                       {calendarCells.map((cell, cellIdx) => {
+                        if (!cell.isCurrentMonth) {
+                          return <div key={cellIdx} className="aspect-square" />;
+                        }
+
                         const cellDate = new Date(cell.year, cell.month, cell.day);
                         const hasPost = campaignPosts.some(p => isSameDay(p.date, cellDate));
                         const isSelected = isSameDay(cellDate, selectedDate);
@@ -4545,13 +4609,9 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                 setSelectedDate(cellDate);
                               }}
                               className={`w-8 h-8 rounded-full flex items-center justify-center transition-all text-[11px] ${
-                                !cell.isCurrentMonth
-                                  ? 'text-slate-300 dark:text-slate-600'
-                                  : 'text-slate-700 dark:text-slate-300'
-                              } ${
                                 hasPost
                                   ? 'bg-indigo-600 text-white font-black shadow-md shadow-indigo-600/30'
-                                  : 'hover:bg-slate-50 dark:hover:bg-white/5'
+                                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5'
                               } ${
                                 isSelected
                                   ? 'ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-[#080808] scale-110'
@@ -4590,13 +4650,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                               className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border outline-none cursor-pointer ${
                                 activePost.status === 'Draft' ? 'bg-slate-50 dark:bg-white/5 text-slate-400 border-slate-200 dark:border-white/10' :
                                 activePost.status === 'Generated' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
-                                activePost.status === 'Approved' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
-                                activePost.status === 'Scheduled' ? 'bg-purple-500/10 text-purple-500 border-purple-500/20' :
-                                activePost.status === 'Published' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' :
                                 'bg-red-500/10 text-red-500 border-red-500/20'
                               }`}
                             >
-                              {['Draft', 'Generated', 'Approved', 'Scheduled', 'Published', 'Failed'].map(st => (
+                              {['Draft', 'Generated'].map(st => (
                                 <option key={st} value={st}>{st}</option>
                               ))}
                             </select>
@@ -4697,64 +4754,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                               setActiveTab('calendar');
                               setShowWizard(true);
                             }}
-                            className="flex-1 h-8 bg-primary hover:bg-primary/95 text-white rounded-lg text-[8px] font-black uppercase tracking-widest shadow-md flex items-center justify-center gap-1.5 transition-all"
+                            className="w-full h-9 bg-primary hover:bg-primary/95 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-md flex items-center justify-center gap-1.5 transition-all hover:scale-[1.01] active:scale-95"
                           >
-                            <Sparkles className="w-3 h-3" />
+                            <Sparkles className="w-3.5 h-3.5" />
                             Generate with AI
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setSelectedCampaignPost(activePost);
-                              setIsDrawerOpen(true);
-                            }}
-                            className="p-2 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-all flex items-center justify-center border border-slate-200 dark:border-white/10"
-                            title="Preview Details"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </button>
-
-                          <button
-                            onClick={async () => {
-                              const toastId = toast.loading("Duplicating card...");
-                              try {
-                                const newDate = new Date(activePost.date);
-                                newDate.setDate(newDate.getDate() + 1);
-                                const duplicated = {
-                                  campaignId: activePost.campaignId,
-                                  workspaceId: activePost.workspaceId,
-                                  date: newDate,
-                                  day: newDate.toLocaleDateString('en-US', { weekday: 'long' }),
-                                  platform: activePost.platform,
-                                  contentType: activePost.contentType,
-                                  campaignStage: activePost.campaignStage,
-                                  postObjective: activePost.postObjective,
-                                  prompt: `[Copy] ${activePost.prompt}`,
-                                  status: 'Draft',
-                                  approvalStatus: 'Pending',
-                                  bestPostingTime: activePost.bestPostingTime
-                                };
-                                const res = await apiService.createCampaignPost(duplicated);
-                                if (res.success) {
-                                  setCampaignPosts(prev => [...prev, res.post].sort((a,b) => new Date(a.date) - new Date(b.date)));
-                                  toast.success("Card duplicated successfully!", { id: toastId });
-                                }
-                              } catch {
-                                toast.error("Failed to duplicate card.", { id: toastId });
-                              }
-                            }}
-                            className="p-2 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-all flex items-center justify-center border border-slate-200 dark:border-white/10"
-                            title="Duplicate Card"
-                          >
-                            <Copy className="w-3.5 h-3.5" />
-                          </button>
-
-                          <button
-                            onClick={() => handleDeletePost(activePost._id)}
-                            className="p-2 bg-slate-50 dark:bg-white/5 hover:bg-red-500/10 rounded-lg text-slate-400 hover:text-red-500 transition-all flex items-center justify-center border border-slate-200 dark:border-white/10"
-                            title="Delete Card"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
@@ -5504,6 +5507,156 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
           </Dialog.Panel>
         </div>
       </Dialog>
+    );
+  };
+
+  const renderChatbotAssistant = () => {
+    const handleSendChat = async (e) => {
+      e?.preventDefault();
+      const trimmed = chatbotInput.trim();
+      if (!trimmed) return;
+
+      setChatbotMessages(prev => [...prev, { sender: 'user', text: trimmed }]);
+      setChatbotInput('');
+
+      // Add a typing placeholder message
+      setChatbotMessages(prev => [...prev, { sender: 'bot', text: 'Typing...', isTyping: true }]);
+
+      try {
+        const res = await apiService.queryAiAdsAssistant(trimmed);
+        if (res && res.success) {
+          setChatbotMessages(prev => prev.filter(m => !m.isTyping).concat({ sender: 'bot', text: res.text }));
+        } else {
+          setChatbotMessages(prev => prev.filter(m => !m.isTyping).concat({ sender: 'bot', text: "Sorry, I had trouble retrieving answers from the uploaded documents. Please try again." }));
+        }
+      } catch (err) {
+        console.error("Chatbot query error:", err);
+        setChatbotMessages(prev => prev.filter(m => !m.isTyping).concat({ sender: 'bot', text: "Failed to connect to the AI Ads RAG database. Please ensure your backend server is running." }));
+      }
+    };
+
+    return (
+      <>
+        {/* Floating Action Button */}
+        <button
+          onClick={() => setIsChatbotOpen(!isChatbotOpen)}
+          className="fixed bottom-6 right-6 z-[9999] w-14 h-14 rounded-full bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/95 hover:to-indigo-500 text-white flex items-center justify-center shadow-lg shadow-primary/30 transition-all hover:scale-105 active:scale-95 border border-white/10"
+          title="AI Ads Assistant"
+        >
+          <Bot className="w-7 h-7" />
+        </button>
+
+        {/* Chatbot Interface Popover */}
+        <AnimatePresence>
+          {isChatbotOpen && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className={`fixed z-[9999] bg-white dark:bg-[#0c0c0c] border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col overflow-hidden text-left transition-all duration-300 ease-in-out ${
+                isChatbotMaximized
+                  ? 'top-0 bottom-0 right-0 h-screen rounded-l-[28px] rounded-r-none border-r-0 w-[95%] sm:w-[80%] md:w-[40%] lg:w-[30%]'
+                  : 'bottom-24 right-6 w-[350px] sm:w-[380px] h-[500px] rounded-[28px]'
+              }`}
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-[#0d2240] to-[#122e54] border-b border-[#1b3d68] p-4 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
+                    <Bot className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-xs font-black text-white uppercase tracking-wider">AI Ads™ Assistant</h3>
+                    <p className="text-[8px] font-bold text-emerald-400 uppercase tracking-widest mt-0.5">Online & Ready</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  {/* Maximize / Minimize Button */}
+                  <button
+                    type="button"
+                    onClick={() => setIsChatbotMaximized(!isChatbotMaximized)}
+                    className="p-1.5 hover:bg-white/10 text-slate-300 hover:text-white rounded-lg transition-all flex items-center justify-center"
+                    title={isChatbotMaximized ? "Minimize Window" : "Maximize Window"}
+                  >
+                    {isChatbotMaximized ? (
+                      <Minimize2 className="w-4 h-4" />
+                    ) : (
+                      <Maximize2 className="w-4 h-4" />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsChatbotOpen(false)}
+                    className="p-1.5 hover:bg-white/10 text-slate-300 hover:text-white rounded-lg transition-all"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Message Box */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3.5 custom-scrollbar bg-slate-50/50 dark:bg-black/20">
+                {chatbotMessages.map((msg, idx) => (
+                  <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div
+                      className={`max-w-[85%] p-3.5 rounded-2xl text-[12px] leading-relaxed shadow-sm ${
+                        msg.sender === 'user'
+                          ? 'bg-primary text-white rounded-tr-none shadow-md shadow-primary/10'
+                          : 'bg-white dark:bg-[#1E2438] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 rounded-tl-none'
+                      }`}
+                    >
+                      {msg.sender === 'user' ? (
+                        msg.text
+                      ) : (
+                        <div className="prose prose-slate dark:prose-invert max-w-none break-words">
+                          <ReactMarkdown
+                            components={{
+                              p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                              ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-2" {...props} />,
+                              ol: ({node, ...props}) => <ol className="list-decimal pl-4 mb-2" {...props} />,
+                              li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                              h1: ({node, ...props}) => <h1 className="text-sm font-bold mb-2 mt-1 text-[#3b82f6] dark:text-[#60a5fa]" {...props} />,
+                              h2: ({node, ...props}) => <h2 className="text-xs font-bold mb-2 mt-1 text-[#3b82f6] dark:text-[#60a5fa]" {...props} />,
+                              h3: ({node, ...props}) => <h3 className="text-xs font-bold mb-1 mt-1 text-[#3b82f6] dark:text-[#60a5fa]" {...props} />,
+                              strong: ({node, ...props}) => <strong className="font-extrabold text-[#3b82f6] dark:text-[#60a5fa]" {...props} />,
+                              a: ({node, ...props}) => <a className="text-[#3b82f6] dark:text-[#60a5fa] hover:underline" target="_blank" rel="noopener noreferrer" {...props} />
+                            }}
+                          >
+                            {msg.text}
+                          </ReactMarkdown>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Input Form */}
+              <form onSubmit={handleSendChat} className="p-3 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-[#0c0c0c] flex items-end gap-2">
+                <textarea
+                  placeholder="Ask me a question..."
+                  value={chatbotInput}
+                  onChange={(e) => setChatbotInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendChat(e);
+                    }
+                  }}
+                  rows={Math.min(4, Math.max(1, chatbotInput.split('\n').length))}
+                  className="flex-1 px-4 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-primary/50 placeholder:text-slate-400 resize-none custom-scrollbar min-h-[36px] max-h-[120px] leading-normal align-middle"
+                />
+                <button
+                  type="submit"
+                  className="p-2.5 bg-primary hover:bg-primary/95 text-white rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95 shrink-0 h-9 w-9"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </form>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </>
     );
   };
 
@@ -7936,7 +8089,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                                 e.stopPropagation();
                                                 handleDeleteBrand(ws._id, brandName);
                                               }}
-                                              className="w-7 h-7 rounded-lg hover:bg-red-500/10 text-slate-400 hover:text-red-500 flex items-center justify-center shrink-0 transition-all opacity-0 group-hover/brand-row:opacity-100"
+                                              className="w-7 h-7 rounded-lg hover:bg-red-500/10 text-slate-400 hover:text-red-500 flex items-center justify-center shrink-0 transition-all"
                                               title="Delete Brand"
                                             >
                                               <Trash2 className="w-3.5 h-3.5" />
@@ -8133,6 +8286,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                         </div>
                       )}
 
+                      {renderChatbotAssistant()}
                     </>
                   )}
                 </Dialog.Panel>

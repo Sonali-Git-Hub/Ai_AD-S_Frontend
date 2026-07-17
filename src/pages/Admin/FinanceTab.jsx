@@ -33,8 +33,11 @@ const STATUS_COLORS = {
     refunded: { bg: 'bg-blue-500/10', text: 'text-blue-400', dot: 'bg-blue-400' },
 };
 
-const downloadBlob = (response, filename) => {
-    const url = window.URL.createObjectURL(new Blob([response.data]));
+const downloadBlob = (dataOrResponse, filename) => {
+    // If it's an Axios response, get the actual data, otherwise use it directly
+    const rawData = (dataOrResponse && dataOrResponse.data !== undefined) ? dataOrResponse.data : dataOrResponse;
+    const blob = rawData instanceof Blob ? rawData : new Blob([rawData]);
+    const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;

@@ -136,6 +136,7 @@ const KnowledgeUpload = ({ onUploadSuccess }) => {
                         >
                             <option value="LEGAL">LEGAL (Law/Pro)</option>
                             <option value="FINANCE">FINANCE (Markets/Books)</option>
+                            <option value="AIADASSET">Ai AD's</option>
                             <option value="GENERAL">GENERAL (Public)</option>
                         </select>
                     </div>

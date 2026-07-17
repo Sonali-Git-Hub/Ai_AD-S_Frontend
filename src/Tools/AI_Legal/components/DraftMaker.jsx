@@ -781,6 +781,12 @@ const DraftMaker = ({ currentCase, onBack, theme, allProjects = [], onUpdateCase
   // ── Wizard (step-by-step pleading filler) state ──
   const [wizardStep, setWizardStep] = useState(1);
   const [wizardMaxReached, setWizardMaxReached] = useState(1);
+  const [validationApproved, setValidationApproved] = useState({
+    parties: false,
+    court: false,
+    timeline: false,
+    laws: false
+  });
 
   // ── Saved drafts state ──
   const [savedDrafts, setSavedDrafts] = useState([]);

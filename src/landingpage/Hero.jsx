@@ -361,9 +361,38 @@ const Hero = () => {
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                style={{ background: 'none', border: 'none', color: isDarkMode ? '#fff' : '#0F172A', cursor: 'pointer' }}
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  color: isDarkMode ? '#fff' : '#0F172A', 
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0
+                }}
               >
-                <CircleUser size={30} color={isDarkMode ? "#a78bfa" : "#6366f1"} />
+                {user?.avatar ? (
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    overflow: 'hidden',
+                    border: isDarkMode ? '2px solid #a78bfa' : '2px solid #6366f1'
+                  }}>
+                    <img 
+                      src={user.avatar} 
+                      alt="Profile" 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                      onError={(e) => { 
+                        e.currentTarget.onerror = null; 
+                        e.currentTarget.src = '/account.png'; 
+                      }} 
+                    />
+                  </div>
+                ) : (
+                  <CircleUser size={30} color={isDarkMode ? "#a78bfa" : "#6366f1"} />
+                )}
               </motion.button>
               <AnimatePresence>
                 {isProfileOpen && (
@@ -383,7 +412,7 @@ const Hero = () => {
           ) : (
             <motion.button
               whileHover={{ scale: 1.05, background: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(99, 102, 241, 0.1)' }}
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/signup')}
               style={{
                 background: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(99, 102, 241, 0.05)',
                 border: isDarkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(99, 102, 241, 0.2)',

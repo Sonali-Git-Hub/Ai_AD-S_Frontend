@@ -50,7 +50,13 @@ apiClient.interceptors.response.use(
         const isAuthRoute = error.config?.url?.includes('/auth/') || error.config?.url?.includes('/login');
         const isSessionRevoked = code === 'SESSION_REVOKED';
         
-        if (isSessionRevoked || isAuthRoute) {
+        // Do not redirect if we are on a public dashboard, chat, or case page
+        const publicPaths = ['/dashboard/chat', '/dashboard/legal', '/dashboard/cases', '/dashboard/case', '/dashboard', '/'];
+        const isPublicPath = publicPaths.some(path => 
+          window.location.pathname === path || window.location.pathname.startsWith(path + '/')
+        );
+        
+        if ((isSessionRevoked || isAuthRoute) && !isPublicPath) {
           // Clear user data and redirect to login
           localStorage.removeItem('user');
           // Show toast before redirecting
@@ -406,6 +412,16 @@ export const apiService = {
     } catch (error) {
       console.error("Failed to fetch pipeline rows:", error);
       return { success: false, rows: [] };
+    }
+  },
+
+  async queryAiAdsAssistant(query) {
+    try {
+      const response = await apiClient.post('/chat/ai-ads-assistant', { query });
+      return response.data;
+    } catch (error) {
+      console.error("Failed to query AI Ads assistant:", error);
+      throw error;
     }
   },
 
