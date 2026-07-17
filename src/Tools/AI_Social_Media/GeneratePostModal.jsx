@@ -4,7 +4,7 @@ import { Dialog } from '@headlessui/react';
 import { 
   X, Instagram, Facebook, Linkedin, Twitter, Youtube, Hash, Play, 
   Image as ImageIcon, Video, Upload, Trash2, CheckCircle2, ChevronDown, Check,
-  FileText, Layers, Sparkles
+  FileText, Layers, Sparkles, Target, Megaphone
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -161,10 +161,20 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate, isManua
 
     if (modes.includes('caption') || modes.includes('carousel')) {
       updatedEnhancements.caption = true;
-      updatedEnhancements.cta = true;
     } else {
       updatedEnhancements.caption = false;
+    }
+
+    if (modes.includes('cta') || modes.includes('carousel')) {
+      updatedEnhancements.cta = true;
+    } else {
       updatedEnhancements.cta = false;
+    }
+
+    if (modes.includes('hook') || modes.includes('carousel')) {
+      updatedEnhancements.generateHook = true;
+    } else {
+      updatedEnhancements.generateHook = false;
     }
     
     if (modes.includes('carousel')) {
@@ -537,7 +547,9 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate, isManua
                     { id: 'caption', name: 'Caption', icon: FileText, desc: 'Generate post copy' },
                     { id: 'hashtag', name: 'Hashtag', icon: Hash, desc: 'Generate trending tags' },
                     { id: 'carousel', name: 'Carousel', icon: Layers, desc: 'Multi-slide sequence' },
-                    { id: 'image', name: 'Image', icon: ImageIcon, desc: 'AI visual prompt' }
+                    { id: 'image', name: 'Image', icon: ImageIcon, desc: 'AI visual prompt' },
+                    { id: 'hook', name: 'Hook', icon: Target, desc: 'Grab attention' },
+                    { id: 'cta', name: 'CTA', icon: Megaphone, desc: 'Call to action' }
                   ].map(item => {
                     const isSelected = selectedGenerateModes.includes(item.id);
                     return (
