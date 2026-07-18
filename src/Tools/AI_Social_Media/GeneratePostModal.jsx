@@ -73,7 +73,7 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate, isManua
       setContentLength('Medium');
       setLanguage('English');
       setIsGenerating(false);
-      setSelectedGenerateModes(['caption']);
+      setSelectedGenerateModes(initialConfig?.generateModes || ['caption']);
       setDescription('');
     }
   }, [isOpen]);
