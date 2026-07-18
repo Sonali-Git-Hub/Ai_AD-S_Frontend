@@ -726,6 +726,8 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   const [librarySearchQuery, setLibrarySearchQuery] = useState('');
   const [librarySelectedAssetId, setLibrarySelectedAssetId] = useState(null);
   const [selectedAsset, setSelectedAsset] = useState(null);
+  const [carouselSlideIdx, setCarouselSlideIdx] = useState(0);
+  useEffect(() => { setCarouselSlideIdx(0); }, [selectedAsset]);
   const [expandedImage, setExpandedImage] = useState(null);
   const [assetSearchQuery, setAssetSearchQuery] = useState('');
 
@@ -3612,7 +3614,14 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                     }));
                                     return;
                                   }
-                                  setGenPostModal({ open: true, entry, format: 'single' });
+                                  const isCar = (entry.postType || entry.format || '').toLowerCase().includes('carousel');
+                                  setGenPostModal({ 
+                                    open: true, 
+                                    entry, 
+                                    format: isCar ? 'carousel' : 'single',
+                                    aspectRatio: entry.aspectRatio || entry.aspect_ratio || '1:1',
+                                    carouselCount: entry.carouselCount || entry.carousel_count || entry.numberOfSlides || 3
+                                  });
                                 }}
                                 disabled={(!!visualGenRowId && visualGenRowId !== String(entry._id)) || isProcessing}
                                 className={`h-9 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 ${visualGenRowId === String(entry._id) ? 'bg-indigo-600 text-white' : 'bg-slate-800 dark:bg-white/10 text-white'}`}
@@ -3647,11 +3656,13 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                   };
                                   const rawPlatform = (entry.platform || '').toLowerCase();
                                   const normalizedPlatform = platformNameMap[rawPlatform] || entry.platform;
+                                  const isCarWizard = (entry.postType || entry.format || '').toLowerCase().includes('carousel');
                                   const prefill = {
                                     postTopic: entry.heading_hook || entry.title || entry.hook || '',
                                     keyMessage: entry.subHeading || entry.sub_heading || '',
                                     platform: normalizedPlatform ? [normalizedPlatform] : [],
-                                    contentType: [],
+                                    contentType: isCarWizard ? ['Carousel'] : (entry.postType ? [entry.postType] : []),
+                                    generateModes: isCarWizard ? ['carousel'] : ['caption'],
                                   };
                                   setWizardPrefill(prefill);
                                   setActiveTab('calendar');
@@ -5386,21 +5397,60 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
             <div className="flex-1 overflow-hidden flex flex-col lg:flex-row min-h-0">
 
               {/* LEFT COLUMN — Image Preview */}
-              <div className="lg:w-[42%] bg-zinc-950 flex flex-col items-center justify-center p-6 lg:p-10 shrink-0 gap-4">
+              <div className="lg:w-[32%] flex flex-col items-center justify-center p-4 lg:p-6 shrink-0 gap-4 border-r border-slate-100">
                 {selectedAsset?.assetType === 'carousel' && selectedAsset?.metadata?.slides?.length ? (
-                  <div className="w-full">
-                    <p className="text-[9px] font-black text-white/40 uppercase tracking-[3px] mb-4 text-center">{selectedAsset.metadata.slides.length} Slides</p>
-                    <div className="flex gap-3 overflow-x-auto snap-x pb-3 custom-scrollbar">
-                      {selectedAsset.metadata.slides.map((url, i) => (
-                        <div key={i} className="snap-center shrink-0 w-[260px] aspect-square rounded-[20px] overflow-hidden relative border-2 border-white/10">
-                          <img src={toProxyUrl(url)} className="w-full h-full object-contain cursor-zoom-in" alt={`Slide ${i+1}`} onClick={() => setExpandedImage(toProxyUrl(url))} />
-                          <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-black/60 text-white text-[9px] font-black flex items-center justify-center">{i+1}</div>
+                  <div className="w-full flex flex-col items-center gap-4">
+                    {/* Instagram-style single slide viewer */}
+                    {(() => {
+                      const slides = selectedAsset.metadata.slides;
+                      const idx = carouselSlideIdx >= slides.length ? 0 : carouselSlideIdx;
+                      const slideItem = slides[idx];
+                      const url = typeof slideItem === 'string' ? slideItem : (slideItem?.url || slideItem?.gcsUrl || slideItem?.src || Object.values(slideItem).find(v => typeof v === 'string' && v.startsWith('http')) || '');
+                      return (
+                        <div className="w-full max-w-[320px] aspect-square rounded-[24px] overflow-hidden relative border-2 border-slate-200 bg-slate-50 group/slide">
+                          {url ? (
+                            <img src={toProxyUrl(url)} className="w-full h-full object-cover cursor-zoom-in transition-transform duration-500 group-hover/slide:scale-[1.03]" alt={`Slide ${idx+1}`} onClick={() => setExpandedImage(toProxyUrl(url))} />
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                              <Layers className="w-6 h-6 mb-2" />
+                              <span className="text-[8px] font-black uppercase tracking-widest">Invalid Slide</span>
+                            </div>
+                          )}
+                          {/* Slide counter badge */}
+                          <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-sm text-white text-[9px] font-black flex items-center justify-center shadow-sm">{idx+1} / {slides.length}</div>
+                          {/* Prev button */}
+                          {idx > 0 && (
+                            <button onClick={(e) => { e.stopPropagation(); setCarouselSlideIdx(idx - 1); }} className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow-lg flex items-center justify-center text-slate-700 hover:bg-primary hover:text-white transition-all hover:scale-110 z-10">
+                              <ChevronLeft className="w-4 h-4" />
+                            </button>
+                          )}
+                          {/* Next button */}
+                          {idx < slides.length - 1 && (
+                            <button onClick={(e) => { e.stopPropagation(); setCarouselSlideIdx(idx + 1); }} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow-lg flex items-center justify-center text-slate-700 hover:bg-primary hover:text-white transition-all hover:scale-110 z-10">
+                              <ChevronRight className="w-4 h-4" />
+                            </button>
+                          )}
+                          {/* Download & Copy buttons */}
+                          <div className="absolute bottom-3 inset-x-3 flex gap-2">
+                            <button onClick={() => handleDownloadMedia(typeof slideItem === 'string' ? slideItem : slideItem?.url)} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-black/60 backdrop-blur-md text-white text-[9px] font-black uppercase tracking-[2px] border border-white/20 hover:bg-primary hover:border-primary transition-all">
+                              <Download className="w-3 h-3" /> Download
+                            </button>
+                            <button onClick={() => handleCopyImageToClipboard(typeof slideItem === 'string' ? slideItem : slideItem?.url)} className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-black/60 backdrop-blur-md text-white text-[9px] font-black uppercase tracking-[2px] border border-white/20 hover:bg-primary hover:border-primary transition-all">
+                              <Copy className="w-3 h-3" /> Copy
+                            </button>
+                          </div>
                         </div>
+                      );
+                    })()}
+                    {/* Dot indicators */}
+                    <div className="flex gap-2 items-center">
+                      {selectedAsset.metadata.slides.map((_, i) => (
+                        <button key={i} onClick={() => setCarouselSlideIdx(i)} className={`rounded-full transition-all duration-300 ${i === (carouselSlideIdx >= selectedAsset.metadata.slides.length ? 0 : carouselSlideIdx) ? 'w-6 h-2.5 bg-primary' : 'w-2.5 h-2.5 bg-slate-300 hover:bg-slate-400'}`} />
                       ))}
                     </div>
                   </div>
                 ) : (
-                  <div className="w-full max-w-[360px] aspect-square rounded-[28px] overflow-hidden border-2 border-white/10 bg-zinc-900 relative group/img">
+                  <div className="w-full max-w-[280px] aspect-square rounded-[20px] overflow-hidden border-2 border-slate-200 bg-slate-50 relative group/img">
                     {selectedAsset?.gcsUrl ? (
                       <>
                         <img
@@ -5441,9 +5491,9 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   const format = ce?.format || ce?.postType || ce?.post_type || '';
                   return (platform || phase || format) ? (
                     <div className="flex flex-wrap gap-2 justify-center">
-                      {platform && <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[8px] font-black text-white/60 uppercase tracking-widest">{platform}</span>}
-                      {phase && <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[8px] font-black text-amber-400 uppercase tracking-widest">{phase}</span>}
-                      {format && <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[8px] font-black text-emerald-400 uppercase tracking-widest">{format}</span>}
+                      {platform && <span className="px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-[8px] font-black text-slate-500 uppercase tracking-widest">{platform}</span>}
+                      {phase && <span className="px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-[8px] font-black text-amber-600 uppercase tracking-widest">{phase}</span>}
+                      {format && <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[8px] font-black text-emerald-600 uppercase tracking-widest">{format}</span>}
                     </div>
                   ) : null;
                 })()}
@@ -5454,15 +5504,19 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                 {(() => {
                   const ce = selectedAsset?.calendarEntry || calendarEntries.find(e => ensureStringId(e._id) === ensureStringId(selectedAsset?.calendarEntryId)) || {};
                   const isGenerated = ce?.status === 'generated' || post;
-                  if (!isGenerated && !post) return null;
+                  // Removed strict return null so we can always show whatever content exists in ce or post
 
-                  const hook = post?.hook || ce.hook || ce.heading_hook || ce.title || '';
-                  const subHeading = ce.sub_heading || ce.subHeading || '';
-                  const shortCaption = post?.captionShort || ce.short_caption || ce.captionShort || '';
-                  const longCaption = post?.captionLong || ce.long_caption || ce.captionLong || ce.postContent || '';
+                  // Per-slide text: for carousels, read from the active slide object if available
+                  const isCarouselWithSlideData = selectedAsset?.assetType === 'carousel' && Array.isArray(selectedAsset?.metadata?.slides) && selectedAsset.metadata.slides.length > 0 && typeof selectedAsset.metadata.slides[0] === 'object';
+                  const activeSlide = isCarouselWithSlideData ? selectedAsset.metadata.slides[carouselSlideIdx >= selectedAsset.metadata.slides.length ? 0 : carouselSlideIdx] : null;
+
+                  const hook = activeSlide?.hook || post?.hook || ce.hook || ce.heading_hook || ce.title || '';
+                  const subHeading = activeSlide?.subheading || ce.sub_heading || ce.subHeading || '';
+                  const shortCaption = activeSlide?.caption || post?.captionShort || ce.short_caption || ce.captionShort || '';
+                  const longCaption = (!activeSlide ? (post?.captionLong || ce.long_caption || ce.captionLong || ce.postContent || '') : '');
                   const hashtags = post?.hashtags || (Array.isArray(ce.hashtags) ? ce.hashtags : (ce.hashtags ? ce.hashtags.split(/[\s,#]+/).filter(Boolean) : []));
                   const breakdown = post?.onAssetText || ce.breakdown || '';
-                  const ctaText = post?.cta || ce.cta || '';
+                  const ctaText = activeSlide?.cta || post?.cta || ce.cta || '';
 
                   const ContentBlock = ({ label, text, color = 'slate' }) => text ? (
                     <div className={`p-4 rounded-2xl border bg-${color}-50 border-${color}-100`}>
@@ -5482,7 +5536,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                       {hook && (
                         <div>
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-[4px]">✦ Hook / Headline</span>
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-[4px]">{isCarouselWithSlideData ? `✦ Slide ${(carouselSlideIdx >= selectedAsset.metadata.slides.length ? 0 : carouselSlideIdx) + 1} — Hook` : '✦ Hook / Headline'}</span>
                             <button onClick={() => { navigator.clipboard.writeText(hook); toast.success('Hook copied!'); }} className="w-7 h-7 rounded-lg bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-primary hover:text-white transition-all">
                               <Copy className="w-3 h-3" />
                             </button>
