@@ -4389,7 +4389,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                 onChange={e => setCampaignConfig(prev => ({ ...prev, postingFrequency: e.target.value }))}
                 className="w-full px-3 py-2 bg-slate-50 dark:bg-[#1a1a1a] border border-slate-200 dark:border-white/10 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:border-primary/50"
               >
-                {['Daily', '2x Per Week', '3x Per Week', '4x Per Week', '5x Per Week', 'Weekly', 'Bi Weekly', 'Monthly'].map(f => (
+                {['Daily', '2x Per Week', '3x Per Week'].map(f => (
                   <option key={f} value={f}>{f}</option>
                 ))}
               </select>
@@ -4454,13 +4454,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
             <div className="bg-primary h-full transition-all duration-1000" style={{ width: `${progressPercent}%` }} />
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {[
               { label: "Total Posts", val: totalCount },
               { label: "Generated", val: generatedCount },
-              { label: "Approved", val: approvedCount },
-              { label: "Scheduled", val: scheduledCount },
-              { label: "Published", val: publishedCount },
               { label: "Remaining", val: remainingCount }
             ].map((c, idx) => (
               <div key={idx} className="p-3 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl text-center">
