@@ -8,7 +8,7 @@ import {
   Settings, CreditCard, Sparkles, BarChart3, Trash2, ExternalLink,
   LayoutDashboard, Palette, CalendarRange, Library, CheckSquare, Clock, Monitor,
   ChevronRight, Plus, HelpCircle, AlertCircle, Info, Filter, Search,
-  Instagram, Facebook, Linkedin, Twitter, Youtube, Send, Save, Globe, CheckCircle2, Mic2,
+  Instagram, Facebook, Linkedin, Twitter, Youtube, Send, Save, Globe, CheckCircle2, Mic2, Square, Mic, Loader2,
   Eye, Target, Zap, Hash, Copy, Sparkle, User, User2, Briefcase, History, Activity, Tag,
   Server, BrainCircuit, AlertTriangle, Building2, ShoppingBag, Cpu, Utensils, Camera, HeartPulse, UserCircle, ShoppingCart, ArrowRight, AlignLeft, Lock, Crown, Bot, Maximize2, Minimize2
 } from 'lucide-react';
@@ -359,6 +359,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   const [chatbotMessages, setChatbotMessages] = useState([
     { sender: 'bot', text: 'Hello! I am your AI Ads™ Assistant. I can help you with creating posts, campaign ideas, hashtags, or visual suggestions. Ask me anything!' }
   ]);
+  const [isChatbotLoading, setIsChatbotLoading] = useState(false);
+  const [chatbotController, setChatbotController] = useState(null);
+  const [isListening, setIsListening] = useState(false);
+  const [speechRecognition, setSpeechRecognition] = useState(null);
 
   // Auto-sync calendar view to campaign start date on load
   useEffect(() => {
@@ -4284,7 +4288,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     };
 
     const campaignInfoCard = (
-      <div className="bg-white dark:bg-[#080808]/80 p-4 rounded-[28px] border border-slate-100 dark:border-white/5 shadow-xl flex flex-col justify-between">
+      <div className="bg-white dark:bg-[#080808]/80 p-6 rounded-[28px] border border-slate-100 dark:border-white/5 shadow-xl flex flex-col justify-between h-[380px]">
         <div>
           <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/5 mb-3">
             <div className="flex items-center gap-2">
@@ -4426,30 +4430,70 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
       </div>
     );
 
+    const radius = 50;
+    const strokeWidth = 8;
+    const circumference = 2 * Math.PI * radius;
+    const strokeDashoffset = circumference - (progressPercent / 100) * circumference;
+
     const campaignProgressCard = (
-      <div className="bg-white dark:bg-[#080808]/50 p-4 rounded-[28px] border border-slate-100 dark:border-white/5 shadow-sm flex flex-col justify-between">
-        <div>
-          <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-white/5 mb-3">
-            <div>
-              <h3 className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-widest">Campaign Progress: {currentCampaign?.campaignName}</h3>
-              <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">{totalCount} Scheduled Publication Days</p>
+      <div className="bg-white dark:bg-[#080808]/50 p-6 rounded-[28px] border border-slate-100 dark:border-white/5 shadow-sm flex flex-col justify-between h-[380px]">
+        <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-white/5 shrink-0">
+          <div>
+            <h3 className="text-[10px] font-black text-slate-800 dark:text-white uppercase tracking-widest">Campaign Progress: {currentCampaign?.campaignName}</h3>
+            <p className="text-[9px] text-slate-400 font-bold uppercase mt-0.5">{totalCount} Scheduled Publication Days</p>
+          </div>
+          <span className="text-[10px] font-black text-primary bg-primary/10 px-2.5 py-1 rounded-full">{progressPercent}% Completed</span>
+        </div>
+
+        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6 items-center py-2 min-h-0">
+          {/* Circular Progress Gauge */}
+          <div className="flex flex-col items-center justify-center relative py-2">
+            <svg className="w-36 h-36 transform -rotate-90">
+              <defs>
+                <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="var(--color-primary, #6366f1)" />
+                  <stop offset="100%" stopColor="#818cf8" />
+                </linearGradient>
+              </defs>
+              {/* Background circle */}
+              <circle
+                cx="72"
+                cy="72"
+                r={radius}
+                className="stroke-slate-100 dark:stroke-white/5"
+                strokeWidth={strokeWidth}
+                fill="transparent"
+              />
+              {/* Foreground circle */}
+              <circle
+                cx="72"
+                cy="72"
+                r={radius}
+                stroke="url(#progressGradient)"
+                strokeWidth={strokeWidth}
+                fill="transparent"
+                strokeDasharray={circumference}
+                strokeDashoffset={strokeDashoffset}
+                strokeLinecap="round"
+                className="transition-all duration-1000"
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center mt-[-4px]">
+              <span className="text-2xl font-black text-slate-800 dark:text-white">{progressPercent}%</span>
+              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Completed</span>
             </div>
-            <span className="text-[10px] font-black text-primary bg-primary/10 px-2.5 py-1 rounded-full">{progressPercent}% Completed</span>
           </div>
 
-          <div className="w-full bg-slate-100 dark:bg-white/5 h-1.5 rounded-full overflow-hidden mb-3">
-            <div className="bg-primary h-full transition-all duration-1000" style={{ width: `${progressPercent}%` }} />
-          </div>
-
-          <div className="grid grid-cols-3 gap-2">
+          {/* Stacked Stats Cards */}
+          <div className="flex flex-col gap-2.5">
             {[
-              { label: "Total Posts", val: totalCount },
-              { label: "Generated", val: generatedCount },
-              { label: "Remaining", val: remainingCount }
+              { label: "Total Posts", val: totalCount, color: "text-slate-700 dark:text-slate-350" },
+              { label: "Generated", val: generatedCount, color: "text-primary" },
+              { label: "Remaining", val: remainingCount, color: "text-amber-500" }
             ].map((c, idx) => (
-              <div key={idx} className="p-3 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-xl text-center">
-                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">{c.label}</span>
-                <span className="text-sm font-black text-slate-800 dark:text-white">{c.val}</span>
+              <div key={idx} className="p-3 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl flex items-center justify-between px-4.5">
+                <span className="text-[9px] font-black text-slate-450 dark:text-slate-400 uppercase tracking-widest">{c.label}</span>
+                <span className={`text-sm font-black ${c.color}`}>{c.val}</span>
               </div>
             ))}
           </div>
@@ -4557,80 +4601,82 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
               const activePost = campaignPosts.find(p => isSameDay(p.date, selectedDate));
 
               return (
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
                   {/* Calendar Widget panel */}
-                  <div className="lg:col-span-5 bg-white dark:bg-[#080808]/80 p-6 rounded-[28px] border border-slate-100 dark:border-white/5 shadow-xl space-y-4">
-                    {/* Header */}
-                    <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
-                      <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">
-                        {monthNames[calendarMonth]}, {calendarYear}
-                      </h3>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={handlePrevMonth}
-                          className="p-1.5 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-400 hover:text-slate-600 transition-all"
-                        >
-                          <ChevronUp className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={handleNextMonth}
-                          className="p-1.5 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-400 hover:text-slate-600 transition-all"
-                        >
-                          <ChevronDown className="w-3.5 h-3.5" />
-                        </button>
+                  <div className="bg-white dark:bg-[#080808]/80 p-6 rounded-[28px] border border-slate-100 dark:border-white/5 shadow-xl h-[380px] flex flex-col justify-between">
+                    <div>
+                      {/* Header */}
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
+                        <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">
+                          {monthNames[calendarMonth]}, {calendarYear}
+                        </h3>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handlePrevMonth}
+                            className="p-1.5 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-400 hover:text-slate-600 transition-all"
+                          >
+                            <ChevronUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={handleNextMonth}
+                            className="p-1.5 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-400 hover:text-slate-600 transition-all"
+                          >
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Weekday headers */}
-                    <div className="grid grid-cols-7 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                      {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(dayName => (
-                        <div key={dayName} className="py-2">{dayName}</div>
-                      ))}
-                    </div>
+                      {/* Weekday headers */}
+                      <div className="grid grid-cols-7 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest mt-3">
+                        {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(dayName => (
+                          <div key={dayName} className="py-1">{dayName}</div>
+                        ))}
+                      </div>
 
-                    {/* Calendar cells grid */}
-                    <div className="grid grid-cols-7 gap-y-2 text-center text-xs font-bold">
-                      {calendarCells.map((cell, cellIdx) => {
-                        if (!cell.isCurrentMonth) {
-                          return <div key={cellIdx} className="aspect-square" />;
-                        }
+                      {/* Calendar cells grid */}
+                      <div className="grid grid-cols-7 gap-y-1 mt-2 text-center text-xs font-bold">
+                        {calendarCells.map((cell, cellIdx) => {
+                          if (!cell.isCurrentMonth) {
+                            return <div key={cellIdx} className="h-8 w-full" />;
+                          }
 
-                        const cellDate = new Date(cell.year, cell.month, cell.day);
-                        const hasPost = campaignPosts.some(p => isSameDay(p.date, cellDate));
-                        const isSelected = isSameDay(cellDate, selectedDate);
+                          const cellDate = new Date(cell.year, cell.month, cell.day);
+                          const hasPost = campaignPosts.some(p => isSameDay(p.date, cellDate));
+                          const isSelected = isSameDay(cellDate, selectedDate);
 
-                        return (
-                          <div key={cellIdx} className="flex justify-center items-center relative aspect-square">
-                            <button
-                              onClick={() => {
-                                setSelectedDate(cellDate);
-                              }}
-                              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all text-[11px] ${
-                                hasPost
-                                  ? 'bg-indigo-600 text-white font-black shadow-md shadow-indigo-600/30'
-                                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5'
-                              } ${
-                                isSelected
-                                  ? 'ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-[#080808] scale-110'
-                                  : ''
-                              }`}
-                            >
-                              {cell.day}
-                            </button>
-                            {hasPost && !isSelected && (
-                              <span className="absolute bottom-1 w-1.5 h-1.5 bg-indigo-300 rounded-full animate-pulse" />
-                            )}
-                          </div>
-                        );
-                      })}
+                          return (
+                            <div key={cellIdx} className="flex justify-center items-center relative h-8 w-full">
+                              <button
+                                onClick={() => {
+                                  setSelectedDate(cellDate);
+                                }}
+                                className={`w-7 h-7 rounded-full flex items-center justify-center transition-all text-[11px] ${
+                                  hasPost
+                                    ? 'bg-indigo-600 text-white font-black shadow-md shadow-indigo-600/30'
+                                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5'
+                                } ${
+                                  isSelected
+                                    ? 'ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-[#080808] scale-110'
+                                    : ''
+                                }`}
+                              >
+                                {cell.day}
+                              </button>
+                              {hasPost && !isSelected && (
+                                <span className="absolute bottom-1 w-1.5 h-1.5 bg-indigo-300 rounded-full animate-pulse" />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
 
                   {/* Active day's post card */}
-                  <div className="lg:col-span-7">
+                  <div>
                     {activePost ? (
-                      <div key={activePost._id} className="bg-white dark:bg-[#0c0c0c] border border-slate-200 dark:border-white/10 rounded-[28px] p-6 space-y-4 hover:shadow-xl hover:border-primary/20 transition-all flex flex-col justify-between">
-                        <div className="space-y-3">
+                      <div key={activePost._id} className="bg-white dark:bg-[#0c0c0c] border border-slate-200 dark:border-white/10 rounded-[28px] p-6 hover:shadow-xl hover:border-primary/20 transition-all flex flex-col justify-between h-[380px]">
+                        <div className="space-y-4">
                           {/* Card Header */}
                           <div className="flex justify-between items-start">
                             <div>
@@ -4685,49 +4731,73 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                             </div>
                           </div>
 
-                          {/* Carousel Size */}
-                          {(activePost.postType === 'Carousel' || activePost.contentType === 'Carousel') && (
+                          {/* Carousel Size & Post For */}
+                          {(activePost.postType === 'Carousel' || activePost.contentType === 'Carousel') ? (
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="space-y-0.5">
+                                <span className="text-[6px] font-black text-slate-400 uppercase tracking-wider block">Carousel Size</span>
+                                <select
+                                  value={activePost.carouselImages || 2}
+                                  onChange={e => handleUpdatePostField(activePost._id, { carouselImages: Number(e.target.value) })}
+                                  className="w-full text-[9px] font-bold px-2 py-1.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-slate-650 dark:text-slate-300 outline-none"
+                                >
+                                  {[2, 3, 4, 5].map(num => (
+                                    <option key={num} value={num}>{num} Images</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div className="space-y-0.5">
+                                <span className="text-[6px] font-black text-slate-400 uppercase tracking-wider block">Post For</span>
+                                <select
+                                  value={activePost.postFor || 'Brand Awareness'}
+                                  onChange={e => handleUpdatePostField(activePost._id, { postFor: e.target.value })}
+                                  className="w-full text-[9px] font-bold px-2 py-1.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-slate-650 dark:text-slate-300 outline-none"
+                                >
+                                  {[
+                                    "Brand Awareness", "Product Promotion", "Special Offer", "Festival Offer",
+                                    "Flash Sale", "Discount", "Product Launch", "Customer Testimonial",
+                                    "Customer Success Story", "Educational", "Tips & Tricks", "How To Guide",
+                                    "Behind The Scenes", "Team Introduction", "Company Culture", "Event Promotion",
+                                    "Announcement", "Quote", "Motivational Quote", "Industry Insights",
+                                    "FAQ", "Poll", "Contest", "Giveaway", "Engagement Post", "Feature Highlight",
+                                    "Case Study", "Before & After", "Seasonal Campaign", "Limited Time Offer",
+                                    "New Arrival", "Service Highlight", "Brand Story", "CSR Activity",
+                                    "Partnership", "Milestone Celebration", "User Generated Content"
+                                  ].map(opt => (
+                                    <option key={opt} value={opt}>{opt}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          ) : (
                             <div className="space-y-0.5">
-                              <span className="text-[6px] font-black text-slate-400 uppercase tracking-wider block">Carousel Size</span>
+                              <span className="text-[6px] font-black text-slate-400 uppercase tracking-wider block">Post For</span>
                               <select
-                                value={activePost.carouselImages || 2}
-                                onChange={e => handleUpdatePostField(activePost._id, { carouselImages: Number(e.target.value) })}
+                                value={activePost.postFor || 'Brand Awareness'}
+                                onChange={e => handleUpdatePostField(activePost._id, { postFor: e.target.value })}
                                 className="w-full text-[9px] font-bold px-2 py-1.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-slate-600 dark:text-slate-300 outline-none"
                               >
-                                {[2, 3, 4, 5].map(num => (
-                                  <option key={num} value={num}>{num} Images</option>
+                                {[
+                                  "Brand Awareness", "Product Promotion", "Special Offer", "Festival Offer",
+                                  "Flash Sale", "Discount", "Product Launch", "Customer Testimonial",
+                                  "Customer Success Story", "Educational", "Tips & Tricks", "How To Guide",
+                                  "Behind The Scenes", "Team Introduction", "Company Culture", "Event Promotion",
+                                  "Announcement", "Quote", "Motivational Quote", "Industry Insights",
+                                  "FAQ", "Poll", "Contest", "Giveaway", "Engagement Post", "Feature Highlight",
+                                  "Case Study", "Before & After", "Seasonal Campaign", "Limited Time Offer",
+                                  "New Arrival", "Service Highlight", "Brand Story", "CSR Activity",
+                                  "Partnership", "Milestone Celebration", "User Generated Content"
+                                ].map(opt => (
+                                  <option key={opt} value={opt}>{opt}</option>
                                 ))}
                               </select>
                             </div>
                           )}
-
-                          {/* Post For Dropdown */}
-                          <div className="space-y-0.5">
-                            <span className="text-[6px] font-black text-slate-400 uppercase tracking-wider block">Post For</span>
-                            <select
-                              value={activePost.postFor || 'Brand Awareness'}
-                              onChange={e => handleUpdatePostField(activePost._id, { postFor: e.target.value })}
-                              className="w-full text-[9px] font-bold px-2 py-1.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-slate-600 dark:text-slate-300 outline-none"
-                            >
-                              {[
-                                "Brand Awareness", "Product Promotion", "Special Offer", "Festival Offer",
-                                "Flash Sale", "Discount", "Product Launch", "Customer Testimonial",
-                                "Customer Success Story", "Educational", "Tips & Tricks", "How To Guide",
-                                "Behind The Scenes", "Team Introduction", "Company Culture", "Event Promotion",
-                                "Announcement", "Quote", "Motivational Quote", "Industry Insights",
-                                "FAQ", "Poll", "Contest", "Giveaway", "Engagement Post", "Feature Highlight",
-                                "Case Study", "Before & After", "Seasonal Campaign", "Limited Time Offer",
-                                "New Arrival", "Service Highlight", "Brand Story", "CSR Activity",
-                                "Partnership", "Milestone Celebration", "User Generated Content"
-                              ].map(opt => (
-                                <option key={opt} value={opt}>{opt}</option>
-                              ))}
-                            </select>
-                          </div>
                         </div>
 
                         {/* Actions */}
-                        <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-white/5 mt-2 shrink-0">
+                        <div className="flex gap-2 pt-2 border-t border-slate-100 dark:border-white/5 shrink-0">
                           <button
                             onClick={() => {
                               // Navigate to Content Studio > Generate with AI, prefilled with this post's context
@@ -4754,12 +4824,12 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                             className="w-full h-9 bg-primary hover:bg-primary/95 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-md flex items-center justify-center gap-1.5 transition-all hover:scale-[1.01] active:scale-95"
                           >
                             <Sparkles className="w-3.5 h-3.5" />
-                            Generate with AI
+                            Generate Post
                           </button>
                         </div>
                       </div>
                     ) : (
-                      <div className="bg-white dark:bg-[#0c0c0c] border border-dashed border-slate-200 dark:border-white/10 rounded-[28px] p-12 text-center flex flex-col items-center justify-center h-full min-h-[300px]">
+                      <div className="bg-white dark:bg-[#0c0c0c] border border-dashed border-slate-200 dark:border-white/10 rounded-[28px] p-6 text-center flex flex-col items-center justify-center h-[380px]">
                         <Calendar className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-3" />
                         <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">No Post Scheduled</h5>
                         <p className="text-[9px] text-slate-400 font-medium mt-1 leading-normal max-w-xs">
@@ -5508,6 +5578,55 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   };
 
   const renderChatbotAssistant = () => {
+    const startVoiceInput = () => {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        toast.error("Speech recognition is not supported in this browser. Please try Chrome or Edge.");
+        return;
+      }
+
+      if (isListening) {
+        if (speechRecognition) {
+          speechRecognition.stop();
+        }
+        setIsListening(false);
+        return;
+      }
+
+      const rec = new SpeechRecognition();
+      rec.continuous = false;
+      rec.interimResults = false;
+      rec.lang = 'en-US';
+
+      rec.onstart = () => {
+        setIsListening(true);
+      };
+
+      rec.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        if (transcript) {
+          setChatbotInput(prev => prev + (prev ? ' ' : '') + transcript);
+        }
+      };
+
+      rec.onerror = (e) => {
+        console.error("Speech recognition error:", e);
+        setIsListening(false);
+      };
+
+      rec.onend = () => {
+        setIsListening(false);
+      };
+
+      try {
+        rec.start();
+        setSpeechRecognition(rec);
+      } catch (err) {
+        console.error("Failed to start speech recognition:", err);
+        setIsListening(false);
+      }
+    };
+
     const handleSendChat = async (e) => {
       e?.preventDefault();
       const trimmed = chatbotInput.trim();
@@ -5518,18 +5637,38 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
       // Add a typing placeholder message
       setChatbotMessages(prev => [...prev, { sender: 'bot', text: 'Typing...', isTyping: true }]);
+      setIsChatbotLoading(true);
+
+      const ctrl = new AbortController();
+      setChatbotController(ctrl);
 
       try {
-        const res = await apiService.queryAiAdsAssistant(trimmed);
+        const res = await apiService.queryAiAdsAssistant(trimmed, ctrl.signal);
         if (res && res.success) {
           setChatbotMessages(prev => prev.filter(m => !m.isTyping).concat({ sender: 'bot', text: res.text }));
         } else {
           setChatbotMessages(prev => prev.filter(m => !m.isTyping).concat({ sender: 'bot', text: "Sorry, I had trouble retrieving answers from the uploaded documents. Please try again." }));
         }
       } catch (err) {
-        console.error("Chatbot query error:", err);
-        setChatbotMessages(prev => prev.filter(m => !m.isTyping).concat({ sender: 'bot', text: "Failed to connect to the AI Ads RAG database. Please ensure your backend server is running." }));
+        if (ctrl.signal.aborted) {
+          console.log("Chatbot query was aborted.");
+        } else {
+          console.error("Chatbot query error:", err);
+          setChatbotMessages(prev => prev.filter(m => !m.isTyping).concat({ sender: 'bot', text: "Failed to connect to the AI Ads RAG database. Please ensure your backend server is running." }));
+        }
+      } finally {
+        setIsChatbotLoading(false);
+        setChatbotController(null);
       }
+    };
+
+    const handleStopChat = () => {
+      if (chatbotController) {
+        chatbotController.abort();
+      }
+      setIsChatbotLoading(false);
+      setChatbotController(null);
+      setChatbotMessages(prev => prev.filter(m => !m.isTyping).concat({ sender: 'bot', text: "Generation stopped by user." }));
     };
 
     return (
@@ -5583,7 +5722,13 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   </button>
                   <button
                     type="button"
-                    onClick={() => setIsChatbotOpen(false)}
+                    onClick={() => {
+                      if (speechRecognition) {
+                        speechRecognition.stop();
+                      }
+                      setIsListening(false);
+                      setIsChatbotOpen(false);
+                    }}
                     className="p-1.5 hover:bg-white/10 text-slate-300 hover:text-white rounded-lg transition-all"
                   >
                     <X className="w-4 h-4" />
@@ -5643,12 +5788,42 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   rows={Math.min(4, Math.max(1, chatbotInput.split('\n').length))}
                   className="flex-1 px-4 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-primary/50 placeholder:text-slate-400 resize-none custom-scrollbar min-h-[36px] max-h-[120px] leading-normal align-middle"
                 />
+
+                {/* Voice Input Button */}
                 <button
-                  type="submit"
-                  className="p-2.5 bg-primary hover:bg-primary/95 text-white rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95 shrink-0 h-9 w-9"
+                  type="button"
+                  onClick={startVoiceInput}
+                  className={`p-2.5 rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95 shrink-0 h-9 w-9 border ${
+                    isListening
+                      ? 'bg-red-500/10 text-red-500 border-red-500/20 animate-pulse'
+                      : 'bg-slate-50 dark:bg-white/5 text-slate-400 hover:text-slate-600 border-slate-200 dark:border-white/10'
+                  }`}
+                  title={isListening ? "Listening... Click to Stop" : "Voice Input"}
                 >
-                  <Send className="w-4 h-4" />
+                  <Mic className="w-4 h-4" />
                 </button>
+
+                {/* Submit / Stop Button */}
+                {isChatbotLoading ? (
+                  <button
+                    type="button"
+                    onClick={handleStopChat}
+                    className="p-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95 shrink-0 h-9 w-9 relative"
+                    title="Stop Generating"
+                  >
+                    <div className="relative w-4 h-4 flex items-center justify-center">
+                      <Loader2 className="w-4 h-4 animate-spin absolute text-white" />
+                      <Square className="w-2 h-2 text-white fill-white" />
+                    </div>
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    className="p-2.5 bg-primary hover:bg-primary/95 text-white rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95 shrink-0 h-9 w-9"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                )}
               </form>
             </motion.div>
           )}

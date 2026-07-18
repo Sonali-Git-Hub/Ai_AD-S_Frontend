@@ -415,9 +415,9 @@ export const apiService = {
     }
   },
 
-  async queryAiAdsAssistant(query) {
+  async queryAiAdsAssistant(query, signal) {
     try {
-      const response = await apiClient.post('/chat/ai-ads-assistant', { query });
+      const response = await apiClient.post('/chat/ai-ads-assistant', { query }, { signal });
       return response.data;
     } catch (error) {
       console.error("Failed to query AI Ads assistant:", error);

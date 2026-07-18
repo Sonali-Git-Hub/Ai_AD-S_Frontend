@@ -258,19 +258,19 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate, isManua
                       <div
                         key={p.id}
                         onClick={() => togglePlatform(p.name)}
-                        className={`relative p-4 rounded-2xl cursor-pointer transition-all duration-300 border flex flex-col items-center gap-3 text-center
+                        className={`relative p-3 rounded-xl cursor-pointer transition-all duration-300 border flex flex-col items-center gap-1.5 text-center
                           ${isSelected 
-                            ? 'border-primary bg-primary/5 shadow-[0_0_15px_rgba(79,70,229,0.2)] dark:bg-primary/10' 
+                            ? 'border-primary bg-primary/5 shadow-[0_0_12px_rgba(79,70,229,0.15)] dark:bg-primary/10' 
                             : 'border-slate-200 dark:border-white/10 hover:border-primary/40 hover:bg-slate-50 dark:hover:bg-white/5'
                           }`}
                       >
-                        <p.icon className={`w-8 h-8 ${isSelected ? 'text-primary' : p.color}`} />
-                        <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wide ${isSelected ? 'text-primary' : 'text-slate-600 dark:text-slate-300'}`}>
+                        <p.icon className={`w-5.5 h-5.5 ${isSelected ? 'text-primary' : p.color}`} />
+                        <span className={`text-[9px] font-black uppercase tracking-wider ${isSelected ? 'text-primary' : 'text-slate-550 dark:text-slate-400'}`}>
                           {p.name}
                         </span>
                         {isSelected && (
-                          <div className="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
-                            <CheckCircle2 className="w-3 h-3 text-white" />
+                          <div className="absolute top-1.5 right-1.5 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                            <CheckCircle2 className="w-2.5 h-2.5 text-white" />
                           </div>
                         )}
                       </div>
@@ -310,30 +310,17 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate, isManua
                 )}
               </section>
 
-              {/* SECTION 3 — Tell AI About Your Post */}
-              <section className="space-y-6">
-                <label className="text-xs font-black uppercase tracking-widest text-slate-400">3. Tell AI About Your Post</label>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Post Topic <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      placeholder="Example: AI CRM for startups"
-                      value={postTopic}
-                      onChange={(e) => setPostTopic(e.target.value)}
-                      className="w-full h-12 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm font-semibold text-slate-800 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all shadow-inner"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Key Message (Optional)</label>
-                    <input
-                      type="text"
-                      placeholder="Example: Save time with automation and increase productivity."
-                      value={keyMessage}
-                      onChange={(e) => setKeyMessage(e.target.value)}
-                      className="w-full h-12 bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm font-semibold text-slate-800 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all shadow-inner"
-                    />
-                  </div>
+              {/* SECTION 3 & 4 — AI Prompt & Reference Media side-by-side */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                {/* SECTION 3 — AI Prompt */}
+                <section className="space-y-4">
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-400 h-5 flex items-center">3. AI Prompt</label>
+                  <textarea
+                    placeholder="Example: AI CRM for startups"
+                    value={postTopic}
+                    onChange={(e) => setPostTopic(e.target.value)}
+                    className="w-full h-[136px] resize-none bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl p-3.5 text-sm font-semibold text-slate-800 dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all shadow-inner custom-scrollbar"
+                  />
                   {isManual && (
                     <div className="space-y-2 relative">
                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex justify-between">
@@ -350,14 +337,94 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate, isManua
                       />
                     </div>
                   )}
+                </section>
+
+                {/* SECTION 4 — Reference Media */}
+                <section className="space-y-4">
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-400 flex justify-between items-center h-5">
+                    <span>4. Reference Media (Optional)</span>
+                    <span className="text-slate-400">{referenceMedia.length}/10</span>
+                  </label>
+                  <div 
+                    className="border-2 border-dashed border-slate-200 dark:border-white/20 rounded-2xl h-[136px] flex flex-col items-center justify-center bg-slate-50/50 dark:bg-white/[0.01] hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-all cursor-pointer relative group"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                      <Upload className="w-5 h-5" />
+                    </div>
+                    <p className="mt-3.5 text-xs font-bold text-slate-600 dark:text-slate-300">Drag & Drop or Click to Upload</p>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Images & Videos (Max 10)</p>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*,video/*"
+                      className="hidden"
+                      ref={fileInputRef}
+                      onChange={handleMediaUpload}
+                    />
+                  </div>
+                  
+                  {referenceMedia.length > 0 && (
+                    <div className="bg-primary/5 border border-primary/20 rounded-xl p-2.5 flex items-start gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0 mt-0.5">
+                        <Sparkles className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">AI Vision Active</h4>
+                        <p className="text-[9px] font-medium text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
+                          The AI will automatically analyze your uploaded images to generate highly contextual captions, hashtags, and variations based on the visual content.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* File Preview */}
+                  {referenceMedia.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 mt-3">
+                      {referenceMedia.map((file, idx) => (
+                        <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 group bg-slate-100">
+                          {file.type.startsWith('image/') ? (
+                            <img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                              <Video className="w-6 h-6 text-white/55" />
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-1.5">
+                            <button onClick={(e) => { e.stopPropagation(); removeMedia(idx); }} className="self-end p-1 bg-red-500/80 rounded-md text-white hover:bg-red-500">
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                            <div className="text-white text-[8px] font-bold truncate p-0.5 bg-black/40 rounded">
+                              {file.name}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </div>
+
+              {/* SECTION 5 — Language */}
+              <section className="space-y-4">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-400 h-5 flex items-center">5. Language</label>
+                <div className="relative max-w-xs">
+                  <select
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="w-full h-12 appearance-none bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm font-bold text-slate-700 dark:text-slate-200 focus:border-primary focus:ring-1 focus:ring-primary outline-none cursor-pointer"
+                  >
+                    {['English', 'Hindi', 'Hinglish'].map(l => <option key={l} value={l}>{l}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                 </div>
               </section>
 
-              {/* SECTION 4 & 9 — Audience & Language */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                <section className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">4. Target Audience</label>
-                  <div className="flex flex-wrap gap-2 mt-2">
+              {/* SECTION 6 & 7 — Target Audience & Tone of Voice side-by-side */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                <section className="space-y-4">
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-400 h-5 flex items-center">6. Target Audience</label>
+                  <div className="flex flex-wrap gap-2">
                     {targetAudiences.map(a => (
                       <button
                         key={a}
@@ -383,106 +450,26 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate, isManua
                   )}
                 </section>
 
-                <section className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">5. Language</label>
-                  <div className="relative">
-                    <select
-                      value={language}
-                      onChange={(e) => setLanguage(e.target.value)}
-                      className="w-full h-12 appearance-none bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm font-bold text-slate-700 dark:text-slate-200 focus:border-primary focus:ring-1 focus:ring-primary outline-none cursor-pointer"
-                    >
-                      {['English', 'Hindi', 'Hinglish'].map(l => <option key={l} value={l}>{l}</option>)}
-                    </select>
-                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                <section className="space-y-4">
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-400 h-5 flex items-center">7. Tone of Voice</label>
+                  <div className="flex flex-wrap gap-2">
+                    {tones.map(t => (
+                      <button
+                        key={t}
+                        onClick={() => toggleTone(t)}
+                        className={`px-3 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-wide transition-all flex items-center gap-1.5 ${
+                          selectedTones.includes(t)
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-slate-200 dark:border-white/10 text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5'
+                        }`}
+                      >
+                        {selectedTones.includes(t) && <Check className="w-3 h-3" />}
+                        {t}
+                      </button>
+                    ))}
                   </div>
                 </section>
               </div>
-
-              {/* SECTION 5 — Tone of Voice */}
-              <section className="space-y-4">
-                <label className="text-xs font-black uppercase tracking-widest text-slate-400">6. Tone of Voice</label>
-                <div className="flex flex-wrap gap-2">
-                  {tones.map(t => (
-                    <button
-                      key={t}
-                      onClick={() => toggleTone(t)}
-                      className={`px-3 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-wide transition-all flex items-center gap-1.5 ${
-                        selectedTones.includes(t)
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-slate-200 dark:border-white/10 text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5'
-                      }`}
-                    >
-                      {selectedTones.includes(t) && <Check className="w-3 h-3" />}
-                      {t}
-                    </button>
-                  ))}
-                </div>
-              </section>
-
-              {/* SECTION 6 — Reference Media */}
-              <section className="space-y-4">
-                <label className="text-xs font-black uppercase tracking-widest text-slate-400 flex justify-between">
-                  <span>7. Reference Media (Optional)</span>
-                  <span className="text-slate-400">{referenceMedia.length}/10</span>
-                </label>
-                <div 
-                  className="border-2 border-dashed border-slate-200 dark:border-white/20 rounded-2xl p-8 flex flex-col items-center justify-center bg-slate-50/50 dark:bg-white/[0.01] hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-all cursor-pointer relative group"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                    <Upload className="w-6 h-6" />
-                  </div>
-                  <p className="mt-4 text-sm font-bold text-slate-600 dark:text-slate-300">Drag & Drop or Click to Upload</p>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Images & Videos (Max 10)</p>
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*,video/*"
-                    className="hidden"
-                    ref={fileInputRef}
-                    onChange={handleMediaUpload}
-                  />
-                </div>
-                
-                {referenceMedia.length > 0 && (
-                  <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0 mt-0.5">
-                      <Sparkles className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="text-[11px] font-black uppercase tracking-widest text-primary">AI Vision Active</h4>
-                      <p className="text-[10px] font-medium text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
-                        The AI will automatically analyze your uploaded images to generate highly contextual captions, hashtags, and variations based on the visual content.
-                      </p>
-                    </div>
-                  </div>
-                )}
-                
-                {/* File Preview */}
-                {referenceMedia.length > 0 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
-                    {referenceMedia.map((file, idx) => (
-                      <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 group bg-slate-100">
-                        {file.type.startsWith('image/') ? (
-                          <img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full bg-slate-800 flex items-center justify-center">
-                            <Video className="w-8 h-8 text-white/50" />
-                          </div>
-                        )}
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
-                          <button onClick={(e) => { e.stopPropagation(); removeMedia(idx); }} className="self-end p-1.5 bg-red-500/80 rounded-lg text-white hover:bg-red-500">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                          <div className="text-white text-[9px] font-bold truncate p-1 bg-black/40 rounded">
-                            {file.name}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
 
               {/* SECTION 7 & 8 — Enhancements & Length */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
