@@ -5385,9 +5385,9 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
               {/* RIGHT COLUMN — Content Details */}
               <div className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-6 custom-scrollbar bg-white">
                 {(() => {
-                  const ce = selectedAsset?.calendarEntry || calendarEntries.find(e => ensureStringId(e._id) === ensureStringId(selectedAsset?.calendarEntryId));
+                  const ce = selectedAsset?.calendarEntry || calendarEntries.find(e => ensureStringId(e._id) === ensureStringId(selectedAsset?.calendarEntryId)) || {};
                   const isGenerated = ce?.status === 'generated' || post;
-                  if (!ce) return null;
+                  if (!isGenerated && !post) return null;
 
                   const hook = post?.hook || ce.hook || ce.heading_hook || ce.title || '';
                   const subHeading = ce.sub_heading || ce.subHeading || '';
@@ -5395,7 +5395,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   const longCaption = post?.captionLong || ce.long_caption || ce.captionLong || ce.postContent || '';
                   const hashtags = post?.hashtags || (Array.isArray(ce.hashtags) ? ce.hashtags : (ce.hashtags ? ce.hashtags.split(/[\s,#]+/).filter(Boolean) : []));
                   const breakdown = post?.onAssetText || ce.breakdown || '';
-                  const ctaText = post?.cta || ce?.cta || '';
+                  const ctaText = post?.cta || ce.cta || '';
 
                   const ContentBlock = ({ label, text, color = 'slate' }) => text ? (
                     <div className={`p-4 rounded-2xl border bg-${color}-50 border-${color}-100`}>
