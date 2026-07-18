@@ -720,6 +720,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
   const [showGeneratorOptions, setShowGeneratorOptions] = useState(false);
   const [showContentLibrary, setShowContentLibrary] = useState(false);
   const [librarySearchQuery, setLibrarySearchQuery] = useState('');
+  const [librarySelectedAssetId, setLibrarySelectedAssetId] = useState(null);
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [expandedImage, setExpandedImage] = useState(null);
   const [assetSearchQuery, setAssetSearchQuery] = useState('');
@@ -841,8 +842,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
     { id: 'overview', name: 'Overview', icon: LayoutDashboard },
     { id: 'brand', name: 'Brand WorkSpace', icon: Palette },
     { id: 'generation', name: 'Content Calendar', icon: Sparkles },
-    { id: 'calendar', name: 'Content Studio', icon: CalendarRange },
-    { id: 'assets', name: 'Post Generation', icon: Library }
+    { id: 'calendar', name: 'Content Studio', icon: CalendarRange }
   ];
 
   // Derived state for the "Content Calendar" brands - Used in both Calendar tab and Generation tab
@@ -1103,12 +1103,16 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
         } else {
           setCurrentCampaign(null);
           setCampaignPosts([]);
-          setCampaignConfig(prev => ({
-            ...prev,
+          setCampaignConfig({
             campaignName: '',
+            campaignMonth: 'January',
+            postingFrequency: '3x Per Week',
             startDate: '',
-            endDate: ''
-          }));
+            endDate: '',
+            campaignGoals: [],
+            campaignGoal: '',
+            platforms: []
+          });
         }
       } catch (err) {
         console.error("Failed to load campaign data:", err);
@@ -1941,6 +1945,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
         generateCaption: config.aiEnhancements?.caption !== false,
         generateHashtags: config.aiEnhancements?.hashtags !== false,
         generateCTA: config.aiEnhancements?.cta !== false,
+        generateHook: config.aiEnhancements?.generateHook !== false,
         generateImagePrompt: config.aiEnhancements?.imagePrompt !== false,
         generateMultipleVariations: config.aiEnhancements?.multipleVariations !== false,
         generateEmojiSuggestions: true,
@@ -3036,7 +3041,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-4xl pt-4">
+                  <div className="max-w-md pt-4">
                     {/* Generate by AI Card */}
                     <div onClick={() => setShowWizard(true)} className="bg-gradient-to-br from-primary/10 to-transparent dark:from-primary/20 dark:to-transparent rounded-[32px] border border-primary/20 p-8 flex flex-col justify-center items-center w-full shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)] cursor-pointer min-h-[260px]">
                       <div className="w-20 h-20 rounded-2xl bg-primary/20 flex items-center justify-center text-primary mb-6 shadow-inner">
@@ -3045,15 +3050,6 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                       <h3 className="text-sm font-black uppercase text-slate-800 dark:text-white tracking-widest text-center">Generate Post by AI</h3>
                       <p className="text-[10px] text-slate-500 text-center mt-2 font-black uppercase tracking-wider opacity-70">Automated Content Plan</p>
                     </div>
-
-                    {/* Generate Manually Card */}
-                    <div onClick={() => setShowManualGenModal(true)} className="bg-slate-50 dark:bg-[#1E2438] rounded-[32px] border border-slate-200 dark:border-white/10 p-8 flex flex-col justify-center items-center w-full shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-500 cursor-pointer group min-h-[260px]">
-                      <div className="w-20 h-20 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-600 dark:text-slate-300 mb-6 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-500 shadow-sm">
-                        <User className="w-10 h-10" />
-                      </div>
-                      <h3 className="text-sm font-black uppercase text-slate-800 dark:text-white tracking-widest text-center">Generate Post Manually</h3>
-                      <p className="text-[10px] text-slate-500 text-center mt-2 font-black uppercase tracking-wider opacity-70">Create from scratch</p>
-                    </div>
                   </div>
                 </div>
               );
@@ -3061,9 +3057,28 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
 
             if (showContentLibrary) {
               const combinedEntries = [...(calendarEntries || []), ...(generatedPosts || [])].sort((a, b) => new Date(b.createdAt || b.dateString) - new Date(a.createdAt || a.dateString));
-              const allLibraryEntries = combinedEntries.filter(e => {
-                if (!librarySearchQuery) return true;
-                const q = librarySearchQuery.toLowerCase().trim();
+              const allGeneratedAssets = (assets || []).filter(a => a.assetSource === 'generated');
+
+              const handleRegenerateContent = (entry, asset) => {
+                const targetEntry = entry || (asset ? combinedEntries.find(e => 
+                  (asset.calendarEntryId && (asset.calendarEntryId === e._id || asset.calendarEntryId === e.calendarEntryId)) || 
+                  (asset.postId && asset.postId === e._id)
+                ) : null);
+                
+                const prefill = {
+                  postTopic: targetEntry ? (targetEntry.title || targetEntry.heading_hook || targetEntry.hook || '') : '',
+                  keyMessage: targetEntry ? (targetEntry.captionShort || targetEntry.short_caption || targetEntry.captionLong || targetEntry.long_caption || '') : '',
+                  platform: targetEntry?.platform ? [targetEntry.platform.toLowerCase()] : [],
+                };
+                
+                setWizardPrefill(prefill);
+                setShowWizard(true);
+              };
+
+              const q = librarySearchQuery ? librarySearchQuery.toLowerCase().trim() : '';
+
+              const textMatchedEntries = combinedEntries.filter(e => {
+                if (!q) return true;
                 return (
                   (e.title || '').toLowerCase().includes(q) ||
                   (e.heading_hook || e.hook || '').toLowerCase().includes(q) ||
@@ -3073,7 +3088,40 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   (Array.isArray(e.hashtags) ? e.hashtags.join(' ') : String(e.hashtags || '')).toLowerCase().includes(q)
                 );
               });
-              const libraryAssets = (assets || []).filter(a => a.assetSource === 'generated');
+
+              const textMatchedAssets = allGeneratedAssets.filter(a => {
+                if (!q) return true;
+                return (a.originalName || '').toLowerCase().includes(q) || 
+                       (a.assetType || '').toLowerCase().includes(q);
+              });
+
+              const finalMatchedEntries = combinedEntries.filter(e => {
+                if (textMatchedEntries.includes(e)) return true;
+                return textMatchedAssets.some(a => 
+                  (a.calendarEntryId && (a.calendarEntryId === e._id || a.calendarEntryId === e.calendarEntryId)) || 
+                  (a.postId && a.postId === e._id)
+                );
+              });
+
+              const libraryAssets = allGeneratedAssets.filter(a => {
+                if (textMatchedAssets.includes(a)) return true;
+                return finalMatchedEntries.some(e => 
+                  (a.calendarEntryId && (a.calendarEntryId === e._id || a.calendarEntryId === e.calendarEntryId)) || 
+                  (a.postId && a.postId === e._id)
+                );
+              });
+              
+              const allLibraryEntries = finalMatchedEntries.filter(e => {
+                if (librarySelectedAssetId) {
+                  const asset = libraryAssets.find(a => a._id === librarySelectedAssetId);
+                  if (asset) {
+                    const isMatch = (asset.calendarEntryId && (asset.calendarEntryId === e._id || asset.calendarEntryId === e.calendarEntryId)) || 
+                                    (asset.postId && asset.postId === e._id);
+                    if (!isMatch) return false;
+                  }
+                }
+                return true;
+              });
 
               return (
                 <div className="flex-1 overflow-y-auto w-full space-y-8 p-4 pb-24 animate-in fade-in slide-in-from-left-4 duration-500">
@@ -3106,19 +3154,34 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                     )}
                   </div>
 
-                  {/* Stats Row */}
-                  <div className="grid grid-cols-3 gap-4 max-w-2xl">
-                    <div className="bg-white dark:bg-[#1E2438] rounded-2xl border border-slate-100 dark:border-white/5 p-4 text-center">
-                      <p className="text-2xl font-black text-primary">{allLibraryEntries.length}</p>
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mt-1">Captions</p>
+                  {/* Stats Bar */}
+                  <div className="flex items-center gap-0 bg-white dark:bg-[#1E2438] rounded-2xl border border-slate-100 dark:border-white/5 overflow-hidden shadow-sm w-full max-w-lg">
+                    <div className="flex-1 flex items-center gap-2.5 px-5 py-3 border-r border-slate-100 dark:border-white/5">
+                      <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <FileText className="w-3.5 h-3.5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-lg font-black text-primary leading-none">{allLibraryEntries.length}</p>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Captions</p>
+                      </div>
                     </div>
-                    <div className="bg-white dark:bg-[#1E2438] rounded-2xl border border-slate-100 dark:border-white/5 p-4 text-center">
-                      <p className="text-2xl font-black text-emerald-500">{libraryAssets.length}</p>
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mt-1">Images</p>
+                    <div className="flex-1 flex items-center gap-2.5 px-5 py-3 border-r border-slate-100 dark:border-white/5">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
+                        <ImageIcon className="w-3.5 h-3.5 text-emerald-500" />
+                      </div>
+                      <div>
+                        <p className="text-lg font-black text-emerald-500 leading-none">{libraryAssets.length}</p>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Images</p>
+                      </div>
                     </div>
-                    <div className="bg-white dark:bg-[#1E2438] rounded-2xl border border-slate-100 dark:border-white/5 p-4 text-center">
-                      <p className="text-2xl font-black text-violet-500">{allLibraryEntries.filter(e => e.hashtags).length}</p>
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mt-1">With Hashtags</p>
+                    <div className="flex-1 flex items-center gap-2.5 px-5 py-3">
+                      <div className="w-7 h-7 rounded-lg bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center">
+                        <Hash className="w-3.5 h-3.5 text-violet-500" />
+                      </div>
+                      <div>
+                        <p className="text-lg font-black text-violet-500 leading-none">{allLibraryEntries.filter(e => e.hashtags).length}</p>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">With Tags</p>
+                      </div>
                     </div>
                   </div>
 
@@ -3136,8 +3199,11 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                           const slideCount = isCarousel && Array.isArray(asset.metadata?.slides) ? asset.metadata.slides.length : 0;
                           const thumbUrl = asset.gcsUrl || (isCarousel && asset.metadata?.slides?.[0]) || '';
                           return (
-                            <div key={asset._id} onClick={() => setSelectedAsset(asset)} className="group relative cursor-pointer">
-                              <div className="aspect-square rounded-[24px] overflow-hidden relative border-2 border-white dark:border-zinc-900 shadow-lg group-hover:scale-[1.03] active:scale-95 transition-all duration-500">
+                            <div key={asset._id} onClick={() => setLibrarySelectedAssetId(prev => String(prev) === String(asset._id) ? null : String(asset._id))} className="group relative cursor-pointer">
+                              <div className={`aspect-square rounded-[24px] overflow-hidden relative shadow-lg group-hover:scale-[1.03] active:scale-95 transition-all duration-500 ${String(librarySelectedAssetId) === String(asset._id) ? 'scale-[1.03] shadow-xl shadow-primary/20' : 'border-2 border-white dark:border-zinc-900'}`}>
+                                {String(librarySelectedAssetId) === String(asset._id) && (
+                                  <div className="absolute inset-0 border-4 border-primary rounded-[24px] pointer-events-none z-30" />
+                                )}
                                 {thumbUrl ? (
                                   <img src={toProxyUrl(thumbUrl)} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Asset" onError={e => { e.currentTarget.style.display = 'none'; }} />
                                 ) : (
@@ -3148,8 +3214,10 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                     <Layers className="w-2.5 h-2.5" /> {slideCount} Slides
                                   </div>
                                 )}
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center">
-                                  <Download className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center">
+                                  <button onClick={(e) => { e.stopPropagation(); setSelectedAsset(asset); }} className="p-3 bg-white/20 hover:bg-white/40 backdrop-blur-md rounded-full text-white opacity-0 group-hover:opacity-100 transition-all duration-300 transform hover:scale-110">
+                                    <Maximize2 className="w-5 h-5" />
+                                  </button>
                                 </div>
 
                                 <div className="absolute top-2 right-2 z-20 flex flex-col gap-2">
@@ -3172,6 +3240,16 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                     className="w-8 h-8 rounded-xl bg-white/90 dark:bg-black/90 text-indigo-600 flex items-center justify-center shadow-2xl hover:bg-indigo-600 hover:text-white transition-all transform hover:-rotate-6 active:scale-90"
                                   >
                                     <Copy className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRegenerateContent(null, asset);
+                                    }}
+                                    title="Regenerate With AI"
+                                    className="w-8 h-8 rounded-xl bg-white/90 dark:bg-black/90 text-emerald-600 flex items-center justify-center shadow-2xl hover:bg-emerald-600 hover:text-white transition-all transform hover:rotate-6 active:scale-90"
+                                  >
+                                    <RefreshCw className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
                               </div>
@@ -3217,19 +3295,31 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                   )}
                                 </div>
                               </div>
-                              <div className="flex gap-1">
-                                {['instagram', 'twitter', 'linkedin', 'facebook'].map(p => {
-                                  const ep = (entry.platform || '').toLowerCase();
-                                  if (!ep.includes(p)) return null;
-                                  return (
-                                    <div key={p} className="text-primary">
-                                      {p === 'instagram' && <Instagram className="w-3.5 h-3.5" />}
-                                      {p === 'twitter' && <TwitterXIcon className="w-3.5 h-3.5" />}
-                                      {p === 'linkedin' && <Linkedin className="w-3.5 h-3.5" />}
-                                      {p === 'facebook' && <Facebook className="w-3.5 h-3.5" />}
-                                    </div>
-                                  );
-                                })}
+                              <div className="flex gap-2 items-center">
+                                <div className="flex gap-1 mr-2">
+                                  {['instagram', 'twitter', 'linkedin', 'facebook'].map(p => {
+                                    const ep = (entry.platform || '').toLowerCase();
+                                    if (!ep.includes(p)) return null;
+                                    return (
+                                      <div key={p} className="text-primary">
+                                        {p === 'instagram' && <Instagram className="w-3.5 h-3.5" />}
+                                        {p === 'twitter' && <TwitterXIcon className="w-3.5 h-3.5" />}
+                                        {p === 'linkedin' && <Linkedin className="w-3.5 h-3.5" />}
+                                        {p === 'facebook' && <Facebook className="w-3.5 h-3.5" />}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRegenerateContent(entry, null);
+                                  }}
+                                  title="Regenerate With AI"
+                                  className="w-6 h-6 rounded-md bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 flex items-center justify-center hover:bg-emerald-100 hover:text-emerald-700 transition-all opacity-0 group-hover:opacity-100"
+                                >
+                                  <RefreshCw className="w-3.5 h-3.5" />
+                                </button>
                               </div>
                             </div>
 
@@ -3257,7 +3347,20 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                   <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-4">{entry.captionLong || entry.long_caption}</p>
                                 </div>
                               )}
-                            </div>
+                              </div>
+
+                            {/* CTA */}
+                            {entry.cta && (
+                              <div className="mt-3 bg-primary/5 dark:bg-primary/10 rounded-xl p-3 border border-primary/10">
+                                <div className="flex items-center justify-between mb-1">
+                                  <p className="text-[8px] font-black text-primary uppercase tracking-widest">Call To Action</p>
+                                  <button onClick={() => { navigator.clipboard.writeText(entry.cta || ''); toast.success('CTA Copied!'); }} className="text-primary hover:text-primary/70 transition-colors">
+                                    <Copy className="w-3 h-3" />
+                                  </button>
+                                </div>
+                                <p className="text-[11px] text-primary/90 dark:text-primary/80 leading-relaxed font-bold">{entry.cta}</p>
+                              </div>
+                            )}
 
                             {/* Hashtags */}
                             {entry.hashtags && (
@@ -3292,14 +3395,14 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
             }
 
             return (
-              <div className="flex-1 overflow-y-auto w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-4 pb-24 items-start animate-in fade-in slide-in-from-right-4 duration-500">
-                {/* Content Generator Card */}
-                <div onClick={() => setShowGeneratorOptions(true)} className="bg-gradient-to-br from-primary/10 to-transparent dark:from-primary/20 dark:to-transparent rounded-[32px] border border-primary/20 p-6 flex flex-col justify-center items-center w-full shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-500 cursor-pointer group min-h-[220px]">
+              <div className="flex-1 overflow-y-auto w-full grid grid-cols-1 sm:grid-cols-2 gap-6 p-4 pb-24 items-start animate-in fade-in slide-in-from-right-4 duration-500 max-w-2xl">
+                {/* Generate Post by AI Card */}
+                <div onClick={() => setShowWizard(true)} className="bg-gradient-to-br from-primary/10 to-transparent dark:from-primary/20 dark:to-transparent rounded-[32px] border border-primary/20 p-6 flex flex-col justify-center items-center w-full shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-500 cursor-pointer group min-h-[220px]">
                   <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center text-primary mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 shadow-inner">
-                    <Sparkles className="w-8 h-8" />
+                    <Bot className="w-8 h-8" />
                   </div>
-                  <h3 className="text-sm font-black uppercase text-slate-800 dark:text-white tracking-widest text-center">Content Generator</h3>
-                  <p className="text-[10px] text-slate-500 text-center mt-2 font-black uppercase tracking-wider opacity-70">Create automated or manual posts</p>
+                  <h3 className="text-sm font-black uppercase text-slate-800 dark:text-white tracking-widest text-center">Generate Post by AI</h3>
+                  <p className="text-[10px] text-slate-500 text-center mt-2 font-black uppercase tracking-wider opacity-70">Automated Content Plan</p>
                 </div>
 
                 {/* Content Library Card */}
@@ -3311,122 +3414,6 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   <p className="text-[10px] text-slate-500 text-center mt-2 font-black uppercase tracking-wider opacity-70">Images, captions & hashtags</p>
                 </div>
 
-                {calendarWorkspaces.map(ws => {
-                  const profile = ws.brandProfile || {};
-                  const isCurrent = ws._id && workspace?._id && String(ws._id) === String(workspace._id);
-                  const entriesCount = isCurrent ? calendarEntries.length : (ws.calendarEntryCount || ws.onboarding?.calendarCount || 0);
-
-                  return (
-                    <div key={ws._id} className={`bg-white dark:bg-[#1E2438] rounded-[32px] border p-6 flex flex-col w-full shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.1)] transition-all duration-500 group animate-in slide-in-from-left-4 ${isCurrent ? 'border-primary shadow-primary/10' : 'border-slate-100 dark:border-white/5'}`}>
-                      <div className="flex items-start gap-4 mb-6">
-                        <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-white/5 overflow-hidden border border-slate-100 dark:border-white/10 flex-shrink-0 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform duration-500">
-                          {(() => {
-                            const rawUrl = (isCurrent ? activeProfile?.logoUrl : profile.logoUrl) || ws.onboarding?.profileImageUrl;
-                            const name = (isCurrent ? activeProfile?.companyName : profile.companyName) || ws.workspaceName || 'B';
-
-                            if (!rawUrl) {
-                              return (
-                                <div className="w-full h-full bg-gradient-to-br from-primary to-indigo-600 text-white flex items-center justify-center text-xl font-black uppercase">
-                                  {name.charAt(0)}
-                                </div>
-                              );
-                            }
-
-                            const finalUrl = toProxyUrl(rawUrl);
-
-                            return (
-                              <img
-                                src={finalUrl}
-                                className="w-full h-full object-contain p-1"
-                                alt="Logo"
-                                onError={(e) => {
-                                  const target = e.currentTarget;
-                                  target.style.display = 'none';
-                                  if (target.parentElement) {
-                                    const fallback = document.createElement('div');
-                                    fallback.className = "w-full h-full bg-slate-100 flex items-center justify-center text-slate-400 font-black text-xl uppercase";
-                                    fallback.textContent = name.charAt(0);
-                                    target.parentElement.appendChild(fallback);
-                                  }
-                                }}
-                              />
-                            );
-                          })()}
-                        </div>
-                        <div className="flex-1 overflow-hidden pt-1">
-                          <h3 className="text-xs font-black uppercase text-slate-800 dark:text-white tracking-widest truncate mb-0.5">
-                            {(isCurrent ? activeProfile?.companyName : profile.companyName) || ws.workspaceName || 'Brand'}
-                          </h3>
-                          <div className="flex items-center gap-1.5 opacity-50">
-                            <History className="w-3 h-3 text-slate-400" />
-                            <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">{new Date(ws.createdAt).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-4 mb-8">
-                        <div className="flex items-center justify-between text-xs font-medium text-slate-500 px-1">
-                          <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[2px] text-slate-400"><Calendar className="w-3.5 h-3.5 opacity-50" /> Monthly Plan</span>
-                          <span className={`px-2 py-0.5 font-black rounded-lg text-[9px] ${isCurrent ? 'bg-primary/20 text-primary' : 'bg-slate-100 dark:bg-white/10 text-slate-400'}`}>
-                            {entriesCount} Slots
-                          </span>
-                        </div>
-                        <div className="h-1.5 w-full bg-slate-50 dark:bg-white/5 rounded-full overflow-hidden">
-                          <div className="h-full bg-primary" style={{ width: entriesCount > 0 ? '100%' : '0%' }} title="Plan Confidence" />
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2.5 mt-auto">
-                        <button
-                          onClick={() => {
-                            if (!isCurrent) switchWorkspace(ws);
-                            setShowPreviewModal(true);
-                          }}
-                          className="flex-1 h-11 bg-primary text-white rounded-xl font-black uppercase tracking-widest text-[9px] transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95"
-                        >
-                          <Eye className="w-4 h-4" /> Preview
-                        </button>
-
-                        {isCurrent && (
-                          <button
-                            onClick={() => handleExportExcel(ws._id)}
-                            title="Download Excel"
-                            className="h-11 w-11 bg-slate-50 dark:bg-white/5 hover:bg-green-500/10 text-slate-400 hover:text-green-500 rounded-xl flex items-center justify-center transition-all border border-slate-100 dark:border-white/5 hover:border-green-500/20"
-                          >
-                            <Download className="w-4 h-4" />
-                          </button>
-                        )}
-
-                        <button
-                          onClick={async () => {
-                            const wsName = ws.workspaceName || 'this brand';
-                            if (!window.confirm(`Clear all calendar entries for "${wsName}"?\n\nThis removes the content calendar only. The brand and its settings will be kept.`)) return;
-                            const toastId = toast.loading(`Clearing calendar for ${wsName}...`);
-                            try {
-                              const res = await apiService.clearCalendarForWorkspace(ws._id);
-                              if (res.success) {
-                                toast.success(`Calendar cleared for ${wsName}`, { id: toastId });
-                                // Update local state immediately
-                                if (ws._id && workspace?._id && String(ws._id) === String(workspace._id)) setCalendarEntries([]);
-                                // Refresh allWorkspaces so the switcher count resets to 0
-                                const wsList = await apiService.getSocialAgentWorkspaces();
-                                if (wsList.success) setAllWorkspaces(wsList.workspaces);
-                              } else {
-                                toast.error('Clear failed', { id: toastId });
-                              }
-                            } catch (err) {
-                              toast.error('Error clearing calendar', { id: toastId });
-                            }
-                          }}
-                          title="Clear Content Calendar"
-                          className="h-11 w-11 bg-slate-50 dark:bg-white/5 hover:bg-red-500/10 text-slate-400 hover:text-red-500 rounded-xl flex items-center justify-center transition-all border border-slate-100 dark:border-white/5 hover:border-red-500/20"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
             );
           }
@@ -5325,296 +5312,195 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
               </button>
             </div>
 
-            {/* Neural Content Hub Body */}
-            <div className="flex-1 overflow-y-auto bg-slate-50/30 p-12 custom-scrollbar">
-              {/* Visual Identity Hero */}
-              {selectedAsset?.assetType === 'carousel' && selectedAsset?.metadata?.slides?.length ? (
-                <div className="w-full relative py-4">
-                  <div className="flex items-center justify-between mb-4 px-4">
-                    <h4 className="text-xl font-black text-slate-800 uppercase tracking-tight">Carousel Sequence</h4>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{selectedAsset.metadata.slides.length} Slides</span>
-                  </div>
-                  <div className="flex gap-6 overflow-x-auto snap-x custom-scrollbar pb-6 px-4">
-                    {selectedAsset.metadata.slides.map((url, i) => (
-                      <div key={i} className="snap-center relative shrink-0 w-80 group/slide rounded-[32px] overflow-hidden border-4 border-white shadow-xl aspect-square bg-zinc-900 flex items-center justify-center">
-                        <img
-                          src={toProxyUrl(url)}
-                          className="w-full h-full object-contain cursor-zoom-in transition-transform duration-700 group-hover/slide:scale-[1.05]"
-                          alt={`Slide ${i + 1}`}
-                          onClick={() => setExpandedImage(toProxyUrl(url))}
-                        />
-                        {/* Slide number badge */}
-                        <div className="absolute top-4 left-4 w-8 h-8 rounded-full bg-black/60 text-white font-black flex items-center justify-center text-xs backdrop-blur-md">
-                          {i + 1}
+            {/* Two-Column Body */}
+            <div className="flex-1 overflow-hidden flex flex-col lg:flex-row min-h-0">
+
+              {/* LEFT COLUMN — Image Preview */}
+              <div className="lg:w-[42%] bg-zinc-950 flex flex-col items-center justify-center p-6 lg:p-10 shrink-0 gap-4">
+                {selectedAsset?.assetType === 'carousel' && selectedAsset?.metadata?.slides?.length ? (
+                  <div className="w-full">
+                    <p className="text-[9px] font-black text-white/40 uppercase tracking-[3px] mb-4 text-center">{selectedAsset.metadata.slides.length} Slides</p>
+                    <div className="flex gap-3 overflow-x-auto snap-x pb-3 custom-scrollbar">
+                      {selectedAsset.metadata.slides.map((url, i) => (
+                        <div key={i} className="snap-center shrink-0 w-[260px] aspect-square rounded-[20px] overflow-hidden relative border-2 border-white/10">
+                          <img src={toProxyUrl(url)} className="w-full h-full object-contain cursor-zoom-in" alt={`Slide ${i+1}`} onClick={() => setExpandedImage(toProxyUrl(url))} />
+                          <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-black/60 text-white text-[9px] font-black flex items-center justify-center">{i+1}</div>
                         </div>
-                        {/* Per-slide action buttons Ã¢â‚¬â€ visible on hover */}
-                        <div className="absolute bottom-4 right-4 flex flex-col gap-2 transition-all duration-300">
-                          {/* Download */}
-                          <button
-                            title="Download Slide"
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              try {
-                                const response = await fetch(toProxyUrl(url));
-                                const blob = await response.blob();
-                                const blobUrl = URL.createObjectURL(blob);
-                                const a = document.createElement('a');
-                                a.href = blobUrl;
-                                a.download = `carousel_slide_${i + 1}.png`;
-                                a.click();
-                                URL.revokeObjectURL(blobUrl);
-                                toast.success(`Slide ${i + 1} downloaded!`);
-                                setDownloadedPostsCount(prev => {
-                                  const next = prev + 1;
-                                  localStorage.setItem('downloadedPostsCount', next.toString());
-                                  return next;
-                                });
-                              } catch { toast.error('Download failed'); }
-                            }}
-                            className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 text-white flex items-center justify-center hover:bg-white hover:text-slate-800 transition-all shadow-lg"
-                          >
-                            <Download className="w-4 h-4" />
-                          </button>
-                          {/* Copy image to clipboard */}
-                          <button
-                            title="Copy Image to Clipboard"
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              try {
-                                const response = await fetch(toProxyUrl(url));
-                                const blob = await response.blob();
-                                await navigator.clipboard.write([
-                                  new ClipboardItem({ 'image/png': blob })
-                                ]);
-                                toast.success(`Slide ${i + 1} copied to clipboard!`);
-                              } catch {
-                                navigator.clipboard.writeText(url);
-                                toast.success(`Slide ${i + 1} URL copied!`);
-                              }
-                            }}
-                            className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 text-white flex items-center justify-center hover:bg-primary hover:border-primary transition-all shadow-lg"
-                          >
-                            <Copy className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="relative group/hero rounded-[40px] overflow-hidden border-4 border-white shadow-2xl aspect-[16/10] bg-zinc-900 flex items-center justify-center">
-                  {selectedAsset.gcsUrl ? (
-                    <>
-                      <img
-                        src={toProxyUrl(selectedAsset.gcsUrl)}
-                        className="w-full h-full object-contain cursor-zoom-in transition-transform duration-700 group-hover/hero:scale-[1.02]"
-                        alt="Artifact Full Preview"
-                        onClick={() => setExpandedImage(toProxyUrl(selectedAsset.gcsUrl))}
-                      />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
-                        <div className="px-6 py-3 bg-white/20 backdrop-blur-md rounded-2xl border border-white/30 text-white font-black text-xs uppercase tracking-[4px]">Click for Full Dimension</div>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex flex-col items-center gap-6 text-center p-12">
-                      <div className="w-24 h-24 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center animate-pulse">
-                        <Layers className="w-10 h-10 text-slate-500" />
-                      </div>
-                      <div>
-                        <h4 className="text-xl font-black text-white uppercase tracking-tighter mb-2">Visual Core Pending</h4>
-                        <p className="text-slate-500 text-xs font-bold uppercase tracking-widest max-w-xs">
-                          Textual content has been synthesized. Generate a Post Visual to activate the primary artifact layer.
-                        </p>
-                      </div>
+                      ))}
                     </div>
-                  )}
-                </div>
-              )}
+                  </div>
+                ) : (
+                  <div className="w-full max-w-[360px] aspect-square rounded-[28px] overflow-hidden border-2 border-white/10 bg-zinc-900 relative group/img">
+                    {selectedAsset?.gcsUrl ? (
+                      <>
+                        <img
+                          src={toProxyUrl(selectedAsset.gcsUrl)}
+                          className="w-full h-full object-contain cursor-zoom-in transition-transform duration-500 group-hover/img:scale-[1.03]"
+                          alt="AI Generated"
+                          onClick={() => setExpandedImage(toProxyUrl(selectedAsset.gcsUrl))}
+                        />
+                        <div className="absolute bottom-3 inset-x-3 flex gap-2">
+                          <button
+                            onClick={() => handleDownloadMedia(selectedAsset.gcsUrl)}
+                            className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-black/60 backdrop-blur-md text-white text-[9px] font-black uppercase tracking-[2px] border border-white/20 hover:bg-primary hover:border-primary transition-all"
+                          >
+                            <Download className="w-3 h-3" /> Download
+                          </button>
+                          <button
+                            onClick={() => handleCopyImageToClipboard(selectedAsset.gcsUrl)}
+                            className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl bg-black/60 backdrop-blur-md text-white text-[9px] font-black uppercase tracking-[2px] border border-white/20 hover:bg-primary hover:border-primary transition-all"
+                          >
+                            <Copy className="w-3 h-3" /> Copy
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-center p-8">
+                        <Layers className="w-12 h-12 text-zinc-700" />
+                        <p className="text-xs font-black text-zinc-600 uppercase tracking-widest">No Visual Generated</p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
-              <div className="max-w-6xl mx-auto space-y-12">
-
-                {/* Ã¢â€â‚¬Ã¢â€â‚¬ GENERATED CONTENT PANEL Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
+                {/* Platform / Phase / Format badges */}
                 {(() => {
                   const ce = selectedAsset?.calendarEntry || calendarEntries.find(e => ensureStringId(e._id) === ensureStringId(selectedAsset?.calendarEntryId));
-                  // Dynamic Content Visibility: Ensure space is empty if content isn't yet synthesized
+                  const platform = ce?.platform || '';
+                  const phase = ce?.phase || '';
+                  const format = ce?.format || ce?.postType || ce?.post_type || '';
+                  return (platform || phase || format) ? (
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {platform && <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[8px] font-black text-white/60 uppercase tracking-widest">{platform}</span>}
+                      {phase && <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[8px] font-black text-amber-400 uppercase tracking-widest">{phase}</span>}
+                      {format && <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[8px] font-black text-emerald-400 uppercase tracking-widest">{format}</span>}
+                    </div>
+                  ) : null;
+                })()}
+              </div>
+
+              {/* RIGHT COLUMN — Content Details */}
+              <div className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-6 custom-scrollbar bg-white">
+                {(() => {
+                  const ce = selectedAsset?.calendarEntry || calendarEntries.find(e => ensureStringId(e._id) === ensureStringId(selectedAsset?.calendarEntryId)) || {};
                   const isGenerated = ce?.status === 'generated' || post;
+                  if (!isGenerated && !post) return null;
 
-                  if (!ce) return null;
-                  if (!isGenerated) return null; // Empty as requested
-
-                  // Priority Data Binding: Check post (fresh state) first, fallback to ce (db sync)
                   const hook = post?.hook || ce.hook || ce.heading_hook || ce.title || '';
                   const subHeading = ce.sub_heading || ce.subHeading || '';
                   const shortCaption = post?.captionShort || ce.short_caption || ce.captionShort || '';
                   const longCaption = post?.captionLong || ce.long_caption || ce.captionLong || ce.postContent || '';
                   const hashtags = post?.hashtags || (Array.isArray(ce.hashtags) ? ce.hashtags : (ce.hashtags ? ce.hashtags.split(/[\s,#]+/).filter(Boolean) : []));
                   const breakdown = post?.onAssetText || ce.breakdown || '';
-                  const platform = ce.platform || '';
-                  const phase = ce.phase || '';
-                  const format = ce.format || ce.postType || ce.post_type || '';
+                  const ctaText = post?.cta || ce.cta || '';
+
+                  const ContentBlock = ({ label, text, color = 'slate' }) => text ? (
+                    <div className={`p-4 rounded-2xl border bg-${color}-50 border-${color}-100`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`text-[8px] font-black text-${color}-400 uppercase tracking-[3px]`}>{label}</span>
+                        <button onClick={() => { navigator.clipboard.writeText(text); toast.success(`${label} copied!`); }} className={`w-6 h-6 rounded-lg bg-white text-${color}-400 flex items-center justify-center shadow-sm hover:bg-${color}-500 hover:text-white transition-all`}>
+                          <Copy className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <p className="text-sm text-slate-700 font-medium leading-relaxed select-all">{text}</p>
+                    </div>
+                  ) : null;
 
                   return (
-                    <div className="bg-white rounded-[24px] md:rounded-[40px] border border-slate-100 shadow-xl overflow-hidden">
-                      {/* Header */}
-                      <div className="p-4 md:p-8 border-b border-slate-100 flex items-start gap-3">
-                        <div className="w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center border border-indigo-500/20 shrink-0">
-                          <FileText className="w-4 h-4 md:w-6 md:h-6" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-base md:text-xl font-black text-slate-800 uppercase tracking-tight truncate">Generated Content</h4>
-                          <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Hook · Captions · Hashtags</p>
-                          {(platform || phase || format) && (
-                            <div className="flex flex-wrap gap-1.5 mt-2">
-                              {platform && <span className="px-2 py-0.5 rounded-full bg-primary/5 border border-primary/10 text-[8px] font-black text-primary uppercase tracking-widest">{platform}</span>}
-                              {phase && <span className="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[8px] font-black text-amber-600 uppercase tracking-widest">{phase}</span>}
-                              {format && <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[8px] font-black text-emerald-600 uppercase tracking-widest">{format}</span>}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="p-4 md:p-8 space-y-5 md:space-y-8">
-                        {/* Hook */}
-                        {hook && (
-                          <div>
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-[4px]">✦ Hook / Headline</span>
-                              <button onClick={() => { navigator.clipboard.writeText(hook); toast.success('Hook copied!'); }} className="w-7 h-7 rounded-lg bg-slate-50 text-slate-400 flex items-center justify-center">
-                                <Copy className="w-3 h-3" />
-                              </button>
-                            </div>
-                            <p className="text-lg md:text-2xl font-black text-slate-800 leading-snug select-all">{hook}</p>
-                            {subHeading && <p className="text-sm font-semibold text-slate-500 mt-1 select-all">{subHeading}</p>}
+                    <div className="space-y-5">
+                      {/* Hook */}
+                      {hook && (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-[4px]">✦ Hook / Headline</span>
+                            <button onClick={() => { navigator.clipboard.writeText(hook); toast.success('Hook copied!'); }} className="w-7 h-7 rounded-lg bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-primary hover:text-white transition-all">
+                              <Copy className="w-3 h-3" />
+                            </button>
                           </div>
-                        )}
+                          <p className="text-xl font-black text-slate-800 leading-snug select-all">{hook}</p>
+                          {subHeading && <p className="text-sm font-semibold text-slate-500 mt-1 select-all">{subHeading}</p>}
+                        </div>
+                      )}
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
-                          {/* Short Caption */}
-                          {shortCaption && (
-                            <div className="bg-slate-50 p-4 md:p-6 rounded-2xl md:rounded-[24px] border border-slate-100">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-[3px]">Short Caption</span>
-                                <button onClick={() => { navigator.clipboard.writeText(shortCaption); toast.success('Short caption copied!'); }} className="w-6 h-6 rounded-md bg-white text-slate-400 flex items-center justify-center shadow-sm">
-                                  <Copy className="w-3 h-3" />
-                                </button>
+                      <div className="h-px bg-slate-100" />
+
+                      {/* Captions */}
+                      <ContentBlock label="Short Caption" text={shortCaption} color="slate" />
+                      <ContentBlock label="Full Caption / Long Caption" text={longCaption} color="slate" />
+
+                      {/* CTA */}
+                      {ctaText && (
+                        <div className="p-4 rounded-2xl border bg-primary/5 border-primary/15">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[8px] font-black text-primary uppercase tracking-[3px]">Call To Action</span>
+                            <button onClick={() => { navigator.clipboard.writeText(ctaText); toast.success('CTA copied!'); }} className="w-6 h-6 rounded-lg bg-white text-primary flex items-center justify-center shadow-sm hover:bg-primary hover:text-white transition-all">
+                              <Copy className="w-3 h-3" />
+                            </button>
+                          </div>
+                          <p className="text-sm font-bold text-primary leading-relaxed select-all">{ctaText}</p>
+                        </div>
+                      )}
+
+                      {/* Carousel Breakdown */}
+                      {breakdown && selectedAsset?.assetType === 'carousel' && (
+                        <ContentBlock label="Slide Breakdown" text={String(breakdown)} color="indigo" />
+                      )}
+
+                      {/* Hashtags */}
+                      {hashtags.length > 0 && (
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-[4px]">Hashtags</span>
+                            <button onClick={() => { navigator.clipboard.writeText(hashtags.map(h => `#${h.replace('#','')}`).join(' ')); toast.success('All hashtags copied!'); }} className="px-3 h-7 bg-primary text-white text-[8px] font-black uppercase tracking-widest rounded-lg flex items-center gap-1.5 hover:scale-105 transition-all">
+                              <Copy className="w-3 h-3" /> Copy All
+                            </button>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {hashtags.map((tag, i) => (
+                              <button key={i} onClick={() => { navigator.clipboard.writeText(`#${String(tag).replace('#','')}`); toast.success('Copied!'); }} className="px-3 py-1.5 bg-slate-50 hover:bg-primary/5 border border-slate-100 hover:border-primary/30 rounded-xl text-[10px] font-bold text-slate-500 hover:text-primary transition-all">
+                                #{String(tag).replace('#', '')}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Variations (Storytelling, Problem-Solution etc.) */}
+                      {variations.length > 0 && (
+                        <div>
+                          <div className="h-px bg-slate-100 mb-5" />
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/20">
+                              <Layers className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-black text-slate-700 uppercase tracking-widest">Creative Variations</p>
+                              <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Storytelling · Problem-Solution</p>
+                            </div>
+                          </div>
+                          <div className="space-y-4">
+                            {variations.map((v, i) => (
+                              <div key={i} className="p-4 rounded-2xl border border-slate-100 bg-gradient-to-br from-white to-slate-50 hover:border-primary/20 transition-all">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="px-2.5 py-0.5 rounded-full bg-primary/5 text-primary text-[8px] font-black uppercase tracking-widest border border-primary/10">
+                                    {v.type || `Variation ${i + 1}`}
+                                  </span>
+                                  <button onClick={() => { navigator.clipboard.writeText(v.text || v); toast.success('Copied!'); }} className="w-7 h-7 rounded-lg bg-white text-slate-400 hover:bg-primary hover:text-white transition-all flex items-center justify-center shadow-sm border border-slate-100">
+                                    <Copy className="w-3 h-3" />
+                                  </button>
+                                </div>
+                                <p className="text-sm text-slate-600 font-medium leading-relaxed select-all">{v.text || v}</p>
                               </div>
-                              <p className="text-sm text-slate-600 font-medium leading-relaxed select-all">{shortCaption}</p>
-                            </div>
-                          )}
-
-                          {/* Long Caption */}
-                          {longCaption && (
-                            <div className="bg-slate-50 p-4 md:p-6 rounded-2xl md:rounded-[24px] border border-slate-100">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-[3px]">Long Caption</span>
-                                <button onClick={() => { navigator.clipboard.writeText(longCaption); toast.success('Long caption copied!'); }} className="w-6 h-6 rounded-md bg-white text-slate-400 flex items-center justify-center shadow-sm">
-                                  <Copy className="w-3 h-3" />
-                                </button>
-                              </div>
-                              <p className="text-sm text-slate-600 font-medium leading-relaxed select-all line-clamp-6">{longCaption}</p>
-                            </div>
-                          )}
+                            ))}
+                          </div>
                         </div>
-
-                        {/* Carousel Breakdown */}
-                        {breakdown && selectedAsset?.assetType === 'carousel' && (
-                          <div className="group bg-indigo-50/60 p-6 rounded-[24px] border border-indigo-100">
-                            <div className="flex items-center justify-between mb-3">
-                              <span className="text-[9px] font-black text-indigo-400 uppercase tracking-[3px]">Slide Breakdown</span>
-                              <button onClick={() => { navigator.clipboard.writeText(String(breakdown)); toast.success('Breakdown copied!'); }} className="w-7 h-7 rounded-lg bg-white text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all flex items-center justify-center shadow-sm">
-                                <Copy className="w-3 h-3" />
-                              </button>
-                            </div>
-                            <p className="text-sm text-indigo-700 font-medium leading-relaxed select-all whitespace-pre-line">{String(breakdown)}</p>
-                          </div>
-                        )}
-
-                        {/* Hashtags */}
-                        {hashtags.length > 0 && (
-                          <div>
-                            <div className="flex items-center justify-between mb-4">
-                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-[4px]">Hashtags</span>
-                              <button
-                                onClick={() => { navigator.clipboard.writeText(hashtags.map(h => `#${h.replace('#', '')}`).join(' ')); toast.success('All hashtags copied!'); }}
-                                className="px-4 h-8 bg-primary text-white text-[9px] font-black uppercase tracking-widest rounded-xl hover:scale-105 transition-all shadow-sm flex items-center gap-2"
-                              >
-                                <Copy className="w-3 h-3" /> Copy All
-                              </button>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {hashtags.map((tag, i) => (
-                                <button
-                                  key={i}
-                                  onClick={() => { navigator.clipboard.writeText(`#${String(tag).replace('#', '')}`); toast.success(`Copied!`); }}
-                                  className="px-4 py-2 bg-slate-50 hover:bg-primary/5 border border-slate-100 hover:border-primary/30 rounded-xl text-[10px] font-bold text-slate-500 hover:text-primary transition-all"
-                                >
-                                  #{String(tag).replace('#', '')}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                      )}
                     </div>
                   );
                 })()}
-
-                {/* Variant Orchestration Header */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/20 shadow-sm">
-                      <Layers className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h4 className="text-xl font-black text-slate-800 uppercase tracking-tight">AI Content Studio</h4>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Creative Variations & Angles</p>
-                    </div>
-                  </div>
-
-                </div>
-
-                {/* Variations Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {isGenerating ? (
-                    Array(3).fill(0).map((_, i) => (
-                      <div key={i} className="h-64 bg-white border border-slate-100 rounded-[32px] animate-pulse flex flex-col p-8 space-y-4">
-                        <div className="w-24 h-4 bg-slate-100 rounded-md" />
-                        <div className="flex-1 bg-slate-50 rounded-2xl" />
-                      </div>
-                    ))
-                  ) : variations.length > 0 ? variations.map((v, i) => (
-                    <div key={i} className="group bg-white p-8 rounded-[40px] border border-slate-100 hover:border-primary/30 transition-all duration-500 shadow-sm hover:shadow-xl relative flex flex-col h-full">
-                      <div className="flex justify-between items-start mb-6">
-                        <span className="px-4 py-1.5 rounded-full bg-primary/5 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/10">
-                          {v.type || `Variation ${i + 1}`}
-                        </span>
-                          <button
-                            onClick={() => { navigator.clipboard.writeText(v.text); toast.success("Variation Copied!"); }}
-                            className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:bg-primary hover:text-white transition-all flex items-center justify-center shadow-sm"
-                          >
-                          <Copy className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <p className="text-sm text-slate-600 font-medium leading-relaxed flex-1 select-all">
-                        {v.text || v}
-                      </p>
-                      <div className="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between opacity-40">
-                        <span className="text-[9px] font-black uppercase tracking-widest">Optimized for Platform</span>
-                        <Sparkles className="w-3 h-3" />
-                      </div>
-                    </div>
-                  )) : (
-                    <div className="col-span-full p-20 bg-white border border-dashed border-slate-200 rounded-[50px] text-center">
-                      <div className="w-20 h-20 rounded-full bg-slate-50 mx-auto flex items-center justify-center text-slate-300 mb-6">
-                        <BrainCircuit className="w-10 h-10 opacity-20" />
-                      </div>
-                      <h3 className="text-sm font-black text-slate-400 uppercase tracking-[4px]">Awaiting Content Generation</h3>
-                      <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest mt-2">Trigger regeneration to see fresh angles.</p>
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
+
           </Dialog.Panel>
         </div>
       </Dialog>
@@ -7978,9 +7864,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                   w => String(w._id) === String(savedWorkspaceId)
                 );
                 if (savedWs) {
-                  setWorkspace(savedWs);
-                  setCurrentEditingBrandId(savedWs._id);
-                  localStorage.setItem('brandWorkspaceId', String(savedWs._id));
+                  await switchWorkspace(savedWs);
                 }
               }
             }
@@ -8072,7 +7956,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                         </button>
 
                         {/* Inner Scrollable Content */}
-                        <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar flex flex-col p-6 lg:p-8">
+                        <div className={`flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar flex flex-col ${isSidebarCollapsed ? 'p-3' : 'p-6 lg:p-8'}`}>
 
                           {/* Back Button */}
                           {!isSidebarCollapsed && (
@@ -8104,7 +7988,21 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                             });
                           return (
                             <div className={`mb-6 ${isSidebarCollapsed ? 'px-1' : 'px-0'}`}>
-                              {!isSidebarCollapsed && (
+                              {isSidebarCollapsed ? (
+                                <div className="w-full flex justify-center mb-2">
+                                  <button
+                                    onClick={() => setActiveBrandsOpen(o => !o)}
+                                    title={`Brand History (${activeBrands.length})`}
+                                    className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all shadow-sm ${
+                                      activeBrandsOpen
+                                        ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-600'
+                                        : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/20 hover:border-emerald-500/40'
+                                    }`}
+                                  >
+                                    <Palette className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              ) : (
                                 <button
                                   onClick={() => setActiveBrandsOpen(o => !o)}
                                   className="w-full flex items-center gap-2 mb-2 px-1 py-1 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group"
@@ -8117,7 +8015,7 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                   <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${activeBrandsOpen ? 'rotate-180' : ''}`} />
                                 </button>
                               )}
-                              {((activeBrandsOpen && !isSidebarCollapsed) || (isSidebarCollapsed && activeBrands.length > 0)) && (
+                              {(activeBrandsOpen) && (
                                 <div className={`rounded-2xl bg-white/60 dark:bg-white/[0.03] border border-slate-100 dark:border-white/5 ${isSidebarCollapsed ? 'p-1.5' : 'p-2'} space-y-1 max-h-72 overflow-y-auto custom-scrollbar`}>
                                   
                                   {/* + CREATE NEW BRAND BUTTON */}
@@ -8218,32 +8116,36 @@ const AiSocialMediaDashboard = ({ isOpen, onClose, userPlan, isPremium, isAdmin 
                                     setIsMobileMenuOpen(false);
                                   }
                                 }}
-                                className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center py-5' : 'justify-between px-4 py-3'} rounded-2xl transition-all group ${isActive
+                                className={`flex items-center transition-all group ${
+                                  isSidebarCollapsed
+                                    ? 'w-12 h-12 justify-center mx-auto rounded-2xl'
+                                    : 'w-full justify-between px-4 py-3 rounded-2xl'
+                                } ${isActive
                                   ? 'bg-primary/10 border border-primary/20 shadow-sm'
-                                  : 'hover:bg-slate-50 dark:hover:bg-white/5'
-                                  } ${tab.comingSoon ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+                                  : 'hover:bg-slate-50 dark:hover:bg-white/5 border border-transparent'
+                                } ${tab.comingSoon ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
                                 title={isSidebarCollapsed ? tab.name : ''}
                               >
-                                <div className="flex items-center gap-3">
-                                  <div className={`w-6 h-6 flex items-center justify-center rounded-full border text-[9px] font-black shrink-0 transition-all ${isActive
-                                    ? 'bg-primary text-white border-primary shadow-[0_0_10px_rgba(99,102,241,0.4)]'
-                                    : isPast
-                                      ? 'bg-emerald-500 text-white border-emerald-500'
-                                      : 'bg-slate-100 dark:bg-white/5 text-slate-400 border-slate-200 dark:border-white/10'
-                                    }`}>
-                                    {isPast ? <Check className="w-3 h-3" /> : (idx + 1)}
-                                  </div>
-                                  {!isSidebarCollapsed && (
+                                {isSidebarCollapsed ? (
+                                  <tab.icon className={`w-5 h-5 ${isActive ? 'text-primary' : isPast ? 'text-emerald-500' : 'text-slate-400 group-hover:text-primary'} transition-colors shrink-0`} />
+                                ) : (
+                                  <div className="flex items-center gap-3">
+                                    <div className={`w-6 h-6 flex items-center justify-center rounded-full border text-[9px] font-black shrink-0 transition-all ${isActive
+                                      ? 'bg-primary text-white border-primary shadow-[0_0_10px_rgba(99,102,241,0.4)]'
+                                      : isPast
+                                        ? 'bg-emerald-500 text-white border-emerald-500'
+                                        : 'bg-slate-100 dark:bg-white/5 text-slate-400 border-slate-200 dark:border-white/10'
+                                      }`}>
+                                      {isPast ? <Check className="w-3 h-3" /> : (idx + 1)}
+                                    </div>
                                     <tab.icon className={`w-4 h-4 ${isActive ? 'text-primary' : isPast ? 'text-emerald-500' : 'text-slate-400 group-hover:text-primary'} transition-colors shrink-0`} />
-                                  )}
-                                  {!isSidebarCollapsed && (
                                     <span className={`text-[10px] sm:text-xs font-black uppercase tracking-widest animate-in fade-in slide-in-from-left-2 ${isActive ? 'text-primary' : isPast ? 'text-emerald-500' : 'text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300'
                                       }`}>
                                       {tab.name}
                                     </span>
-                                  )}
-                                </div>
-                                {(!tab.comingSoon || !isSidebarCollapsed) && tab.comingSoon && <span className="text-[7px] font-black bg-slate-200 dark:bg-white/10 px-1.5 py-0.5 rounded text-slate-500 uppercase">Soon</span>}
+                                  </div>
+                                )}
+                                {!isSidebarCollapsed && (!tab.comingSoon || !isSidebarCollapsed) && tab.comingSoon && <span className="text-[7px] font-black bg-slate-200 dark:bg-white/10 px-1.5 py-0.5 rounded text-slate-500 uppercase">Soon</span>}
                               </button>
                             );
                           })}

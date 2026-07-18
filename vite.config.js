@@ -61,6 +61,14 @@ export default defineConfig({
   server: {
     host: true,
     allowedHosts: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        timeout: 600000,
+        proxyTimeout: 600000,
+      }
+    }
   },
   build: {
     outDir: 'dist',

@@ -8,7 +8,7 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 180000, // 180 second timeout for complex AI/multi-doc processing
+  timeout: 300000, // 300 second timeout for complex AI/multi-doc processing
 });
 
 // Request interceptor for adding auth token
@@ -1924,7 +1924,7 @@ export const apiService = {
 
   async generateManualSocialPost(payload) {
     try {
-      const response = await apiClient.post('/social-agent/generate/manual', payload);
+      const response = await apiClient.post('/social-agent/generate/manual', payload, { timeout: 600000 });
       return response.data;
     } catch (error) {
       console.error("Failed to generate manual post:", error);
