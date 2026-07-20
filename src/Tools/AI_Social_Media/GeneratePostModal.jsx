@@ -243,7 +243,7 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate, isManua
           {/* Main Content */}
           <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
             {/* Left Column (Scrollable Form) */}
-            <div className="flex-1 overflow-y-auto p-6 sm:p-10 space-y-10 custom-scrollbar relative">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-10 space-y-6 sm:space-y-10 custom-scrollbar relative">
               {isGenerating && (
                 <div className="absolute inset-0 z-10 bg-white/50 dark:bg-[#151928]/50 backdrop-blur-[2px] pointer-events-auto" />
               )}
@@ -251,7 +251,7 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate, isManua
               {/* SECTION 1 — Social Media Platform */}
               <section className="space-y-4">
                 <label className="text-xs font-black uppercase tracking-widest text-slate-400">1. Social Media Platform <span className="text-red-500">*</span></label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 gap-3">
                   {platforms.map(p => {
                     const isSelected = selectedPlatforms.includes(p.name);
                     return (
@@ -311,7 +311,7 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate, isManua
               </section>
 
               {/* SECTION 3 & 4 — AI Prompt & Reference Media side-by-side */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
                 {/* SECTION 3 — AI Prompt */}
                 <section className="space-y-4">
                   <label className="text-xs font-black uppercase tracking-widest text-slate-400 h-5 flex items-center">3. AI Prompt</label>
@@ -421,7 +421,7 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate, isManua
               </section>
 
               {/* SECTION 6 & 7 — Target Audience & Tone of Voice side-by-side */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
                 <section className="space-y-4">
                   <label className="text-xs font-black uppercase tracking-widest text-slate-400 h-5 flex items-center">6. Target Audience</label>
                   <div className="flex flex-wrap gap-2">
@@ -472,7 +472,7 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate, isManua
               </div>
 
               {/* SECTION 7 & 8 — Enhancements & Length */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
                 <section className="space-y-4">
                   <label className="text-xs font-black uppercase tracking-widest text-slate-400">8. AI Enhancements</label>
                   <div className="space-y-2">
@@ -529,7 +529,7 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate, isManua
               {/* SECTION 10 — What do you want to generate? */}
               <section className="space-y-4 pt-6 border-t border-slate-100 dark:border-white/5">
                 <label className="text-xs font-black uppercase tracking-widest text-slate-400">10. What do you want to generate? <span className="text-red-500">*</span></label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 gap-3">
                   {[
                     { id: 'caption', name: 'Caption', icon: FileText, desc: 'Generate post copy' },
                     { id: 'hashtag', name: 'Hashtag', icon: Hash, desc: 'Generate trending tags' },
@@ -688,22 +688,22 @@ export default function GeneratePostModal({ isOpen, onClose, onGenerate, isManua
           </div>
 
           {/* Footer */}
-          <div className="p-6 sm:px-10 sm:py-6 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-[#1E2438] flex justify-between items-center shrink-0">
+          <div className="p-4 sm:px-10 sm:py-6 border-t border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-[#1E2438] flex justify-between items-center gap-3 shrink-0">
             <button
               onClick={onClose}
               disabled={isGenerating}
-              className="px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs text-slate-500 hover:text-slate-800 dark:hover:text-white transition-all disabled:opacity-50"
+              className="px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-black uppercase tracking-widest text-[10px] sm:text-xs text-slate-500 hover:text-slate-800 dark:hover:text-white transition-all disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               onClick={() => handleGenerate(selectedGenerateModes)}
               disabled={isGenerating || selectedPlatforms.length === 0 || !postTopic || (isManual && !description && referenceMedia.length === 0)}
-              className="px-8 py-3.5 rounded-xl font-black uppercase tracking-[2px] text-xs bg-primary text-white shadow-xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50 disabled:hover:scale-100"
+              className="px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl font-black uppercase tracking-[2px] text-[10px] sm:text-xs bg-primary text-white shadow-xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 sm:gap-3 disabled:opacity-50 disabled:hover:scale-100"
             >
               {isGenerating ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Generating...
                 </>
               ) : (
